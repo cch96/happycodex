@@ -1,109 +1,107 @@
 # Native Codex Loop Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+**Goal:** Deliver and validate a personal Codex plugin for long tasks with one root
+writer, evidence-driven planning, bounded investigative delegation, and an independent
+native completion review.
 
-**Goal:** Deliver and validate a personal Codex plugin that runs long tasks with a single root writer, evidence-driven planning, safe read-only delegation, and an independent completion review.
+**Architecture:** A plugin Skill controls decisions. Goal, native plan state, Git, and
+tests retain execution evidence. A temporary clean Codex process invokes the native
+review harness at Sol/max/read-only and emits a verified receipt. A managed AGENTS block
+improves implicit Skill uptake without changing Codex config or installing custom agents.
 
-**Architecture:** A plugin-distributed Skill controls decisions; a transactional setup script installs a standalone read-only reviewer because plugin manifests cannot register custom agents. Native Goal, plan state, Git, and tests retain execution state; hooks and mandatory ExecPlan files stay out of V1.
+**Tech stack:** Markdown plugin/Skill, Python standard library, `unittest`, Git, Codex CLI
+0.144.1.
 
-**Tech Stack:** Codex plugin/Skill Markdown, TOML, Python 3 standard library, `unittest`, Git, Codex CLI 0.144.1.
+## Global constraints
 
-## Global Constraints
+- Root is the only writer; children are non-writing investigative advisors.
+- Runtime uses no external model, MCP, hook, recursive delegation, or multi-writer flow.
+- Review must prove fresh Sol/max/read-only, approval never, and restricted network.
+- Final HEAD must equal the latest successful review receipt; maximum two reviews.
+- Configuration preserves unrelated bytes and fails closed on masking, drift, or symlinks.
+- Fable change packet remains within 20 files and 2,000 changed textual lines.
 
-- Codex root is the only writer; all subagents are read-only.
-- Runtime uses no external model, MCP, hook, recursive agent, or automatic multi-writer worktree.
-- Reviewer is `gpt-5.6-sol`, `model_reasoning_effort = "max"`, and `sandbox_mode = "read-only"`.
-- Setup never edits `config.toml` and fails closed on collisions, malformed markers, overrides, or drift.
-- Review is bounded to one initial pass and one optional fresh pass after confirmed fixes.
+## Task 1: Freeze evidence and contracts — complete
 
----
+**Files:** `tests/fixtures/storyboard-red-baseline.json`, configuration/contract tests.
 
-### Task 1: Freeze RED evidence and configuration contracts
+- [x] Record immutable Storyboard agent-call count, missed seams, report path, and hash.
+- [x] Write RED tests for configuration safety, plugin surfaces, packet fields, and review.
+- [x] Capture no-Skill versus Skill behavior-pressure evidence.
 
-**Files:**
-- Create: `tests/fixtures/storyboard-red-baseline.json`
-- Create: `tests/test_configure.py`
-- Create: `tests/test_contracts.py`
+## Task 2: Resolve reviewer routing experimentally — complete
 
-**Interfaces:**
-- Consumes: the Storyboard four-arm result and the design document.
-- Produces: executable expectations for `scripts.configure` and all plugin artifacts.
+**Interfaces:** clean HOME/CODEX_HOME preflights and rollout inspection.
 
-- [ ] Record the immutable Storyboard RED facts: Codex-native agent calls `0`, the two missed seams, and frozen source report path.
-- [ ] Write `unittest` cases for install, doctor, uninstall, idempotence, collision, override, malformed markers, and drift.
-- [ ] Write artifact contract tests for manifest, Skill, packet reference, and reviewer TOML.
-- [ ] Run `python3 -m unittest discover -s tests -v`; expect import/file failures because implementation does not exist.
+- [x] Test the named custom-agent design for discovery, freshness, effort, and sandbox.
+- [x] Observe that task naming does not apply its model/effort config under Sol
+  MultiAgent V2; remove the invalid production path.
+- [x] Compare generic exec, argv injection, isolated config, and profile injection.
+- [x] Select isolated config plus native `codex exec review --base`, which preserves the
+  native review harness without exposing the task packet in argv.
 
-### Task 2: Implement the transactional custom-agent setup
+## Task 3: Implement reversible trigger configuration — complete
 
-**Files:**
-- Create: `scripts/configure.py`
-- Create: `assets/agents/native-codex-reviewer.toml`
+**Files:** `scripts/configure.py`, `tests/test_configure.py`.
 
-**Interfaces:**
-- Produces: `install(codex_home, plugin_root, with_guidance)`, `doctor(codex_home, plugin_root)`, `uninstall(codex_home, plugin_root)`, and CLI subcommands with JSON output.
+- [x] Implement `enable`, `doctor`, and `disable` without custom agents/config changes.
+- [x] Preserve exact AGENTS bytes and mode; use unique markers and atomic writes.
+- [x] Reject symlinks, non-empty override, malformed/unmanaged markers, and drift.
+- [x] Test rollback, idempotence, CLI CODEX_HOME routing, and exact restoration.
 
-- [ ] Implement preflight validation and name scanning before writes.
-- [ ] Implement atomic `0600` writes, state hashes, exact managed-block insertion/removal, and drift rejection.
-- [ ] Run `python3 -m unittest tests.test_configure -v`; expect all setup tests to pass.
-- [ ] Refactor only after the full test module remains green.
+## Task 4: Implement the Skill and native review runner — in progress
 
-### Task 3: Scaffold and author the plugin Skill
+**Files:** plugin manifest, Skill/packets, `scripts/review_runner.py`, runner tests.
 
-**Files:**
-- Create: `.codex-plugin/plugin.json`
-- Create: `skills/native-codex-loop/SKILL.md`
-- Create: `skills/native-codex-loop/agents/openai.yaml`
-- Create: `skills/native-codex-loop/references/packets.md`
+- [x] Author Goal-aware evidence/recovery loop and dirty-worktree routing.
+- [x] Define complete delegation/review/disposition packets and root-only integration.
+- [x] Make post-review mutation force a second review; cap at two and require SHA match.
+- [x] Reject dirty source, non-ancestor base, nested output, and non-empty output.
+- [x] Use a head-only bundle clone; disable project docs and nonessential capabilities.
+- [x] Keep auth/runtime temporary and verify inner review context and unchanged trees.
+- [x] Add wall-clock timeout, process-group cleanup, runtime/artifact hashes, and tests.
+- [ ] Re-run full tests, linters/compilation, official Skill/plugin validators, and a clean
+  real-CLI review after final refactoring.
 
-**Interfaces:**
-- Consumes: custom agent name `native_codex_reviewer` and the packet fields specified by the design.
-- Produces: implicit/explicit Skill discovery and a complete execution/review protocol.
+## Task 5: Commit and obtain independent reviews — pending
 
-- [ ] Run the official plugin and Skill scaffold helpers.
-- [ ] Replace placeholders with minimal trigger metadata, workflow instructions, packet contracts, and UI prompts.
-- [ ] Run `python3 -m unittest tests.test_contracts -v`; expect all contract tests to pass.
-- [ ] Run Skill quick validation and plugin validation; expect exit code `0` from both.
+**Artifacts:** external task/test packet, immutable base/head, native review and Fable
+receipts.
 
-### Task 4: Isolated capability and behavior preflight
+- [ ] Keep changed file/line counts within the Fable packet contract.
+- [ ] Commit a clean implementation head and run this plugin's own native review gate.
+- [ ] Reproduce every finding; add regression tests before confirmed fixes.
+- [ ] Run the bundled Fable review once on the clean committed range and independently
+  disposition findings. Use its second invocation only for confirmed fix IDs.
+- [ ] If any fix changes task artifacts, create and review a new immutable head.
 
-**Files:**
-- Create: `scripts/preflight.py`
-- Test: `tests/test_preflight.py`
+## Task 6: Install and clean-home preflight — pending
 
-**Interfaces:**
-- Produces: a temporary clean-home run directory and a machine-readable receipt proving discovery, freshness, and read-only behavior.
+- [ ] Create/update the personal marketplace via the plugin-creator helper.
+- [ ] Sync the verified source to `~/plugins/native-codex-loop` and install it.
+- [ ] Enable the managed trigger bridge only after snapshotting current user state.
+- [ ] Under an isolated HOME/CODEX_HOME, prove Skill discovery, no custom enhancements,
+  real native review, exact runtime context, secret cleanup, and final-SHA gate behavior.
+- [ ] Run three fresh long-task pressure cases and require three of three review receipts.
 
-- [ ] Test command construction, secret-safe copying, tree hashes, and receipt parsing before implementing the runner.
-- [ ] Run a nonce custom-agent preflight under isolated `HOME` and `CODEX_HOME`.
-- [ ] Run a behavioral Skill pressure scenario and inspect JSONL for reviewer use, no child writes, and withheld premature completion.
-- [ ] If custom-agent freshness or read-only enforcement fails, stop and switch to the documented ephemeral-review backup.
+## Task 7: Matched Storyboard replay — pending
 
-### Task 5: Verify, commit, and obtain Fable review
+**Inputs:** historical R0 `0d66b59`, common base `816ca31`, original seven-test oracle,
+and two frozen supplemental route-seam regressions.
 
-**Files:**
-- Create outside repo: task, test receipt, packet, and review receipt.
+- [ ] Construct an R0-only candidate Git object set; keep later commits/oracles outside
+  the candidate's readable OS boundary and keep tooling offline.
+- [ ] Arm A freezes R0 without review. Arm B exposes only the plugin's fresh review/fix
+  intervention, preserving B-R0 and B-R1.
+- [ ] Reviewer and fixer cannot see historical answers, Claude output, or hidden tests.
+- [ ] After freeze, run identical full pytest, Ruff, mypy, seven original hidden tests,
+  and the fabricated-visible-delta and missing-storyboard-IR regressions.
+- [ ] Report review discovery yield, confirmed fixes, no-regression result, token/time,
+  repeated work, and limitations. Do not call this a Goal/compaction causal test.
 
-**Interfaces:**
-- Produces: immutable base/head commits and dispositioned Fable findings.
+## Stop conditions
 
-- [ ] Run full unit tests and both official validators fresh.
-- [ ] Commit a clean implementation head and capture base/head SHA.
-- [ ] Run the bundled Fable prepare/run flow once in the foreground.
-- [ ] Reproduce every finding; write regression tests before fixes; rerun full verification.
-- [ ] Use the optional second Fable invocation only for confirmed fixed finding IDs.
-
-### Task 6: Paired Storyboard replay
-
-**Files:**
-- Create under the benchmark control directory: neutral common base, A/B manifests, prompts, logs, R0/R1 SHAs, verification receipts, and result report.
-
-**Interfaces:**
-- Consumes: `base-four-arm.bundle`, unchanged `TASK.md`, original 7-test oracle, and two frozen supplemental regression oracles.
-- Produces: normal Goal arm A, plugin Goal arm B, B-R0/B-R1, and comparable process/quality metrics.
-
-- [ ] Create two independent clones from a protocol-neutral common SHA with isolated homes and equal resources.
-- [ ] Preflight A cannot see the Skill/reviewer; B can discover it and cannot write from the reviewer.
-- [ ] Run both arms with max planning, sol-high execution, Goal, offline tooling, and the same wall-clock limit.
-- [ ] Freeze candidates before mounting hidden tests; verify full pytest, Ruff, mypy, 7 original hidden tests, and 2 supplemental oracles.
-- [ ] Report overall A/B outcome and the reviewer-specific R0→R1 yield without treating historical cross-task results as causal.
+Do not install or claim success if the real preflight cannot prove fresh/max/read-only,
+credentials survive cleanup, final HEAD differs from the receipt, Fable integrity fails,
+or Storyboard review finds neither known route seam. Report the failed gate and preserve
+artifacts instead of silently weakening it.
