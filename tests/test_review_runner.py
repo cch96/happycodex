@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import io
 import json
 import os
 from pathlib import Path
@@ -11,6 +12,7 @@ import tempfile
 import time
 import unittest
 from unittest import mock
+from contextlib import redirect_stdout
 
 from scripts import review_runner
 
@@ -65,16 +67,38 @@ class ReviewRunnerTests(unittest.TestCase):
         (source / "models_cache.json").write_text('{"models":[]}\n', encoding="utf-8")
         return source
 
+    def make_contract(self, root: Path, base: str) -> Path:
+        contract = root / "task-contract.md"
+        contract.write_text(
+            "# Task Contract\n\n"
+            "Objective: add one reviewed line.\n"
+            "Acceptance: preserve the base line and add the head line.\n"
+            "Exclusions: no other behavior.\n"
+            f"Baseline: {base}\n"
+            "Goal thread ID: none\n"
+            f"Goal objective SHA256: {'b' * 64}\n"
+            "Verification: inspect the exact base-to-head diff.\n",
+            encoding="utf-8",
+        )
+        contract.chmod(0o600)
+        return contract
+
     def make_packet(self, root: Path, base: str, head: str) -> Path:
+        contract = self.make_contract(root, base)
+        contract_text = contract.read_text(encoding="utf-8").rstrip()
+        contract_hash = hashlib.sha256(contract.read_bytes()).hexdigest()
         packet = root / "packet.md"
         packet.write_text(
             "# Review packet\n\n"
             "- Objective: review the feature change.\n"
             f"- Base commit: `{base}`\n"
             f"- Head commit: `{head}`\n"
-            f"- Task contract SHA256: `{'a' * 64}`\n"
+            f"- Task contract SHA256: `{contract_hash}`\n"
             "- Acceptance: feature.txt gains one line without changing the first.\n"
-            "- Verification receipt: focused test exit 0.\n",
+            "- Verification receipt: focused test exit 0.\n\n"
+            "--- TASK CONTRACT START ---\n"
+            f"{contract_text}\n"
+            "--- TASK CONTRACT END ---\n",
             encoding="utf-8",
         )
         return packet
@@ -85,7 +109,7 @@ class ReviewRunnerTests(unittest.TestCase):
             "#!/usr/bin/env python3\n"
             "import json, os, pathlib, re, shlex, subprocess, sys, time\n"
             "if '--version' in sys.argv:\n"
-            " print('codex-cli 0.144.1-fixture')\n"
+            " print((pathlib.Path(os.environ['CODEX_HOME']) / 'auth.json').read_text() if os.environ.get('NCL_FAKE_VERSION_LEAK') else 'codex-cli 0.144.1-fixture')\n"
             " raise SystemExit(0)\n"
             "if len(sys.argv) > 1 and sys.argv[1] == 'sandbox':\n"
             " raise SystemExit(19 if os.environ.get('NCL_FAKE_PREFLIGHT_FAIL') else 0)\n"
@@ -119,8 +143,6 @@ class ReviewRunnerTests(unittest.TestCase):
             "]\n"
             "if os.environ.get('NCL_FAKE_FORBIDDEN'):\n"
             " reviewer.append({'type':'response_item','payload':{'type':'custom_tool_call','name':'exec','input':'await tools.web__run({})'}})\n"
-            "(session_dir / 'outer.jsonl').write_text(''.join(json.dumps(x)+'\\n' for x in outer), encoding='utf-8')\n"
-            "(session_dir / 'review.jsonl').write_text(''.join(json.dumps(x)+'\\n' for x in reviewer), encoding='utf-8')\n"
             "result = {'findings':[],'overall_correctness':'patch is correct','overall_explanation':'No actionable findings.','review_root':str(pathlib.Path.cwd())}\n"
             "if os.environ.get('NCL_FAKE_LEAK_AUTH'):\n"
             " result['leak'] = (home / 'auth.json').read_text(encoding='utf-8')\n"
@@ -131,9 +153,17 @@ class ReviewRunnerTests(unittest.TestCase):
             " print(json.dumps({'type':'item.started','item':{'id':'early','type':'command_execution','command':'cat '+str(home / 'auth.json'),'status':'in_progress'}}))\n"
             "canary_event = '/bin/bash -c ' + shlex.quote(canary_command + (' || true' if os.environ.get('NCL_FAKE_DECEPTIVE_CANARY') else ''))\n"
             "proof_event = f'git diff --check {base}..{head}' if os.environ.get('NCL_FAKE_DIFF_CHECK_ONLY') else f'git diff {base}..{head}'\n"
-            "print(json.dumps({'type':'item.completed','item':{'type':'command_execution','command':canary_event,'aggregated_output':'','exit_code':0}}))\n"
-            "print(json.dumps({'type':'item.completed','item':{'type':'command_execution','command':proof_event,'aggregated_output':'' if os.environ.get('NCL_FAKE_DIFF_CHECK_ONLY') else 'diff --git evidence','exit_code':0}}))\n"
-            "print(json.dumps({'type':'item.completed','item':{'type':'agent_message','text':'   ' if os.environ.get('NCL_FAKE_BLANK_MESSAGE') else json.dumps(result)}}))\n"
+            "review_text = '   ' if os.environ.get('NCL_FAKE_BLANK_MESSAGE') else json.dumps(result)\n"
+            "outer_text = '   ' if os.environ.get('NCL_FAKE_BLANK_MESSAGE') else result['overall_explanation']\n"
+            "reviewer.append({'type':'response_item','payload':{'type':'message','role':'assistant','content':[{'type':'output_text','text':review_text}]}})\n"
+            "outer.append({'type':'response_item','payload':{'type':'message','role':'assistant','content':[{'type':'output_text','text':'different' if os.environ.get('NCL_FAKE_OUTER_VERDICT_MISMATCH') else outer_text}]}})\n"
+            "(session_dir / 'outer.jsonl').write_text(''.join(json.dumps(x)+'\\n' for x in outer), encoding='utf-8')\n"
+            "(session_dir / 'review.jsonl').write_text(''.join(json.dumps(x)+'\\n' for x in reviewer), encoding='utf-8')\n"
+            "print(json.dumps({'type':'item.started','item':{'id':'canary','type':'command_execution','command':canary_event,'status':'in_progress'}}))\n"
+            "print(json.dumps({'type':'item.completed','item':{'id':'canary','type':'command_execution','command':canary_event,'aggregated_output':'','exit_code':0}}))\n"
+            "print(json.dumps({'type':'item.started','item':{'id':'diff','type':'command_execution','command':proof_event,'status':'in_progress'}}))\n"
+            "print(json.dumps({'type':'item.completed','item':{'id':'diff','type':'command_execution','command':proof_event,'aggregated_output':'' if os.environ.get('NCL_FAKE_DIFF_CHECK_ONLY') else 'diff --git evidence','exit_code':0}}))\n"
+            "print(json.dumps({'type':'item.completed','item':{'type':'agent_message','text':outer_text}}))\n"
             "if not os.environ.get('NCL_FAKE_NO_COMPLETED'):\n"
             " print(json.dumps({'type':'turn.completed','usage':{'input_tokens':10,'output_tokens':5}}))\n",
             encoding="utf-8",
@@ -147,12 +177,22 @@ class ReviewRunnerTests(unittest.TestCase):
             "base": base,
             "head": head,
             "packet": self.make_packet(root, base, head),
+            "task_contract": root / "task-contract.md",
             "output": root / "output",
             "source_codex_home": self.make_source_home(root),
             "codex_binary": self.make_fake_codex(root),
         }
         arguments.update(overrides)
-        return review_runner.run_review(**arguments)
+        inherited = {
+            key: value for key, value in os.environ.items() if key.startswith("NCL_")
+        }
+        original = review_runner._codex_environment
+        with mock.patch.object(
+            review_runner,
+            "_codex_environment",
+            side_effect=lambda *args: {**original(*args), **inherited},
+        ):
+            return review_runner.run_review(**arguments)
 
     def test_run_review_is_fresh_max_read_only_and_writes_receipt(self) -> None:
         root = self.make_temp()
@@ -162,9 +202,8 @@ class ReviewRunnerTests(unittest.TestCase):
         receipt = self.invoke(root, repo, base, head, output=output)
 
         self.assertTrue(receipt["ok"], receipt)
-        review = json.loads((output / "review.md").read_text(encoding="utf-8"))
-        self.assertEqual(review["findings"], [])
-        self.assertEqual(review["review_root"], str(repo))
+        review = (output / "review.md").read_text(encoding="utf-8")
+        self.assertEqual(review, "No actionable findings.\n")
         persisted = json.loads((output / "receipt.json").read_text(encoding="utf-8"))
         self.assertEqual(persisted["base"], base)
         self.assertEqual(persisted["head"], head)
@@ -193,7 +232,10 @@ class ReviewRunnerTests(unittest.TestCase):
             persisted["review_runner_sha256"],
             hashlib.sha256(Path(review_runner.__file__).read_bytes()).hexdigest(),
         )
-        self.assertEqual(persisted["task_contract_sha256"], "a" * 64)
+        self.assertEqual(
+            persisted["task_contract_sha256"],
+            hashlib.sha256((root / "task-contract.md").read_bytes()).hexdigest(),
+        )
         self.assertEqual(
             persisted["source_git_visible_sha256_before"],
             persisted["source_git_visible_sha256_after"],
@@ -289,6 +331,27 @@ class ReviewRunnerTests(unittest.TestCase):
         )
 
         self.assertEqual(environment["PATH"].split(os.pathsep)[0], str(aliases))
+
+    def test_runtime_environments_drop_host_credentials_proxies_and_loaders(self) -> None:
+        root = self.make_temp()
+        aliases = root / "aliases"
+        with mock.patch.dict(
+            os.environ,
+            {
+                "OPENAI_API_KEY": "sentinel-key",
+                "HTTPS_PROXY": "http://sentinel.invalid",
+                "LD_PRELOAD": "/tmp/sentinel.so",
+                "PYTHONPATH": "/tmp/sentinel-python",
+            },
+        ):
+            codex = review_runner._codex_environment(
+                root / "home", root / "codex", root, aliases
+            )
+            git = review_runner._git_environment(root / "home")
+        for environment in (codex, git):
+            for key in ("OPENAI_API_KEY", "HTTPS_PROXY", "LD_PRELOAD", "PYTHONPATH"):
+                self.assertNotIn(key, environment)
+            self.assertEqual(environment["GIT_NO_LAZY_FETCH"], "1")
 
     def test_pid_namespace_contains_detached_children_on_exit_and_timeout(self) -> None:
         unshare = review_runner._resolve_containment_binary()
@@ -476,6 +539,18 @@ class ReviewRunnerTests(unittest.TestCase):
         )
         self.assertNotIn(b"AUTH_FIXTURE_SECRET_12345", persisted)
 
+    def test_run_review_rejects_credential_output_from_version_probe(self) -> None:
+        root = self.make_temp()
+        repo, base, head = self.make_repo(root)
+        output = root / "output"
+        with mock.patch.dict(os.environ, {"NCL_FAKE_VERSION_LEAK": "1"}):
+            with self.assertRaises(review_runner.ReviewRunnerError):
+                self.invoke(root, repo, base, head, output=output)
+        persisted = b"\n".join(
+            path.read_bytes() for path in output.rglob("*") if path.is_file()
+        )
+        self.assertNotIn(b"AUTH_FIXTURE_SECRET_12345", persisted)
+
     def test_run_review_binds_completed_event_stream_to_outer_rollout(self) -> None:
         for environment in (
             {"NCL_FAKE_THREAD_ID": "different"},
@@ -499,6 +574,7 @@ class ReviewRunnerTests(unittest.TestCase):
             {"NCL_FAKE_EARLY_COMMAND": "1"},
             {"NCL_FAKE_WRONG_PROMPT_ROLE": "1"},
             {"NCL_FAKE_OUTER_PROMPT_LEAK": "1"},
+            {"NCL_FAKE_OUTER_VERDICT_MISMATCH": "1"},
         ):
             with self.subTest(environment=environment):
                 root = self.make_temp()
@@ -609,6 +685,7 @@ class ReviewRunnerTests(unittest.TestCase):
             "base": base,
             "head": head,
             "packet": packet,
+            "task_contract": root / "task-contract.md",
             "source_codex_home": source,
             "codex_binary": fake,
         }
@@ -643,10 +720,35 @@ class ReviewRunnerTests(unittest.TestCase):
                 base=base,
                 head=head,
                 packet=self.make_packet(root, base, head),
+                task_contract=root / "task-contract.md",
                 source_codex_home=source,
                 codex_binary=self.make_fake_codex(root),
             )
         self.assertEqual(list(external.iterdir()), [])
+
+    def test_cli_requires_and_routes_task_contract(self) -> None:
+        root = self.make_temp()
+        contract = root / "contract.md"
+        with mock.patch.object(
+            review_runner, "run_series_review", return_value={"ok": True}
+        ) as run:
+            with redirect_stdout(io.StringIO()):
+                exit_code = review_runner.main(
+                    [
+                        "--repo",
+                        str(root),
+                        "--base",
+                        "base",
+                        "--head",
+                        "head",
+                        "--packet",
+                        str(root / "packet.md"),
+                        "--task-contract",
+                        str(contract),
+                    ]
+                )
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(run.call_args.kwargs["task_contract"], contract)
 
 
 if __name__ == "__main__":
