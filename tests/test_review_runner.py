@@ -296,6 +296,17 @@ class ReviewRunnerTests(unittest.TestCase):
         self.assertIn("--base", command)
         self.assertIn(base, command)
         self.assertNotIn("-", command)
+
+    def test_run_review_preserves_json_when_repo_path_needs_escaping(self) -> None:
+        root = self.make_temp() / 'has"quote'
+        root.mkdir()
+        repo, base, head = self.make_repo(root)
+        output = root / "review-output"
+
+        self.assertTrue(self.invoke(root, repo, base, head, output=output)["ok"])
+
+        review = json.loads((output / "review.md").read_text(encoding="utf-8"))
+        self.assertEqual(review["review_root"], str(repo))
         rendered = " ".join(command)
         for phrase in (
             "exec review",
