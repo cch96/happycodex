@@ -29,7 +29,8 @@ repository identity, and frozen task baseline. `series.json` counts every starte
 invocation (including failures) and caps that identity at two. Each
 successful `attempt-N/` contains:
 
-- `packet.md`: the exact clone-adjusted context given to the reviewer;
+- `packet.md`: the exact source packet given to the reviewer; its repository path is
+  provenance only, while inspection is confined to the reviewer's current clone;
 - `review.md`: native review findings;
 - `preflight.log`, `events.jsonl`, and `stderr.log`: isolation and execution evidence;
 - `receipt.json`: base/head, Task Contract and runner hashes, actual runtime policy,
