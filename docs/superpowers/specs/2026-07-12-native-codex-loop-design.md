@@ -90,8 +90,9 @@ HOME/CODEX_HOME receives only auth, optional model cache, and a generated
 injection. Plugins, apps, hooks, multi-agent, browser, image, computer, and web features
 are disabled. Runtime rollout evidence must confirm Sol/max/read-only/never/restricted.
 
-The runner derives and binds one durable review series to the canonical repository and frozen task
-base, records attempts before execution, and refuses a third call or an empty review
+The runner reads a private immutable Task Contract, verifies its exact inlined packet
+block and hash, and binds one durable review series to the canonical repository and frozen task
+base. It records attempts before execution and refuses a third call or an empty review
 range. Credentials, config, sessions, and clone exist only in a temporary directory that is
 deleted on success, error, or timeout. Persisted artifacts are the reviewed packet,
 native review, JSONL events, stderr, and a receipt with runtime values and hashes. Source
@@ -99,13 +100,16 @@ and clone HEAD/full content plus source HEAD/Git-visible content are checked bef
 after review. Clone paths in findings are mapped back to the canonical source path.
 
 The receipt is an auditable run record, not a cryptographic signature. Read-only Codex
-uses a positive filesystem allowlist. Before model launch a native sandbox preflight
-proves that credentials/config are unreadable while the clone and helper are readable;
+uses a positive filesystem allowlist. Credentials/canary live in private user-runtime
+tmpfs while helper/config/clone remain in the CLI-compatible temporary path. Before model
+launch a native sandbox preflight proves source, packet, contract, credentials/config are
+unreadable, network is denied, and only the clone/helper are readable;
 the reviewer must repeat an exact credential canary before an exact base-to-head diff.
 Turn context rejects unknown host grants. Every Codex process is wrapped in an
 unprivileged Linux user/PID/mount namespace so detached descendants die on normal exit
 or timeout. Historical-oracle experiments still make oracle repositories inaccessible
-outside the candidate runtime. V1 requires Linux `unshare`, a readable `auth.json`, and
+outside the candidate runtime. V1 requires Linux `/usr/bin/unshare`, private
+`/run/user/<uid>` tmpfs, a readable `auth.json`, and
 the tested CLI contract; real preflight must be rerun after Codex CLI upgrades.
 
 ## Global configuration boundary

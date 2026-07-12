@@ -61,6 +61,8 @@ global Codex configuration or installs custom agents.
 - [x] Use a head-only bundle clone; disable project docs and nonessential capabilities.
 - [x] Keep auth/runtime temporary and verify inner review context and unchanged trees.
 - [x] Add wall-clock timeout, Linux PID-namespace cleanup, runtime/artifact hashes, and tests.
+- [x] Bind an external mode-0600 Task Contract, sanitize parent environments, keep
+  credentials on private tmpfs, and preflight filesystem plus network denial.
 - [ ] Re-run full tests, linters/compilation, official Skill/plugin validators, and a clean
   real-CLI review after final refactoring.
 

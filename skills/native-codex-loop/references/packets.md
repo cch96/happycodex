@@ -23,6 +23,8 @@ Use one packet per independent question. If two packets can change the same file
 - **Head commit:** Clean candidate SHA; require the reviewer to verify it before reviewing.
 - **Task contract SHA256:** Hash of the immutable start contract. Inline that contract's
   exact objective, criteria, exclusions, baseline, Goal binding, and verification map.
+  Delimit the exact text with `--- TASK CONTRACT START ---` and
+  `--- TASK CONTRACT END ---`; pass the same file through `--task-contract`.
 - **Task and acceptance criteria:** Inline the frozen text. A path plus hash is allowed only when that file exists in the reviewed commit/clone; clone-external sources must be inlined with their provenance hash.
 - **Applicable instructions:** Exact `AGENTS.md` constraints that govern changed paths.
 - **Changed paths:** Task-owned files only; identify any pre-existing dirty paths separately.
