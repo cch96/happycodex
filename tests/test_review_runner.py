@@ -76,7 +76,7 @@ class ReviewRunnerTests(unittest.TestCase):
             "Exclusions: no other behavior.\n"
             f"Baseline: {base}\n"
             f"Repository/worktree: {root / 'repo'}\n"
-            "Goal thread ID: none\n"
+            "Goal thread ID: goal-fixture\n"
             f"Goal objective SHA256: {'b' * 64}\n"
             "Verification: inspect the exact base-to-head diff.\n"
             "Stop conditions: any failed review gate.\n",
@@ -187,13 +187,16 @@ class ReviewRunnerTests(unittest.TestCase):
             "repo": repo,
             "base": base,
             "head": head,
-            "packet": self.make_packet(root, base, head),
-            "task_contract": root / "task-contract.md",
             "output": root / "output",
-            "source_codex_home": self.make_source_home(root),
-            "codex_binary": self.make_fake_codex(root),
         }
         arguments.update(overrides)
+        if "packet" not in arguments:
+            arguments["packet"] = self.make_packet(root, base, head)
+        arguments.setdefault("task_contract", root / "task-contract.md")
+        if "source_codex_home" not in arguments:
+            arguments["source_codex_home"] = self.make_source_home(root)
+        if "codex_binary" not in arguments:
+            arguments["codex_binary"] = self.make_fake_codex(root)
         inherited = {
             key: value for key, value in os.environ.items() if key.startswith("NCL_")
         }
@@ -581,6 +584,37 @@ class ReviewRunnerTests(unittest.TestCase):
                 task_contract=contract,
             )
 
+    def test_run_review_rejects_empty_contract_field_without_crossing_lines(self) -> None:
+        root = self.make_temp()
+        repo, base, head = self.make_repo(root)
+        packet = self.make_packet(root, base, head)
+        contract = root / "task-contract.md"
+        original_contract = contract.read_text(encoding="utf-8")
+        empty_objective = original_contract.replace(
+            "Objective: add one reviewed line.", "Objective:"
+        )
+        old_hash = hashlib.sha256(original_contract.encode()).hexdigest()
+        new_hash = hashlib.sha256(empty_objective.encode()).hexdigest()
+        contract.write_text(empty_objective, encoding="utf-8")
+        contract.chmod(0o600)
+        packet.write_text(
+            packet.read_text(encoding="utf-8")
+            .replace(old_hash, new_hash)
+            .replace(original_contract.rstrip(), empty_objective.rstrip()),
+            encoding="utf-8",
+        )
+        packet.chmod(0o600)
+
+        with self.assertRaises(review_runner.ReviewRunnerError):
+            self.invoke(
+                root,
+                repo,
+                base,
+                head,
+                packet=packet,
+                task_contract=contract,
+            )
+
     def test_run_review_binds_packet_head_field_not_incidental_text(self) -> None:
         root = self.make_temp()
         repo, base, head = self.make_repo(root)
@@ -598,6 +632,61 @@ class ReviewRunnerTests(unittest.TestCase):
 
         with self.assertRaises(review_runner.ReviewRunnerError):
             self.invoke(root, repo, base, head, packet=packet)
+
+    def test_run_review_requires_structured_packet_header(self) -> None:
+        root = self.make_temp()
+        repo, base, head = self.make_repo(root)
+        packet = self.make_packet(root, base, head)
+        packet_text = packet.read_text(encoding="utf-8")
+        contract_block = packet_text[packet_text.index(review_runner.TASK_CONTRACT_START) :]
+        contract_hash = hashlib.sha256(
+            (root / "task-contract.md").read_bytes()
+        ).hexdigest()
+        packet.write_text(
+            "# Review packet\n\n"
+            f"Head incidental {head}\n"
+            f"Task contract SHA256: `{contract_hash}`\n\n"
+            f"{contract_block}",
+            encoding="utf-8",
+        )
+        packet.chmod(0o600)
+
+        with self.assertRaises(review_runner.ReviewRunnerError):
+            self.invoke(root, repo, base, head, packet=packet)
+
+    def test_run_review_requires_canonical_no_goal_pair(self) -> None:
+        for objective_hash, accepted in (("none", True), ("b" * 64, False)):
+            with self.subTest(objective_hash=objective_hash, accepted=accepted):
+                root = self.make_temp()
+                repo, base, head = self.make_repo(root)
+                packet = self.make_packet(root, base, head)
+                contract = root / "task-contract.md"
+                original_contract = contract.read_text(encoding="utf-8")
+                rewritten = original_contract.replace(
+                    "Goal thread ID: goal-fixture\n"
+                    f"Goal objective SHA256: {'b' * 64}",
+                    "Goal thread ID: none\n"
+                    f"Goal objective SHA256: {objective_hash}",
+                )
+                old_hash = hashlib.sha256(original_contract.encode()).hexdigest()
+                new_hash = hashlib.sha256(rewritten.encode()).hexdigest()
+                contract.write_text(rewritten, encoding="utf-8")
+                contract.chmod(0o600)
+                packet.write_text(
+                    packet.read_text(encoding="utf-8")
+                    .replace(old_hash, new_hash)
+                    .replace(original_contract.rstrip(), rewritten.rstrip()),
+                    encoding="utf-8",
+                )
+                packet.chmod(0o600)
+
+                if accepted:
+                    self.assertTrue(
+                        self.invoke(root, repo, base, head, packet=packet)["ok"]
+                    )
+                else:
+                    with self.assertRaises(review_runner.ReviewRunnerError):
+                        self.invoke(root, repo, base, head, packet=packet)
 
     def test_run_review_detects_clone_write_even_if_tool_claims_read_only(self) -> None:
         root = self.make_temp()
@@ -638,8 +727,8 @@ class ReviewRunnerTests(unittest.TestCase):
         expected_hash = hashlib.sha256(binary.read_bytes()).hexdigest()
         original_prepare = review_runner._prepare_aliases
 
-        def replace_source_after_aliases(directory: Path, source: Path) -> None:
-            original_prepare(directory, source)
+        def replace_source_after_aliases(directory: Path, source: Path) -> Path | None:
+            pinned = original_prepare(directory, source)
             replacement = root / "replacement-codex"
             replacement.write_bytes(
                 source.read_bytes().replace(
@@ -648,6 +737,7 @@ class ReviewRunnerTests(unittest.TestCase):
             )
             replacement.chmod(0o755)
             os.replace(replacement, source)
+            return pinned
 
         with mock.patch.object(
             review_runner, "_prepare_aliases", side_effect=replace_source_after_aliases
@@ -899,6 +989,30 @@ class ReviewRunnerTests(unittest.TestCase):
                 codex_binary=self.make_fake_codex(root),
             )
         self.assertFalse(external.exists())
+
+    def test_series_rejects_hardlinked_lock_without_clobbering_target(self) -> None:
+        root = self.make_temp()
+        repo, base, head = self.make_repo(root)
+        source = self.make_source_home(root)
+        series = review_runner.canonical_series_path(source, repo, base)
+        series.mkdir(parents=True)
+        victim = root / "victim"
+        victim.write_text("DO NOT CLOBBER\n", encoding="utf-8")
+        victim.chmod(0o600)
+        os.link(victim, series / ".lock")
+
+        with self.assertRaises(review_runner.ReviewRunnerError):
+            review_runner.run_series_review(
+                repo=repo,
+                base=base,
+                head=head,
+                packet=self.make_packet(root, base, head),
+                task_contract=root / "task-contract.md",
+                source_codex_home=source,
+                codex_binary=self.make_fake_codex(root),
+            )
+
+        self.assertEqual(victim.read_text(encoding="utf-8"), "DO NOT CLOBBER\n")
 
     def test_cli_requires_and_routes_task_contract(self) -> None:
         root = self.make_temp()
