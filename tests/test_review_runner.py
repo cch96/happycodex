@@ -365,7 +365,9 @@ class ReviewRunnerTests(unittest.TestCase):
         self.addCleanup(listener.close)
         clause = review_runner._network_probe_clause(listener.getsockname()[1])
 
-        accessible = subprocess.run(["/bin/sh", "-c", clause], check=False)
+        accessible = subprocess.run(
+            ["/bin/sh", "-c", clause], check=False, capture_output=True
+        )
         missing = subprocess.run(
             [
                 "/bin/sh",
@@ -373,6 +375,7 @@ class ReviewRunnerTests(unittest.TestCase):
                 clause.replace("python3", "/definitely/missing-python", 1),
             ],
             check=False,
+            capture_output=True,
         )
 
         self.assertNotEqual(accessible.returncode, 0)

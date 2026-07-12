@@ -172,15 +172,30 @@ def _git_visible_hash(
             data = os.readlink(path).encode("utf-8", errors="surrogateescape")
             kind = b"L"
         elif path.is_file():
-            data = path.read_bytes()
+            data = None
             kind = b"F"
         else:
             continue
         digest.update(kind)
         digest.update(stat.S_IMODE(path.lstat().st_mode).to_bytes(4, "big"))
-        digest.update(len(data).to_bytes(8, "big"))
-        digest.update(data)
+        if data is None:
+            _update_file_hash(digest, path)
+        else:
+            digest.update(len(data).to_bytes(8, "big"))
+            digest.update(data)
     return digest.hexdigest()
+
+
+def _update_file_hash(digest: Any, path: Path) -> None:
+    with path.open("rb") as stream:
+        expected = os.fstat(stream.fileno()).st_size
+        digest.update(expected.to_bytes(8, "big"))
+        observed = 0
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            observed += len(chunk)
+            digest.update(chunk)
+    if observed != expected:
+        raise ReviewRunnerError(f"file changed while hashing: {path}")
 
 
 def _filesystem_hash(root: Path) -> str:
@@ -195,7 +210,7 @@ def _filesystem_hash(root: Path) -> str:
             data = os.readlink(path).encode("utf-8", errors="surrogateescape")
         elif path.is_file():
             kind = b"F"
-            data = path.read_bytes()
+            data = None
         elif path.is_dir():
             kind = b"D"
             data = b""
@@ -206,8 +221,11 @@ def _filesystem_hash(root: Path) -> str:
         digest.update(encoded)
         digest.update(kind)
         digest.update(mode.to_bytes(4, "big"))
-        digest.update(len(data).to_bytes(8, "big"))
-        digest.update(data)
+        if data is None:
+            _update_file_hash(digest, path)
+        else:
+            digest.update(len(data).to_bytes(8, "big"))
+            digest.update(data)
     return digest.hexdigest()
 
 
@@ -362,6 +380,8 @@ def _validate_packet(
         or fields["base commit"] != [base]
         or fields["head commit"] != [head]
         or fields["task contract sha256"] != [contract_sha256]
+        or packet_text.count(TASK_CONTRACT_START) != 1
+        or packet_text.count(TASK_CONTRACT_END) != 1
         or packet_text.count(contract_block) != 1
     ):
         raise ReviewRunnerError(
@@ -456,15 +476,7 @@ def _profile_preflight_command(
         (
             f"test -r {shlex.quote(str(clone / '.git/HEAD'))}",
             f"test -x {shlex.quote(str(alias_dir / 'codex-linux-sandbox'))}",
-            "! "
-            + shlex.join(
-                [
-                    "python3",
-                    "-c",
-                    "import socket;"
-                    f"socket.create_connection(('127.0.0.1',{network_port}),.2).close()",
-                ]
-            ),
+            _network_probe_clause(network_port),
         )
     )
     return [
@@ -478,6 +490,16 @@ def _profile_preflight_command(
         "-c",
         " && ".join(checks),
     ]
+
+
+def _network_probe_clause(network_port: int) -> str:
+    script = (
+        "import socket,sys;"
+        "probe=socket.socket();probe.settimeout(.2);"
+        f"result=probe.connect_ex(('127.0.0.1',{network_port}));"
+        "sys.exit(0 if result else 1)"
+    )
+    return shlex.join(["python3", "-c", script])
 
 
 def _parse_events(data: str) -> list[dict[str, Any]]:
@@ -659,6 +681,9 @@ def _verify_prompt_and_verdicts(
         not in {"patch is correct", "patch is incorrect"}
         or not isinstance(verdict.get("overall_explanation"), str)
         or not verdict["overall_explanation"].strip()
+        or isinstance(verdict.get("overall_confidence_score"), bool)
+        or not isinstance(verdict.get("overall_confidence_score"), (int, float))
+        or not 0 <= verdict["overall_confidence_score"] <= 1
     ):
         raise ReviewRunnerError("native reviewer verdict schema is invalid")
     if bool(verdict["findings"]) != (
@@ -670,12 +695,34 @@ def _verify_prompt_and_verdicts(
     ].strip():
         raise ReviewRunnerError("outer no-finding verdict differs from native reviewer")
     for finding in verdict["findings"]:
+        location = finding.get("code_location") if isinstance(finding, dict) else None
+        line_range = location.get("line_range") if isinstance(location, dict) else None
+        priority = finding.get("priority") if isinstance(finding, dict) else None
+        confidence = (
+            finding.get("confidence_score") if isinstance(finding, dict) else None
+        )
         if (
             not isinstance(finding, dict)
             or not isinstance(finding.get("title"), str)
             or not finding["title"].strip()
             or not isinstance(finding.get("body"), str)
             or not finding["body"].strip()
+            or isinstance(priority, bool)
+            or not isinstance(priority, int)
+            or priority not in range(4)
+            or isinstance(confidence, bool)
+            or not isinstance(confidence, (int, float))
+            or not 0 <= confidence <= 1
+            or not isinstance(location, dict)
+            or not isinstance(location.get("absolute_file_path"), str)
+            or not Path(location["absolute_file_path"]).is_absolute()
+            or not isinstance(line_range, dict)
+            or isinstance(line_range.get("start"), bool)
+            or isinstance(line_range.get("end"), bool)
+            or not isinstance(line_range.get("start"), int)
+            or not isinstance(line_range.get("end"), int)
+            or line_range["start"] < 1
+            or line_range["end"] < line_range["start"]
             or (
                 finding["title"].strip() not in review_text
                 and finding["body"].strip() not in review_text
@@ -1164,6 +1211,11 @@ def run_review(
     output = output_input.resolve()
     source_codex_home = source_codex_home.expanduser().resolve()
     source_git_env = _git_environment(Path("/nonexistent"))
+    worktree_root = Path(
+        _git(repo, "rev-parse", "--show-toplevel", env=source_git_env).stdout.strip()
+    ).resolve()
+    if repo != worktree_root:
+        raise ReviewRunnerError("--repo must name the Git worktree root")
     runner_path = Path(__file__).resolve()
     runner_sha256 = _file_sha256(runner_path)
     resolved_binary, source_binary_sha256 = _resolve_binary(codex_binary)
