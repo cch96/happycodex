@@ -93,11 +93,16 @@ class ReviewRunnerTests(unittest.TestCase):
         packet.write_text(
             "# Review packet\n\n"
             "- Objective: review the feature change.\n"
+            f"- Repository root: {root / 'repo'}\n"
             f"- Base commit: `{base}`\n"
             f"- Head commit: `{head}`\n"
             f"- Task contract SHA256: `{contract_hash}`\n"
             "- Acceptance: feature.txt gains one line without changing the first.\n"
-            "- Verification receipt: focused test exit 0.\n\n"
+            "- Applicable instructions: None.\n"
+            "- Changed paths: feature.txt.\n"
+            "- Verification receipt: focused test exit 0.\n"
+            "- Scope exclusions: no unrelated paths.\n"
+            "- Output contract: native review JSON with residual risk.\n\n"
             "--- TASK CONTRACT START ---\n"
             f"{contract_text}\n"
             "--- TASK CONTRACT END ---\n",
@@ -174,6 +179,8 @@ class ReviewRunnerTests(unittest.TestCase):
             "print(json.dumps({'type':'item.completed','item':{'id':'diff','type':'command_execution','command':proof_event,'aggregated_output':'' if os.environ.get('NCL_FAKE_DIFF_CHECK_ONLY') else 'diff --git evidence','exit_code':0}}))\n"
             "if os.environ.get('NCL_FAKE_FORBIDDEN_EVENT'):\n"
             " print(json.dumps({'type':'item.completed','item':{'id':'forbidden-event','type':'function_call','name':os.environ['NCL_FAKE_FORBIDDEN_EVENT'],'arguments':'{}'}}))\n"
+            "if os.environ.get('NCL_FAKE_FORBIDDEN_ITEM_TYPE'):\n"
+            " print(json.dumps({'type':'item.completed','item':{'id':'forbidden-item','type':os.environ['NCL_FAKE_FORBIDDEN_ITEM_TYPE']}}))\n"
             "print(json.dumps({'type':'item.completed','item':{'type':'agent_message','text':outer_text}}))\n"
             "if not os.environ.get('NCL_FAKE_NO_COMPLETED'):\n"
             " print(json.dumps({'type':'turn.completed','usage':{'input_tokens':10,'output_tokens':5}}))\n",
@@ -688,6 +695,46 @@ class ReviewRunnerTests(unittest.TestCase):
         with self.assertRaises(review_runner.ReviewRunnerError):
             self.invoke(root, repo, base, head, packet=packet)
 
+    def test_run_review_requires_every_review_packet_field(self) -> None:
+        for line in (
+            "- Repository root:",
+            "- Applicable instructions:",
+            "- Changed paths:",
+            "- Scope exclusions:",
+            "- Output contract:",
+        ):
+            with self.subTest(line=line):
+                root = self.make_temp()
+                repo, base, head = self.make_repo(root)
+                packet = self.make_packet(root, base, head)
+                packet.write_text(
+                    "\n".join(
+                        item
+                        for item in packet.read_text(encoding="utf-8").splitlines()
+                        if not item.startswith(line)
+                    )
+                    + "\n",
+                    encoding="utf-8",
+                )
+                packet.chmod(0o600)
+
+                with self.assertRaises(review_runner.ReviewRunnerError):
+                    self.invoke(root, repo, base, head, packet=packet)
+
+        root = self.make_temp()
+        repo, base, head = self.make_repo(root)
+        packet = self.make_packet(root, base, head)
+        packet.write_text(
+            packet.read_text(encoding="utf-8").replace(
+                f"- Repository root: {repo}",
+                "- Repository root: /definitely/wrong",
+            ),
+            encoding="utf-8",
+        )
+        packet.chmod(0o600)
+        with self.assertRaises(review_runner.ReviewRunnerError):
+            self.invoke(root, repo, base, head, packet=packet)
+
     def test_run_review_requires_canonical_no_goal_pair(self) -> None:
         for objective_hash, accepted in (("none", True), ("b" * 64, False)):
             with self.subTest(objective_hash=objective_hash, accepted=accepted):
@@ -745,6 +792,10 @@ class ReviewRunnerTests(unittest.TestCase):
             {"NCL_FAKE_FORBIDDEN_EVENT": "browser_open"},
             {"NCL_FAKE_FORBIDDEN_DIRECT": "request_plugin_install"},
             {"NCL_FAKE_FORBIDDEN_DIRECT": "computer_use"},
+            {"NCL_FAKE_FORBIDDEN_ITEM_TYPE": "web_search"},
+            {"NCL_FAKE_FORBIDDEN_ITEM_TYPE": "image_generation"},
+            {"NCL_FAKE_FORBIDDEN_ITEM_TYPE": "collab_agent_tool_call"},
+            {"NCL_FAKE_FORBIDDEN_ITEM_TYPE": "dynamic_tool_call"},
         ]
         for environment in environments:
             with self.subTest(environment=environment):
