@@ -296,17 +296,6 @@ class ReviewRunnerTests(unittest.TestCase):
         self.assertIn("--base", command)
         self.assertIn(base, command)
         self.assertNotIn("-", command)
-
-    def test_run_review_preserves_json_when_repo_path_needs_escaping(self) -> None:
-        root = self.make_temp() / 'has"quote'
-        root.mkdir()
-        repo, base, head = self.make_repo(root)
-        output = root / "review-output"
-
-        self.assertTrue(self.invoke(root, repo, base, head, output=output)["ok"])
-
-        review = json.loads((output / "review.md").read_text(encoding="utf-8"))
-        self.assertEqual(review["review_root"], str(repo))
         rendered = " ".join(command)
         for phrase in (
             "exec review",
@@ -336,6 +325,17 @@ class ReviewRunnerTests(unittest.TestCase):
                 ],
             )
 
+    def test_run_review_preserves_json_when_repo_path_needs_escaping(self) -> None:
+        root = self.make_temp() / 'has"quote'
+        root.mkdir()
+        repo, base, head = self.make_repo(root)
+        output = root / "review-output"
+
+        self.assertTrue(self.invoke(root, repo, base, head, output=output)["ok"])
+
+        review = json.loads((output / "review.md").read_text(encoding="utf-8"))
+        self.assertEqual(review["review_root"], str(repo))
+
     def test_runtime_helper_aliases_do_not_escape_through_symlinks(self) -> None:
         root = self.make_temp()
         binary = root / "codex"
@@ -345,7 +345,12 @@ class ReviewRunnerTests(unittest.TestCase):
 
         review_runner._prepare_aliases(aliases, binary)
 
-        for name in ("codex-linux-sandbox", "codex-execve-wrapper", "apply_patch"):
+        for name in (
+            "codex",
+            "codex-linux-sandbox",
+            "codex-execve-wrapper",
+            "apply_patch",
+        ):
             helper = aliases / name
             self.assertTrue(helper.is_file())
             self.assertFalse(helper.is_symlink())
@@ -545,9 +550,19 @@ class ReviewRunnerTests(unittest.TestCase):
         root = self.make_temp()
         repo, base, head = self.make_repo(root)
         packet = self.make_packet(root, base, head)
+        source = self.make_source_home(root)
+        binary = self.make_fake_codex(root)
         packet.chmod(0o644)
         with self.assertRaises(review_runner.ReviewRunnerError):
-            self.invoke(root, repo, base, head, packet=packet)
+            self.invoke(
+                root,
+                repo,
+                base,
+                head,
+                packet=packet,
+                source_codex_home=source,
+                codex_binary=binary,
+            )
 
         packet.chmod(0o600)
         original_run = review_runner._run_process
@@ -564,7 +579,15 @@ class ReviewRunnerTests(unittest.TestCase):
             review_runner, "_run_process", side_effect=mutate_after_review
         ):
             with self.assertRaises(review_runner.ReviewRunnerError):
-                self.invoke(root, repo, base, head, packet=packet)
+                self.invoke(
+                    root,
+                    repo,
+                    base,
+                    head,
+                    packet=packet,
+                    source_codex_home=source,
+                    codex_binary=binary,
+                )
 
     def test_run_review_binds_contract_repository_to_candidate(self) -> None:
         root = self.make_temp()

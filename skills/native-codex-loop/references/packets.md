@@ -12,7 +12,9 @@ Create this UTF-8 file outside the candidate repository with mode `0600`:
 - **Baseline:** Exact full task-baseline commit SHA.
 - **Repository/worktree:** Canonical absolute candidate identity.
 - **Goal thread ID:** Exact bound ID, or `none` when Goal was not requested.
-- **Goal objective SHA256:** Hash of the exact Goal objective, or the SHA256 of `none`.
+- **Goal objective SHA256:** Hash of the exact UTF-8 Goal objective bytes, or literal
+  `none` when Goal was not requested. `Goal thread ID` and this field must either both be
+  `none` or both carry the real binding.
 - **Verification:** Criterion-to-command/evidence map plus accepted baseline failures.
 - **Stop conditions:** Conditions that prohibit completion or require user authority.
 
@@ -50,7 +52,9 @@ Use one packet per independent question. If two packets can change the same file
 - **Scope exclusions:** Generated, unrelated, or intentionally deferred areas.
 - **Output contract:** Use the native review format. Each finding carries priority and identifies the violated criterion, evidence, Reproduction, and smallest safe next check. End with residual risk or an explicit no-actionable-finding result.
 
-Do not include author identity, model identity, implementation reasoning, the parent's self-review, or a requested approval verdict. Keep the packet outside the candidate repository.
+Do not include author identity, model identity, implementation reasoning, the parent's
+self-review, or a requested approval verdict. Atomically create the packet outside the
+candidate repository as a private regular file with mode `0600`; never reuse a symlink.
 
 ## Finding disposition
 

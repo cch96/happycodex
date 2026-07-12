@@ -11,9 +11,10 @@ requires a fresh native Codex review of the final commit before completion.
 - Runs final review in a temporary clean HOME/CODEX_HOME using `gpt-5.6-sol` at max,
   read-only sandbox, approval never, restricted network, and disabled extensions.
 - Keeps the root thread as the only source-code writer and requires the final HEAD to
-  match the latest successful review receipt.
-- Gives investigative children only disposable head-only clones, never the candidate
-  worktree or its shared Git metadata.
+  match the final succeeded review attempt's receipt.
+- Policy-routes investigative children to disposable head-only clones and brackets the
+  candidate with fingerprints; built-in children remain able to address inherited host
+  paths, so this is not a hard read-isolation boundary.
 
 It does not install custom agents, modify global `AGENTS.md`/`config.toml`, use
 hooks/MCP/external models, or force an ExecPlan file. Invoke the Skill explicitly when
@@ -21,7 +22,7 @@ deterministic pickup matters; normal plugin metadata remains available for impli
 
 ## Review artifacts
 
-The Skill creates an immutable mode-`0600` Task Contract plus factual packet outside the
+The Skill creates an immutable mode-`0600` Task Contract plus private mode-`0600` factual packet outside the
 candidate repository and calls `scripts/review_runner.py --task-contract ...`. The
 runner hashes and verifies the exact inlined contract, then derives one canonical series from source CODEX_HOME,
 repository identity, and frozen task baseline. `series.json` counts every started
