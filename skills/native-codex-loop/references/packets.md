@@ -2,6 +2,24 @@
 
 Use these fields verbatim as slots. Omit a slot only when it is explicitly `None`; never replace a missing fact with a guess.
 
+## Task Contract
+
+Create this UTF-8 file outside the candidate repository with mode `0600`:
+
+- **Objective:** Measurable task outcome.
+- **Acceptance:** Complete, enumerated observable criteria.
+- **Exclusions:** Explicit non-goals.
+- **Baseline:** Exact full task-baseline commit SHA.
+- **Repository/worktree:** Canonical absolute candidate identity.
+- **Goal thread ID:** Exact bound ID, or `none` when Goal was not requested.
+- **Goal objective SHA256:** Hash of the exact Goal objective, or the SHA256 of `none`.
+- **Verification:** Criterion-to-command/evidence map plus accepted baseline failures.
+- **Stop conditions:** Conditions that prohibit completion or require user authority.
+
+Never rewrite frozen content. For an authorized scope change, append a dated addendum
+that states the user instruction and preserves the prior text, then record the new whole-file
+SHA256 in native plan state.
+
 ## Delegation packet
 
 - **Objective:** One bounded question whose answer changes a named parent decision.
