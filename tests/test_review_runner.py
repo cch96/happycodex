@@ -75,6 +75,7 @@ class ReviewRunnerTests(unittest.TestCase):
             "Acceptance: preserve the base line and add the head line.\n"
             "Exclusions: no other behavior.\n"
             f"Baseline: {base}\n"
+            f"Repository/worktree: {root / 'repo'}\n"
             "Goal thread ID: none\n"
             f"Goal objective SHA256: {'b' * 64}\n"
             "Verification: inspect the exact base-to-head diff.\n",
@@ -237,6 +238,12 @@ class ReviewRunnerTests(unittest.TestCase):
         self.assertEqual(
             persisted["task_contract_sha256"],
             hashlib.sha256((root / "task-contract.md").read_bytes()).hexdigest(),
+        )
+        self.assertEqual(
+            persisted["source_packet_sha256"], persisted["reviewed_packet_sha256"]
+        )
+        self.assertIn(
+            str(repo), (output / "packet.md").read_text(encoding="utf-8")
         )
         self.assertEqual(
             persisted["source_git_visible_sha256_before"],
