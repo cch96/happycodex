@@ -377,9 +377,21 @@ class ReviewRunnerTests(unittest.TestCase):
             check=False,
             capture_output=True,
         )
+        fake_module = self.make_temp() / "socket.py"
+        fake_module.write_text(
+            "def socket():\n    raise PermissionError(1, 'denied')\n",
+            encoding="utf-8",
+        )
+        denied = subprocess.run(
+            ["/bin/sh", "-c", clause],
+            check=False,
+            capture_output=True,
+            env={**os.environ, "PYTHONPATH": str(fake_module.parent)},
+        )
 
         self.assertNotEqual(accessible.returncode, 0)
         self.assertNotEqual(missing.returncode, 0)
+        self.assertEqual(denied.returncode, 0, denied.stderr)
 
     def test_filesystem_hash_streams_regular_files(self) -> None:
         root = self.make_temp()
