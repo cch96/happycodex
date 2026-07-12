@@ -130,6 +130,16 @@ class ArtifactContractTests(unittest.TestCase):
             "Reproduction",
         ):
             self.assertIn(field, packets)
+        for canonical_line in (
+            "Objective: <measurable outcome>",
+            "Repository/worktree: <canonical absolute path>",
+            "Goal objective SHA256: <64 lowercase hex or none>",
+            "- Objective: <find material defects; do not implement>",
+            "- Base commit: `<full baseline SHA>`",
+            "- Head commit: `<full candidate SHA>`",
+            "- Verification receipt: <commands, exits, and baseline failures>",
+        ):
+            self.assertIn(canonical_line, packets)
 
 
 if __name__ == "__main__":

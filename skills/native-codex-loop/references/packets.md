@@ -1,22 +1,30 @@
 # Task Packet Contracts
 
-Use these fields verbatim as slots. Omit a slot only when it is explicitly `None`; never replace a missing fact with a guess.
+Machine-read files use the canonical code blocks below. Replace angle-bracket values,
+but preserve labels, punctuation, field order, and one field per line. Other lists in
+this reference describe required semantic slots. Never replace a missing fact with a
+guess.
 
 ## Task Contract
 
 Create this UTF-8 file outside the candidate repository with mode `0600`:
 
-- **Objective:** Measurable task outcome.
-- **Acceptance:** Complete, enumerated observable criteria.
-- **Exclusions:** Explicit non-goals.
-- **Baseline:** Exact full task-baseline commit SHA.
-- **Repository/worktree:** Canonical absolute candidate identity.
-- **Goal thread ID:** Exact bound ID, or `none` when Goal was not requested.
-- **Goal objective SHA256:** Hash of the exact UTF-8 Goal objective bytes, or literal
-  `none` when Goal was not requested. `Goal thread ID` and this field must either both be
-  `none` or both carry the real binding.
-- **Verification:** Criterion-to-command/evidence map plus accepted baseline failures.
-- **Stop conditions:** Conditions that prohibit completion or require user authority.
+```text
+# Task Contract
+
+Objective: <measurable outcome>
+Acceptance: <complete enumerated observable criteria>
+Exclusions: <explicit non-goals>
+Baseline: <full task-baseline SHA>
+Repository/worktree: <canonical absolute path>
+Goal thread ID: <exact thread ID or none>
+Goal objective SHA256: <64 lowercase hex or none>
+Verification: <criterion-to-command/evidence map and accepted baseline failures>
+Stop conditions: <conditions that prohibit completion or require user authority>
+```
+
+Hash the exact UTF-8 Goal objective bytes. When Goal was not requested, both Goal fields
+must be literal `none`; otherwise both must carry the real binding.
 
 Never rewrite frozen content. For an authorized scope change, append a dated addendum
 that states the user instruction and preserves the prior text, then record the new whole-file
@@ -37,20 +45,36 @@ Use one packet per independent question. If two packets can change the same file
 
 ## Review packet
 
-- **Objective:** Find material correctness, security, regression, contract, or missing-test defects; do not implement.
-- **Repository root:** Canonical source path for provenance. The runner substitutes its isolated clone; the reviewer uses only its current working directory.
-- **Base commit:** The frozen task-baseline SHA from the start contract; never a later checkpoint.
-- **Head commit:** Clean candidate SHA; require the reviewer to verify it before reviewing.
-- **Task contract SHA256:** Hash of the immutable start contract. Inline that contract's
-  exact objective, criteria, exclusions, baseline, Goal binding, and verification map.
-  Delimit the exact text with `--- TASK CONTRACT START ---` and
-  `--- TASK CONTRACT END ---`; pass the same file through `--task-contract`.
+Start with this exact machine-read header and inline the exact canonical Task Contract:
+
+```text
+# Review packet
+
+- Objective: <find material defects; do not implement>
+- Repository root: <canonical source path for provenance>
+- Base commit: `<full baseline SHA>`
+- Head commit: `<full candidate SHA>`
+- Task contract SHA256: `<whole-file SHA256>`
+- Acceptance: <frozen acceptance criteria>
+- Applicable instructions: <governing AGENTS.md constraints>
+- Changed paths: <task-owned files>
+- Verification receipt: <commands, exits, and baseline failures>
+- Scope exclusions: <generated, unrelated, or deferred areas>
+- Output contract: <native findings format and residual-risk requirement>
+
+--- TASK CONTRACT START ---
+<exact Task Contract bytes without its final newline>
+--- TASK CONTRACT END ---
+```
+
+The runner substitutes its isolated clone for repository inspection. The base is always
+the frozen task baseline, never a later checkpoint; the head is the clean candidate.
 - **Task and acceptance criteria:** Inline the frozen text. A path plus hash is allowed only when that file exists in the reviewed commit/clone; clone-external sources must be inlined with their provenance hash.
-- **Applicable instructions:** Exact `AGENTS.md` constraints that govern changed paths.
-- **Changed paths:** Task-owned files only; identify any pre-existing dirty paths separately.
-- **Verification receipt:** Commands, exit codes, failure counts, and known baseline failures. Never say merely “tests pass.”
-- **Scope exclusions:** Generated, unrelated, or intentionally deferred areas.
-- **Output contract:** Use the native review format. Each finding carries priority and identifies the violated criterion, evidence, Reproduction, and smallest safe next check. End with residual risk or an explicit no-actionable-finding result.
+- **Verification receipt:** Include commands, exit codes, failure counts, and known
+  baseline failures. Never say merely “tests pass.”
+- **Output contract:** Each finding carries priority and identifies the violated
+  criterion, evidence, Reproduction, and smallest safe next check. End with residual
+  risk or an explicit no-actionable-finding result.
 
 Do not include author identity, model identity, implementation reasoning, the parent's
 self-review, or a requested approval verdict. Atomically create the packet outside the
