@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import signal
 import subprocess
 import sys
 import tempfile
@@ -22,6 +23,16 @@ class ReviewRunnerTests(unittest.TestCase):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
         return Path(temporary.name)
+
+    def marker_processes(self, marker: str) -> list[Path]:
+        matches = []
+        for path in Path("/proc").glob("[0-9]*/cmdline"):
+            try:
+                if marker.encode() in path.read_bytes():
+                    matches.append(path)
+            except OSError:
+                continue
+        return matches
 
     def git(self, repo: Path, *args: str) -> str:
         completed = subprocess.run(
@@ -269,16 +280,6 @@ class ReviewRunnerTests(unittest.TestCase):
     def test_pid_namespace_contains_detached_children_on_exit_and_timeout(self) -> None:
         unshare = review_runner._resolve_containment_binary()
 
-        def marker_processes(marker: str) -> list[Path]:
-            matches = []
-            for path in Path("/proc").glob("[0-9]*/cmdline"):
-                try:
-                    if marker.encode() in path.read_bytes():
-                        matches.append(path)
-                except OSError:
-                    continue
-            return matches
-
         for timeout in (False, True):
             with self.subTest(timeout=timeout):
                 marker = f"NCL_DAEMON_{os.getpid()}_{time.time_ns()}"
@@ -318,10 +319,52 @@ class ReviewRunnerTests(unittest.TestCase):
                 sibling.terminate()
                 sibling.wait(timeout=5)
                 for _ in range(50):
-                    if not marker_processes(marker):
+                    if not self.marker_processes(marker):
                         break
                     time.sleep(0.02)
-                self.assertEqual(marker_processes(marker), [])
+                self.assertEqual(self.marker_processes(marker), [])
+
+    def test_pid_namespace_dies_when_runner_is_killed(self) -> None:
+        root = self.make_temp()
+        marker = f"NCL_CRASH_{os.getpid()}_{time.time_ns()}"
+        ready = root / "ready"
+        inner = (
+            "import pathlib,subprocess,sys,time;"
+            "subprocess.Popen([sys.executable,'-c','import time;time.sleep(60)',"
+            "sys.argv[1]],start_new_session=True,stdin=subprocess.DEVNULL,"
+            "stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL);"
+            "pathlib.Path(sys.argv[2]).touch();time.sleep(60)"
+        )
+        command = review_runner._containment_command(
+            review_runner._resolve_containment_binary(),
+            [sys.executable, "-c", inner, marker, str(ready)],
+        )
+        outer = (
+            "import json,os,sys;from pathlib import Path;"
+            "from scripts import review_runner as r;"
+            "r._run_process(json.loads(sys.argv[1]),cwd=Path(sys.argv[2]),"
+            "env=os.environ.copy(),timeout=60)"
+        )
+        runner = subprocess.Popen(
+            [sys.executable, "-c", outer, json.dumps(command), str(root)], cwd=ROOT
+        )
+        try:
+            for _ in range(100):
+                if ready.exists():
+                    break
+                time.sleep(0.02)
+            self.assertTrue(ready.exists())
+            runner.kill()
+            runner.wait(timeout=5)
+            for _ in range(100):
+                if not self.marker_processes(marker):
+                    break
+                time.sleep(0.02)
+            self.assertEqual(self.marker_processes(marker), [])
+        finally:
+            runner.kill() if runner.poll() is None else None
+            for path in self.marker_processes(marker):
+                os.kill(int(path.parent.name), signal.SIGKILL)
 
     def test_run_review_rejects_dirty_source_repo(self) -> None:
         root = self.make_temp()
