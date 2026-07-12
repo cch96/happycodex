@@ -494,10 +494,14 @@ def _profile_preflight_command(
 
 def _network_probe_clause(network_port: int) -> str:
     script = (
-        "import socket,sys;"
-        "probe=socket.socket();probe.settimeout(.2);"
-        f"result=probe.connect_ex(('127.0.0.1',{network_port}));"
-        "sys.exit(0 if result else 1)"
+        "import errno,socket,sys\n"
+        "try:\n"
+        "    probe=socket.socket()\n"
+        "    probe.settimeout(.2)\n"
+        f"    result=probe.connect_ex(('127.0.0.1',{network_port}))\n"
+        "except OSError as exc:\n"
+        "    sys.exit(0 if exc.errno in (errno.EACCES,errno.EPERM) else 2)\n"
+        "sys.exit(0 if result else 1)\n"
     )
     return shlex.join(["python3", "-c", script])
 
