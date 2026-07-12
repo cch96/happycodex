@@ -5,7 +5,7 @@ Use these fields verbatim as slots. Omit a slot only when it is explicitly `None
 ## Delegation packet
 
 - **Objective:** One bounded question whose answer changes a named parent decision.
-- **Source of truth:** Exact repository, commit, files, symbols, logs, or official documentation to inspect.
+- **Source of truth:** Exact disposable head-only clone, commit, files, symbols, logs, or official documentation to inspect. Never give the candidate/source worktree path.
 - **Known context:** Facts already verified; exclude the parent's preferred answer.
 - **Write boundary:** `Non-writing policy. Do not edit, commit, create worktrees, or invoke external models.`
 - **Scope exclusions:** Adjacent topics and paths the child must not expand into.
@@ -21,6 +21,8 @@ Use one packet per independent question. If two packets can change the same file
 - **Repository root:** Canonical source path for provenance. The runner substitutes its isolated clone; the reviewer uses only its current working directory.
 - **Base commit:** The frozen task-baseline SHA from the start contract; never a later checkpoint.
 - **Head commit:** Clean candidate SHA; require the reviewer to verify it before reviewing.
+- **Task contract SHA256:** Hash of the immutable start contract. Inline that contract's
+  exact objective, criteria, exclusions, baseline, Goal binding, and verification map.
 - **Task and acceptance criteria:** Inline the frozen text. A path plus hash is allowed only when that file exists in the reviewed commit/clone; clone-external sources must be inlined with their provenance hash.
 - **Applicable instructions:** Exact `AGENTS.md` constraints that govern changed paths.
 - **Changed paths:** Task-owned files only; identify any pre-existing dirty paths separately.

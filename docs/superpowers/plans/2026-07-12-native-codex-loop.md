@@ -54,8 +54,8 @@ global Codex configuration or installs custom agents.
 
 **Files:** plugin manifest, Skill/packets, `scripts/review_runner.py`, runner tests.
 
-- [x] Author Goal-aware evidence/recovery loop and dirty-worktree routing.
-- [x] Define complete delegation/review/disposition packets and root-only integration.
+- [x] Author Goal-identity-aware Task Contract, evidence/recovery loop, and dirty-worktree routing.
+- [x] Define isolated-clone delegation plus review/disposition packets and root-only integration.
 - [x] Make post-review mutation force a second review; cap at two and require SHA match.
 - [x] Reject dirty source, non-ancestor base, nested output, and non-empty output.
 - [x] Use a head-only bundle clone; disable project docs and nonessential capabilities.

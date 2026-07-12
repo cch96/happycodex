@@ -62,13 +62,15 @@ The source repository is `~/projects/native-codex-loop`; the validated install m
 
 ## Runtime behavior
 
-1. Freeze objective, criteria, exclusions, baseline, and verification. Preserve user
-   changes and use a root-owned worktree when a clean base cannot otherwise be obtained.
+1. Freeze objective, criteria, exclusions, baseline, Goal identity, and verification in
+   an immutable external Task Contract whose path/hash remains in native plan state.
+   Preserve user changes and use a root-owned worktree when needed.
 2. Use Goal only when explicitly requested. Keep the native plan live and evidence-led;
    it is a decision record rather than a fixed screenplay.
-3. Root alone edits. A direct `fork_turns="none"` child may answer a complete independent
-   investigative packet, but its non-writing boundary is policy-enforced and bracketed
-   by Git fingerprints. Child output never becomes evidence until root verification.
+3. Root alone edits. A direct `fork_turns="none"` child receives only a disposable
+   head-only clone and a complete independent investigative packet; source and Git
+   common-dir fingerprints bracket the call. Child output never becomes evidence until
+   root verification.
 4. Reconcile every material result with acceptance criteria and update the plan without
    silently lowering the target.
 5. Run checks and freeze a clean candidate commit. Send only factual context to a fresh
@@ -115,9 +117,9 @@ and concurrent-user-edit surface from the trusted implementation.
 
 ## Recovery and verification
 
-Goal + plan + Git + test/review receipts are the initial recovery surfaces. A small
-acceptance/evidence ledger is added only if natural compaction proves those insufficient;
-V1 does not claim compaction reliability before that test.
+Task Contract + Goal + plan + Git + test/review receipts are the recovery surfaces.
+Resume verifies the contract hash and Goal thread/objective before inspecting live
+agents and continuing; it never reconstructs missing criteria from context memory.
 
 Verification consists of unit and contract tests, official plugin/Skill validators, a
 real isolated CLI review, three fresh behavior-pressure scenarios, a committed Fable

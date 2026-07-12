@@ -1,9 +1,9 @@
 # Native Codex Loop
 
 Native Codex Loop is a personal Codex plugin for long or high-risk implementation. It
-keeps one root writer, treats the native plan as a live decision record, limits children
-to bounded investigative packets, and requires a fresh native Codex review of the final
-commit before completion.
+keeps one root writer, anchors scope in an immutable Task Contract, treats the native
+plan as a live decision record, limits children to bounded isolated investigations, and
+requires a fresh native Codex review of the final commit before completion.
 
 ## What it changes
 
@@ -12,6 +12,8 @@ commit before completion.
   read-only sandbox, approval never, restricted network, and disabled extensions.
 - Keeps the root thread as the only source-code writer and requires the final HEAD to
   match the latest successful review receipt.
+- Gives investigative children only disposable head-only clones, never the candidate
+  worktree or its shared Git metadata.
 
 It does not install custom agents, modify global `AGENTS.md`/`config.toml`, use
 hooks/MCP/external models, or force an ExecPlan file. Invoke the Skill explicitly when
@@ -28,9 +30,9 @@ successful `attempt-N/` contains:
 - `packet.md`: the exact clone-adjusted context given to the reviewer;
 - `review.md`: native review findings;
 - `preflight.log`, `events.jsonl`, and `stderr.log`: isolation and execution evidence;
-- `receipt.json`: base/head, actual runtime policy, CLI/binary and artifact hashes, token
-  usage when reported, process containment, Git-visible source hashes, and full
-  review-clone hashes.
+- `receipt.json`: base/head, Task Contract and runner hashes, actual runtime policy,
+  CLI/binary and artifact hashes, token usage when reported, process containment,
+  Git-visible source hashes, and full review-clone hashes.
 
 Credentials, generated config, rollouts, Git bundle, and review clone are temporary and
 are removed on success, error, or timeout. The receipt is an audit record, not a signed
