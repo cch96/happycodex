@@ -38,6 +38,12 @@ class ArtifactContractTests(unittest.TestCase):
         self.assertFalse((ROOT / "hooks").exists())
         self.assertFalse((ROOT / ".mcp.json").exists())
 
+    def test_plugin_never_mutates_global_codex_configuration(self) -> None:
+        self.assertFalse((ROOT / "scripts/configure.py").exists())
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        self.assertNotIn("trigger bridge", readme.casefold())
+        self.assertNotIn("$CODEX_HOME/AGENTS.md", readme)
+
     def test_v1_uses_isolated_review_process_not_broken_custom_agent_routing(
         self,
     ) -> None:
