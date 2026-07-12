@@ -103,6 +103,7 @@ class ReviewRunnerTests(unittest.TestCase):
             "--- TASK CONTRACT END ---\n",
             encoding="utf-8",
         )
+        packet.chmod(0o600)
         return packet
 
     def make_fake_codex(self, root: Path) -> Path:
@@ -147,6 +148,8 @@ class ReviewRunnerTests(unittest.TestCase):
             " reviewer.append({'type':'response_item','payload':{'type':'custom_tool_call','name':'exec','input':'await tools.web__run({})'}})\n"
             "if os.environ.get('NCL_FAKE_FORBIDDEN_FUNCTION'):\n"
             " reviewer.append({'type':'response_item','payload':{'type':'function_call','name':'mcp_call','arguments':'{}','call_id':'forbidden'}})\n"
+            "if os.environ.get('NCL_FAKE_FORBIDDEN_DIRECT'):\n"
+            " reviewer.append({'type':'response_item','payload':{'type':'function_call','name':os.environ['NCL_FAKE_FORBIDDEN_DIRECT'],'arguments':'{}','call_id':'forbidden-direct'}})\n"
             "result = {'findings':[],'overall_correctness':'patch is correct','overall_explanation':'No actionable findings.','review_root':str(pathlib.Path.cwd())}\n"
             "if os.environ.get('NCL_FAKE_DROP_FINDING'):\n"
             " result.update({'findings':[{'title':'[P1] Material defect','body':'Concrete failure','priority':1}],'overall_correctness':'patch is incorrect','overall_explanation':'A material defect remains.'})\n"
@@ -169,6 +172,8 @@ class ReviewRunnerTests(unittest.TestCase):
             "print(json.dumps({'type':'item.completed','item':{'id':'canary','type':'command_execution','command':canary_event,'aggregated_output':'','exit_code':0}}))\n"
             "print(json.dumps({'type':'item.started','item':{'id':'diff','type':'command_execution','command':proof_event,'status':'in_progress'}}))\n"
             "print(json.dumps({'type':'item.completed','item':{'id':'diff','type':'command_execution','command':proof_event,'aggregated_output':'' if os.environ.get('NCL_FAKE_DIFF_CHECK_ONLY') else 'diff --git evidence','exit_code':0}}))\n"
+            "if os.environ.get('NCL_FAKE_FORBIDDEN_EVENT'):\n"
+            " print(json.dumps({'type':'item.completed','item':{'id':'forbidden-event','type':'function_call','name':os.environ['NCL_FAKE_FORBIDDEN_EVENT'],'arguments':'{}'}}))\n"
             "print(json.dumps({'type':'item.completed','item':{'type':'agent_message','text':outer_text}}))\n"
             "if not os.environ.get('NCL_FAKE_NO_COMPLETED'):\n"
             " print(json.dumps({'type':'turn.completed','usage':{'input_tokens':10,'output_tokens':5}}))\n",
@@ -522,6 +527,78 @@ class ReviewRunnerTests(unittest.TestCase):
         with self.assertRaises(review_runner.ReviewRunnerError):
             self.invoke(root, repo, base, head, packet=packet)
 
+    def test_run_review_requires_private_packet_and_preserves_its_bytes(self) -> None:
+        root = self.make_temp()
+        repo, base, head = self.make_repo(root)
+        packet = self.make_packet(root, base, head)
+        packet.chmod(0o644)
+        with self.assertRaises(review_runner.ReviewRunnerError):
+            self.invoke(root, repo, base, head, packet=packet)
+
+        packet.chmod(0o600)
+        original_run = review_runner._run_process
+
+        def mutate_after_review(*args, **kwargs):
+            completed = original_run(*args, **kwargs)
+            command = args[0]
+            if "review" in command:
+                packet.write_text("changed during review\n", encoding="utf-8")
+                packet.chmod(0o600)
+            return completed
+
+        with mock.patch.object(
+            review_runner, "_run_process", side_effect=mutate_after_review
+        ):
+            with self.assertRaises(review_runner.ReviewRunnerError):
+                self.invoke(root, repo, base, head, packet=packet)
+
+    def test_run_review_binds_contract_repository_to_candidate(self) -> None:
+        root = self.make_temp()
+        repo, base, head = self.make_repo(root)
+        packet = self.make_packet(root, base, head)
+        contract = root / "task-contract.md"
+        original_contract = contract.read_text(encoding="utf-8")
+        wrong_contract = original_contract.replace(str(repo), "/definitely/wrong")
+        old_hash = hashlib.sha256(original_contract.encode()).hexdigest()
+        new_hash = hashlib.sha256(wrong_contract.encode()).hexdigest()
+        contract.write_text(wrong_contract, encoding="utf-8")
+        contract.chmod(0o600)
+        packet.write_text(
+            packet.read_text(encoding="utf-8")
+            .replace(old_hash, new_hash)
+            .replace(original_contract.rstrip(), wrong_contract.rstrip()),
+            encoding="utf-8",
+        )
+        packet.chmod(0o600)
+
+        with self.assertRaises(review_runner.ReviewRunnerError):
+            self.invoke(
+                root,
+                repo,
+                base,
+                head,
+                packet=packet,
+                task_contract=contract,
+            )
+
+    def test_run_review_binds_packet_head_field_not_incidental_text(self) -> None:
+        root = self.make_temp()
+        repo, base, head = self.make_repo(root)
+        packet = self.make_packet(root, base, head)
+        packet.write_text(
+            packet.read_text(encoding="utf-8")
+            .replace(f"- Head commit: `{head}`", f"- Head commit: `{'0' * 40}`")
+            .replace(
+                "- Verification receipt: focused test exit 0.",
+                f"- Verification receipt: focused test exit 0; incidental {head}.",
+            ),
+            encoding="utf-8",
+        )
+        packet.chmod(0o600)
+
+        with self.assertRaises(review_runner.ReviewRunnerError):
+            self.invoke(root, repo, base, head, packet=packet)
+
     def test_run_review_detects_clone_write_even_if_tool_claims_read_only(self) -> None:
         root = self.make_temp()
         repo, base, head = self.make_repo(root)
@@ -538,6 +615,47 @@ class ReviewRunnerTests(unittest.TestCase):
                 with mock.patch.dict(os.environ, {key: "1"}):
                     with self.assertRaises(review_runner.ReviewRunnerError):
                         self.invoke(root, repo, base, head)
+
+    def test_run_review_rejects_forbidden_tools_from_events_and_direct_calls(self) -> None:
+        environments = [
+            {"NCL_FAKE_FORBIDDEN_EVENT": "image_gen__imagegen"},
+            {"NCL_FAKE_FORBIDDEN_EVENT": "browser_open"},
+            {"NCL_FAKE_FORBIDDEN_DIRECT": "request_plugin_install"},
+            {"NCL_FAKE_FORBIDDEN_DIRECT": "computer_use"},
+        ]
+        for environment in environments:
+            with self.subTest(environment=environment):
+                root = self.make_temp()
+                repo, base, head = self.make_repo(root)
+                with mock.patch.dict(os.environ, environment):
+                    with self.assertRaises(review_runner.ReviewRunnerError):
+                        self.invoke(root, repo, base, head)
+
+    def test_run_review_pins_binary_before_execution(self) -> None:
+        root = self.make_temp()
+        repo, base, head = self.make_repo(root)
+        binary = self.make_fake_codex(root)
+        expected_hash = hashlib.sha256(binary.read_bytes()).hexdigest()
+        original_prepare = review_runner._prepare_aliases
+
+        def replace_source_after_aliases(directory: Path, source: Path) -> None:
+            original_prepare(directory, source)
+            replacement = root / "replacement-codex"
+            replacement.write_bytes(
+                source.read_bytes().replace(
+                    b"codex-cli 0.144.1-fixture", b"codex-cli 9.9.9-race"
+                )
+            )
+            replacement.chmod(0o755)
+            os.replace(replacement, source)
+
+        with mock.patch.object(
+            review_runner, "_prepare_aliases", side_effect=replace_source_after_aliases
+        ):
+            receipt = self.invoke(root, repo, base, head, codex_binary=binary)
+
+        self.assertEqual(receipt["cli_version"], "codex-cli 0.144.1-fixture")
+        self.assertEqual(receipt["codex_binary_sha256"], expected_hash)
 
     def test_run_review_redacts_and_rejects_credential_output(self) -> None:
         root = self.make_temp()
