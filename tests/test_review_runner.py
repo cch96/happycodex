@@ -691,8 +691,17 @@ class ReviewRunnerTests(unittest.TestCase):
         }
 
         with mock.patch.dict(os.environ, {"NCL_FAKE_EFFORT": "high"}):
-            with self.assertRaises(review_runner.ReviewRunnerError):
-                review_runner.run_series_review(**arguments)
+            original = review_runner._codex_environment
+            with mock.patch.object(
+                review_runner,
+                "_codex_environment",
+                side_effect=lambda *args: {
+                    **original(*args),
+                    "NCL_FAKE_EFFORT": "high",
+                },
+            ):
+                with self.assertRaises(review_runner.ReviewRunnerError):
+                    review_runner.run_series_review(**arguments)
         receipt = review_runner.run_series_review(**arguments)
         with self.assertRaises(review_runner.ReviewRunnerError):
             review_runner.run_series_review(**arguments)
