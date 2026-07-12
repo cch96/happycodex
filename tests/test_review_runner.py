@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import signal
+import socket
 import subprocess
 import sys
 import tempfile
@@ -67,7 +68,10 @@ class ReviewRunnerTests(unittest.TestCase):
         (source / "models_cache.json").write_text('{"models":[]}\n', encoding="utf-8")
         return source
 
-    def make_contract(self, root: Path, base: str) -> Path:
+    def make_contract(
+        self, root: Path, base: str, repo: Path | None = None
+    ) -> Path:
+        repo = repo or root / "repo"
         contract = root / "task-contract.md"
         contract.write_text(
             "# Task Contract\n\n"
@@ -75,7 +79,7 @@ class ReviewRunnerTests(unittest.TestCase):
             "Acceptance: preserve the base line and add the head line.\n"
             "Exclusions: no other behavior.\n"
             f"Baseline: {base}\n"
-            f"Repository/worktree: {root / 'repo'}\n"
+            f"Repository/worktree: {repo}\n"
             "Goal thread ID: goal-fixture\n"
             f"Goal objective SHA256: {'b' * 64}\n"
             "Verification: inspect the exact base-to-head diff.\n"
@@ -85,15 +89,18 @@ class ReviewRunnerTests(unittest.TestCase):
         contract.chmod(0o600)
         return contract
 
-    def make_packet(self, root: Path, base: str, head: str) -> Path:
-        contract = self.make_contract(root, base)
+    def make_packet(
+        self, root: Path, base: str, head: str, repo: Path | None = None
+    ) -> Path:
+        repo = repo or root / "repo"
+        contract = self.make_contract(root, base, repo)
         contract_text = contract.read_text(encoding="utf-8").rstrip()
         contract_hash = hashlib.sha256(contract.read_bytes()).hexdigest()
         packet = root / "packet.md"
         packet.write_text(
             "# Review packet\n\n"
             "- Objective: review the feature change.\n"
-            f"- Repository root: {root / 'repo'}\n"
+            f"- Repository root: {repo}\n"
             f"- Base commit: `{base}`\n"
             f"- Head commit: `{head}`\n"
             f"- Task contract SHA256: `{contract_hash}`\n"
@@ -155,13 +162,17 @@ class ReviewRunnerTests(unittest.TestCase):
             " reviewer.append({'type':'response_item','payload':{'type':'function_call','name':'mcp_call','arguments':'{}','call_id':'forbidden'}})\n"
             "if os.environ.get('NCL_FAKE_FORBIDDEN_DIRECT'):\n"
             " reviewer.append({'type':'response_item','payload':{'type':'function_call','name':os.environ['NCL_FAKE_FORBIDDEN_DIRECT'],'arguments':'{}','call_id':'forbidden-direct'}})\n"
-            "result = {'findings':[],'overall_correctness':'patch is correct','overall_explanation':'No actionable findings.','review_root':str(pathlib.Path.cwd())}\n"
+            "result = {'findings':[],'overall_correctness':'patch is correct','overall_explanation':'No actionable findings.','overall_confidence_score':0.99,'review_root':str(pathlib.Path.cwd())}\n"
             "if os.environ.get('NCL_FAKE_DROP_FINDING'):\n"
             " result.update({'findings':[{'title':'[P1] Material defect','body':'Concrete failure','priority':1}],'overall_correctness':'patch is incorrect','overall_explanation':'A material defect remains.'})\n"
             "if os.environ.get('NCL_FAKE_INCONSISTENT_VERDICT') == 'empty-incorrect':\n"
             " result.update({'overall_correctness':'patch is incorrect','overall_explanation':'Incorrect without a finding.'})\n"
             "if os.environ.get('NCL_FAKE_INCONSISTENT_VERDICT') == 'finding-correct':\n"
             " result.update({'findings':[{'title':'[P1] Material defect','body':'Concrete failure','priority':1}],'overall_correctness':'patch is correct','overall_explanation':'[P1] Material defect Concrete failure'})\n"
+            "if os.environ.get('NCL_FAKE_INCOMPLETE_FINDING'):\n"
+            " result.update({'findings':[{'title':'[P1] Material defect','body':'Concrete failure'}],'overall_correctness':'patch is incorrect','overall_explanation':'[P1] Material defect Concrete failure'})\n"
+            "if os.environ.get('NCL_FAKE_VALID_FINDING'):\n"
+            " result.update({'findings':[{'title':'[P1] Material defect','body':'Criterion A fails; evidence and reproduction: run focused-test.','priority':1,'confidence_score':0.98,'code_location':{'absolute_file_path':str(pathlib.Path.cwd() / 'feature.txt'),'line_range':{'start':1,'end':2}}}],'overall_correctness':'patch is incorrect','overall_explanation':'[P1] Material defect Criterion A fails; evidence and reproduction: run focused-test.'})\n"
             "if os.environ.get('NCL_FAKE_LEAK_AUTH'):\n"
             " result['leak'] = (home / 'auth.json').read_text(encoding='utf-8')\n"
             "if os.environ.get('NCL_FAKE_MASK_INDEX'):\n"
@@ -346,6 +357,42 @@ class ReviewRunnerTests(unittest.TestCase):
 
         review = json.loads((output / "review.md").read_text(encoding="utf-8"))
         self.assertEqual(review["review_root"], str(repo))
+
+    def test_network_probe_fails_closed_when_interpreter_is_missing(self) -> None:
+        listener = socket.socket()
+        listener.bind(("127.0.0.1", 0))
+        listener.listen(1)
+        self.addCleanup(listener.close)
+        clause = review_runner._network_probe_clause(listener.getsockname()[1])
+
+        accessible = subprocess.run(["/bin/sh", "-c", clause], check=False)
+        missing = subprocess.run(
+            [
+                "/bin/sh",
+                "-c",
+                clause.replace("python3", "/definitely/missing-python", 1),
+            ],
+            check=False,
+        )
+
+        self.assertNotEqual(accessible.returncode, 0)
+        self.assertNotEqual(missing.returncode, 0)
+
+    def test_filesystem_hash_streams_regular_files(self) -> None:
+        root = self.make_temp()
+        target = root / "large.pack"
+        target.write_bytes(b"pack-data" * 1024)
+        original = Path.read_bytes
+
+        def reject_whole_file_read(path: Path) -> bytes:
+            if path == target:
+                raise AssertionError("regular files must be streamed")
+            return original(path)
+
+        with mock.patch.object(Path, "read_bytes", reject_whole_file_read):
+            digest = review_runner._filesystem_hash(root)
+
+        self.assertRegex(digest, r"^[0-9a-f]{64}$")
 
     def test_runtime_helper_aliases_do_not_escape_through_symlinks(self) -> None:
         root = self.make_temp()
@@ -699,6 +746,25 @@ class ReviewRunnerTests(unittest.TestCase):
         with self.assertRaises(review_runner.ReviewRunnerError):
             self.invoke(root, repo, base, head, packet=packet)
 
+    def test_run_review_rejects_duplicate_contract_markers(self) -> None:
+        root = self.make_temp()
+        repo, base, head = self.make_repo(root)
+        packet = self.make_packet(root, base, head)
+        packet.write_text(
+            packet.read_text(encoding="utf-8").replace(
+                review_runner.TASK_CONTRACT_START,
+                f"{review_runner.TASK_CONTRACT_START}\nstale contract\n"
+                f"{review_runner.TASK_CONTRACT_END}\n\n"
+                f"{review_runner.TASK_CONTRACT_START}",
+                1,
+            ),
+            encoding="utf-8",
+        )
+        packet.chmod(0o600)
+
+        with self.assertRaises(review_runner.ReviewRunnerError):
+            self.invoke(root, repo, base, head, packet=packet)
+
     def test_run_review_requires_every_review_packet_field(self) -> None:
         for line in (
             "- Repository root:",
@@ -905,6 +971,41 @@ class ReviewRunnerTests(unittest.TestCase):
                 ):
                     with self.assertRaises(review_runner.ReviewRunnerError):
                         self.invoke(root, repo, base, head)
+
+    def test_run_review_rejects_incomplete_and_accepts_complete_finding(self) -> None:
+        root = self.make_temp()
+        repo, base, head = self.make_repo(root)
+        with mock.patch.dict(os.environ, {"NCL_FAKE_INCOMPLETE_FINDING": "1"}):
+            with self.assertRaises(review_runner.ReviewRunnerError):
+                self.invoke(root, repo, base, head)
+
+        root = self.make_temp()
+        repo, base, head = self.make_repo(root)
+        with mock.patch.dict(os.environ, {"NCL_FAKE_VALID_FINDING": "1"}):
+            receipt = self.invoke(root, repo, base, head)
+        review = json.loads(Path(receipt["review_file"]).read_text(encoding="utf-8"))
+        self.assertEqual(review["findings"][0]["priority"], 1)
+
+    def test_run_review_requires_git_worktree_root(self) -> None:
+        root = self.make_temp()
+        repo, base, _ = self.make_repo(root)
+        nested = repo / "nested"
+        nested.mkdir()
+        (nested / "tracked.txt").write_text("nested\n", encoding="utf-8")
+        self.git(repo, "add", "nested/tracked.txt")
+        self.git(repo, "commit", "-q", "-m", "nested head")
+        head = self.git(repo, "rev-parse", "HEAD")
+        packet = self.make_packet(root, base, head, nested)
+
+        with self.assertRaises(review_runner.ReviewRunnerError):
+            self.invoke(
+                root,
+                nested,
+                base,
+                head,
+                packet=packet,
+                task_contract=root / "task-contract.md",
+            )
 
     def test_run_review_rejects_index_mask_added_during_review(self) -> None:
         root = self.make_temp()
