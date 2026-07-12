@@ -99,6 +99,10 @@ class ArtifactContractTests(unittest.TestCase):
             "update_goal",
             "two review invocations",
             "references/packets.md",
+            "Goal thread ID",
+            "objective hash",
+            "disposable head-only clone",
+            "live agents",
         )
         for phrase in required:
             self.assertIn(phrase, body)
@@ -122,6 +126,7 @@ class ArtifactContractTests(unittest.TestCase):
             "Base commit",
             "Head commit",
             "Verification receipt",
+            "Task contract SHA256",
             "Reproduction",
         ):
             self.assertIn(field, packets)

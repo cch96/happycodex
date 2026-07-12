@@ -72,6 +72,7 @@ class ReviewRunnerTests(unittest.TestCase):
             "- Objective: review the feature change.\n"
             f"- Base commit: `{base}`\n"
             f"- Head commit: `{head}`\n"
+            f"- Task contract SHA256: `{'a' * 64}`\n"
             "- Acceptance: feature.txt gains one line without changing the first.\n"
             "- Verification receipt: focused test exit 0.\n",
             encoding="utf-8",
@@ -420,7 +421,18 @@ class ReviewRunnerTests(unittest.TestCase):
                     encoding="utf-8",
                 )
                 with self.assertRaises(review_runner.ReviewRunnerError):
-                    self.invoke(root, repo, base, head, packet=packet)
+                        self.invoke(root, repo, base, head, packet=packet)
+
+        root = self.make_temp()
+        repo, base, head = self.make_repo(root)
+        packet = root / "missing-contract.md"
+        packet.write_text(
+            f"Objective: x\nBase: {base}\nHead: {head}\n"
+            "Acceptance: x\nVerification: x\n",
+            encoding="utf-8",
+        )
+        with self.assertRaises(review_runner.ReviewRunnerError):
+            self.invoke(root, repo, base, head, packet=packet)
 
     def test_run_review_detects_clone_write_even_if_tool_claims_read_only(self) -> None:
         root = self.make_temp()
