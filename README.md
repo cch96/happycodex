@@ -8,35 +8,14 @@ commit before completion.
 ## What it changes
 
 - Adds the `$native-codex-loop` Skill through the plugin marketplace.
-- Optionally adds one managed trigger block to `$CODEX_HOME/AGENTS.md`.
 - Runs final review in a temporary clean HOME/CODEX_HOME using `gpt-5.6-sol` at max,
   read-only sandbox, approval never, restricted network, and disabled extensions.
 - Keeps the root thread as the only source-code writer and requires the final HEAD to
   match the latest successful review receipt.
 
-It does not install custom agents, change `config.toml`, use hooks/MCP/external models,
-or force an ExecPlan file.
-
-## Optional trigger bridge
-
-Plugin discovery is sufficient for explicit `$native-codex-loop` use. To improve implicit
-pickup on long tasks, enable the reversible managed block:
-
-```bash
-python3 scripts/configure.py enable
-python3 scripts/configure.py doctor
-```
-
-Disable restores the exact prior AGENTS bytes and mode, but only when the managed file
-has not drifted:
-
-```bash
-python3 scripts/configure.py disable
-```
-
-All commands honor `CODEX_HOME` or `--codex-home`. A non-empty
-`AGENTS.override.md`, symlinked configuration path, malformed marker, or user edit fails
-closed without overwriting it.
+It does not install custom agents, modify global `AGENTS.md`/`config.toml`, use
+hooks/MCP/external models, or force an ExecPlan file. Invoke the Skill explicitly when
+deterministic pickup matters; normal plugin metadata remains available for implicit use.
 
 ## Review artifacts
 

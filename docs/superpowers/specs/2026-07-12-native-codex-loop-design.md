@@ -17,8 +17,9 @@ improves review uptake; release evidence will come from the reproducible clean-h
 pressure cases in the implementation plan.
 
 V1 therefore optimizes reviewer uptake, plan fidelity, and single-writer recovery. It
-includes one plugin Skill, a reversible global trigger bridge, complete packet contracts,
-and an isolated native-review adapter. It excludes hooks, MCP, external models,
+includes one plugin Skill, complete packet contracts, and an isolated native-review
+adapter. It excludes global configuration writes, hooks,
+MCP, external models,
 recursive or implementation delegation, multi-writer worktrees, Best-of-N, a scheduler,
 and mandatory ExecPlan files. Fable audits the committed plugin but is not a dependency.
 
@@ -57,8 +58,7 @@ The source repository is `~/projects/native-codex-loop`; the validated install m
 - `skills/native-codex-loop/references/packets.md`: complete delegation, review, and
   finding-disposition contracts.
 - `scripts/review_runner.py`: isolated native review plus verified audit receipt.
-- `scripts/configure.py`: reversible managed trigger block in `$CODEX_HOME/AGENTS.md`.
-- `tests/`: packaging, configuration safety, runner isolation, and frozen RED evidence.
+- `tests/`: packaging, global-boundary contracts, runner isolation, and frozen RED evidence.
 
 ## Runtime behavior
 
@@ -106,14 +106,12 @@ or timeout. Historical-oracle experiments still make oracle repositories inacces
 outside the candidate runtime. V1 requires Linux `unshare`, a readable `auth.json`, and
 the tested CLI contract; real preflight must be rerun after Codex CLI upgrades.
 
-## Trigger bridge safety
+## Global configuration boundary
 
-Plugin discovery works without global mutation. Optional `configure.py enable` adds one
-marked block to `$CODEX_HOME/AGENTS.md`; it never touches `config.toml` or custom agents.
-Enable validates all paths before writing, rejects symlinks, malformed/unmanaged markers,
-and a masking non-empty override, writes atomically, and records exact prior bytes/mode.
-Doctor is read-only. Disable restores only an unchanged managed file and otherwise
-preserves user edits with an error.
+The plugin never writes global `AGENTS.md`, `config.toml`, hooks, agents, or memory.
+Explicit `$native-codex-loop` invocation is the deterministic activation path; implicit
+activation relies only on installed Skill metadata. This removes a cross-file transaction
+and concurrent-user-edit surface from the trusted implementation.
 
 ## Recovery and verification
 

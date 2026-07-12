@@ -6,8 +6,8 @@ native completion review.
 
 **Architecture:** A plugin Skill controls decisions. Goal, native plan state, Git, and
 tests retain execution evidence. A temporary clean Codex process invokes the native
-review harness at Sol/max/read-only and emits a verified receipt. A managed AGENTS block
-improves implicit Skill uptake without changing Codex config or installing custom agents.
+review harness at Sol/max/read-only and emits a verified receipt. The plugin never writes
+global Codex configuration or installs custom agents.
 
 **Tech stack:** Markdown plugin/Skill, Python standard library, `unittest`, Git, Codex CLI
 0.144.1.
@@ -18,7 +18,7 @@ improves implicit Skill uptake without changing Codex config or installing custo
 - Runtime uses no external model, MCP, hook, recursive delegation, or multi-writer flow.
 - Review must prove fresh Sol/max/read-only, approval never, and restricted network.
 - Final HEAD must equal the latest successful review receipt; maximum two reviews.
-- Configuration preserves unrelated bytes and fails closed on masking, drift, or symlinks.
+- No plugin workflow mutates global AGENTS, config, hook, agent, or memory files.
 - Fable change packet remains within 20 files and 2,000 changed textual lines.
 
 ## Task 1: Freeze evidence and contracts — complete
@@ -41,14 +41,14 @@ improves implicit Skill uptake without changing Codex config or installing custo
 - [x] Select isolated config plus native `codex exec review --base`, which preserves the
   native review harness without exposing the task packet in argv.
 
-## Task 3: Implement reversible trigger configuration — complete
+## Task 3: Minimize the global configuration surface — complete
 
-**Files:** `scripts/configure.py`, `tests/test_configure.py`.
+**Files:** plugin contract tests and user-facing documentation.
 
-- [x] Implement `enable`, `doctor`, and `disable` without custom agents/config changes.
-- [x] Preserve exact AGENTS bytes and mode; use unique markers and atomic writes.
-- [x] Reject symlinks, non-empty override, malformed/unmanaged markers, and drift.
-- [x] Test rollback, idempotence, CLI CODEX_HOME routing, and exact restoration.
+- [x] Reject the optional AGENTS trigger bridge after concurrent-edit, symlink-swap, and
+  crash-consistency red-team analysis showed disproportionate transactional risk.
+- [x] Keep deterministic explicit Skill invocation and metadata-only implicit discovery.
+- [x] Contract-test that the plugin ships no global configuration writer.
 
 ## Task 4: Implement the Skill and native review runner — in progress
 
@@ -80,7 +80,6 @@ receipts.
 
 - [ ] Create/update the personal marketplace via the plugin-creator helper.
 - [ ] Sync the verified source to `~/plugins/native-codex-loop` and install it.
-- [ ] Enable the managed trigger bridge only after snapshotting current user state.
 - [ ] Under an isolated HOME/CODEX_HOME, prove Skill discovery, no custom enhancements,
   real native review, exact runtime context, secret cleanup, and final-SHA gate behavior.
 - [ ] Run three fresh long-task pressure cases and require three of three review receipts.
