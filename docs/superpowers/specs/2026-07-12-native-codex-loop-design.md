@@ -12,8 +12,9 @@ Goal, native plan state, Git, tests, bounded investigative delegation, and a fre
 The Storyboard four-arm experiment is the RED baseline. Codex-native was allowed
 multi-agent capability but invoked no child and missed two reproducible route seams.
 Claude-native's measurable advantage came from one fresh reviewer rather than broad
-fan-out. Five isolated Skill pressure runs then required an independent review and
-withheld Goal completion; two of five no-Skill controls completed prematurely.
+fan-out. An exploratory, non-frozen pressure sample suggested that loading the Skill
+improves review uptake; release evidence will come from the reproducible clean-home
+pressure cases in the implementation plan.
 
 V1 therefore optimizes reviewer uptake, plan fidelity, and single-writer recovery. It
 includes one plugin Skill, a reversible global trigger bridge, complete packet contracts,
@@ -87,16 +88,23 @@ HOME/CODEX_HOME receives only auth, optional model cache, and a generated
 injection. Plugins, apps, hooks, multi-agent, browser, image, computer, and web features
 are disabled. Runtime rollout evidence must confirm Sol/max/read-only/never/restricted.
 
-Credentials, config, sessions, and clone exist only in a temporary directory that is
+The runner derives and binds one durable review series to the canonical repository and frozen task
+base, records attempts before execution, and refuses a third call or an empty review
+range. Credentials, config, sessions, and clone exist only in a temporary directory that is
 deleted on success, error, or timeout. Persisted artifacts are the reviewed packet,
 native review, JSONL events, stderr, and a receipt with runtime values and hashes. Source
-and clone HEAD/content are checked before and after review.
+and clone HEAD/full content plus source HEAD/Git-visible content are checked before and
+after review. Clone paths in findings are mapped back to the canonical source path.
 
 The receipt is an auditable run record, not a cryptographic signature. Read-only Codex
-can read the host root, so a historical oracle experiment must additionally make oracle
-repositories inaccessible at the OS/container layer. V1 currently requires a readable
-`auth.json`, POSIX process-group semantics for strongest timeout cleanup, and the tested
-CLI contract; `doctor` and real preflight must be rerun after Codex CLI upgrades.
+uses a positive filesystem allowlist. Before model launch a native sandbox preflight
+proves that credentials/config are unreadable while the clone and helper are readable;
+the reviewer must repeat an exact credential canary before an exact base-to-head diff.
+Turn context rejects unknown host grants. Every Codex process is wrapped in an
+unprivileged Linux user/PID/mount namespace so detached descendants die on normal exit
+or timeout. Historical-oracle experiments still make oracle repositories inaccessible
+outside the candidate runtime. V1 requires Linux `unshare`, a readable `auth.json`, and
+the tested CLI contract; real preflight must be rerun after Codex CLI upgrades.
 
 ## Trigger bridge safety
 

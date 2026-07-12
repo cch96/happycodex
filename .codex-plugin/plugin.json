@@ -1,0 +1,30 @@
+{
+  "name": "native-codex-loop",
+  "version": "0.1.0",
+  "description": "Reliable long-task execution using Codex Goal, evidence-driven planning, safe delegation, and independent review.",
+  "author": {
+    "name": "caichenghang"
+  },
+  "keywords": [
+    "codex",
+    "goal",
+    "long-tasks",
+    "review"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Native Codex Loop",
+    "shortDescription": "Reliable long-task execution and review",
+    "longDescription": "Run complex Codex implementation tasks with a single root writer, native Goal and plan state, bounded non-writing delegation, evidence-driven replanning, and a fresh isolated completion review.",
+    "developerName": "caichenghang",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Use $native-codex-loop with Goal to complete this long implementation without dropping requirements.",
+      "Use $native-codex-loop to run this refactor with bounded delegation and an independent final review."
+    ]
+  }
+}

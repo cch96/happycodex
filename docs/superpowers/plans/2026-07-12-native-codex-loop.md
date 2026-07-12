@@ -27,7 +27,8 @@ improves implicit Skill uptake without changing Codex config or installing custo
 
 - [x] Record immutable Storyboard agent-call count, missed seams, report path, and hash.
 - [x] Write RED tests for configuration safety, plugin surfaces, packet fields, and review.
-- [x] Capture no-Skill versus Skill behavior-pressure evidence.
+- [ ] Freeze reproducible no-Skill versus Skill behavior-pressure evidence during the
+  clean-home release preflight.
 
 ## Task 2: Resolve reviewer routing experimentally — complete
 
@@ -59,7 +60,7 @@ improves implicit Skill uptake without changing Codex config or installing custo
 - [x] Reject dirty source, non-ancestor base, nested output, and non-empty output.
 - [x] Use a head-only bundle clone; disable project docs and nonessential capabilities.
 - [x] Keep auth/runtime temporary and verify inner review context and unchanged trees.
-- [x] Add wall-clock timeout, process-group cleanup, runtime/artifact hashes, and tests.
+- [x] Add wall-clock timeout, Linux PID-namespace cleanup, runtime/artifact hashes, and tests.
 - [ ] Re-run full tests, linters/compilation, official Skill/plugin validators, and a clean
   real-CLI review after final refactoring.
 

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Native Codex Loop"
+  short_description: "Reliable long-task execution and final review"
+  default_prompt: "Use $native-codex-loop with Goal to complete this long implementation without dropping requirements."
