@@ -158,6 +158,10 @@ class ReviewRunnerTests(unittest.TestCase):
             "result = {'findings':[],'overall_correctness':'patch is correct','overall_explanation':'No actionable findings.','review_root':str(pathlib.Path.cwd())}\n"
             "if os.environ.get('NCL_FAKE_DROP_FINDING'):\n"
             " result.update({'findings':[{'title':'[P1] Material defect','body':'Concrete failure','priority':1}],'overall_correctness':'patch is incorrect','overall_explanation':'A material defect remains.'})\n"
+            "if os.environ.get('NCL_FAKE_INCONSISTENT_VERDICT') == 'empty-incorrect':\n"
+            " result.update({'overall_correctness':'patch is incorrect','overall_explanation':'Incorrect without a finding.'})\n"
+            "if os.environ.get('NCL_FAKE_INCONSISTENT_VERDICT') == 'finding-correct':\n"
+            " result.update({'findings':[{'title':'[P1] Material defect','body':'Concrete failure','priority':1}],'overall_correctness':'patch is correct','overall_explanation':'[P1] Material defect Concrete failure'})\n"
             "if os.environ.get('NCL_FAKE_LEAK_AUTH'):\n"
             " result['leak'] = (home / 'auth.json').read_text(encoding='utf-8')\n"
             "if os.environ.get('NCL_FAKE_MASK_INDEX'):\n"
@@ -888,6 +892,17 @@ class ReviewRunnerTests(unittest.TestCase):
                 root = self.make_temp()
                 repo, base, head = self.make_repo(root)
                 with mock.patch.dict(os.environ, environment):
+                    with self.assertRaises(review_runner.ReviewRunnerError):
+                        self.invoke(root, repo, base, head)
+
+    def test_run_review_rejects_internally_inconsistent_verdict(self) -> None:
+        for mode in ("empty-incorrect", "finding-correct"):
+            with self.subTest(mode=mode):
+                root = self.make_temp()
+                repo, base, head = self.make_repo(root)
+                with mock.patch.dict(
+                    os.environ, {"NCL_FAKE_INCONSISTENT_VERDICT": mode}
+                ):
                     with self.assertRaises(review_runner.ReviewRunnerError):
                         self.invoke(root, repo, base, head)
 
