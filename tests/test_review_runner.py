@@ -78,7 +78,8 @@ class ReviewRunnerTests(unittest.TestCase):
             f"Repository/worktree: {root / 'repo'}\n"
             "Goal thread ID: none\n"
             f"Goal objective SHA256: {'b' * 64}\n"
-            "Verification: inspect the exact base-to-head diff.\n",
+            "Verification: inspect the exact base-to-head diff.\n"
+            "Stop conditions: any failed review gate.\n",
             encoding="utf-8",
         )
         contract.chmod(0o600)
@@ -147,6 +148,8 @@ class ReviewRunnerTests(unittest.TestCase):
             "if os.environ.get('NCL_FAKE_FORBIDDEN_FUNCTION'):\n"
             " reviewer.append({'type':'response_item','payload':{'type':'function_call','name':'mcp_call','arguments':'{}','call_id':'forbidden'}})\n"
             "result = {'findings':[],'overall_correctness':'patch is correct','overall_explanation':'No actionable findings.','review_root':str(pathlib.Path.cwd())}\n"
+            "if os.environ.get('NCL_FAKE_DROP_FINDING'):\n"
+            " result.update({'findings':[{'title':'[P1] Material defect','body':'Concrete failure','priority':1}],'overall_correctness':'patch is incorrect','overall_explanation':'A material defect remains.'})\n"
             "if os.environ.get('NCL_FAKE_LEAK_AUTH'):\n"
             " result['leak'] = (home / 'auth.json').read_text(encoding='utf-8')\n"
             "if os.environ.get('NCL_FAKE_MASK_INDEX'):\n"
@@ -157,7 +160,7 @@ class ReviewRunnerTests(unittest.TestCase):
             "canary_event = '/bin/bash -c ' + shlex.quote(canary_command + (' || true' if os.environ.get('NCL_FAKE_DECEPTIVE_CANARY') else ''))\n"
             "proof_event = f'git diff --check {base}..{head}' if os.environ.get('NCL_FAKE_DIFF_CHECK_ONLY') else f'git diff {base}..{head}'\n"
             "review_text = '   ' if os.environ.get('NCL_FAKE_BLANK_MESSAGE') else json.dumps(result)\n"
-            "outer_text = '   ' if os.environ.get('NCL_FAKE_BLANK_MESSAGE') else result['overall_explanation']\n"
+            "outer_text = '   ' if os.environ.get('NCL_FAKE_BLANK_MESSAGE') else ('No actionable findings.' if os.environ.get('NCL_FAKE_DROP_FINDING') else result['overall_explanation'])\n"
             "reviewer.append({'type':'response_item','payload':{'type':'message','role':'assistant','content':[{'type':'output_text','text':review_text}]}})\n"
             "outer.append({'type':'response_item','payload':{'type':'message','role':'assistant','content':[{'type':'output_text','text':'different' if os.environ.get('NCL_FAKE_OUTER_VERDICT_MISMATCH') else outer_text}]}})\n"
             "(session_dir / 'outer.jsonl').write_text(''.join(json.dumps(x)+'\\n' for x in outer), encoding='utf-8')\n"
@@ -205,8 +208,9 @@ class ReviewRunnerTests(unittest.TestCase):
         receipt = self.invoke(root, repo, base, head, output=output)
 
         self.assertTrue(receipt["ok"], receipt)
-        review = (output / "review.md").read_text(encoding="utf-8")
-        self.assertEqual(review, "No actionable findings.\n")
+        review = json.loads((output / "review.md").read_text(encoding="utf-8"))
+        self.assertEqual(review["findings"], [])
+        self.assertEqual(review["overall_correctness"], "patch is correct")
         persisted = json.loads((output / "receipt.json").read_text(encoding="utf-8"))
         self.assertEqual(persisted["base"], base)
         self.assertEqual(persisted["head"], head)
@@ -585,6 +589,7 @@ class ReviewRunnerTests(unittest.TestCase):
             {"NCL_FAKE_WRONG_PROMPT_ROLE": "1"},
             {"NCL_FAKE_OUTER_PROMPT_LEAK": "1"},
             {"NCL_FAKE_OUTER_VERDICT_MISMATCH": "1"},
+            {"NCL_FAKE_DROP_FINDING": "1"},
         ):
             with self.subTest(environment=environment):
                 root = self.make_temp()
@@ -744,6 +749,38 @@ class ReviewRunnerTests(unittest.TestCase):
                 codex_binary=self.make_fake_codex(root),
             )
         self.assertEqual(list(external.iterdir()), [])
+
+    def test_series_rejects_dangling_attempt_symlink(self) -> None:
+        root = self.make_temp()
+        repo, base, head = self.make_repo(root)
+        source = self.make_source_home(root)
+        series = review_runner.canonical_series_path(source, repo, base)
+        series.mkdir(parents=True)
+        (series / "series.json").write_text(
+            json.dumps(
+                {
+                    "schema_version": review_runner.SERIES_SCHEMA,
+                    "repo": str(repo),
+                    "base": base,
+                    "attempts": [],
+                }
+            ),
+            encoding="utf-8",
+        )
+        external = root / "external-attempt"
+        (series / "attempt-1").symlink_to(external, target_is_directory=True)
+
+        with self.assertRaises(review_runner.ReviewRunnerError):
+            review_runner.run_series_review(
+                repo=repo,
+                base=base,
+                head=head,
+                packet=self.make_packet(root, base, head),
+                task_contract=root / "task-contract.md",
+                source_codex_home=source,
+                codex_binary=self.make_fake_codex(root),
+            )
+        self.assertFalse(external.exists())
 
     def test_cli_requires_and_routes_task_contract(self) -> None:
         root = self.make_temp()
