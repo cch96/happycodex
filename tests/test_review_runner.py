@@ -110,9 +110,11 @@ class ReviewRunnerTests(unittest.TestCase):
             "outer = [\n"
             " {'type':'session_meta','payload':{'session_id':'outer','id':'outer','cwd':cwd,'thread_source':'user','source':'exec'}},\n"
             "]\n"
+            "if os.environ.get('NCL_FAKE_OUTER_PROMPT_LEAK'):\n"
+            " outer.append({'type':'response_item','payload':{'type':'message','role':'assistant','content':[{'type':'output_text','text':'prefix '+prompt}]}})\n"
             "reviewer = [\n"
             " {'type':'session_meta','payload':{'session_id':'outer','id':'outer' if os.environ.get('NCL_FAKE_SAME_SESSION') else 'review','parent_thread_id':'outer','cwd':cwd,'thread_source':'subagent','source':{'subagent':'review'}}},\n"
-            " {'type':'response_item','payload':{'type':'message','role':'developer','content':[{'type':'input_text','text':prompt}]}},\n"
+            " {'type':'response_item','payload':{'type':'message','role':'assistant' if os.environ.get('NCL_FAKE_WRONG_PROMPT_ROLE') else 'developer','content':[{'type':'input_text','text':prompt}]}},\n"
             " {'type':'turn_context','payload':{'cwd':context_cwd,'workspace_roots':[context_cwd],'model':'gpt-5.6-sol','effort':effort,'approval_policy':'never','sandbox_policy':{'type':'read-only'},'permission_profile':{'type':'managed','file_system':{'type':'restricted','entries':[{'path':{'type':'special','value':{'kind':'minimal'}},'access':'read'},{'path':{'type':'path','path':cwd},'access':'read'}] + ([{'path':{'type':'path','path':'/'},'access':'read'}] if os.environ.get('NCL_FAKE_BROAD_PROFILE') else [])},'network':'restricted'},'multi_agent_version':'disabled'}},\n"
             "]\n"
             "if os.environ.get('NCL_FAKE_FORBIDDEN'):\n"
@@ -122,12 +124,16 @@ class ReviewRunnerTests(unittest.TestCase):
             "result = {'findings':[],'overall_correctness':'patch is correct','overall_explanation':'No actionable findings.','review_root':str(pathlib.Path.cwd())}\n"
             "if os.environ.get('NCL_FAKE_LEAK_AUTH'):\n"
             " result['leak'] = (home / 'auth.json').read_text(encoding='utf-8')\n"
+            "if os.environ.get('NCL_FAKE_MASK_INDEX'):\n"
+            " subprocess.run(['git','update-index','--assume-unchanged','feature.txt'],check=True)\n"
             "print(json.dumps({'type':'thread.started','thread_id':os.environ.get('NCL_FAKE_THREAD_ID','outer')}))\n"
+            "if os.environ.get('NCL_FAKE_EARLY_COMMAND'):\n"
+            " print(json.dumps({'type':'item.started','item':{'id':'early','type':'command_execution','command':'cat '+str(home / 'auth.json'),'status':'in_progress'}}))\n"
             "canary_event = '/bin/bash -c ' + shlex.quote(canary_command + (' || true' if os.environ.get('NCL_FAKE_DECEPTIVE_CANARY') else ''))\n"
             "proof_event = f'git diff --check {base}..{head}' if os.environ.get('NCL_FAKE_DIFF_CHECK_ONLY') else f'git diff {base}..{head}'\n"
             "print(json.dumps({'type':'item.completed','item':{'type':'command_execution','command':canary_event,'aggregated_output':'','exit_code':0}}))\n"
             "print(json.dumps({'type':'item.completed','item':{'type':'command_execution','command':proof_event,'aggregated_output':'' if os.environ.get('NCL_FAKE_DIFF_CHECK_ONLY') else 'diff --git evidence','exit_code':0}}))\n"
-            "print(json.dumps({'type':'item.completed','item':{'type':'agent_message','text':json.dumps(result)}}))\n"
+            "print(json.dumps({'type':'item.completed','item':{'type':'agent_message','text':'   ' if os.environ.get('NCL_FAKE_BLANK_MESSAGE') else json.dumps(result)}}))\n"
             "if not os.environ.get('NCL_FAKE_NO_COMPLETED'):\n"
             " print(json.dumps({'type':'turn.completed','usage':{'input_tokens':10,'output_tokens':5}}))\n",
             encoding="utf-8",
@@ -177,11 +183,17 @@ class ReviewRunnerTests(unittest.TestCase):
             "outer_rollout_sha256",
             "review_rollout_sha256",
             "profile_preflight_sha256",
+            "review_runner_sha256",
         ):
             self.assertRegex(persisted[field], r"^[0-9a-f]{64}$")
         self.assertRegex(
             persisted["containment"]["binary_sha256"], r"^[0-9a-f]{64}$"
         )
+        self.assertEqual(
+            persisted["review_runner_sha256"],
+            hashlib.sha256(Path(review_runner.__file__).read_bytes()).hexdigest(),
+        )
+        self.assertEqual(persisted["task_contract_sha256"], "a" * 64)
         self.assertEqual(
             persisted["source_git_visible_sha256_before"],
             persisted["source_git_visible_sha256_after"],
@@ -483,6 +495,10 @@ class ReviewRunnerTests(unittest.TestCase):
             {"NCL_FAKE_DIFF_CHECK_ONLY": "1"},
             {"NCL_FAKE_BROAD_PROFILE": "1"},
             {"NCL_FAKE_SAME_SESSION": "1"},
+            {"NCL_FAKE_BLANK_MESSAGE": "1"},
+            {"NCL_FAKE_EARLY_COMMAND": "1"},
+            {"NCL_FAKE_WRONG_PROMPT_ROLE": "1"},
+            {"NCL_FAKE_OUTER_PROMPT_LEAK": "1"},
         ):
             with self.subTest(environment=environment):
                 root = self.make_temp()
@@ -490,6 +506,34 @@ class ReviewRunnerTests(unittest.TestCase):
                 with mock.patch.dict(os.environ, environment):
                     with self.assertRaises(review_runner.ReviewRunnerError):
                         self.invoke(root, repo, base, head)
+
+    def test_run_review_rejects_index_mask_added_during_review(self) -> None:
+        root = self.make_temp()
+        repo, base, head = self.make_repo(root)
+        with mock.patch.dict(os.environ, {"NCL_FAKE_MASK_INDEX": "1"}):
+            with self.assertRaises(review_runner.ReviewRunnerError):
+                self.invoke(root, repo, base, head)
+
+    def test_run_review_accepts_clean_smudge_filtered_source(self) -> None:
+        root = self.make_temp()
+        repo, base, head = self.make_repo(root)
+        self.git(repo, "config", "filter.demo.clean", "sed 's/^SMUDGED://'")
+        self.git(repo, "config", "filter.demo.smudge", "sed 's/^/SMUDGED:/'")
+        (repo / ".gitattributes").write_text("feature.txt filter=demo\n", encoding="utf-8")
+        self.git(repo, "add", ".gitattributes")
+        self.git(repo, "commit", "-q", "-m", "filter")
+        base = self.git(repo, "rev-parse", "HEAD")
+        self.git(repo, "checkout", "--quiet", "HEAD", "--", "feature.txt")
+        (repo / "feature.txt").write_text(
+            "SMUDGED:base\nSMUDGED:head\nSMUDGED:third\n", encoding="utf-8"
+        )
+        self.git(repo, "add", "feature.txt")
+        self.git(repo, "commit", "-q", "-m", "filtered head")
+        head = self.git(repo, "rev-parse", "HEAD")
+        self.git(repo, "checkout", "--quiet", "HEAD", "--", "feature.txt")
+        self.assertEqual(self.git(repo, "status", "--porcelain"), "")
+
+        self.assertTrue(self.invoke(root, repo, base, head)["ok"])
 
     def test_run_review_fails_before_model_when_profile_preflight_fails(self) -> None:
         root = self.make_temp()
@@ -582,6 +626,27 @@ class ReviewRunnerTests(unittest.TestCase):
         )
         self.assertEqual(receipt["attempt"], 2)
         self.assertEqual(Path(receipt["review_file"]).parent, series / "attempt-2")
+
+    def test_series_rejects_symlinked_canonical_directory(self) -> None:
+        root = self.make_temp()
+        repo, base, head = self.make_repo(root)
+        source = self.make_source_home(root)
+        series = review_runner.canonical_series_path(source, repo, base)
+        series.parent.mkdir(parents=True)
+        external = root / "external-series"
+        external.mkdir()
+        series.symlink_to(external, target_is_directory=True)
+
+        with self.assertRaises(review_runner.ReviewRunnerError):
+            review_runner.run_series_review(
+                repo=repo,
+                base=base,
+                head=head,
+                packet=self.make_packet(root, base, head),
+                source_codex_home=source,
+                codex_binary=self.make_fake_codex(root),
+            )
+        self.assertEqual(list(external.iterdir()), [])
 
 
 if __name__ == "__main__":
