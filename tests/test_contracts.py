@@ -108,6 +108,30 @@ class ArtifactContractTests(unittest.TestCase):
             self.assertIn(phrase, body)
         self.assertNotIn("native_codex_reviewer", body)
 
+    def test_skill_requires_explicit_non_recursive_review_escalation(self) -> None:
+        skill = (ROOT / "skills/native-codex-loop/SKILL.md").read_text(
+            encoding="utf-8"
+        )
+        packets = (ROOT / "skills/native-codex-loop/references/packets.md").read_text(
+            encoding="utf-8"
+        )
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        for phrase in (
+            "--escalate-from-series",
+            "explicit user approval",
+            "append-only addendum",
+            "one escalation generation",
+            "recursive escalation",
+        ):
+            self.assertIn(phrase, skill)
+        for phrase in (
+            "Prior series SHA256",
+            "Prior final receipt SHA256",
+            "Confirmed finding IDs",
+        ):
+            self.assertIn(phrase, packets)
+        self.assertIn("default two-attempt cap", readme)
+
     def test_packet_reference_defines_complete_dispatch_and_review_shapes(self) -> None:
         packets = (ROOT / "skills/native-codex-loop/references/packets.md").read_text(
             encoding="utf-8"

@@ -50,7 +50,8 @@ class ReviewRunnerTests(unittest.TestCase):
         self.git(repo, "config", "user.name", "Review Test")
         self.git(repo, "config", "user.email", "review@example.invalid")
         (repo / "feature.txt").write_text("base\n", encoding="utf-8")
-        self.git(repo, "add", "feature.txt")
+        (repo / "stable.txt").write_text("stable\n", encoding="utf-8")
+        self.git(repo, "add", "feature.txt", "stable.txt")
         self.git(repo, "commit", "-q", "-m", "base")
         base = self.git(repo, "rev-parse", "HEAD")
         (repo / "feature.txt").write_text("base\nhead\n", encoding="utf-8")
@@ -94,6 +95,11 @@ class ReviewRunnerTests(unittest.TestCase):
     ) -> Path:
         repo = repo or root / "repo"
         contract = self.make_contract(root, base, repo)
+        return self.write_packet(root, base, head, repo, contract)
+
+    def write_packet(
+        self, root: Path, base: str, head: str, repo: Path, contract: Path
+    ) -> Path:
         contract_text = contract.read_text(encoding="utf-8").rstrip()
         contract_hash = hashlib.sha256(contract.read_bytes()).hexdigest()
         packet = root / "packet.md"
@@ -118,6 +124,90 @@ class ReviewRunnerTests(unittest.TestCase):
         packet.chmod(0o600)
         return packet
 
+    def make_parent_series(
+        self,
+        source: Path,
+        repo: Path,
+        base: str,
+        head: str,
+        contract_sha256: str,
+    ) -> Path:
+        series = review_runner.canonical_series_path(source, repo, base)
+        second = series / "attempt-2"
+        second.mkdir(parents=True)
+        receipt = {
+            "ok": True,
+            "base": base,
+            "head": head,
+            "task_contract_sha256": contract_sha256,
+            "attempt": 2,
+            "series_file": str(series / "series.json"),
+        }
+        receipt_path = second / "receipt.json"
+        receipt_path.write_text(
+            json.dumps(receipt, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        )
+        receipt_path.chmod(0o600)
+        state = {
+            "schema_version": review_runner.SERIES_SCHEMA,
+            "repo": str(repo),
+            "base": base,
+            "attempts": [
+                {
+                    "number": 1,
+                    "head": head,
+                    "status": "failed",
+                    "output": str(series / "attempt-1"),
+                },
+                {
+                    "number": 2,
+                    "head": head,
+                    "status": "succeeded",
+                    "output": str(second),
+                    "receipt_sha256": hashlib.sha256(
+                        receipt_path.read_bytes()
+                    ).hexdigest(),
+                },
+            ],
+        }
+        state_path = series / "series.json"
+        state_path.write_text(
+            json.dumps(state, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        )
+        state_path.chmod(0o600)
+        return state_path
+
+    def authorize_escalation(
+        self,
+        contract: Path,
+        parent: Path,
+        prior_head: str,
+        *,
+        finding_ids: str = "R2-F1,R2-F2,R2-F3,R2-F4,R2-F5",
+    ) -> None:
+        original_hash = hashlib.sha256(contract.read_bytes()).hexdigest()
+        parent_state = json.loads(parent.read_text(encoding="utf-8"))
+        receipt = Path(parent_state["attempts"][-1]["output"]) / "receipt.json"
+        addendum = (
+            "\n## Addendum 2026-07-13 — Human-authorized post-review escalation\n\n"
+            "User authorization: 我批准\n"
+            f"User authorization SHA256: {hashlib.sha256('我批准'.encode()).hexdigest()}\n"
+            f"Prior Task Contract SHA256: {original_hash}\n"
+            f"Prior series file: {parent}\n"
+            f"Prior series SHA256: {hashlib.sha256(parent.read_bytes()).hexdigest()}\n"
+            f"Prior final receipt SHA256: {hashlib.sha256(receipt.read_bytes()).hexdigest()}\n"
+            f"Prior reviewed head: {prior_head}\n"
+            f"Confirmed finding IDs: {finding_ids}\n"
+            "Authorization: fix the five confirmed findings; add one non-recursive "
+            "post-fix review series whose identity binds this addendum, the prior "
+            "series, and its final receipt; keep every normal or escalated series "
+            "capped at two attempts.\n"
+            "Completion restriction: do not install until review passes.\n"
+        )
+        contract.write_text(
+            contract.read_text(encoding="utf-8") + addendum, encoding="utf-8"
+        )
+
     def make_fake_codex(self, root: Path) -> Path:
         fake = root / "fake-codex"
         fake.write_text(
@@ -128,6 +218,8 @@ class ReviewRunnerTests(unittest.TestCase):
             " raise SystemExit(0)\n"
             "if len(sys.argv) > 1 and sys.argv[1] == 'sandbox':\n"
             " raise SystemExit(19 if os.environ.get('NCL_FAKE_PREFLIGHT_FAIL') else 0)\n"
+            "if os.environ.get('NCL_FAKE_LAUNCH_MARKER'):\n"
+            " pathlib.Path(os.environ['NCL_FAKE_LAUNCH_MARKER']).write_text('launched\\n', encoding='utf-8')\n"
             "if os.environ.get('NCL_FAKE_SLEEP'):\n"
             " time.sleep(float(os.environ['NCL_FAKE_SLEEP']))\n"
             "if os.environ.get('NCL_FAKE_WRITE'):\n"
@@ -172,7 +264,14 @@ class ReviewRunnerTests(unittest.TestCase):
             "if os.environ.get('NCL_FAKE_INCOMPLETE_FINDING'):\n"
             " result.update({'findings':[{'title':'[P1] Material defect','body':'Concrete failure'}],'overall_correctness':'patch is incorrect','overall_explanation':'[P1] Material defect Concrete failure'})\n"
             "if os.environ.get('NCL_FAKE_VALID_FINDING'):\n"
-            " result.update({'findings':[{'title':'[P1] Material defect','body':'Criterion A fails; evidence and reproduction: run focused-test.','priority':1,'confidence_score':0.98,'code_location':{'absolute_file_path':str(pathlib.Path.cwd() / 'feature.txt'),'line_range':{'start':1,'end':2}}}],'overall_correctness':'patch is incorrect','overall_explanation':'[P1] Material defect Criterion A fails; evidence and reproduction: run focused-test.'})\n"
+            " priority=int(os.environ.get('NCL_FAKE_FINDING_PRIORITY','1'))\n"
+            " title_priority=int(os.environ.get('NCL_FAKE_FINDING_TITLE_PRIORITY',str(priority)))\n"
+            " finding_path=os.environ.get('NCL_FAKE_FINDING_PATH',str(pathlib.Path.cwd() / 'feature.txt')).replace('{cwd}',cwd)\n"
+            " finding_start=int(os.environ.get('NCL_FAKE_FINDING_START','1'))\n"
+            " finding_end=int(os.environ.get('NCL_FAKE_FINDING_END','2'))\n"
+            " title=f'[P{title_priority}] Material defect'\n"
+            " body='Criterion A fails; evidence and reproduction: run focused-test.'\n"
+            " result.update({'findings':[{'title':title,'body':body,'priority':priority,'confidence_score':0.98,'code_location':{'absolute_file_path':finding_path,'line_range':{'start':finding_start,'end':finding_end}}}],'overall_correctness':'patch is incorrect','overall_explanation':title+' '+body})\n"
             "if os.environ.get('NCL_FAKE_LEAK_AUTH'):\n"
             " result['leak'] = (home / 'auth.json').read_text(encoding='utf-8')\n"
             "if os.environ.get('NCL_FAKE_MASK_INDEX'):\n"
@@ -358,12 +457,13 @@ class ReviewRunnerTests(unittest.TestCase):
         review = json.loads((output / "review.md").read_text(encoding="utf-8"))
         self.assertEqual(review["review_root"], str(repo))
 
-    def test_network_probe_fails_closed_when_interpreter_is_missing(self) -> None:
+    def test_network_probe_is_import_safe_and_errno_exact(self) -> None:
         listener = socket.socket()
         listener.bind(("127.0.0.1", 0))
         listener.listen(1)
         self.addCleanup(listener.close)
         clause = review_runner._network_probe_clause(listener.getsockname()[1])
+        self.assertIn("python3 -I -S -c", clause)
 
         accessible = subprocess.run(
             ["/bin/sh", "-c", clause], check=False, capture_output=True
@@ -377,21 +477,33 @@ class ReviewRunnerTests(unittest.TestCase):
             check=False,
             capture_output=True,
         )
-        fake_module = self.make_temp() / "socket.py"
+        closed = socket.socket()
+        closed.bind(("127.0.0.1", 0))
+        closed_port = closed.getsockname()[1]
+        closed.close()
+        refused = subprocess.run(
+            ["/bin/sh", "-c", review_runner._network_probe_clause(closed_port)],
+            check=False,
+            capture_output=True,
+        )
+        candidate = self.make_temp()
+        fake_module = candidate / "socket.py"
         fake_module.write_text(
             "def socket():\n    raise PermissionError(1, 'denied')\n",
             encoding="utf-8",
         )
-        denied = subprocess.run(
+        shadowed = subprocess.run(
             ["/bin/sh", "-c", clause],
             check=False,
             capture_output=True,
+            cwd=candidate,
             env={**os.environ, "PYTHONPATH": str(fake_module.parent)},
         )
 
         self.assertNotEqual(accessible.returncode, 0)
         self.assertNotEqual(missing.returncode, 0)
-        self.assertEqual(denied.returncode, 0, denied.stderr)
+        self.assertNotEqual(refused.returncode, 0)
+        self.assertNotEqual(shadowed.returncode, 0, shadowed.stderr)
 
     def test_filesystem_hash_streams_regular_files(self) -> None:
         root = self.make_temp()
@@ -943,6 +1055,33 @@ class ReviewRunnerTests(unittest.TestCase):
         )
         self.assertNotIn(b"AUTH_FIXTURE_SECRET_12345", persisted)
 
+    def test_run_review_rejects_committed_credentials_before_model_launch(
+        self,
+    ) -> None:
+        for historical_only in (False, True):
+            with self.subTest(historical_only=historical_only):
+                root = self.make_temp()
+                repo, base, _ = self.make_repo(root)
+                secret = repo / "credential.txt"
+                secret.write_text("AUTH_FIXTURE_SECRET_12345\n", encoding="utf-8")
+                self.git(repo, "add", "credential.txt")
+                self.git(repo, "commit", "-q", "-m", "commit credential")
+                if historical_only:
+                    secret.unlink()
+                    (repo / "feature.txt").write_text(
+                        "base\nhead\npost-fix\n", encoding="utf-8"
+                    )
+                    self.git(repo, "add", "-A")
+                    self.git(repo, "commit", "-q", "-m", "remove credential")
+                head = self.git(repo, "rev-parse", "HEAD")
+                marker = root / "model-launched"
+                with mock.patch.dict(
+                    os.environ, {"NCL_FAKE_LAUNCH_MARKER": str(marker)}
+                ):
+                    with self.assertRaises(review_runner.ReviewRunnerError):
+                        self.invoke(root, repo, base, head)
+                self.assertFalse(marker.exists())
+
     def test_run_review_binds_completed_event_stream_to_outer_rollout(self) -> None:
         for environment in (
             {"NCL_FAKE_THREAD_ID": "different"},
@@ -1000,6 +1139,35 @@ class ReviewRunnerTests(unittest.TestCase):
             receipt = self.invoke(root, repo, base, head)
         review = json.loads(Path(receipt["review_file"]).read_text(encoding="utf-8"))
         self.assertEqual(review["findings"][0]["priority"], 1)
+
+    def test_run_review_rejects_unbound_finding_priority_and_locations(self) -> None:
+        environments = (
+            {
+                "NCL_FAKE_VALID_FINDING": "1",
+                "NCL_FAKE_FINDING_PRIORITY": "3",
+                "NCL_FAKE_FINDING_TITLE_PRIORITY": "0",
+            },
+            {
+                "NCL_FAKE_VALID_FINDING": "1",
+                "NCL_FAKE_FINDING_PATH": "/etc/passwd",
+            },
+            {
+                "NCL_FAKE_VALID_FINDING": "1",
+                "NCL_FAKE_FINDING_PATH": "{cwd}/stable.txt",
+            },
+            {
+                "NCL_FAKE_VALID_FINDING": "1",
+                "NCL_FAKE_FINDING_START": "1",
+                "NCL_FAKE_FINDING_END": "1",
+            },
+        )
+        for environment in environments:
+            with self.subTest(environment=environment):
+                root = self.make_temp()
+                repo, base, head = self.make_repo(root)
+                with mock.patch.dict(os.environ, environment):
+                    with self.assertRaises(review_runner.ReviewRunnerError):
+                        self.invoke(root, repo, base, head)
 
     def test_run_review_requires_git_worktree_root(self) -> None:
         root = self.make_temp()
@@ -1152,6 +1320,122 @@ class ReviewRunnerTests(unittest.TestCase):
         self.assertEqual(receipt["attempt"], 2)
         self.assertEqual(Path(receipt["review_file"]).parent, series / "attempt-2")
 
+    def test_authorized_escalation_creates_one_distinct_two_attempt_series(
+        self,
+    ) -> None:
+        root = self.make_temp()
+        repo, base, prior_head = self.make_repo(root)
+        source = self.make_source_home(root)
+        contract = self.make_contract(root, base, repo)
+        prior_contract_hash = hashlib.sha256(contract.read_bytes()).hexdigest()
+        parent = self.make_parent_series(
+            source, repo, base, prior_head, prior_contract_hash
+        )
+        self.authorize_escalation(contract, parent, prior_head)
+        (repo / "feature.txt").write_text(
+            "base\nhead\nfixed\n", encoding="utf-8"
+        )
+        self.git(repo, "add", "feature.txt")
+        self.git(repo, "commit", "-q", "-m", "post review fix")
+        head = self.git(repo, "rev-parse", "HEAD")
+        packet = self.write_packet(root, base, head, repo, contract)
+
+        receipt = review_runner.run_series_review(
+            repo=repo,
+            base=base,
+            head=head,
+            packet=packet,
+            task_contract=contract,
+            source_codex_home=source,
+            codex_binary=self.make_fake_codex(root),
+            escalate_from_series=parent,
+        )
+
+        escalation_state = Path(receipt["series_file"])
+        self.assertEqual(escalation_state.parent.parent.name, "escalations")
+        self.assertNotEqual(escalation_state, parent)
+        self.assertEqual(receipt["escalation"]["parent_series"], str(parent))
+        self.assertEqual(
+            receipt["escalation"]["parent_series_sha256"],
+            hashlib.sha256(parent.read_bytes()).hexdigest(),
+        )
+
+        with self.assertRaises(review_runner.ReviewRunnerError):
+            review_runner.run_series_review(
+                repo=repo,
+                base=base,
+                head=head,
+                packet=packet,
+                task_contract=contract,
+                source_codex_home=source,
+                codex_binary=self.make_fake_codex(root),
+                escalate_from_series=escalation_state,
+            )
+
+    def test_authorized_escalation_rejects_tampering_before_state_creation(
+        self,
+    ) -> None:
+        mutations = ("finding-ids", "parent", "receipt", "non-exhausted")
+        for mutation in mutations:
+            with self.subTest(mutation=mutation):
+                root = self.make_temp()
+                repo, base, prior_head = self.make_repo(root)
+                source = self.make_source_home(root)
+                contract = self.make_contract(root, base, repo)
+                parent = self.make_parent_series(
+                    source,
+                    repo,
+                    base,
+                    prior_head,
+                    hashlib.sha256(contract.read_bytes()).hexdigest(),
+                )
+                self.authorize_escalation(contract, parent, prior_head)
+                if mutation == "finding-ids":
+                    contract.write_text(
+                        contract.read_text(encoding="utf-8").replace(
+                            "R2-F1,R2-F2,R2-F3,R2-F4,R2-F5", "R2-F1"
+                        ),
+                        encoding="utf-8",
+                    )
+                elif mutation == "parent":
+                    parent.write_text(
+                        parent.read_text(encoding="utf-8") + " ", encoding="utf-8"
+                    )
+                elif mutation == "receipt":
+                    state = json.loads(parent.read_text(encoding="utf-8"))
+                    receipt = Path(state["attempts"][-1]["output"]) / "receipt.json"
+                    receipt.write_text(
+                        receipt.read_text(encoding="utf-8") + " ", encoding="utf-8"
+                    )
+                else:
+                    state = json.loads(parent.read_text(encoding="utf-8"))
+                    state["attempts"].pop()
+                    parent.write_text(
+                        json.dumps(state, indent=2, sort_keys=True) + "\n",
+                        encoding="utf-8",
+                    )
+                (repo / "feature.txt").write_text(
+                    "base\nhead\nfixed\n", encoding="utf-8"
+                )
+                self.git(repo, "add", "feature.txt")
+                self.git(repo, "commit", "-q", "-m", "post review fix")
+                head = self.git(repo, "rev-parse", "HEAD")
+                packet = self.write_packet(root, base, head, repo, contract)
+                escalations = source / "native-codex-loop/review-series/escalations"
+
+                with self.assertRaises(review_runner.ReviewRunnerError):
+                    review_runner.run_series_review(
+                        repo=repo,
+                        base=base,
+                        head=head,
+                        packet=packet,
+                        task_contract=contract,
+                        source_codex_home=source,
+                        codex_binary=self.make_fake_codex(root),
+                        escalate_from_series=parent,
+                    )
+                self.assertFalse(escalations.exists())
+
     def test_series_rejects_symlinked_canonical_directory(self) -> None:
         root = self.make_temp()
         repo, base, head = self.make_repo(root)
@@ -1253,6 +1537,32 @@ class ReviewRunnerTests(unittest.TestCase):
                 )
         self.assertEqual(exit_code, 0)
         self.assertEqual(run.call_args.kwargs["task_contract"], contract)
+
+    def test_cli_routes_escalation_parent(self) -> None:
+        root = self.make_temp()
+        parent = root / "series.json"
+        with mock.patch.object(
+            review_runner, "run_series_review", return_value={"ok": True}
+        ) as run:
+            with redirect_stdout(io.StringIO()):
+                exit_code = review_runner.main(
+                    [
+                        "--repo",
+                        str(root),
+                        "--base",
+                        "base",
+                        "--head",
+                        "head",
+                        "--packet",
+                        str(root / "packet.md"),
+                        "--task-contract",
+                        str(root / "contract.md"),
+                        "--escalate-from-series",
+                        str(parent),
+                    ]
+                )
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(run.call_args.kwargs["escalate_from_series"], parent)
 
 
 if __name__ == "__main__":
