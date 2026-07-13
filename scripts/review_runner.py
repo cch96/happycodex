@@ -748,11 +748,83 @@ def _assistant_texts(records: Iterable[dict[str, Any]]) -> list[str]:
     return texts
 
 
+def _changed_hunks(
+    clone: Path, base: str, head: str, git_env: dict[str, str]
+) -> dict[Path, tuple[tuple[int, int], ...]]:
+    listing = subprocess.run(
+        ["git", "diff", "--name-only", "-z", base, head, "--"],
+        cwd=clone,
+        env=git_env,
+        check=True,
+        capture_output=True,
+    ).stdout
+    changed: dict[Path, tuple[tuple[int, int], ...]] = {}
+    for encoded in (item for item in listing.split(b"\0") if item):
+        relative = Path(os.fsdecode(encoded))
+        diff = _git(
+            clone,
+            "diff",
+            "--no-color",
+            "--no-ext-diff",
+            "--unified=0",
+            base,
+            head,
+            "--",
+            os.fsdecode(encoded),
+            env=git_env,
+        ).stdout
+        ranges = []
+        for line in diff.splitlines():
+            match = re.match(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@", line)
+            if not match:
+                continue
+            start = int(match.group(1))
+            count = int(match.group(2) or "1")
+            if count:
+                ranges.append((start, start + count - 1))
+        changed[relative] = tuple(ranges)
+    return changed
+
+
+def _finding_location_is_changed(
+    location: dict[str, Any],
+    clone: Path,
+    changed_hunks: dict[Path, tuple[tuple[int, int], ...]],
+) -> bool:
+    raw_path = Path(location["absolute_file_path"])
+    root = clone.resolve()
+    try:
+        resolved = raw_path.resolve(strict=True)
+        relative = resolved.relative_to(root)
+    except (OSError, ValueError):
+        return False
+    if raw_path.is_symlink() or not stat.S_ISREG(resolved.stat().st_mode):
+        return False
+    hunks = changed_hunks.get(relative)
+    if not hunks:
+        return False
+    line_range = location["line_range"]
+    start = line_range["start"]
+    end = line_range["end"]
+    try:
+        with resolved.open("rb") as stream:
+            line_count = sum(1 for _ in stream)
+    except OSError:
+        return False
+    if end > line_count:
+        return False
+    return any(start <= hunk_end and end >= hunk_start for hunk_start, hunk_end in hunks)
+
+
 def _verify_prompt_and_verdicts(
     outer: list[dict[str, Any]],
     reviewer: list[dict[str, Any]],
     prompt: str,
     review_text: str,
+    clone: Path,
+    base: str,
+    head: str,
+    git_env: dict[str, str],
 ) -> dict[str, Any]:
     if _contains_substring(outer, prompt):
         raise ReviewRunnerError("review packet leaked into the outer control rollout")
@@ -805,12 +877,19 @@ def _verify_prompt_and_verdicts(
         "overall_explanation"
     ].strip():
         raise ReviewRunnerError("outer no-finding verdict differs from native reviewer")
+    changed_hunks = _changed_hunks(clone, base, head, git_env)
     for finding in verdict["findings"]:
         location = finding.get("code_location") if isinstance(finding, dict) else None
         line_range = location.get("line_range") if isinstance(location, dict) else None
         priority = finding.get("priority") if isinstance(finding, dict) else None
         confidence = (
             finding.get("confidence_score") if isinstance(finding, dict) else None
+        )
+        title_priority = (
+            re.match(r"^\[P([0-3])\](?:\s|$)", finding.get("title", ""))
+            if isinstance(finding, dict)
+            and isinstance(finding.get("title"), str)
+            else None
         )
         if (
             not isinstance(finding, dict)
@@ -821,6 +900,8 @@ def _verify_prompt_and_verdicts(
             or isinstance(priority, bool)
             or not isinstance(priority, int)
             or priority not in range(4)
+            or title_priority is None
+            or int(title_priority.group(1)) != priority
             or isinstance(confidence, bool)
             or not isinstance(confidence, (int, float))
             or not 0 <= confidence <= 1
@@ -834,6 +915,7 @@ def _verify_prompt_and_verdicts(
             or not isinstance(line_range.get("end"), int)
             or line_range["start"] < 1
             or line_range["end"] < line_range["start"]
+            or not _finding_location_is_changed(location, clone, changed_hunks)
             or (
                 finding["title"].strip() not in review_text
                 and finding["body"].strip() not in review_text
@@ -1602,7 +1684,14 @@ def run_review(
             events, outer, canary, resolved_base, resolved_head
         )
         verdict = _verify_prompt_and_verdicts(
-            outer, reviewer, prompt, raw_review_text
+            outer,
+            reviewer,
+            prompt,
+            raw_review_text,
+            clone,
+            resolved_base,
+            resolved_head,
+            git_env,
         )
         public_verdict = _replace_path(verdict, str(clone), str(repo))
         review_text = json.dumps(
