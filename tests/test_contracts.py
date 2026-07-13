@@ -89,8 +89,8 @@ class LeanPluginContractTests(unittest.TestCase):
             SKILL.read_text(encoding="utf-8").casefold().split()
         )
         for phrase in (
-            "red",
-            "green",
+            "create the smallest meaningful red oracle",
+            "make the smallest root-owned implementation that reaches green",
             "git diff <task-baseline>..head",
             "staged, unstaged, and untracked",
             "selector flags",
@@ -107,6 +107,7 @@ class LeanPluginContractTests(unittest.TestCase):
         )
         self.assertNotIn("codex review --base", text)
         self.assertNotIn("codex review --uncommitted", text)
+        self.assertNotIn("codex review --commit", text)
         self.assertNotIn('codex review "<factual brief', text)
         for phrase in (
             'codex review - < "$review_brief"',
@@ -122,6 +123,8 @@ class LeanPluginContractTests(unittest.TestCase):
         )
         for phrase in (
             "temporary review brief file",
+            "outside the repository",
+            "remove it after the invocation",
             "do not interpolate its contents into a shell command",
             'codex review - < "$review_brief"',
         ):
@@ -134,7 +137,9 @@ class LeanPluginContractTests(unittest.TestCase):
         for phrase in (
             "normalize task state before review",
             "commit all task changes",
-            "worktree is clean",
+            "no task-owned uncommitted changes remain",
+            "preserved pre-existing non-task changes",
+            "carry their recorded paths and review exclusions into the brief",
             "if task commits and current task changes coexist",
             "both `git diff <task-baseline>..head` and the complete staged, unstaged, and untracked",
         ):
@@ -145,7 +150,7 @@ class LeanPluginContractTests(unittest.TestCase):
             SKILL.read_text(encoding="utf-8").casefold().split()
         )
         for phrase in (
-            "task, acceptance criteria, the complete diff",
+            "task, acceptance criteria, the complete diff scope",
             "verification evidence",
             "accepted baseline failures",
             "writer's implementation narrative",

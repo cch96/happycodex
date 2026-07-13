@@ -87,26 +87,32 @@ If the objective or acceptance criteria cannot be recovered confidently, ask the
 After implementation and required checks, self-inspect the complete task diff and run a
 fresh Codex native review. Use the strongest native review setting authorized by the
 task; record any unavailable model or effort setting instead of claiming it was used.
-Give the reviewer only a factual brief: task, acceptance criteria, the complete diff,
+Give the reviewer only a factual brief: task, acceptance criteria, the complete diff scope,
 verification evidence, and accepted baseline failures. Do not include the writer's
 implementation narrative, self-review, rebuttal, preferred verdict, or defense.
 
 The supported CLI treats a custom prompt as mutually exclusive with review selector
 flags. Do not combine them. Every review invocation must use a factual brief. Put that
-text in a temporary review brief file; do not interpolate its contents into a shell
-command. Set `review_brief` to that file's path and run
-`codex review - < "$review_brief"` so the bytes arrive through stdin.
+text in a temporary review brief file outside the repository; do not interpolate its
+contents into a shell command. Set `review_brief` to that file's path, run
+`codex review - < "$review_brief"` so the bytes arrive through stdin, and remove it
+after the invocation.
 
 Normalize task state before review and describe the selected scope in that brief:
 
-- Preferred committed form: commit all task changes, verify the worktree is clean, and
-  ask the reviewer to inspect `git diff <task-baseline>..HEAD`.
+- Preferred committed form: commit all task changes, verify no task-owned uncommitted
+  changes remain, and ask the reviewer to inspect `git diff <task-baseline>..HEAD`. If
+  preserved pre-existing non-task changes remain in the worktree, carry their recorded
+  paths and review exclusions into the brief and verify the verdict addresses only the
+  committed task range.
 - Pure uncommitted form: use only when no task checkpoint commit exists and the complete
-  task is represented by the staged, unstaged, and untracked changes.
+  task is represented by the staged, unstaged, and untracked changes. Do not use it when
+  preserved non-task changes share that worktree; commit or isolate the task first.
 - If task commits and current task changes coexist, either commit the remainder or make
   the brief require both `git diff <task-baseline>..HEAD` and the complete staged,
   unstaged, and untracked task changes as one review scope. List task-owned untracked
-  paths explicitly and verify the result addresses both components.
+  paths explicitly, carry any recorded non-task exclusions, and verify the result
+  addresses both task components without absorbing excluded changes.
 
 Do not replace this with an in-thread self-review or a scout. The Root must
 independently reproduce every actionable finding:
