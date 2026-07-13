@@ -21,7 +21,7 @@ import subprocess
 import sys
 import tempfile
 import time
-from typing import Any, Iterable
+from typing import Any, BinaryIO, Iterable, Iterator
 
 
 MODEL = "gpt-5.6-sol"
@@ -264,6 +264,111 @@ def _redact_credentials(text: str, credentials: Iterable[str]) -> tuple[str, boo
             found = True
             redacted = redacted.replace(credential, "[REDACTED_CREDENTIAL]")
     return redacted, found
+
+
+def _bounded_chunks(stream: BinaryIO, size: int) -> Iterator[bytes]:
+    remaining = size
+    while remaining:
+        chunk = stream.read(min(1024 * 1024, remaining))
+        if not chunk:
+            raise ReviewRunnerError("Git object stream ended before its declared size")
+        remaining -= len(chunk)
+        yield chunk
+
+
+def _chunks_contain_credentials(
+    chunks: Iterable[bytes], credentials: tuple[bytes, ...]
+) -> bool:
+    if not credentials:
+        return False
+    overlap = max(len(credential) for credential in credentials) - 1
+    carry = b""
+    for chunk in chunks:
+        window = carry + chunk
+        if any(credential in window for credential in credentials):
+            return True
+        carry = window[-overlap:] if overlap else b""
+    return False
+
+
+def _scan_clone_for_credentials(
+    clone: Path, credentials: Iterable[str], git_env: dict[str, str]
+) -> None:
+    encoded = tuple(value.encode("utf-8") for value in credentials)
+    if not encoded:
+        return
+    for path in sorted(clone.rglob("*")):
+        relative = path.relative_to(clone)
+        if ".git" in relative.parts or path.is_symlink() or not path.is_file():
+            continue
+        with path.open("rb") as stream:
+            if _chunks_contain_credentials(iter(lambda: stream.read(1024 * 1024), b""), encoded):
+                raise ReviewRunnerError(
+                    "isolated review clone contains credential material"
+                )
+
+    listing = subprocess.run(
+        ["git", "rev-list", "--objects", "HEAD"],
+        cwd=clone,
+        env=git_env,
+        check=True,
+        capture_output=True,
+    ).stdout
+    object_ids = []
+    for line in listing.splitlines():
+        object_id = line.split(b" ", 1)[0]
+        if re.fullmatch(rb"[0-9a-fA-F]{40,64}", object_id):
+            object_ids.append(object_id)
+    process = subprocess.Popen(
+        ["git", "cat-file", "--batch"],
+        cwd=clone,
+        env=git_env,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    assert process.stdin is not None
+    assert process.stdout is not None
+    assert process.stderr is not None
+    try:
+        for object_id in object_ids:
+            process.stdin.write(object_id + b"\n")
+            process.stdin.flush()
+            header = process.stdout.readline().rstrip(b"\n")
+            fields = header.split()
+            if len(fields) != 3 or fields[0].lower() != object_id.lower():
+                raise ReviewRunnerError("Git object stream returned a malformed header")
+            try:
+                size = int(fields[2])
+            except ValueError as exc:
+                raise ReviewRunnerError(
+                    "Git object stream returned a malformed size"
+                ) from exc
+            found = _chunks_contain_credentials(
+                _bounded_chunks(process.stdout, size), encoded
+            )
+            if process.stdout.read(1) != b"\n":
+                raise ReviewRunnerError("Git object stream returned a malformed trailer")
+            if found:
+                raise ReviewRunnerError(
+                    "review commit history contains credential material"
+                )
+        process.stdin.close()
+        stderr = process.stderr.read()
+        if process.wait() != 0:
+            raise ReviewRunnerError(
+                "cannot inspect review commit history for credential material: "
+                + stderr.decode("utf-8", errors="replace").strip()
+            )
+    finally:
+        if process.poll() is None:
+            process.kill()
+            process.wait()
+        for stream in (process.stdin, process.stdout, process.stderr):
+            try:
+                stream.close()
+            except OSError:
+                pass
 
 
 def _prompt(packet_text: str, base: str, head: str, canary: Path) -> str:
@@ -1350,6 +1455,7 @@ def run_review(
 
         git_env = _git_environment(home)
         _prepare_clone(repo, clone, bundle, git_env)
+        _scan_clone_for_credentials(clone, credentials, git_env)
         if _resolve_commit(clone, "HEAD", git_env) != resolved_head or _status(
             clone, git_env
         ):
