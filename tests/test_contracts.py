@@ -1,171 +1,182 @@
 from __future__ import annotations
 
-import hashlib
 import json
 from pathlib import Path
 import unittest
 
-from scripts import review_runner
-
 
 ROOT = Path(__file__).resolve().parents[1]
+SKILL = ROOT / "skills/native-codex-loop/SKILL.md"
+PACKETS = ROOT / "skills/native-codex-loop/references/task-packets.md"
 
 
-class ArtifactContractTests(unittest.TestCase):
-    def test_red_baseline_receipt_is_immutable_and_meaningful(self) -> None:
-        fixture = json.loads(
-            (ROOT / "tests/fixtures/storyboard-red-baseline.json").read_text(
-                encoding="utf-8"
-            )
-        )
-        report = Path(fixture["source_report"])
-        self.assertEqual(
-            hashlib.sha256(report.read_bytes()).hexdigest(),
-            fixture["source_report_sha256"],
-        )
-        self.assertEqual(fixture["codex_native_agent_calls"], 0)
-        self.assertEqual(len(fixture["missed_seams"]), 2)
-
-    def test_plugin_manifest_has_only_v1_surfaces(self) -> None:
+class LeanPluginContractTests(unittest.TestCase):
+    def test_plugin_is_a_skill_bundle_without_custom_runtime(self) -> None:
         manifest = json.loads(
             (ROOT / ".codex-plugin/plugin.json").read_text(encoding="utf-8")
         )
         self.assertEqual(manifest["name"], "native-codex-loop")
         self.assertEqual(manifest["skills"], "./skills/")
-        self.assertNotIn("hooks", manifest)
-        self.assertNotIn("mcpServers", manifest)
-        self.assertNotIn("apps", manifest)
-        self.assertFalse((ROOT / "hooks").exists())
-        self.assertFalse((ROOT / ".mcp.json").exists())
+        for surface in ("hooks", "mcpServers", "apps"):
+            self.assertNotIn(surface, manifest)
 
-    def test_plugin_never_mutates_global_codex_configuration(self) -> None:
-        self.assertFalse((ROOT / "scripts/configure.py").exists())
-        readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertNotIn("trigger bridge", readme.casefold())
-        self.assertNotIn("$CODEX_HOME/AGENTS.md", readme)
+        self.assertFalse((ROOT / "scripts").exists())
+        self.assertFalse((ROOT / "tests/test_review_runner.py").exists())
+        self.assertFalse((ROOT / "docs/superpowers").exists())
 
-    def test_v1_uses_isolated_review_process_not_broken_custom_agent_routing(
-        self,
-    ) -> None:
-        self.assertFalse((ROOT / "assets/agents/native-codex-reviewer.toml").exists())
-        self.assertFalse((ROOT / "scripts/preflight.py").exists())
-        self.assertFalse((ROOT / "tests/test_preflight.py").exists())
-        self.assertEqual(review_runner.MODEL, "gpt-5.6-sol")
-        self.assertEqual(review_runner.EFFORT, "max")
-        self.assertEqual(review_runner.SANDBOX, "read-only")
-
-        command = review_runner._command(Path("codex"), Path("/tmp/review"), "base")
-        rendered = " ".join(command)
-        for phrase in (
-            "exec review",
-            'model_reasoning_effort="max"',
-            'approval_policy="never"',
-            'web_search="disabled"',
-            "--ignore-rules",
-        ):
-            self.assertIn(phrase, rendered)
-        self.assertNotIn("--ignore-user-config", command)
-        self.assertNotEqual(command[-1], "-")
-        profile = review_runner._profile_bytes("packet", Path("/runtime/bin")).decode()
-        for phrase in (
-            'default_permissions = "native-review"',
-            "allow_login_shell = false",
-            'inherit = "none"',
-            '":minimal" = "read"',
-            '":workspace_roots"',
-            "[permissions.native-review.network]",
-        ):
-            self.assertIn(phrase, profile)
-        for feature in ("plugins", "apps", "hooks", "multi_agent", "browser_use"):
-            self.assertIn(f"--disable {feature}", rendered)
-
-    def test_skill_metadata_is_trigger_only_and_body_has_completion_gate(self) -> None:
-        skill_path = ROOT / "skills/native-codex-loop/SKILL.md"
-        text = skill_path.read_text(encoding="utf-8")
+    def test_skill_uses_native_state_and_one_root_writer(self) -> None:
+        text = SKILL.read_text(encoding="utf-8")
         _, frontmatter, body = text.split("---", 2)
+        folded = " ".join(body.casefold().split())
+
         self.assertIn("name: native-codex-loop", frontmatter)
         self.assertIn("description: Use when", frontmatter)
-        for shortcut in ("reviewer", "Goal +", "root writer"):
-            self.assertNotIn(shortcut, frontmatter)
-        required = (
-            "only writer",
-            'fork_turns="none"',
+        for phrase in (
+            "root is the only writer",
+            "user explicitly requests goal",
+            "living evidence record",
+            "do not require an execplan",
             "acceptance criteria",
-            "review_runner.py",
-            "canonical series",
-            "receipt.json",
-            "review.md",
+            "git status",
+            "git log",
+            "focused tests",
+            "full checks",
+        ):
+            self.assertIn(phrase, folded)
+
+    def test_exploration_is_conditional_and_evidence_driven(self) -> None:
+        folded = " ".join(
+            SKILL.read_text(encoding="utf-8").casefold().split()
+        )
+        for phrase in (
+            "independent unknowns",
+            "read-only scouts",
+            'fork_turns="none"',
+            "complete task packet",
+            "do not delegate implementation",
+            "root reproduces",
+            "unique evidence",
+            "update the plan",
+            "new boundary",
+        ):
+            self.assertIn(phrase, folded)
+
+    def test_verification_uses_native_review_and_converges(self) -> None:
+        folded = SKILL.read_text(encoding="utf-8").casefold()
+        for phrase in (
+            "red",
+            "green",
+            "codex review --base",
+            "codex review --uncommitted",
             "independently reproduce",
-            "update_goal",
-            "two review invocations",
-            "references/packets.md",
-            "Goal thread ID",
-            "objective hash",
-            "disposable head-only clone",
-            "live agents",
-        )
-        for phrase in required:
-            self.assertIn(phrase, body)
-        self.assertNotIn("native_codex_reviewer", body)
-
-    def test_skill_requires_explicit_non_recursive_review_escalation(self) -> None:
-        skill = (ROOT / "skills/native-codex-loop/SKILL.md").read_text(
-            encoding="utf-8"
-        )
-        packets = (ROOT / "skills/native-codex-loop/references/packets.md").read_text(
-            encoding="utf-8"
-        )
-        readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        for phrase in (
-            "--escalate-from-series",
-            "explicit user approval",
-            "append-only addendum",
-            "one escalation generation",
-            "recursive escalation",
-            "authority reservation",
-            "non-empty content diff",
+            "one fresh re-review",
+            "unresolved",
+            "ask the user",
         ):
-            self.assertIn(phrase, skill)
-        for phrase in (
-            "Prior series SHA256",
-            "Prior final receipt SHA256",
-            "Confirmed finding IDs",
-        ):
-            self.assertIn(phrase, packets)
-        self.assertIn("default two-attempt cap", readme)
+            self.assertIn(phrase, folded)
 
-    def test_packet_reference_defines_complete_dispatch_and_review_shapes(self) -> None:
-        packets = (ROOT / "skills/native-codex-loop/references/packets.md").read_text(
-            encoding="utf-8"
+    def test_review_input_is_factual_fresh_and_writer_neutral(self) -> None:
+        folded = " ".join(
+            SKILL.read_text(encoding="utf-8").casefold().split()
         )
+        for phrase in (
+            "task, acceptance criteria, the complete diff",
+            "verification evidence",
+            "accepted baseline failures",
+            "writer's implementation narrative",
+            "self-review",
+            "rebuttal",
+            "preferred verdict",
+        ):
+            self.assertIn(phrase, folded)
+
+    def test_scout_evidence_and_scope_changes_cannot_go_stale(self) -> None:
+        folded = " ".join(
+            SKILL.read_text(encoding="utf-8").casefold().split()
+        )
+        for phrase in (
+            "record the inspected revision",
+            "revision has changed",
+            "re-confirm",
+            "when the user changes scope",
+            "update the working agreement and plan together",
+            "mark affected prior evidence and decisions stale",
+        ):
+            self.assertIn(phrase, folded)
+
+    def test_post_fix_rereview_preserves_complete_task_scope(self) -> None:
+        folded = " ".join(
+            SKILL.read_text(encoding="utf-8").casefold().split()
+        )
+        clause = folded.split(
+            "if confirmed findings changed the candidate", 1
+        )[1].split("## completion gate", 1)[0]
+        for phrase in (
+            "complete updated diff",
+            "commit all task changes",
+            "codex review --base <task-baseline>",
+            "same task baseline",
+            "codex review --uncommitted",
+            "complete task remains represented by current changes",
+            "never advance the baseline or select only the post-review fix",
+        ):
+            self.assertIn(phrase, clause)
+
+    def test_skill_does_not_recreate_the_retired_protocol(self) -> None:
+        all_text = "\n".join(
+            path.read_text(encoding="utf-8")
+            for path in (SKILL, PACKETS, ROOT / "README.md")
+        ).casefold()
+        for retired in (
+            "review_runner",
+            "hash chain",
+            "successor receipt",
+            "runner epoch",
+            "bootstrap attestation",
+            "retry challenge",
+            "self-hosted review",
+            "canonical series",
+        ):
+            self.assertNotIn(retired, all_text)
+
+    def test_task_packet_is_complete_but_not_a_machine_protocol(self) -> None:
+        text = PACKETS.read_text(encoding="utf-8")
+        folded = text.casefold()
         for heading in (
-            "## Delegation packet",
-            "## Review packet",
-            "## Finding disposition",
+            "## Scout task packet",
+            "## Scout return",
+            "## Root uptake",
         ):
-            self.assertIn(heading, packets)
+            self.assertIn(heading, text)
         for field in (
-            "Objective",
-            "Source of truth",
-            "Write boundary",
-            "Output contract",
-            "Base commit",
-            "Head commit",
-            "Verification receipt",
-            "Task contract SHA256",
-            "Reproduction",
+            "decision",
+            "question",
+            "source of truth",
+            "known facts",
+            "exclusions",
+            "write boundary",
+            "deliverable",
+            "verification",
+            "stop condition",
+            "unique evidence",
         ):
-            self.assertIn(field, packets)
-        for canonical_line in (
-            "Objective: <measurable outcome>",
-            "Repository/worktree: <canonical absolute path>",
-            "Goal objective SHA256: <64 lowercase hex or none>",
-            "- Objective: <find material defects; do not implement>",
-            "- Base commit: `<full baseline SHA>`",
-            "- Head commit: `<full candidate SHA>`",
-            "- Verification receipt: <commands, exits, and baseline failures>",
-        ):
-            self.assertIn(canonical_line, packets)
+            self.assertIn(field, folded)
+        self.assertIn("adapt the wording", folded)
+        self.assertNotIn("sha256", folded)
+
+    def test_bundle_stays_small_and_metadata_is_invocable(self) -> None:
+        skill_lines = SKILL.read_text(encoding="utf-8").splitlines()
+        packet_lines = PACKETS.read_text(encoding="utf-8").splitlines()
+        readme_lines = (ROOT / "README.md").read_text(encoding="utf-8").splitlines()
+        self.assertLessEqual(len(skill_lines), 180)
+        self.assertLessEqual(len(packet_lines), 100)
+        self.assertLessEqual(len(readme_lines), 100)
+
+        config = (ROOT / "skills/native-codex-loop/agents/openai.yaml").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("$native-codex-loop", config)
+        self.assertNotIn("dependencies:", config)
 
 
 if __name__ == "__main__":

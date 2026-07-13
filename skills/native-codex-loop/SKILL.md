@@ -1,158 +1,126 @@
 ---
 name: native-codex-loop
-description: Use when executing a long, multi-phase, repository-wide, high-risk, or compaction-prone implementation where omitted requirements, unsafe delegation, stale plans, or premature completion are plausible.
+description: Use when Codex must implement a long, multi-phase, cross-cutting, or compaction-prone change without losing requirements, while keeping one writer and using native planning, conditional scouts, tests, Git checkpoints, and final native review.
 ---
 
 # Native Codex Loop
 
-## Invariants
+Use Codex's built-in controls as one convergent workflow. The Root is the only
+writer. Plans, scouts, tests, Git, and review provide different kinds of evidence;
+none substitutes for the others.
 
-Keep the root thread as the only writer. Use Goal, native plan state, Git, tests,
-bounded non-writing delegation, and an isolated review as separate controls. A plan or
-an agent saying “done” is not completion evidence.
+## Start with a working agreement
 
-## Start contract
+1. Read applicable `AGENTS.md`, the user request or task file, repository status,
+   existing tests, and accepted baseline failures.
+2. Put a concise working agreement in the native plan: outcome, acceptance criteria,
+   exclusions, starting revision, verification commands, and stop conditions. Keep the
+   plan as a living evidence record. Do not require an ExecPlan file.
+3. Use Goal only when the user explicitly requests Goal. For a task likely to span
+   compaction or several sessions, recommend Goal and obtain explicit confirmation
+   before creating one. Never replace, complete, or update an unrelated active Goal.
+4. Preserve existing user changes. Establish which diff belongs to this task before
+   editing, and use an isolated branch or worktree when that materially reduces risk.
+5. When the user changes scope, update the working agreement and plan together. Revise
+   acceptance criteria, exclusions, and verification explicitly; mark affected prior
+   evidence and decisions stale, then revalidate them before reuse.
 
-1. Read applicable `AGENTS.md`, the task/spec, repository state, baseline failures, and
-   exact verification commands.
-2. Use Goal only when the user explicitly requested Goal-backed execution. Call
-   `get_goal` before creating or binding one. If an active Goal belongs to
-   another objective, do not create, update, or complete it; report the conflict. Make a
-   new Goal objective measurable.
-3. Read the Task Contract shape in `references/packets.md`. Before edits, create it with
-   mode `0600` outside the candidate repository. Freeze the objective, acceptance
-   criteria, exclusions, exact task-baseline commit, repository/worktree, stop
-   conditions, criterion-to-verification map, matching Goal thread ID, and SHA256 of the
-   exact UTF-8 Goal objective bytes (`none` values when Goal was not requested). Record
-   its absolute path and SHA256 in native plan. Never rewrite frozen text; append a
-   versioned, user-authorized scope addendum and update the hash when scope truly changes.
-4. If user changes already exist, preserve them. Work in a root-owned isolated worktree
-   when that is safe; otherwise stop rather than manufacture an ambiguous base/head.
-5. Create a short native plan. Do not require an ExecPlan file. Treat the plan as a live
-   decision record, not a script or a substitute for acceptance criteria.
+## Route exploration only when it pays
 
-## Evidence loop
+Before the first edit, list the important unknowns and the named decisions or
+verification gates each could change.
 
-Repeat until the completion gate passes:
+- For a localized, already-understood change, record `no delegation` and inspect it in
+  the Root.
+- When there are at least two independent unknowns affecting different decisions, or
+  several independent seams that must be traced, use two or three orthogonal read-only
+  scouts. Give each direct child `fork_turns="none"` and a complete task packet from
+  `references/task-packets.md`.
+- Give each scout a distinct lens and unique evidence requirement. Parallelize only
+  investigations that do not depend on one another. Record the inspected revision in
+  each packet and freeze it so scouts do not reason about a moving target.
+- Do not delegate implementation, edits, commits, integration, or recursive delegation.
+  Do not run same-prompt Best-of-N or persona-only brainstorming.
 
-1. Select the smallest step that can produce decisive evidence.
-2. Test first when behavior changes, then let only the root edit.
-3. Run focused verification, inspect the diff, and compare observed behavior with the
-   frozen Task Contract and every affected criterion.
-4. Update the plan when evidence changes the best next action. Never silently lower,
-   remove, or reinterpret an acceptance criterion.
-5. Commit coherent checkpoints when they materially improve recovery or review.
+The Root reproduces every material scout claim in source, tests, logs, or a specified
+primary source. Agent text alone is not evidence. If the revision has changed since the
+scout ran, re-confirm its citations and claims against the current candidate before
+uptake. Record a short uptake note in the plan: decision, reproduced evidence,
+disposition, unique evidence, and resulting plan or gate change. Launch at most one
+bounded challenge wave, and only when reproduced evidence reveals a new boundary or
+contradiction. Otherwise continue in the Root.
 
-After compaction or resume, verify the Task Contract hash, call `get_goal` and compare the
-bound Goal thread/objective, inspect the native plan, `git status`, recent commits, live
-agents, and latest test/review receipts before acting. Do not repeat completed or in-flight
-work. A mismatch stops execution; do not reconstruct missing criteria from memory.
+## Implement through evidence
 
-## Delegation router
+Work in the smallest coherent slices:
 
-Read `references/packets.md` before delegation. Delegate only when all are true:
+1. For a bug or behavior change, create the smallest meaningful RED oracle and observe
+   it fail for the intended reason. If RED is impractical or lower-signal, record the
+   exact before/after check instead.
+2. Make the smallest Root-owned implementation that reaches GREEN.
+3. Run focused tests, inspect the diff and affected call paths, then run broader or full
+   checks at the repository's required cadence.
+4. Update the plan when evidence changes the best next step. Never silently weaken an
+   acceptance criterion or preserve a planned design contradicted by stronger evidence.
+5. Create a Git checkpoint after a coherent green slice when it improves recovery or
+   review. Never fold unrelated user changes into it.
 
-- the work is investigative and has no mutable deliverable;
-- its result can change a named decision or verification gate;
-- a complete packet fits the inputs and output contract;
-- integration costs less than root execution.
+## Recover from native state
 
-Built-in children inherit runtime capabilities; never point one at the candidate worktree
-or its shared Git common directory. This is a policy boundary, not read isolation: require
-every child command to name the disposable clone as its workdir and prohibit source paths.
-Before dispatch, fingerprint candidate `HEAD`, refs,
-index/worktree binary diffs, local config/hooks/worktree registrations, untracked files,
-and task-relevant ignored/external paths. Create a separate disposable head-only clone,
-remove its remote, verify its clean HEAD, and give the child only that path. Use a direct
-child with `fork_turns="none"`, send the complete packet, prohibit recursive delegation,
-prohibit edits and recursive delegation, and never delegate implementation. If a child
-or tool mutates its clone, discard the result as a boundary failure. The root does not
-edit while a child is live. After return, discard
-the clone and compare the source/common-dir fingerprint. On a change, stop and preserve
-evidence. After resume, inspect live agents before redispatching work.
+After resume or compaction, reconstruct state from durable facts before acting:
 
-Parallelize only packets that cannot affect one another. Subagent findings are advisory:
-the root verifies them before changing the plan or code.
+- inspect the active Goal if one was requested;
+- read the current native plan and working agreement;
+- run `git status`, inspect `git log`, the task diff, and relevant worktrees;
+- check live agents and the latest focused tests, full checks, and review result.
 
-## Independent review gate
+Reconcile disagreements in favor of source and reproducible evidence, then update the
+plan. Do not repeat completed work or redispatch an investigation that is still live.
+If the objective or acceptance criteria cannot be recovered confidently, ask the user.
 
-Any run of this Skill that changes a task-owned repository artifact requires review
-before completion. The only no-review outcome is a verified unchanged HEAD/worktree:
+## Finish with native review
 
-1. Run required checks, self-inspect the full task diff, create a clean candidate commit,
-   and atomically create a mode-`0600` factual review packet outside the repository.
-   Record the frozen task-baseline/head SHAs, inline the exact Task Contract and its
-   SHA256, and keep every required top-level packet field unique. Never substitute a
-   later checkpoint as `--base`.
-2. Locate this loaded Skill's plugin root (two directories above its Skill directory).
-   Run `python3 <plugin-root>/scripts/review_runner.py` with `--repo`, `--base`, `--head`,
-   `--packet`, `--task-contract`, and `--source-codex-home`. The runner derives one
-   canonical series from the repository and frozen baseline. Record its absolute
-   `series_file`, baseline, Task
-   Contract hash, and source-packet hash in the native plan. Do not replace it with an
-   in-thread self-review.
-3. Count every started invocation, including failures, in that canonical series. After
-   resume, recover the path from the plan and read `series.json` before review. Require
-   the final attempt in `series.json` to be `succeeded`; never fall back to an older
-   receipt after a failed attempt. Require that final attempt's `receipt.json` to report `ok`, the
-   exact baseline/head, Task Contract SHA256, and task-packet hash, `gpt-5.6-sol`, `max`,
-   `read-only`, approval `never`, network `restricted`, and unchanged source/review tree
-   hashes. Also require the restricted-profile preflight and Linux PID-namespace
-   containment fields. Read `review.md`; absence or mismatch fails the gate.
-4. Have the root independently reproduce each finding and record the disposition format
-   from `references/packets.md`. Fix only confirmed findings, add a regression test when
-   applicable, and rerun focused plus full checks.
-5. If any task-owned artifact, Task Contract/addendum, or source packet changes after the
-   first review, recompute both hashes and run a second fresh invocation. Allow at most
-   two review invocations in the default series. If the second review supports another
-   material change, record dispositions, report the unreviewed residual state, and stop
-   instead of claiming completion or manufacturing a new series identity.
-6. A later, explicit user approval may authorize one post-fix series. Preserve the
-   original Task Contract bytes and append the exact append-only addendum from
-   `references/packets.md`; never infer approval from a request to continue. Bind the
-   addendum to the exhausted canonical parent `series.json`, its final receipt, prior
-   reviewed head, and all confirmed finding IDs. Invoke the runner once with
-   `--escalate-from-series <parent-series.json>`. Require the returned escalation
-   provenance and parent-level authority reservation to match those hashes. The new
-   head must have a non-empty content diff from the parent-reviewed head. The runner
-   allows one escalation generation per parent, caps it at two attempts, and rejects
-   reuse of that authority or recursive escalation even if addendum bytes change. If
-   that series is exhausted, stop with residual risk; no global or path-based bypass is
-   permitted.
+After implementation and required checks, self-inspect the complete task diff and run a
+fresh Codex native review. Use the strongest native review setting authorized by the
+task; record any unavailable model or effort setting instead of claiming it was used.
+Give the reviewer only a factual brief: task, acceptance criteria, the complete diff
+selected by the command, verification evidence, and accepted baseline failures. Do not
+include the writer's implementation narrative, self-review, rebuttal, preferred verdict,
+or defense.
 
-The final `HEAD` must exactly equal the head in the final succeeded attempt's receipt. If
-the runner is unavailable, not fresh, not max/read-only, exposes forbidden capabilities,
-cannot prove an unchanged tree, finds credential bytes anywhere reachable from `HEAD`,
-or returns a finding outside a changed new-side hunk, stop and report the failed gate.
+- For a committed task branch, run
+  `codex review --base <task-baseline> "<acceptance, checks, and known baseline failures>"`.
+- When commits are intentionally unavailable and the complete task is represented by
+  current changes, run
+  `codex review --uncommitted "<acceptance, checks, and known baseline failures>"`.
+
+Do not replace this with an in-thread self-review or a scout. The Root must
+independently reproduce every actionable finding:
+
+- confirmed defect: add a RED regression oracle when practical, fix it, reach GREEN,
+  and rerun focused tests plus full checks;
+- rejected finding: record concise counter-evidence and do not edit for agreement;
+- unresolved material finding: stop and ask the user rather than guessing.
+
+If confirmed findings changed the candidate, run one fresh re-review of the complete
+updated diff. Commit all task changes and rerun
+`codex review --base <task-baseline>` against the same task baseline, or, while commits
+remain intentionally unavailable, rerun `codex review --uncommitted` only if the
+complete task remains represented by current changes. Never advance the baseline or
+select only the post-review fix. If that re-review still has a confirmed or unresolved
+material finding, report the evidence and ask the user; do not create an unbounded
+review loop.
 
 ## Completion gate
 
-Before any completion claim, require fresh evidence for all of:
+Claim completion only when:
 
-- every acceptance criterion maps to code and/or a verification result;
-- required full and task-specific checks have acceptable exit codes;
-- if review ran, every finding is fixed or rejected with evidence and no material finding is unresolved;
-- every deliverable is tracked and committed; V1 does not permit ignored or external
-  files as task-owned deliverables;
-- if this run changed review-gated artifacts, recompute the current Task Contract and
-  source-packet hashes and require them, `HEAD`, and task-owned state to equal the final
-  succeeded attempt's receipt;
-- the candidate worktree is clean; a genuine no-change result has fresh inspection/check evidence and does not reuse an old receipt;
-- no delegated task, worktree, known material risk, or baseline deviation is unaccounted for.
+- every acceptance criterion maps to implemented behavior or explicit evidence;
+- required focused tests and full checks have acceptable results;
+- the complete final diff received native review, with no unresolved material finding;
+- all scout work and Git worktrees are accounted for;
+- `git status` contains only intentional task state;
+- any requested Goal still matches this objective and is complete in fact.
 
-Immediately before `update_goal`, call `get_goal` again. Only when its Goal thread ID,
-objective hash, and active status exactly match the Task Contract may you call
-`update_goal(status="complete")`. Never complete an unrelated/replaced Goal, or complete
-merely because tests are green, the clock is low, or an agent declared success.
-
-## Red flags
-
-| Thought | Required response |
-| --- | --- |
-| “The tests are green, so review adds nothing.” | Tests and semantic review catch different failures; run the gate. |
-| “Multi-agent was enabled, so review happened.” | Require an actual fresh `receipt.json`. |
-| “The plan says this is done.” | Reconcile it with code, tests, criteria, and receipts. |
-| “The reviewer probably meant…” | Reproduce the exact claim before editing. |
-| “A tiny post-review fix needs no re-review.” | Final `HEAD` must equal the reviewed head. |
-| “One more loop cannot hurt.” | Stop after two review invocations and report residual risk. |
-| “I can point at a new directory for another review.” | Only explicit user approval plus the bound addendum can create one non-recursive escalation. |
+Tests passing, a plan marked complete, or an agent saying “done” is never sufficient on
+its own.
