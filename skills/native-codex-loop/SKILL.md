@@ -83,16 +83,21 @@ If the objective or acceptance criteria cannot be recovered confidently, ask the
 After implementation and required checks, self-inspect the complete task diff and run a
 fresh Codex native review. Use the strongest native review setting authorized by the
 task; record any unavailable model or effort setting instead of claiming it was used.
-Give the reviewer only a factual brief: task, acceptance criteria, the complete diff
-selected by the command, verification evidence, and accepted baseline failures. Do not
-include the writer's implementation narrative, self-review, rebuttal, preferred verdict,
-or defense.
+Give the reviewer only a factual brief: task, acceptance criteria, the complete diff,
+verification evidence, and accepted baseline failures. Do not include the writer's
+implementation narrative, self-review, rebuttal, preferred verdict, or defense.
 
-- For a committed task branch, run
-  `codex review --base <task-baseline> "<acceptance, checks, and known baseline failures>"`.
-- When commits are intentionally unavailable and the complete task is represented by
-  current changes, run
-  `codex review --uncommitted "<acceptance, checks, and known baseline failures>"`.
+The supported CLI treats a custom prompt as mutually exclusive with review selector
+flags. Do not combine them. Choose one launch form:
+
+- Preferred for a committed task: run
+  `codex review "<factual brief: inspect git diff <task-baseline>..HEAD; task; acceptance; verification; baseline failures>"`.
+- When commits are intentionally unavailable and current changes represent the complete
+  task, use a factual prompt that tells `codex review` to inspect the complete staged,
+  unstaged, and untracked task changes.
+- Selector-only `codex review --base <task-baseline>` or `codex review --uncommitted`
+  is acceptable only when the same task, acceptance criteria, verification evidence,
+  and baseline failures are already visible to the reviewer in repository inputs.
 
 Do not replace this with an in-thread self-review or a scout. The Root must
 independently reproduce every actionable finding:
@@ -103,13 +108,13 @@ independently reproduce every actionable finding:
 - unresolved material finding: stop and ask the user rather than guessing.
 
 If confirmed findings changed the candidate, run one fresh re-review of the complete
-updated diff. Commit all task changes and rerun
-`codex review --base <task-baseline>` against the same task baseline, or, while commits
-remain intentionally unavailable, rerun `codex review --uncommitted` only if the
-complete task remains represented by current changes. Never advance the baseline or
-select only the post-review fix. If that re-review still has a confirmed or unresolved
-material finding, report the evidence and ask the user; do not create an unbounded
-review loop.
+updated diff. Commit all task changes and use the factual-prompt form to inspect
+`git diff <task-baseline>..HEAD` against the same task baseline. While commits remain
+intentionally unavailable, re-review the complete staged, unstaged, and untracked task
+changes only if the complete task remains represented by current changes. Never advance
+the baseline or select only the post-review fix. If that re-review still has a confirmed
+or unresolved material finding, report the evidence and ask the user; do not create an
+unbounded review loop.
 
 ## Completion gate
 

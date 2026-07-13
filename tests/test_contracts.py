@@ -62,18 +62,35 @@ class LeanPluginContractTests(unittest.TestCase):
             self.assertIn(phrase, folded)
 
     def test_verification_uses_native_review_and_converges(self) -> None:
-        folded = SKILL.read_text(encoding="utf-8").casefold()
+        folded = " ".join(
+            SKILL.read_text(encoding="utf-8").casefold().split()
+        )
         for phrase in (
             "red",
             "green",
-            "codex review --base",
-            "codex review --uncommitted",
+            "git diff <task-baseline>..head",
+            "staged, unstaged, and untracked",
+            "selector flags",
             "independently reproduce",
             "one fresh re-review",
             "unresolved",
             "ask the user",
         ):
             self.assertIn(phrase, folded)
+
+    def test_review_examples_respect_cli_selector_exclusivity(self) -> None:
+        text = " ".join(
+            SKILL.read_text(encoding="utf-8").casefold().split()
+        )
+        self.assertNotIn('codex review --base <task-baseline> "', text)
+        self.assertNotIn('codex review --uncommitted "', text)
+        for phrase in (
+            'codex review "<factual brief',
+            "codex review --base <task-baseline>",
+            "codex review --uncommitted",
+            "do not combine",
+        ):
+            self.assertIn(phrase, text)
 
     def test_review_input_is_factual_fresh_and_writer_neutral(self) -> None:
         folded = " ".join(
@@ -114,9 +131,9 @@ class LeanPluginContractTests(unittest.TestCase):
         for phrase in (
             "complete updated diff",
             "commit all task changes",
-            "codex review --base <task-baseline>",
+            "git diff <task-baseline>..head",
             "same task baseline",
-            "codex review --uncommitted",
+            "staged, unstaged, and untracked",
             "complete task remains represented by current changes",
             "never advance the baseline or select only the post-review fix",
         ):
