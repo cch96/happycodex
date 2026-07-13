@@ -63,6 +63,7 @@
 - [ ] Add optional `escalate_from_series: Path | None` through CLI, `run_series_review`, and receipt construction.
 - [ ] Parse the exact canonical addendum fields and validate original Contract hash, parent canonical path/hash, final receipt hash/head, five finding IDs, and authorization text.
 - [ ] Derive `review-series/escalations/<sha256>` from repo/base/current-contract/parent-series/parent-receipt hashes; store parent provenance in state and receipts; reject any parent already containing escalation provenance.
+- [ ] Atomically reserve each parent authority to one escalation series, migrate a single pre-reservation series safely, and require a non-empty `prior-head..head` content diff.
 - [ ] Keep `MAX_REVIEW_ATTEMPTS = 2` for both default and escalation series.
 - [ ] Run all escalation tests plus existing lock/symlink/hardlink/cap tests; require PASS.
 - [ ] Commit with message `feat: add authorized post-review escalation`.

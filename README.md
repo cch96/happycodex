@@ -29,7 +29,9 @@ repository identity, and frozen task baseline. `series.json` counts every starte
 invocation (including failures) and enforces the default two-attempt cap. A later
 explicitly user-authorized, append-only Task Contract addendum can create one distinct,
 non-recursive post-fix series with the same two-attempt cap; its identity and receipts
-bind the parent series and final receipt hashes. Each
+bind the parent series and final receipt hashes. A private parent-level authority
+reservation prevents alternate addendum bytes from creating another series, and the
+post-fix head must differ in content from the parent-reviewed head. Each
 successful `attempt-N/` contains:
 
 - `packet.md`: the exact source packet given to the reviewer; its repository path is

@@ -113,9 +113,12 @@ before completion. The only no-review outcome is a verified unchanged HEAD/workt
    addendum to the exhausted canonical parent `series.json`, its final receipt, prior
    reviewed head, and all confirmed finding IDs. Invoke the runner once with
    `--escalate-from-series <parent-series.json>`. Require the returned escalation
-   provenance to match those hashes. The runner allows one escalation generation, caps
-   it at two attempts, and rejects recursive escalation. If that series is exhausted,
-   stop with residual risk; no global or path-based bypass is permitted.
+   provenance and parent-level authority reservation to match those hashes. The new
+   head must have a non-empty content diff from the parent-reviewed head. The runner
+   allows one escalation generation per parent, caps it at two attempts, and rejects
+   reuse of that authority or recursive escalation even if addendum bytes change. If
+   that series is exhausted, stop with residual risk; no global or path-based bypass is
+   permitted.
 
 The final `HEAD` must exactly equal the head in the final succeeded attempt's receipt. If
 the runner is unavailable, not fresh, not max/read-only, exposes forbidden capabilities,

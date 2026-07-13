@@ -32,6 +32,8 @@ creating state:
 - its final attempt succeeded and its persisted receipt hash matches `series.json`;
 - the final receipt is `ok`, uses the same base/repository, and its head equals the
   addendum's `Prior reviewed head`;
+- the candidate head descends from and has a non-empty content diff against that prior
+  reviewed head;
 - the augmented Task Contract contains exactly one canonical addendum with the original
   Task Contract hash, parent series path/hash, final receipt hash, exact five finding IDs,
   and an authorization statement permitting one non-recursive post-fix series;
@@ -41,6 +43,11 @@ The escalation series key hashes repository, base, augmented Task Contract hash,
 series hash, and parent receipt hash. It lives under a separate `escalations/` namespace,
 retains the same two-attempt cap, persists parent hashes in `series.json` and every
 receipt, and cannot itself be supplied to `--escalate-from-series`.
+
+Independently of that key, an atomic parent-level authority reservation binds the parent
+series and receipt to exactly one escalation `series.json`. Existing pre-reservation
+series are discovered and claimed on upgrade. Changing unparsed or otherwise accepted
+addendum bytes therefore cannot derive a second usable series from the same parent.
 
 ## Security fixes
 

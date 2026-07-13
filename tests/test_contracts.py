@@ -122,6 +122,8 @@ class ArtifactContractTests(unittest.TestCase):
             "append-only addendum",
             "one escalation generation",
             "recursive escalation",
+            "authority reservation",
+            "non-empty content diff",
         ):
             self.assertIn(phrase, skill)
         for phrase in (

@@ -2000,6 +2000,22 @@ def _escalation_context(
     )
     if ancestry.returncode:
         raise ReviewRunnerError("post-review head must descend from the parent review head")
+    delta = _git(
+        repo,
+        "diff",
+        "--quiet",
+        prior_head,
+        head,
+        "--",
+        check=False,
+        env=_git_environment(Path("/nonexistent")),
+    )
+    if delta.returncode == 0:
+        raise ReviewRunnerError(
+            "post-review head must contain a content delta from the parent review head"
+        )
+    if delta.returncode != 1:
+        raise ReviewRunnerError("cannot verify the post-review content delta")
     contract = _escalation_contract(
         task_contract,
         supplied_parent,
@@ -2044,6 +2060,177 @@ def _escalation_series_path(
         / "native-codex-loop/review-series/escalations"
         / _sha256(identity)
     )
+
+
+def _ensure_private_control_directory(
+    directory: Path, source_codex_home: Path
+) -> None:
+    current = source_codex_home
+    try:
+        relative = directory.relative_to(source_codex_home)
+    except ValueError as exc:
+        raise ReviewRunnerError("review control path escapes source CODEX_HOME") from exc
+    for part in relative.parts:
+        current = current / part
+        if current.is_symlink():
+            raise ReviewRunnerError(f"review control path is symlinked: {current}")
+        if current.exists() and not current.is_dir():
+            raise ReviewRunnerError(f"review control path is not a directory: {current}")
+        current.mkdir(mode=0o700, exist_ok=True)
+        current.chmod(0o700)
+
+
+def _authority_bytes(payload: dict[str, Any]) -> bytes:
+    return (json.dumps(payload, indent=2, sort_keys=True) + "\n").encode("utf-8")
+
+
+def _read_authority(path: Path) -> tuple[dict[str, Any], str]:
+    try:
+        descriptor = os.open(path, os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW)
+    except OSError as exc:
+        raise ReviewRunnerError("cannot open review escalation authority") from exc
+    try:
+        metadata = os.fstat(descriptor)
+        if (
+            not stat.S_ISREG(metadata.st_mode)
+            or stat.S_IMODE(metadata.st_mode) & 0o077
+            or metadata.st_uid != os.geteuid()
+            or metadata.st_nlink != 1
+        ):
+            raise ReviewRunnerError("review escalation authority metadata is unsafe")
+        chunks = []
+        while chunk := os.read(descriptor, 1024 * 1024):
+            chunks.append(chunk)
+        data = b"".join(chunks)
+    finally:
+        os.close(descriptor)
+    try:
+        payload = json.loads(data.decode("utf-8"))
+    except (UnicodeDecodeError, ValueError) as exc:
+        raise ReviewRunnerError(
+            "review escalation authority is not valid UTF-8 JSON"
+        ) from exc
+    if not isinstance(payload, dict):
+        raise ReviewRunnerError("review escalation authority must be a JSON object")
+    return payload, _sha256(data)
+
+
+def _legacy_escalation_series(
+    source_codex_home: Path, escalation: dict[str, Any]
+) -> list[Path]:
+    root = source_codex_home / "native-codex-loop/review-series/escalations"
+    if not root.exists():
+        return []
+    if root.is_symlink() or not root.is_dir():
+        raise ReviewRunnerError("review escalation namespace is unsafe")
+    matches = []
+    for state_path in sorted(root.glob("*/series.json")):
+        if state_path.parent.is_symlink() or state_path.is_symlink():
+            raise ReviewRunnerError("review escalation namespace contains a symlink")
+        data = _read_private(state_path, "existing review escalation series")
+        try:
+            state = json.loads(data.decode("utf-8"))
+        except (UnicodeDecodeError, ValueError) as exc:
+            raise ReviewRunnerError(
+                "existing review escalation series is malformed"
+            ) from exc
+        provenance = state.get("escalation") if isinstance(state, dict) else None
+        if not isinstance(provenance, dict):
+            raise ReviewRunnerError(
+                "existing review escalation series lacks parent provenance"
+            )
+        if (
+            provenance.get("parent_series") == escalation["parent_series"]
+            and provenance.get("parent_series_sha256")
+            == escalation["parent_series_sha256"]
+            and provenance.get("parent_receipt_sha256")
+            == escalation["parent_receipt_sha256"]
+        ):
+            matches.append(state_path)
+    return matches
+
+
+def _claim_escalation_authority(
+    *,
+    source_codex_home: Path,
+    repo: Path,
+    base: str,
+    escalation: dict[str, Any],
+    series: Path,
+) -> dict[str, str]:
+    authority_root = (
+        source_codex_home
+        / "native-codex-loop/review-series/escalation-authorities"
+    )
+    _ensure_private_control_directory(authority_root, source_codex_home)
+    identity = (
+        f"{repo}\0{base}\0{escalation['parent_series']}\0"
+        f"{escalation['parent_series_sha256']}\0"
+        f"{escalation['parent_receipt_sha256']}"
+    ).encode("utf-8")
+    authority_path = authority_root / f"{_sha256(identity)}.json"
+    payload = {
+        "schema_version": SERIES_SCHEMA,
+        "repo": str(repo),
+        "base": base,
+        "parent_series": escalation["parent_series"],
+        "parent_series_sha256": escalation["parent_series_sha256"],
+        "parent_receipt_sha256": escalation["parent_receipt_sha256"],
+        "series_file": str(series / "series.json"),
+    }
+    if not authority_path.exists():
+        legacy = _legacy_escalation_series(source_codex_home, escalation)
+        if len(legacy) > 1:
+            raise ReviewRunnerError(
+                "parent review authority already has multiple escalation series"
+            )
+        if legacy and legacy[0] != series / "series.json":
+            raise ReviewRunnerError(
+                "parent review authority was already consumed by another escalation"
+            )
+        data = _authority_bytes(payload)
+        try:
+            descriptor = os.open(
+                authority_path,
+                os.O_WRONLY
+                | os.O_CREAT
+                | os.O_EXCL
+                | os.O_CLOEXEC
+                | os.O_NOFOLLOW,
+                0o600,
+            )
+        except FileExistsError:
+            pass
+        except OSError as exc:
+            raise ReviewRunnerError(
+                "cannot reserve parent review escalation authority"
+            ) from exc
+        else:
+            try:
+                view = memoryview(data)
+                while view:
+                    written = os.write(descriptor, view)
+                    view = view[written:]
+                os.fsync(descriptor)
+            finally:
+                os.close(descriptor)
+            directory = os.open(authority_root, os.O_RDONLY | os.O_DIRECTORY)
+            try:
+                os.fsync(directory)
+            finally:
+                os.close(directory)
+    actual, digest = _read_authority(authority_path)
+    if actual != payload:
+        raise ReviewRunnerError(
+            "parent review authority was already consumed by another escalation"
+        )
+    return {"file": str(authority_path), "sha256": digest}
+
+
+def _verify_escalation_authority(authority: dict[str, str]) -> None:
+    actual, digest = _read_authority(Path(authority["file"]))
+    if digest != authority["sha256"] or not actual:
+        raise ReviewRunnerError("review escalation authority changed during execution")
 
 
 def canonical_series_path(source_codex_home: Path, repo: Path, base: str) -> Path:
@@ -2111,6 +2298,15 @@ def run_series_review(
         if escalation is not None
         else canonical_series_path(source_codex_home, repo, resolved_base)
     )
+    authority = None
+    if escalation is not None:
+        authority = _claim_escalation_authority(
+            source_codex_home=source_codex_home,
+            repo=repo,
+            base=resolved_base,
+            escalation=escalation,
+            series=series,
+        )
     _ensure_series_directory(series, source_codex_home)
     lock = series / ".lock"
     state_path = series / "series.json"
@@ -2145,6 +2341,11 @@ def run_series_review(
             state = _load_series(state_path, repo, resolved_base)
             if state.get("escalation") != escalation:
                 raise ReviewRunnerError("review escalation series provenance mismatch")
+            if state.get("escalation_authority", authority) != authority:
+                raise ReviewRunnerError("review escalation authority mismatch")
+            if authority is not None and "escalation_authority" not in state:
+                state["escalation_authority"] = authority
+                _atomic_json(state_path, state)
         else:
             unexpected = [path for path in series.iterdir() if path != lock]
             if unexpected:
@@ -2159,6 +2360,7 @@ def run_series_review(
             }
             if escalation is not None:
                 state["escalation"] = escalation
+                state["escalation_authority"] = authority
         if len(state["attempts"]) >= MAX_REVIEW_ATTEMPTS:
             raise ReviewRunnerError(
                 "review series already used both allowed invocations"
@@ -2188,6 +2390,8 @@ def run_series_review(
                 codex_binary=codex_binary,
                 timeout_seconds=timeout_seconds,
             )
+            if authority is not None:
+                _verify_escalation_authority(authority)
         except BaseException as exc:
             attempt.update(
                 {
@@ -2201,6 +2405,7 @@ def run_series_review(
         receipt.update({"attempt": number, "series_file": str(state_path)})
         if escalation is not None:
             receipt["escalation"] = escalation
+            receipt["escalation_authority"] = authority
         _atomic_json(output / "receipt.json", receipt)
         attempt.update(
             {

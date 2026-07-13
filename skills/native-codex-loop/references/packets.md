@@ -54,7 +54,10 @@ Completion restriction: <actions forbidden until the escalated review passes>
 
 The finding ID count must equal the parent review's finding count. Run
 `review_runner.py` with `--escalate-from-series` naming that exact parent. One escalation
-generation is the limit; an escalation `series.json` can never become another parent.
+generation is the limit; the runner atomically consumes a parent-level authority
+reservation, so changing accepted addendum bytes cannot select another series. The
+post-fix head must contain a non-empty tree diff from the prior reviewed head. An
+escalation `series.json` can never become another parent.
 
 ## Delegation packet
 
