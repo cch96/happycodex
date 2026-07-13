@@ -104,13 +104,23 @@ before completion. The only no-review outcome is a verified unchanged HEAD/workt
    applicable, and rerun focused plus full checks.
 5. If any task-owned artifact, Task Contract/addendum, or source packet changes after the
    first review, recompute both hashes and run a second fresh invocation. Allow at most
-   two review invocations. If the
-   second review supports another material change, report the unreviewed residual state
-   instead of claiming completion or starting a third loop.
+   two review invocations in the default series. If the second review supports another
+   material change, record dispositions, report the unreviewed residual state, and stop
+   instead of claiming completion or manufacturing a new series identity.
+6. A later, explicit user approval may authorize one post-fix series. Preserve the
+   original Task Contract bytes and append the exact append-only addendum from
+   `references/packets.md`; never infer approval from a request to continue. Bind the
+   addendum to the exhausted canonical parent `series.json`, its final receipt, prior
+   reviewed head, and all confirmed finding IDs. Invoke the runner once with
+   `--escalate-from-series <parent-series.json>`. Require the returned escalation
+   provenance to match those hashes. The runner allows one escalation generation, caps
+   it at two attempts, and rejects recursive escalation. If that series is exhausted,
+   stop with residual risk; no global or path-based bypass is permitted.
 
 The final `HEAD` must exactly equal the head in the final succeeded attempt's receipt. If
 the runner is unavailable, not fresh, not max/read-only, exposes forbidden capabilities,
-or cannot prove an unchanged tree, stop and report the failed gate.
+cannot prove an unchanged tree, finds credential bytes anywhere reachable from `HEAD`,
+or returns a finding outside a changed new-side hunk, stop and report the failed gate.
 
 ## Completion gate
 
@@ -142,3 +152,4 @@ merely because tests are green, the clock is low, or an agent declared success.
 | “The reviewer probably meant…” | Reproduce the exact claim before editing. |
 | “A tiny post-review fix needs no re-review.” | Final `HEAD` must equal the reviewed head. |
 | “One more loop cannot hurt.” | Stop after two review invocations and report residual risk. |
+| “I can point at a new directory for another review.” | Only explicit user approval plus the bound addendum can create one non-recursive escalation. |

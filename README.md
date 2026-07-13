@@ -26,7 +26,10 @@ The Skill creates an immutable mode-`0600` Task Contract plus private mode-`0600
 candidate repository and calls `scripts/review_runner.py --task-contract ...`. The
 runner hashes and verifies the exact inlined contract, then derives one canonical series from source CODEX_HOME,
 repository identity, and frozen task baseline. `series.json` counts every started
-invocation (including failures) and caps that identity at two. Each
+invocation (including failures) and enforces the default two-attempt cap. A later
+explicitly user-authorized, append-only Task Contract addendum can create one distinct,
+non-recursive post-fix series with the same two-attempt cap; its identity and receipts
+bind the parent series and final receipt hashes. Each
 successful `attempt-N/` contains:
 
 - `packet.md`: the exact source packet given to the reviewer; its repository path is
@@ -39,7 +42,10 @@ successful `attempt-N/` contains:
 
 Credentials and their canary live only in the user's private runtime tmpfs. Generated
 config, rollouts, Git bundle, and review clone are temporary and are removed on success,
-error, or timeout. The receipt is an audit record, not a signed attestation.
+error, or timeout. Before any Codex command runs, the runner scans the checkout and every
+Git blob reachable from `HEAD` for exact credential strings. It also rejects reviewer
+findings whose priority metadata disagrees or whose location does not overlap a changed
+new-side hunk. The receipt is an audit record, not a signed attestation.
 
 ## Compatibility and limits
 

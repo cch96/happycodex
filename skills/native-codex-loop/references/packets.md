@@ -30,6 +30,32 @@ Never rewrite frozen content. For an authorized scope change, append a dated add
 that states the user instruction and preserves the prior text, then record the new whole-file
 SHA256 in native plan state.
 
+### Authorized review escalation addendum
+
+Use this append-only addendum only after the default series has consumed both attempts,
+the final review supports material fixes, those findings are independently confirmed,
+and the user later gives explicit approval. Preserve the original file bytes and append
+exactly one blank line followed by this shape:
+
+```text
+## Addendum <YYYY-MM-DD> — Human-authorized post-review escalation
+
+User authorization: <exact user instruction>
+User authorization SHA256: <SHA256 of exact UTF-8 instruction bytes>
+Prior Task Contract SHA256: <SHA256 before this addendum>
+Prior series file: <canonical absolute default series.json>
+Prior series SHA256: <SHA256 of exact series.json bytes>
+Prior final receipt SHA256: <SHA256 of exact attempt-2/receipt.json bytes>
+Prior reviewed head: <full attempt-2 head SHA>
+Confirmed finding IDs: <comma-separated stable IDs in review order>
+Authorization: <must explicitly permit one non-recursive post-fix review series, bind this addendum, the prior series, and its final receipt, and keep every series capped at two attempts>
+Completion restriction: <actions forbidden until the escalated review passes>
+```
+
+The finding ID count must equal the parent review's finding count. Run
+`review_runner.py` with `--escalate-from-series` naming that exact parent. One escalation
+generation is the limit; an escalation `series.json` can never become another parent.
+
 ## Delegation packet
 
 - **Objective:** One bounded question whose answer changes a named parent decision.
@@ -75,6 +101,11 @@ the frozen task baseline, never a later checkpoint; the head is the clean candid
 - **Output contract:** Each finding carries priority and identifies the violated
   criterion, evidence, Reproduction, and smallest safe next check. End with residual
   risk or an explicit no-actionable-finding result.
+
+Before launch, the runner rejects credential strings in checked-out files or any Git
+blob reachable from `HEAD`. Returned finding titles must agree with numeric priority,
+and every absolute location must name a changed regular file and overlap a new-side
+zero-context diff hunk.
 
 Do not include author identity, model identity, implementation reasoning, the parent's
 self-review, or a requested approval verdict. Atomically create the packet outside the
