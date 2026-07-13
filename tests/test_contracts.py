@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import subprocess
 import unittest
 
 
@@ -20,9 +21,21 @@ class LeanPluginContractTests(unittest.TestCase):
         for surface in ("hooks", "mcpServers", "apps"):
             self.assertNotIn(surface, manifest)
 
-        self.assertFalse((ROOT / "scripts").exists())
-        self.assertFalse((ROOT / "tests/test_review_runner.py").exists())
-        self.assertFalse((ROOT / "docs/superpowers").exists())
+        tracked_runtime = subprocess.run(
+            [
+                "git",
+                "ls-files",
+                "--",
+                "scripts",
+                "docs/superpowers",
+                "tests/test_review_runner.py",
+            ],
+            cwd=ROOT,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.splitlines()
+        self.assertEqual(tracked_runtime, [])
 
     def test_skill_uses_native_state_and_one_root_writer(self) -> None:
         text = SKILL.read_text(encoding="utf-8")
@@ -84,13 +97,38 @@ class LeanPluginContractTests(unittest.TestCase):
         )
         self.assertNotIn('codex review --base <task-baseline> "', text)
         self.assertNotIn('codex review --uncommitted "', text)
+        self.assertNotIn('codex review "<factual brief', text)
         for phrase in (
-            'codex review "<factual brief',
+            'codex review - < "$review_brief"',
             "codex review --base <task-baseline>",
             "codex review --uncommitted",
             "do not combine",
         ):
             self.assertIn(phrase, text)
+
+    def test_review_brief_is_not_shell_interpolated(self) -> None:
+        folded = " ".join(
+            SKILL.read_text(encoding="utf-8").casefold().split()
+        )
+        for phrase in (
+            "temporary review brief file",
+            "do not interpolate its contents into a shell command",
+            'codex review - < "$review_brief"',
+        ):
+            self.assertIn(phrase, folded)
+
+    def test_review_normalizes_mixed_task_state(self) -> None:
+        folded = " ".join(
+            SKILL.read_text(encoding="utf-8").casefold().split()
+        )
+        for phrase in (
+            "normalize task state before review",
+            "commit all task changes",
+            "worktree is clean",
+            "if task commits and current task changes coexist",
+            "both `git diff <task-baseline>..head` and the complete staged, unstaged, and untracked",
+        ):
+            self.assertIn(phrase, folded)
 
     def test_review_input_is_factual_fresh_and_writer_neutral(self) -> None:
         folded = " ".join(
@@ -134,7 +172,7 @@ class LeanPluginContractTests(unittest.TestCase):
             "git diff <task-baseline>..head",
             "same task baseline",
             "staged, unstaged, and untracked",
-            "complete task remains represented by current changes",
+            "complete task must remain represented by current changes and any task checkpoints",
             "never advance the baseline or select only the post-review fix",
         ):
             self.assertIn(phrase, clause)

@@ -88,13 +88,21 @@ verification evidence, and accepted baseline failures. Do not include the writer
 implementation narrative, self-review, rebuttal, preferred verdict, or defense.
 
 The supported CLI treats a custom prompt as mutually exclusive with review selector
-flags. Do not combine them. Choose one launch form:
+flags. Do not combine them. Put the factual text in a temporary review brief file; do
+not interpolate its contents into a shell command. Set `review_brief` to that file's
+path and run `codex review - < "$review_brief"` so the bytes arrive through stdin.
 
-- Preferred for a committed task: run
-  `codex review "<factual brief: inspect git diff <task-baseline>..HEAD; task; acceptance; verification; baseline failures>"`.
-- When commits are intentionally unavailable and current changes represent the complete
-  task, use a factual prompt that tells `codex review` to inspect the complete staged,
-  unstaged, and untracked task changes.
+Normalize task state before review and describe the selected scope in that brief:
+
+- Preferred committed form: commit all task changes, verify the worktree is clean, and
+  ask the reviewer to inspect `git diff <task-baseline>..HEAD`.
+- Pure uncommitted form: use only when no task checkpoint commit exists and the complete
+  task is represented by the staged, unstaged, and untracked changes.
+- If task commits and current task changes coexist, either commit the remainder or make
+  the brief require both `git diff <task-baseline>..HEAD` and the complete staged,
+  unstaged, and untracked task changes as one review scope. List task-owned untracked
+  paths explicitly and verify the result addresses both components.
+
 - Selector-only `codex review --base <task-baseline>` or `codex review --uncommitted`
   is acceptable only when the same task, acceptance criteria, verification evidence,
   and baseline failures are already visible to the reviewer in repository inputs.
@@ -108,13 +116,14 @@ independently reproduce every actionable finding:
 - unresolved material finding: stop and ask the user rather than guessing.
 
 If confirmed findings changed the candidate, run one fresh re-review of the complete
-updated diff. Commit all task changes and use the factual-prompt form to inspect
-`git diff <task-baseline>..HEAD` against the same task baseline. While commits remain
-intentionally unavailable, re-review the complete staged, unstaged, and untracked task
-changes only if the complete task remains represented by current changes. Never advance
-the baseline or select only the post-review fix. If that re-review still has a confirmed
-or unresolved material finding, report the evidence and ask the user; do not create an
-unbounded review loop.
+updated diff. Normalize task state again and use a new factual brief with
+`codex review - < "$review_brief"`. Prefer to commit all task changes and inspect
+`git diff <task-baseline>..HEAD` against the same task baseline. If commits remain
+unavailable, include the full staged, unstaged, and untracked union described above; the
+complete task must remain represented by current changes and any task checkpoints.
+Never advance the baseline or select only the post-review fix. If that re-review still
+has a confirmed or unresolved material finding, report the evidence and ask the user;
+do not create an unbounded review loop.
 
 ## Completion gate
 
