@@ -1929,6 +1929,13 @@ def _escalation_context(
         raise ReviewRunnerError(
             "review escalation parent must be the exact canonical default series"
         )
+    current = source_codex_home
+    for part in supplied_parent.relative_to(source_codex_home).parts:
+        current = current / part
+        if current.is_symlink():
+            raise ReviewRunnerError(
+                f"review escalation parent path is symlinked: {current}"
+            )
     parent_data = _read_private(supplied_parent, "parent review series")
     parent_sha256 = _sha256(parent_data)
     try:

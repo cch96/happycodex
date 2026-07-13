@@ -1373,6 +1373,36 @@ class ReviewRunnerTests(unittest.TestCase):
             hashlib.sha256(parent.read_bytes()).hexdigest(),
         )
 
+        (repo / "feature.txt").write_text(
+            "base\nhead\nfixed\nfollow-up\n", encoding="utf-8"
+        )
+        self.git(repo, "add", "feature.txt")
+        self.git(repo, "commit", "-q", "-m", "review follow-up")
+        second_head = self.git(repo, "rev-parse", "HEAD")
+        second_packet = self.write_packet(root, base, second_head, repo, contract)
+        second = review_runner.run_series_review(
+            repo=repo,
+            base=base,
+            head=second_head,
+            packet=second_packet,
+            task_contract=contract,
+            source_codex_home=source,
+            codex_binary=self.make_fake_codex(root),
+            escalate_from_series=parent,
+        )
+        self.assertEqual(second["attempt"], 2)
+        with self.assertRaises(review_runner.ReviewRunnerError):
+            review_runner.run_series_review(
+                repo=repo,
+                base=base,
+                head=second_head,
+                packet=second_packet,
+                task_contract=contract,
+                source_codex_home=source,
+                codex_binary=self.make_fake_codex(root),
+                escalate_from_series=parent,
+            )
+
         with self.assertRaises(review_runner.ReviewRunnerError):
             review_runner.run_series_review(
                 repo=repo,
