@@ -1515,6 +1515,90 @@ class ReviewRunnerTests(unittest.TestCase):
                     )
                 self.assertFalse(escalations.exists())
 
+    def test_authorized_escalation_consumes_authority_once_per_parent(self) -> None:
+        root = self.make_temp()
+        repo, base, prior_head = self.make_repo(root)
+        source = self.make_source_home(root)
+        contract = self.make_contract(root, base, repo)
+        parent = self.make_parent_series(
+            source,
+            repo,
+            base,
+            prior_head,
+            hashlib.sha256(contract.read_bytes()).hexdigest(),
+        )
+        self.authorize_escalation(contract, parent, prior_head)
+        (repo / "feature.txt").write_text(
+            "base\nhead\nfixed\n", encoding="utf-8"
+        )
+        self.git(repo, "add", "feature.txt")
+        self.git(repo, "commit", "-q", "-m", "post review fix")
+        head = self.git(repo, "rev-parse", "HEAD")
+        packet = self.write_packet(root, base, head, repo, contract)
+        first = review_runner.run_series_review(
+            repo=repo,
+            base=base,
+            head=head,
+            packet=packet,
+            task_contract=contract,
+            source_codex_home=source,
+            codex_binary=self.make_fake_codex(root),
+            escalate_from_series=parent,
+        )
+
+        contract.write_text(
+            contract.read_text(encoding="utf-8") + "Audit note: changed bytes.\n",
+            encoding="utf-8",
+        )
+        changed_packet = self.write_packet(root, base, head, repo, contract)
+        with self.assertRaises(review_runner.ReviewRunnerError):
+            review_runner.run_series_review(
+                repo=repo,
+                base=base,
+                head=head,
+                packet=changed_packet,
+                task_contract=contract,
+                source_codex_home=source,
+                codex_binary=self.make_fake_codex(root),
+                escalate_from_series=parent,
+            )
+
+        escalation_root = source / "native-codex-loop/review-series/escalations"
+        series_files = sorted(escalation_root.glob("*/series.json"))
+        self.assertEqual(series_files, [Path(first["series_file"])])
+
+    def test_authorized_escalation_requires_post_parent_content_delta(self) -> None:
+        root = self.make_temp()
+        repo, base, prior_head = self.make_repo(root)
+        source = self.make_source_home(root)
+        contract = self.make_contract(root, base, repo)
+        parent = self.make_parent_series(
+            source,
+            repo,
+            base,
+            prior_head,
+            hashlib.sha256(contract.read_bytes()).hexdigest(),
+        )
+        self.authorize_escalation(contract, parent, prior_head)
+        self.git(repo, "commit", "--allow-empty", "-q", "-m", "empty post review")
+        head = self.git(repo, "rev-parse", "HEAD")
+        packet = self.write_packet(root, base, head, repo, contract)
+
+        with self.assertRaises(review_runner.ReviewRunnerError):
+            review_runner.run_series_review(
+                repo=repo,
+                base=base,
+                head=head,
+                packet=packet,
+                task_contract=contract,
+                source_codex_home=source,
+                codex_binary=self.make_fake_codex(root),
+                escalate_from_series=parent,
+            )
+        self.assertFalse(
+            (source / "native-codex-loop/review-series/escalations").exists()
+        )
+
     def test_series_rejects_symlinked_canonical_directory(self) -> None:
         root = self.make_temp()
         repo, base, head = self.make_repo(root)
