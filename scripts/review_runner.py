@@ -1832,6 +1832,213 @@ def _load_series(path: Path, repo: Path, base: str) -> dict[str, Any]:
     return state
 
 
+def _single_field(text: str, label: str) -> str:
+    values = _field_values(text, label)
+    if len(values) != 1 or not values[0]:
+        raise ReviewRunnerError(
+            f"review escalation addendum field is missing or duplicated: {label}"
+        )
+    return values[0]
+
+
+def _escalation_contract(
+    task_contract: Path,
+    parent: Path,
+    parent_sha256: str,
+    receipt_sha256: str,
+    prior_head: str,
+    finding_count: int,
+    repo: Path,
+    base: str,
+) -> dict[str, Any]:
+    data = _read_private(task_contract, "task contract")
+    text, contract_sha256 = _validate_task_contract(data, base, repo)
+    marker = re.compile(
+        r"\n## Addendum \d{4}-\d{2}-\d{2} — "
+        r"Human-authorized post-review escalation\n"
+    )
+    matches = list(marker.finditer(text))
+    if len(matches) != 1:
+        raise ReviewRunnerError(
+            "task contract must contain exactly one canonical review escalation addendum"
+        )
+    match = matches[0]
+    original_data = text[: match.start()].encode("utf-8")
+    addendum = text[match.start() + 1 :]
+    user_authorization = _single_field(addendum, "User authorization")
+    user_authorization_sha256 = _single_field(
+        addendum, "User authorization SHA256"
+    )
+    prior_contract_sha256 = _single_field(
+        addendum, "Prior Task Contract SHA256"
+    )
+    prior_series = _single_field(addendum, "Prior series file")
+    recorded_parent_sha256 = _single_field(addendum, "Prior series SHA256")
+    recorded_receipt_sha256 = _single_field(
+        addendum, "Prior final receipt SHA256"
+    )
+    recorded_prior_head = _single_field(addendum, "Prior reviewed head")
+    finding_ids_text = _single_field(addendum, "Confirmed finding IDs")
+    authorization = _single_field(addendum, "Authorization")
+    finding_ids = tuple(item.strip() for item in finding_ids_text.split(","))
+    lowered_authorization = authorization.casefold()
+    if (
+        not re.fullmatch(r"[0-9a-f]{64}", user_authorization_sha256)
+        or _sha256(user_authorization.encode("utf-8"))
+        != user_authorization_sha256
+        or not re.fullmatch(r"[0-9a-f]{64}", prior_contract_sha256)
+        or _sha256(original_data) != prior_contract_sha256
+        or prior_series != str(parent)
+        or recorded_parent_sha256 != parent_sha256
+        or recorded_receipt_sha256 != receipt_sha256
+        or recorded_prior_head != prior_head
+        or len(finding_ids) != finding_count
+        or len(set(finding_ids)) != len(finding_ids)
+        or any(
+            not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", item)
+            for item in finding_ids
+        )
+        or "one non-recursive post-fix review series" not in lowered_authorization
+        or "binds this addendum, the prior series, and its final receipt"
+        not in lowered_authorization
+        or "capped at two attempts" not in lowered_authorization
+    ):
+        raise ReviewRunnerError(
+            "review escalation addendum does not match its authorized evidence"
+        )
+    return {
+        "task_contract_sha256": contract_sha256,
+        "prior_task_contract_sha256": prior_contract_sha256,
+        "user_authorization_sha256": user_authorization_sha256,
+        "confirmed_finding_ids": list(finding_ids),
+    }
+
+
+def _escalation_context(
+    *,
+    source_codex_home: Path,
+    repo: Path,
+    base: str,
+    head: str,
+    task_contract: Path,
+    parent_input: Path,
+) -> dict[str, Any]:
+    expected_parent = canonical_series_path(source_codex_home, repo, base) / "series.json"
+    supplied_parent = parent_input.expanduser().absolute()
+    if supplied_parent != expected_parent or supplied_parent.is_symlink():
+        raise ReviewRunnerError(
+            "review escalation parent must be the exact canonical default series"
+        )
+    parent_data = _read_private(supplied_parent, "parent review series")
+    parent_sha256 = _sha256(parent_data)
+    try:
+        parent_state = json.loads(parent_data.decode("utf-8"))
+    except (UnicodeDecodeError, ValueError) as exc:
+        raise ReviewRunnerError("parent review series is not valid UTF-8 JSON") from exc
+    loaded = _load_series(supplied_parent, repo, base)
+    if parent_state != loaded or "escalation" in parent_state:
+        raise ReviewRunnerError(
+            "review escalation cannot recurse or use inconsistent parent state"
+        )
+    attempts = parent_state["attempts"]
+    if len(attempts) != MAX_REVIEW_ATTEMPTS or attempts[-1].get("status") != "succeeded":
+        raise ReviewRunnerError(
+            "review escalation requires an exhausted parent with a succeeded final attempt"
+        )
+    final_attempt = attempts[-1]
+    expected_output = supplied_parent.parent / f"attempt-{MAX_REVIEW_ATTEMPTS}"
+    receipt_path = expected_output / "receipt.json"
+    if final_attempt.get("output") != str(expected_output):
+        raise ReviewRunnerError("parent review final attempt output is non-canonical")
+    receipt_data = _read_private(receipt_path, "parent final receipt")
+    receipt_sha256 = _sha256(receipt_data)
+    if final_attempt.get("receipt_sha256") != receipt_sha256:
+        raise ReviewRunnerError("parent final receipt hash does not match series state")
+    try:
+        receipt = json.loads(receipt_data.decode("utf-8"))
+    except (UnicodeDecodeError, ValueError) as exc:
+        raise ReviewRunnerError("parent final receipt is not valid UTF-8 JSON") from exc
+    prior_head = final_attempt.get("head")
+    review_path = expected_output / "review.md"
+    review_data = _read_private(review_path, "parent final review")
+    try:
+        review = json.loads(review_data.decode("utf-8"))
+    except (UnicodeDecodeError, ValueError) as exc:
+        raise ReviewRunnerError("parent final review is not valid UTF-8 JSON") from exc
+    findings = review.get("findings") if isinstance(review, dict) else None
+    if (
+        not isinstance(receipt, dict)
+        or receipt.get("ok") is not True
+        or receipt.get("attempt") != MAX_REVIEW_ATTEMPTS
+        or receipt.get("series_file") != str(supplied_parent)
+        or receipt.get("base") != base
+        or receipt.get("head") != prior_head
+        or receipt.get("review_file") != str(review_path)
+        or receipt.get("review_sha256") != _sha256(review_data)
+        or not isinstance(prior_head, str)
+        or not re.fullmatch(r"[0-9a-f]{40,64}", prior_head)
+        or prior_head == head
+        or not isinstance(findings, list)
+        or not findings
+    ):
+        raise ReviewRunnerError("parent final review receipt is incomplete or stale")
+    ancestry = _git(
+        repo,
+        "merge-base",
+        "--is-ancestor",
+        prior_head,
+        head,
+        check=False,
+        env=_git_environment(Path("/nonexistent")),
+    )
+    if ancestry.returncode:
+        raise ReviewRunnerError("post-review head must descend from the parent review head")
+    contract = _escalation_contract(
+        task_contract,
+        supplied_parent,
+        parent_sha256,
+        receipt_sha256,
+        prior_head,
+        len(findings),
+        repo,
+        base,
+    )
+    if receipt.get("task_contract_sha256") != contract[
+        "prior_task_contract_sha256"
+    ]:
+        raise ReviewRunnerError("parent receipt is not bound to the prior Task Contract")
+    return {
+        "parent_series": str(supplied_parent),
+        "parent_series_sha256": parent_sha256,
+        "parent_receipt": str(receipt_path),
+        "parent_receipt_sha256": receipt_sha256,
+        "prior_head": prior_head,
+        **contract,
+    }
+
+
+def _escalation_series_path(
+    source_codex_home: Path,
+    repo: Path,
+    base: str,
+    escalation: dict[str, Any],
+) -> Path:
+    identity = json.dumps(
+        {
+            "repo": str(repo),
+            "base": base,
+            **escalation,
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return (
+        source_codex_home
+        / "native-codex-loop/review-series/escalations"
+        / _sha256(identity)
+    )
+
+
 def canonical_series_path(source_codex_home: Path, repo: Path, base: str) -> Path:
     identity = f"{repo.expanduser().resolve()}\0{base}".encode("utf-8")
     key = hashlib.sha256(identity).hexdigest()
@@ -1843,8 +2050,17 @@ def canonical_series_path(source_codex_home: Path, repo: Path, base: str) -> Pat
 
 
 def _ensure_series_directory(series: Path, source_codex_home: Path) -> None:
+    root = source_codex_home / "native-codex-loop/review-series"
+    try:
+        relative = series.relative_to(root)
+    except ValueError as exc:
+        raise ReviewRunnerError("review series path escapes its canonical root") from exc
+    if len(relative.parts) not in (1, 2) or (
+        len(relative.parts) == 2 and relative.parts[0] != "escalations"
+    ):
+        raise ReviewRunnerError("review series path has a non-canonical namespace")
     current = source_codex_home
-    for name in ("native-codex-loop", "review-series", series.name):
+    for name in ("native-codex-loop", "review-series", *relative.parts):
         current = current / name
         if current.is_symlink():
             raise ReviewRunnerError(f"review series path is symlinked: {current}")
@@ -1864,13 +2080,30 @@ def run_series_review(
     source_codex_home: Path,
     codex_binary: Path = Path("codex"),
     timeout_seconds: float = DEFAULT_TIMEOUT_SECONDS,
+    escalate_from_series: Path | None = None,
 ) -> dict[str, Any]:
     repo = repo.expanduser().resolve()
     source_codex_home = source_codex_home.expanduser().resolve()
     git_env = _git_environment(Path("/nonexistent"))
     resolved_base = _resolve_commit(repo, base, git_env)
     resolved_head = _resolve_commit(repo, head, git_env)
-    series = canonical_series_path(source_codex_home, repo, resolved_base)
+    escalation = None
+    if escalate_from_series is not None:
+        escalation = _escalation_context(
+            source_codex_home=source_codex_home,
+            repo=repo,
+            base=resolved_base,
+            head=resolved_head,
+            task_contract=task_contract,
+            parent_input=escalate_from_series,
+        )
+    series = (
+        _escalation_series_path(
+            source_codex_home, repo, resolved_base, escalation
+        )
+        if escalation is not None
+        else canonical_series_path(source_codex_home, repo, resolved_base)
+    )
     _ensure_series_directory(series, source_codex_home)
     lock = series / ".lock"
     state_path = series / "series.json"
@@ -1903,6 +2136,8 @@ def run_series_review(
         os.fsync(descriptor)
         if state_path.exists():
             state = _load_series(state_path, repo, resolved_base)
+            if state.get("escalation") != escalation:
+                raise ReviewRunnerError("review escalation series provenance mismatch")
         else:
             unexpected = [path for path in series.iterdir() if path != lock]
             if unexpected:
@@ -1915,6 +2150,8 @@ def run_series_review(
                 "base": resolved_base,
                 "attempts": [],
             }
+            if escalation is not None:
+                state["escalation"] = escalation
         if len(state["attempts"]) >= MAX_REVIEW_ATTEMPTS:
             raise ReviewRunnerError(
                 "review series already used both allowed invocations"
@@ -1955,6 +2192,8 @@ def run_series_review(
             _atomic_json(state_path, state)
             raise
         receipt.update({"attempt": number, "series_file": str(state_path)})
+        if escalation is not None:
+            receipt["escalation"] = escalation
         _atomic_json(output / "receipt.json", receipt)
         attempt.update(
             {
@@ -1982,6 +2221,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--timeout-seconds", type=float, default=DEFAULT_TIMEOUT_SECONDS
     )
+    parser.add_argument("--escalate-from-series", type=Path)
     return parser
 
 
@@ -1997,6 +2237,7 @@ def main(argv: list[str] | None = None) -> int:
             source_codex_home=arguments.source_codex_home,
             codex_binary=arguments.codex_binary,
             timeout_seconds=arguments.timeout_seconds,
+            escalate_from_series=arguments.escalate_from_series,
         )
     except ReviewRunnerError as exc:
         print(

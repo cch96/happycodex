@@ -135,11 +135,24 @@ class ReviewRunnerTests(unittest.TestCase):
         series = review_runner.canonical_series_path(source, repo, base)
         second = series / "attempt-2"
         second.mkdir(parents=True)
+        review_path = second / "review.md"
+        review = {
+            "findings": [
+                {"title": f"[P1] Finding {number}"} for number in range(1, 6)
+            ],
+            "overall_correctness": "patch is incorrect",
+        }
+        review_path.write_text(
+            json.dumps(review, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        )
+        review_path.chmod(0o600)
         receipt = {
             "ok": True,
             "base": base,
             "head": head,
             "task_contract_sha256": contract_sha256,
+            "review_file": str(review_path),
+            "review_sha256": hashlib.sha256(review_path.read_bytes()).hexdigest(),
             "attempt": 2,
             "series_file": str(series / "series.json"),
         }
@@ -1375,7 +1388,15 @@ class ReviewRunnerTests(unittest.TestCase):
     def test_authorized_escalation_rejects_tampering_before_state_creation(
         self,
     ) -> None:
-        mutations = ("finding-ids", "parent", "receipt", "non-exhausted")
+        mutations = (
+            "finding-ids",
+            "missing-field",
+            "authorization",
+            "prior-head",
+            "parent",
+            "receipt",
+            "non-exhausted",
+        )
         for mutation in mutations:
             with self.subTest(mutation=mutation):
                 root = self.make_temp()
@@ -1394,6 +1415,34 @@ class ReviewRunnerTests(unittest.TestCase):
                     contract.write_text(
                         contract.read_text(encoding="utf-8").replace(
                             "R2-F1,R2-F2,R2-F3,R2-F4,R2-F5", "R2-F1"
+                        ),
+                        encoding="utf-8",
+                    )
+                elif mutation == "missing-field":
+                    contract.write_text(
+                        "\n".join(
+                            line
+                            for line in contract.read_text(
+                                encoding="utf-8"
+                            ).splitlines()
+                            if not line.startswith("Prior series file:")
+                        )
+                        + "\n",
+                        encoding="utf-8",
+                    )
+                elif mutation == "authorization":
+                    contract.write_text(
+                        contract.read_text(encoding="utf-8").replace(
+                            "one non-recursive post-fix review series",
+                            "an extra review series",
+                        ),
+                        encoding="utf-8",
+                    )
+                elif mutation == "prior-head":
+                    contract.write_text(
+                        contract.read_text(encoding="utf-8").replace(
+                            f"Prior reviewed head: {prior_head}",
+                            f"Prior reviewed head: {'0' * 40}",
                         ),
                         encoding="utf-8",
                     )
