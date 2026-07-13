@@ -606,9 +606,11 @@ def _network_probe_clause(network_port: int) -> str:
         f"    result=probe.connect_ex(('127.0.0.1',{network_port}))\n"
         "except OSError as exc:\n"
         "    sys.exit(0 if exc.errno in (errno.EACCES,errno.EPERM) else 2)\n"
-        "sys.exit(0 if result else 1)\n"
+        "if result in (errno.EACCES,errno.EPERM):\n"
+        "    sys.exit(0)\n"
+        "sys.exit(1 if result == 0 else 2)\n"
     )
-    return shlex.join(["python3", "-c", script])
+    return shlex.join(["python3", "-I", "-S", "-c", script])
 
 
 def _parse_events(data: str) -> list[dict[str, Any]]:
