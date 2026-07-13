@@ -14,9 +14,11 @@ none substitutes for the others.
 1. Read applicable `AGENTS.md`, the user request or task file, repository status,
    existing tests, and accepted baseline failures.
 2. Put a concise working agreement in the native plan: outcome, acceptance criteria,
-   exclusions, verification commands, and stop conditions. Record the starting revision
-   once as the immutable task baseline before any task edit; never advance it for that
-   task. Keep the plan as a living evidence record. Do not require an ExecPlan file.
+   exclusions, verification commands, and stop conditions. Before any task edit, resolve
+   `git rev-parse --verify HEAD^{commit}` and record the returned full starting commit OID
+   as the immutable task baseline. Never store a symbolic ref or abbreviated OID and
+   never advance the baseline for that task. Keep the plan as a living evidence record.
+   Do not require an ExecPlan file.
 3. Use Goal only when the user explicitly requests Goal. For a task likely to span
    compaction or several sessions, recommend Goal and obtain explicit confirmation
    before creating one. Never replace, complete, or update an unrelated active Goal.
@@ -90,9 +92,10 @@ verification evidence, and accepted baseline failures. Do not include the writer
 implementation narrative, self-review, rebuttal, preferred verdict, or defense.
 
 The supported CLI treats a custom prompt as mutually exclusive with review selector
-flags. Do not combine them. Put the factual text in a temporary review brief file; do
-not interpolate its contents into a shell command. Set `review_brief` to that file's
-path and run `codex review - < "$review_brief"` so the bytes arrive through stdin.
+flags. Do not combine them. Every review invocation must use a factual brief. Put that
+text in a temporary review brief file; do not interpolate its contents into a shell
+command. Set `review_brief` to that file's path and run
+`codex review - < "$review_brief"` so the bytes arrive through stdin.
 
 Normalize task state before review and describe the selected scope in that brief:
 
@@ -104,10 +107,6 @@ Normalize task state before review and describe the selected scope in that brief
   the brief require both `git diff <task-baseline>..HEAD` and the complete staged,
   unstaged, and untracked task changes as one review scope. List task-owned untracked
   paths explicitly and verify the result addresses both components.
-
-- Selector-only `codex review --base <task-baseline>` or `codex review --uncommitted`
-  is acceptable only when the same task, acceptance criteria, verification evidence,
-  and baseline failures are already visible to the reviewer in repository inputs.
 
 Do not replace this with an in-thread self-review or a scout. The Root must
 independently reproduce every actionable finding:

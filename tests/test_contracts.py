@@ -54,8 +54,9 @@ class LeanPluginContractTests(unittest.TestCase):
             "living evidence record",
             "do not require an execplan",
             "immutable task baseline",
+            "full starting commit oid",
             "before any task edit",
-            "never advance it",
+            "never advance the baseline",
             "acceptance criteria",
             "git status",
             "git log",
@@ -100,17 +101,17 @@ class LeanPluginContractTests(unittest.TestCase):
         ):
             self.assertIn(phrase, folded)
 
-    def test_review_examples_respect_cli_selector_exclusivity(self) -> None:
+    def test_every_review_uses_a_factual_stdin_brief(self) -> None:
         text = " ".join(
             SKILL.read_text(encoding="utf-8").casefold().split()
         )
-        self.assertNotIn('codex review --base <task-baseline> "', text)
-        self.assertNotIn('codex review --uncommitted "', text)
+        self.assertNotIn("codex review --base", text)
+        self.assertNotIn("codex review --uncommitted", text)
         self.assertNotIn('codex review "<factual brief', text)
         for phrase in (
             'codex review - < "$review_brief"',
-            "codex review --base <task-baseline>",
-            "codex review --uncommitted",
+            "every review invocation",
+            "factual brief",
             "do not combine",
         ):
             self.assertIn(phrase, text)
