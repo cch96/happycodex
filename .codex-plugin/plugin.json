@@ -1,6 +1,6 @@
 {
   "name": "native-codex-loop",
-  "version": "0.2.0",
+  "version": "0.2.0+codex.20260713165615",
   "description": "Lean long-task execution using native Codex planning, conditional read-only scouts, evidence-driven implementation, and final review.",
   "author": {
     "name": "caichenghang"

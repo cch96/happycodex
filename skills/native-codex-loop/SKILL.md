@@ -14,13 +14,15 @@ none substitutes for the others.
 1. Read applicable `AGENTS.md`, the user request or task file, repository status,
    existing tests, and accepted baseline failures.
 2. Put a concise working agreement in the native plan: outcome, acceptance criteria,
-   exclusions, starting revision, verification commands, and stop conditions. Keep the
-   plan as a living evidence record. Do not require an ExecPlan file.
+   exclusions, verification commands, and stop conditions. Record the starting revision
+   once as the immutable task baseline before any task edit; never advance it for that
+   task. Keep the plan as a living evidence record. Do not require an ExecPlan file.
 3. Use Goal only when the user explicitly requests Goal. For a task likely to span
    compaction or several sessions, recommend Goal and obtain explicit confirmation
    before creating one. Never replace, complete, or update an unrelated active Goal.
 4. Preserve existing user changes. Establish which diff belongs to this task before
-   editing, and use an isolated branch or worktree when that materially reduces risk.
+   editing, record the ownership and review exclusion of preserved pre-existing non-task
+   changes, and use an isolated branch or worktree when ambiguity would remain.
 5. When the user changes scope, update the working agreement and plan together. Revise
    acceptance criteria, exclusions, and verification explicitly; mark affected prior
    evidence and decisions stale, then revalidate them before reuse.
@@ -133,7 +135,8 @@ Claim completion only when:
 - required focused tests and full checks have acceptable results;
 - the complete final diff received native review, with no unresolved material finding;
 - all scout work and Git worktrees are accounted for;
-- `git status` contains only intentional task state;
+- `git status` contains only intentional task state plus preserved pre-existing non-task
+  changes whose ownership and review exclusion were recorded before editing;
 - any requested Goal still matches this objective and is complete in fact.
 
 Tests passing, a plan marked complete, or an agent saying “done” is never sufficient on

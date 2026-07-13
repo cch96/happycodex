@@ -21,21 +21,25 @@ class LeanPluginContractTests(unittest.TestCase):
         for surface in ("hooks", "mcpServers", "apps"):
             self.assertNotIn(surface, manifest)
 
-        tracked_runtime = subprocess.run(
-            [
-                "git",
-                "ls-files",
-                "--",
-                "scripts",
-                "docs/superpowers",
-                "tests/test_review_runner.py",
-            ],
+        tracked_files = subprocess.run(
+            ["git", "ls-files"],
             cwd=ROOT,
             check=True,
             capture_output=True,
             text=True,
         ).stdout.splitlines()
-        self.assertEqual(tracked_runtime, [])
+        self.assertEqual(
+            set(tracked_files),
+            {
+                ".codex-plugin/plugin.json",
+                ".gitignore",
+                "README.md",
+                "skills/native-codex-loop/SKILL.md",
+                "skills/native-codex-loop/agents/openai.yaml",
+                "skills/native-codex-loop/references/task-packets.md",
+                "tests/test_contracts.py",
+            },
+        )
 
     def test_skill_uses_native_state_and_one_root_writer(self) -> None:
         text = SKILL.read_text(encoding="utf-8")
@@ -49,11 +53,16 @@ class LeanPluginContractTests(unittest.TestCase):
             "user explicitly requests goal",
             "living evidence record",
             "do not require an execplan",
+            "immutable task baseline",
+            "before any task edit",
+            "never advance it",
             "acceptance criteria",
             "git status",
             "git log",
             "focused tests",
             "full checks",
+            "preserved pre-existing non-task changes",
+            "ownership and review exclusion",
         ):
             self.assertIn(phrase, folded)
 
