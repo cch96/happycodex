@@ -1,6 +1,6 @@
 {
   "name": "happycodex",
-  "version": "0.3.0+codex.20260714170101",
+  "version": "0.2.0+codex.20260714171654",
   "description": "Native reliability workflow for high-risk Codex changes with durable ExecPlans, system-boundary evidence, and fresh review.",
   "author": {
     "name": "caichenghang",

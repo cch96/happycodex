@@ -203,6 +203,11 @@ class HappyCodexContractTests(unittest.TestCase):
             "task state json",
         ):
             self.assertIn(phrase, contract)
+        self.assertIn(
+            "leave the retrospective empty until the task actually completes",
+            contract,
+        )
+        self.assertNotIn("until a milestone or the task", contract)
 
     def test_boundary_freeze_is_independent_exhaustive_and_reproducible(self) -> None:
         text = f"{folded(SKILL)} {folded(EXECPLANS)} {folded(PACKETS)}"
@@ -324,6 +329,9 @@ class HappyCodexContractTests(unittest.TestCase):
 
     def test_native_review_discovers_before_contract_mapping(self) -> None:
         text = folded(NATIVE_REVIEW)
+        neutral_brief = text.split("build a neutral brief", 1)[1].split(
+            "## launch the dedicated reviewer", 1
+        )[0]
         phase_one = text.split("## phase 1", 1)[1].split("## phase 2", 1)[0]
         phase_two = text.split("## phase 2", 1)[1].split(
             "## scope integrity", 1
@@ -341,12 +349,16 @@ class HappyCodexContractTests(unittest.TestCase):
         for phrase in (
             "contract-bearing sections",
             "completeness",
+            "pending gates",
+            "pending scouts and worktrees",
+            "review-receipt and evidence freshness",
             "decision log",
             "surprises & discoveries",
             "historical findings",
             "outcomes & retrospective",
         ):
             self.assertIn(phrase, phase_two)
+        self.assertIn("current execplan path", neutral_brief)
 
     def test_optional_fable_review_is_explicit_independent_and_bounded(self) -> None:
         skill = folded(SKILL)
@@ -461,8 +473,22 @@ class HappyCodexContractTests(unittest.TestCase):
             "25 percent",
             "explicit user confirmation",
             "one pair is directional, not causal",
+            "durable artifact locator",
+            "exact model and reasoning effort",
+            "fixture commit",
+            "elapsed time",
+            "missing metadata keeps the gate open",
         ):
             self.assertIn(phrase, text)
+
+        release = text.split("## release gate", 1)[1]
+        for phrase in (
+            "keep the manifest, readme, and release metadata at 0.2",
+            "micro suite, fresh native review, paired holdouts, and cost policy",
+            "only after all of those gates pass",
+            "set the public base version to `0.3.0`",
+        ):
+            self.assertIn(phrase, release)
 
     def test_release_requires_isolated_install_and_fresh_discovery(self) -> None:
         text = folded(EVALUATION)
@@ -480,7 +506,7 @@ class HappyCodexContractTests(unittest.TestCase):
             (ROOT / ".codex-plugin/plugin.json").read_text(encoding="utf-8")
         )
         self.assertRegex(
-            manifest["version"], r"^0\.3\.0\+codex\.[A-Za-z0-9.-]+$"
+            manifest["version"], r"^0\.2\.0\+codex\.[A-Za-z0-9.-]+$"
         )
         self.assertIn("system-boundaries", manifest["keywords"])
         self.assertIn("execplans", manifest["keywords"])
@@ -497,7 +523,6 @@ class HappyCodexContractTests(unittest.TestCase):
 
         public = folded(README)
         for phrase in (
-            "happycodex 0.3",
             "execplan stores the durable completion contract",
             "native plan stores the current execution cursor",
             "git and tests store facts",
@@ -505,6 +530,7 @@ class HappyCodexContractTests(unittest.TestCase):
             "two-stage fresh review",
         ):
             self.assertIn(phrase, public)
+        self.assertNotIn("happycodex 0.3", public)
 
     def test_recovery_and_completion_reconcile_durable_evidence(self) -> None:
         text = f"{folded(SKILL)} {folded(NATIVE_REVIEW)}"

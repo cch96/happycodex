@@ -9,8 +9,9 @@ Run the scenarios as fresh read-only forward runs against the candidate Skill.
 Give each run the simulated task, repository fixture, and normal invocation, but
 do not leak the expected answer, diagnosis, or comparison result. Preserve raw
 artifacts separately from the candidate. For each row record the setup, expected
-fail-closed behavior, observable evidence, model, effort, fixture commit, and
-elapsed time.
+fail-closed behavior, observable evidence, a durable artifact locator, exact model
+and reasoning effort, fixture commit, and elapsed time. If the runner does not expose
+one of these fields, rerun in a controlled host; missing metadata keeps the gate open.
 
 | Scenario and setup | Expected fail-closed behavior | Observable evidence |
 | --- | --- | --- |
@@ -65,11 +66,12 @@ of the tradeoff.
 
 ## Release gate
 
-Keep the active installation on 0.2 while behavior validation is incomplete.
-After the micro suite passes, set the candidate base version to `0.3.0`, use the
-plugin-creator cachebuster helper, and rerun unit contracts, both validators, and
-diff hygiene. Fresh review and paired holdouts apply to that exact committed,
-versioned candidate.
+Keep the manifest, README, and release metadata at 0.2 while validation is
+incomplete. The micro suite, fresh native review, paired holdouts, and cost policy
+must all pass while 0.2 remains the public default. Only after all of those gates
+pass may Root set the public base version to `0.3.0`, add the release note, use the
+plugin-creator cachebuster helper, and rerun unit contracts, both validators, diff
+hygiene, installation, and discovery against that exact release candidate.
 
 Before changing the active installation, create a disposable isolated CODEX_HOME,
 add the repository marketplace with the Codex CLI, perform a

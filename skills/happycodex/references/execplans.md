@@ -33,7 +33,7 @@ not a Task State JSON document, scheduler database, or replacement for Codex.
 
 Keep the document self-contained. Maintain `Progress`, `Surprises & Discoveries`,
 `Decision Log`, and `Outcomes & Retrospective` sections. Leave the retrospective
-empty until a milestone or the task actually completes.
+empty until the task actually completes.
 
 ## Discover and freeze the boundary
 
@@ -104,8 +104,10 @@ or acceptance cannot be recovered confidently.
 The full ExecPlan may contain writer context needed for recovery, but fresh review
 receives only these contract-bearing sections after its independent inventory:
 original outcome, baseline, frozen obligation matrix, acceptance oracles, authorized
-amendments, and current evidence. Exclude Decision Log, Surprises & Discoveries,
-writer self-review, historical findings, Review State, and Outcomes & Retrospective.
+amendments, current evidence, and Pending Gates. Pending Gates must expose pending
+scouts and worktrees plus current review-receipt and evidence freshness, without
+revealing historical verdicts. Exclude Decision Log, Surprises & Discoveries, writer
+self-review, historical findings, Review State, and Outcomes & Retrospective.
 
 The Review Receipt stores only objective scope, model/effort, command or task
 identifier, result, and evidence freshness. Never store findings or repair narrative

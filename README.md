@@ -1,4 +1,4 @@
-# HappyCodex 0.3
+# HappyCodex
 
 HappyCodex is a lightweight reliability workflow for long-running Codex
 implementation. It helps complex changes keep their acceptance criteria across
@@ -82,6 +82,6 @@ python3 /path/to/skill-creator/scripts/quick_validate.py skills/happycodex
 python3 /path/to/plugin-creator/scripts/validate_plugin.py .
 ```
 
-Version 0.3 replaces the narrower acceptance-evidence workflow with durable
-boundary freeze, fact-based recovery, neutral staged review, and a measured
-release gate. The release process keeps 0.2 active until those gates pass.
+The candidate protocol adds durable boundary freeze, fact-based recovery, neutral
+staged review, and a measured release gate. Public release metadata remains at 0.2
+until every evaluation gate passes.

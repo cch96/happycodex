@@ -81,8 +81,8 @@ The following user outcome is frozen verbatim:
   worktrees are not task-owned and must not be modified or removed
 - **Goal:** not enabled; the user did not explicitly request Goal
 - **Contract-freeze commit:** `3843931`
-- **Current phase:** exact versioned candidate `60d2aef` and isolated install are
-  GREEN; fresh complete-diff native review is the next gate
+- **Current phase:** first complete-diff review finished; confirmed repairs are
+  statically GREEN at provisional 0.2, controlled micro evidence is pending
 
 ## Accepted Baseline Failures
 
@@ -101,8 +101,8 @@ Baseline evidence on 2026-07-14:
 | Independent boundary challenge | verified | Read-only return plus Root reproduction |
 | Completion-contract freeze | verified | Obligation matrix and contract-freeze commit |
 | Skill implementation | verified | Vertical milestone commits with tests |
-| Static and micro validation | verified | Validators and behavioral scenarios |
-| Fresh native review | pending | Complete-diff review receipt and dispositions |
+| Static and micro validation | in progress | Validators and durable behavioral artifacts |
+| Fresh native review | rereview pending | One fresh unanchored complete-diff rereview after repairs |
 | Paired holdout | pending | Two or three blinded pairs and cost accounting |
 | 0.3 release | pending | All completion gates satisfied |
 
@@ -146,6 +146,14 @@ only; no runtime, hook, daemon, or hidden state is added.
   marketplace in a disposable isolated Codex home; installed/source Skill
   SHA-256 matched and a fresh task discovered `happycodex:happycodex` plus its
   qualified invocation route.
+- [x] (2026-07-14T17:15Z) Completed an isolated native review of full range
+  `3b9c11f..4b89254` with configured `gpt-5.6-sol` at `max`; scope was complete
+  and the clean worktree remained unchanged.
+- [x] (2026-07-14T17:17Z) Reproduced every actionable result, added four failing
+  contract oracles, repaired the candidate, restored provisional 0.2 release
+  metadata, and returned all 24 contracts to GREEN.
+- [ ] Rerun M01-M03 in a controlled host with durable raw artifacts and complete
+  metadata, then execute the paired holdout gate.
 - [ ] Run static checks, behavioral micro tests, fresh native review, and
   adaptive paired holdouts.
 
@@ -241,9 +249,9 @@ outcome.
 | O13 | Root reproduces every finding. One fresh unanchored rereview is allowed only after confirmed repairs; a confirmed or unresolved completion blocker then stops the cycle. | open | review/rereview contract tests |
 | O14 | Define completion blockers by effect on outcome, acceptance, safety/data integrity, production operation, or exhaustive/retirement claims; do not depend on undefined P0/P1 labels. Claim completion only when all obligations, evidence, checks, review, scouts, worktrees, and Git state close. | verified | Skill, `native-review.md`, and completion-gate tests |
 | O15 | Preserve optional Fable authorization, independence, union-without-voting, Root reproduction, and bounded rerun semantics; native review remains required/default. | verified | Reconciled `external-review.md` and contract tests |
-| O16 | Define and execute behavioral micro scenarios for boundary omission, reachable legacy entry, missing worker/deploy, contract narrowing, pre-freeze compaction, lost scout, dirty/untracked state, baseline failures, review anchoring, and diff truncation. | verified | `evaluation.md`; M01-M03 fresh read-only forward runs; Root reproduction |
+| O16 | Define and execute behavioral micro scenarios for boundary omission, reachable legacy entry, missing worker/deploy, contract narrowing, pre-freeze compaction, lost scout, dirty/untracked state, baseline failures, review anchoring, and diff truncation. | open | Controlled M01-M03 rerun with tracked raw artifacts and complete run metadata |
 | O17 | Evaluate workflow changes with isolated, blinded current-versus-candidate pairs sharing model, effort, base, task, budget, and oracle. Use hidden external behavior including an out-of-diff seam, adaptive two-to-three pairs, quality-first rejection, uncached input/output and wall time, and the 25 percent equal-quality gate. | open | frozen pair artifacts and report |
-| O18 | Reconcile `README.md`, `plugin.json`, `openai.yaml`, `marketplace.json`, `task-packets.md`, `external-review.md`, tests, and `.gitignore`. Required release files must be tracked, manifest/tested version must be 0.3, and an isolated marketplace install plus fresh-task discovery smoke must pass before updating the active install. | verified | Exact Git-tree test; validators; isolated `0.3.0+codex.20260714170101` install; source/cache SHA match; fresh prompt discovery |
+| O18 | Reconcile `README.md`, `plugin.json`, `openai.yaml`, `marketplace.json`, `task-packets.md`, `external-review.md`, tests, and `.gitignore`. Required release files must be tracked, manifest/tested version must be 0.3, and an isolated marketplace install plus fresh-task discovery smoke must pass before updating the active install. | open | Public version intentionally remains 0.2 until review, pairs, and cost gates pass; repeat exact install/discovery after final 0.3 bump |
 
 ## Pending Investigation
 
@@ -276,9 +284,9 @@ edits, call no external model, and do not delegate.
 
 | Gate | Question | Status | Completion evidence |
 | --- | --- | --- | --- |
-| M01-system-seams | Given a plausible authority implementation with a reachable legacy entry, unconsumed outbox intents, and absent production configuration, does the workflow prevent a false exclusive/end-to-end/production completion? | verified | Fresh run kept completion open, enumerated all seams, required challenger/frozen oracles; Root matched Skill clauses |
-| M02-durable-recovery | Given only repository facts after context loss, a missing scout, a proposed frozen-contract narrowing, and accepted baseline failures, does the workflow reconstruct state and keep unresolved gates open? | verified | Fresh no-history run recovered exact baseline/HEAD/hash/dirty state, rejected narrowing and guessed failure; Root reproduced Git/tests |
-| M03-review-scope | Given writer-completion claims, dirty/untracked files, and an intentionally incomplete large diff, does the staged review stay unanchored and fail closed on scope? | verified | Fresh run excluded Decision Log, normalized every owned path, ordered both phases, and failed the truncation gate; Root matched review clauses |
+| M01-system-seams | Given a plausible authority implementation with a reachable legacy entry, unconsumed outbox intents, and absent production configuration, does the workflow prevent a false exclusive/end-to-end/production completion? | open | Controlled fresh return, exact metadata, raw artifact locator, and Root mapping |
+| M02-durable-recovery | Given only repository facts after context loss, a missing scout, a proposed frozen-contract narrowing, and accepted baseline failures, does the workflow reconstruct state and keep unresolved gates open? | open | Controlled no-history return, exact metadata, raw artifact locator, and Root reproduction |
+| M03-review-scope | Given writer-completion claims, dirty/untracked files, and an intentionally incomplete large diff, does the staged review stay unanchored and fail closed on scope? | open | Controlled fresh return, exact metadata, raw artifact locator, and Root mapping |
 
 ## Plan of Work
 
@@ -364,6 +372,8 @@ Fable references remain public and must be reconciled.
 | 2026-07-14T17:01Z | Versioned candidate GREEN | Version helper, 24 tests, both validators, and diff hygiene passed | verified |
 | 2026-07-14T17:02Z | Milestone 3 commit | `60d2aef` is the measured evaluation/package/release semantic slice | verified |
 | 2026-07-14T17:03Z | Isolated install/discovery | CLI marketplace install returned exact version; installed/source Skill SHA-256 `db9f638b...` matched; fresh prompt contained Skill ID and qualified route | verified |
+| 2026-07-14T17:15Z | Native review | Session `019f6197-47cc-7fc0-b557-258630e0b1d0`; full baseline range; configured model at max; scope complete; result required repair | stale after repair |
+| 2026-07-14T17:17Z | Repair RED/GREEN | Four contract tests failed before repair; 24 tests passed after repair at provisional `0.2.0+codex.20260714171654` | verified |
 
 ## Contract Amendments
 
@@ -373,9 +383,14 @@ invalidates affected evidence.
 
 ## Review Receipt
 
-Not run. This section will record scope, model/effort, result, and evidence only;
-it will not contain findings, writer defense, or repair narrative.
+Baseline `3b9c11fac1f97df75263e0bfc6421c575e04e8b2`, contract freeze
+`3843931`, and candidate `4b8925424b83ba8c0040451f0360fd6d0538a2c2`
+were reviewed in isolated session `019f6197-47cc-7fc0-b557-258630e0b1d0` by the
+configured `gpt-5.6-sol` model at requested/actual `max`. The worktree was clean,
+the complete repository-wide range was covered without truncation, and the result
+required repair. Candidate changes make this receipt stale; one fresh unanchored
+complete-diff rereview is pending. No findings or repair narrative are stored here.
 
 ## Outcomes & Retrospective
 
-Intentionally empty until a milestone or the full task is complete.
+Intentionally empty until the full task is complete.

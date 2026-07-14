@@ -24,10 +24,10 @@ silently omit preserved or user-authored state that can affect the result.
 
 Build a neutral brief in a temporary file outside the repository. Include only the
 original outcome, immutable task baseline, contract-freeze commit, candidate HEAD,
-complete task diff instructions, verification evidence, accepted baseline failures,
-owned dirty paths, and exclusions. Omit the writer's implementation narrative,
-self-review, decisions, surprises, historical findings, defense, desired verdict,
-and repair story.
+current ExecPlan path, complete task diff instructions, verification evidence,
+accepted baseline failures, owned dirty paths, and exclusions. Omit the writer's
+implementation narrative, self-review, decisions, surprises, historical findings,
+defense, desired verdict, and repair story.
 
 ## Launch the dedicated reviewer
 
@@ -63,8 +63,10 @@ inventory before continuing.
 
 Now read only the ExecPlan's contract-bearing sections: original outcome, baseline,
 frozen obligation matrix, acceptance oracles, authorized amendments, and current
-evidence. Do not read Decision Log, Surprises & Discoveries, writer self-review,
-historical findings, Review State, or Outcomes & Retrospective.
+evidence, plus Pending Gates. Pending Gates must expose pending scouts and worktrees
+and current review-receipt and evidence freshness, but not historical review results.
+Do not read Decision Log, Surprises & Discoveries, writer self-review, historical
+findings, Review State, or Outcomes & Retrospective.
 
 Map the independent inventory to the frozen contract and implementation. Report
 missing obligations, uncovered acceptance, stale evidence, unimplemented production
