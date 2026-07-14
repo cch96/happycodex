@@ -26,6 +26,7 @@ def bundle_files() -> list[str]:
         capture_output=True,
         text=True,
     ).stdout.splitlines()
+    files = [path for path in files if not path.startswith("docs/execplans/")]
     for pending in (MARKETPLACE, EXTERNAL_REVIEW):
         relative = pending.relative_to(ROOT).as_posix()
         if pending.exists() and relative not in files:
