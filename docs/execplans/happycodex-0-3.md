@@ -81,8 +81,8 @@ The following user outcome is frozen verbatim:
   worktrees are not task-owned and must not be modified or removed
 - **Goal:** not enabled; the user did not explicitly request Goal
 - **Contract-freeze commit:** `3843931`
-- **Current phase:** controlled M01 exposed an unverified challenger-receipt false
-  claim; the new dispatch/return identity oracle is GREEN and behavioral rerun is pending
+- **Current phase:** controlled M01-M03 are verified at `5a0cc9f`; blinded paired
+  holdouts and cost accounting are the next gate
 
 ## Accepted Baseline Failures
 
@@ -101,7 +101,7 @@ Baseline evidence on 2026-07-14:
 | Independent boundary challenge | verified | Read-only return plus Root reproduction |
 | Completion-contract freeze | verified | Obligation matrix and contract-freeze commit |
 | Skill implementation | verified | Vertical milestone commits with tests |
-| Static and micro validation | in progress | Validators and durable behavioral artifacts |
+| Static and micro validation | verified | Validators and durable behavioral artifacts |
 | Fresh native review | rereview pending | One fresh unanchored complete-diff rereview after repairs |
 | Paired holdout | pending | Two or three blinded pairs and cost accounting |
 | 0.3 release | pending | All completion gates satisfied |
@@ -159,10 +159,13 @@ only; no runtime, hook, daemon, or hidden state is added.
 - [x] (2026-07-14T17:31Z) Added a failing contract oracle for verifiable native
   challenger identity, then required both dispatch and return evidence; the focused
   contract returned GREEN.
-- [ ] Rerun M01-M03 in a controlled host with durable raw artifacts and complete
-  metadata, then execute the paired holdout gate.
-- [ ] Run static checks, behavioral micro tests, fresh native review, and
-  adaptive paired holdouts.
+- [x] (2026-07-14T17:38Z) Reran M01-M03 at fixed candidate `5a0cc9f` in
+  isolated homes. All three fail-closed oracles passed; source/installed Skill
+  hashes matched and raw JSONL, fixture state, elapsed time, and token usage are
+  durably indexed.
+- [ ] Execute adaptive blinded paired holdouts and the cost gate.
+- [ ] Version the accepted candidate as 0.3, repeat static/install/discovery
+  checks, then run the single fresh anonymous complete-diff rereview.
 
 ## Surprises & Discoveries
 
@@ -262,7 +265,7 @@ outcome.
 | O13 | Root reproduces every finding. One fresh unanchored rereview is allowed only after confirmed repairs; a confirmed or unresolved completion blocker then stops the cycle. | open | review/rereview contract tests |
 | O14 | Define completion blockers by effect on outcome, acceptance, safety/data integrity, production operation, or exhaustive/retirement claims; do not depend on undefined P0/P1 labels. Claim completion only when all obligations, evidence, checks, review, scouts, worktrees, and Git state close. | verified | Skill, `native-review.md`, and completion-gate tests |
 | O15 | Preserve optional Fable authorization, independence, union-without-voting, Root reproduction, and bounded rerun semantics; native review remains required/default. | verified | Reconciled `external-review.md` and contract tests |
-| O16 | Define and execute behavioral micro scenarios for boundary omission, reachable legacy entry, missing worker/deploy, contract narrowing, pre-freeze compaction, lost scout, dirty/untracked state, baseline failures, review anchoring, and diff truncation. | open | Controlled M01-M03 rerun with tracked raw artifacts and complete run metadata |
+| O16 | Define and execute behavioral micro scenarios for boundary omission, reachable legacy entry, missing worker/deploy, contract narrowing, pre-freeze compaction, lost scout, dirty/untracked state, baseline failures, review anchoring, and diff truncation. | verified | `docs/execplans/evidence/happycodex-0-3/micro/ASSESSMENT.md` plus candidate-indexed raw JSONL and metadata |
 | O17 | Evaluate workflow changes with isolated, blinded current-versus-candidate pairs sharing model, effort, base, task, budget, and oracle. Use hidden external behavior including an out-of-diff seam, adaptive two-to-three pairs, quality-first rejection, uncached input/output and wall time, and the 25 percent equal-quality gate. | open | frozen pair artifacts and report |
 | O18 | Reconcile `README.md`, `plugin.json`, `openai.yaml`, `marketplace.json`, `task-packets.md`, `external-review.md`, tests, and `.gitignore`. Required release files must be tracked, manifest/tested version must be 0.3, and an isolated marketplace install plus fresh-task discovery smoke must pass before updating the active install. | open | Public version intentionally remains 0.2 until review, pairs, and cost gates pass; repeat exact install/discovery after final 0.3 bump |
 
@@ -297,9 +300,9 @@ not need delegation.
 
 | Gate | Question | Status | Completion evidence |
 | --- | --- | --- | --- |
-| M01-system-seams | Given a plausible authority implementation with a reachable legacy entry, unconsumed outbox intents, and absent production configuration, does the workflow prevent a false exclusive/end-to-end/production completion? | open | `69232c6` correctly denied system completion but falsely narrated a challenger return with no native child event; fixed candidate must rerun |
-| M02-durable-recovery | Given only repository facts after context loss, a missing scout, a proposed frozen-contract narrowing, and accepted baseline failures, does the workflow reconstruct state and keep unresolved gates open? | open | Controlled no-history return, exact metadata, raw artifact locator, and Root reproduction |
-| M03-review-scope | Given writer-completion claims, dirty/untracked files, and an intentionally incomplete large diff, does the staged review stay unanchored and fail closed on scope? | open | Controlled fresh return, exact metadata, raw artifact locator, and Root mapping |
+| M01-system-seams | Given a plausible authority implementation with a reachable legacy entry, unconsumed outbox intents, and absent production configuration, does the workflow prevent a false exclusive/end-to-end/production completion? | verified | Session `019f61af-a7ff-7bc0-9364-ff9387d9e0e9`; completion denied and unbindable challenger receipt kept open |
+| M02-durable-recovery | Given only repository facts after context loss, a missing scout, a proposed frozen-contract narrowing, and accepted baseline failures, does the workflow reconstruct state and keep unresolved gates open? | verified | Session `019f61af-a812-7d61-9afa-2a92dbfd4a6c`; exact Git/test reconstruction and narrowing rejection |
+| M03-review-scope | Given writer-completion claims, dirty/untracked files, and an intentionally incomplete large diff, does the staged review stay unanchored and fail closed on scope? | verified | Session `019f61af-a834-70d1-919a-82ddd9542a0b`; complete dirty scope, staged visibility, truncation failure, one rereview |
 
 ## Plan of Work
 
@@ -389,6 +392,7 @@ Fable references remain public and must be reconciled.
 | 2026-07-14T17:17Z | Repair RED/GREEN | Four contract tests failed before repair; 24 tests passed after repair at provisional `0.2.0+codex.20260714171654` | verified |
 | 2026-07-14T17:30Z | Controlled micro attempt | M02/M03 passed; M01 session `019f61a9-f65b-73b2-8d96-d3eb916bd3eb` had no native child event despite claiming challenger completion | failed; regression captured |
 | 2026-07-14T17:31Z | Challenger receipt RED/GREEN | Focused contract failed before the identity rule and passed after requiring native dispatch plus return evidence | verified |
+| 2026-07-14T17:38Z | Controlled micro rerun | Candidate `5a0cc9f`; three isolated sessions; Skill SHA-256 `feeadfd...`; 103,418 uncached input, 20,604 output, 584.331 cumulative seconds; all Root oracles passed | verified |
 
 ## Contract Amendments
 

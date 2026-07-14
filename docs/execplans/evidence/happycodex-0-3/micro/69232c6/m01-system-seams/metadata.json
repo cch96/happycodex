@@ -1,0 +1,124 @@
+{
+  "approval_policy": "never",
+  "artifact_root": "/home/caichenghang/projects/happycodex/docs/execplans/evidence/happycodex-0-3/micro/m01-system-seams",
+  "candidate_commit": "69232c60f10cb4d328ca882dd0eca7639c6674aa",
+  "codex_cli_version": "codex-cli 0.144.4",
+  "command_argv": [
+    "codex",
+    "exec",
+    "--json",
+    "--ephemeral",
+    "--ignore-rules",
+    "-C",
+    "/tmp/happycodex-03-micro-chtnwcuj/m01-system-seams/fixture",
+    "-s",
+    "read-only",
+    "-m",
+    "gpt-5.6-sol",
+    "-c",
+    "model_reasoning_effort=\"high\"",
+    "-c",
+    "approval_policy=\"never\"",
+    "--disable",
+    "apps",
+    "--disable",
+    "goals",
+    "--disable",
+    "hooks",
+    "--disable",
+    "memories",
+    "--disable",
+    "remote_plugin",
+    "--enable",
+    "multi_agent",
+    "<prompt from prompt.txt>"
+  ],
+  "elapsed_seconds": 205.455,
+  "ended_at": "2026-07-14T17:29:21.216743+00:00",
+  "ephemeral": true,
+  "exit_code": 0,
+  "features_disabled": [
+    "apps",
+    "goals",
+    "hooks",
+    "memories",
+    "remote_plugin"
+  ],
+  "features_enabled": [
+    "multi_agent"
+  ],
+  "final_message": "/home/caichenghang/projects/happycodex/docs/execplans/evidence/happycodex-0-3/micro/m01-system-seams/final.md",
+  "fixture": {
+    "baseline": "4ae4dbbbf0d114bfb97bee549c7950a9881ac075",
+    "candidate": "4ae4dbbbf0d114bfb97bee549c7950a9881ac075",
+    "candidate_diff_stat": "",
+    "dirty_diff": "",
+    "files": {
+      "README.md": {
+        "bytes": 64,
+        "sha256": "209722931c02f409e65391d0e6b650a946bbfd7bf70fb6cd090e1ca77f45ddd1"
+      },
+      "app/config.py": {
+        "bytes": 91,
+        "sha256": "1d0be55f9d8af8e1d50f6dbf259b5e47bd9b6c40d495eff64f9902a31b0ee605"
+      },
+      "app/factory.py": {
+        "bytes": 182,
+        "sha256": "b892d727b24e19081bbf8812afe65965202278f5c380e29712e57f853338db2f"
+      },
+      "app/outbox.py": {
+        "bytes": 97,
+        "sha256": "a0a179684eee5ed8990f5471f8497a54dd769da09e6d0f96e525c2174ddb79f8"
+      },
+      "app/routes.py": {
+        "bytes": 170,
+        "sha256": "684fc32c72f4337036fe888b3c924628ce6bc211004a38e8db66ddde13317a97"
+      },
+      "deploy/production.env": {
+        "bytes": 56,
+        "sha256": "906245c5e370772fa5c076f8d6cd04afc01b139f799405bf73343b07452f4ba8"
+      },
+      "tests/test_authority.py": {
+        "bytes": 51,
+        "sha256": "5851a8dde5ae2322f9b4731f72096dfbfec233633a7f7a0c6e6aa71077471967"
+      }
+    },
+    "head": "4ae4dbbbf0d114bfb97bee549c7950a9881ac075",
+    "log": "4ae4dbbbf0d114bfb97bee549c7950a9881ac075 fixture: plausible authority candidate",
+    "recipe": "Committed fixture has a reachable legacy /agent/run route, four producer-only outbox intents, and missing production Authority settings.",
+    "status_porcelain_v1": ""
+  },
+  "installation": {
+    "installed_skill_path": "/tmp/happycodex-03-micro-chtnwcuj/m01-system-seams/codex-home/plugins/cache/happycodex/happycodex/0.2.0+codex.20260714171654/skills/happycodex/SKILL.md",
+    "installed_skill_sha256": "db9f638ba8dfc1006f31ff754189e2182f2b2b4091b168050bcebc3e727b1ece",
+    "marketplace_add": {
+      "alreadyAdded": false,
+      "installedRoot": "/tmp/happycodex-03-micro-chtnwcuj/candidate",
+      "marketplaceName": "happycodex"
+    },
+    "plugin_add": {
+      "authPolicy": "ON_INSTALL",
+      "installedPath": "/tmp/happycodex-03-micro-chtnwcuj/m01-system-seams/codex-home/plugins/cache/happycodex/happycodex/0.2.0+codex.20260714171654",
+      "marketplaceName": "happycodex",
+      "name": "happycodex",
+      "pluginId": "happycodex@happycodex",
+      "version": "0.2.0+codex.20260714171654"
+    },
+    "source_skill_sha256": "db9f638ba8dfc1006f31ff754189e2182f2b2b4091b168050bcebc3e727b1ece"
+  },
+  "isolated_codex_home": "/tmp/happycodex-03-micro-chtnwcuj/m01-system-seams/codex-home",
+  "model": "gpt-5.6-sol",
+  "raw_events": "/home/caichenghang/projects/happycodex/docs/execplans/evidence/happycodex-0-3/micro/m01-system-seams/events.jsonl",
+  "reasoning_effort": "high",
+  "sandbox": "read-only",
+  "scenario": "m01-system-seams",
+  "schema_version": 1,
+  "started_at": "2026-07-14T17:25:55.761270+00:00",
+  "stderr": "/home/caichenghang/projects/happycodex/docs/execplans/evidence/happycodex-0-3/micro/m01-system-seams/stderr.txt",
+  "thread_id": "019f61a9-f65b-73b2-8d96-d3eb916bd3eb",
+  "usage": {
+    "cached_input_tokens": 283648,
+    "input_tokens": 311845,
+    "output_tokens": 8755
+  }
+}

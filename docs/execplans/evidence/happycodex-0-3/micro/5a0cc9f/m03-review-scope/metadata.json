@@ -1,0 +1,123 @@
+{
+  "approval_policy": "never",
+  "artifact_root": "/home/caichenghang/projects/happycodex/docs/execplans/evidence/happycodex-0-3/micro/5a0cc9f/m03-review-scope",
+  "candidate_commit": "5a0cc9f4658da8db3c0ae1bdaca2a5905581f7c1",
+  "codex_cli_version": "codex-cli 0.144.4",
+  "command_argv": [
+    "codex",
+    "exec",
+    "--json",
+    "--ephemeral",
+    "--ignore-rules",
+    "-C",
+    "/tmp/happycodex-03-micro-xnhuji5q/m03-review-scope/fixture",
+    "-s",
+    "read-only",
+    "-m",
+    "gpt-5.6-sol",
+    "-c",
+    "model_reasoning_effort=\"high\"",
+    "-c",
+    "approval_policy=\"never\"",
+    "--disable",
+    "apps",
+    "--disable",
+    "goals",
+    "--disable",
+    "hooks",
+    "--disable",
+    "memories",
+    "--disable",
+    "remote_plugin",
+    "--disable",
+    "multi_agent",
+    "<prompt from prompt.txt>"
+  ],
+  "elapsed_seconds": 242.939,
+  "ended_at": "2026-07-14T17:36:11.937023+00:00",
+  "ephemeral": true,
+  "exit_code": 0,
+  "features_disabled": [
+    "apps",
+    "goals",
+    "hooks",
+    "memories",
+    "remote_plugin",
+    "multi_agent"
+  ],
+  "features_enabled": [],
+  "final_message": "/home/caichenghang/projects/happycodex/docs/execplans/evidence/happycodex-0-3/micro/5a0cc9f/m03-review-scope/final.md",
+  "fixture": {
+    "baseline": "28a52b480705da3c981037a7dfedd7238c039925",
+    "candidate": "923d939779f0ebe7ba4970c05214856dabe79142",
+    "candidate_diff_stat": "docs/execplans/review.md |   17 +\n src/engine.py            |    2 +-\n src/generated_mapping.py | 1400 ++++++++++++++++++++++++++++++++++++++++++++++\n 3 files changed, 1418 insertions(+), 1 deletion(-)",
+    "dirty_diff": "diff --git a/src/engine.py b/src/engine.py\nindex 9b0d3bb..e0d2329 100644\n--- a/src/engine.py\n+++ b/src/engine.py\n@@ -1,2 +1,2 @@\n def run(payload):\n-    return {'version': 2, 'payload': payload}\n+    return {'version': 2, 'payload': payload, 'dirty': True}",
+    "files": {
+      "TASK.md": {
+        "bytes": 65,
+        "sha256": "d21f168c44dff9c066d6d26250c0f9255d42f03a1810e45b4adc2d5329fc212b"
+      },
+      "docs/execplans/review.md": {
+        "bytes": 401,
+        "sha256": "22c5abaadf37e9c3fd57ed7d3145656eb970a2bcbc7fae89a7cdb6ebb4abcbcc"
+      },
+      "legacy/entry.py": {
+        "bytes": 67,
+        "sha256": "c329a078523dc35fdf8cb58696224054ce90121e3b4e1140291f73765602c239"
+      },
+      "review-context.txt": {
+        "bytes": 94,
+        "sha256": "3a32d5c876a15daf8760e41cf8240bd45812363985133fa7068196b7aaa95db8"
+      },
+      "src/engine.py": {
+        "bytes": 79,
+        "sha256": "28c897d1bf53ff2dcffe1ff994611cd15d051236322aa774537e39bf0f5a7c54"
+      },
+      "src/generated_mapping.py": {
+        "bytes": 26890,
+        "sha256": "ad4c0dbf418b4474d47cb6cbd07f6a823dc6b62c67bdc82be20c21727d92432a"
+      },
+      "task-owned-note.md": {
+        "bytes": 40,
+        "sha256": "593dee2c7a4189ae732e9cc9186696d1cf65ded1c1379361537a9aa2e0525a83"
+      }
+    },
+    "head": "923d939779f0ebe7ba4970c05214856dabe79142",
+    "log": "28a52b480705da3c981037a7dfedd7238c039925 fixture: review baseline\n923d939779f0ebe7ba4970c05214856dabe79142 fixture: large candidate diff",
+    "recipe": "The candidate has a 1,400-line tracked addition and unchanged legacy entry. Worktree adds one unstaged edit and exactly two task-owned untracked files; prior context reports truncation.",
+    "status_porcelain_v1": "M src/engine.py\n?? review-context.txt\n?? task-owned-note.md"
+  },
+  "installation": {
+    "installed_skill_path": "/tmp/happycodex-03-micro-xnhuji5q/m03-review-scope/codex-home/plugins/cache/happycodex/happycodex/0.2.0+codex.20260714171654/skills/happycodex/SKILL.md",
+    "installed_skill_sha256": "feeadfd737810412a254b1f2abddb661ef49c6e12a520c7e7a96bb3a960fd175",
+    "marketplace_add": {
+      "alreadyAdded": false,
+      "installedRoot": "/tmp/happycodex-03-micro-xnhuji5q/candidate",
+      "marketplaceName": "happycodex"
+    },
+    "plugin_add": {
+      "authPolicy": "ON_INSTALL",
+      "installedPath": "/tmp/happycodex-03-micro-xnhuji5q/m03-review-scope/codex-home/plugins/cache/happycodex/happycodex/0.2.0+codex.20260714171654",
+      "marketplaceName": "happycodex",
+      "name": "happycodex",
+      "pluginId": "happycodex@happycodex",
+      "version": "0.2.0+codex.20260714171654"
+    },
+    "source_skill_sha256": "feeadfd737810412a254b1f2abddb661ef49c6e12a520c7e7a96bb3a960fd175"
+  },
+  "isolated_codex_home": "/tmp/happycodex-03-micro-xnhuji5q/m03-review-scope/codex-home",
+  "model": "gpt-5.6-sol",
+  "raw_events": "/home/caichenghang/projects/happycodex/docs/execplans/evidence/happycodex-0-3/micro/5a0cc9f/m03-review-scope/events.jsonl",
+  "reasoning_effort": "high",
+  "sandbox": "read-only",
+  "scenario": "m03-review-scope",
+  "schema_version": 1,
+  "started_at": "2026-07-14T17:32:08.998211+00:00",
+  "stderr": "/home/caichenghang/projects/happycodex/docs/execplans/evidence/happycodex-0-3/micro/5a0cc9f/m03-review-scope/stderr.txt",
+  "thread_id": "019f61af-a834-70d1-919a-82ddd9542a0b",
+  "usage": {
+    "cached_input_tokens": 276992,
+    "input_tokens": 309471,
+    "output_tokens": 7905
+  }
+}
