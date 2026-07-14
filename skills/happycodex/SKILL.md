@@ -1,9 +1,9 @@
 ---
-name: native-codex-loop
+name: happycodex
 description: Use for long, cross-cutting, or compaction-prone implementations that need one writer, durable evidence, conditional read-only scouts, and fresh native review.
 ---
 
-# Native Codex Loop
+# HappyCodex
 
 The Root is the only writer. Plans, scouts, tests, Git, and review provide distinct
 evidence; none substitutes for another.

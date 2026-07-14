@@ -1,0 +1,4 @@
+interface:
+  display_name: "HappyCodex"
+  short_description: "Lean native loop for complex implementation"
+  default_prompt: "Use $happycodex to complete this complex implementation with one writer, conditional scouts, evidence-driven replanning, and native review."

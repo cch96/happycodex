@@ -1,6 +1,6 @@
-# Native Codex Loop
+# HappyCodex
 
-Native Codex Loop is a small Codex plugin for long or cross-cutting implementation
+HappyCodex is a small Codex plugin for long or cross-cutting implementation
 work. It packages one Skill; Codex's built-in Goal, plan, agents, Git workflow, tests,
 compaction recovery, and native review remain the execution engine.
 
@@ -21,7 +21,7 @@ Goal overhead.
 
 ## Use
 
-Invoke `$native-codex-loop` for work that is multi-phase, likely to cross compaction, or
+Invoke `$happycodex` for work that is multi-phase, likely to cross compaction, or
 wide enough that independent contract and consumer tracing can reduce omissions. Goal
 creation still requires an explicit user request.
 
@@ -29,7 +29,7 @@ creation still requires an explicit user request.
 
 ```bash
 python3 -m unittest discover -s tests -v
-python3 /path/to/skill-creator/scripts/quick_validate.py skills/native-codex-loop
+python3 /path/to/skill-creator/scripts/quick_validate.py skills/happycodex
 python3 /path/to/plugin-creator/scripts/validate_plugin.py .
 ```
 

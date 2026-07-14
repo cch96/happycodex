@@ -7,16 +7,16 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SKILL = ROOT / "skills/native-codex-loop/SKILL.md"
-PACKETS = ROOT / "skills/native-codex-loop/references/task-packets.md"
+SKILL = ROOT / "skills/happycodex/SKILL.md"
+PACKETS = ROOT / "skills/happycodex/references/task-packets.md"
 
 
-class LeanPluginContractTests(unittest.TestCase):
+class HappyCodexContractTests(unittest.TestCase):
     def test_plugin_is_a_skill_bundle_without_custom_runtime(self) -> None:
         manifest = json.loads(
             (ROOT / ".codex-plugin/plugin.json").read_text(encoding="utf-8")
         )
-        self.assertEqual(manifest["name"], "native-codex-loop")
+        self.assertEqual(manifest["name"], "happycodex")
         self.assertEqual(manifest["skills"], "./skills/")
         for surface in ("hooks", "mcpServers", "apps"):
             self.assertNotIn(surface, manifest)
@@ -34,9 +34,9 @@ class LeanPluginContractTests(unittest.TestCase):
                 ".codex-plugin/plugin.json",
                 ".gitignore",
                 "README.md",
-                "skills/native-codex-loop/SKILL.md",
-                "skills/native-codex-loop/agents/openai.yaml",
-                "skills/native-codex-loop/references/task-packets.md",
+                "skills/happycodex/SKILL.md",
+                "skills/happycodex/agents/openai.yaml",
+                "skills/happycodex/references/task-packets.md",
                 "tests/test_contracts.py",
             },
         )
@@ -46,7 +46,7 @@ class LeanPluginContractTests(unittest.TestCase):
         _, frontmatter, body = text.split("---", 2)
         folded = " ".join(body.casefold().split())
 
-        self.assertIn("name: native-codex-loop", frontmatter)
+        self.assertIn("name: happycodex", frontmatter)
         self.assertIn("description: Use for", frontmatter)
         for phrase in (
             "root is the only writer",
@@ -256,11 +256,28 @@ class LeanPluginContractTests(unittest.TestCase):
         self.assertLessEqual(len(packet_lines), 100)
         self.assertLessEqual(len(readme_lines), 100)
 
-        config = (ROOT / "skills/native-codex-loop/agents/openai.yaml").read_text(
+        config = (ROOT / "skills/happycodex/agents/openai.yaml").read_text(
             encoding="utf-8"
         )
-        self.assertIn("$native-codex-loop", config)
+        self.assertIn("$happycodex", config)
         self.assertNotIn("dependencies:", config)
+
+    def test_retired_brand_is_absent_from_tracked_content(self) -> None:
+        retired_slug = "-".join(("native", "codex", "loop"))
+        retired_title = " ".join(("native", "codex", "loop"))
+        tracked_files = subprocess.run(
+            ["git", "ls-files"],
+            cwd=ROOT,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.splitlines()
+        tracked_text = "\n".join(
+            (ROOT / path).read_text(encoding="utf-8")
+            for path in tracked_files
+        ).casefold()
+        self.assertNotIn(retired_slug, tracked_text)
+        self.assertNotIn(retired_title, tracked_text)
 
 
 if __name__ == "__main__":
