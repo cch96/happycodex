@@ -74,27 +74,12 @@ selected, read `references/external-review.md` before freezing the candidate.
 
 ## Finish with fresh native review
 
-After implementation and checks, start a fresh Codex native review of the complete
-task diff. Prefer `gpt-5.6-sol` at `max`:
-
-```bash
-codex review -c 'review_model="gpt-5.6-sol"' -c 'model_reasoning_effort="max"' - < "$review_brief"
-```
-
-Use the strongest supported read-only authorization allowed by the user and environment.
-`ultra` requires explicit user authorization. Never silently downgrade the model or
-effort; disclose any unavailable setting or reroute.
-
-Normalize task state before review. Prefer a task-only commit and inspect
-`git diff <task-baseline>..HEAD`. If a task-only commit is not used, require that
-range plus every task-owned staged, unstaged, and untracked change as one scope; list
-task-owned untracked paths explicitly. Isolate the task if separation is unclear.
-
-Build a neutral factual brief in a temporary file outside the repository. Include
-only the task, acceptance criteria, immutable baseline, complete task diff,
-verification evidence, accepted baseline failures, and explicit review exclusions.
-Omit the writer's implementation narrative, self-review, prior argument, desired
-verdict, and defense. Do not combine the stdin brief with review selector flags.
+After implementation and checks, read `references/native-review.md` completely,
+freeze the candidate, and start fresh Codex native review of the complete task diff.
+Inherit the configured review model, request `max` effort, and never silently
+downgrade. The default is one read-only invocation: first discover obligations and
+correctness without the ExecPlan, then map only its contract-bearing sections for
+completeness.
 
 The Root must independently reproduce each actionable finding:
 
@@ -103,19 +88,17 @@ The Root must independently reproduce each actionable finding:
 - Rejected: retain counter-evidence and do not edit merely to agree.
 - Unresolved and material: stop and ask the user.
 
-At most one fresh re-review is permitted. If confirmed fixes change the candidate,
-the Root must run that one fresh re-review after checks. Give it the same immutable
-baseline, complete current diff, current verification evidence, accepted baseline
-failures, and exclusions. Omit all prior findings, dispositions, and repair narrative
-so it judges independently. Never review only the fix. If that re-review reports a
-confirmed or unresolved material defect, stop and report without changing the
-candidate; any fix requires a newly authorized review cycle. A literal zero-finding
-result is unnecessary.
+At most one fresh re-review is permitted after confirmed repairs. Keep it unanchored
+and review the complete current task, never only the fix. A second completion blocker
+stops the cycle.
 
 ## Completion gate
 
-Claim completion only when every acceptance criterion maps to behavior or
-reproducible evidence, focused tests and required full checks are acceptable, the
+A finding or obligation is completion-blocking when it can violate the original
+outcome, acceptance, safety or data integrity, production operation, or an
+exhaustive or retirement claim. Claim completion only when every acceptance criterion
+maps to behavior or reproducible evidence, every obligation is verified or
+evidence-backed `N/A`, focused tests and required full checks are acceptable, the
 complete final diff satisfied the review rule, scouts and worktrees are accounted
 for, and `git status` contains only intentional task state plus recorded preserved
 changes.

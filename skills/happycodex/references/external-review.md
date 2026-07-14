@@ -15,9 +15,10 @@ otherwise stop the task and report.
 
 ## Keep reviews independent
 
-Freeze the candidate once. Give native and Fable the same frozen candidate and neutral
-review brief defined by the main Skill. Run them concurrently when infrastructure
-allows, but keep both read-only and isolated: neither receives the writer's defense,
+Freeze the candidate once. Give native and Fable the same frozen candidate and staged
+neutral review brief defined in `native-review.md`. Run them concurrently when
+infrastructure allows, but keep both read-only and isolated: each builds its
+phase-one inventory independently, and neither receives the writer's defense,
 self-review, or the other reviewer's output.
 
 Collect the union of findings; do not vote. The Root independently reproduces or

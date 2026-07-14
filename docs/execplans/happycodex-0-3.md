@@ -81,8 +81,8 @@ The following user outcome is frozen verbatim:
   worktrees are not task-owned and must not be modified or removed
 - **Goal:** not enabled; the user did not explicitly request Goal
 - **Contract-freeze commit:** `3843931`
-- **Current phase:** durable contract and boundary milestone GREEN; semantic
-  commit pending
+- **Current phase:** staged native-review and completion milestone GREEN;
+  semantic commit pending
 
 ## Accepted Baseline Failures
 
@@ -126,7 +126,10 @@ only; no runtime, hook, daemon, or hidden state is added.
   `3843931`.
 - [x] (2026-07-14T17:15Z) Implemented the durable state/boundary workflow;
   20 unit contracts and both validators pass.
-- [ ] Implement the review/completion workflow milestone.
+- [x] (2026-07-14T17:17Z) Committed durable state/boundary milestone as
+  `fe2317f`.
+- [x] (2026-07-14T17:30Z) Implemented staged native review, scope-integrity,
+  rereview, and completion-blocker contracts; 21 tests and both validators pass.
 - [ ] Implement evaluation, packaging, and 0.3 release milestone.
 - [ ] Run static checks, behavioral micro tests, fresh native review, and
   adaptive paired holdouts.
@@ -212,11 +215,11 @@ outcome.
 | O08 | Implement independently verifiable vertical milestones with meaningful RED or exact before/after evidence, GREEN, focused and cumulative checks, compatibility adversaries, diff hygiene, ExecPlan evidence, and semantic commits. | open | Skill contract and milestone history |
 | O09 | Recover after resume/compaction from ExecPlan, Native Plan, Git, tests, worktrees, live-agent state, and review receipts; reconcile in favor of source/evidence and never infer a missing scout complete. | open | forced-compaction scenario |
 | O10 | Use fresh native review over the complete task diff. Inherit the configured review model, request `max` effort without silent downgrade, and use a neutral temporary brief compatible with the CLI's selector/prompt exclusivity. | open | `native-review.md`, command smoke, tests |
-| O11 | In one default invocation, require an independent pre-ExecPlan obligation inventory and correctness/adversarial pass, then reveal only contract-bearing ExecPlan sections for completeness mapping. Exclude writer narrative, decisions, surprises, findings, review state, and retrospective. | open | anchoring forward scenario and review receipt |
-| O12 | Require clean committed task state or exact inclusion/isolation of owned dirty and untracked paths. Treat truncation or unproved scope coverage as a failed gate; split correctness by milestone but retain repository-wide completeness. | open | dirty/untracked and large-diff scenarios |
+| O11 | In one default invocation, require an independent pre-ExecPlan obligation inventory and correctness/adversarial pass, then reveal only contract-bearing ExecPlan sections for completeness mapping. Exclude writer narrative, decisions, surprises, findings, review state, and retrospective. | verified | `native-review.md` phase-order tests; behavior stress remains under O16 |
+| O12 | Require clean committed task state or exact inclusion/isolation of owned dirty and untracked paths. Treat truncation or unproved scope coverage as a failed gate; split correctness by milestone but retain repository-wide completeness. | verified | `native-review.md` scope-integrity tests; behavior stress remains under O16 |
 | O13 | Root reproduces every finding. One fresh unanchored rereview is allowed only after confirmed repairs; a confirmed or unresolved completion blocker then stops the cycle. | open | review/rereview contract tests |
-| O14 | Define completion blockers by effect on outcome, acceptance, safety/data integrity, production operation, or exhaustive/retirement claims; do not depend on undefined P0/P1 labels. Claim completion only when all obligations, evidence, checks, review, scouts, worktrees, and Git state close. | open | completion-gate tests |
-| O15 | Preserve optional Fable authorization, independence, union-without-voting, Root reproduction, and bounded rerun semantics; native review remains required/default. | open | `external-review.md` tests |
+| O14 | Define completion blockers by effect on outcome, acceptance, safety/data integrity, production operation, or exhaustive/retirement claims; do not depend on undefined P0/P1 labels. Claim completion only when all obligations, evidence, checks, review, scouts, worktrees, and Git state close. | verified | Skill, `native-review.md`, and completion-gate tests |
+| O15 | Preserve optional Fable authorization, independence, union-without-voting, Root reproduction, and bounded rerun semantics; native review remains required/default. | verified | Reconciled `external-review.md` and contract tests |
 | O16 | Define and execute behavioral micro scenarios for boundary omission, reachable legacy entry, missing worker/deploy, contract narrowing, pre-freeze compaction, lost scout, dirty/untracked state, baseline failures, review anchoring, and diff truncation. | open | `evaluation.md` plus fresh read-only forward tests |
 | O17 | Evaluate workflow changes with isolated, blinded current-versus-candidate pairs sharing model, effort, base, task, budget, and oracle. Use hidden external behavior including an out-of-diff seam, adaptive two-to-three pairs, quality-first rejection, uncached input/output and wall time, and the 25 percent equal-quality gate. | open | frozen pair artifacts and report |
 | O18 | Reconcile `README.md`, `plugin.json`, `openai.yaml`, `marketplace.json`, `task-packets.md`, `external-review.md`, tests, and `.gitignore`. Required release files must be tracked, manifest/tested version must be 0.3, and an isolated marketplace install plus fresh-task discovery smoke must pass before updating the active install. | open | Git-tree test, validators, install smoke |
@@ -317,6 +320,9 @@ Fable references remain public and must be reconciled.
 | 2026-07-14T17:00Z | Contract freeze | Commit `3843931` contains O01-O18 before product edits | verified |
 | 2026-07-14T17:15Z | Milestone 1 RED | 20-test run failed on missing ExecPlan contract and packet semantics | verified |
 | 2026-07-14T17:15Z | Milestone 1 GREEN | 20 tests, Skill validator, Plugin validator, and `git diff --check` passed | verified |
+| 2026-07-14T17:17Z | Milestone 1 commit | `fe2317f` is the durable state/boundary semantic slice | verified |
+| 2026-07-14T17:25Z | Milestone 2 RED | 21-test run failed on absent native-review contract and stale hard-coded model policy | verified |
+| 2026-07-14T17:30Z | Milestone 2 GREEN | 21 tests, Skill validator, Plugin validator, and `git diff --check` passed | verified |
 
 ## Contract Amendments
 

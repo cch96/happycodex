@@ -10,6 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SKILL = ROOT / "skills/happycodex/SKILL.md"
 PACKETS = ROOT / "skills/happycodex/references/task-packets.md"
 EXECPLANS = ROOT / "skills/happycodex/references/execplans.md"
+NATIVE_REVIEW = ROOT / "skills/happycodex/references/native-review.md"
 EXTERNAL_REVIEW = ROOT / "skills/happycodex/references/external-review.md"
 README = ROOT / "README.md"
 MARKETPLACE = ROOT / ".agents/plugins/marketplace.json"
@@ -57,6 +58,7 @@ class HappyCodexContractTests(unittest.TestCase):
                 "skills/happycodex/agents/openai.yaml",
                 "skills/happycodex/references/execplans.md",
                 "skills/happycodex/references/external-review.md",
+                "skills/happycodex/references/native-review.md",
                 "skills/happycodex/references/task-packets.md",
                 "tests/test_contracts.py",
             },
@@ -87,6 +89,7 @@ class HappyCodexContractTests(unittest.TestCase):
             MARKETPLACE,
             EXTERNAL_REVIEW,
             EXECPLANS,
+            NATIVE_REVIEW,
             ROOT / "skills/happycodex/agents/openai.yaml",
         ):
             self.assertIn(path.relative_to(ROOT).as_posix(), tracked)
@@ -284,12 +287,19 @@ class HappyCodexContractTests(unittest.TestCase):
             self.assertIn(phrase, text)
 
     def test_native_review_is_fresh_complete_and_bounded(self) -> None:
-        text = folded(SKILL)
+        self.assertTrue(NATIVE_REVIEW.exists())
+        skill = folded(SKILL)
+        text = f"{skill} {folded(NATIVE_REVIEW)}"
         for phrase in (
-            'review_model="gpt-5.6-sol"',
             'model_reasoning_effort="max"',
+            "inherit the configured review model",
+            "do not hard-code a model slug",
+            "never silently downgrade",
+            "custom prompt conflicts with",
+            "references/native-review.md",
             "complete task diff",
-            "immutable baseline",
+            "immutable task baseline",
+            "contract-freeze commit",
             "verification evidence",
             "accepted baseline failures",
             "writer's implementation narrative",
@@ -297,14 +307,42 @@ class HappyCodexContractTests(unittest.TestCase):
             "at most one fresh re-review",
             "literal zero-finding result is unnecessary",
             "normalize task state before review",
-            "prefer a task-only commit",
+            "clean task-only commit",
             "git diff <task-baseline>..head",
-            "if a task-only commit is not used",
             "task-owned staged, unstaged, and untracked",
             "list task-owned untracked paths explicitly",
+            "scope integrity",
+            "truncation",
+            "repository-wide completeness",
         ):
             self.assertIn(phrase, text)
-        self.assertIn("`ultra` requires explicit user authorization", text)
+        self.assertNotIn('review_model="gpt-5.6-sol"', text)
+
+    def test_native_review_discovers_before_contract_mapping(self) -> None:
+        text = folded(NATIVE_REVIEW)
+        phase_one = text.split("## phase 1", 1)[1].split("## phase 2", 1)[0]
+        phase_two = text.split("## phase 2", 1)[1].split(
+            "## scope integrity", 1
+        )[0]
+
+        for phrase in (
+            "do not read the execplan",
+            "independent obligation inventory",
+            "correctness and adversarial",
+            "original outcome",
+            "repository",
+        ):
+            self.assertIn(phrase, phase_one)
+
+        for phrase in (
+            "contract-bearing sections",
+            "completeness",
+            "decision log",
+            "surprises & discoveries",
+            "historical findings",
+            "outcomes & retrospective",
+        ):
+            self.assertIn(phrase, phase_two)
 
     def test_optional_fable_review_is_explicit_independent_and_bounded(self) -> None:
         skill = folded(SKILL)
@@ -354,9 +392,9 @@ class HappyCodexContractTests(unittest.TestCase):
         )
 
     def test_rereview_is_unanchored_to_the_previous_review(self) -> None:
-        text = folded(SKILL)
+        text = folded(NATIVE_REVIEW)
         clause = text.split("at most one fresh re-review", 1)[1].split(
-            "## completion gate", 1
+            "## review receipt", 1
         )[0]
         for phrase in (
             "same immutable baseline",
@@ -372,7 +410,7 @@ class HappyCodexContractTests(unittest.TestCase):
             self.assertIn(phrase, clause)
 
     def test_recovery_and_completion_reconcile_durable_evidence(self) -> None:
-        text = folded(SKILL)
+        text = f"{folded(SKILL)} {folded(NATIVE_REVIEW)}"
         for phrase in (
             "after resume or compaction",
             "git status",
@@ -382,6 +420,11 @@ class HappyCodexContractTests(unittest.TestCase):
             "material state or ownership",
             "every acceptance criterion maps to behavior or reproducible evidence",
             "scouts and worktrees are accounted for",
+            "completion-blocking",
+            "original outcome",
+            "safety or data integrity",
+            "production operation",
+            "exhaustive or retirement claim",
         ):
             self.assertIn(phrase, text)
 
@@ -414,6 +457,9 @@ class HappyCodexContractTests(unittest.TestCase):
         self.assertLessEqual(len(SKILL.read_text(encoding="utf-8").splitlines()), 130)
         self.assertLessEqual(len(PACKETS.read_text(encoding="utf-8").splitlines()), 55)
         self.assertLessEqual(len(EXECPLANS.read_text(encoding="utf-8").splitlines()), 180)
+        self.assertLessEqual(
+            len(NATIVE_REVIEW.read_text(encoding="utf-8").splitlines()), 180
+        )
         self.assertLessEqual(
             len(EXTERNAL_REVIEW.read_text(encoding="utf-8").splitlines()), 45
         )
