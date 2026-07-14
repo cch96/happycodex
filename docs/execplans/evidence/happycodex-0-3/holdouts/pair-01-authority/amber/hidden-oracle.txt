@@ -1,0 +1,36 @@
+{
+  "checks": [
+    {
+      "detail": "TypeError: Request.__init__() got an unexpected keyword argument 'planexecution_phase'",
+      "name": "route_matrix_unique_authority",
+      "passed": false
+    },
+    {
+      "detail": "{'execute': 'completed', 'tool': 'completed', 'cancel': 'completed', 'reconcile': 'completed'}",
+      "name": "all_four_intents_terminal",
+      "passed": true
+    },
+    {
+      "detail": "4",
+      "name": "workflow_gateway_v2_commands",
+      "passed": true
+    },
+    {
+      "detail": "['AUTHORITY_EPOCH', 'REDIS_URL', 'SELECTION_KEY', 'WORKER_TOKEN']",
+      "name": "production_settings_fail_closed",
+      "passed": true
+    },
+    {
+      "detail": "True",
+      "name": "readiness_fail_closed",
+      "passed": true
+    },
+    {
+      "detail": "'retired'",
+      "name": "legacy_runtime_retired",
+      "passed": true
+    }
+  ],
+  "passed": 5,
+  "total": 6
+}

@@ -81,8 +81,9 @@ The following user outcome is frozen verbatim:
   worktrees are not task-owned and must not be modified or removed
 - **Goal:** not enabled; the user did not explicitly request Goal
 - **Contract-freeze commit:** `3843931`
-- **Current phase:** controlled M01-M03 are verified at `5a0cc9f`; blinded paired
-  holdouts and cost accounting are the next gate
+- **Current phase:** complete with a fail-closed release decision; blinded Pair 1
+  rejected candidate `ba5cf39` after a completion-blocking `read` compatibility
+  regression, final repository validation passed, and 0.2 remains the default
 
 ## Accepted Baseline Failures
 
@@ -102,9 +103,9 @@ Baseline evidence on 2026-07-14:
 | Completion-contract freeze | verified | Obligation matrix and contract-freeze commit |
 | Skill implementation | verified | Vertical milestone commits with tests |
 | Static and micro validation | verified | Validators and durable behavioral artifacts |
-| Fresh native review | rereview pending | One fresh unanchored complete-diff rereview after repairs |
-| Paired holdout | pending | Two or three blinded pairs and cost accounting |
-| 0.3 release | pending | All completion gates satisfied |
+| Fresh native review | not run for rejected candidate | The earlier receipt is stale; adaptive rejection occurred before the final rereview gate |
+| Paired holdout | failed; candidate rejected | Pair 1 blind assessment, reveal, corrected oracle, and cost accounting |
+| 0.3 release | blocked; not performed | Candidate failed the quality-first release gate; public and active defaults remain 0.2 |
 
 ## Purpose / Big Picture
 
@@ -163,9 +164,21 @@ only; no runtime, hook, daemon, or hidden state is added.
   isolated homes. All three fail-closed oracles passed; source/installed Skill
   hashes matched and raw JSONL, fixture state, elapsed time, and token usage are
   durably indexed.
-- [ ] Execute adaptive blinded paired holdouts and the cost gate.
-- [ ] Version the accepted candidate as 0.3, repeat static/install/discovery
-  checks, then run the single fresh anonymous complete-diff rereview.
+- [x] (2026-07-14T18:00Z) Ran blinded Pair 1 with equal task, fixture, model,
+  effort, timeout, sandbox, and hidden behavior. The blind evaluator ranked the
+  candidate label above current on system coverage but found one localized
+  completion-blocking compatibility failure.
+- [x] (2026-07-14T18:03Z) Revealed labels only after the blind return: sable was
+  candidate `ba5cf39`; its four `read` route cases raise `ValueError`, while
+  current 0.2 passes all 24 route cases. Applied the predeclared immediate-reject
+  rule and stopped before Pair 2/3.
+- [x] (2026-07-14T18:04Z) Retained provisional/public 0.2 metadata and skipped
+  the final anonymous rereview, 0.3 cachebuster, isolated release install, and
+  active-install update because the candidate is ineligible for release.
+- [x] (2026-07-14T18:07Z) Persisted raw arm artifacts, blind assessment, reveal,
+  corrected-oracle reproduction, and release decision. All 24 contract tests,
+  both validators, and diff hygiene pass; active personal installation remains
+  `0.2.0+codex.20260714095129`.
 
 ## Surprises & Discoveries
 
@@ -196,6 +209,22 @@ only; no runtime, hook, daemon, or hidden state is added.
   independence gate unless native dispatch and return identities are mandatory.
   Evidence:
   `docs/execplans/evidence/happycodex-0-3/micro/69232c6/m01-system-seams/events.jsonl`.
+- Observation: the candidate implemented the end-to-end Authority path more
+  completely than current 0.2 but generalized every non-null `run_mode` into the
+  four-intent outbox. The existing unrelated `read` mode therefore raised in all
+  four domain-context cases.
+  Evidence:
+  `docs/execplans/evidence/happycodex-0-3/holdouts/pair-01-authority/oracle-correction.md`.
+- Observation: the first hidden route oracle constructed a field whose retirement
+  was required, making that check invalid for both arms. Correcting the oracle
+  symmetrically after worktree freeze preserved blinding and exposed the actual
+  compatibility difference.
+  Evidence:
+  `docs/execplans/evidence/happycodex-0-3/holdouts/pair-01-authority/oracle-correction.md`.
+- Observation: candidate execution reached stronger tests and repaired native
+  review findings but timed out at 900.044 seconds before final usage accounting
+  and rereview; current exited incomplete at 429.737 seconds.
+  Evidence: both arm metadata files and the Pair 1 assessment.
 
 ## Decision Log
 
@@ -229,6 +258,13 @@ only; no runtime, hook, daemon, or hidden state is added.
   disposable install state lived outside the repository and was removed. Exact
   Git-tree and clean-status checks are higher-signal than adding unused patterns.
   Date/Author: 2026-07-14 / Root.
+- Decision: Reject the candidate after Pair 1 and do not run Pair 2/3, the final
+  rereview, version mint, release install, or active-install update.
+  Rationale: after blind assessment and reveal, the candidate had introduced a
+  completion-blocking regression in existing `read` routing. The frozen adaptive
+  protocol gives immediate quality rejection precedence over extra pairs or cost
+  tradeoff confirmation.
+  Date/Author: 2026-07-14 / Root.
 
 ## Context and Orientation
 
@@ -259,15 +295,15 @@ outcome.
 | O07 | Freeze the completion contract before implementation. Additions are autonomous; deletion, downgrade, or new `N/A` that narrows the outcome requires explicit user authorization. Unattended execution may only add or stop. Amendments invalidate affected evidence. | verified | Freeze `3843931` and contract tests; behavior stress remains under O16 |
 | O08 | Implement independently verifiable vertical milestones with meaningful RED or exact before/after evidence, GREEN, focused and cumulative checks, compatibility adversaries, diff hygiene, ExecPlan evidence, and semantic commits. | verified | Milestone commits `fe2317f`, `2f8ff2a`, and `60d2aef` plus evidence ledger |
 | O09 | Recover after resume/compaction from ExecPlan, Native Plan, Git, tests, worktrees, live-agent state, and review receipts; reconcile in favor of source/evidence and never infer a missing scout complete. | verified | M02 fresh no-history reconstruction plus Root Git/test reproduction |
-| O10 | Use fresh native review over the complete task diff. Inherit the configured review model, request `max` effort without silent downgrade, and use a neutral temporary brief compatible with the CLI's selector/prompt exclusivity. | open | `native-review.md`, command smoke, tests |
+| O10 | Use fresh native review over the complete task diff. Inherit the configured review model, request `max` effort without silent downgrade, and use a neutral temporary brief compatible with the CLI's selector/prompt exclusivity. | open | Initial complete-range review is stale after repairs; final review was not run because the candidate failed O17 first |
 | O11 | In one default invocation, require an independent pre-ExecPlan obligation inventory and correctness/adversarial pass, then reveal only contract-bearing ExecPlan sections for completeness mapping. Exclude writer narrative, decisions, surprises, findings, review state, and retrospective. | verified | `native-review.md` phase-order tests; behavior stress remains under O16 |
 | O12 | Require clean committed task state or exact inclusion/isolation of owned dirty and untracked paths. Treat truncation or unproved scope coverage as a failed gate; split correctness by milestone but retain repository-wide completeness. | verified | `native-review.md` scope-integrity tests; behavior stress remains under O16 |
-| O13 | Root reproduces every finding. One fresh unanchored rereview is allowed only after confirmed repairs; a confirmed or unresolved completion blocker then stops the cycle. | open | review/rereview contract tests |
+| O13 | Root reproduces every finding. One fresh unanchored rereview is allowed only after confirmed repairs; a confirmed or unresolved completion blocker then stops the cycle. | open | Review/rereview contract tests pass, but final candidate rereview was not run after O17 rejected release eligibility |
 | O14 | Define completion blockers by effect on outcome, acceptance, safety/data integrity, production operation, or exhaustive/retirement claims; do not depend on undefined P0/P1 labels. Claim completion only when all obligations, evidence, checks, review, scouts, worktrees, and Git state close. | verified | Skill, `native-review.md`, and completion-gate tests |
 | O15 | Preserve optional Fable authorization, independence, union-without-voting, Root reproduction, and bounded rerun semantics; native review remains required/default. | verified | Reconciled `external-review.md` and contract tests |
 | O16 | Define and execute behavioral micro scenarios for boundary omission, reachable legacy entry, missing worker/deploy, contract narrowing, pre-freeze compaction, lost scout, dirty/untracked state, baseline failures, review anchoring, and diff truncation. | verified | `docs/execplans/evidence/happycodex-0-3/micro/ASSESSMENT.md` plus candidate-indexed raw JSONL and metadata |
-| O17 | Evaluate workflow changes with isolated, blinded current-versus-candidate pairs sharing model, effort, base, task, budget, and oracle. Use hidden external behavior including an out-of-diff seam, adaptive two-to-three pairs, quality-first rejection, uncached input/output and wall time, and the 25 percent equal-quality gate. | open | frozen pair artifacts and report |
-| O18 | Reconcile `README.md`, `plugin.json`, `openai.yaml`, `marketplace.json`, `task-packets.md`, `external-review.md`, tests, and `.gitignore`. Required release files must be tracked, manifest/tested version must be 0.3, and an isolated marketplace install plus fresh-task discovery smoke must pass before updating the active install. | open | Public version intentionally remains 0.2 until review, pairs, and cost gates pass; repeat exact install/discovery after final 0.3 bump |
+| O17 | Evaluate workflow changes with isolated, blinded current-versus-candidate pairs sharing model, effort, base, task, budget, and oracle. Use hidden external behavior including an out-of-diff seam, adaptive two-to-three pairs, quality-first rejection, uncached input/output and wall time, and the 25 percent equal-quality gate. | verified | Pair 1 frozen artifacts, blind evaluation, reveal, corrected oracle, and assessment; immediate candidate rejection ended the adaptive run |
+| O18 | Reconcile `README.md`, `plugin.json`, `openai.yaml`, `marketplace.json`, `task-packets.md`, `external-review.md`, tests, and `.gitignore`. Required release files must be tracked, manifest/tested version must be 0.3, and an isolated marketplace install plus fresh-task discovery smoke must pass before updating the active install. | open | Blocked by failed O17; source metadata remains provisional 0.2, active 0.2 is unchanged, and no release install was attempted |
 
 ## Pending Investigation
 
@@ -303,6 +339,25 @@ not need delegation.
 | M01-system-seams | Given a plausible authority implementation with a reachable legacy entry, unconsumed outbox intents, and absent production configuration, does the workflow prevent a false exclusive/end-to-end/production completion? | verified | Session `019f61af-a7ff-7bc0-9364-ff9387d9e0e9`; completion denied and unbindable challenger receipt kept open |
 | M02-durable-recovery | Given only repository facts after context loss, a missing scout, a proposed frozen-contract narrowing, and accepted baseline failures, does the workflow reconstruct state and keep unresolved gates open? | verified | Session `019f61af-a812-7d61-9afa-2a92dbfd4a6c`; exact Git/test reconstruction and narrowing rejection |
 | M03-review-scope | Given writer-completion claims, dirty/untracked files, and an intentionally incomplete large diff, does the staged review stay unanchored and fail closed on scope? | verified | Session `019f61af-a834-70d1-919a-82ddd9542a0b`; complete dirty scope, staged visibility, truncation failure, one rereview |
+
+## Blinded Paired Holdout
+
+Pair 1 used fixture `0635866d`, identical prompt, `gpt-5.6-sol` at high effort,
+900 seconds, workspace-write, and no post-launch implementation prompts. The
+out-of-diff seam was `workflow/gateway.py`; hidden behavior covered routing, four
+intent lifecycles, production validation/readiness, and retirement.
+
+| Blind arm | System result | Corrected route matrix | Wall time | Final state |
+| --- | --- | --- | ---: | --- |
+| amber | Preserved `read`, but route never reached gateway/outbox | 24/24 | 429.737 s | Incomplete |
+| sable | Stronger end-to-end and production implementation | 20/24; all four `read` contexts raised | 900.044 s | Timed out |
+
+The blind evaluator ranked sable first on total system coverage but classified
+its `read` failure as completion-blocking. Reveal then mapped amber to current
+0.2 and sable to the candidate, triggering immediate rejection. Candidate token
+usage is unavailable because no completed turn was emitted; current measured
+61,171 uncached input and 17,883 output tokens. Pair 2/3 and the 25 percent
+equal-quality cost comparison are inapplicable after a quality regression.
 
 ## Plan of Work
 
@@ -351,6 +406,11 @@ paired holdouts to satisfy the quality-first and 25 percent equal-quality cost
 rules; plugin version/cache installation to represent the accepted candidate;
 and the final worktree to be clean.
 
+The candidate does not satisfy these system-completion conditions. O10, O13, and
+O18 remain open after O17 rejected release eligibility, so this plan records a
+fail-closed candidate rejection rather than a system-complete or 0.3-release
+claim.
+
 ## Idempotence and Recovery
 
 After resume or compaction, read this file, inspect `git status`, `git log`, the
@@ -393,6 +453,11 @@ Fable references remain public and must be reconciled.
 | 2026-07-14T17:30Z | Controlled micro attempt | M02/M03 passed; M01 session `019f61a9-f65b-73b2-8d96-d3eb916bd3eb` had no native child event despite claiming challenger completion | failed; regression captured |
 | 2026-07-14T17:31Z | Challenger receipt RED/GREEN | Focused contract failed before the identity rule and passed after requiring native dispatch plus return evidence | verified |
 | 2026-07-14T17:38Z | Controlled micro rerun | Candidate `5a0cc9f`; three isolated sessions; Skill SHA-256 `feeadfd...`; 103,418 uncached input, 20,604 output, 584.331 cumulative seconds; all Root oracles passed | verified |
+| 2026-07-14T17:59Z | Blinded Pair 1 arms | Same fixture/task/model/effort/900-second budget; both frozen before oracle reveal; public tests passed in both | verified |
+| 2026-07-14T18:02Z | Blind independent evaluation | Read-only evaluator derived obligations without the arm mapping, reproduced the corrected route matrix, and ranked sable above amber while blocking both | verified |
+| 2026-07-14T18:03Z | Pair 1 reveal | Amber=current 0.2; sable=candidate `ba5cf39`; candidate introduced four-case `read` regression | failed; candidate rejected |
+| 2026-07-14T18:04Z | Adaptive release gate | Immediate-reject rule stopped Pair 2/3 and made rereview/version/install inapplicable; 0.2 retained | verified fail-closed decision |
+| 2026-07-14T18:07Z | Final repository audit | 24 unit contracts, Skill validator, Plugin validator, and diff hygiene passed; installed personal plugin remained old 0.2 | verified |
 
 ## Contract Amendments
 
@@ -407,9 +472,29 @@ Baseline `3b9c11fac1f97df75263e0bfc6421c575e04e8b2`, contract freeze
 were reviewed in isolated session `019f6197-47cc-7fc0-b557-258630e0b1d0` by the
 configured `gpt-5.6-sol` model at requested/actual `max`. The worktree was clean,
 the complete repository-wide range was covered without truncation, and the result
-required repair. Candidate changes make this receipt stale; one fresh unanchored
-complete-diff rereview is pending. No findings or repair narrative are stored here.
+required repair. Candidate changes make this receipt stale. A fresh unanchored
+complete-diff rereview would be required for a releasable candidate, but Pair 1
+rejected this candidate before that gate, so it was not run. No findings or repair
+narrative are stored here.
 
 ## Outcomes & Retrospective
 
-Intentionally empty until the full task is complete.
+HappyCodex's proposed 0.3 native reliability protocol is implemented and committed
+as an unreleased source candidate: durable ExecPlan state, independent boundary
+freeze, fact-based compaction recovery, two-stage neutral native review, behavioral
+micro tests, and an adaptive blinded release gate. It adds no hook, controller,
+daemon, Task State JSON, or parallel writer.
+
+The release itself failed closed. Controlled micro tests first exposed and caused
+repair of a narrative-only boundary-challenger receipt. Pair 1 then showed the
+candidate produced a materially more complete Authority cutover while silently
+breaking the fixture's existing `read` route. That is precisely the class of
+“better implementation of an incomplete compatibility inventory” that this
+workflow must reject. Candidate timeout also prevented complete cost accounting.
+
+Accordingly no Pair 2/3, final rereview, 0.3 cachebuster, release install, or active
+plugin update was performed. Source release metadata stays on provisional 0.2 and
+the active personal installation stays on the prior 0.2. A future candidate should
+add a mechanically frozen inventory of baseline public behaviors before editing,
+cover every discovered mode in the compatibility matrix, and then begin a new
+blinded evaluation cycle rather than extending this rejected one.
