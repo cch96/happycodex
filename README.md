@@ -1,31 +1,27 @@
 # HappyCodex
 
-HappyCodex is a small Codex plugin for long or cross-cutting implementation
-work. It packages one Skill; Codex's built-in Goal, plan, agents, Git workflow, tests,
-compaction recovery, and native review remain the execution engine.
+HappyCodex is a thin reliability Skill for complex Codex implementation work.
+Codex's native plan, agents, Goal, Git workflow, compaction, tests, and review remain
+the execution engine.
 
 ## What it adds
 
-- one Root writer and a concise working agreement;
-- cost-aware, dependency-aware read-only scouts with explicit parallel, serial, and
-  no-delegation paths;
-- at most one fresh plan challenge when material risk signals remain before editing;
-- Root reproduction of scout evidence and evidence-driven replanning;
-- RED/GREEN implementation slices with useful Git checkpoints;
-- fresh factual native `codex review`, preferring GPT-5.6-sol max and allowing only a
-  disclosed authorized fallback at or below max, followed by at most one post-fix
-  re-review against the same baseline;
-- recovery from Goal, native plan, Git, tests, and review results.
+- one Root writer and an immutable task baseline;
+- explicit acceptance evidence and baseline-failure accounting;
+- coverage of contract propagation, adversarial compatibility, and residual
+  consumers without prescribing an Agent count;
+- optional bounded read-only investigation with Root reproduction;
+- RED/GREEN implementation and evidence-driven replanning;
+- fresh complete-diff native review with at most one unanchored post-fix re-review;
+- recovery and completion reconciliation against native state and Git.
 
-It adds no custom agent runtime, scheduler, daemon, hook, MCP server, review process, or
-persistence layer. Short, localized work should stay in the Root without delegation or
-Goal overhead.
+It adds no Agent runtime, scheduler, daemon, hook, MCP server, custom persistence,
+or review implementation. Short localized work should remain in the Root.
 
 ## Use
 
-Invoke `$happycodex` for work that is multi-phase, likely to cross compaction, or
-wide enough that independent contract and consumer tracing can reduce omissions. Goal
-creation still requires an explicit user request.
+Invoke `$happycodex` for long, cross-cutting, public-contract, or compaction-prone
+implementation. Goal creation still requires an explicit user request.
 
 ## Development checks
 
@@ -34,6 +30,3 @@ python3 -m unittest discover -s tests -v
 python3 /path/to/skill-creator/scripts/quick_validate.py skills/happycodex
 python3 /path/to/plugin-creator/scripts/validate_plugin.py .
 ```
-
-The Skill deliberately relies on the installed Codex CLI's native review surface rather
-than maintaining a second review implementation.
