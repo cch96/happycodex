@@ -81,8 +81,8 @@ The following user outcome is frozen verbatim:
   worktrees are not task-owned and must not be modified or removed
 - **Goal:** not enabled; the user did not explicitly request Goal
 - **Contract-freeze commit:** `3843931`
-- **Current phase:** exact versioned 0.3 candidate is statically GREEN;
-  milestone-3 semantic commit pending
+- **Current phase:** exact versioned candidate `60d2aef` and isolated install are
+  GREEN; fresh complete-diff native review is the next gate
 
 ## Accepted Baseline Failures
 
@@ -100,7 +100,7 @@ Baseline evidence on 2026-07-14:
 | --- | --- | --- |
 | Independent boundary challenge | verified | Read-only return plus Root reproduction |
 | Completion-contract freeze | verified | Obligation matrix and contract-freeze commit |
-| Skill implementation | in progress | Vertical milestone commits with tests |
+| Skill implementation | verified | Vertical milestone commits with tests |
 | Static and micro validation | verified | Validators and behavioral scenarios |
 | Fresh native review | pending | Complete-diff review receipt and dispositions |
 | Paired holdout | pending | Two or three blinded pairs and cost accounting |
@@ -140,7 +140,12 @@ only; no runtime, hook, daemon, or hidden state is added.
   Root reproduced all returns and the patch hash remained unchanged.
 - [x] (2026-07-14T17:01Z) Minted `0.3.0+codex.20260714170101` with the
   plugin-creator helper; all 24 contracts, both validators, and diff hygiene pass.
-- [ ] Commit milestone 3.
+- [x] (2026-07-14T17:02Z) Committed evaluation/package/release milestone as
+  `60d2aef`.
+- [x] (2026-07-14T17:03Z) Installed the exact candidate from the local
+  marketplace in a disposable isolated Codex home; installed/source Skill
+  SHA-256 matched and a fresh task discovered `happycodex:happycodex` plus its
+  qualified invocation route.
 - [ ] Run static checks, behavioral micro tests, fresh native review, and
   adaptive paired holdouts.
 
@@ -194,6 +199,12 @@ only; no runtime, hook, daemon, or hidden state is added.
   unit tests only assert install strings. Use an isolated Codex home first and
   do not hand-edit marketplace state.
   Date/Author: 2026-07-14 / Root.
+- Decision: Preserve `marketplace.json` and `.gitignore` unchanged.
+  Rationale: the marketplace's repo-root `./` source installed the exact candidate;
+  the redesign creates no runtime artifacts, Python caches remain ignored, and
+  disposable install state lived outside the repository and was removed. Exact
+  Git-tree and clean-status checks are higher-signal than adding unused patterns.
+  Date/Author: 2026-07-14 / Root.
 
 ## Context and Orientation
 
@@ -222,7 +233,7 @@ outcome.
 | O05 | Before editing, trace entries, persisted routing, producers/consumers, workers, configuration/deployment, readiness/observability/recovery, migration/rollback, and legacy paths. For exclusive, universal, end-to-end, production-ready, replacement, or retirement claims, use a challenger that has not received Root's inventory; reconcile the union and reproduce material evidence. | verified | Independent challenge on `624cb8c`, Root reproduction, and contract tests |
 | O06 | Give every obligation exactly one state: `open`, `verified`, or evidence-backed `N/A`. An unresolved material premise keeps the gate open. | verified | `execplans.md` and contract tests |
 | O07 | Freeze the completion contract before implementation. Additions are autonomous; deletion, downgrade, or new `N/A` that narrows the outcome requires explicit user authorization. Unattended execution may only add or stop. Amendments invalidate affected evidence. | verified | Freeze `3843931` and contract tests; behavior stress remains under O16 |
-| O08 | Implement independently verifiable vertical milestones with meaningful RED or exact before/after evidence, GREEN, focused and cumulative checks, compatibility adversaries, diff hygiene, ExecPlan evidence, and semantic commits. | open | Skill contract and milestone history |
+| O08 | Implement independently verifiable vertical milestones with meaningful RED or exact before/after evidence, GREEN, focused and cumulative checks, compatibility adversaries, diff hygiene, ExecPlan evidence, and semantic commits. | verified | Milestone commits `fe2317f`, `2f8ff2a`, and `60d2aef` plus evidence ledger |
 | O09 | Recover after resume/compaction from ExecPlan, Native Plan, Git, tests, worktrees, live-agent state, and review receipts; reconcile in favor of source/evidence and never infer a missing scout complete. | verified | M02 fresh no-history reconstruction plus Root Git/test reproduction |
 | O10 | Use fresh native review over the complete task diff. Inherit the configured review model, request `max` effort without silent downgrade, and use a neutral temporary brief compatible with the CLI's selector/prompt exclusivity. | open | `native-review.md`, command smoke, tests |
 | O11 | In one default invocation, require an independent pre-ExecPlan obligation inventory and correctness/adversarial pass, then reveal only contract-bearing ExecPlan sections for completeness mapping. Exclude writer narrative, decisions, surprises, findings, review state, and retrospective. | verified | `native-review.md` phase-order tests; behavior stress remains under O16 |
@@ -232,7 +243,7 @@ outcome.
 | O15 | Preserve optional Fable authorization, independence, union-without-voting, Root reproduction, and bounded rerun semantics; native review remains required/default. | verified | Reconciled `external-review.md` and contract tests |
 | O16 | Define and execute behavioral micro scenarios for boundary omission, reachable legacy entry, missing worker/deploy, contract narrowing, pre-freeze compaction, lost scout, dirty/untracked state, baseline failures, review anchoring, and diff truncation. | verified | `evaluation.md`; M01-M03 fresh read-only forward runs; Root reproduction |
 | O17 | Evaluate workflow changes with isolated, blinded current-versus-candidate pairs sharing model, effort, base, task, budget, and oracle. Use hidden external behavior including an out-of-diff seam, adaptive two-to-three pairs, quality-first rejection, uncached input/output and wall time, and the 25 percent equal-quality gate. | open | frozen pair artifacts and report |
-| O18 | Reconcile `README.md`, `plugin.json`, `openai.yaml`, `marketplace.json`, `task-packets.md`, `external-review.md`, tests, and `.gitignore`. Required release files must be tracked, manifest/tested version must be 0.3, and an isolated marketplace install plus fresh-task discovery smoke must pass before updating the active install. | open | Git-tree test, validators, install smoke |
+| O18 | Reconcile `README.md`, `plugin.json`, `openai.yaml`, `marketplace.json`, `task-packets.md`, `external-review.md`, tests, and `.gitignore`. Required release files must be tracked, manifest/tested version must be 0.3, and an isolated marketplace install plus fresh-task discovery smoke must pass before updating the active install. | verified | Exact Git-tree test; validators; isolated `0.3.0+codex.20260714170101` install; source/cache SHA match; fresh prompt discovery |
 
 ## Pending Investigation
 
@@ -351,6 +362,8 @@ Fable references remain public and must be reconciled.
 | 2026-07-14T16:58Z | Milestone 3 RED | 24-test run reached 23 passes; only the intentionally withheld 0.3 version failed | verified |
 | 2026-07-14T17:00Z | Behavioral micro suite | M01-M03 covered all ten required adversaries in fresh no-history read-only runs; Root reproduction and frozen patch hash passed | verified |
 | 2026-07-14T17:01Z | Versioned candidate GREEN | Version helper, 24 tests, both validators, and diff hygiene passed | verified |
+| 2026-07-14T17:02Z | Milestone 3 commit | `60d2aef` is the measured evaluation/package/release semantic slice | verified |
+| 2026-07-14T17:03Z | Isolated install/discovery | CLI marketplace install returned exact version; installed/source Skill SHA-256 `db9f638b...` matched; fresh prompt contained Skill ID and qualified route | verified |
 
 ## Contract Amendments
 
