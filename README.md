@@ -1,9 +1,14 @@
-# HappyCodex
+# HappyCodex 0.3
 
 HappyCodex is a lightweight reliability workflow for long-running Codex
 implementation. It helps complex changes keep their acceptance criteria across
 exploration, implementation, compaction, and fresh review while Codex's native
-plan, agents, Goal, Git, tests, and review remain the execution engine.
+plan, agents, Goal, Git, tests, and review remain the execution engine. It adds
+instructions only: no hook, controller, daemon, or parallel writer.
+
+Its state model is deliberately small: the ExecPlan stores the durable completion
+contract, Native Plan stores the current execution cursor, and Git and tests store
+facts. Goal is optional and only enabled when the user explicitly requests it.
 
 ## When to use it
 
@@ -55,13 +60,16 @@ parallel, and the Root reproduces their findings before editing.
 ## What it adds
 
 - one Root writer and an immutable task baseline;
-- explicit acceptance evidence and baseline-failure accounting;
-- coverage of contract propagation, adversarial compatibility, and residual
-  consumers without prescribing an Agent count;
+- an early committed ExecPlan with frozen obligations and acceptance evidence;
+- an independent boundary challenger for exhaustive system claims;
+- system-boundary coverage across entries, persisted routing, producers and
+  consumers, workers, deployment, recovery, migration, and legacy paths;
 - optional bounded read-only investigation with Root reproduction;
-- RED/GREEN implementation and evidence-driven replanning;
-- fresh complete-diff native review with at most one unanchored post-fix re-review;
-- recovery and completion reconciliation against native state and Git.
+- vertical RED/GREEN milestones and semantic commits;
+- compaction recovery from the ExecPlan, Native Plan, Git, and tests;
+- two-stage fresh review: independent discovery first, frozen-contract mapping
+  second, with at most one unanchored post-fix re-review;
+- behavioral micro tests and blinded paired holdouts for workflow releases.
 
 It adds no Agent runtime, scheduler, daemon, hook, MCP server, custom persistence,
 or review implementation. Short localized work should remain in the Root.
@@ -73,3 +81,7 @@ python3 -m unittest discover -s tests -v
 python3 /path/to/skill-creator/scripts/quick_validate.py skills/happycodex
 python3 /path/to/plugin-creator/scripts/validate_plugin.py .
 ```
+
+Version 0.3 replaces the narrower acceptance-evidence workflow with durable
+boundary freeze, fact-based recovery, neutral staged review, and a measured
+release gate. The release process keeps 0.2 active until those gates pass.

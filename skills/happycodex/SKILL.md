@@ -92,6 +92,12 @@ At most one fresh re-review is permitted after confirmed repairs. Keep it unanch
 and review the complete current task, never only the fix. A second completion blocker
 stops the cycle.
 
+## When changing HappyCodex
+
+When modifying this workflow or making an adoption or release claim, read
+`references/evaluation.md` completely and satisfy its micro, paired-holdout, cost,
+installation, and discovery gates. Do not load that reference for ordinary tasks.
+
 ## Completion gate
 
 A finding or obligation is completion-blocking when it can violate the original

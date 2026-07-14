@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import re
 import subprocess
 import unittest
 
@@ -11,6 +12,7 @@ SKILL = ROOT / "skills/happycodex/SKILL.md"
 PACKETS = ROOT / "skills/happycodex/references/task-packets.md"
 EXECPLANS = ROOT / "skills/happycodex/references/execplans.md"
 NATIVE_REVIEW = ROOT / "skills/happycodex/references/native-review.md"
+EVALUATION = ROOT / "skills/happycodex/references/evaluation.md"
 EXTERNAL_REVIEW = ROOT / "skills/happycodex/references/external-review.md"
 README = ROOT / "README.md"
 MARKETPLACE = ROOT / ".agents/plugins/marketplace.json"
@@ -57,6 +59,7 @@ class HappyCodexContractTests(unittest.TestCase):
                 "skills/happycodex/SKILL.md",
                 "skills/happycodex/agents/openai.yaml",
                 "skills/happycodex/references/execplans.md",
+                "skills/happycodex/references/evaluation.md",
                 "skills/happycodex/references/external-review.md",
                 "skills/happycodex/references/native-review.md",
                 "skills/happycodex/references/task-packets.md",
@@ -89,6 +92,7 @@ class HappyCodexContractTests(unittest.TestCase):
             MARKETPLACE,
             EXTERNAL_REVIEW,
             EXECPLANS,
+            EVALUATION,
             NATIVE_REVIEW,
             ROOT / "skills/happycodex/agents/openai.yaml",
         ):
@@ -409,6 +413,99 @@ class HappyCodexContractTests(unittest.TestCase):
         ):
             self.assertIn(phrase, clause)
 
+    def test_evaluation_covers_fail_closed_behavior_scenarios(self) -> None:
+        self.assertTrue(EVALUATION.exists())
+        text = folded(EVALUATION)
+        for phrase in (
+            "only when changing the happycodex workflow",
+            "do not load this reference for ordinary user tasks",
+            "boundary omission",
+            "reachable legacy entry",
+            "missing worker or deployment configuration",
+            "frozen-contract narrowing",
+            "pre-freeze compaction",
+            "lost scout",
+            "dirty or untracked task files",
+            "accepted baseline failures",
+            "review anchoring",
+            "large-diff truncation",
+            "expected fail-closed behavior",
+            "observable evidence",
+            "fresh read-only forward runs",
+            "raw artifacts",
+            "do not leak the expected answer",
+            "execplan, git, and tests",
+            "conversation summary",
+            "in-flight agent handle",
+        ):
+            self.assertIn(phrase, text)
+
+    def test_paired_holdout_is_blinded_adaptive_and_costed(self) -> None:
+        text = folded(EVALUATION)
+        for phrase in (
+            "current version versus candidate",
+            "same model, reasoning effort, repository snapshot, task, budget, and oracle",
+            "isolated codex homes and worktrees",
+            "zero implementation prompts",
+            "out-of-diff system seam",
+            "mechanical or behavioral oracle",
+            "freeze before unsealing",
+            "blind evaluator",
+            "candidate's first completion-blocking regression",
+            "run a second pair",
+            "run a third pair",
+            "candidate must be no worse",
+            "false completion",
+            "wall time",
+            "uncached input and output tokens",
+            "25 percent",
+            "explicit user confirmation",
+            "one pair is directional, not causal",
+        ):
+            self.assertIn(phrase, text)
+
+    def test_release_requires_isolated_install_and_fresh_discovery(self) -> None:
+        text = folded(EVALUATION)
+        for phrase in (
+            "isolated codex_home",
+            "marketplace install",
+            "fresh codex task",
+            "skill discovery",
+            "do not hand-edit marketplace state",
+            "active installation",
+        ):
+            self.assertIn(phrase, text)
+
+        manifest = json.loads(
+            (ROOT / ".codex-plugin/plugin.json").read_text(encoding="utf-8")
+        )
+        self.assertRegex(
+            manifest["version"], r"^0\.3\.0\+codex\.[A-Za-z0-9.-]+$"
+        )
+        self.assertIn("system-boundaries", manifest["keywords"])
+        self.assertIn("execplans", manifest["keywords"])
+
+        config = (ROOT / "skills/happycodex/agents/openai.yaml").read_text(
+            encoding="utf-8"
+        )
+        short = re.search(r'^  short_description: "([^"]+)"$', config, re.MULTILINE)
+        self.assertIsNotNone(short)
+        assert short is not None
+        self.assertGreaterEqual(len(short.group(1)), 25)
+        self.assertLessEqual(len(short.group(1)), 64)
+        self.assertIn("$happycodex:happycodex", config)
+
+        public = folded(README)
+        for phrase in (
+            "happycodex 0.3",
+            "execplan stores the durable completion contract",
+            "native plan stores the current execution cursor",
+            "git and tests store facts",
+            "independent boundary challenger",
+            "two-stage fresh review",
+        ):
+            self.assertIn(phrase, public)
+
     def test_recovery_and_completion_reconcile_durable_evidence(self) -> None:
         text = f"{folded(SKILL)} {folded(NATIVE_REVIEW)}"
         for phrase in (
@@ -463,7 +560,10 @@ class HappyCodexContractTests(unittest.TestCase):
         self.assertLessEqual(
             len(EXTERNAL_REVIEW.read_text(encoding="utf-8").splitlines()), 45
         )
-        self.assertLessEqual(len(README.read_text(encoding="utf-8").splitlines()), 80)
+        self.assertLessEqual(
+            len(EVALUATION.read_text(encoding="utf-8").splitlines()), 200
+        )
+        self.assertLessEqual(len(README.read_text(encoding="utf-8").splitlines()), 100)
 
         config = (ROOT / "skills/happycodex/agents/openai.yaml").read_text(
             encoding="utf-8"

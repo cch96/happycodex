@@ -81,8 +81,8 @@ The following user outcome is frozen verbatim:
   worktrees are not task-owned and must not be modified or removed
 - **Goal:** not enabled; the user did not explicitly request Goal
 - **Contract-freeze commit:** `3843931`
-- **Current phase:** staged native-review and completion milestone GREEN;
-  semantic commit pending
+- **Current phase:** exact versioned 0.3 candidate is statically GREEN;
+  milestone-3 semantic commit pending
 
 ## Accepted Baseline Failures
 
@@ -98,10 +98,10 @@ Baseline evidence on 2026-07-14:
 
 | Gate | Status | Evidence required |
 | --- | --- | --- |
-| Independent boundary challenge | pending | Read-only return plus Root reproduction |
-| Completion-contract freeze | pending | Obligation matrix and contract-freeze commit |
-| Skill implementation | pending | Vertical milestone commits with tests |
-| Static and micro validation | pending | Validators and behavioral scenarios |
+| Independent boundary challenge | verified | Read-only return plus Root reproduction |
+| Completion-contract freeze | verified | Obligation matrix and contract-freeze commit |
+| Skill implementation | in progress | Vertical milestone commits with tests |
+| Static and micro validation | verified | Validators and behavioral scenarios |
 | Fresh native review | pending | Complete-diff review receipt and dispositions |
 | Paired holdout | pending | Two or three blinded pairs and cost accounting |
 | 0.3 release | pending | All completion gates satisfied |
@@ -118,19 +118,29 @@ only; no runtime, hook, daemon, or hidden state is added.
 
 - [x] (2026-07-14T16:10Z) Froze clean baseline `3b9c11f` and reproduced all
   three baseline validation commands.
-- [x] (2026-07-14T16:25Z) Added and committed the minimal tracked ExecPlan as
+- [x] (2026-07-14T16:40Z) Added and committed the minimal tracked ExecPlan as
   `624cb8c`.
-- [x] (2026-07-14T16:55Z) Reconciled Root's inventory with an independent
+- [x] (2026-07-14T16:47Z) Reconciled Root's inventory with an independent
   read-only challenger; Root reproduced every material release-boundary claim.
-- [x] (2026-07-14T17:00Z) Committed the completion-contract freeze as
+- [x] (2026-07-14T16:49Z) Committed the completion-contract freeze as
   `3843931`.
-- [x] (2026-07-14T17:15Z) Implemented the durable state/boundary workflow;
+- [x] (2026-07-14T16:51Z) Implemented the durable state/boundary workflow;
   20 unit contracts and both validators pass.
-- [x] (2026-07-14T17:17Z) Committed durable state/boundary milestone as
+- [x] (2026-07-14T16:52Z) Committed durable state/boundary milestone as
   `fe2317f`.
-- [x] (2026-07-14T17:30Z) Implemented staged native review, scope-integrity,
+- [x] (2026-07-14T16:54Z) Implemented staged native review, scope-integrity,
   rereview, and completion-blocker contracts; 21 tests and both validators pass.
-- [ ] Implement evaluation, packaging, and 0.3 release milestone.
+- [x] (2026-07-14T16:55Z) Committed staged review/completion milestone as
+  `2f8ff2a`.
+- [x] (2026-07-14T16:58Z) Drafted the behavioral evaluation, paired-holdout,
+  release, public metadata, and discovery contracts. Twenty-three of 24 unit
+  contracts pass; the intentional remaining RED is the still-0.2 version.
+- [x] (2026-07-14T17:00Z) Ran three fresh no-history, read-only forward runs
+  against product patch `2557d23db15834e6363af05ad43cb16e57f6603d90f870325453eed3fcfd9b40`;
+  Root reproduced all returns and the patch hash remained unchanged.
+- [x] (2026-07-14T17:01Z) Minted `0.3.0+codex.20260714170101` with the
+  plugin-creator helper; all 24 contracts, both validators, and diff hygiene pass.
+- [ ] Commit milestone 3.
 - [ ] Run static checks, behavioral micro tests, fresh native review, and
   adaptive paired holdouts.
 
@@ -205,7 +215,7 @@ outcome.
 
 | ID | Obligation | State | Acceptance evidence |
 | --- | --- | --- | --- |
-| O01 | Remain a small instruction-only Skill/plugin: no hook, controller, daemon, MCP/app surface, custom scheduler, or Task State JSON. | open | Manifest, Git-tree, and retired-surface tests |
+| O01 | Remain a small instruction-only Skill/plugin: no hook, controller, daemon, MCP/app surface, custom scheduler, or Task State JSON. | verified | Manifest, exact tracked Git-tree, and retired-surface tests |
 | O02 | For qualifying work, honor repository policy or use `docs/execplans/<task-slug>.md`; capture the original outcome verbatim, full baseline, ownership, failures, phase, and pending gates, then commit the skeleton before extended research. | verified | `execplans.md` contract, tests, and bootstrap commit `624cb8c` |
 | O03 | Define the three state layers exactly: ExecPlan is the durable completion contract, Native Plan is an unconstrained current cursor, and Git/tests are facts. Goal is optional and explicit, never a substitute. | verified | Skill/reference contract tests |
 | O04 | Keep Root as the only writer. Persist a scout's question, snapshot, status, and gate before dispatch; use read-only direct children with no duplicate prompt, voting, implementation, or child delegation. A lost child remains pending. | verified | `task-packets.md`, `execplans.md`, and contract tests; behavior stress remains under O16 |
@@ -213,14 +223,14 @@ outcome.
 | O06 | Give every obligation exactly one state: `open`, `verified`, or evidence-backed `N/A`. An unresolved material premise keeps the gate open. | verified | `execplans.md` and contract tests |
 | O07 | Freeze the completion contract before implementation. Additions are autonomous; deletion, downgrade, or new `N/A` that narrows the outcome requires explicit user authorization. Unattended execution may only add or stop. Amendments invalidate affected evidence. | verified | Freeze `3843931` and contract tests; behavior stress remains under O16 |
 | O08 | Implement independently verifiable vertical milestones with meaningful RED or exact before/after evidence, GREEN, focused and cumulative checks, compatibility adversaries, diff hygiene, ExecPlan evidence, and semantic commits. | open | Skill contract and milestone history |
-| O09 | Recover after resume/compaction from ExecPlan, Native Plan, Git, tests, worktrees, live-agent state, and review receipts; reconcile in favor of source/evidence and never infer a missing scout complete. | open | forced-compaction scenario |
+| O09 | Recover after resume/compaction from ExecPlan, Native Plan, Git, tests, worktrees, live-agent state, and review receipts; reconcile in favor of source/evidence and never infer a missing scout complete. | verified | M02 fresh no-history reconstruction plus Root Git/test reproduction |
 | O10 | Use fresh native review over the complete task diff. Inherit the configured review model, request `max` effort without silent downgrade, and use a neutral temporary brief compatible with the CLI's selector/prompt exclusivity. | open | `native-review.md`, command smoke, tests |
 | O11 | In one default invocation, require an independent pre-ExecPlan obligation inventory and correctness/adversarial pass, then reveal only contract-bearing ExecPlan sections for completeness mapping. Exclude writer narrative, decisions, surprises, findings, review state, and retrospective. | verified | `native-review.md` phase-order tests; behavior stress remains under O16 |
 | O12 | Require clean committed task state or exact inclusion/isolation of owned dirty and untracked paths. Treat truncation or unproved scope coverage as a failed gate; split correctness by milestone but retain repository-wide completeness. | verified | `native-review.md` scope-integrity tests; behavior stress remains under O16 |
 | O13 | Root reproduces every finding. One fresh unanchored rereview is allowed only after confirmed repairs; a confirmed or unresolved completion blocker then stops the cycle. | open | review/rereview contract tests |
 | O14 | Define completion blockers by effect on outcome, acceptance, safety/data integrity, production operation, or exhaustive/retirement claims; do not depend on undefined P0/P1 labels. Claim completion only when all obligations, evidence, checks, review, scouts, worktrees, and Git state close. | verified | Skill, `native-review.md`, and completion-gate tests |
 | O15 | Preserve optional Fable authorization, independence, union-without-voting, Root reproduction, and bounded rerun semantics; native review remains required/default. | verified | Reconciled `external-review.md` and contract tests |
-| O16 | Define and execute behavioral micro scenarios for boundary omission, reachable legacy entry, missing worker/deploy, contract narrowing, pre-freeze compaction, lost scout, dirty/untracked state, baseline failures, review anchoring, and diff truncation. | open | `evaluation.md` plus fresh read-only forward tests |
+| O16 | Define and execute behavioral micro scenarios for boundary omission, reachable legacy entry, missing worker/deploy, contract narrowing, pre-freeze compaction, lost scout, dirty/untracked state, baseline failures, review anchoring, and diff truncation. | verified | `evaluation.md`; M01-M03 fresh read-only forward runs; Root reproduction |
 | O17 | Evaluate workflow changes with isolated, blinded current-versus-candidate pairs sharing model, effort, base, task, budget, and oracle. Use hidden external behavior including an out-of-diff seam, adaptive two-to-three pairs, quality-first rejection, uncached input/output and wall time, and the 25 percent equal-quality gate. | open | frozen pair artifacts and report |
 | O18 | Reconcile `README.md`, `plugin.json`, `openai.yaml`, `marketplace.json`, `task-packets.md`, `external-review.md`, tests, and `.gitignore`. Required release files must be tracked, manifest/tested version must be 0.3, and an isolated marketplace install plus fresh-task discovery smoke must pass before updating the active install. | open | Git-tree test, validators, install smoke |
 
@@ -244,6 +254,20 @@ Root disposition: `use`. Reproduction confirmed the 0.2 manifest version, the
 untracked-file masking logic in `bundle_files()`, textual rather than installed
 validation, the prior experiment's different treatment commit, and the absence
 of an install smoke. The union is captured in O01-O18.
+
+## Behavioral Micro Gates
+
+The product patch excludes this ExecPlan and is frozen by SHA-256
+`2557d23db15834e6363af05ad43cb16e57f6603d90f870325453eed3fcfd9b40` while
+these read-only gates run. Each child receives the candidate Skill and a simulated
+fixture, not this expected disposition. Children use `fork_turns="none"`, make no
+edits, call no external model, and do not delegate.
+
+| Gate | Question | Status | Completion evidence |
+| --- | --- | --- | --- |
+| M01-system-seams | Given a plausible authority implementation with a reachable legacy entry, unconsumed outbox intents, and absent production configuration, does the workflow prevent a false exclusive/end-to-end/production completion? | verified | Fresh run kept completion open, enumerated all seams, required challenger/frozen oracles; Root matched Skill clauses |
+| M02-durable-recovery | Given only repository facts after context loss, a missing scout, a proposed frozen-contract narrowing, and accepted baseline failures, does the workflow reconstruct state and keep unresolved gates open? | verified | Fresh no-history run recovered exact baseline/HEAD/hash/dirty state, rejected narrowing and guessed failure; Root reproduced Git/tests |
+| M03-review-scope | Given writer-completion claims, dirty/untracked files, and an intentionally incomplete large diff, does the staged review stay unanchored and fail closed on scope? | verified | Fresh run excluded Decision Log, normalized every owned path, ordered both phases, and failed the truncation gate; Root matched review clauses |
 
 ## Plan of Work
 
@@ -315,14 +339,18 @@ Fable references remain public and must be reconciled.
 | UTC | Gate | Evidence | Status |
 | --- | --- | --- | --- |
 | 2026-07-14T16:10Z | Baseline | 15 unit tests and both validators passed | verified |
-| 2026-07-14T16:25Z | Durable bootstrap | Commit `624cb8c` contains the initial ExecPlan | verified |
-| 2026-07-14T16:55Z | Boundary challenge | Independent return plus Root `git show`/`git grep` reproduction | verified |
-| 2026-07-14T17:00Z | Contract freeze | Commit `3843931` contains O01-O18 before product edits | verified |
-| 2026-07-14T17:15Z | Milestone 1 RED | 20-test run failed on missing ExecPlan contract and packet semantics | verified |
-| 2026-07-14T17:15Z | Milestone 1 GREEN | 20 tests, Skill validator, Plugin validator, and `git diff --check` passed | verified |
-| 2026-07-14T17:17Z | Milestone 1 commit | `fe2317f` is the durable state/boundary semantic slice | verified |
-| 2026-07-14T17:25Z | Milestone 2 RED | 21-test run failed on absent native-review contract and stale hard-coded model policy | verified |
-| 2026-07-14T17:30Z | Milestone 2 GREEN | 21 tests, Skill validator, Plugin validator, and `git diff --check` passed | verified |
+| 2026-07-14T16:40Z | Durable bootstrap | Commit `624cb8c` contains the initial ExecPlan | verified |
+| 2026-07-14T16:47Z | Boundary challenge | Independent return plus Root `git show`/`git grep` reproduction | verified |
+| 2026-07-14T16:49Z | Contract freeze | Commit `3843931` contains O01-O18 before product edits | verified |
+| 2026-07-14T16:51Z | Milestone 1 RED | 20-test run failed on missing ExecPlan contract and packet semantics | verified |
+| 2026-07-14T16:52Z | Milestone 1 GREEN | 20 tests, Skill validator, Plugin validator, and `git diff --check` passed | verified |
+| 2026-07-14T16:52Z | Milestone 1 commit | `fe2317f` is the durable state/boundary semantic slice | verified |
+| 2026-07-14T16:53Z | Milestone 2 RED | 21-test run failed on absent native-review contract and stale hard-coded model policy | verified |
+| 2026-07-14T16:54Z | Milestone 2 GREEN | 21 tests, Skill validator, Plugin validator, and `git diff --check` passed | verified |
+| 2026-07-14T16:55Z | Milestone 2 commit | `2f8ff2a` is the staged review/completion semantic slice | verified |
+| 2026-07-14T16:58Z | Milestone 3 RED | 24-test run reached 23 passes; only the intentionally withheld 0.3 version failed | verified |
+| 2026-07-14T17:00Z | Behavioral micro suite | M01-M03 covered all ten required adversaries in fresh no-history read-only runs; Root reproduction and frozen patch hash passed | verified |
+| 2026-07-14T17:01Z | Versioned candidate GREEN | Version helper, 24 tests, both validators, and diff hygiene passed | verified |
 
 ## Contract Amendments
 

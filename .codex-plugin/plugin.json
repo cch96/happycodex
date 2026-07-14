@@ -1,7 +1,7 @@
 {
   "name": "happycodex",
-  "version": "0.2.0+codex.20260714095129",
-  "description": "Reliability workflow for long-running refactors and high-risk Codex changes with acceptance evidence and fresh native review.",
+  "version": "0.3.0+codex.20260714170101",
+  "description": "Native reliability workflow for high-risk Codex changes with durable ExecPlans, system-boundary evidence, and fresh review.",
   "author": {
     "name": "caichenghang",
     "url": "https://github.com/cch96"
@@ -18,13 +18,15 @@
     "public-contracts",
     "migrations",
     "persistence",
-    "concurrency"
+    "concurrency",
+    "system-boundaries",
+    "execplans"
   ],
   "skills": "./skills/",
   "interface": {
     "displayName": "HappyCodex",
-    "shortDescription": "Reliable long-task implementation with fresh review",
-    "longDescription": "Complete long-running refactors, cross-cutting implementations, migrations, and other high-risk Codex changes with one Root writer, an immutable task baseline, durable acceptance evidence, bounded investigation, and fresh native review.",
+    "shortDescription": "Durable system boundaries and fresh review",
+    "longDescription": "Complete long-running refactors, migrations, and other high-risk Codex changes with one Root writer, an immutable task baseline, a durable ExecPlan, acceptance evidence across the system boundary, compaction recovery from facts, and two-stage fresh native review.",
     "developerName": "caichenghang",
     "category": "Productivity",
     "capabilities": [
