@@ -75,17 +75,70 @@ class HappyCodexContractTests(unittest.TestCase):
             "materially different options",
             "decision-changing questions",
             "environment cannot answer",
-            "independent unknowns",
+            "delegation and reproduction cost",
+            "one to three direct read-only scouts",
+            "answers a different bounded question and contributes unique evidence",
+            "not disjoint files or symbols",
+            "use the fewest scouts",
+            "each answer remains valid and useful without another return",
+            "serialize when a result defines or narrows",
+            "requires shared mutable state",
+            "dependency does not itself justify another child",
             "read-only scouts",
             'fork_turns="none"',
             "complete task packet",
-            "root alone edits, commits, and integrates",
+            "root alone owns writes, stateful commands, commits, and integration",
+            "vote on answers",
+            "root may progress only work",
+            "account for all pre-edit scouts",
+            "read-only work",
+            "no persistent repository or external side effects",
+            "observational commands",
+            "wait at the first affected decision",
             "root reproduces",
             "unique lens",
             "update the plan",
-            "newly exposed independent boundary",
+            "scout-run commands are exploratory evidence",
+            "prerequisite now unlocks",
+            "never repeat an answered question",
         ):
             self.assertIn(phrase, folded)
+
+    def test_plan_challenge_is_fresh_conditional_and_non_writing(self) -> None:
+        skill = " ".join(
+            SKILL.read_text(encoding="utf-8").casefold().split()
+        )
+        packet = " ".join(
+            PACKETS.read_text(encoding="utf-8").casefold().split()
+        )
+
+        for phrase in (
+            "before the first task edit",
+            "optionally use at most one fresh read-only plan challenger",
+            "independent criticism could change the plan",
+            "high-impact or hard-to-reverse decision",
+            "lacks sufficient evidence or mitigation",
+            "material evidence conflict",
+            "acceptance criterion lacks a concrete verification path",
+            "resolve known gaps first",
+            "do not challenge a blocker whose next action is already clear",
+            "cannot clear a known blocker",
+            "continue without a plan challenger",
+            "does not replace final diff review",
+        ):
+            self.assertIn(phrase, skill)
+
+        for phrase in (
+            "## plan challenge adaptation",
+            "task and acceptance criteria",
+            "verified evidence",
+            "complete draft plan",
+            "material omissions",
+            "missing verification gates",
+            "do not implement",
+            "no material issue",
+        ):
+            self.assertIn(phrase, packet)
 
     def test_verification_uses_native_review_and_converges(self) -> None:
         folded = " ".join(
@@ -241,6 +294,10 @@ class HappyCodexContractTests(unittest.TestCase):
         for field in (
             "decision",
             "question",
+            "coordination",
+            "prerequisites",
+            "must wait",
+            "persistent repository or external side effects",
             "source of truth",
             "known facts",
             "exclusions",
@@ -251,6 +308,8 @@ class HappyCodexContractTests(unittest.TestCase):
             "unique evidence",
         ):
             self.assertIn(field, folded)
+        self.assertIn("staged, unstaged, and untracked", folded)
+        self.assertIn("commit oid alone is not a complete snapshot", folded)
         self.assertIn("adapt the wording", folded)
         self.assertNotIn("sha256", folded)
 

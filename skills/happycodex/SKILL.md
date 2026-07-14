@@ -1,6 +1,6 @@
 ---
 name: happycodex
-description: Use for long, cross-cutting, or compaction-prone implementations that need one writer, durable evidence, conditional read-only scouts, and fresh native review.
+description: Use for long, cross-cutting, or compaction-prone implementations that need one writer, durable evidence, dependency-aware read-only scouts, conditional plan challenge, and fresh native review.
 ---
 
 # HappyCodex
@@ -28,17 +28,56 @@ Before resolving an open design choice, inspect available evidence, compare only
 materially different options, and ask only decision-changing questions the
 environment cannot answer.
 
-Delegate only independent unknowns tied to named decisions or verification gates.
-Use orthogonal read-only scouts when distinct investigations could change distinct
-decisions. Give each direct child `fork_turns="none"` and a complete task packet from
-`references/task-packets.md` with a unique lens, evidence target, and exact inspected
-snapshot. Parallelize only independent investigations. Scouts are direct and
-read-only; the Root alone edits, commits, and integrates.
+Classify each bounded investigation before dispatch:
 
-The Root reproduces every material scout claim in source or another primary artifact.
-If the candidate changed, revalidate the evidence before uptake. Record uptake using
-the reference checklist. Dispatch further scouts only for a newly exposed independent
-boundary; otherwise update the plan and continue.
+- Keep it in the Root when it is localized, a direct command can answer it, or
+  delegation and reproduction cost is not repaid by latency, context isolation, or
+  reduced omission risk.
+- Delegate one to three direct read-only scouts, limited by available slots, when each
+  answers a different bounded question and contributes unique evidence tied to a named
+  decision or verification gate. Use the fewest scouts that repay their overhead.
+  Evidence may cross the same paths or symbols; orthogonality concerns the question and
+  expected evidence, not disjoint files or symbols. Run scouts in parallel only when
+  each packet can be fixed before any returns and each answer remains valid and useful
+  without another return.
+- Serialize when a result defines or narrows the next question, freezes a contract the
+  next investigation consumes, determines whether that investigation is needed, or work
+  requires shared mutable state. Reproduce and absorb the prerequisite first, then
+  decide anew whether the next bounded scout still repays its overhead. A dependency
+  does not itself justify another child.
+
+Give every direct child `fork_turns="none"` and a complete task packet from
+`references/task-packets.md` with a unique lens, evidence target, coordination boundary,
+and exact inspected snapshot. Do not duplicate one question or vote on answers. Scouts
+use only observational commands with no persistent repository or external side effects;
+the Root alone owns writes, stateful commands, commits, and integration.
+
+Account for all pre-edit scouts before the first task edit; while they run, the Root may
+perform only read-only work. After editing begins, the Root may progress only work that
+neither consumes a live scout's evidence nor changes its question or source of truth.
+Wait at the first affected decision, edit, or gate. Wait only for live scouts that block
+that gate; stop and account for stale, failed, or irrelevant work, then take it over in
+the Root or remove the dependency instead of redispatching it to preserve a count.
+
+The Root reproduces every material scout claim in source or another primary artifact and
+records uptake using the reference checklist. If the candidate changed, revalidate the
+evidence. Scout-run commands are exploratory evidence; required verification remains
+Root-owned. After uptake, update the plan. Dispatch another scout only when a
+prerequisite now unlocks a distinct bounded question or evidence exposes a new boundary;
+never repeat an answered question or seek a different opinion.
+
+After all pre-edit uptake, refine the plan and resolve known gaps first. Before the first
+task edit, optionally use at most one fresh read-only plan challenger only when
+independent criticism could change the plan and at least one trigger remains: a
+high-impact or hard-to-reverse decision lacks sufficient evidence or mitigation, a
+material evidence conflict remains unresolved, or an acceptance criterion lacks a
+concrete verification path. Do not challenge a blocker whose next action is already
+clear; gather evidence, ask the user, or stop. Give the challenger `fork_turns="none"`
+and the plan challenge adaptation from the reference. Reproduce every factual premise
+of a material challenge in primary evidence, then correct the plan or record why it
+stands. A challenge verdict cannot clear a known blocker. When no useful trigger remains,
+continue without a plan challenger. The challenger does not implement and does not
+replace final diff review.
 
 ## Implement through evidence
 

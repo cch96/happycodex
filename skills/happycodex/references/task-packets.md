@@ -11,11 +11,14 @@ leak the Root's preferred answer.
 - **Question:** One bounded question the scout must answer.
 - **Lens:** The distinct perspective assigned to this scout, such as contract tracing,
   downstream consumers, tests and user surface, or failure/risk analysis.
-- **Source of truth:** Exact repository revision, paths, symbols, tests, logs, or primary
-  documentation to inspect.
+- **Source of truth:** Exact repository snapshot, paths, symbols, tests, logs, or primary
+  documentation to inspect. Include relevant staged, unstaged, and untracked state; a
+  commit OID alone is not a complete snapshot when the worktree is dirty.
+- **Coordination:** Prerequisites and shared resources; name what must wait in the Root.
 - **Known facts:** Context already verified by the Root.
 - **Exclusions:** Adjacent questions and paths that are out of scope.
-- **Write boundary:** Read-only. No edits, commits, worktrees, external models, or child
+- **Write boundary:** Read-only observational commands only. No edits, commits,
+  worktrees, persistent repository or external side effects, external models, or child
   agents.
 - **Deliverable:** A concise answer with evidence locations and remaining uncertainty.
 - **Unique evidence:** What this scout must contribute that the other packets do not.
@@ -31,6 +34,23 @@ leak the Root's preferred answer.
 - **Unique evidence:** New fact not already present in the packet.
 - **Uncertainty:** What remains unknown and why.
 - **Suggested verification:** Smallest Root-owned reproduction step.
+
+## Plan challenge adaptation
+
+Use the scout packet after evidence uptake and before implementation. Keep the challenger
+fresh: provide facts and the draft, not the Root's defense or preferred verdict.
+
+- **Source of truth:** The task and acceptance criteria, exclusions, immutable baseline,
+  verified evidence, and complete draft plan.
+- **Lens:** Material omissions, evidence conflicts, unsupported decisions, dependency or
+  ordering errors, and missing verification gates.
+- **Write boundary:** Read-only. Do not implement, edit the plan, or dispatch children.
+- **Deliverable:** Evidence-backed material issues, each mapped to a named decision or
+  verification gate and the smallest corrective action. Return `no material issue` when
+  none is supported; do not rewrite the plan merely to express a preference.
+
+Use the scout return above and Root uptake below. The Root reproduces each finding and
+owns every plan change.
 
 ## Root uptake
 

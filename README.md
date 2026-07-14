@@ -7,7 +7,9 @@ compaction recovery, and native review remain the execution engine.
 ## What it adds
 
 - one Root writer and a concise working agreement;
-- conditional, orthogonal read-only scouts for genuinely independent unknowns;
+- cost-aware, dependency-aware read-only scouts with explicit parallel, serial, and
+  no-delegation paths;
+- at most one fresh plan challenge when material risk signals remain before editing;
 - Root reproduction of scout evidence and evidence-driven replanning;
 - RED/GREEN implementation slices with useful Git checkpoints;
 - fresh factual native `codex review`, preferring GPT-5.6-sol max and allowing only a

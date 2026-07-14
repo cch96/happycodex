@@ -1,7 +1,7 @@
 {
   "name": "happycodex",
-  "version": "0.2.0+codex.20260714045406",
-  "description": "Lean long-task execution using native Codex planning, conditional read-only scouts, evidence-driven implementation, and final review.",
+  "version": "0.2.0+codex.20260714060426",
+  "description": "Lean long-task execution using native Codex planning, dependency-aware read-only scouts, conditional plan challenge, evidence-driven implementation, and final review.",
   "author": {
     "name": "caichenghang"
   },
@@ -15,7 +15,7 @@
   "interface": {
     "displayName": "HappyCodex",
     "shortDescription": "Lean native workflow for complex implementation",
-    "longDescription": "Complete complex Codex implementation tasks with one Root writer, native plan state, conditional read-only scouts, evidence-driven replanning, tests, Git checkpoints, and final native review.",
+    "longDescription": "Complete complex Codex implementation tasks with one Root writer, native plan state, dependency-aware read-only scouts, conditional plan challenge, evidence-driven replanning, tests, Git checkpoints, and final native review.",
     "developerName": "caichenghang",
     "category": "Productivity",
     "capabilities": [
@@ -23,7 +23,7 @@
       "Write"
     ],
     "defaultPrompt": [
-      "Use $happycodex to complete this long implementation with conditional exploration and native review.",
+      "Use $happycodex to complete this long implementation with dependency-aware exploration, conditional plan challenge, and native review.",
       "Use $happycodex with Goal to carry this multi-phase refactor across compaction."
     ]
   }
