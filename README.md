@@ -44,7 +44,7 @@ Native review remains the default. Opt in explicitly when you want an independen
 second reviewer:
 
 ```text
-Use $happycodex:happycodex with native and Fable 5 max review when available.
+Use $happycodex:happycodex with Fable 5 max review when available.
 ```
 
 Fable defaults to `max`; a task or `AGENTS.md` may select another supported effort.

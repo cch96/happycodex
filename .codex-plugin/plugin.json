@@ -1,6 +1,6 @@
 {
   "name": "happycodex",
-  "version": "0.2.0+codex.20260714092908",
+  "version": "0.2.0+codex.20260714093538",
   "description": "Reliability workflow for long-running refactors and high-risk Codex changes with acceptance evidence and fresh native review.",
   "author": {
     "name": "caichenghang",
@@ -35,7 +35,7 @@
     "defaultPrompt": [
       "Use $happycodex:happycodex for this cross-cutting refactor.",
       "Use $happycodex:happycodex with Goal for this compaction-prone migration.",
-      "Use $happycodex:happycodex with native and Fable 5 max review when available."
+      "Use $happycodex:happycodex with Fable 5 max review when available."
     ]
   }
 }

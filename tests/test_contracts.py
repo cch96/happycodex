@@ -241,11 +241,9 @@ class HappyCodexContractTests(unittest.TestCase):
         self.assertTrue(all("$happycodex:happycodex" in prompt for prompt in prompts))
         self.assertTrue(all(len(prompt) <= 128 for prompt in prompts))
         self.assertNotIn("Fable", prompts[0])
-        self.assertTrue(
-            any(
-                "Fable 5 max" in prompt and "when available" in prompt
-                for prompt in prompts
-            )
+        self.assertIn(
+            "Use $happycodex:happycodex with Fable 5 max review when available.",
+            prompts,
         )
 
     def test_rereview_is_unanchored_to_the_previous_review(self) -> None:
