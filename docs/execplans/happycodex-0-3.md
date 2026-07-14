@@ -118,8 +118,9 @@ only; no runtime, hook, daemon, or hidden state is added.
   three baseline validation commands.
 - [x] (2026-07-14T16:25Z) Added and committed the minimal tracked ExecPlan as
   `624cb8c`.
-- [ ] Reconcile Root's boundary inventory with one independent read-only
-  challenger and freeze the completion contract.
+- [x] (2026-07-14T16:55Z) Reconciled Root's inventory with an independent
+  read-only challenger; Root reproduced every material release-boundary claim.
+- [ ] Commit this obligation matrix as the completion-contract freeze.
 - [ ] Implement the durable state/boundary workflow milestone.
 - [ ] Implement the review/completion workflow milestone.
 - [ ] Implement evaluation, packaging, and 0.3 release milestone.
@@ -139,6 +140,16 @@ only; no runtime, hook, daemon, or hidden state is added.
   measured quality gain to two max-effort fresh reviews, at roughly 6x wall time
   and 9x uncached-token proxy cost. Evidence:
   `/home/caichenghang/projects/happycodex-pair-20260714-duration/results/REPORT.md`.
+- Observation: the bundle test can pass when the marketplace or external-review
+  reference merely exists but is not tracked, because `bundle_files()` manually
+  appends those paths after `git ls-files`.
+  Evidence: `tests/test_contracts.py` at snapshot `624cb8c`, lines 21-34.
+- Observation: the active personal installation is 0.2 at
+  `/home/caichenghang/plugins/happycodex`, while this task writes
+  `/home/caichenghang/projects/happycodex`.
+  Evidence: `codex plugin list` and the personal marketplace source resolution;
+  the installed directory's former Git worktree metadata is prunable and must
+  not be repaired or overwritten as part of source implementation.
 
 ## Decision Log
 
@@ -155,6 +166,17 @@ only; no runtime, hook, daemon, or hidden state is added.
   Rationale: the user requested implementation but did not explicitly opt into
   Goal; Native Plan and this ExecPlan carry the execution state.
   Date/Author: 2026-07-14 / Root.
+- Decision: Add one-level `execplans.md`, `native-review.md`, and
+  `evaluation.md` references; update or explicitly revalidate every sibling
+  package surface named in the obligation matrix.
+  Rationale: both Root and the independent challenger found that a
+  `SKILL.md`-only change would leave executable and public contracts stale.
+  Date/Author: 2026-07-14 / Root.
+- Decision: Treat installed discovery as a release oracle, not documentation.
+  Rationale: prior paired evidence tested an installed plugin, while current
+  unit tests only assert install strings. Use an isolated Codex home first and
+  do not hand-edit marketplace state.
+  Date/Author: 2026-07-14 / Root.
 
 ## Context and Orientation
 
@@ -166,21 +188,34 @@ package contracts. `README.md`, `.codex-plugin/plugin.json`,
 form the install and discovery boundary. External historical experiment
 directories are evidence inputs only and must not be modified.
 
-## Draft System Boundary
+## System Boundary and Obligations
 
-Root's independent inventory currently includes:
+The contract freezes the following hard obligations. `open` means implementation
+or current-candidate evidence is still required. `verified` means the cited
+evidence proves the obligation on the current candidate. `N/A` is allowed only
+with a path, search, or command proving that the surface cannot affect the
+outcome.
 
-1. activation and user-facing metadata;
-2. baseline, ExecPlan, Native Plan, Goal, and Git/test state semantics;
-3. read-only scout packets and exhaustive-claim challenger routing;
-4. contract amendment and evidence invalidation rules;
-5. vertical milestone implementation and compaction recovery;
-6. native and optional Fable review scope, neutrality, and rerun policy;
-7. completion-blocker classification and fail-closed completion;
-8. static tests, behavioral forward tests, paired holdout protocol, and cost;
-9. plugin validation, cachebuster/version, local reinstall, and release handoff;
-10. preservation of all existing compatibility, reproduction, and ownership
-    safeguards.
+| ID | Obligation | State | Acceptance evidence |
+| --- | --- | --- | --- |
+| O01 | Remain a small instruction-only Skill/plugin: no hook, controller, daemon, MCP/app surface, custom scheduler, or Task State JSON. | open | Manifest, Git-tree, and retired-surface tests |
+| O02 | For qualifying work, honor repository policy or use `docs/execplans/<task-slug>.md`; capture the original outcome verbatim, full baseline, ownership, failures, phase, and pending gates, then commit the skeleton before extended research. | open | `execplans.md` contract and tests |
+| O03 | Define the three state layers exactly: ExecPlan is the durable completion contract, Native Plan is an unconstrained current cursor, and Git/tests are facts. Goal is optional and explicit, never a substitute. | open | Skill/reference contract tests |
+| O04 | Keep Root as the only writer. Persist a scout's question, snapshot, status, and gate before dispatch; use read-only direct children with no duplicate prompt, voting, implementation, or child delegation. A lost child remains pending. | open | `task-packets.md` and forward scenario |
+| O05 | Before editing, trace entries, persisted routing, producers/consumers, workers, configuration/deployment, readiness/observability/recovery, migration/rollback, and legacy paths. For exclusive, universal, end-to-end, production-ready, replacement, or retirement claims, use a challenger that has not received Root's inventory; reconcile the union and reproduce material evidence. | open | Skill/reference tests and omission scenario |
+| O06 | Give every obligation exactly one state: `open`, `verified`, or evidence-backed `N/A`. An unresolved material premise keeps the gate open. | open | `execplans.md` and contract tests |
+| O07 | Freeze the completion contract before implementation. Additions are autonomous; deletion, downgrade, or new `N/A` that narrows the outcome requires explicit user authorization. Unattended execution may only add or stop. Amendments invalidate affected evidence. | open | amendment and narrowing scenarios |
+| O08 | Implement independently verifiable vertical milestones with meaningful RED or exact before/after evidence, GREEN, focused and cumulative checks, compatibility adversaries, diff hygiene, ExecPlan evidence, and semantic commits. | open | Skill contract and milestone history |
+| O09 | Recover after resume/compaction from ExecPlan, Native Plan, Git, tests, worktrees, live-agent state, and review receipts; reconcile in favor of source/evidence and never infer a missing scout complete. | open | forced-compaction scenario |
+| O10 | Use fresh native review over the complete task diff. Inherit the configured review model, request `max` effort without silent downgrade, and use a neutral temporary brief compatible with the CLI's selector/prompt exclusivity. | open | `native-review.md`, command smoke, tests |
+| O11 | In one default invocation, require an independent pre-ExecPlan obligation inventory and correctness/adversarial pass, then reveal only contract-bearing ExecPlan sections for completeness mapping. Exclude writer narrative, decisions, surprises, findings, review state, and retrospective. | open | anchoring forward scenario and review receipt |
+| O12 | Require clean committed task state or exact inclusion/isolation of owned dirty and untracked paths. Treat truncation or unproved scope coverage as a failed gate; split correctness by milestone but retain repository-wide completeness. | open | dirty/untracked and large-diff scenarios |
+| O13 | Root reproduces every finding. One fresh unanchored rereview is allowed only after confirmed repairs; a confirmed or unresolved completion blocker then stops the cycle. | open | review/rereview contract tests |
+| O14 | Define completion blockers by effect on outcome, acceptance, safety/data integrity, production operation, or exhaustive/retirement claims; do not depend on undefined P0/P1 labels. Claim completion only when all obligations, evidence, checks, review, scouts, worktrees, and Git state close. | open | completion-gate tests |
+| O15 | Preserve optional Fable authorization, independence, union-without-voting, Root reproduction, and bounded rerun semantics; native review remains required/default. | open | `external-review.md` tests |
+| O16 | Define and execute behavioral micro scenarios for boundary omission, reachable legacy entry, missing worker/deploy, contract narrowing, pre-freeze compaction, lost scout, dirty/untracked state, baseline failures, review anchoring, and diff truncation. | open | `evaluation.md` plus fresh read-only forward tests |
+| O17 | Evaluate workflow changes with isolated, blinded current-versus-candidate pairs sharing model, effort, base, task, budget, and oracle. Use hidden external behavior including an out-of-diff seam, adaptive two-to-three pairs, quality-first rejection, uncached input/output and wall time, and the 25 percent equal-quality gate. | open | frozen pair artifacts and report |
+| O18 | Reconcile `README.md`, `plugin.json`, `openai.yaml`, `marketplace.json`, `task-packets.md`, `external-review.md`, tests, and `.gitignore`. Required release files must be tracked, manifest/tested version must be 0.3, and an isolated marketplace install plus fresh-task discovery smoke must pass before updating the active install. | open | Git-tree test, validators, install smoke |
 
 ## Pending Investigation
 
@@ -193,13 +228,19 @@ Root's independent inventory currently includes:
   runbooks.
 - **Boundary:** read-only; no edits, commits, stateful side effects, external
   models, or child delegation.
-- **Status:** pending dispatch.
+- **Status:** completed at snapshot `624cb8c`; the challenger returned seven
+  mandatory sibling surfaces plus conditional `.gitignore` review.
 - **Gate:** contract freeze cannot pass until Root reproduces the return and
   reconciles the union.
 
+Root disposition: `use`. Reproduction confirmed the 0.2 manifest version, the
+untracked-file masking logic in `bundle_files()`, textual rather than installed
+validation, the prior experiment's different treatment commit, and the absence
+of an install smoke. The union is captured in O01-O18.
+
 ## Plan of Work
 
-First freeze the union of Root and challenger obligations. Then implement three
+This commit freezes the union of Root and challenger obligations. Then implement three
 vertical milestones: durable contract and boundary discovery; review and
 completion; evaluation, packaging, and 0.3 release. Each milestone begins with
 contract-test failures where practical, reaches green, updates this plan, and
@@ -238,8 +279,11 @@ worktrees.
 
 The redesign introduces Markdown instruction contracts only. It adds no runtime
 API, hook, MCP server, app, scheduler, Task State JSON, or external controller.
-The exact reference filenames and package changes will be frozen after the
-boundary challenge.
+The public instruction additions are
+`skills/happycodex/references/execplans.md`,
+`skills/happycodex/references/native-review.md`, and
+`skills/happycodex/references/evaluation.md`. Existing task-packet and optional
+Fable references remain public and must be reconciled.
 
 ## Evidence Ledger
 
@@ -247,6 +291,7 @@ boundary challenge.
 | --- | --- | --- | --- |
 | 2026-07-14T16:10Z | Baseline | 15 unit tests and both validators passed | verified |
 | 2026-07-14T16:25Z | Durable bootstrap | Commit `624cb8c` contains the initial ExecPlan | verified |
+| 2026-07-14T16:55Z | Boundary challenge | Independent return plus Root `git show`/`git grep` reproduction | verified |
 
 ## Contract Amendments
 
