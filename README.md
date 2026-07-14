@@ -32,7 +32,8 @@ Use $happycodex:happycodex for this cross-cutting refactor. Preserve every accep
 criterion and finish with fresh native review.
 ```
 
-Goal remains optional and requires an explicit request:
+Goal remains optional. If you request unattended or automatic continuation without
+selecting Goal, HappyCodex asks once; without approval, it continues with the native plan:
 
 ```text
 Use $happycodex:happycodex with Goal for this compaction-prone migration.

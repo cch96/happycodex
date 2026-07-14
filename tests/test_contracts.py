@@ -132,7 +132,7 @@ class HappyCodexContractTests(unittest.TestCase):
         self.assertIn("skip routine localized edits", frontmatter.casefold())
         for phrase in (
             "root is the only writer",
-            "user explicitly requests goal",
+            "explicit user approval",
             "immutable task baseline",
             "acceptance criteria",
             "accepted baseline failures",
@@ -140,6 +140,21 @@ class HappyCodexContractTests(unittest.TestCase):
             "scope changes",
         ):
             self.assertIn(phrase, body_folded)
+
+    def test_goal_prompting_is_narrow_and_defaults_to_native_plan(self) -> None:
+        skill = folded(SKILL)
+        readme = folded(README)
+
+        for phrase in (
+            "unattended or automatic continuation",
+            "ask once whether to enable it",
+            "otherwise do not raise goal",
+            "without explicit approval, continue with the native plan",
+        ):
+            self.assertIn(phrase, skill)
+
+        self.assertIn("unattended or automatic continuation", readme)
+        self.assertIn("without approval, it continues with the native plan", readme)
 
     def test_exploration_requires_coverage_without_scheduling_native_agents(self) -> None:
         text = folded(SKILL)

@@ -1,6 +1,6 @@
 {
   "name": "happycodex",
-  "version": "0.2.0+codex.20260714093538",
+  "version": "0.2.0+codex.20260714095129",
   "description": "Reliability workflow for long-running refactors and high-risk Codex changes with acceptance evidence and fresh native review.",
   "author": {
     "name": "caichenghang",

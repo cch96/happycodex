@@ -16,7 +16,9 @@ compaction, and review remain the execution engine.
 2. Record the full starting commit as the immutable task baseline. In the native
    plan, capture the outcome, acceptance criteria, exclusions, verification, and
    stop conditions, then update decisions and evidence as work changes them.
-3. Use Goal only when the user explicitly requests Goal for this task.
+3. Use Goal only after explicit user approval. If the user requests unattended or
+   automatic continuation without selecting Goal, ask once whether to enable it.
+   Otherwise do not raise Goal; without explicit approval, continue with the native plan.
 4. When scope changes, update the working agreement, acceptance criteria, and
    plan together. Treat affected evidence and decisions as stale until checked.
 
