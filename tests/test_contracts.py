@@ -228,6 +228,10 @@ class HappyCodexContractTests(unittest.TestCase):
             "without root's inventory",
             "reconcile the union",
             "root reproduces",
+            "native agent or task id",
+            "root re-read or second search does not count",
+            "gate remains open",
+            "cannot verify both dispatch and return",
         ):
             self.assertIn(phrase, text)
 

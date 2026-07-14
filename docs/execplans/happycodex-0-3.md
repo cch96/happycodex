@@ -81,8 +81,8 @@ The following user outcome is frozen verbatim:
   worktrees are not task-owned and must not be modified or removed
 - **Goal:** not enabled; the user did not explicitly request Goal
 - **Contract-freeze commit:** `3843931`
-- **Current phase:** first complete-diff review finished; confirmed repairs are
-  statically GREEN at provisional 0.2, controlled micro evidence is pending
+- **Current phase:** controlled M01 exposed an unverified challenger-receipt false
+  claim; the new dispatch/return identity oracle is GREEN and behavioral rerun is pending
 
 ## Accepted Baseline Failures
 
@@ -152,6 +152,13 @@ only; no runtime, hook, daemon, or hidden state is added.
 - [x] (2026-07-14T17:17Z) Reproduced every actionable result, added four failing
   contract oracles, repaired the candidate, restored provisional 0.2 release
   metadata, and returned all 24 contracts to GREEN.
+- [x] (2026-07-14T17:30Z) Ran controlled M01-M03 at `69232c6` with real Git
+  fixtures and durable raw metadata. M02 and M03 met their oracles; M01 blocked
+  system completion but claimed an independent challenge without any native child
+  dispatch or return event, so O16 remained open.
+- [x] (2026-07-14T17:31Z) Added a failing contract oracle for verifiable native
+  challenger identity, then required both dispatch and return evidence; the focused
+  contract returned GREEN.
 - [ ] Rerun M01-M03 in a controlled host with durable raw artifacts and complete
   metadata, then execute the paired holdout gate.
 - [ ] Run static checks, behavioral micro tests, fresh native review, and
@@ -180,6 +187,12 @@ only; no runtime, hook, daemon, or hidden state is added.
   Evidence: `codex plugin list` and the personal marketplace source resolution;
   the installed directory's former Git worktree metadata is prunable and must
   not be repaired or overwritten as part of source implementation.
+- Observation: enabling native multi-agent did not itself prove delegation. At
+  candidate `69232c6`, M01 emitted only Root plan/shell events but narrated that
+  `BC-01` had returned, so a narrative-only challenger receipt can false-close an
+  independence gate unless native dispatch and return identities are mandatory.
+  Evidence:
+  `docs/execplans/evidence/happycodex-0-3/micro/69232c6/m01-system-seams/events.jsonl`.
 
 ## Decision Log
 
@@ -276,15 +289,15 @@ of an install smoke. The union is captured in O01-O18.
 
 ## Behavioral Micro Gates
 
-The product patch excludes this ExecPlan and is frozen by SHA-256
-`2557d23db15834e6363af05ad43cb16e57f6603d90f870325453eed3fcfd9b40` while
-these read-only gates run. Each child receives the candidate Skill and a simulated
-fixture, not this expected disposition. Children use `fork_turns="none"`, make no
-edits, call no external model, and do not delegate.
+Each run records the exact committed candidate and installed/source Skill hashes.
+It receives a real isolated Git fixture and the candidate Skill, not this expected
+disposition. Runs make no edits and call no external model. M01 may dispatch exactly
+one native read-only boundary challenger with `fork_turns="none"`; M02 and M03 do
+not need delegation.
 
 | Gate | Question | Status | Completion evidence |
 | --- | --- | --- | --- |
-| M01-system-seams | Given a plausible authority implementation with a reachable legacy entry, unconsumed outbox intents, and absent production configuration, does the workflow prevent a false exclusive/end-to-end/production completion? | open | Controlled fresh return, exact metadata, raw artifact locator, and Root mapping |
+| M01-system-seams | Given a plausible authority implementation with a reachable legacy entry, unconsumed outbox intents, and absent production configuration, does the workflow prevent a false exclusive/end-to-end/production completion? | open | `69232c6` correctly denied system completion but falsely narrated a challenger return with no native child event; fixed candidate must rerun |
 | M02-durable-recovery | Given only repository facts after context loss, a missing scout, a proposed frozen-contract narrowing, and accepted baseline failures, does the workflow reconstruct state and keep unresolved gates open? | open | Controlled no-history return, exact metadata, raw artifact locator, and Root reproduction |
 | M03-review-scope | Given writer-completion claims, dirty/untracked files, and an intentionally incomplete large diff, does the staged review stay unanchored and fail closed on scope? | open | Controlled fresh return, exact metadata, raw artifact locator, and Root mapping |
 
@@ -368,12 +381,14 @@ Fable references remain public and must be reconciled.
 | 2026-07-14T16:54Z | Milestone 2 GREEN | 21 tests, Skill validator, Plugin validator, and `git diff --check` passed | verified |
 | 2026-07-14T16:55Z | Milestone 2 commit | `2f8ff2a` is the staged review/completion semantic slice | verified |
 | 2026-07-14T16:58Z | Milestone 3 RED | 24-test run reached 23 passes; only the intentionally withheld 0.3 version failed | verified |
-| 2026-07-14T17:00Z | Behavioral micro suite | M01-M03 covered all ten required adversaries in fresh no-history read-only runs; Root reproduction and frozen patch hash passed | verified |
+| 2026-07-14T17:00Z | Behavioral micro suite | M01-M03 covered all ten required adversaries, but the runner did not retain durable raw metadata | stale; superseded |
 | 2026-07-14T17:01Z | Versioned candidate GREEN | Version helper, 24 tests, both validators, and diff hygiene passed | verified |
 | 2026-07-14T17:02Z | Milestone 3 commit | `60d2aef` is the measured evaluation/package/release semantic slice | verified |
 | 2026-07-14T17:03Z | Isolated install/discovery | CLI marketplace install returned exact version; installed/source Skill SHA-256 `db9f638b...` matched; fresh prompt contained Skill ID and qualified route | verified |
 | 2026-07-14T17:15Z | Native review | Session `019f6197-47cc-7fc0-b557-258630e0b1d0`; full baseline range; configured model at max; scope complete; result required repair | stale after repair |
 | 2026-07-14T17:17Z | Repair RED/GREEN | Four contract tests failed before repair; 24 tests passed after repair at provisional `0.2.0+codex.20260714171654` | verified |
+| 2026-07-14T17:30Z | Controlled micro attempt | M02/M03 passed; M01 session `019f61a9-f65b-73b2-8d96-d3eb916bd3eb` had no native child event despite claiming challenger completion | failed; regression captured |
+| 2026-07-14T17:31Z | Challenger receipt RED/GREEN | Focused contract failed before the identity rule and passed after requiring native dispatch plus return evidence | verified |
 
 ## Contract Amendments
 

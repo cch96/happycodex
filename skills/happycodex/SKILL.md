@@ -41,6 +41,13 @@ end-to-end or production-ready behavior, or make a replacement or retirement cla
 one independent read-only boundary challenger without Root's inventory. Reconcile
 the union of both inventories; the Root reproduces every material claim.
 
+The challenger must be an actual native child, not a persona, simulated perspective,
+or Root-authored second pass. Record its native agent or task ID when dispatched and
+its returned status plus evidence before closing the gate. A Root re-read or second
+search does not count. If native agent tooling is unavailable, the child is lost, or
+Root cannot verify both dispatch and return, the gate remains open and the exhaustive
+or retirement claim cannot complete.
+
 The Root decides whether to investigate directly or delegate other bounded questions.
 Use native read-only scouts only for a named decision or verification gate. Do not
 target an Agent count. Parallelize only questions that are independent. Give each child

@@ -49,6 +49,13 @@ question, snapshot, status, and evidence required. Reconcile the union of the tw
 inventories. Root reproduces every material return in source, tests, logs, or a
 primary artifact; no vote can close an obligation.
 
+This is a real native child boundary, not role-play or an additional Root search.
+Persist the native agent or task ID after dispatch and its terminal status plus
+evidence after return. A Root re-read or second search does not count as a challenger.
+If Root cannot verify both dispatch and return, including when agent tooling is
+unavailable or the child is lost, the gate remains open and the exhaustive claim
+cannot complete. Never infer tool activity from an assistant narrative alone.
+
 Each obligation has exactly one state: `open`, `verified`, or `N/A`. `verified`
 requires current reproducible evidence. `N/A` requires a concrete path, search,
 command, or behavioral evidence proving the surface cannot affect the outcome.

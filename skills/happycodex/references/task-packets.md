@@ -10,6 +10,8 @@ answer the question, and keep known facts neutral.
 - **Question:** One bounded question.
 - **Snapshot:** The exact inspected snapshot, including relevant dirty state.
 - **Persisted status:** Record `pending` and the required evidence before dispatch.
+- **Native identity:** After dispatch, record the native agent or task ID; prose that
+  merely claims a challenger ran is not evidence of dispatch.
 - **Scope:** Paths, symbols, tests, logs, or primary sources to inspect.
 - **Context:** Known facts and exclusions; do not reveal a preferred answer.
 - **Independence:** Prerequisites and what must wait. A boundary challenger works
@@ -22,6 +24,7 @@ answer the question, and keep known facts neutral.
 
 ## Scout return
 
+- **Native completion:** The same native agent or task ID and its terminal status.
 - **Inspected snapshot:** Revision and relevant worktree state actually examined.
 - **Answer:** Direct answer to the bounded question.
 - **Evidence:** File and symbol, command and output, or primary-source section.
@@ -40,4 +43,5 @@ answer the question, and keep known facts neutral.
 
 Treat a return without reproducible unique evidence as a no-op. Do not seek a
 second opinion merely to produce agreement. If a child is lost, inaccessible, or
-interrupted, its persisted gate remains pending; never infer success from absence.
+interrupted, or if Root cannot verify both dispatch and return, its persisted gate
+remains pending; never infer success from absence or from Root's own second search.
