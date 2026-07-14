@@ -9,6 +9,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 SKILL = ROOT / "skills/happycodex/SKILL.md"
 PACKETS = ROOT / "skills/happycodex/references/task-packets.md"
+EXECPLANS = ROOT / "skills/happycodex/references/execplans.md"
 EXTERNAL_REVIEW = ROOT / "skills/happycodex/references/external-review.md"
 README = ROOT / "README.md"
 MARKETPLACE = ROOT / ".agents/plugins/marketplace.json"
@@ -18,19 +19,19 @@ def folded(path: Path) -> str:
     return " ".join(path.read_text(encoding="utf-8").casefold().split())
 
 
-def bundle_files() -> list[str]:
-    files = subprocess.run(
+def tracked_files() -> list[str]:
+    return subprocess.run(
         ["git", "ls-files"],
         cwd=ROOT,
         check=True,
         capture_output=True,
         text=True,
     ).stdout.splitlines()
+
+
+def bundle_files() -> list[str]:
+    files = tracked_files()
     files = [path for path in files if not path.startswith("docs/execplans/")]
-    for pending in (MARKETPLACE, EXTERNAL_REVIEW):
-        relative = pending.relative_to(ROOT).as_posix()
-        if pending.exists() and relative not in files:
-            files.append(relative)
     return files
 
 
@@ -54,6 +55,7 @@ class HappyCodexContractTests(unittest.TestCase):
                 "README.md",
                 "skills/happycodex/SKILL.md",
                 "skills/happycodex/agents/openai.yaml",
+                "skills/happycodex/references/execplans.md",
                 "skills/happycodex/references/external-review.md",
                 "skills/happycodex/references/task-packets.md",
                 "tests/test_contracts.py",
@@ -78,6 +80,16 @@ class HappyCodexContractTests(unittest.TestCase):
         self.assertEqual(entry["policy"]["installation"], "AVAILABLE")
         self.assertEqual(entry["policy"]["authentication"], "ON_INSTALL")
         self.assertEqual(entry["category"], "Productivity")
+
+    def test_required_release_contracts_are_tracked_not_merely_present(self) -> None:
+        tracked = set(tracked_files())
+        for path in (
+            MARKETPLACE,
+            EXTERNAL_REVIEW,
+            EXECPLANS,
+            ROOT / "skills/happycodex/agents/openai.yaml",
+        ):
+            self.assertIn(path.relative_to(ROOT).as_posix(), tracked)
 
     def test_bundle_checks_ignore_unrelated_untracked_files(self) -> None:
         probe = ROOT / ".happycodex-untracked-probe"
@@ -156,6 +168,85 @@ class HappyCodexContractTests(unittest.TestCase):
 
         self.assertIn("unattended or automatic continuation", readme)
         self.assertIn("without approval, it continues with the native plan", readme)
+
+    def test_execplan_bootstraps_a_durable_completion_contract(self) -> None:
+        self.assertTrue(EXECPLANS.exists())
+        skill = folded(SKILL)
+        contract = folded(EXECPLANS)
+
+        for phrase in (
+            "references/execplans.md",
+            "before extended research",
+            "repository policy",
+            "docs/execplans/<task-slug>.md",
+            "original outcome verbatim",
+            "accepted baseline failures",
+            "pending gates",
+            "commit the skeleton",
+        ):
+            self.assertIn(phrase, f"{skill} {contract}")
+
+        for phrase in (
+            "human-readable markdown",
+            "durable completion contract",
+            "native plan is the current execution cursor",
+            "no fixed step count",
+            "git and tests are facts",
+            "goal never replaces the execplan",
+            "task state json",
+        ):
+            self.assertIn(phrase, contract)
+
+    def test_boundary_freeze_is_independent_exhaustive_and_reproducible(self) -> None:
+        text = f"{folded(SKILL)} {folded(EXECPLANS)} {folded(PACKETS)}"
+        for phrase in (
+            "entry points",
+            "persisted routing",
+            "producers and consumers",
+            "background workers",
+            "configuration and deployment",
+            "readiness, observability, and recovery",
+            "migration and rollback",
+            "legacy paths",
+            "exclusive or unique",
+            "all or every",
+            "end-to-end",
+            "production-ready",
+            "replacement or retirement",
+            "without root's inventory",
+            "reconcile the union",
+            "root reproduces",
+        ):
+            self.assertIn(phrase, text)
+
+    def test_frozen_contract_cannot_be_silently_narrowed(self) -> None:
+        text = folded(EXECPLANS)
+        for phrase in (
+            "`open`, `verified`, or `n/a`",
+            "concrete path, search, command, or behavioral evidence",
+            "contract-freeze commit",
+            "add obligations autonomously",
+            "delete, downgrade, or newly mark",
+            "explicit user authorization",
+            "may only add or stop",
+            "affected evidence becomes stale",
+        ):
+            self.assertIn(phrase, text)
+
+    def test_vertical_milestones_and_compaction_recover_from_facts(self) -> None:
+        text = f"{folded(SKILL)} {folded(EXECPLANS)}"
+        for phrase in (
+            "independently verifiable vertical milestone",
+            "semantic commit",
+            "smallest meaningful red oracle",
+            "focused and cumulative checks",
+            "defaults, boundaries, type semantics, malformed input",
+            "after resume or compaction",
+            "execplan, native plan, git, tests",
+            "conversation summary is not authoritative",
+            "missing or inaccessible scout remains pending",
+        ):
+            self.assertIn(phrase, text)
 
     def test_exploration_requires_coverage_without_scheduling_native_agents(self) -> None:
         text = folded(SKILL)
@@ -309,6 +400,11 @@ class HappyCodexContractTests(unittest.TestCase):
             "remaining uncertainty",
             "root reproduction",
             "freshness",
+            "gate id",
+            "persisted status",
+            "before dispatch",
+            "without root's inventory",
+            "remains pending",
         ):
             self.assertIn(phrase, packet)
         self.assertNotIn("plan challenge", packet)
@@ -317,6 +413,7 @@ class HappyCodexContractTests(unittest.TestCase):
     def test_bundle_stays_concise_and_metadata_matches_the_workflow(self) -> None:
         self.assertLessEqual(len(SKILL.read_text(encoding="utf-8").splitlines()), 130)
         self.assertLessEqual(len(PACKETS.read_text(encoding="utf-8").splitlines()), 55)
+        self.assertLessEqual(len(EXECPLANS.read_text(encoding="utf-8").splitlines()), 180)
         self.assertLessEqual(
             len(EXTERNAL_REVIEW.read_text(encoding="utf-8").splitlines()), 45
         )

@@ -5,12 +5,15 @@ answer the question, and keep known facts neutral.
 
 ## Task packet
 
+- **Gate ID:** The identifier already recorded in the ExecPlan.
 - **Decision:** The named decision or verification gate this can change.
 - **Question:** One bounded question.
 - **Snapshot:** The exact inspected snapshot, including relevant dirty state.
+- **Persisted status:** Record `pending` and the required evidence before dispatch.
 - **Scope:** Paths, symbols, tests, logs, or primary sources to inspect.
 - **Context:** Known facts and exclusions; do not reveal a preferred answer.
-- **Independence:** Prerequisites, coordination boundaries, and what must wait.
+- **Independence:** Prerequisites and what must wait. A boundary challenger works
+  without Root's inventory.
 - **Boundary:** Read-only observational work; no edits, stateful side effects,
   implementation, commits, external models, or child delegation.
 - **Deliverable:** A concise answer with evidence locations, unique evidence, and
@@ -36,4 +39,5 @@ answer the question, and keep known facts neutral.
 - **Follow-up:** Root action, a genuinely new bounded question, or stop.
 
 Treat a return without reproducible unique evidence as a no-op. Do not seek a
-second opinion merely to produce agreement.
+second opinion merely to produce agreement. If a child is lost, inaccessible, or
+interrupted, its persisted gate remains pending; never infer success from absence.

@@ -8,67 +8,63 @@ description: Reliability workflow for long-running or high-risk implementations,
 The Root is the only writer. Codex's native plan, agents, Goal, Git, tests,
 compaction, and review remain the execution engine.
 
-## Establish durable state
+## Freeze a durable completion contract
 
-1. Before editing, inspect `git status`, relevant tests, and accepted baseline
-   failures. Record task-owned work and preserved pre-existing changes; isolate
-   the task if ownership is ambiguous.
-2. Record the full starting commit as the immutable task baseline. In the native
-   plan, capture the outcome, acceptance criteria, exclusions, verification, and
-   stop conditions, then update decisions and evidence as work changes them.
-3. Use Goal only after explicit user approval. If the user requests unattended or
-   automatic continuation without selecting Goal, ask once whether to enable it.
-   Otherwise do not raise Goal; without explicit approval, continue with the native plan.
-4. When scope changes, update the working agreement, acceptance criteria, and
-   plan together. Treat affected evidence and decisions as stale until checked.
+For high-risk, cross-system, migration, persistence, concurrency, production-cutover,
+or compaction-prone work, read `references/execplans.md` completely before editing.
 
-## Cover risk before editing
+1. Inspect `git status`, relevant tests, accepted baseline failures, task-owned
+   work, and preserved pre-existing changes. Isolate ambiguous ownership.
+2. Record the full starting commit as the immutable task baseline. Follow repository
+   policy for the ExecPlan location; otherwise use `docs/execplans/<task-slug>.md`.
+   Commit its minimal skeleton before extended research.
+3. Keep the Native Plan as the current cursor without imposing a fixed step count.
+   Use Goal only after explicit user approval; Goal never replaces the ExecPlan.
+   For unattended or automatic continuation without Goal, ask once whether to
+   enable it. Otherwise do not raise Goal; without explicit approval, continue with
+   the native plan.
+4. When scope changes, update the working agreement, acceptance criteria, ExecPlan,
+   and Native Plan together. Treat affected evidence and decisions as stale.
 
-Inspect discoverable facts first. Compare only materially different options, and
-ask only decision-changing questions the environment cannot answer.
+## Freeze the system boundary
 
-For a cross-seam or public-contract change, cover every relevant surface:
+Inspect discoverable facts first. Trace entry points, persisted routing, producers
+and consumers, background workers, configuration and deployment, readiness,
+observability and recovery, migration and rollback, and legacy paths. Trace the
+primary contract through validation, execution, serialization, and visible output.
+Check adversarial compatibility: defaults, boundaries, type semantics, malformed
+input, unrelated behavior, and established callers. Find residual consumers in
+profiles, prompts, documentation, generated artifacts, and downstream code.
 
-- Trace the primary contract from input or authoring through validation,
-  execution, serialization, and user-visible output.
-- Check adversarial compatibility: defaults, boundaries, type semantics, malformed
-  input, unrelated behavior, and established callers.
-- Find residual consumers: configuration, profiles, prompts, documentation,
-  generated artifacts, and downstream code that may preserve old assumptions.
+For claims that are exclusive or unique, cover all or every surface, promise
+end-to-end or production-ready behavior, or make a replacement or retirement claim, require
+one independent read-only boundary challenger without Root's inventory. Reconcile
+the union of both inventories; the Root reproduces every material claim.
 
-The Root decides whether to investigate directly or delegate. Use native read-only
-scouts only when a bounded investigation could change a named decision or
-verification gate and delegation repays its coordination and reproduction cost.
-Do not target an Agent count. Parallelize only questions that are independent;
-serialize when one answer defines, narrows, or determines the need for the next.
-
-Give each child `fork_turns="none"` and the compact packet in
-`references/task-packets.md`. Ask one distinct question, forbid edits and child
-delegation, and identify the exact inspected snapshot. Do not duplicate a prompt,
-vote on answers, or delegate implementation. The Root reproduces every material
-claim in source, tests, or another primary artifact and rechecks it if the candidate
-has changed. If an unresolved factual premise can still change the plan, investigate
-it directly or with one bounded child before editing.
+The Root decides whether to investigate directly or delegate other bounded questions.
+Use native read-only scouts only for a named decision or verification gate. Do not
+target an Agent count. Parallelize only questions that are independent. Give each child
+`fork_turns="none"` and `references/task-packets.md`; forbid edits, implementation,
+external models, and child delegation. Persist its gate before dispatch. Never
+duplicate prompts or vote. Recheck evidence when the candidate changes.
 
 ## Implement through evidence
 
-1. For a behavior change, create the smallest meaningful RED oracle and observe
-   the intended failure. If RED is unsafe, impractical, or lower-signal, record why
-   and use exact reproducible before-and-after evidence.
-2. Make the smallest change that reaches GREEN.
-3. Run focused tests, inspect affected call paths and the diff, then run required
-   full checks.
-4. Update the plan when evidence changes the next step; never weaken acceptance
-   criteria. Checkpoint coherent green slices when useful.
+Use independently verifiable vertical milestones, not code-layer batches. For each,
+observe the smallest meaningful RED oracle. If RED is unsafe, impractical, or
+lower-signal, record why exact before/after evidence is higher-signal. Make the
+smallest change that reaches GREEN;
+run focused and cumulative checks; inspect affected
+call paths and the diff; update the ExecPlan; then make a semantic commit. Never
+weaken acceptance criteria.
 
-## Recover from native state
+## Recover from durable facts
 
-After resume or compaction, inspect any user-requested Goal, the native plan,
-`git status`, `git log`, the task diff, worktrees, live scouts, focused tests, full
-checks, and review results. Reconcile discrepancies in favor of source and
-reproducible evidence, update the plan, and avoid repeating completed or still-live
-work. Ask the user if material state or ownership, the outcome, or acceptance
-criteria cannot be recovered confidently.
+After resume or compaction, reconcile the ExecPlan, Native Plan, Git, tests,
+worktrees, live scouts, and review results. Inspect `git status`, `git log`, and the
+task diff. Source and reproducible evidence outrank summaries; avoid repeating
+completed or still-live work. Stop and ask if material state or ownership, outcome,
+or acceptance criteria cannot be recovered confidently.
 
 ## Optional second review
 

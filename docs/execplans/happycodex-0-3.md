@@ -80,7 +80,9 @@ The following user outcome is frozen verbatim:
 - **Preserved external worktrees:** existing detached/feature/evaluation
   worktrees are not task-owned and must not be modified or removed
 - **Goal:** not enabled; the user did not explicitly request Goal
-- **Current phase:** independent system-boundary investigation
+- **Contract-freeze commit:** `3843931`
+- **Current phase:** durable contract and boundary milestone GREEN; semantic
+  commit pending
 
 ## Accepted Baseline Failures
 
@@ -120,8 +122,10 @@ only; no runtime, hook, daemon, or hidden state is added.
   `624cb8c`.
 - [x] (2026-07-14T16:55Z) Reconciled Root's inventory with an independent
   read-only challenger; Root reproduced every material release-boundary claim.
-- [ ] Commit this obligation matrix as the completion-contract freeze.
-- [ ] Implement the durable state/boundary workflow milestone.
+- [x] (2026-07-14T17:00Z) Committed the completion-contract freeze as
+  `3843931`.
+- [x] (2026-07-14T17:15Z) Implemented the durable state/boundary workflow;
+  20 unit contracts and both validators pass.
 - [ ] Implement the review/completion workflow milestone.
 - [ ] Implement evaluation, packaging, and 0.3 release milestone.
 - [ ] Run static checks, behavioral micro tests, fresh native review, and
@@ -199,12 +203,12 @@ outcome.
 | ID | Obligation | State | Acceptance evidence |
 | --- | --- | --- | --- |
 | O01 | Remain a small instruction-only Skill/plugin: no hook, controller, daemon, MCP/app surface, custom scheduler, or Task State JSON. | open | Manifest, Git-tree, and retired-surface tests |
-| O02 | For qualifying work, honor repository policy or use `docs/execplans/<task-slug>.md`; capture the original outcome verbatim, full baseline, ownership, failures, phase, and pending gates, then commit the skeleton before extended research. | open | `execplans.md` contract and tests |
-| O03 | Define the three state layers exactly: ExecPlan is the durable completion contract, Native Plan is an unconstrained current cursor, and Git/tests are facts. Goal is optional and explicit, never a substitute. | open | Skill/reference contract tests |
-| O04 | Keep Root as the only writer. Persist a scout's question, snapshot, status, and gate before dispatch; use read-only direct children with no duplicate prompt, voting, implementation, or child delegation. A lost child remains pending. | open | `task-packets.md` and forward scenario |
-| O05 | Before editing, trace entries, persisted routing, producers/consumers, workers, configuration/deployment, readiness/observability/recovery, migration/rollback, and legacy paths. For exclusive, universal, end-to-end, production-ready, replacement, or retirement claims, use a challenger that has not received Root's inventory; reconcile the union and reproduce material evidence. | open | Skill/reference tests and omission scenario |
-| O06 | Give every obligation exactly one state: `open`, `verified`, or evidence-backed `N/A`. An unresolved material premise keeps the gate open. | open | `execplans.md` and contract tests |
-| O07 | Freeze the completion contract before implementation. Additions are autonomous; deletion, downgrade, or new `N/A` that narrows the outcome requires explicit user authorization. Unattended execution may only add or stop. Amendments invalidate affected evidence. | open | amendment and narrowing scenarios |
+| O02 | For qualifying work, honor repository policy or use `docs/execplans/<task-slug>.md`; capture the original outcome verbatim, full baseline, ownership, failures, phase, and pending gates, then commit the skeleton before extended research. | verified | `execplans.md` contract, tests, and bootstrap commit `624cb8c` |
+| O03 | Define the three state layers exactly: ExecPlan is the durable completion contract, Native Plan is an unconstrained current cursor, and Git/tests are facts. Goal is optional and explicit, never a substitute. | verified | Skill/reference contract tests |
+| O04 | Keep Root as the only writer. Persist a scout's question, snapshot, status, and gate before dispatch; use read-only direct children with no duplicate prompt, voting, implementation, or child delegation. A lost child remains pending. | verified | `task-packets.md`, `execplans.md`, and contract tests; behavior stress remains under O16 |
+| O05 | Before editing, trace entries, persisted routing, producers/consumers, workers, configuration/deployment, readiness/observability/recovery, migration/rollback, and legacy paths. For exclusive, universal, end-to-end, production-ready, replacement, or retirement claims, use a challenger that has not received Root's inventory; reconcile the union and reproduce material evidence. | verified | Independent challenge on `624cb8c`, Root reproduction, and contract tests |
+| O06 | Give every obligation exactly one state: `open`, `verified`, or evidence-backed `N/A`. An unresolved material premise keeps the gate open. | verified | `execplans.md` and contract tests |
+| O07 | Freeze the completion contract before implementation. Additions are autonomous; deletion, downgrade, or new `N/A` that narrows the outcome requires explicit user authorization. Unattended execution may only add or stop. Amendments invalidate affected evidence. | verified | Freeze `3843931` and contract tests; behavior stress remains under O16 |
 | O08 | Implement independently verifiable vertical milestones with meaningful RED or exact before/after evidence, GREEN, focused and cumulative checks, compatibility adversaries, diff hygiene, ExecPlan evidence, and semantic commits. | open | Skill contract and milestone history |
 | O09 | Recover after resume/compaction from ExecPlan, Native Plan, Git, tests, worktrees, live-agent state, and review receipts; reconcile in favor of source/evidence and never infer a missing scout complete. | open | forced-compaction scenario |
 | O10 | Use fresh native review over the complete task diff. Inherit the configured review model, request `max` effort without silent downgrade, and use a neutral temporary brief compatible with the CLI's selector/prompt exclusivity. | open | `native-review.md`, command smoke, tests |
@@ -247,6 +251,24 @@ contract-test failures where practical, reaches green, updates this plan, and
 ends in a semantic commit. Finally validate the complete candidate, run fresh
 native review, run the paired holdout gate, and update the local plugin cache only
 after acceptance.
+
+## Milestones
+
+Milestone 1 establishes durable task state and boundary discovery. At its end,
+the Skill requires the immediate tracked plan, three state layers, independent
+exhaustive-claim challenge, evidence-backed obligation states, frozen amendment
+control, vertical commits, and fact-based compaction recovery. The observable
+proof is the new `execplans.md` contract, updated task packet, and 20 passing
+unit contracts.
+
+Milestone 2 establishes staged native review and fail-closed completion. It will
+replace the hard-coded reviewer model, define the two review phases and neutral
+projection, close dirty/truncation scope, and reconcile optional Fable behavior.
+
+Milestone 3 establishes behavioral evaluation and release. It will add micro
+scenario and adaptive paired-holdout protocols, reconcile public metadata and
+documentation, assert the 0.3 version and tracked release tree, and perform
+isolated installation/discovery before updating the active plugin.
 
 ## Concrete Steps
 
@@ -292,6 +314,9 @@ Fable references remain public and must be reconciled.
 | 2026-07-14T16:10Z | Baseline | 15 unit tests and both validators passed | verified |
 | 2026-07-14T16:25Z | Durable bootstrap | Commit `624cb8c` contains the initial ExecPlan | verified |
 | 2026-07-14T16:55Z | Boundary challenge | Independent return plus Root `git show`/`git grep` reproduction | verified |
+| 2026-07-14T17:00Z | Contract freeze | Commit `3843931` contains O01-O18 before product edits | verified |
+| 2026-07-14T17:15Z | Milestone 1 RED | 20-test run failed on missing ExecPlan contract and packet semantics | verified |
+| 2026-07-14T17:15Z | Milestone 1 GREEN | 20 tests, Skill validator, Plugin validator, and `git diff --check` passed | verified |
 
 ## Contract Amendments
 
