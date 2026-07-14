@@ -1,4 +1,4 @@
 interface:
   display_name: "HappyCodex"
-  short_description: "Reliable native loop for complex implementation"
-  default_prompt: "Use $happycodex to complete this cross-cutting implementation with durable acceptance evidence and fresh native review."
+  short_description: "Reliable long-task implementation with fresh review"
+  default_prompt: "Use $happycodex:happycodex for this cross-cutting refactor."

@@ -1,6 +1,6 @@
 ---
 name: happycodex
-description: Use for long, cross-cutting, public-contract, or compaction-prone implementations that need one writer, durable acceptance evidence, optional bounded read-only investigation, and fresh native review.
+description: Reliability workflow for long-running or high-risk implementations, including cross-cutting refactors, public-contract changes, migrations, persistence or concurrency changes, and compaction-prone work. Use when Codex must keep one writer, preserve acceptance criteria and baseline failures, gather bounded evidence, and finish with fresh native review; skip routine localized edits that do not carry those risks.
 ---
 
 # HappyCodex
@@ -67,6 +67,12 @@ checks, and review results. Reconcile discrepancies in favor of source and
 reproducible evidence, update the plan, and avoid repeating completed or still-live
 work. Ask the user if material state or ownership, the outcome, or acceptance
 criteria cannot be recovered confidently.
+
+## Optional second review
+
+Native review remains the default. Use Fable only when an explicit user instruction
+or applicable `AGENTS.md` rule requests it; never infer permission from risk. When
+selected, read `references/external-review.md` before freezing the candidate.
 
 ## Finish with fresh native review
 

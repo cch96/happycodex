@@ -1,30 +1,41 @@
 {
   "name": "happycodex",
-  "version": "0.2.0+codex.20260714080121",
-  "description": "Thin reliability workflow for complex Codex work with durable acceptance evidence and fresh native review.",
+  "version": "0.2.0+codex.20260714092908",
+  "description": "Reliability workflow for long-running refactors and high-risk Codex changes with acceptance evidence and fresh native review.",
   "author": {
-    "name": "caichenghang"
+    "name": "caichenghang",
+    "url": "https://github.com/cch96"
   },
+  "homepage": "https://github.com/cch96/happycodex#readme",
+  "repository": "https://github.com/cch96/happycodex",
   "keywords": [
     "codex",
-    "goal",
-    "long-tasks",
-    "review"
+    "long-running-tasks",
+    "cross-cutting",
+    "refactoring",
+    "code-review",
+    "testing",
+    "public-contracts",
+    "migrations",
+    "persistence",
+    "concurrency"
   ],
   "skills": "./skills/",
   "interface": {
     "displayName": "HappyCodex",
-    "shortDescription": "Reliable native workflow for complex implementation",
-    "longDescription": "Complete complex Codex implementation tasks with one Root writer, an immutable task baseline, durable acceptance evidence, optional bounded investigation, evidence-driven implementation, and fresh native review.",
+    "shortDescription": "Reliable long-task implementation with fresh review",
+    "longDescription": "Complete long-running refactors, cross-cutting implementations, migrations, and other high-risk Codex changes with one Root writer, an immutable task baseline, durable acceptance evidence, bounded investigation, and fresh native review.",
     "developerName": "caichenghang",
     "category": "Productivity",
     "capabilities": [
       "Read",
       "Write"
     ],
+    "websiteURL": "https://github.com/cch96/happycodex",
     "defaultPrompt": [
-      "Use $happycodex to complete this cross-cutting implementation with durable acceptance evidence and fresh native review.",
-      "Use $happycodex with Goal to carry this multi-phase refactor across compaction with acceptance evidence and native review."
+      "Use $happycodex:happycodex for this cross-cutting refactor.",
+      "Use $happycodex:happycodex with Goal for this compaction-prone migration.",
+      "Use $happycodex:happycodex with native and Fable 5 max review when available."
     ]
   }
 }

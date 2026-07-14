@@ -9,11 +9,28 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 SKILL = ROOT / "skills/happycodex/SKILL.md"
 PACKETS = ROOT / "skills/happycodex/references/task-packets.md"
+EXTERNAL_REVIEW = ROOT / "skills/happycodex/references/external-review.md"
 README = ROOT / "README.md"
+MARKETPLACE = ROOT / ".agents/plugins/marketplace.json"
 
 
 def folded(path: Path) -> str:
     return " ".join(path.read_text(encoding="utf-8").casefold().split())
+
+
+def bundle_files() -> list[str]:
+    files = subprocess.run(
+        ["git", "ls-files"],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.splitlines()
+    for pending in (MARKETPLACE, EXTERNAL_REVIEW):
+        relative = pending.relative_to(ROOT).as_posix()
+        if pending.exists() and relative not in files:
+            files.append(relative)
+    return files
 
 
 class HappyCodexContractTests(unittest.TestCase):
@@ -26,25 +43,81 @@ class HappyCodexContractTests(unittest.TestCase):
         for surface in ("hooks", "mcpServers", "apps"):
             self.assertNotIn(surface, manifest)
 
-        tracked_files = subprocess.run(
-            ["git", "ls-files"],
-            cwd=ROOT,
-            check=True,
-            capture_output=True,
-            text=True,
-        ).stdout.splitlines()
+        tracked_files = bundle_files()
         self.assertEqual(
             set(tracked_files),
             {
                 ".codex-plugin/plugin.json",
+                ".agents/plugins/marketplace.json",
                 ".gitignore",
                 "README.md",
                 "skills/happycodex/SKILL.md",
                 "skills/happycodex/agents/openai.yaml",
+                "skills/happycodex/references/external-review.md",
                 "skills/happycodex/references/task-packets.md",
                 "tests/test_contracts.py",
             },
         )
+
+    def test_public_marketplace_exposes_the_repo_root_plugin(self) -> None:
+        marketplace = json.loads(MARKETPLACE.read_text(encoding="utf-8"))
+        self.assertEqual(marketplace["name"], "happycodex")
+        self.assertEqual(marketplace["interface"]["displayName"], "HappyCodex")
+        self.assertEqual(len(marketplace["plugins"]), 1)
+
+        entry = marketplace["plugins"][0]
+        self.assertEqual(entry["name"], "happycodex")
+        self.assertEqual(
+            entry["source"],
+            {
+                "source": "local",
+                "path": "./",
+            },
+        )
+        self.assertEqual(entry["policy"]["installation"], "AVAILABLE")
+        self.assertEqual(entry["policy"]["authentication"], "ON_INSTALL")
+        self.assertEqual(entry["category"], "Productivity")
+
+    def test_bundle_checks_ignore_unrelated_untracked_files(self) -> None:
+        probe = ROOT / ".happycodex-untracked-probe"
+        self.assertFalse(probe.exists())
+        probe.write_text("not part of the plugin bundle\n", encoding="utf-8")
+        try:
+            self.assertNotIn(probe.name, bundle_files())
+        finally:
+            probe.unlink()
+
+    def test_manifest_and_readme_make_installation_and_discovery_explicit(self) -> None:
+        manifest = json.loads(
+            (ROOT / ".codex-plugin/plugin.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(manifest["homepage"], "https://github.com/cch96/happycodex#readme")
+        self.assertEqual(manifest["repository"], "https://github.com/cch96/happycodex")
+        self.assertEqual(manifest["author"]["url"], "https://github.com/cch96")
+        for keyword in (
+            "long-running-tasks",
+            "cross-cutting",
+            "refactoring",
+            "code-review",
+            "testing",
+            "public-contracts",
+            "migrations",
+            "persistence",
+            "concurrency",
+        ):
+            self.assertIn(keyword, manifest["keywords"])
+
+        readme = README.read_text(encoding="utf-8")
+        for phrase in (
+            "codex plugin marketplace add cch96/happycodex",
+            "codex plugin add happycodex@happycodex",
+            "Start a new Codex task",
+            "## When to use it",
+            "## Install",
+            "$happycodex:happycodex",
+        ):
+            self.assertIn(phrase, readme)
+        self.assertNotRegex(readme, r"\$happycodex(?!:happycodex)")
 
     def test_skill_uses_native_state_and_one_root_writer(self) -> None:
         text = SKILL.read_text(encoding="utf-8")
@@ -52,7 +125,11 @@ class HappyCodexContractTests(unittest.TestCase):
         body_folded = " ".join(body.casefold().split())
 
         self.assertIn("name: happycodex", frontmatter)
-        self.assertIn("description: Use for", frontmatter)
+        self.assertIn(
+            "description: Reliability workflow for long-running or high-risk",
+            frontmatter,
+        )
+        self.assertIn("skip routine localized edits", frontmatter.casefold())
         for phrase in (
             "root is the only writer",
             "user explicitly requests goal",
@@ -122,6 +199,55 @@ class HappyCodexContractTests(unittest.TestCase):
             self.assertIn(phrase, text)
         self.assertIn("`ultra` requires explicit user authorization", text)
 
+    def test_optional_fable_review_is_explicit_independent_and_bounded(self) -> None:
+        skill = folded(SKILL)
+        policy = folded(EXTERNAL_REVIEW)
+
+        for phrase in (
+            "native review remains the default",
+            "explicit user instruction or applicable `agents.md` rule",
+            "references/external-review.md",
+            "never infer permission from risk",
+        ):
+            self.assertIn(phrase, skill)
+
+        for phrase in (
+            "resolve model and effort independently",
+            "explicit current user instruction, applicable scoped `agents.md`",
+            "`fable 5` and `max`",
+            "do not silently downgrade",
+            "makes fable conditional",
+            "otherwise stop the task and report",
+            "same frozen candidate",
+            "neutral review brief",
+            "run them concurrently when",
+            "other reviewer's output",
+            "do not vote",
+            "root independently reproduces or otherwise verifies",
+            "at most once",
+            "sole rerun exception",
+            "required for completion",
+            "confirmed or unresolved material finding",
+        ):
+            self.assertIn(phrase, policy)
+        self.assertNotIn("ask once", policy)
+        self.assertNotIn("high-risk task has no recorded preference", policy)
+
+        manifest = json.loads(
+            (ROOT / ".codex-plugin/plugin.json").read_text(encoding="utf-8")
+        )
+        prompts = manifest["interface"]["defaultPrompt"]
+        self.assertEqual(len(prompts), 3)
+        self.assertTrue(all("$happycodex:happycodex" in prompt for prompt in prompts))
+        self.assertTrue(all(len(prompt) <= 128 for prompt in prompts))
+        self.assertNotIn("Fable", prompts[0])
+        self.assertTrue(
+            any(
+                "Fable 5 max" in prompt and "when available" in prompt
+                for prompt in prompts
+            )
+        )
+
     def test_rereview_is_unanchored_to_the_previous_review(self) -> None:
         text = folded(SKILL)
         clause = text.split("at most one fresh re-review", 1)[1].split(
@@ -177,31 +303,33 @@ class HappyCodexContractTests(unittest.TestCase):
     def test_bundle_stays_concise_and_metadata_matches_the_workflow(self) -> None:
         self.assertLessEqual(len(SKILL.read_text(encoding="utf-8").splitlines()), 130)
         self.assertLessEqual(len(PACKETS.read_text(encoding="utf-8").splitlines()), 55)
+        self.assertLessEqual(
+            len(EXTERNAL_REVIEW.read_text(encoding="utf-8").splitlines()), 45
+        )
         self.assertLessEqual(len(README.read_text(encoding="utf-8").splitlines()), 80)
 
         config = (ROOT / "skills/happycodex/agents/openai.yaml").read_text(
             encoding="utf-8"
         )
-        self.assertIn("$happycodex", config)
-        self.assertIn("acceptance evidence", config)
-        self.assertIn("native review", config)
+        self.assertIn("$happycodex:happycodex", config)
+        self.assertNotRegex(config, r"\$happycodex(?!:happycodex)")
         self.assertNotIn("dependencies:", config)
 
-        manifest = folded(ROOT / ".codex-plugin/plugin.json")
+        manifest_path = ROOT / ".codex-plugin/plugin.json"
+        manifest = folded(manifest_path)
         self.assertIn("acceptance evidence", manifest)
         self.assertIn("native review", manifest)
         self.assertIn("immutable task baseline", manifest)
         self.assertNotIn("immutable task scope", manifest)
         self.assertNotIn("dependency-aware read-only scouts", manifest)
+        self.assertIn("$happycodex:happycodex", manifest)
+        self.assertNotRegex(
+            manifest_path.read_text(encoding="utf-8"),
+            r"\$happycodex(?!:happycodex)",
+        )
 
     def test_retired_protocol_and_brand_are_absent(self) -> None:
-        tracked_files = subprocess.run(
-            ["git", "ls-files"],
-            cwd=ROOT,
-            check=True,
-            capture_output=True,
-            text=True,
-        ).stdout.splitlines()
+        tracked_files = bundle_files()
         tracked_text = "\n".join(
             (ROOT / path).read_text(encoding="utf-8") for path in tracked_files
         ).casefold()
