@@ -47,16 +47,15 @@ class LeanPluginContractTests(unittest.TestCase):
         folded = " ".join(body.casefold().split())
 
         self.assertIn("name: native-codex-loop", frontmatter)
-        self.assertIn("description: Use when", frontmatter)
+        self.assertIn("description: Use for", frontmatter)
         for phrase in (
             "root is the only writer",
             "user explicitly requests goal",
             "living evidence record",
-            "do not require an execplan",
             "immutable task baseline",
             "full starting commit oid",
             "before any task edit",
-            "never advance the baseline",
+            "never advance it",
             "acceptance criteria",
             "git status",
             "git log",
@@ -76,11 +75,11 @@ class LeanPluginContractTests(unittest.TestCase):
             "read-only scouts",
             'fork_turns="none"',
             "complete task packet",
-            "do not delegate implementation",
+            "root alone edits, commits, and integrates",
             "root reproduces",
-            "unique evidence",
+            "unique lens",
             "update the plan",
-            "new boundary",
+            "newly exposed independent boundary",
         ):
             self.assertIn(phrase, folded)
 
@@ -90,16 +89,35 @@ class LeanPluginContractTests(unittest.TestCase):
         )
         for phrase in (
             "create the smallest meaningful red oracle",
-            "make the smallest root-owned implementation that reaches green",
+            "make the smallest change that reaches green",
             "git diff <task-baseline>..head",
             "staged, unstaged, and untracked",
             "selector flags",
             "independently reproduce",
-            "one fresh re-review",
+            "at most one fresh review",
             "unresolved",
             "ask the user",
         ):
             self.assertIn(phrase, folded)
+
+    def test_native_review_prefers_sol_max_without_unbounded_escalation(self) -> None:
+        folded = " ".join(
+            SKILL.read_text(encoding="utf-8").casefold().split()
+        )
+        for phrase in (
+            'review_model="gpt-5.6-sol"',
+            'model_reasoning_effort="max"',
+            "at or below `max`",
+            "never silently downgrade",
+            "`ultra` requires explicit user authorization",
+            "record the requested configuration and any invocation-reported model, effort, fallback, or reroute",
+            "every review and re-review passes the resolved model and effort through both `-c` overrides",
+        ):
+            self.assertIn(phrase, folded)
+        self.assertNotIn(
+            "strongest native review setting authorized by the task",
+            folded,
+        )
 
     def test_every_review_uses_a_factual_stdin_brief(self) -> None:
         text = " ".join(
@@ -110,7 +128,7 @@ class LeanPluginContractTests(unittest.TestCase):
         self.assertNotIn("codex review --commit", text)
         self.assertNotIn('codex review "<factual brief', text)
         for phrase in (
-            'codex review - < "$review_brief"',
+            'codex review -c \'review_model="gpt-5.6-sol"\' -c \'model_reasoning_effort="max"\' - < "$review_brief"',
             "every review invocation",
             "factual brief",
             "do not combine",
@@ -124,9 +142,9 @@ class LeanPluginContractTests(unittest.TestCase):
         for phrase in (
             "temporary review brief file",
             "outside the repository",
-            "remove it after the invocation",
-            "do not interpolate its contents into a shell command",
-            'codex review - < "$review_brief"',
+            "remove it afterward",
+            "never shell-interpolate its contents",
+            'codex review -c \'review_model="gpt-5.6-sol"\' -c \'model_reasoning_effort="max"\' - < "$review_brief"',
         ):
             self.assertIn(phrase, folded)
 
@@ -136,12 +154,11 @@ class LeanPluginContractTests(unittest.TestCase):
         )
         for phrase in (
             "normalize task state before review",
-            "commit all task changes",
-            "no task-owned uncommitted changes remain",
-            "preserved pre-existing non-task changes",
-            "carry their recorded paths and review exclusions into the brief",
-            "if task commits and current task changes coexist",
-            "both `git diff <task-baseline>..head` and the complete staged, unstaged, and untracked",
+            "prefer a task-only commit",
+            "git diff <task-baseline>..head",
+            "every task-owned staged, unstaged, and untracked path",
+            "recorded non-task exclusions",
+            "commit or isolate when separation is ambiguous",
         ):
             self.assertIn(phrase, folded)
 
@@ -150,7 +167,8 @@ class LeanPluginContractTests(unittest.TestCase):
             SKILL.read_text(encoding="utf-8").casefold().split()
         )
         for phrase in (
-            "task, acceptance criteria, the complete diff scope",
+            "task, acceptance criteria",
+            "complete diff scope",
             "verification evidence",
             "accepted baseline failures",
             "writer's implementation narrative",
@@ -165,12 +183,12 @@ class LeanPluginContractTests(unittest.TestCase):
             SKILL.read_text(encoding="utf-8").casefold().split()
         )
         for phrase in (
-            "record the inspected revision",
-            "revision has changed",
-            "re-confirm",
+            "exact inspected snapshot",
+            "candidate changed",
+            "revalidate",
             "when the user changes scope",
             "update the working agreement and plan together",
-            "mark affected prior evidence and decisions stale",
+            "mark affected criteria, evidence, and decisions stale",
         ):
             self.assertIn(phrase, folded)
 
@@ -179,16 +197,12 @@ class LeanPluginContractTests(unittest.TestCase):
             SKILL.read_text(encoding="utf-8").casefold().split()
         )
         clause = folded.split(
-            "if confirmed findings changed the candidate", 1
+            "if confirmed fixes change the candidate", 1
         )[1].split("## completion gate", 1)[0]
         for phrase in (
-            "complete updated diff",
-            "commit all task changes",
-            "git diff <task-baseline>..head",
-            "same task baseline",
-            "staged, unstaged, and untracked",
-            "complete task must remain represented by current changes and any task checkpoints",
-            "never advance the baseline or select only the post-review fix",
+            "same complete-scope, immutable-baseline, factual-brief, and resolved model/effort contract",
+            "never review only the fix",
+            "do not run a third review in this loop",
         ):
             self.assertIn(phrase, clause)
 

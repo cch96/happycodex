@@ -10,7 +10,8 @@ compaction recovery, and native review remain the execution engine.
 - conditional, orthogonal read-only scouts for genuinely independent unknowns;
 - Root reproduction of scout evidence and evidence-driven replanning;
 - RED/GREEN implementation slices with useful Git checkpoints;
-- fresh factual `codex review` of the full task diff, followed by at most one post-fix
+- fresh factual native `codex review`, preferring GPT-5.6-sol max and allowing only a
+  disclosed authorized fallback at or below max, followed by at most one post-fix
   re-review against the same baseline;
 - recovery from Goal, native plan, Git, tests, and review results.
 

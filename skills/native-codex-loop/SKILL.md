@@ -1,148 +1,107 @@
 ---
 name: native-codex-loop
-description: Use when Codex must implement a long, multi-phase, cross-cutting, or compaction-prone change without losing requirements, while keeping one writer and using native planning, conditional scouts, tests, Git checkpoints, and final native review.
+description: Use for long, cross-cutting, or compaction-prone implementations that need one writer, durable evidence, conditional read-only scouts, and fresh native review.
 ---
 
 # Native Codex Loop
 
-Use Codex's built-in controls as one convergent workflow. The Root is the only
-writer. Plans, scouts, tests, Git, and review provide different kinds of evidence;
-none substitutes for the others.
+The Root is the only writer. Plans, scouts, tests, Git, and review provide distinct
+evidence; none substitutes for another.
 
-## Start with a working agreement
+## Establish durable state
 
-1. Read applicable `AGENTS.md`, the user request or task file, repository status,
-   existing tests, and accepted baseline failures.
-2. Put a concise working agreement in the native plan: outcome, acceptance criteria,
-   exclusions, verification commands, and stop conditions. Before any task edit, resolve
-   `git rev-parse --verify HEAD^{commit}` and record the returned full starting commit OID
-   as the immutable task baseline. Never store a symbolic ref or abbreviated OID and
-   never advance the baseline for that task. Keep the plan as a living evidence record.
-   Do not require an ExecPlan file.
-3. Use Goal only when the user explicitly requests Goal. For a task likely to span
-   compaction or several sessions, recommend Goal and obtain explicit confirmation
-   before creating one. Never replace, complete, or update an unrelated active Goal.
-4. Preserve existing user changes. Establish which diff belongs to this task before
-   editing, record the ownership and review exclusion of preserved pre-existing non-task
-   changes, and use an isolated branch or worktree when ambiguity would remain.
-5. When the user changes scope, update the working agreement and plan together. Revise
-   acceptance criteria, exclusions, and verification explicitly; mark affected prior
-   evidence and decisions stale, then revalidate them before reuse.
+1. Before editing, inspect repository status, relevant tests, and accepted baseline
+   failures.
+2. Resolve `git rev-parse --verify HEAD^{commit}` and record the full starting commit
+   OID as the immutable task baseline before any task edit; never advance it. Record
+   outcome, acceptance criteria, exclusions, verification, and stop conditions in
+   the native plan, and keep that living evidence record current.
+3. Use Goal only when the user explicitly requests Goal for this task.
+4. Record task-owned changes and preserved pre-existing non-task changes' ownership
+   and review exclusion. Isolate the task when ownership remains ambiguous.
+5. When the user changes scope, update the working agreement and plan together.
+   Mark affected criteria, evidence, and decisions stale until revalidated.
 
-## Route exploration only when it pays
+## Explore only for decision value
 
-Before the first edit, list the important unknowns and the named decisions or
-verification gates each could change.
+Delegate only independent unknowns tied to named decisions or verification gates.
+Use orthogonal read-only scouts when distinct investigations could change distinct
+decisions. Give each direct child `fork_turns="none"` and a complete task packet from
+`references/task-packets.md` with a unique lens, evidence target, and exact inspected
+snapshot. Parallelize only independent investigations. Scouts are direct and
+read-only; the Root alone edits, commits, and integrates.
 
-- For a localized, already-understood change, record `no delegation` and inspect it in
-  the Root.
-- When there are at least two independent unknowns affecting different decisions, or
-  several independent seams that must be traced, use two or three orthogonal read-only
-  scouts. Give each direct child `fork_turns="none"` and a complete task packet from
-  `references/task-packets.md`.
-- Give each scout a distinct lens and unique evidence requirement. Parallelize only
-  investigations that do not depend on one another. Record the inspected revision in
-  each packet and freeze it so scouts do not reason about a moving target.
-- Do not delegate implementation, edits, commits, integration, or recursive delegation.
-  Do not run same-prompt Best-of-N or persona-only brainstorming.
-
-The Root reproduces every material scout claim in source, tests, logs, or a specified
-primary source. Agent text alone is not evidence. If the revision has changed since the
-scout ran, re-confirm its citations and claims against the current candidate before
-uptake. Record a short uptake note in the plan: decision, reproduced evidence,
-disposition, unique evidence, and resulting plan or gate change. Launch at most one
-bounded challenge wave, and only when reproduced evidence reveals a new boundary or
-contradiction. Otherwise continue in the Root.
+The Root reproduces every material scout claim in source or another primary artifact.
+If the candidate changed, revalidate the evidence before uptake. Record uptake using
+the reference checklist. Dispatch further scouts only for a newly exposed independent
+boundary; otherwise update the plan and continue.
 
 ## Implement through evidence
 
-Work in the smallest coherent slices:
-
-1. For a bug or behavior change, create the smallest meaningful RED oracle and observe
-   it fail for the intended reason. If RED is impractical or lower-signal, record the
-   exact before/after check instead.
-2. Make the smallest Root-owned implementation that reaches GREEN.
-3. Run focused tests, inspect the diff and affected call paths, then run broader or full
-   checks at the repository's required cadence.
-4. Update the plan when evidence changes the best next step. Never silently weaken an
-   acceptance criterion or preserve a planned design contradicted by stronger evidence.
-5. Create a Git checkpoint after a coherent green slice when it improves recovery or
-   review. Never fold unrelated user changes into it.
+1. For a behavior change, create the smallest meaningful RED oracle and observe the
+   intended failure; when RED is lower-signal, record exact before/after evidence.
+2. Make the smallest change that reaches GREEN.
+3. Run focused tests, inspect affected call paths and the diff, then run required full
+   checks.
+4. Update the plan when evidence changes the next step; never weaken acceptance
+   criteria. Checkpoint task-owned changes after coherent green slices when useful.
 
 ## Recover from native state
 
-After resume or compaction, reconstruct state from durable facts before acting:
-
-- inspect the active Goal if one was requested;
-- read the current native plan and working agreement;
-- run `git status`, inspect `git log`, the task diff, and relevant worktrees;
-- check live agents and the latest focused tests, full checks, and review result.
-
-Reconcile disagreements in favor of source and reproducible evidence, then update the
-plan. Do not repeat completed work or redispatch an investigation that is still live.
-If the objective or acceptance criteria cannot be recovered confidently, ask the user.
+After resume or compaction, inspect any user-requested Goal, the native plan,
+`git status`, `git log`, task diff, worktrees, live scouts, focused tests, full checks,
+and review result. Reconcile conflicts in favor of source and reproducible evidence,
+update the plan, and avoid repeating completed or still-live work. Ask the user if
+the objective or acceptance criteria cannot be recovered confidently.
 
 ## Finish with native review
 
-After implementation and required checks, self-inspect the complete task diff and run a
-fresh Codex native review. Use the strongest native review setting authorized by the
-task; record any unavailable model or effort setting instead of claiming it was used.
-Give the reviewer only a factual brief: task, acceptance criteria, the complete diff scope,
-verification evidence, and accepted baseline failures. Do not include the writer's
-implementation narrative, self-review, rebuttal, preferred verdict, or defense.
+After implementation and checks, start a fresh Codex native review of the complete
+task diff, not an in-thread self-review or scout. Resolve model and effort outside the
+reviewer brief. Prefer `gpt-5.6-sol` at `max`:
 
-The supported CLI treats a custom prompt as mutually exclusive with review selector
-flags. Do not combine them. Every review invocation must use a factual brief. Put that
-text in a temporary review brief file outside the repository; do not interpolate its
-contents into a shell command. Set `review_brief` to that file's path, run
-`codex review - < "$review_brief"` so the bytes arrive through stdin, and remove it
-after the invocation.
+```bash
+codex review -c 'review_model="gpt-5.6-sol"' -c 'model_reasoning_effort="max"' - < "$review_brief"
+```
 
-Normalize task state before review and describe the selected scope in that brief:
+Every review and re-review passes the resolved model and effort through both `-c`
+overrides. If the preferred pair is unavailable, disclose that before using the
+strongest authorized supported configuration at or below `max`, honoring any lower
+user cap. Never silently downgrade. Record the requested configuration and any
+invocation-reported model, effort, fallback, or reroute; do not claim values the
+invocation did not expose. `ultra` requires explicit user authorization.
 
-- Preferred committed form: commit all task changes, verify no task-owned uncommitted
-  changes remain, and ask the reviewer to inspect `git diff <task-baseline>..HEAD`. If
-  preserved pre-existing non-task changes remain in the worktree, carry their recorded
-  paths and review exclusions into the brief and verify the verdict addresses only the
-  committed task range.
-- Pure uncommitted form: use only when no task checkpoint commit exists and the complete
-  task is represented by the staged, unstaged, and untracked changes. Do not use it when
-  preserved non-task changes share that worktree; commit or isolate the task first.
-- If task commits and current task changes coexist, either commit the remainder or make
-  the brief require both `git diff <task-baseline>..HEAD` and the complete staged,
-  unstaged, and untracked task changes as one review scope. List task-owned untracked
-  paths explicitly, carry any recorded non-task exclusions, and verify the result
-  addresses both task components without absorbing excluded changes.
+For every review invocation, write a factual brief to a temporary review brief file
+outside the repository, pass it through stdin, remove it afterward, and never
+shell-interpolate its contents. When supplying that prompt, do not combine it with
+the `--base`, `--commit`, or `--uncommitted` selector flags.
 
-Do not replace this with an in-thread self-review or a scout. The Root must
-independently reproduce every actionable finding:
+The factual brief contains only the task, acceptance criteria, immutable baseline,
+complete diff scope, verification evidence, accepted baseline failures, and recorded
+review exclusions. Keep it neutral: omit the writer's implementation narrative,
+self-review, rebuttal, preferred verdict, or defense.
 
-- confirmed defect: add a RED regression oracle when practical, fix it, reach GREEN,
-  and rerun focused tests plus full checks;
-- rejected finding: record concise counter-evidence and do not edit for agreement;
-- unresolved material finding: stop and ask the user rather than guessing.
+Normalize task state before review. Prefer a task-only commit and scope the brief to
+`git diff <task-baseline>..HEAD`. Otherwise include that range plus every task-owned
+staged, unstaged, and untracked path. Carry recorded non-task exclusions into the
+brief; commit or isolate when separation is ambiguous.
 
-If confirmed findings changed the candidate, run one fresh re-review of the complete
-updated diff. Normalize task state again and use a new factual brief with
-`codex review - < "$review_brief"`. Prefer to commit all task changes and inspect
-`git diff <task-baseline>..HEAD` against the same task baseline. If commits remain
-unavailable, include the full staged, unstaged, and untracked union described above; the
-complete task must remain represented by current changes and any task checkpoints.
-Never advance the baseline or select only the post-review fix. If that re-review still
-has a confirmed or unresolved material finding, report the evidence and ask the user;
-do not create an unbounded review loop.
+The Root must independently reproduce every actionable finding:
+
+- Confirmed: add a RED regression oracle when practical, fix it, reach GREEN, and
+  rerun focused tests and full checks.
+- Rejected: record counter-evidence and do not edit merely to agree.
+- Unresolved and material: stop and ask the user.
+
+If confirmed fixes change the candidate, rerun checks and perform at most one fresh
+review under the same complete-scope, immutable-baseline, factual-brief, and resolved
+model/effort contract. Never review only the fix, and do not run a third review in
+this loop. A literal zero-finding result is unnecessary; stop and report if any
+confirmed or unresolved material finding remains.
 
 ## Completion gate
 
-Claim completion only when:
-
-- every acceptance criterion maps to implemented behavior or explicit evidence;
-- required focused tests and full checks have acceptable results;
-- the complete final diff received native review, with no unresolved material finding;
-- all scout work and Git worktrees are accounted for;
-- `git status` contains only intentional task state plus preserved pre-existing non-task
-  changes whose ownership and review exclusion were recorded before editing;
-- any requested Goal still matches this objective and is complete in fact.
-
-Tests passing, a plan marked complete, or an agent saying “done” is never sufficient on
-its own.
+Claim completion only when every acceptance criterion maps to behavior or evidence,
+focused tests and full checks are acceptable, the complete final diff passed the
+review rule above, scouts and worktrees are accounted for, and `git status` contains
+only intentional task state plus recorded preserved changes.
