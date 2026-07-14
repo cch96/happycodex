@@ -71,6 +71,10 @@ class HappyCodexContractTests(unittest.TestCase):
             SKILL.read_text(encoding="utf-8").casefold().split()
         )
         for phrase in (
+            "inspect available evidence",
+            "materially different options",
+            "decision-changing questions",
+            "environment cannot answer",
             "independent unknowns",
             "read-only scouts",
             'fork_turns="none"',
@@ -89,6 +93,8 @@ class HappyCodexContractTests(unittest.TestCase):
         )
         for phrase in (
             "create the smallest meaningful red oracle",
+            "red is unsafe, impractical, or lower-signal",
+            "record why and use exact before/after evidence",
             "make the smallest change that reaches green",
             "git diff <task-baseline>..head",
             "staged, unstaged, and untracked",

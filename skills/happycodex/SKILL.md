@@ -24,6 +24,10 @@ evidence; none substitutes for another.
 
 ## Explore only for decision value
 
+Before resolving an open design choice, inspect available evidence, compare only
+materially different options, and ask only decision-changing questions the
+environment cannot answer.
+
 Delegate only independent unknowns tied to named decisions or verification gates.
 Use orthogonal read-only scouts when distinct investigations could change distinct
 decisions. Give each direct child `fork_turns="none"` and a complete task packet from
@@ -39,7 +43,8 @@ boundary; otherwise update the plan and continue.
 ## Implement through evidence
 
 1. For a behavior change, create the smallest meaningful RED oracle and observe the
-   intended failure; when RED is lower-signal, record exact before/after evidence.
+   intended failure. If RED is unsafe, impractical, or lower-signal, record why and
+   use exact before/after evidence.
 2. Make the smallest change that reaches GREEN.
 3. Run focused tests, inspect affected call paths and the diff, then run required full
    checks.
