@@ -3,7 +3,7 @@
 Protocol: `HappyCodex/0.3`
 Invocation: `$happycodex:happycodex`
 Writer: Root only
-State: local main integrated and validated; push pending
+State: integration complete after remote verification of this closure revision
 Resume: read this entire ExecPlan and reconcile Git, remote refs, checks, and push
 receipts before any merge, push, or completion claim.
 
@@ -121,15 +121,43 @@ controller/hook work, branch deletion, force operation, or publication ran. This
 receipt changes only the task ExecPlan and does not invalidate the reviewed product
 or pre-push matrix.
 
+## Remote push receipt and closure
+
+Immediately before push, a second `git fetch origin main` confirmed remote main was
+still `2836d7363db364807a2ec384dc1b6c2cc13df95e`, an ancestor of local `main`,
+with a clean worktree. Ordinary `git push origin main:main` advanced GitHub main to
+pre-closure revision `fb079a9b9f03b795037fbf7daab21773ae028704`; no force option
+was used. A subsequent fetch and independent `git ls-remote --heads origin
+refs/heads/main` both returned that exact revision, matching local `main` and
+`origin/main`.
+
+This closure revision changes only this ExecPlan, so it leaves every reviewed product
+byte, engine/snapshot/ledger identity, package identity, and pre-push validation
+receipt unchanged. It is pushed by the same ordinary fast-forward mechanism, then
+local `main`, `origin/main`, and GitHub `refs/heads/main` are read back and required to
+match exactly. That terminal readback is the completion receipt for MI-05.
+
+Claims MI-01 through MI-06 are closed: remote main had no competing work; the source
+was integrated by fast-forward; the full offline matrix passed; shipped-package bytes
+were preserved; only main was pushed; and no excluded action ran. The feature branch
+is retained and no branch or worktree is deleted.
+
 ## Checkpoint
 
-- Milestone: local `main` is fast-forward integrated and the complete pre-push matrix
-  is GREEN.
-- Next: commit this receipt, fetch/recheck `origin/main`, push local `main` without
-  force, and verify exact remote identity.
-- Product tree is immutable; only this ExecPlan administrative record is mutable.
-- Missing facts: final local/remote `main` identity and push receipt.
+- Milestone: source integration, offline validation, first remote push, and exact
+  remote readback are complete.
+- Next: commit and ordinary-push this closure-only revision, then perform the terminal
+  local/tracking/remote identity readback. No product action remains.
+- Product tree is immutable; this is the terminal ExecPlan administrative record.
+- Missing facts: none after the terminal remote identity readback succeeds.
 
 ## Retrospective
 
-Fill only after every integration and remote-identity gate closes.
+The direct-ancestry topology made fast-forward the highest-integrity and smallest
+integration: it preserved main history, avoided an artificial merge commit, and kept
+the reviewed source tree exact. Fetching both before integration and immediately
+before push closed the remote-drift window. Running the complete offline matrix on
+local main caught integration regressions before external mutation; no rerun of live
+behavior or product certification was needed because the integrated product bytes
+were unchanged. Two ordinary pushes are used only so the final remote receipt itself
+is durable in this task-owned closure record; neither rewrites history.
