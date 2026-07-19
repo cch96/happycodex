@@ -77,40 +77,40 @@
   "snapshot": {
     "corpus": {
       "cases": {
-        "authorized-rebaseline": "6de36e234d1f793cf30c4b024d413079754c4519e37a81c33416febcf606625e",
-        "boundary-cutover": "f8d31b9cd672ff5d9e7ffa806d2304a961e4f8fd9213000e2d727045939c47d1",
-        "clean-qualifying-control": "e5ef9bd3f0863ae84d651e999abbefca523ca97d47ef9406f1467ed060a16577",
-        "compaction-recovery": "125328332c5d1c81b74996427e9265329e5adeacafd738ac07f766986bf10c3e",
-        "goal-divergence": "359a9289d7f72ac998b086d1bd991b8508d52d2423e92537c52faefb6abf9d9a",
-        "midflight-escalation": "c9ce0dba6f943b509bb03ce2312fdb6ee8bb553225981322cce59becf9ad3dba",
-        "multi-repo-submodule": "a9bbe7275d47cf7ba61d79d5161ab2084d5df1f4d5c3dea850117defb170ff64",
-        "no-commit-secret": "f942bd1800c4a633d1cc17578b89a91bdedb4f5ff8b9d6f4136a6572902ef9b2",
-        "pre-freeze-compaction": "f49089bfddf25efb25b2f962d24f2f6fb7874f2487fc656f0387f6d3bbd4f081",
-        "receipt-mismatch": "78fb18a73026ca2bf307e5384ccde431248dab55f6e198bfa5750d4da85596e0",
-        "review-admin-cycle": "205615bc135f4dd96d907f0d067921cc13ec4a924e4ce2a0efeb42b73b97893b",
-        "review-inventory-gate": "fd6bfe919221679ab35be815e880aa230e8f848f3755f41f5121aacdb483294d",
-        "review-isolation": "675532d5e4b2ba4da802a60c7386c206b9203d745aef13d4ad52e4c96cc82b7f",
-        "subthreshold-control": "6df582dddc18a6eb5ccc61aedaedfb7819f7555fa3a336830fec04b60ee67d17"
+        "authorized-rebaseline": "8923237ac1b60cdea619000d5766f3c73aa2c911921902156934c2374c593ab3",
+        "boundary-cutover": "b97b0dd5dc28baf476f9414280932d6f51284e031f28825ec2df9ae5afe7c938",
+        "clean-qualifying-control": "5d14c6a4d8bd2134381d7cfd07e1a3ad7dccd1687d305a913c9a8a11618af8cd",
+        "compaction-recovery": "8a17393d2ce0fd9435d1639c504ba42770387463471f570449842dc48889bb07",
+        "goal-divergence": "6114e6754ef8f062d5beb506f1788ef8519f6b847f6e2a012389160e3cca39cd",
+        "midflight-escalation": "8bde143e19848276acac5e7e3fd5b1d4e641ab01e73f40709fe6bdcb47a47170",
+        "multi-repo-submodule": "44ce4fe364d71e392e2d7a810cc0033ba0950344610bb20da5cb088104cb2793",
+        "no-commit-secret": "f51913be76b4c31fd9195dfa7756e37da3760528808a7d4ddad253cfcc3eb29b",
+        "pre-freeze-compaction": "4d49932f47aa0b3a4bb2aa4ee4c6e1f9c6b0e98ddbfacc5832560f35d375dc37",
+        "receipt-mismatch": "6aeb36d845217c06a8051a60edc301c9cb60005966b321588a15ed74aa5a0892",
+        "review-admin-cycle": "928c5550a9b26635c73c17ff22ee3284e73d699d923bf514d554bbb226247cff",
+        "review-inventory-gate": "e073188cba0e424a704ab54101d527c09b49471ef59e214b402d4caa286fce4d",
+        "review-isolation": "ca35838cc71d7661df82a5fe3a0fa96e4d77c7155ec0f7e0b00d0fbb7e39abb4",
+        "subthreshold-control": "f7fb2150e47a423f34546160a0e6344edfc33767e91223a55532c2d8836f9bc5"
       }
     },
     "engine": {
       "categories": {
-        "artifact": "a4d7bcc718b1716a2ecd193156d450463c3fc3795aec0a97744d44d76f3d5a98",
-        "harness": "592ff84a8cccb9e1a0267122adda0d334a48dd64ee21be512d035c2031952469",
-        "semantic": "80c3b50dae84319db395d43766054045cad32991a7c5c1c4506e705dde4dd176"
+        "artifact": "e1a7afcd992d08314039184c007b3ded8478eb52ebcb32c8fb149038c0cc8de9",
+        "harness": "15c2fe45a015949fac27a8ccb95159a0e7027d01cc916fd05325e2d5913b9ef1",
+        "semantic": "8f73619db63d7d64b934a9e70c627756bda8ea39978dbb7a9d42d37f65e29477"
       },
-      "manifest_sha256": "34963db0de975f18ad2c0fdeb40f419eb0942feaf90a8d6de2eb5e974be3de75",
+      "manifest_sha256": "fbda676ee49a8f12d4d98b16ba4381954e77cb37a948eb5b63ec222b73dfc609",
       "scopes": {
-        "corpus_harness": "be11ec890b3ad040b19b470f97a0e302a95d3207d7284fddc1e7805b5517762d",
+        "corpus_harness": "3b2bdde1eb7559c8791cc11d7894ec016ed8915fc9497e369684a6ead50c5c3d",
         "holdout_harness": "ddba9d8f9ac9f4ba56bbcbacd1075924ceee8efd3b54927dc508ba46430a7a01",
         "holdout_semantic": "0da4c74d2f524d4511f39331b3754301638f5e23d0f097b38b61b94d102dae58"
       }
     },
     "holdout": {
       "pairs": {
-        "authority-production-boundary": "3fa267fbe52cd78627d069ec8625b9253d9507c1894a574ae2c38c94ef3e40d0",
-        "destructive-migration-fallback": "1e000daaad15a039eac083b86ec076d04df6e56daf4833fd5d66a780d9f861ca",
-        "local-documentation-control": "10970c22d6b9c7b075650daa885c3b33cd9fef82db9dd61ba6feacf8f6d15641"
+        "authority-production-boundary": "3e34db8da45b2c75808824330b9a885de10c879bfab352375892de07fc918532",
+        "destructive-migration-fallback": "60ad2b377b693fed46b6fa99cc6382d071b0a58aff77e436eb6db715562a2296",
+        "local-documentation-control": "4fb68bb37455e38909c2d75de7bcb57ff8c7f61712015498b31fb51859bff084"
       }
     },
     "package": {
@@ -136,6 +136,11 @@
         "python": {
           "path": "/usr/bin/python3.10",
           "sha256": "2a07e4b31eebc00649ee310a4a289bb55e213c25f523f41b4c471bee6284ba97",
+          "shared_libraries_sha256": "ba93e5f16a1c91403ea37627af0c087cc586a152ee0e95e507e35534bb4323d1",
+          "shared_library_count": 47,
+          "shared_library_resolver_sha256": "236431e509066e30abd8696f289ddf246c56386bd451e3f50de3175a75480708",
+          "stdlib_file_count": 735,
+          "stdlib_sha256": "6cc498f1e8135d99b81b739d2425757c4f78d7e8914da895318ae8c49048d9ba",
           "version": "Python 3.10.12"
         },
         "rg": {

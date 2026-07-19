@@ -137,7 +137,7 @@ evaluation/
   __init__.py
   cli.py
   live.py
-  core/{__init__,identity,impact,receipt}.py
+  core/{__init__,identity,impact,ledger,receipt}.py
   corpus/{__init__,contract,engine}.py
   holdout/{__init__,blind,compare,engine}.py
   cases/*.json
@@ -158,9 +158,10 @@ Identity layers are non-overlapping:
   timeout, prompt/context/schema, isolation/permission policy, oracle and comparison
   policy;
 - harness: every executable module that realizes fixture/install/invoke/parse/blind
-  behavior, plus exact Python/Codex/Git/rg toolchain identities;
-- artifact: sanitizers, receipt serialization, tracked ledger projection, and the
-  exact full-package artifact digest.
+  or authority/control behavior, plus exact Python/Codex/Git/rg toolchain identities;
+  Python also binds its standard-library tree, shared-library closure, and resolver;
+- artifact: sanitizers and receipt serialization, plus the exact full-package
+  artifact digest.
 
 Impact fails closed. Semantic mutation invalidates the exact dependent corpus cases
 and downstream holdouts. Unknown or execution-affecting harness mutation requires the
@@ -268,10 +269,10 @@ The four review findings now have executable counterexamples and bounded repairs
   snapshot, engine-manifest, corpus, holdout, review, and authority digests. Empty or
   malformed receipts, mismatched engine/authority/package/settings, retained pending
   gates, and certified-state input drift fail closed.
-- `NR-03`: sanitizers moved from corpus harness to artifact-only receipt code; CLI is
-  artifact/control projection, live dispatch is shared harness, holdout comparison is
-  holdout-only semantic policy, and Python/Codex/Git/rg path/version/binary identities
-  are in every current snapshot and raw run identity receipt.
+- `NR-03`: sanitizers moved from corpus harness to artifact-only receipt code; CLI and
+  live dispatch are shared harness, holdout comparison is holdout-only semantic policy,
+  and Python/Codex/Git/rg path/version/binary identities are in every current snapshot
+  and raw run identity receipt.
 - `NR-04`: corpus-case removal raises an identity error before scope intersection or
   token minting. The holdout manifest and snapshot also require exactly three pairs;
   unknown new corpus cost continues to fail closed.
@@ -349,6 +350,57 @@ errors. It reproduced artifact-only zero-call plans for real `cli.py` and
 `core/impact.py` mutations, missing `core/ledger.py`, absent Python stdlib/shared-lib
 identities, acceptance of the old incomplete authority envelope, and no repository
 argument for reachable certification evidence. No model or external mutation ran.
+
+## NR-05/06 repair closure candidate
+
+The second repair keeps artifact sanitization in `core/receipt.py` and moves all
+authority, ledger, source, and evidence validation into classified shared-harness
+`core/ledger.py`. `cli.py`, `live.py`, `core/identity.py`, `core/impact.py`, and
+`core/ledger.py` now share the corpus-harness invalidation scope, so a real-file
+mutation of any control module produces the full 18-to-20-call plan; the same
+mutation of receipt sanitization remains a zero-model receipt gate.
+
+Live authority now persists the complete validated impact, snapshot identity, exact
+corpus/holdout invocation list, literal approval response and its SHA-256, and the
+canonical approval-request digest. A token alone still grants nothing. The authority
+must cover every nonempty live scope exactly and use the frozen public-0.2 artifact.
+
+A `certified` transition now resolves the successor commit and tree from Git, extracts
+that exact source, and proves its engine manifest plus shipped-package content against
+the snapshot and current package identity. Corpus, holdout-run, holdout-summary, and
+opaque review locators must name descendant commits reachable from `HEAD`; each
+locator binds path, Git blob, and file SHA-256. Mechanical validators then bind the
+full engine inventory, toolchain, package, semantic case inputs, source holdout
+manifest/cases, adaptive ordering, arm identities, telemetry aggregates, and release
+cost gate. This adds no reviewer protocol: review JSON remains opaque but must be a
+nonempty reachable content-addressed object.
+
+Python identity now hashes 735 non-cache standard-library files and the deterministic
+47-library dependency closure of the interpreter and stdlib extension modules, plus
+the `ldd` resolver bytes. The focused suite is 24/24 green, including a temporary Git
+repository that exercises the complete positive certification path and rejects a
+reachable but source-mismatched successor. Current offline identities are engine
+`fbda676ee49a8f12d4d98b16ba4381954e77cb37a948eb5b63ec222b73dfc609`,
+snapshot `62472587707a5501e4d3d03bec40b366d0c6b4dcc1117bf0b1b5deb10cd0e51f`,
+ledger `d611687e20baec2a8536b61356a4a7f10e3af08ed98a64a17680357e8645aa2e`,
+and impact token
+`e6bfad33d89ec56d5e58658fd790c6ec83335143df4648493118c6a79a0eb83c`.
+The ledger remains `refresh_required` with null live authority and unchanged exact
+cost/scope.
+
+The full offline matrix is green: 108/108 unit tests in 5.189 seconds; both official
+Skill/plugin validators; Ruff check and format-check; both CLI dry-runs; verify and
+impact JSON; JSON parsing and diff hygiene; legacy-path/generated-artifact absence;
+and the exact shipped-package artifact
+`0c83dbc694cb98bf811dd2d1c199b5d2aa734c484476a638884e775289c1d934`.
+An isolated archive of frozen public commit
+`3b9c11fac1f97df75263e0bfc6421c575e04e8b2` again reproduced semantic
+`fb3cb419795a6edcb284695769b5487b1f23ae46286c5fceba8042fcb41f9ce4`
+and artifact
+`77a0b2b8f7f6280d6ed32458fc61ca110f7138b5b6c17ad55d333a023dfa8c89`;
+`impact --public` emitted exactly the corpus and holdout descriptors with
+`live_authority_ready: true`. The archive was removed. No model call ran. A third
+immutable fresh review remains open.
 
 ## Validation envelope
 

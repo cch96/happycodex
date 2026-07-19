@@ -18,7 +18,10 @@ not Skill runtime and must never be linked from `skills/happycodex/SKILL.md`.
   package identities, model, effort, timeout, arm, and complete invocation scope.
 - `evaluation/results/current.json` is the sole active evidence ledger. Never promote
   `refresh_required` to `certified` from offline checks, and do not add historical
-  result readers, aliases, migrations, or dual writes.
+  result readers, aliases, migrations, or dual writes. Certification additionally
+  requires a Git-reachable successor source whose package content and engine manifest
+  match the snapshot, plus descendant content-addressed corpus, holdout, and review
+  evidence whose Git blobs and SHA-256 digests validate.
 - Store raw model events outside the repository. Track only sanitized summaries,
   hashes, fixed fixtures, prompts, hidden oracles, and executable evaluation code.
 - Maintainer evaluation must prove native same-task compaction plus a distinct

@@ -4,6 +4,9 @@ PERMISSION_PROFILE = "happycodex-evaluator"
 NATIVE_TOOL_NAMES = ("apply_patch", "codex", "codex-linux-sandbox", "rg")
 BASE_COMMAND_PATHS = ("/usr/local/bin", "/usr/bin", "/bin")
 PARENT_CONTEXT_ENV = ("CODEX_REMOTE_PAYLOAD", "CODEX_THREAD_ID", "PWD", "OLDPWD")
+PUBLIC_02_PACKAGE_ARTIFACT_SHA256 = (
+    "77a0b2b8f7f6280d6ed32458fc61ca110f7138b5b6c17ad55d333a023dfa8c89"
+)
 FILESYSTEM_ISOLATION_POLICY = {
     "mechanism": "codex-permission-profile",
     "profile": PERMISSION_PROFILE,

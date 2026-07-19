@@ -7,7 +7,7 @@ from pathlib import Path
 from evaluation import live
 from evaluation.core.identity import canonical_sha256, engine_inventory
 from evaluation.core.impact import DEFAULT_EFFORT, DEFAULT_MODEL, DEFAULT_TIMEOUT
-from evaluation.core.receipt import ledger_sha256
+from evaluation.core.ledger import ledger_sha256
 
 
 ROOT = Path(__file__).resolve().parents[1]

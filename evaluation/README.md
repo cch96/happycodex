@@ -21,18 +21,22 @@ The engine records three independent identities:
 
 - semantic inputs: case/holdout data, prompt/schema/comparison policy,
   runtime-semantic package projection, model, effort, timeout, and arm;
-- harness inputs: every executable fixture/install/invoke/blind module and the exact
-  Python/Codex/Git/rg toolchain identities;
-- artifact inputs: receipt serialization, sanitization, and impact projection.
+- harness inputs: every executable fixture/install/invoke/blind/control/authority
+  module and exact Python/Codex/Git/rg toolchain identities; Python also binds the
+  standard-library tree, shared-library closure, and resolver bytes;
+- artifact inputs: receipt serialization and sanitization only.
 
 Every evaluator Python module and JSON case/schema is explicitly classified. An
 unknown module fails validation. Semantic or execution-affecting harness changes fail
 closed to the exact live gates; artifact-only changes require no model call.
 
 `results/current.json` is the only active ledger. Its `refresh_required` state cannot
-be promoted by offline checks. `certified` requires a closed successor receipt bound
-to the snapshot, engine manifest, live authority, corpus, holdout, and fresh review
-digests. Historical v1-v21 ledgers remain reachable in Git and have no active-tree
+be promoted by offline checks. `certified` requires a Git-reachable successor whose
+package content and engine manifest match the snapshot, plus descendant
+content-addressed corpus, holdout, and opaque fresh-review JSON evidence. Corpus and
+holdout validators bind the exact source engine, cases, package/toolchain identities,
+adaptive policy, and cost gate; every evidence locator binds commit, Git blob, and
+SHA-256. Historical v1-v21 ledgers remain reachable in Git and have no active-tree
 reader, alias, migration, or compatibility path.
 
 ## Offline and live commands

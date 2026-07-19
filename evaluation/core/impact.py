@@ -33,11 +33,30 @@ ENGINE_FIELDS = {"categories", "scopes", "manifest_sha256"}
 SETTINGS_FIELDS = {"model", "effort", "timeout_seconds", "toolchain"}
 TOOLCHAIN_FIELDS = {"python", "codex", "git", "rg"}
 TOOL_IDENTITY_FIELDS = {"path", "sha256", "version"}
+PYTHON_IDENTITY_FIELDS = TOOL_IDENTITY_FIELDS | {
+    "stdlib_sha256",
+    "stdlib_file_count",
+    "shared_libraries_sha256",
+    "shared_library_count",
+    "shared_library_resolver_sha256",
+}
+IMPACT_FIELDS = {
+    "schema_version",
+    "reasons",
+    "gates",
+    "corpus_cases",
+    "holdout_pairs",
+    "live_calls",
+    "cost",
+}
 CORPUS_HARNESS_PATHS = {
     "evaluation/__init__.py",
+    "evaluation/cli.py",
     "evaluation/live.py",
     "evaluation/core/__init__.py",
     "evaluation/core/identity.py",
+    "evaluation/core/impact.py",
+    "evaluation/core/ledger.py",
     "evaluation/corpus/__init__.py",
     "evaluation/corpus/engine.py",
 }
@@ -228,9 +247,12 @@ def validate_snapshot(snapshot: dict[str, Any]) -> None:
     if not isinstance(toolchain, dict) or set(toolchain) != TOOLCHAIN_FIELDS:
         raise IdentityError("invalid snapshot toolchain")
     for name, identity in toolchain.items():
+        expected_fields = (
+            PYTHON_IDENTITY_FIELDS if name == "python" else TOOL_IDENTITY_FIELDS
+        )
         if (
             not isinstance(identity, dict)
-            or set(identity) != TOOL_IDENTITY_FIELDS
+            or set(identity) != expected_fields
             or not isinstance(identity["path"], str)
             or not identity["path"]
             or not isinstance(identity["version"], str)
@@ -239,6 +261,20 @@ def validate_snapshot(snapshot: dict[str, Any]) -> None:
             or not re.fullmatch(r"[0-9a-f]{64}", identity["sha256"])
         ):
             raise IdentityError(f"invalid snapshot tool identity: {name}")
+        if name == "python" and (
+            not isinstance(identity["stdlib_file_count"], int)
+            or isinstance(identity["stdlib_file_count"], bool)
+            or identity["stdlib_file_count"] <= 0
+            or not isinstance(identity["shared_library_count"], int)
+            or isinstance(identity["shared_library_count"], bool)
+            or identity["shared_library_count"] <= 0
+            or not re.fullmatch(r"[0-9a-f]{64}", identity["stdlib_sha256"])
+            or not re.fullmatch(r"[0-9a-f]{64}", identity["shared_libraries_sha256"])
+            or not re.fullmatch(
+                r"[0-9a-f]{64}", identity["shared_library_resolver_sha256"]
+            )
+        ):
+            raise IdentityError("invalid snapshot tool identity: python")
     engine = snapshot.get("engine")
     if not isinstance(engine, dict) or set(engine) != ENGINE_FIELDS:
         raise IdentityError("invalid engine identity envelope")
@@ -324,6 +360,64 @@ def _cost(corpus_cases: set[str], holdout: bool) -> dict[str, Any]:
             "maximum": round(maximum_wall, 3),
         },
     }
+
+
+def validate_impact(impact: dict[str, Any], snapshot: dict[str, Any]) -> None:
+    validate_snapshot(snapshot)
+    if not isinstance(impact, dict) or set(impact) != IMPACT_FIELDS:
+        raise IdentityError("invalid impact envelope")
+    if impact.get("schema_version") != 1:
+        raise IdentityError("unsupported impact schema")
+    reasons = impact["reasons"]
+    gates = impact["gates"]
+    if (
+        not isinstance(reasons, list)
+        or not all(isinstance(item, str) and item for item in reasons)
+        or reasons != sorted(set(reasons))
+    ):
+        raise IdentityError("invalid impact reasons")
+    if (
+        not isinstance(gates, list)
+        or gates != [gate for gate in GATE_ORDER if gate in gates]
+        or len(gates) != len(set(gates))
+    ):
+        raise IdentityError("invalid impact gates")
+    for field, available in (
+        ("corpus_cases", set(snapshot["corpus"]["cases"])),
+        ("holdout_pairs", set(snapshot["holdout"]["pairs"])),
+    ):
+        scope = impact[field]
+        if (
+            not isinstance(scope, list)
+            or scope != sorted(set(scope))
+            or not set(scope) <= available
+        ):
+            raise IdentityError(f"invalid impact scope: {field}")
+    corpus_cases = set(impact["corpus_cases"])
+    holdout_live = bool(impact["holdout_pairs"])
+    if bool(corpus_cases) != ("corpus" in gates):
+        raise IdentityError("impact corpus gate does not match scope")
+    if holdout_live != ("holdout" in gates):
+        raise IdentityError("impact holdout gate does not match scope")
+    expected_calls = {
+        "minimum": len(corpus_cases) + (4 if holdout_live else 0),
+        "maximum": len(corpus_cases) + (6 if holdout_live else 0),
+    }
+    if impact["live_calls"] != expected_calls:
+        raise IdentityError("impact live-call count does not match scope")
+    if impact["cost"] != _cost(corpus_cases, holdout_live):
+        raise IdentityError("impact cost does not match scope")
+
+
+def impact_token(snapshot: dict[str, Any], impact: dict[str, Any]) -> str:
+    validate_impact(impact, snapshot)
+    return canonical_sha256(
+        {
+            "schema_version": 1,
+            "snapshot_sha256": canonical_sha256(snapshot),
+            "impact": impact,
+        }
+    )
 
 
 def plan_impact(
@@ -450,7 +544,7 @@ def plan_impact(
     holdout_live = bool(holdout_pairs)
     minimum_calls = len(corpus_cases) + (4 if holdout_live else 0)
     maximum_calls = len(corpus_cases) + (6 if holdout_live else 0)
-    return {
+    result = {
         "schema_version": 1,
         "reasons": sorted(reasons),
         "gates": [gate for gate in GATE_ORDER if gate in gates],
@@ -459,3 +553,5 @@ def plan_impact(
         "live_calls": {"minimum": minimum_calls, "maximum": maximum_calls},
         "cost": _cost(corpus_cases, holdout_live),
     }
+    validate_impact(result, current)
+    return result

@@ -4,23 +4,19 @@ import argparse
 from pathlib import Path
 from typing import Any
 
-from evaluation.core.identity import canonical_sha256, package_identities
-from evaluation.core.impact import build_snapshot, plan_impact
-from evaluation.core.receipt import load_ledger, require_authorized_invocation
+from evaluation.core.identity import package_identities
+from evaluation.core.impact import (
+    build_snapshot,
+    impact_token as snapshot_impact_token,
+    plan_impact,
+)
+from evaluation.core.ledger import load_ledger, require_authorized_invocation
 from evaluation.corpus import engine as corpus_engine
 from evaluation.holdout import engine as holdout_engine
 
 
 ROOT = Path(__file__).resolve().parents[1]
 LEDGER_PATH = ROOT / "evaluation" / "results" / "current.json"
-IMPACT_LEDGER_FIELDS = (
-    "schema_version",
-    "state",
-    "snapshot",
-    "prior_evidence",
-    "pending",
-    "historical_cost",
-)
 
 
 def _settings_from_ledger(ledger: dict[str, Any]) -> dict[str, Any]:
@@ -44,15 +40,8 @@ def load_state() -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
 def impact_token(
     ledger: dict[str, Any], current: dict[str, Any], impact: dict[str, Any]
 ) -> str:
-    ledger_basis = {field: ledger[field] for field in IMPACT_LEDGER_FIELDS}
-    return canonical_sha256(
-        {
-            "schema_version": 1,
-            "ledger_basis_sha256": canonical_sha256(ledger_basis),
-            "snapshot_sha256": canonical_sha256(current),
-            "impact": impact,
-        }
-    )
+    del ledger
+    return snapshot_impact_token(current, impact)
 
 
 def _require_snapshot_settings(
@@ -195,7 +184,8 @@ def run_command(args: argparse.Namespace, parser: argparse.ArgumentParser) -> in
         )
         require_authorized_invocation(
             ledger["live_authority"],
-            impact_sha256=binding,
+            snapshot=current,
+            impact=impact,
             invocation=invocation,
         )
     except (OSError, RuntimeError, ValueError) as exc:

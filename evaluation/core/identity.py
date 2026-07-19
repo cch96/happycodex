@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import hashlib
+from functools import lru_cache
 import json
 import os
 from pathlib import Path
 import shutil
 import subprocess
 import sys
+import sysconfig
 from typing import Any
 
 
@@ -14,11 +16,12 @@ PACKAGE_PATHS = (".agents", ".codex-plugin", "README.md", "skills")
 ENGINE_CATEGORIES = ("semantic", "harness", "artifact")
 MODULE_CATEGORIES = {
     "evaluation/__init__.py": "harness",
-    "evaluation/cli.py": "artifact",
+    "evaluation/cli.py": "harness",
     "evaluation/live.py": "harness",
     "evaluation/core/__init__.py": "harness",
     "evaluation/core/identity.py": "harness",
-    "evaluation/core/impact.py": "artifact",
+    "evaluation/core/impact.py": "harness",
+    "evaluation/core/ledger.py": "harness",
     "evaluation/core/receipt.py": "artifact",
     "evaluation/corpus/__init__.py": "harness",
     "evaluation/corpus/contract.py": "semantic",
@@ -104,6 +107,28 @@ def package_manifest_sha256(plugin: Path) -> str:
     return canonical_sha256(package_manifest(plugin))
 
 
+def package_content_sha256(plugin: Path) -> str:
+    plugin = plugin.resolve()
+    records: list[dict[str, Any]] = []
+    for path in sorted(selected_package_paths(plugin)):
+        relative = path.relative_to(plugin).as_posix()
+        if path.is_symlink():
+            records.append(
+                {"path": relative, "kind": "symlink", "target": os.readlink(path)}
+            )
+        elif path.is_file():
+            content = path.read_bytes()
+            records.append(
+                {
+                    "path": relative,
+                    "kind": "file",
+                    "bytes": len(content),
+                    "sha256": sha256_bytes(content),
+                }
+            )
+    return canonical_sha256(records)
+
+
 def _skill_semantic_manifest(plugin: Path) -> dict[str, dict[str, Any]]:
     root = plugin / "skills"
     paths = [root, *root.rglob("*")]
@@ -159,9 +184,99 @@ def _executable_identity(name: str, *, executable: str | None = None) -> dict[st
     }
 
 
-def toolchain_identity() -> dict[str, dict[str, str]]:
+@lru_cache(maxsize=1)
+def _python_stdlib_identity() -> dict[str, Any]:
+    raw_root = sysconfig.get_paths().get("stdlib")
+    if not raw_root:
+        raise IdentityError("cannot locate the Python standard library")
+    root = Path(raw_root).resolve()
+    if not root.is_dir():
+        raise IdentityError("invalid Python standard-library path")
+    excluded = {"__pycache__", "site-packages", "dist-packages"}
+    records: list[dict[str, Any]] = []
+    for path in sorted(root.rglob("*")):
+        relative = path.relative_to(root)
+        if excluded.intersection(relative.parts) or path.suffix == ".pyc":
+            continue
+        if path.is_file():
+            content = path.read_bytes()
+            records.append(
+                {
+                    "path": relative.as_posix(),
+                    "bytes": len(content),
+                    "sha256": sha256_bytes(content),
+                }
+            )
+    if not records:
+        raise IdentityError("empty Python standard-library identity")
     return {
-        "python": _executable_identity("python", executable=sys.executable),
+        "stdlib_sha256": canonical_sha256(records),
+        "stdlib_file_count": len(records),
+    }
+
+
+@lru_cache(maxsize=1)
+def _python_shared_library_identity() -> dict[str, Any]:
+    raw_root = sysconfig.get_paths().get("stdlib")
+    ldd = shutil.which("ldd")
+    if not raw_root or not ldd:
+        raise IdentityError("cannot identify Python shared libraries")
+    root = Path(raw_root).resolve()
+    excluded = {"__pycache__", "site-packages", "dist-packages"}
+    targets = {Path(sys.executable).resolve()}
+    for path in root.rglob("*.so*"):
+        relative = path.relative_to(root)
+        if not excluded.intersection(relative.parts) and path.is_file():
+            targets.add(path.resolve())
+    completed = subprocess.run(
+        [ldd, *(str(path) for path in sorted(targets))],
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=60,
+        env={**os.environ, "LC_ALL": "C"},
+    )
+    if completed.returncode:
+        raise IdentityError("cannot resolve Python shared-library dependencies")
+    libraries: set[Path] = set()
+    for line in completed.stdout.splitlines():
+        value = line.strip().split(" => ", maxsplit=1)[-1].split(" (", maxsplit=1)[0]
+        if value.endswith(":"):
+            continue
+        if value.startswith("/"):
+            path = Path(value)
+            if not path.is_file():
+                raise IdentityError(f"unreadable Python shared library: {path}")
+            libraries.add(path.resolve())
+    if not libraries:
+        raise IdentityError("empty Python shared-library identity")
+    resolver = Path(ldd).resolve()
+    records = [
+        {
+            "path": str(path),
+            "bytes": path.stat().st_size,
+            "sha256": sha256_bytes(path.read_bytes()),
+        }
+        for path in sorted(libraries)
+    ]
+    return {
+        "shared_libraries_sha256": canonical_sha256(records),
+        "shared_library_count": len(records),
+        "shared_library_resolver_sha256": sha256_bytes(resolver.read_bytes()),
+    }
+
+
+def _python_identity() -> dict[str, Any]:
+    return {
+        **_executable_identity("python", executable=sys.executable),
+        **_python_stdlib_identity(),
+        **_python_shared_library_identity(),
+    }
+
+
+def toolchain_identity() -> dict[str, dict[str, Any]]:
+    return {
+        "python": _python_identity(),
         "codex": _executable_identity("codex"),
         "git": _executable_identity("git"),
         "rg": _executable_identity("rg"),
