@@ -1149,6 +1149,28 @@ clones and offline validators are allowed; repository writes, model/live evaluat
 network, Fable, Goal actions, installation, activation, ref mutation, push, and
 publication are forbidden.
 
+Phase 1 completed in that same fresh reviewer session before candidate disclosure.
+It inspected only detached baseline
+`2836d7363db364807a2ec384dc1b6c2cc13df95e`, tree
+`c27536825a34421522fbf1b3b759f2cc63aa8144`, plus the installed process Skill used
+to enforce review isolation, and then removed its clean temporary clone. It emitted
+20 stable candidate obligations `HC04-O01` through `HC04-O20`; Root's SHA-256 over
+UTF-8 canonical lines `ID<TAB>text<LF>` is
+`c9f418868bb828efd75b9a1a0ea92360edc9b797b8092a638f5738e63df1a55d`.
+
+The obligations independently cover exact scope/exclusions, clean-break modularity
+and legacy retirement, three identity domains, read-only impact and historical cost,
+single-ledger and persisted authority semantics, corpus/evaluator/package/compaction/
+holdout/blinding/adaptive preservation, evidence hygiene, exact shipped Runtime, and
+offline closure. Seven additional baseline facts bind path/count and historical/public
+identities; three limitations disclose static-only Phase 1, candidate isolation, and
+bounded historical/test reads. It did not inspect the current branch/worktree,
+candidate/admin commits or diff, this task ExecPlan, prior reviews/findings, writer
+narrative, or Root conversation, and ran no test, validator, model, live evaluation,
+network, install, Fable, Goal, ref, or source-write action. Detailed text and baseline
+receipts remain in the durable Phase-1 terminal record for
+`/root/cert_engine_terminal_evidence_final_review`.
+
 ## Validation envelope
 
 Candidate offline commands, exact live-run costs, required reruns, and review launch
