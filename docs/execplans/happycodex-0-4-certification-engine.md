@@ -3,7 +3,7 @@
 Protocol: `HappyCodex/0.3`
 Invocation: `$happycodex:happycodex`
 Writer: Root only
-State: offline-green; tenth fresh exact review pending
+State: architectural stop; tenth fresh review NOT-YET; user direction required
 Resume: read this entire ExecPlan and reconcile Goal, Native Plan, Git, tests,
 receipts, worktrees, and agents before any write, review, or completion claim.
 
@@ -81,14 +81,14 @@ explicit user cost decision before launch.
 | --- | --- | --- | --- | --- |
 | O-01 | outcome | A modular pure-standard-library certification engine replaces the monolithic internal evaluator without legacy internal compatibility. | Module/CLI inventory plus tests; legacy reader or dual-write path falsifies. | verified offline |
 | O-02 | outcome | Canonical receipts separate semantic input, harness implementation, and derived artifact identities. | Deterministic hash tests and mutation counterexamples. | verified offline |
-| O-03 | outcome | A read-only impact command reports exact invalidated gates, reasons, and live-run count/cost before execution. | Table-driven dependency tests; an unclassified material input change falsifies. | verified offline at 20-to-22 calls; live execution unapproved |
+| O-03 | outcome | A read-only impact command reports exact invalidated gates, reasons, and live-run count/cost before execution. | Table-driven dependency tests; an unclassified material input change falsifies. | NOT-YET: a partial pending holdout scope can be planned but not executed |
 | O-04 | outcome | Historical behavior v1-v20 files and version-specific compatibility tests leave the active tree while remaining reachable in Git history. | Final path inventory and ancestry proof. | verified |
 | O-05 | preservation | Installed Skill behavior, plugin identity, public install commands, and `$happycodex:happycodex` invocation remain stable except the intentional 0.4 version/change note. | Exact runtime diff and contract tests. | verified; no version edit in phase one |
 | O-06 | outcome | Maintainer policy describes current public 0.3 baseline, the 0.4 gate model, and this task's explicit Fable exclusion correctly. | Policy review and tests. | verified |
-| O-07 | outcome | Offline suite, official Skill/plugin validators, dry-runs, diff hygiene, and final fresh native review close with no unresolved blocker. | Exact command receipts and review coverage. | offline matrix green; tenth fresh review pending |
+| O-07 | outcome | Offline suite, official Skill/plugin validators, dry-runs, diff hygiene, and final fresh native review close with no unresolved blocker. | Exact command receipts and review coverage. | NOT-YET: offline matrix is green but the tenth fresh review found five blockers |
 | O-08 | preservation | No Fable invocation, controller, hook, daemon, scheduler, MCP/app runtime, or authoritative Task State JSON is added or run. | Tree/command inventory. | verified |
 | O-09 | outcome | Every transitive evaluator module/schema is classified into and bound by a canonical semantic, harness, or artifact manifest. | Module inventory and mutation tests; any executable unclassified file falsifies. | verified offline |
-| O-10 | outcome | The evidence ledger has one new-schema `current.json`, explicitly records `refresh_required`, and cannot claim certification without a live successor receipt. | State-machine tests and final ledger inspection. | verified offline; approved live successor still pending |
+| O-10 | outcome | The evidence ledger has one new-schema `current.json`, explicitly records `refresh_required`, and cannot claim certification without a live successor receipt. | State-machine tests and final ledger inspection. | NOT-YET: direct runner seams bypass persisted authority and zero-call refresh cannot certify |
 | O-11 | preservation | Phase-one changes do not alter `.agents`, `.codex-plugin`, `README.md`, or `skills`; therefore the full shipped-package manifest remains `0c83dbc694cb98bf811dd2d1c199b5d2aa734c484476a638884e775289c1d934`. | Exact package-manifest check and Git diff. | verified |
 | B-01 | allowed-break | Internal evaluator imports, CLI syntax, receipt/result schema, and historical result paths have no backward-compatibility obligation. | Any compatibility shim must be removed or separately authorized. | exercised |
 | B-02 | allowed-break | Internal raw filenames, output-directory layout, write-once ordering, stdout payloads, and exit codes may change to the new CLI contract. | New CLI integration tests are authoritative; preserving an old path is not a requirement. | exercised |
@@ -1171,6 +1171,87 @@ network, install, Fable, Goal, ref, or source-write action. Detailed text and ba
 receipts remain in the durable Phase-1 terminal record for
 `/root/cert_engine_terminal_evidence_final_review`.
 
+## Tenth fresh review and architectural stop
+
+The same isolated reviewer completed Phase 2 against exact product commit
+`e29ddc872b9446e1d13dce5ba73dcdc200c63bad`, tree
+`25cd795ca50d89da7a779130055bf5b405fa177e`, baseline
+`2836d7363db364807a2ec384dc1b6c2cc13df95e`, and administrative head
+`f1b07be4dbe4d9a67707d0736521f8ce882c8e54`. It verified that the administrative
+delta contains only this ExecPlan and that the 49-entry product projection remains
+`38ac643470370cbfb6df8efcdf80891d89c3789b8f8caae8860866126cad6d2f`. All 20
+frozen obligations were mapped under manifest
+`c9f418868bb828efd75b9a1a0ea92360edc9b797b8092a638f5738e63df1a55d`.
+The reviewer classified its `HC04-O08` historical-cost evidence as limited because
+the v21 corpus costs were reproducible but the cited v23 holdout receipts were not
+reachable in the supplied history. Its configured/effective model and effort were
+not exposed by the review surface. These are disclosed limitations, not a substitute
+for the material findings below.
+
+The terminal receipt is `NOT-YET` with an explicit over-optimization verdict of
+`YES`. It confirmed five blockers:
+
+1. Live authority is bypassable through genuine runner seams. Corpus execution in
+   `evaluation/corpus/engine.py:2006-2028` and holdout execution in
+   `evaluation/holdout/engine.py:212-217,254-265` accept syntactically valid digest
+   strings and can reach the evaluator/pair runner without loading and validating the
+   persisted authority used by `evaluation/live.py`.
+2. Fresh-review evidence is not bound to the frozen obligation manifest or the
+   correct product projection. `evaluation/core/ledger.py:863-879` validates positive
+   and equal counts but not the frozen manifest digest; the accepted test receipt at
+   `tests/test_certification_engine.py:1295-1329,1496-1505,1553-1572` uses two
+   invented obligations. `_review_diff_receipt` at
+   `evaluation/core/ledger.py:753-794` reconstructs 47 units by including this task
+   ExecPlan, while the frozen product boundary has 46 changed units before the
+   separately attested administrative plan.
+3. An artifact-only refresh with zero live calls can be planned by
+   `evaluation/core/impact.py:559-563`, but authority rejects a zero-command scope at
+   `evaluation/core/ledger.py:459-465` and certification always requires authority at
+   `evaluation/core/ledger.py:1985-1987`. That state is therefore impossible to
+   certify.
+4. The authentic holdout comparator can label candidate-pass/public-fail as `better`
+   under `evaluation/holdout/compare.py:15-24`, but terminal validation rejects the
+   timed-out or nonzero public arm under
+   `evaluation/core/ledger.py:1543-1553,1895-1935`. The producer and consumer
+   disagree on a reachable outcome.
+5. Impact can plan a partial pending holdout at four to six calls under
+   `evaluation/core/impact.py:580-614`, while `evaluation/live.py:147-150` requires
+   the complete manifest pair set. The reported minimal rerun cannot be executed.
+
+Root independently reproduced the core relationships read-only: the direct corpus
+and holdout entry points perform digest-shape checks without persisted-authority
+validation; the review validator does not compare its obligation digest to the frozen
+manifest; baseline-to-product raw diff has 47 units only when this administrative
+plan is included, versus the 46-unit product boundary; zero-call refresh, failed
+public-arm comparison, and partial-holdout planning each reach the contradictory
+paths above.
+
+The ordinary offline envelope still passes: 31/31 focused and 116/116 cumulative
+tests, both official validators, Ruff check and format check, verify/impact, both
+dry-runs, 21 JSON documents, diff hygiene, legacy absence, package/public identities,
+chronology, and null authority. Those green checks are insufficient because their
+oracles encode or omit the contradictory reachable states. No model call, live
+evaluation, network, install, Fable, push, publication, ref mutation, or product write
+ran during the review or Root reproduction.
+
+This is an architectural stop, not another bounded receipt-only repair. A coherent
+next change crosses runner-entry authority, the zero-call/live refresh state machine,
+the review/product-boundary contract, holdout failure semantics, partial impact/live
+scope, and historical-cost provenance. Continuing one finding at a time would deepen
+the already confirmed over-optimization. Product code remains frozen pending an
+explicit user choice between a simplifying clean-break refactor, a deliberately
+narrow repair with accepted complexity, or abandoning this 0.4 candidate.
+
+If a repair/refactor is authorized, its minimum offline rerun is focused RED/GREEN
+coverage for all five relationships, the cumulative 116-test suite plus new tests,
+both official validators, Ruff, CLI verify/impact and dry-runs, JSON/diff/package/
+public checks, and a new fresh isolated review. The code repair itself requires no
+live model cost; the previously estimated 20-to-22 live calls remain unapproved. If
+holdout runner, comparator, oracle, or evaluator behavior changes, prior behavior or
+holdout receipts affected by that semantic change become invalid and must receive a
+new frozen impact/cost estimate before any live run. No expensive behavior, holdout,
+or full review rerun is authorized at this stop.
+
 ## Validation envelope
 
 Candidate offline commands, exact live-run costs, required reruns, and review launch
@@ -1180,22 +1261,24 @@ publication requires a later explicit user request.
 
 ## Checkpoint
 
-- Milestone: every ninth-review terminal-evidence finding is repaired and the exact
-  offline envelope is green; the tenth fresh exact review remains open.
+- Milestone: the tenth fresh exact review is complete with terminal `NOT-YET`, five
+  confirmed architectural blockers, and an explicit `YES` over-optimization verdict.
 - Goal: active `019f780e-925e-7193-8bd2-0a04d6efe31e`; its objective is the
   Normalized Outcome plus all frozen preservation, exclusion, offline validation, and
   live-cost gates in this document.
 - RED/GREEN: all prior rounds and the ninth two-failure/two-error plus reachable-
-  review RED are persisted; 31/31 focused and 116/116 cumulative GREEN are current.
-- Next: freeze the repair commit, reproduce it in a clean detached clone, and launch
-  a tenth fresh exact review. A green review stops at the explicit corrected 20-to-22
-  call maximum-cost user decision before authority or live calls.
-- Product/support writes: support-only paths remain open; shipped-package paths remain
-  closed.
+  review RED are persisted; 31/31 focused and 116/116 cumulative GREEN are current
+  but do not cover the five contradictory reachable states found by the tenth review.
+- Next: user chooses a simplifying clean-break refactor, a narrow repair with accepted
+  complexity, or abandonment. No automatic product edit, live authority, or model
+  call proceeds at this architectural stop.
+- Product/support writes: product paths are frozen pending that choice; this
+  administrative review record is the only open support write. Shipped-package paths
+  remain closed.
 - Owned paths: `evaluation/`, `tests/`, `AGENTS.md`, and this ExecPlan; shipped-package
   paths remain closed.
-- Missing facts: tenth-review terminal receipt, explicit user cost decision, and live
-  successor receipts.
+- Missing facts: explicit architecture decision, corrected historical-cost provenance,
+  explicit user cost decision, and any later live successor receipts.
 
 ## Retrospective
 
