@@ -448,6 +448,41 @@ and impact token
 The live authority remains null and the 18-to-20-call maximum cost is unchanged. A
 new exact fresh review remains mandatory before requesting cost approval.
 
+## Fourth fresh review and bounded NOT-YET
+
+Fresh read-only reviewer `/root/cert_engine_post_chronology_fresh_review` audited
+exact commit `ffb59831e6fc647dd980675d1b9a5959209863be` against baseline
+`2836d7363db364807a2ec384dc1b6c2cc13df95e`. It kept the repository tracked-clean,
+ran only isolated offline checks, and returned `NOT-YET` with four new correctness
+findings:
+
+1. `NR-07` critical: evidence ancestry is inclusive, so an evidence locator may name
+   the same commit as the authority-bearing successor source. Authority persistence
+   must strictly predate every certification evidence commit.
+2. `NR-08` high: impact and live dispatch authorize an exact case subset, and the
+   runner emits that subset, but certification currently requires all corpus cases.
+   A one-case plan therefore cannot reach `certified` through the shipped contract.
+3. `NR-09` high: successor validation compares its package content but not its exact
+   artifact identity. A Git executable-bit change can preserve content while changing
+   the package artifact identity.
+4. `NR-10` medium: snapshot/impact construction accepts a corpus object after only an
+   ID check, while the runner applies the complete case-schema oracle later. Impact
+   can therefore issue a token and cost for a case execution will reject.
+
+The reviewer independently confirmed the repaired authority-at-source equality and
+pending-impact recomputation, corpus/holdout token and authority-digest bindings,
+evidence-output classification, certified `verify` repository context, reachable Git
+blob/SHA binding, package preservation, and legacy-path removal. Its isolated clean
+clone passed 111/111 candidate tests and 97/97 baseline tests; both official
+validators, Ruff, verify/impact, dry-runs, JSON hygiene, and package digest also
+passed. No model, Fable, network, Goal, install, release, or repository write ran.
+
+Root accepts all four findings. The next repair is limited to strict source-before-
+evidence ordering, an end-to-end exact-scope corpus certification contract, Git-
+faithful source artifact reconstruction, and a single shared case-schema validation
+path. New RED counterexamples and another exact fresh review are mandatory; the live
+cost gate remains closed.
+
 ## Validation envelope
 
 Candidate offline commands, exact live-run costs, required reruns, and review launch
