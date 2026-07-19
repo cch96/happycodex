@@ -447,6 +447,11 @@ class CertificationImpactTests(unittest.TestCase):
         self.assertEqual(impact["cost"]["combined_tokens"]["maximum"], 637027)
         self.assertEqual(impact["cost"]["wall_seconds"]["maximum"], 3187.085)
 
+        invalid = copy.deepcopy(ledger)
+        invalid["historical_cost"] = {}
+        with self.assertRaisesRegex(ValueError, "historical cost"):
+            validate_ledger(invalid, repo=ROOT)
+
 
 class CertificationReceiptAndCliTests(unittest.TestCase):
     def test_refresh_required_cannot_carry_a_certification(self) -> None:
@@ -502,6 +507,16 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
         fabricated["approval_response"] = "not the approved response"
         with self.assertRaisesRegex(ValueError, "approval response"):
             ledger_engine.validate_live_authority(fabricated, snapshot=current)
+
+        rejecting = copy.deepcopy(authority)
+        rejecting["approval_response"] = (
+            "I explicitly reject every proposed call and cost.\n"
+        )
+        rejecting["approval_response_sha256"] = sha256_bytes(
+            rejecting["approval_response"].encode()
+        )
+        with self.assertRaisesRegex(ValueError, "affirmative|approval response"):
+            ledger_engine.validate_live_authority(rejecting, snapshot=current)
 
     def test_persisting_authority_does_not_create_a_token_cycle(self) -> None:
         ledger, current, impact = live.load_state()
@@ -1232,6 +1247,69 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                 path.write_bytes(encoded)
                 return sha256_bytes(encoded)
 
+            def review_receipt(
+                *,
+                baseline_commit: str,
+                reviewed_source_commit: str,
+                reviewed_source_tree: str,
+                reviewed_snapshot: dict[str, object],
+                reviewed_authority: dict[str, object],
+                reviewed_evidence: dict[str, str],
+            ) -> dict[str, object]:
+                diff_units = []
+                for line in git(
+                    "diff",
+                    "--name-status",
+                    "--no-renames",
+                    baseline_commit,
+                    reviewed_source_commit,
+                ).splitlines():
+                    status, path = line.split("\t", 1)
+                    diff_units.append({"status": status, "path": path})
+                inspected_paths = sorted(item["path"] for item in diff_units)
+                obligations = [
+                    {"id": "HC04-01", "text_sha256": "1" * 64},
+                    {"id": "HC04-27", "text_sha256": "2" * 64},
+                ]
+                queries = ["git diff --name-status", "python -m unittest"]
+                return {
+                    "schema_version": 1,
+                    "verdict": "GO",
+                    "review_task": "fresh-certification-test-review",
+                    "reviewer_session_sha256": "3" * 64,
+                    "configured_model": settings["model"],
+                    "effective_model": settings["model"],
+                    "effective_effort": settings["effort"],
+                    "permission_profile": {
+                        "source_write": False,
+                        "network": False,
+                        "temporary_write_only": True,
+                    },
+                    "baseline_commit": baseline_commit,
+                    "reviewed_source_commit": reviewed_source_commit,
+                    "reviewed_source_tree": reviewed_source_tree,
+                    "snapshot_sha256": canonical_sha256(reviewed_snapshot),
+                    "engine_manifest_sha256": reviewed_snapshot["engine"][
+                        "manifest_sha256"
+                    ],
+                    "live_authority_sha256": canonical_sha256(reviewed_authority),
+                    "evidence_sha256s": dict(sorted(reviewed_evidence.items())),
+                    "obligation_manifest_sha256": canonical_sha256(obligations),
+                    "obligation_count": len(obligations),
+                    "covered_obligation_count": len(obligations),
+                    "diff_manifest_sha256": canonical_sha256(diff_units),
+                    "diff_unit_count": len(diff_units),
+                    "covered_diff_unit_count": len(diff_units),
+                    "query_manifest_sha256": canonical_sha256(queries),
+                    "query_count": len(queries),
+                    "inspected_path_manifest_sha256": canonical_sha256(
+                        inspected_paths
+                    ),
+                    "inspected_path_count": len(inspected_paths),
+                    "unresolved_material_findings": [],
+                    "limitations": [],
+                }
+
             evidence_sha = {
                 "corpus_summary": write_evidence("corpus_summary", corpus_summary),
                 "holdout_run": write_evidence("holdout_run", holdout_run),
@@ -1383,8 +1461,17 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
             evidence_sha["holdout_summary"] = write_evidence(
                 "holdout_summary", holdout_summary
             )
+            reviewed_evidence = dict(sorted(evidence_sha.items()))
             evidence_sha["review"] = write_evidence(
-                "review", {"reviewed_source_commit": source_commit}
+                "review",
+                review_receipt(
+                    baseline_commit=unauthorized_source_commit,
+                    reviewed_source_commit=source_commit,
+                    reviewed_source_tree=source_tree,
+                    reviewed_snapshot=snapshot,
+                    reviewed_authority=authority,
+                    reviewed_evidence=reviewed_evidence,
+                ),
             )
             git("add", "evaluation/results/evidence")
             git("commit", "-qm", "evidence")
@@ -1422,6 +1509,25 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
             }
             validate_ledger(certified, repo=repo)
             self.assertEqual(build_snapshot(repo), snapshot)
+
+            minimal_review_sha = write_evidence(
+                "review", {"reviewed_source_commit": source_commit}
+            )
+            git("add", "evaluation/results/evidence/review.json")
+            git("commit", "-qm", "minimal review evidence")
+            minimal_review_commit = git("rev-parse", "HEAD")
+            minimal_review = copy.deepcopy(certified)
+            minimal_review["certification"]["evidence"]["review"] = {
+                "commit": minimal_review_commit,
+                "path": "evaluation/results/evidence/review.json",
+                "git_blob": git(
+                    "rev-parse",
+                    f"{minimal_review_commit}:evaluation/results/evidence/review.json",
+                ),
+                "sha256": minimal_review_sha,
+            }
+            with self.assertRaisesRegex(ValueError, "review"):
+                validate_ledger(minimal_review, repo=repo)
 
             late_authority = copy.deepcopy(certified)
             late_authority["certification"]["successor_source_commit"] = (

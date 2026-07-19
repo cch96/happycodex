@@ -577,6 +577,18 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                 "before_resume": {
                     "rollout_path": "SECRET-CANARY-VALUE/tmp/private/rollout.jsonl",
                     "rollout_sha256": "9" * 64,
+                    "rollout_byte_count": 128,
+                    "rollout_prefix_sha256": None,
+                    "compaction_event_count": 1,
+                    "context_compacted_marker_count": 1,
+                    "event_types": ["compacted"],
+                    "rollout_match_count": 1,
+                },
+                "after_resume": {
+                    "rollout_path": "SECRET-CANARY-VALUE/tmp/private/rollout.jsonl",
+                    "rollout_sha256": "8" * 64,
+                    "rollout_byte_count": 256,
+                    "rollout_prefix_sha256": "9" * 64,
                     "compaction_event_count": 1,
                     "context_compacted_marker_count": 1,
                     "event_types": ["compacted"],
@@ -628,6 +640,32 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             receipt["result"]["blocker_classifications"][0],
         )
         self.assertIn("anchors_sha256", receipt["result"]["finding_classifications"][0])
+        before = receipt["native_compaction"]["before_resume"]
+        after = receipt["native_compaction"]["after_resume"]
+        self.assertEqual(before["rollout_byte_count"], 128)
+        self.assertIsNone(before["rollout_prefix_sha256"])
+        self.assertEqual(after["rollout_byte_count"], 256)
+        self.assertEqual(after["rollout_prefix_sha256"], before["rollout_sha256"])
+
+    def test_compaction_receipt_proves_a_byte_append(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            home = Path(raw)
+            rollout = home / "sessions" / "thread-append-proof.jsonl"
+            rollout.parent.mkdir(parents=True)
+            before_bytes = b'{"type":"compacted"}\n'
+            rollout.write_bytes(before_bytes)
+            before = runner.compaction_receipt(home, "thread-append-proof")
+
+            rollout.write_bytes(before_bytes + b'{"type":"event_msg"}\n')
+            after = runner.compaction_receipt(
+                home,
+                "thread-append-proof",
+                prefix_length=before["rollout_byte_count"],
+            )
+
+        self.assertEqual(before["rollout_byte_count"], len(before_bytes))
+        self.assertGreater(after["rollout_byte_count"], before["rollout_byte_count"])
+        self.assertEqual(after["rollout_prefix_sha256"], before["rollout_sha256"])
 
     def test_phrase_presence_is_not_an_acceptance_oracle(self) -> None:
         for case in self.cases.values():

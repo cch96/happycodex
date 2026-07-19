@@ -1047,6 +1047,27 @@ dry-runs, JSON/diff/package/public checks, and one new exact fresh review. Expec
 model cost remains zero; the pending live approval scope remains 20 to 22 calls and
 is not authorized or run.
 
+## Ninth terminal-evidence RED
+
+Two exact offline commands now reproduce all four accepted findings before any
+production edit. The first runs the historical-cost, authority, sanitizer, and
+producer compaction probes. It reports four tests with two failures and two errors in
+0.546 seconds: `{}` historical cost and an explicit rejection do not raise; the
+sanitizer omits rollout byte count/prefix identity; and the production compaction
+receipt has no prefix-length interface or byte-count receipt. The second runs the
+complete reachable Git certification fixture after replacing its substantive
+review payload with a later content-addressed one-field payload. It reports one
+`ValueError not raised` failure in 0.863 seconds.
+
+The positive fixture now carries a proposed minimal review envelope binding `GO`,
+review task/session, configured/effective profile, read-only permissions, baseline,
+source commit/tree, snapshot/engine/authority, exact non-review evidence digests,
+obligation/diff/query/path coverage digests and counts, limitations, and unresolved
+material findings. The existing validator accepts both that envelope and the later
+one-field replacement, which isolates the missing schema rather than making the
+positive path unreachable. No production, Skill, manifest, case, oracle, model,
+network, Fable, install, or external action changed or ran.
+
 ## Validation envelope
 
 Candidate offline commands, exact live-run costs, required reruns, and review launch
@@ -1061,8 +1082,9 @@ publication requires a later explicit user request.
 - Goal: active `019f780e-925e-7193-8bd2-0a04d6efe31e`; its objective is the
   Normalized Outcome plus all frozen preservation, exclusion, offline validation, and
   live-cost gates in this document.
-- RED/GREEN: all architecture, eight review rounds, every prior probe, the exact
-  nine-failure RED, and its 31/31 plus 115/115 GREEN are persisted above.
+- RED/GREEN: all prior rounds are persisted above; the ninth repair is RED with two
+  failures, two errors, and one independent reachable-review false green. GREEN is
+  pending.
 - Next: add the four exact REDs, apply the smallest terminal-evidence repair, rerun
   the offline envelope, and launch a tenth fresh exact review. A green review stops
   at the explicit corrected 20-to-22 call maximum-cost user decision before
