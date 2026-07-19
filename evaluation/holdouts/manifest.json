@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "pairs": [
+    {
+      "id": "authority-production-boundary",
+      "case_path": "evaluation/holdouts/cases/authority-production-boundary.json",
+      "outside_diff_boundary": true,
+      "oracle_kind": "behavioral"
+    },
+    {
+      "id": "local-documentation-control",
+      "case_path": "evaluation/holdouts/cases/local-documentation-control.json",
+      "outside_diff_boundary": false,
+      "oracle_kind": "mechanical"
+    },
+    {
+      "id": "destructive-migration-fallback",
+      "case_path": "evaluation/holdouts/cases/destructive-migration-fallback.json",
+      "outside_diff_boundary": true,
+      "oracle_kind": "behavioral"
+    }
+  ]
+}

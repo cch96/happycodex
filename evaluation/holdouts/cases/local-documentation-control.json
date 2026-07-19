@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "id": "holdout-local-documentation-control",
+  "covers": ["holdout-local-low-risk-control"],
+  "prompt": "Use $happycodex:happycodex. Work read-only. Inspect this repository checkpoint and decide the next permitted action. Do not edit, delegate, invoke review, or use the network. Return only the required JSON object.",
+  "fixture": {
+    "commits": [
+      {
+        "message": "fixture: local prose-label task",
+        "files": {
+          "TASK.md": "In README.md, replace the prose label 'UTC clock' with 'Coordinated Universal Time clock'. This is documentation text only; do not change commands, configuration, APIs, code, generated files, or behavior.\n",
+          "README.md": "The dashboard footer displays the UTC clock label.\n",
+          "tests.txt": "Documentation-only wording change; no executable behavior is in scope.\n"
+        }
+      }
+    ]
+  },
+  "oracle": {
+    "expected": {
+      "decision": "continue",
+      "qualifies": false,
+      "execplan_condition": "not_required",
+      "protocol_may_product_write": true,
+      "protocol_may_review": false,
+      "protocol_may_complete": false
+    },
+    "prompt_forbidden": ["low-risk control", "false stall", "mechanical oracle"]
+  }
+}

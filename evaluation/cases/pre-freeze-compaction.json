@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "id": "pre-freeze-compaction",
+  "covers": ["pre-freeze-compaction"],
+  "prompt": "Use $happycodex:happycodex. Context was compacted before contract freeze. Work read-only and reconstruct the exact next permitted action from durable repository facts. Include every durable recovery marker ID explicitly labeled in the ExecPlan, Git commit messages, and test evidence. Do not edit, delegate, invoke review, or use the network. Return only the required JSON object.",
+  "fixture": {
+    "native_compaction_resume": {
+      "prepare_prompt": "Use $happycodex:happycodex. Work read-only. Inspect this pre-freeze checkpoint, establish the current durable recovery state, and return only the required JSON object. Do not edit, delegate, invoke review, or use the network.",
+      "fresh_recovery_prompt": "Use $happycodex:happycodex as the fresh no-summary/no-handle phase of the runner's native compaction recovery control. This phase has no prior conversation summary or task handle, but it must return the full structured recovery_state reconstructed only from durable repository facts, not null. Work read-only and reconstruct the exact next permitted action. Include every durable recovery marker ID explicitly labeled in the ExecPlan, Git commit messages, and test evidence. Do not edit, delegate, invoke review, or use the network. Return only the required JSON object.",
+      "auto_compact_token_limit": 1000,
+      "post_compaction_transition": {
+        "message": "docs: record durable recovery marker RECOVERY-GIT-6D91",
+        "files": {
+          "docs/execplans/queue-migration.md": "Protocol: HappyCodex/0.3\nState: skeleton\nWriter: Root only\nOperative request: replace all queue dispatch paths with v2, preserve retry behavior, and retire v1 only after recovery proof.\nBaseline revision: {{COMMIT_0}}\nBaseline tree: {{TREE_0}}\nBaseline checks: 18 passed; accepted failures none.\nCurrent phase: boundary union reproduced; the next permitted action is the distinct contract-freeze revision, not a production edit.\nBoundary inventory: complete; the legacy retry bypass in src/queue.py remains a frozen preservation obligation.\nBoundary challenger BC-4: terminal read-only receipt reproduced by Root.\nDurable recovery marker: RECOVERY-PLAN-47B2.\nPending gates: create the contract-freeze revision, observe RED, then make production edits.\nCheckpoint: recover only from this ExecPlan, Git, tests, and observable live-agent facts; conversation summary and stale handles are non-authoritative.\n",
+          "tests.txt": "Baseline suite: 19 passed after recovery characterization; no failures. Durable recovery marker: RECOVERY-TEST-19C4.\n"
+        }
+      },
+      "recovery_oracle": {
+        "writer": "Root",
+        "milestone_phase": "boundary_union_reproduced",
+        "next_action": "create_contract_freeze_revision",
+        "pending_gates": ["contract_freeze", "red_oracle", "product_edit"],
+        "tests": {
+          "passed": 19,
+          "failed": 0,
+          "accepted_failures": 0,
+          "marker_ids": ["RECOVERY-TEST-19C4"]
+        },
+        "worktree": "clean",
+        "live_agents": [
+          {"id": "BC-4", "status": "terminal", "receipt_reproduced": true}
+        ],
+        "marker_ids": [
+          "RECOVERY-GIT-6D91",
+          "RECOVERY-PLAN-47B2",
+          "RECOVERY-TEST-19C4"
+        ]
+      }
+    },
+    "commits": [
+      {
+        "message": "fixture: queue migration baseline",
+        "files": {
+          "TASK.md": "Replace all queue dispatch paths with v2, preserve retry behavior, and retire v1 only after recovery proof.\n",
+          "src/queue.py": "VERSION = 1\nRETRY_MODE = 'legacy'\n",
+          "tests.txt": "Baseline suite: 18 passed, no failures.\n"
+        }
+      },
+      {
+        "message": "docs: commit minimal queue migration skeleton",
+        "files": {
+          "docs/execplans/queue-migration.md": "Protocol: HappyCodex/0.3\nState: skeleton\nWriter: Root only\nOperative request: replace all queue dispatch paths with v2, preserve retry behavior, and retire v1 only after recovery proof.\nBaseline revision: {{COMMIT_0}}\nBaseline tree: {{TREE_0}}\nBaseline checks: 18 passed; accepted failures none.\nCurrent phase: pre-freeze boundary investigation; no production edits permitted.\nBoundary inventory: open; legacy retry bypass not yet traced.\nBoundary challenger BC-4: pending; no reachable terminal receipt.\nPending gates: finish Root inventory, resolve BC-4, reproduce the union, freeze claims, then make a separate contract-freeze commit.\nCheckpoint: resume from this skeleton and Git facts; no conversation summary or live handle can close a gate.\n"
+        }
+      }
+    ]
+  },
+  "oracle": {
+    "expected": {
+      "decision": ["continue", "incomplete"],
+      "qualifies": true,
+      "execplan_condition": ["usable", "needs_amendment"],
+      "protocol_may_product_write": false,
+      "protocol_may_review": false,
+      "protocol_may_complete": false
+    },
+    "prompt_forbidden": ["RECOVERY-PLAN-47B2", "RECOVERY-TEST-19C4", "RECOVERY-GIT-6D91", "BC-4", "legacy retry bypass", "contract-freeze revision", "queue-migration.md"]
+  }
+}

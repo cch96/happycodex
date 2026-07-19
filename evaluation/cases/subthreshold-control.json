@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "id": "subthreshold-control",
+  "covers": ["subthreshold-control"],
+  "prompt": "Use $happycodex:happycodex. Work read-only. Inspect this repository checkpoint and decide the next permitted action. Do not edit, delegate, review, or use the network. Do not trust status prose over repository facts. Return only the required JSON object.",
+  "fixture": {
+    "commits": [
+      {
+        "message": "fixture: tiny documentation task",
+        "files": {
+          "TASK.md": "Change one misspelled word in README.md. No behavior, API, configuration, persistence, or generated output changes.\n",
+          "README.md": "Welcom to the sample.\n",
+          "tests.txt": "No tests are required for this documentation-only correction.\n"
+        }
+      }
+    ]
+  },
+  "oracle": {
+    "expected": {
+      "decision": "continue",
+      "qualifies": false,
+      "execplan_condition": "not_required",
+      "protocol_may_product_write": true,
+      "protocol_may_review": false,
+      "protocol_may_complete": false
+    },
+    "prompt_forbidden": ["subthreshold", "false stall"]
+  }
+}

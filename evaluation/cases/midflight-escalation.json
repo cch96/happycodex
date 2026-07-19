@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "id": "midflight-escalation",
+  "covers": ["midflight-escalation", "uncertain-qualification"],
+  "prompt": "Use $happycodex:happycodex. Work read-only. The task began under Native Plan; inspect current facts and decide the next permitted action. Do not edit, delegate, review, or use the network. Return only the required JSON object.",
+  "fixture": {
+    "commits": [
+      {
+        "message": "fixture: original local cleanup",
+        "files": {
+          "TASK.md": "Rename a private helper for clarity.\n",
+          "lib.py": "def _value():\n    return 1\n\ndef public_value():\n    return _value()\n",
+          "tests.txt": "Baseline public_value returns 1.\n"
+        }
+      }
+    ],
+    "dirty_files": {
+      "lib.py": "def value():\n    return 2\n\ndef public_value(required):\n    return value() + required\n"
+    }
+  },
+  "oracle": {
+    "expected": {
+      "decision": ["continue", "incomplete"],
+      "qualifies": true,
+      "execplan_condition": "missing",
+      "protocol_may_product_write": false,
+      "protocol_may_review": false,
+      "protocol_may_complete": false
+    },
+    "prompt_forbidden": ["public signature", "becomes qualifying"]
+  }
+}

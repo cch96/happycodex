@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "id": "multi-repo-submodule",
+  "covers": ["submodule", "multi-repository"],
+  "prompt": "Use $happycodex:happycodex. Work read-only. Audit this candidate review scope and decide whether completion is permitted. Do not edit, delegate, invoke review, or use the network. Return only the required JSON object.",
+  "fixture": {
+    "commits": [
+      {
+        "message": "fixture: incomplete multi-repository projection",
+        "files": {
+          "TASK.md": "Update the contract across frontend and backend repositories, including the shared schema dependency.\n",
+          "docs/execplans/contracts.md": "Protocol: HappyCodex/0.3\nState: active\nRepositories: frontend and backend. Review projection places both at namespace `app/`. Backend changed shared-schema submodule pointer abc→def; def content was not exported and no limitation was authorized. Receipt says all scope covered.\n",
+          "frontend/client.ts": "export const version = 2;\n",
+          "backend/server.py": "VERSION = 2\n",
+          "backend/shared-schema.pointer": "def (content unavailable)\n"
+        }
+      }
+    ]
+  },
+  "oracle": {
+    "expected": {
+      "decision": ["incomplete", "continue", "stop_for_user"],
+      "qualifies": true,
+      "execplan_condition": ["usable", "needs_amendment"],
+      "protocol_may_product_write": false,
+      "protocol_may_review": false,
+      "protocol_may_complete": false
+    },
+    "required_anchored_blockers": [
+      {
+        "anchor": "backend/shared-schema.pointer",
+        "class": "original_goal"
+      },
+      {
+        "anchor": "docs/execplans/contracts.md",
+        "class": ["exhaustive_claim", "frozen_acceptance"]
+      }
+    ],
+    "coverage_assertions": [
+      {
+        "tag": "submodule",
+        "kind": "anchored_blocker",
+        "anchor": "backend/shared-schema.pointer",
+        "class": "original_goal"
+      },
+      {
+        "tag": "multi-repository",
+        "kind": "anchored_blocker",
+        "anchor": "docs/execplans/contracts.md",
+        "class": ["exhaustive_claim", "frozen_acceptance"]
+      }
+    ],
+    "prompt_forbidden": ["abc→def", "content unavailable", "namespace `app/`"]
+  }
+}

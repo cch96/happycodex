@@ -1,0 +1,452 @@
+{
+  "schema_version": 8,
+  "model": "gpt-5.6-sol",
+  "effort": "high",
+  "timeout_seconds": 300,
+  "corpus_digest_format": "sha256 + two spaces + repo-relative path + LF, sorted by repo-relative path; files are runner plus every case JSON",
+  "corpus_sha256": "7f56754c4ddc9d90f997e7256ba5ccba312c08076fde4bb3634802550c376058",
+  "candidate": {
+    "skill_sha256": "208d1616e0085a5e9fb80f2bbdfb2d550057ca92856284f47f0cd8feab20db75",
+    "runner_sha256": "21b0d076805f8ae5d2fafcf34f1b395287b62a9be63935b59a585737988c68c7",
+    "package_manifest_sha256": "024a7dd5de3ef230410b43ae0a6da4e3f08abc554be3192d52720ca72e6685ad",
+    "passed": 14,
+    "total": 14,
+    "uncached_input_tokens": 326921,
+    "output_tokens": 60554,
+    "elapsed_seconds": 1881.2,
+    "filesystem_isolation": {
+      "mechanism": "codex-permission-profile",
+      "profile": "happycodex-evaluator",
+      "filesystem": "minimal-plus-current-workspace-and-native-tools",
+      "default_access": "deny",
+      "workspace": "read-only",
+      "nonworkspace": "unreadable",
+      "credential_file": "parent-only-command-denied",
+      "native_tool_allowlist": [
+        "apply_patch",
+        "codex",
+        "codex-linux-sandbox",
+        "rg"
+      ],
+      "native_tools": "read-only",
+      "home": "isolated",
+      "parent_task_environment": "stripped",
+      "command_environment": "inherit-none",
+      "network": "disabled",
+      "selection": "explicit-on-every-turn"
+    },
+    "selection_note": "Every selected receipt is the first result for its exact final v8 input. Three failed cases were rerun only after recorded material prompt/oracle corrections; no unchanged input was rerun or selected away.",
+    "cases": [
+      {
+        "id": "authorized-rebaseline",
+        "passed": true,
+        "metadata_sha256": "ef73eb979e30bf660a393fed9a7605eb9543933e3a726864dab71725d1dc2cf0",
+        "events_sha256": "eaa399caad8ceafa5a1bcd230a05d4cc411e6b580e89c61dbb40e065846f2359",
+        "stderr_sha256": "8f433acd5d3ab20b3a14e2a31dd45adaf1395addf3684ca7b88f3fabaa199c68",
+        "thread_id": "019f65e5-c340-7fc1-b4ce-d31a343ac6cf",
+        "evaluation_input_sha256": "439caa1bd24a62a007334a20eeb5a3d598b0e55ce7ec41626ac2f11c9061d372",
+        "elapsed_seconds": 70.953,
+        "uncached_input_tokens": 19862,
+        "output_tokens": 1851
+      },
+      {
+        "id": "boundary-cutover",
+        "passed": true,
+        "metadata_sha256": "20a0602fb0e34f5189c91009b9d5db55770c88dc18075b5b92524c67d0f836f1",
+        "events_sha256": "e9a11f257bb887b80b57f216a0bca0ab4d9fb16992b2bf46542c9fb9f5c49355",
+        "stderr_sha256": "7deb615a80c4352bf1e4c8bf779bd16dd4357e52bef3c265bc477877123d5639",
+        "thread_id": "019f65e0-017f-7690-a824-82881cc1a76d",
+        "evaluation_input_sha256": "d1b8a4fd2cbebdb461c8a7e06ec8f55efeb5afac6739920c46978895d73355a3",
+        "elapsed_seconds": 102.765,
+        "uncached_input_tokens": 11927,
+        "output_tokens": 3672
+      },
+      {
+        "id": "clean-qualifying-control",
+        "passed": true,
+        "metadata_sha256": "5cb677757891e60a7c7f77b16cb6715dcf355bbee5d749c648ea8790a55a0669",
+        "events_sha256": "8b9b7e7ff59230dbb2da22129ac5e5660ce0022495019a3430ed04c71b95300c",
+        "stderr_sha256": "299ffb087f1a93a3a411d98b44f711f8a27a954dfc952349d682ff3dc1d8a4cc",
+        "thread_id": "019f65e4-93cb-7462-b8b1-04883f2ad059",
+        "evaluation_input_sha256": "df30f9f97a529d97604a4ba075c1212bd14ab3f2dd333b796e3f6fc0f09f99f9",
+        "elapsed_seconds": 67.147,
+        "uncached_input_tokens": 20722,
+        "output_tokens": 1894
+      },
+      {
+        "id": "compaction-recovery",
+        "passed": true,
+        "metadata_sha256": "540bc6192663a064ad918b50b4832ca5bb121255e5890c58c4e679df386872ae",
+        "events_sha256": "32ed69cd755dbf828387489d05e069a698a7ca7757dd4f1e45582d179d721378",
+        "stderr_sha256": "465add1d2fa861ebcee5478b86301ed995096a0a9f5ebfec02b78304d72aecde",
+        "thread_id": "019f65e3-9435-7882-9e30-0b63d972edc7",
+        "evaluation_input_sha256": "9067ae834d3e059b45b91accb0c5f1d1bcd61bf3b41eb15866d4af56399315a8",
+        "elapsed_seconds": 291.487,
+        "uncached_input_tokens": 19806,
+        "output_tokens": 8481
+      },
+      {
+        "id": "goal-divergence",
+        "passed": true,
+        "metadata_sha256": "7034229314595091a65e6c8f27a741d82d40033d1d7ac07b390cf5976f7a89fc",
+        "events_sha256": "ce911b725e0f3787dadaede7aec6fc3597d8337b79b692141f609091d452aae8",
+        "stderr_sha256": "d3a7fc2a589c31b3796889c5bf49d916537d71d43b13a219fbfa3c0027937934",
+        "thread_id": "019f65e4-ccde-7c31-919a-348cc6c647cb",
+        "evaluation_input_sha256": "6195a8f415d68fd074ede99e361fe4d0a7eac919674d9f32d03d27df5c751608",
+        "elapsed_seconds": 109.295,
+        "uncached_input_tokens": 17128,
+        "output_tokens": 2408
+      },
+      {
+        "id": "midflight-escalation",
+        "passed": true,
+        "metadata_sha256": "f3bb922f56893738f29845cc6bf9540700aa2fa0fbedd1cbcfacec559294e4c4",
+        "events_sha256": "b1c7a5b755d27ca99c945f5361681d952f72e1cf6a49f6f7c9bc5572ecab9ce2",
+        "stderr_sha256": "2604f1cbc372e2c0a657f4d7622df784e2e7c6df883f23997709282d990c051a",
+        "thread_id": "019f65e1-941b-7a60-b89c-65c998702a55",
+        "evaluation_input_sha256": "4e4d5e76e6a41d819f295d7b35624a7745d692af07e4bd3aa05c365953e16c43",
+        "elapsed_seconds": 62.377,
+        "uncached_input_tokens": 8649,
+        "output_tokens": 1861
+      },
+      {
+        "id": "multi-repo-submodule",
+        "passed": true,
+        "metadata_sha256": "868deb6fdbf8c61c821f7696d694150a91d8bcb3e8b83c626c8c6fc2ddbe1b34",
+        "events_sha256": "59ca284841d4a9adf72dffae74563a9ac1ba68be22dc47961c5edf4cdde136f9",
+        "stderr_sha256": "51ca2c15e8e8fd8a690b196d76183028e144bc88302748413dc17b0e3398778d",
+        "thread_id": "019f65e2-88f7-7833-b9f7-ead55737c04f",
+        "evaluation_input_sha256": "5ac0f5486cbd81f27c5cfa3a0ef476a77443305b70142be5fcfba527e8f24d76",
+        "elapsed_seconds": 88.102,
+        "uncached_input_tokens": 18972,
+        "output_tokens": 3114
+      },
+      {
+        "id": "no-commit-secret",
+        "passed": true,
+        "metadata_sha256": "e16b7ce691919b27bbb45c8c475ce1f3758d238fb455f99b8e83b56bbcc1fce0",
+        "events_sha256": "d5dd1feb739cc01c0f64c0c3555ef424ba15040395475f9a247ab227792c9ac4",
+        "stderr_sha256": "39aa483483b2dfa31553855a4aa9ebea711a64e8f82936a4eb8995e720eaf702",
+        "thread_id": "019f65e3-e220-73e3-8be1-ff2b36b4af7d",
+        "evaluation_input_sha256": "b707795c0378a3c925340e5ba76716d5251c64eed0b4f5b2952f09afa0a90ef6",
+        "elapsed_seconds": 110.831,
+        "uncached_input_tokens": 33149,
+        "output_tokens": 3616
+      },
+      {
+        "id": "pre-freeze-compaction",
+        "passed": true,
+        "metadata_sha256": "9482036b548a30f901cbef8005edc4216755c488e22b852544de86256b64d2b3",
+        "events_sha256": "fed474957ff57ce3657582776b9e7db718201cba9c6dd98eb5f043c89d2ccc1b",
+        "stderr_sha256": "06598c1f1083295e6297535093177b1eaf89157a7cb251e76204bf7d710d9fe8",
+        "thread_id": "019f65e0-0148-7ab3-904c-aead30bc2ed6",
+        "evaluation_input_sha256": "7adb9efcde584d555bd1825158520c2c86acca467793c1fe40aa20c22ef0e037",
+        "elapsed_seconds": 299.33,
+        "uncached_input_tokens": 34704,
+        "output_tokens": 8923,
+        "resume_thread_id": "019f65e0-0148-7ab3-904c-aead30bc2ed6",
+        "native_compaction": {
+          "auto_compact_token_limit": 1000,
+          "before_resume": {
+            "rollout_path": "sessions/2026/07/15/rollout-2026-07-15T13-03-27-019f65e0-0148-7ab3-904c-aead30bc2ed6.jsonl",
+            "rollout_sha256": "cd5543dfa813abee103b93021ea578052724ae95117a59fb349d725140086df1",
+            "compaction_event_count": 1,
+            "context_compacted_marker_count": 1,
+            "event_types": [
+              "compacted",
+              "context_compacted"
+            ],
+            "rollout_match_count": 1
+          },
+          "compaction_event_count": 1,
+          "resumed_same_thread": true,
+          "post_compaction_transition": {
+            "message": "docs: advance durable recovery RECOVERY-GIT-6D91",
+            "pre_head": "d8035774c5e635ccf82ef145ca8b4c343a2f0799",
+            "pre_status": "",
+            "pre_files_sha256": "4395ff683e9c72f4ff797a6243703b5337defd360a2fd84b987ec7e890e991ae",
+            "head": "dabb21ef4107e7c9d698d8f0e34d1820fe590b3f",
+            "tree": "140e386c43acb874a3bdad9eed83d3a523f7fc40",
+            "status": "",
+            "files": {
+              "TASK.md": {
+                "kind": "file",
+                "mode": 384,
+                "bytes": 108,
+                "sha256": "8108eeb1f5dfd6cea26ba9767402439b190c62577f4efa96c7e6dc406bfa7035"
+              },
+              "docs": {
+                "kind": "directory",
+                "mode": 448
+              },
+              "docs/execplans": {
+                "kind": "directory",
+                "mode": 448
+              },
+              "docs/execplans/queue-migration.md": {
+                "kind": "file",
+                "mode": 384,
+                "bytes": 962,
+                "sha256": "13b578c8676b9c31b82f558d3af69bb051099fde87a71715335fbfa561f096e0"
+              },
+              "src": {
+                "kind": "directory",
+                "mode": 448
+              },
+              "src/queue.py": {
+                "kind": "file",
+                "mode": 384,
+                "bytes": 34,
+                "sha256": "b81e6e0775a10bafc9979f4cc64e5c0ee23d7d196e31d1ca4730a75619ef1d12"
+              },
+              "tests.txt": {
+                "kind": "file",
+                "mode": 384,
+                "bytes": 117,
+                "sha256": "874f0e423ef043c68fe7f74529afd567ce7ed13fc651ef5e211140727c873859"
+              }
+            },
+            "files_sha256": "b6e77297ffc420ce35c0eea78ba625bae088422e45d924eabcc7503776c502f6",
+            "changed_paths": [
+              "docs/execplans/queue-migration.md",
+              "tests.txt"
+            ]
+          },
+          "after_resume": {
+            "rollout_path": "sessions/2026/07/15/rollout-2026-07-15T13-03-27-019f65e0-0148-7ab3-904c-aead30bc2ed6.jsonl",
+            "rollout_sha256": "d690899a38c35f6e6fc1d0c44768fd18cf79e5fdbf2b511441e993ef53e573cb",
+            "compaction_event_count": 3,
+            "context_compacted_marker_count": 3,
+            "event_types": [
+              "compacted",
+              "context_compacted",
+              "compacted",
+              "context_compacted",
+              "compacted",
+              "context_compacted"
+            ],
+            "rollout_match_count": 1
+          }
+        }
+      },
+      {
+        "id": "receipt-mismatch",
+        "passed": true,
+        "metadata_sha256": "ab8683d5d7be8adc2b92411089fd2406c07ad730eab229efc4a9b616b1e9f865",
+        "events_sha256": "994f1799699016ca17c710ee882968ac9adc932fb067fe86058305030cab7f2e",
+        "stderr_sha256": "1e78b7c680c0d19d0e1db10611f38382fad369adf8ee3b384514bdb3090ddbcd",
+        "thread_id": "019f65ed-f903-7ae2-8ad4-acd6db4faa19",
+        "evaluation_input_sha256": "97ebcd36558a8e5b968347df9e7de5e8132e5e8b09501bdc49927b7fae4316b6",
+        "elapsed_seconds": 243.215,
+        "uncached_input_tokens": 28370,
+        "output_tokens": 8777
+      },
+      {
+        "id": "review-admin-cycle",
+        "passed": true,
+        "metadata_sha256": "db3427bdc5325224d123a9a9ac7858c31b226dca7badd2f2a5502f7c40d00832",
+        "events_sha256": "ecd981906596053a3f26015a0a8a94122cfd3eafb58be60179bedfda939677c1",
+        "stderr_sha256": "bc092c1ae60a5b7b9083cb0f469f80bde50808f470f89a66643dc2f7a9ce82c5",
+        "thread_id": "019f65e4-82f6-7491-ba17-66443b3ebb80",
+        "evaluation_input_sha256": "693e58a7ac8e22335a784c510398b2bba8579687702822790520847ed3105cca",
+        "elapsed_seconds": 81.592,
+        "uncached_input_tokens": 41073,
+        "output_tokens": 3041
+      },
+      {
+        "id": "review-inventory-gate",
+        "passed": true,
+        "metadata_sha256": "8168fa85102979a32b11ccd20e95f458ccddbfb499100b4904cacd6a28e514ff",
+        "events_sha256": "2b2be430ade9b8dcf932cf1d6a1e75ad18fed4d9b3d89f773aaf403e927c305a",
+        "stderr_sha256": "bd0ca0fe17e6770cbfe795de1ed1a748a9a7a98cb8585f13b8972e13dd003914",
+        "thread_id": "019f65e0-01dc-7c71-8ebc-28b0b0473912",
+        "evaluation_input_sha256": "d7652c3e1317ffc56f2c0f88da45116c11e0f52001de3f8d4c30608569e8fca4",
+        "elapsed_seconds": 160.698,
+        "uncached_input_tokens": 45066,
+        "output_tokens": 6025
+      },
+      {
+        "id": "review-isolation",
+        "passed": true,
+        "metadata_sha256": "115923712e2ca96d328f9e4580d1493dca0781c8088abc6607dcf0a783cbf20c",
+        "events_sha256": "997a0fe025c71b3efedebc3edfa3e918cebb66cce9f4016b3dfc2039652ac2a5",
+        "stderr_sha256": "bd0767126e72e036bc91ecbfffaf9d9a799fa81ec2cbb8ee3307bac0bbd90e47",
+        "thread_id": "019f65e5-138b-7681-9652-aba700598087",
+        "evaluation_input_sha256": "b161bba44bbbbc47bbee0fba4f702aac964d84d81cb30ecf58ed21e556e206dd",
+        "elapsed_seconds": 143.648,
+        "uncached_input_tokens": 19512,
+        "output_tokens": 5254
+      },
+      {
+        "id": "subthreshold-control",
+        "passed": true,
+        "metadata_sha256": "c411a1dbabeb957964c180e9f80fa7d509c44d785feb353035b19720acd21314",
+        "events_sha256": "4a02486bbdec7186c2a9834e44d8841c82bbd048939fef781c3014389f0ef948",
+        "stderr_sha256": "616bfc749d0aee77dc60e219d2865ee283a4ee1fc6d6ba3e30abca3ec06d27fd",
+        "thread_id": "019f65e5-9b9a-7e52-a8c6-5b3c2ebadfd2",
+        "evaluation_input_sha256": "1eabc25fc1311ba1d5c687ce6997ef89c1b80d2fa376c775ab5615ef0111900f",
+        "elapsed_seconds": 49.76,
+        "uncached_input_tokens": 7981,
+        "output_tokens": 1637
+      }
+    ]
+  },
+  "public_0_2": {
+    "skill_sha256": "aa090bbd0d7af6e6ac05e5afc959ee93268393f8621bd5ebf00e745d04e3ce55",
+    "runner_sha256": "21b0d076805f8ae5d2fafcf34f1b395287b62a9be63935b59a585737988c68c7",
+    "package_manifest_sha256": "77a0b2b8f7f6280d6ed32458fc61ca110f7138b5b6c17ad55d333a023dfa8c89",
+    "passed": 0,
+    "total": 2,
+    "uncached_input_tokens": 59273,
+    "output_tokens": 11578,
+    "elapsed_seconds": 413.473,
+    "filesystem_isolation": {
+      "mechanism": "codex-permission-profile",
+      "profile": "happycodex-evaluator",
+      "filesystem": "minimal-plus-current-workspace-and-native-tools",
+      "default_access": "deny",
+      "workspace": "read-only",
+      "nonworkspace": "unreadable",
+      "credential_file": "parent-only-command-denied",
+      "native_tool_allowlist": [
+        "apply_patch",
+        "codex",
+        "codex-linux-sandbox",
+        "rg"
+      ],
+      "native_tools": "read-only",
+      "home": "isolated",
+      "parent_task_environment": "stripped",
+      "command_environment": "inherit-none",
+      "network": "disabled",
+      "selection": "explicit-on-every-turn"
+    },
+    "selection_note": "Both receipts are first results for their exact final v8 inputs. Public 0.2 false-completes the missing-inventory case and demands user authorization solely because its fixed review sequence was consumed.",
+    "cases": [
+      {
+        "id": "receipt-mismatch",
+        "passed": false,
+        "metadata_sha256": "48faf4bd8b4fe3fe7539a9939256a834b86725094569c9c04ceff37097d3aa2f",
+        "events_sha256": "8c58ddce523ad2a9ea4138f515fd6424cbfaaee485857c7db4da26569b1deda6",
+        "stderr_sha256": "53e4cd47fdf5e76a7243af35fe73d74c1cebf8f4244715645632ec3130253ae1",
+        "thread_id": "019f65ed-f84a-7841-a8c7-ee7e2b63e026",
+        "evaluation_input_sha256": "df432bfd4ddf41f195a5f6021d355e6f344fd72352e301f0a997575f8eb9b2b7",
+        "elapsed_seconds": 226.256,
+        "uncached_input_tokens": 30785,
+        "output_tokens": 6554,
+        "timed_out": false,
+        "exit_code": 0,
+        "observed_decision": "stop_for_user",
+        "observed_qualifies": true,
+        "observed_protocol_may_complete": false,
+        "failure_class": "review-quota-false-stall"
+      },
+      {
+        "id": "review-inventory-gate",
+        "passed": false,
+        "metadata_sha256": "42429cfc81d0c2fa6c01c42d29096829f866ef4d177b1c9f2418aad945e07d58",
+        "events_sha256": "e5cb784ff2273e039060991ceb70195265b12cb0201047464b744af5406ea382",
+        "stderr_sha256": "352f9d1b6efda1ee836f23d046f67d5cf07ab3e9abfc455caa84edef2b277fd7",
+        "thread_id": "019f65ea-7a78-7c21-aa3b-ddb4f73f9b3d",
+        "evaluation_input_sha256": "e744d40e6e5b7d97f35739a89c294b5c34f1734a7c4c171e8fa9bcc3a71ea4cb",
+        "elapsed_seconds": 187.217,
+        "uncached_input_tokens": 28488,
+        "output_tokens": 5024,
+        "timed_out": false,
+        "exit_code": 0,
+        "observed_decision": "complete",
+        "observed_qualifies": true,
+        "observed_protocol_may_complete": true,
+        "failure_class": "false-completion"
+      }
+    ]
+  },
+  "prior_summary": {
+    "path": "evaluation/results/behavior-v7.json",
+    "sha256": "ba66c0d1563bbe49fb09917e47520d4cc1d16acf461c9c97f488eeb14f2f8c41",
+    "status": "historical-invalidated",
+    "reason": "Ruff format verification exposed a candidate-new formatting regression in the evaluator and tests. Mechanical formatting changed the runner and corpus identities, invalidating every v7 receipt for the final runner."
+  },
+  "nonselected_runs": [
+    {
+      "arm": "candidate",
+      "case": "compaction-recovery",
+      "passed": false,
+      "timed_out": false,
+      "metadata_sha256": "69dae615da43ebcf426bec1ec9f0e109b50f636fff0373a44644f991a9b8c358",
+      "events_sha256": "8e12952db14c15b3687d4f776c57dafb2121687380e53eae2a9f801964079645",
+      "thread_id": "019f65e0-0160-7f63-b808-2fc7fc3be809",
+      "runner_sha256": "21b0d076805f8ae5d2fafcf34f1b395287b62a9be63935b59a585737988c68c7",
+      "evaluation_input_sha256": "7c03bc333232c625dc9db56b268a09bb6b96142e1c5a7cce56a0e2eef6df70dd",
+      "elapsed_seconds": 176.476,
+      "uncached_input_tokens": 11689,
+      "output_tokens": 5545,
+      "status": "invalidated",
+      "reason": "The result prohibited duplicate delegation but used delegating; the term-group oracle was materially corrected to the existing delegat stem."
+    },
+    {
+      "arm": "candidate",
+      "case": "review-isolation",
+      "passed": false,
+      "timed_out": false,
+      "metadata_sha256": "549d4b84d3f0444ed9941480801eb040600c486156edfbb999f91a511b20449b",
+      "events_sha256": "7ae561e71f0221effc69da0fa68bf71889ef52bd25e40cccfad925a6ded09806",
+      "thread_id": "019f65e2-b3e9-79c1-a5fe-7c10b6493211",
+      "runner_sha256": "21b0d076805f8ae5d2fafcf34f1b395287b62a9be63935b59a585737988c68c7",
+      "evaluation_input_sha256": "9a858fc0a3f129fa0a6057db684cb5b3e978e814a5e6f9f4747d8579d0efd3e5",
+      "elapsed_seconds": 118.277,
+      "uncached_input_tokens": 21134,
+      "output_tokens": 4441,
+      "status": "invalidated",
+      "reason": "The result required a fresh neutral full-scope review; the completeness synonym group was materially corrected to accept full-scope."
+    },
+    {
+      "arm": "candidate",
+      "case": "receipt-mismatch",
+      "passed": false,
+      "timed_out": false,
+      "metadata_sha256": "f5e9b0b88d5bdf01adae99706f45b82f1559403ac31fad683a31cd5b75a2cf60",
+      "events_sha256": "082e5e8372578f68f143f95fc64a19a030bc0803f48e84f11a8aeef0b29e74ff",
+      "thread_id": "019f65e2-76c6-7921-9ba1-db60165cac03",
+      "runner_sha256": "21b0d076805f8ae5d2fafcf34f1b395287b62a9be63935b59a585737988c68c7",
+      "evaluation_input_sha256": "003c68dd7a03daeb1116c7d0263b0de949b5caf754cc601aa4a04c9d1567c099",
+      "elapsed_seconds": 152.807,
+      "uncached_input_tokens": 26894,
+      "output_tokens": 5100,
+      "status": "invalidated",
+      "reason": "The result stopped after review-mapping blockers and missed the challenger receipt; the prompt was materially changed to verify every agent/reviewer receipt and continue past the first blocker."
+    },
+    {
+      "arm": "candidate",
+      "case": "receipt-mismatch",
+      "passed": true,
+      "timed_out": false,
+      "metadata_sha256": "5cc275ad29505cfffc613c2f06d6976202733eee86eee3cc7117dbd4ec953f00",
+      "events_sha256": "1ba27362c3ee4d1a9dae34b72b61d1791618420daa51a91bc08244714ee95f73",
+      "thread_id": "019f65e6-39c7-70f1-bc98-c3b5f553adeb",
+      "runner_sha256": "21b0d076805f8ae5d2fafcf34f1b395287b62a9be63935b59a585737988c68c7",
+      "evaluation_input_sha256": "aa3f0d17ece5d1c5feebd1c9cc37da72bb5e41d6fbab1ab373c37f5e7d174bcd",
+      "elapsed_seconds": 269.642,
+      "uncached_input_tokens": 45735,
+      "output_tokens": 9054,
+      "status": "invalidated",
+      "reason": "The receipt-audit prompt passed, but the hidden oracle still allowed a fixed-review-quota stop; the decision oracle was materially tightened."
+    },
+    {
+      "arm": "public-0.2",
+      "case": "receipt-mismatch",
+      "passed": true,
+      "timed_out": false,
+      "metadata_sha256": "162ec874be4b64b333310134a05c155ac5d1fa4b486cfec3a4dbdf2a6f758bfa",
+      "events_sha256": "79eef1fd358992070f46e07ec82901220b130c9e67df0d85591070f2b26767ac",
+      "thread_id": "019f65e6-3991-7cd2-be28-cf31022739c8",
+      "runner_sha256": "21b0d076805f8ae5d2fafcf34f1b395287b62a9be63935b59a585737988c68c7",
+      "evaluation_input_sha256": "20155e777c73e9e4742a353d5e2551e7748b3e66c3ac5feb7e72d73883c7aae3",
+      "elapsed_seconds": 239.544,
+      "uncached_input_tokens": 36755,
+      "output_tokens": 8507,
+      "status": "invalidated",
+      "reason": "The public arm passed only because the hidden oracle allowed stop_for_user after the fixed review sequence; the no-quota decision oracle was materially tightened."
+    }
+  ]
+}

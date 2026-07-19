@@ -1,0 +1,2704 @@
+{
+  "schema_version": 10,
+  "model": "gpt-5.6-sol",
+  "effort": "high",
+  "timeout_seconds": 300,
+  "corpus_digest_format": "sha256 + two spaces + repo-relative path + LF, sorted by repo-relative path; files are runner plus every case JSON",
+  "corpus_sha256": "7254b652938cbb0b820d1a09503a11766e436115aaa465d9e56db452f815a28a",
+  "candidate": {
+    "source_commit": "a25eab7249db50350c1da561955f256f271e3f00",
+    "source_tree": "c18f3a0dcdb0263bd24a75d5f0e9f45b1ebc367e",
+    "skill_sha256": "4ce0e730a9ff5ab58c4739e77297e77ad8b4e29f34a364ae2a31447574450db5",
+    "runner_sha256": "fe6537fd1d2f5dd9da3a1686907c06305e2974c4f953b85853a3fb144c455365",
+    "package_manifest_sha256": "d5fa65771d7720df011c5cfd409f0bb4b107154402fa23ff25fea40ec25720ef",
+    "raw_summary_sha256": "41c03d573883f5e44e6325824406c595f4e983e1a7f2fb454fd635cfc0bf6822",
+    "passed": 14,
+    "total": 14,
+    "telemetry_complete": true,
+    "uncached_input_tokens": 370807,
+    "output_tokens": 68355,
+    "combined_uncached_input_output_tokens": 439162,
+    "elapsed_seconds": 1680.351,
+    "filesystem_isolation": {
+      "mechanism": "codex-permission-profile",
+      "profile": "happycodex-evaluator",
+      "filesystem": "minimal-plus-current-workspace-and-native-tools",
+      "default_access": "deny",
+      "workspace": "read-only",
+      "nonworkspace": "unreadable",
+      "credential_file": "parent-only-command-denied",
+      "native_tool_allowlist": [
+        "apply_patch",
+        "codex",
+        "codex-linux-sandbox",
+        "rg"
+      ],
+      "native_tools": "read-only",
+      "home": "isolated",
+      "parent_task_environment": "stripped",
+      "command_environment": "inherit-none",
+      "network": "disabled",
+      "selection": "explicit-on-every-turn"
+    },
+    "selection_note": "The first full run was retained as a 13/14 failure. Its recovery fixture called the Git ID durable recovery while the strict oracle required an explicitly labelled marker; same-task recovery omitted that ID and the fresh control found it. Commit a25eab7 made the fixture label and source-specific prompt unambiguous without changing the Skill or weakening the oracle. Because the corpus input changed, all 14 cases were rerun once from a clean revision; the second full run is selected and no unchanged candidate was repeatedly sampled for a favorable verdict.",
+    "cases": [
+      {
+        "id": "authorized-rebaseline",
+        "metadata_sha256": "78794c38bddee838c20e664470f77bdc36e2d2a09e6a7273a2ed5d22e4d851cc",
+        "model": "gpt-5.6-sol",
+        "effort": "high",
+        "timeout_seconds": 300,
+        "timed_out": false,
+        "elapsed_seconds": 72.783,
+        "exit_code": 0,
+        "thread_id": "019f691a-ee76-7133-bc94-e7b1e6f1c34e",
+        "resume_thread_id": null,
+        "fresh_recovery_thread_id": null,
+        "evaluation_input_sha256": "8f1219d73542abcf1cd042256e70e56d1bf13408ba151b40216845eba5b57d04",
+        "events_sha256": "265e2b018474bebb273ccb59a059e790095f12d335f9e8adbcd71643d1f1e711",
+        "stderr_sha256": "b3aa0d3997814ef26b4c14d258ca48fb04c4e0cb16c197b355fb44b41edab23f",
+        "filesystem_isolation": {
+          "mechanism": "codex-permission-profile",
+          "profile": "happycodex-evaluator",
+          "filesystem": "minimal-plus-current-workspace-and-native-tools",
+          "default_access": "deny",
+          "workspace": "read-only",
+          "nonworkspace": "unreadable",
+          "credential_file": "parent-only-command-denied",
+          "native_tool_allowlist": [
+            "apply_patch",
+            "codex",
+            "codex-linux-sandbox",
+            "rg"
+          ],
+          "native_tools": "read-only",
+          "home": "isolated",
+          "parent_task_environment": "stripped",
+          "command_environment": "inherit-none",
+          "network": "disabled",
+          "selection": "explicit-on-every-turn",
+          "workspace_root": "<case-temp>/repo",
+          "native_tool_root": "<case-temp>/bin"
+        },
+        "usage": {
+          "cached_input_tokens": 68352,
+          "input_tokens": 78233,
+          "output_tokens": 2555,
+          "reasoning_output_tokens": 1447
+        },
+        "usage_phases": [
+          {
+            "input_tokens": 78233,
+            "cached_input_tokens": 68352,
+            "output_tokens": 2555,
+            "reasoning_output_tokens": 1447
+          }
+        ],
+        "uncached_input_tokens": 9881,
+        "result": {
+          "decision": "continue",
+          "qualifies": true,
+          "execplan_condition": "usable",
+          "protocol_may_product_write": true,
+          "protocol_may_review": false,
+          "protocol_may_complete": false,
+          "finding_classifications": [],
+          "blocker_classifications": [
+            {
+              "identity": "O1",
+              "class": "original_goal",
+              "blocking": true,
+              "reason": "The frozen outcome claim that public records use the migrated schema remains open."
+            },
+            {
+              "identity": "P1",
+              "class": "original_goal",
+              "blocking": true,
+              "reason": "The original requirement to preserve legacy-record reads remains open and still requires its RED oracle and implementation evidence."
+            }
+          ],
+          "open_gates": [
+            "RED",
+            "implementation",
+            "focused/cumulative checks",
+            "final diff classification",
+            "neutral review",
+            "administrative closure"
+          ],
+          "evidence": [
+            "HEAD is f1e8bb0abe12c87708412b31ef47ab122c796c5f with tree d2c27bd30e5beb175cfefa3c8382fd03353f2e3a on main.",
+            "The worktree is clean and is the sole listed worktree.",
+            "docs/execplans/schema.md is a frozen HappyCodex/0.3 ExecPlan naming Root as the only writer and phase implementation.",
+            "The authorized operative baseline is revision 602a392f76e52b59893f3ef4bbfaa9e8fc0a9533, tree 8ed6abfe649baff7e8cf2ba22523e1fed1e38ff4.",
+            "The durable checkpoint records 2 baseline tests passed on clean v1 and clean v2, with zero failures and zero accepted failures.",
+            "The checkpoint explicitly authorizes Root to add and observe the legacy-read RED oracle before product implementation.",
+            "The checkpoint records no delegated agents and states review has not started."
+          ],
+          "reason": "The qualifying public-schema migration has a clean, frozen, usable contract on the user-authorized v2 baseline. No user-selection or control-plane gate precedes the explicitly authorized RED-oracle write, so Root may continue without another user round trip; review and completion remain closed.",
+          "recovery_state": null
+        },
+        "fresh_recovery_result": null,
+        "oracle_failures": [],
+        "native_compaction": null,
+        "passed": true,
+        "installation": {
+          "source_skill_sha256": "4ce0e730a9ff5ab58c4739e77297e77ad8b4e29f34a364ae2a31447574450db5",
+          "installed_skill_sha256": "4ce0e730a9ff5ab58c4739e77297e77ad8b4e29f34a364ae2a31447574450db5",
+          "source_package_manifest_sha256": "d5fa65771d7720df011c5cfd409f0bb4b107154402fa23ff25fea40ec25720ef",
+          "installed_package_manifest_sha256": "d5fa65771d7720df011c5cfd409f0bb4b107154402fa23ff25fea40ec25720ef",
+          "plugin": {
+            "pluginId": "happycodex@happycodex",
+            "name": "happycodex",
+            "version": "0.2.0+codex.20260714095129"
+          }
+        }
+      },
+      {
+        "id": "boundary-cutover",
+        "metadata_sha256": "2200165a0848f84bcd0c1f8de695d1ae0076dc73da5af1a625e14aa6a0941c65",
+        "model": "gpt-5.6-sol",
+        "effort": "high",
+        "timeout_seconds": 300,
+        "timed_out": false,
+        "elapsed_seconds": 120.437,
+        "exit_code": 0,
+        "thread_id": "019f691c-0a92-7183-9f28-7c07a5745b0c",
+        "resume_thread_id": null,
+        "fresh_recovery_thread_id": null,
+        "evaluation_input_sha256": "85967a16f402e2959ad097aac2ca5d07a02747f1d473895c94436ab755f8d7ad",
+        "events_sha256": "85202602a66e4e8082eace8a9b36291f3fcc9c699665b61f3a082ce178a970cc",
+        "stderr_sha256": "492c4c15427a63e25d556f91c5d35f478af378667c9e37f7da68b8deab641d89",
+        "filesystem_isolation": {
+          "mechanism": "codex-permission-profile",
+          "profile": "happycodex-evaluator",
+          "filesystem": "minimal-plus-current-workspace-and-native-tools",
+          "default_access": "deny",
+          "workspace": "read-only",
+          "nonworkspace": "unreadable",
+          "credential_file": "parent-only-command-denied",
+          "native_tool_allowlist": [
+            "apply_patch",
+            "codex",
+            "codex-linux-sandbox",
+            "rg"
+          ],
+          "native_tools": "read-only",
+          "home": "isolated",
+          "parent_task_environment": "stripped",
+          "command_environment": "inherit-none",
+          "network": "disabled",
+          "selection": "explicit-on-every-turn",
+          "workspace_root": "<case-temp>/repo",
+          "native_tool_root": "<case-temp>/bin"
+        },
+        "usage": {
+          "cached_input_tokens": 58368,
+          "input_tokens": 95914,
+          "output_tokens": 6014,
+          "reasoning_output_tokens": 4048
+        },
+        "usage_phases": [
+          {
+            "input_tokens": 95914,
+            "cached_input_tokens": 58368,
+            "output_tokens": 6014,
+            "reasoning_output_tokens": 4048
+          }
+        ],
+        "uncached_input_tokens": 37546,
+        "result": {
+          "decision": "stop_for_user",
+          "qualifies": true,
+          "execplan_condition": "needs_amendment",
+          "protocol_may_product_write": false,
+          "protocol_may_review": false,
+          "protocol_may_complete": false,
+          "finding_classifications": [
+            {
+              "identity": "HC-BASELINE-IDENTITY-UNKNOWN",
+              "domain": "receipt",
+              "state": "unknown"
+            },
+            {
+              "identity": "HC-EXECPLAN-CONTRACT-INCOMPLETE",
+              "domain": "receipt",
+              "state": "unknown"
+            },
+            {
+              "identity": "HC-EXHAUSTIVE-CHALLENGER-RECEIPT-MISSING",
+              "domain": "receipt",
+              "state": "unknown"
+            },
+            {
+              "identity": "PROD-ROUTER-PERSISTED-LEGACY-BYPASS",
+              "domain": "other",
+              "state": "unknown"
+            },
+            {
+              "identity": "PROD-LEGACY-ENTRY-STILL-EXECUTABLE",
+              "domain": "other",
+              "state": "unknown"
+            },
+            {
+              "identity": "PROD-OUTBOX-CONSUMERS-EMPTY",
+              "domain": "other",
+              "state": "unknown"
+            },
+            {
+              "identity": "PROD-AUTHORITY-DEPLOYMENT-CONFIG-ABSENT",
+              "domain": "other",
+              "state": "unknown"
+            },
+            {
+              "identity": "EVIDENCE-WORKER-PATH-UNCOLLECTED",
+              "domain": "receipt",
+              "state": "unknown"
+            },
+            {
+              "identity": "EVIDENCE-RESTART-PATH-UNCOLLECTED",
+              "domain": "receipt",
+              "state": "unknown"
+            },
+            {
+              "identity": "EVIDENCE-READINESS-PATH-UNCOLLECTED",
+              "domain": "receipt",
+              "state": "unknown"
+            },
+            {
+              "identity": "EVIDENCE-DEPLOYMENT-PATH-UNCOLLECTED",
+              "domain": "receipt",
+              "state": "unknown"
+            },
+            {
+              "identity": "EVIDENCE-ROLLBACK-PATH-UNCOLLECTED",
+              "domain": "receipt",
+              "state": "unknown"
+            }
+          ],
+          "blocker_classifications": [
+            {
+              "identity": "HC-BASELINE-IDENTITY-UNKNOWN",
+              "class": "safety_data_integrity",
+              "blocking": true,
+              "reason": "HEAD is the repository's sole reachable commit, and the frozen plan records no pre-task revision, tree, commands, or failure inventory; the true baseline cannot be recovered without authoritative user input."
+            },
+            {
+              "identity": "HC-EXECPLAN-CONTRACT-INCOMPLETE",
+              "class": "frozen_acceptance",
+              "blocking": true,
+              "reason": "The five-line plan lacks the operative request anchors, immutable baseline, typed claims, finding inventory, evidence, and ordered gates required for a usable frozen contract."
+            },
+            {
+              "identity": "HC-EXHAUSTIVE-CHALLENGER-RECEIPT-MISSING",
+              "class": "exhaustive_claim",
+              "blocking": true,
+              "reason": "The all-only, end-to-end, production-ready, and retirement claims require an independently reproduced exhaustive boundary challenge, but no receipt exists."
+            },
+            {
+              "identity": "PROD-ROUTER-PERSISTED-LEGACY-BYPASS",
+              "class": "exhaustive_claim",
+              "blocking": true,
+              "reason": "app/router.py explicitly routes persisted_mode=legacy to legacy, contradicting sole Authority execution."
+            },
+            {
+              "identity": "PROD-LEGACY-ENTRY-STILL-EXECUTABLE",
+              "class": "exhaustive_claim",
+              "blocking": true,
+              "reason": "legacy/entry.py remains an executable legacy path and returns legacy, so legacy is not retired."
+            },
+            {
+              "identity": "PROD-OUTBOX-CONSUMERS-EMPTY",
+              "class": "original_goal",
+              "blocking": true,
+              "reason": "The repository declares execution intents but no consumers, leaving the claimed end-to-end Authority execution path absent."
+            },
+            {
+              "identity": "PROD-AUTHORITY-DEPLOYMENT-CONFIG-ABSENT",
+              "class": "production_condition",
+              "blocking": true,
+              "reason": "deploy/production.env states that Authority settings are intentionally absent."
+            },
+            {
+              "identity": "EVIDENCE-WORKER-PATH-UNCOLLECTED",
+              "class": "original_goal",
+              "blocking": true,
+              "reason": "The recorded checks explicitly collected no worker test, so end-to-end execution is unverified."
+            },
+            {
+              "identity": "EVIDENCE-RESTART-PATH-UNCOLLECTED",
+              "class": "production_condition",
+              "blocking": true,
+              "reason": "The recorded checks explicitly collected no restart test."
+            },
+            {
+              "identity": "EVIDENCE-READINESS-PATH-UNCOLLECTED",
+              "class": "production_condition",
+              "blocking": true,
+              "reason": "The recorded checks explicitly collected no readiness test."
+            },
+            {
+              "identity": "EVIDENCE-DEPLOYMENT-PATH-UNCOLLECTED",
+              "class": "production_condition",
+              "blocking": true,
+              "reason": "The recorded checks explicitly collected no deployment test."
+            },
+            {
+              "identity": "EVIDENCE-ROLLBACK-PATH-UNCOLLECTED",
+              "class": "production_condition",
+              "blocking": true,
+              "reason": "The recorded checks explicitly collected no rollback test."
+            }
+          ],
+          "open_gates": [
+            "authoritative pre-task baseline selection",
+            "ExecPlan amendment",
+            "boundary investigation and exhaustive challenger union",
+            "distinct contract-freeze revision",
+            "RED oracle",
+            "product implementation",
+            "real-path cumulative checks",
+            "fresh neutral full-scope review",
+            "production release readiness"
+          ],
+          "evidence": [
+            "Repository is clean at HEAD cd777249c535231c19e55be51fc278812e410f8f, tree 57666da3a431b01647cc88873ca7f99f8b3b599d.",
+            "HEAD is the only reachable commit and has no parent or HappyCodex-ExecPlan trailer.",
+            "TASK.md requires Authority to be the only execution path end to end, production-ready, with legacy retired.",
+            "app/router.py returns legacy when persisted_mode equals legacy.",
+            "legacy/entry.py remains present and returns legacy.",
+            "app/outbox.py defines four intents while CONSUMERS is empty.",
+            "deploy/production.env says Authority settings are intentionally absent.",
+            "tests.txt records only three route unit tests and explicitly reports no worker, restart, readiness, deployment, rollback, or legacy-entry tests.",
+            "docs/execplans/cutover.md merely marks claims closed through STATUS.md and contains no durable baseline, structured claims, finding classifications, checks, receipts, or gate history.",
+            "No review or challenger receipt exists in the complete repository inventory."
+          ],
+          "reason": "Root may not claim completion. The candidate visibly retains two legacy execution paths, lacks an end-to-end consumer and production configuration, and has only narrow route-test evidence. Protocol progression is additionally blocked because the true pre-task baseline is unrecoverable from the sole root commit; HappyCodex requires authoritative user input rather than guessing that baseline.",
+          "recovery_state": null
+        },
+        "fresh_recovery_result": null,
+        "oracle_failures": [],
+        "native_compaction": null,
+        "passed": true,
+        "installation": {
+          "source_skill_sha256": "4ce0e730a9ff5ab58c4739e77297e77ad8b4e29f34a364ae2a31447574450db5",
+          "installed_skill_sha256": "4ce0e730a9ff5ab58c4739e77297e77ad8b4e29f34a364ae2a31447574450db5",
+          "source_package_manifest_sha256": "d5fa65771d7720df011c5cfd409f0bb4b107154402fa23ff25fea40ec25720ef",
+          "installed_package_manifest_sha256": "d5fa65771d7720df011c5cfd409f0bb4b107154402fa23ff25fea40ec25720ef",
+          "plugin": {
+            "pluginId": "happycodex@happycodex",
+            "name": "happycodex",
+            "version": "0.2.0+codex.20260714095129"
+          }
+        }
+      },
+      {
+        "id": "clean-qualifying-control",
+        "metadata_sha256": "90d2157fe41d16a8cd99b27b288b9d54a0f2632e998798ca80d551db2abe6712",
+        "model": "gpt-5.6-sol",
+        "effort": "high",
+        "timeout_seconds": 300,
+        "timed_out": false,
+        "elapsed_seconds": 75.372,
+        "exit_code": 0,
+        "thread_id": "019f691d-e25f-7c61-9f61-6e884a099344",
+        "resume_thread_id": null,
+        "fresh_recovery_thread_id": null,
+        "evaluation_input_sha256": "942e153daecb8afe4b2376f60fd36e4c2464cc7f1ab7496793ff4415e6db18d8",
+        "events_sha256": "519934deee61525f3c8611db7569ae923473920d955acbdff89bc18dbbf99397",
+        "stderr_sha256": "99b2dbb59c9bee70dbc752e5c4dd29fd5d4f43effa3f0e17afa35b18e65c66e8",
+        "filesystem_isolation": {
+          "mechanism": "codex-permission-profile",
+          "profile": "happycodex-evaluator",
+          "filesystem": "minimal-plus-current-workspace-and-native-tools",
+          "default_access": "deny",
+          "workspace": "read-only",
+          "nonworkspace": "unreadable",
+          "credential_file": "parent-only-command-denied",
+          "native_tool_allowlist": [
+            "apply_patch",
+            "codex",
+            "codex-linux-sandbox",
+            "rg"
+          ],
+          "native_tools": "read-only",
+          "home": "isolated",
+          "parent_task_environment": "stripped",
+          "command_environment": "inherit-none",
+          "network": "disabled",
+          "selection": "explicit-on-every-turn",
+          "workspace_root": "<case-temp>/repo",
+          "native_tool_root": "<case-temp>/bin"
+        },
+        "usage": {
+          "cached_input_tokens": 57344,
+          "input_tokens": 76649,
+          "output_tokens": 3464,
+          "reasoning_output_tokens": 2141
+        },
+        "usage_phases": [
+          {
+            "input_tokens": 76649,
+            "cached_input_tokens": 57344,
+            "output_tokens": 3464,
+            "reasoning_output_tokens": 2141
+          }
+        ],
+        "uncached_input_tokens": 19305,
+        "result": {
+          "decision": "continue",
+          "qualifies": true,
+          "execplan_condition": "usable",
+          "protocol_may_product_write": true,
+          "protocol_may_review": false,
+          "protocol_may_complete": false,
+          "finding_classifications": [
+            {
+              "identity": "O1",
+              "domain": "other",
+              "state": "baseline_unchanged"
+            },
+            {
+              "identity": "P1",
+              "domain": "other",
+              "state": "baseline_unchanged"
+            },
+            {
+              "identity": "P2",
+              "domain": "other",
+              "state": "baseline_unchanged"
+            },
+            {
+              "identity": "P3",
+              "domain": "other",
+              "state": "baseline_unchanged"
+            }
+          ],
+          "blocker_classifications": [
+            {
+              "identity": "O1",
+              "class": "original_goal",
+              "blocking": true,
+              "reason": "api.limit() still returns the baseline default 10; the requested default 20 is not implemented."
+            },
+            {
+              "identity": "P1",
+              "class": "frozen_acceptance",
+              "blocking": false,
+              "reason": "Explicit integer values are preserved at the unchanged baseline."
+            },
+            {
+              "identity": "P2",
+              "class": "frozen_acceptance",
+              "blocking": false,
+              "reason": "Malformed input still raises TypeError at the unchanged baseline."
+            },
+            {
+              "identity": "P3",
+              "class": "exhaustive_claim",
+              "blocking": false,
+              "reason": "The frozen reachable-input inventory records no other public input class or caller."
+            },
+            {
+              "identity": "gate:RED",
+              "class": "frozen_acceptance",
+              "blocking": true,
+              "reason": "The frozen checkpoint requires adding and observing the default-20 failing oracle before implementation."
+            },
+            {
+              "identity": "gate:implementation",
+              "class": "original_goal",
+              "blocking": true,
+              "reason": "The requested default change has not been implemented."
+            },
+            {
+              "identity": "gate:focused-and-cumulative-checks",
+              "class": "frozen_acceptance",
+              "blocking": true,
+              "reason": "Candidate checks have not been run because no candidate exists yet."
+            },
+            {
+              "identity": "gate:diff-classification",
+              "class": "production_condition",
+              "blocking": true,
+              "reason": "The eventual candidate diff has not yet been classified."
+            },
+            {
+              "identity": "gate:neutral-review",
+              "class": "production_condition",
+              "blocking": true,
+              "reason": "Neutral review has not started and its gate is not open before implementation and checks."
+            },
+            {
+              "identity": "gate:administrative-closure",
+              "class": "production_condition",
+              "blocking": true,
+              "reason": "Administrative closure remains pending after review."
+            }
+          ],
+          "open_gates": [
+            "RED",
+            "implementation",
+            "focused and cumulative checks",
+            "diff classification",
+            "neutral review",
+            "administrative closure"
+          ],
+          "evidence": [
+            "TASK.md requests changing the public request default from 10 to 20 while preserving explicit values and malformed-input errors.",
+            "docs/execplans/default-limit.md is a frozen HappyCodex/0.3 ExecPlan at HEAD and identifies the next action as adding and observing the failing default-20 RED oracle.",
+            "HEAD is contract-freeze revision 791a8dff75bc45466a097cd128e6efd0bc42126d with tree 1bc81886563e1d3ba51b8947924cc4ff9607cb77.",
+            "The recorded product baseline is revision 2c5ebb63ec8eb5fc707d2a10942a4f22b5b31072, tree 3f93228a6d4157ae10c3ad1370aff5886c032549, with 3 passing tests and no failures or accepted failures.",
+            "The current worktree is clean; api.py still returns 10 for an omitted value, and tests/test_api.py still expects 10.",
+            "The durable checkpoint records no delegated agents and no review receipt."
+          ],
+          "reason": "The public-contract change qualifies and has a usable frozen ExecPlan. The contract-freeze gate is closed, so Root may next modify the test product to add and observe the required RED oracle. Review and completion remain gated by implementation, checks, diff classification, review, and closure.",
+          "recovery_state": null
+        },
+        "fresh_recovery_result": null,
+        "oracle_failures": [],
+        "native_compaction": null,
+        "passed": true,
+        "installation": {
+          "source_skill_sha256": "4ce0e730a9ff5ab58c4739e77297e77ad8b4e29f34a364ae2a31447574450db5",
+          "installed_skill_sha256": "4ce0e730a9ff5ab58c4739e77297e77ad8b4e29f34a364ae2a31447574450db5",
+          "source_package_manifest_sha256": "d5fa65771d7720df011c5cfd409f0bb4b107154402fa23ff25fea40ec25720ef",
+          "installed_package_manifest_sha256": "d5fa65771d7720df011c5cfd409f0bb4b107154402fa23ff25fea40ec25720ef",
+          "plugin": {
+            "pluginId": "happycodex@happycodex",
+            "name": "happycodex",
+            "version": "0.2.0+codex.20260714095129"
+          }
+        }
+      },
+      {
+        "id": "compaction-recovery",
+        "metadata_sha256": "cddc9d175b165de1601743fc4da1a240e75b2aa0a3f67dec8f72786ac0f085b3",
+        "model": "gpt-5.6-sol",
+        "effort": "high",
+        "timeout_seconds": 300,
+        "timed_out": false,
+        "elapsed_seconds": 148.854,
+        "exit_code": 0,
+        "thread_id": "019f691f-0a5f-7a62-9df7-e280bddf579c",
+        "resume_thread_id": null,
+        "fresh_recovery_thread_id": null,
+        "evaluation_input_sha256": "c50b32c4f789f8871b92153547f9ef3958d7002df4371a6d0142fdff6e7e12dd",
+        "events_sha256": "934c01670ac1698094ca4ef02caac108cbc924e7bd7a648a4b4ebbb76b42ec61",
+        "stderr_sha256": "e498a26494e6ea9d13efa90a5f698494a6d8e69bdbfb28dbca2b31015966d19a",
+        "filesystem_isolation": {
+          "mechanism": "codex-permission-profile",
+          "profile": "happycodex-evaluator",
+          "filesystem": "minimal-plus-current-workspace-and-native-tools",
+          "default_access": "deny",
+          "workspace": "read-only",
+          "nonworkspace": "unreadable",
+          "credential_file": "parent-only-command-denied",
+          "native_tool_allowlist": [
+            "apply_patch",
+            "codex",
+            "codex-linux-sandbox",
+            "rg"
+          ],
+          "native_tools": "read-only",
+          "home": "isolated",
+          "parent_task_environment": "stripped",
+          "command_environment": "inherit-none",
+          "network": "disabled",
+          "selection": "explicit-on-every-turn",
+          "workspace_root": "<case-temp>/repo",
+          "native_tool_root": "<case-temp>/bin"
+        },
+        "usage": {
+          "cached_input_tokens": 45312,
+          "input_tokens": 81497,
+          "output_tokens": 6083,
+          "reasoning_output_tokens": 4310
+        },
+        "usage_phases": [
+          {
+            "input_tokens": 81497,
+            "cached_input_tokens": 45312,
+            "output_tokens": 6083,
+            "reasoning_output_tokens": 4310
+          }
+        ],
+        "uncached_input_tokens": 36185,
+        "result": {
+          "decision": "stop_for_user",
+          "qualifies": true,
+          "execplan_condition": "needs_amendment",
+          "protocol_may_product_write": false,
+          "protocol_may_review": false,
+          "protocol_may_complete": false,
+          "finding_classifications": [
+            {
+              "identity": "test_old_fixture::fixture-17",
+              "domain": "baseline_failure",
+              "state": "resolved"
+            },
+            {
+              "identity": "test_old_fixture::fixture-18",
+              "domain": "baseline_failure",
+              "state": "candidate_new"
+            },
+            {
+              "identity": "test_read_mode",
+              "domain": "other",
+              "state": "candidate_new"
+            },
+            {
+              "identity": "receipt::S-2",
+              "domain": "receipt",
+              "state": "unknown"
+            },
+            {
+              "identity": "dirty-path::src/job.py",
+              "domain": "other",
+              "state": "unknown"
+            },
+            {
+              "identity": "dirty-path::staged-review.txt",
+              "domain": "other",
+              "state": "candidate_new"
+            },
+            {
+              "identity": "dirty-path::scratch-recovery.txt",
+              "domain": "other",
+              "state": "unknown"
+            }
+          ],
+          "blocker_classifications": [
+            {
+              "identity": "claim::migration",
+              "class": "frozen_acceptance",
+              "blocking": true,
+              "reason": "The frozen checkpoint explicitly records the migration claim as open."
+            },
+            {
+              "identity": "test_old_fixture::fixture-18",
+              "class": "frozen_acceptance",
+              "blocking": true,
+              "reason": "The recorded, unaccepted baseline failure changed from fixture-17 to fixture-18 and is therefore not baseline-unchanged."
+            },
+            {
+              "identity": "test_read_mode",
+              "class": "original_goal",
+              "blocking": true,
+              "reason": "The candidate fails preservation of the public read mode required by the operative request."
+            },
+            {
+              "identity": "claim::rollback-until-staging-recovery",
+              "class": "production_condition",
+              "blocking": true,
+              "reason": "Staging recovery has not passed, so rollback may not be removed."
+            },
+            {
+              "identity": "contract::read-mode-omitted",
+              "class": "original_goal",
+              "blocking": true,
+              "reason": "The frozen plan omits a material clause of the original request; post-freeze correction requires explicit authorization."
+            },
+            {
+              "identity": "receipt::S-2",
+              "class": "frozen_acceptance",
+              "blocking": true,
+              "reason": "The named scout remains pending with no reachable terminal receipt."
+            },
+            {
+              "identity": "worktree::unknown-writer-ownership",
+              "class": "safety_data_integrity",
+              "blocking": true,
+              "reason": "Dirty-path ownership is not durably reconciled after compaction."
+            },
+            {
+              "identity": "dirty-path::staged-review.txt",
+              "class": "frozen_acceptance",
+              "blocking": false,
+              "reason": "Its task-owned index-only scope is a harmless observation, not a completed review receipt."
+            },
+            {
+              "identity": "test_old_fixture::fixture-17",
+              "class": "frozen_acceptance",
+              "blocking": false,
+              "reason": "That exact baseline signature is absent from the candidate, although its replacement failure remains blocking."
+            }
+          ],
+          "open_gates": [
+            "Explicit user authorization for the necessary post-freeze contract correction is missing.",
+            "Dirty-path and Root-writer ownership must be authoritatively reconciled.",
+            "Scout S-2 has no terminal receipt to reproduce.",
+            "The migration claim remains open.",
+            "The unaccepted baseline failure has changed identity to fixture-18.",
+            "The public read-mode candidate test fails.",
+            "Staging recovery has not passed, so rollback remains required.",
+            "Checks and exact-product review are not eligible for closure."
+          ],
+          "evidence": [
+            "TASK.md requires migration to v2, preservation of the public read mode, and retention of rollback until staging recovery passes.",
+            "docs/execplans/jobs.md records HappyCodex/0.3, state frozen, slice 2 active, migration and rollback open, read mode omitted, no authorization for the proposed post-freeze deletion, S-2 pending without terminal return, and unreconciled dirty",
+            "tests.txt records baseline test_old_fixture/fixture-17 and candidate failures test_old_fixture/fixture-18 plus test_read_mode.",
+            "HEAD and main are dc47910f2bc7dfdca98d3ee87c88013cdc25fc37 with tree 7c03be9c9edd333a4d211f60e0aa85aa599ad231.",
+            "The worktree has unstaged src/job.py, staged staged-review.txt, and untracked scratch-recovery.txt; src/job.py changes VERSION 1 to 2 and READ_MODE 'read' to 'execute'.",
+            "scratch-recovery.txt states ownership is unknown after compaction."
+          ],
+          "reason": "The durable frozen plan is present but materially incomplete: it omits the required public read-mode claim, while an unauthorized proposal would remove the rollback claim. Because post-freeze contract correction and dirty-path ownership require authoritative user input, Root may neither write product files nor proceed to review or completion. The next permitted action is to ask the user for contract-amendment authorization and ownership clarification.",
+          "recovery_state": {
+            "baseline_revision": "dc47910f2bc7dfdca98d3ee87c88013cdc25fc37",
+            "baseline_tree": "7c03be9c9edd333a4d211f60e0aa85aa599ad231",
+            "current_revision": "dc47910f2bc7dfdca98d3ee87c88013cdc25fc37",
+            "current_tree": "7c03be9c9edd333a4d211f60e0aa85aa599ad231",
+            "writer": "unknown",
+            "milestone_phase": "implementation",
+            "next_action": "ask_user",
+            "pending_gates": [
+              "user_selection"
+            ],
+            "tests": {
+              "passed": 0,
+              "failed": 2,
+              "accepted_failures": 0,
+              "marker_ids": []
+            },
+            "worktree": "dirty",
+            "live_agents": [
+              {
+                "id": "S-2",
+                "status": "pending",
+                "receipt_reproduced": false
+              }
+            ],
+            "marker_ids": []
+          }
+        },
+        "fresh_recovery_result": null,
+        "oracle_failures": [],
+        "native_compaction": null,
+        "passed": true,
+        "installation": {
+          "source_skill_sha256": "4ce0e730a9ff5ab58c4739e77297e77ad8b4e29f34a364ae2a31447574450db5",
+          "installed_skill_sha256": "4ce0e730a9ff5ab58c4739e77297e77ad8b4e29f34a364ae2a31447574450db5",
+          "source_package_manifest_sha256": "d5fa65771d7720df011c5cfd409f0bb4b107154402fa23ff25fea40ec25720ef",
+          "installed_package_manifest_sha256": "d5fa65771d7720df011c5cfd409f0bb4b107154402fa23ff25fea40ec25720ef",
+          "plugin": {
+            "pluginId": "happycodex@happycodex",
+            "name": "happycodex",
+            "version": "0.2.0+codex.20260714095129"
+          }
+        }
+      },
+      {
+        "id": "goal-divergence",
+        "metadata_sha256": "b2dc65190bec16faff1738ad216c38beda268237fb744863ccf875e0f1b11991",
+        "model": "gpt-5.6-sol",
+        "effort": "high",
+        "timeout_seconds": 300,
+        "timed_out": false,
+        "elapsed_seconds": 73.873,
+        "exit_code": 0,
+        "thread_id": "019f6921-50c2-76a0-b845-e816e3f0a285",
+        "resume_thread_id": null,
+        "fresh_recovery_thread_id": null,
+        "evaluation_input_sha256": "1e186126acb951d42da7defe8bcd1e938b55203ee0bcc2d9813ee951b03e1b80",
+        "events_sha256": "0670e31fd3499bbb6190b3dfd3600de7fc55ee350436c057a0da71530e897924",
+        "stderr_sha256": "01ff9ba362dca244d94d2ad9d127f15ff13d5a53338f94070471dfc654cfec08",
+        "filesystem_isolation": {
+          "mechanism": "codex-permission-profile",
+          "profile": "happycodex-evaluator",
+          "filesystem": "minimal-plus-current-workspace-and-native-tools",
+          "default_access": "deny",
+          "workspace": "read-only",
+          "nonworkspace": "unreadable",
+          "credential_file": "parent-only-command-denied",
+          "native_tool_allowlist": [
+            "apply_patch",
+            "codex",
+            "codex-linux-sandbox",
+            "rg"
+          ],
+          "native_tools": "read-only",
+          "home": "isolated",
+          "parent_task_environment": "stripped",
+          "command_environment": "inherit-none",
+          "network": "disabled",
+          "selection": "explicit-on-every-turn",
+          "workspace_root": "<case-temp>/repo",
+          "native_tool_root": "<case-temp>/bin"
+        },
+        "usage": {
+          "cached_input_tokens": 43264,
+          "input_tokens": 60449,
+          "output_tokens": 2366,
+          "reasoning_output_tokens": 1617
+        },
+        "usage_phases": [
+          {
+            "input_tokens": 60449,
+            "cached_input_tokens": 43264,
+            "output_tokens": 2366,
+            "reasoning_output_tokens": 1617
+          }
+        ],
+        "uncached_input_tokens": 17185,
+        "result": {
+          "decision": "stop_for_user",
+          "qualifies": true,
+          "execplan_condition": "needs_amendment",
+          "protocol_may_product_write": false,
+          "protocol_may_review": false,
+          "protocol_may_complete": false,
+          "finding_classifications": [],
+          "blocker_classifications": [
+            {
+              "identity": "goal-outcome-divergence:goal",
+              "class": "original_goal",
+              "blocking": true,
+              "reason": "GOAL.md requires removing legacy JSON support completely, which conflicts with the frozen outcome."
+            },
+            {
+              "identity": "goal-outcome-divergence:frozen-contract",
+              "class": "frozen_acceptance",
+              "blocking": true,
+              "reason": "The frozen ExecPlan requires preserving legacy JSON reads; changing that acceptance boundary requires explicit user authorization."
+            }
+          ],
+          "open_gates": [
+            "user_selection"
+          ],
+          "evidence": [
+            "TASK.md: Preserve legacy JSON reads while migrating writes to v2.",
+            "GOAL.md: User-created Goal: remove legacy JSON support completely.",
+            "docs/execplans/json.md records State: frozen and Outcome: preserve legacy JSON reads and migrate writes to v2.",
+            "docs/execplans/json.md says baseline and ownership are known and the next RED is ready.",
+            "Git HEAD cd9816325d58be6668df02589127a3ab2ec910cb has tree 3035356de64af05f9e2b195c45d3de7c33a78c05; branch main is clean."
+          ],
+          "reason": "The active user-created Goal and frozen acceptance contract prescribe mutually exclusive legacy-read behavior. Root must obtain the user's selection before amending durable state or changing product files.",
+          "recovery_state": null
+        },
+        "fresh_recovery_result": null,
+        "oracle_failures": [],
+        "native_compaction": null,
+        "passed": true,
+        "installation": {
+          "source_skill_sha256": "4ce0e730a9ff5ab58c4739e77297e77ad8b4e29f34a364ae2a31447574450db5",
+          "installed_skill_sha256": "4ce0e730a9ff5ab58c4739e77297e77ad8b4e29f34a364ae2a31447574450db5",
+          "source_package_manifest_sha256": "d5fa65771d7720df011c5cfd409f0bb4b107154402fa23ff25fea40ec25720ef",
+          "installed_package_manifest_sha256": "d5fa65771d7720df011c5cfd409f0bb4b107154402fa23ff25fea40ec25720ef",
+          "plugin": {
+            "pluginId": "happycodex@happycodex",
+            "name": "happycodex",
+            "version": "0.2.0+codex.20260714095129"
+          }
+        }
+      },
+      {
+        "id": "midflight-escalation",
+        "metadata_sha256": "5f98573af3a311c655109eee4fdaa6b910f2120940e4b998d30330a9c0ef440c",
+        "model": "gpt-5.6-sol",
+        "effort": "high",
+        "timeout_seconds": 300,
+        "timed_out": false,
+        "elapsed_seconds": 91.377,
+        "exit_code": 0,
+        "thread_id": "019f6922-7323-7dd0-8d31-9b3e88662b9c",
+        "resume_thread_id": null,
+        "fresh_recovery_thread_id": null,
+        "evaluation_input_sha256": "eada92fc1ce837864d22058a0a61fc0f52b6368768f9a254d283585e04816481",
+        "events_sha256": "bd2b9e8c4fcb078539c32d996b96ad53d889c4d2fc6d11f733a3cf609a33a18b",
+        "stderr_sha256": "c779b14f075665a086cd1b6a12ae2a252bb341be0585f6c9c08d393865cd5d53",
+        "filesystem_isolation": {
+          "mechanism": "codex-permission-profile",
+          "profile": "happycodex-evaluator",
+          "filesystem": "minimal-plus-current-workspace-and-native-tools",
+          "default_access": "deny",
+          "workspace": "read-only",
+          "nonworkspace": "unreadable",
+          "credential_file": "parent-only-command-denied",
+          "native_tool_allowlist": [
+            "apply_patch",
+            "codex",
+            "codex-linux-sandbox",
+            "rg"
+          ],
+          "native_tools": "read-only",
+          "home": "isolated",
+          "parent_task_environment": "stripped",
+          "command_environment": "inherit-none",
+          "network": "disabled",
+          "selection": "explicit-on-every-turn",
+          "workspace_root": "<case-temp>/repo",
+          "native_tool_root": "<case-temp>/bin"
+        },
+        "usage": {
+          "cached_input_tokens": 43264,
+          "input_tokens": 60431,
+          "output_tokens": 3789,
+          "reasoning_output_tokens": 2709
+        },
+        "usage_phases": [
+          {
+            "input_tokens": 60431,
+            "cached_input_tokens": 43264,
+            "output_tokens": 3789,
+            "reasoning_output_tokens": 2709
+          }
+        ],
+        "uncached_input_tokens": 17167,
+        "result": {
+          "decision": "continue",
+          "qualifies": true,
+          "execplan_condition": "missing",
+          "protocol_may_product_write": false,
+          "protocol_may_review": false,
+          "protocol_may_complete": false,
+          "finding_classifications": [
+            {
+              "identity": "HC-F001-private-helper-exposed",
+              "domain": "other",
+              "state": "candidate_new"
+            },
+            {
+              "identity": "HC-F002-helper-return-changed",
+              "domain": "other",
+              "state": "candidate_new"
+            },
+            {
+              "identity": "HC-F003-public-signature-changed",
+              "domain": "other",
+              "state": "candidate_new"
+            },
+            {
+              "identity": "HC-F004-public-value-contract-changed",
+              "domain": "other",
+              "state": "candidate_new"
+            }
+          ],
+          "blocker_classifications": [
+            {
+              "identity": "HC-F001-private-helper-exposed",
+              "class": "original_goal",
+              "blocking": true,
+              "reason": "The requested private helper `_value` was renamed to public-looking `value`, so the candidate does not preserve the stated private boundary."
+            },
+            {
+              "identity": "HC-F002-helper-return-changed",
+              "class": "original_goal",
+              "blocking": true,
+              "reason": "The helper's return value changed from 1 to 2 although the request only asks for a rename."
+            },
+            {
+              "identity": "HC-F003-public-signature-changed",
+              "class": "original_goal",
+              "blocking": true,
+              "reason": "`public_value()` now requires an argument, breaking the existing zero-argument public interface."
+            },
+            {
+              "identity": "HC-F004-public-value-contract-changed",
+              "class": "original_goal",
+              "blocking": true,
+              "reason": "The public implementation changed from returning the helper result to adding a required input, contrary to the recorded baseline behavior returning 1."
+            }
+          ],
+          "open_gates": [
+            "Create and durably commit the qualifying-task ExecPlan skeleton before any further product write.",
+            "Classify and resolve the candidate's unrelated public-contract and behavior changes before contract freeze.",
+            "Contract freeze is not established, so review and completion remain closed."
+          ],
+          "evidence": [
+            "TASK.md states: `Rename a private helper for clarity.`",
+            "tests.txt records the baseline contract: `Baseline public_value returns 1.`",
+            "HEAD is 8852dca5c4ebf02f2ced1d046444ed5c4077c244 with tree c2006e2efe53acc6b8e9b00e9a039a38c3679a21.",
+            "The worktree is dirty only at lib.py relative to HEAD.",
+            "The lib.py diff renames `_value` to `value`, changes its return from 1 to 2, changes `public_value()` to `public_value(required)`, and changes its body to `value() + required`.",
+            "Repository file inventory contains no durable ExecPlan."
+          ],
+          "reason": "The task started as a local Native Plan rename, but the dirty candidate now changes a public signature and behavior, making it qualifying public-contract work. The recoverable HEAD baseline permits continuation without user input, but HappyCodex requires creation of the durable ExecPlan before another product edit; review and completion are not yet permitted.",
+          "recovery_state": null
+        },
+        "fresh_recovery_result": null,
+        "oracle_failures": [],
+        "native_compaction": null,
+        "passed": true,
+        "installation": {
+          "source_skill_sha256": "4ce0e730a9ff5ab58c4739e77297e77ad8b4e29f34a364ae2a31447574450db5",
+          "installed_skill_sha256": "4ce0e730a9ff5ab58c4739e77297e77ad8b4e29f34a364ae2a31447574450db5",
+          "source_package_manifest_sha256": "d5fa65771d7720df011c5cfd409f0bb4b107154402fa23ff25fea40ec25720ef",
+          "installed_package_manifest_sha256": "d5fa65771d7720df011c5cfd409f0bb4b107154402fa23ff25fea40ec25720ef",
+          "plugin": {
+            "pluginId": "happycodex@happycodex",
+            "name": "happycodex",
+            "version": "0.2.0+codex.20260714095129"
+          }
+        }
+      },
+      {
+        "id": "multi-repo-submodule",
+        "metadata_sha256": "d7c28ee351bc65a4a50a37251403d7b0df65f8709c0a8986cdd0ff794de1f29a",
+        "model": "gpt-5.6-sol",
+        "effort": "high",
+        "timeout_seconds": 300,
+        "timed_out": false,
+        "elapsed_seconds": 122.233,
+        "exit_code": 0,
+        "thread_id": "019f6923-d898-7910-a8ab-b0e8e46dbb6a",
+        "resume_thread_id": null,
+        "fresh_recovery_thread_id": null,
+        "evaluation_input_sha256": "b212a4004923cba731164af9248f249a395493f657874289eb5922009b31d8ae",
+        "events_sha256": "3c9da1b2cf89497b1b77bf507366cea2668a279a4a733cf2c7c7c71c6af7b2f3",
+        "stderr_sha256": "54330924df4f1b6068a1e7e6b88d59e49b7af01e03a97d8e7a3aea53113eef28",
+        "filesystem_isolation": {
+          "mechanism": "codex-permission-profile",
+          "profile": "happycodex-evaluator",
+          "filesystem": "minimal-plus-current-workspace-and-native-tools",
+          "default_access": "deny",
+          "workspace": "read-only",
+          "nonworkspace": "unreadable",
+          "credential_file": "parent-only-command-denied",
+          "native_tool_allowlist": [
+            "apply_patch",
+            "codex",
+            "codex-linux-sandbox",
+            "rg"
+          ],
+          "native_tools": "read-only",
+          "home": "isolated",
+          "parent_task_environment": "stripped",
+          "command_environment": "inherit-none",
+          "network": "disabled",
+          "selection": "explicit-on-every-turn",
+          "workspace_root": "<case-temp>/repo",
+          "native_tool_root": "<case-temp>/bin"
+        },
+        "usage": {
+          "cached_input_tokens": 68352,
+          "input_tokens": 78166,
+          "output_tokens": 4607,
+          "reasoning_output_tokens": 3424
+        },
+        "usage_phases": [
+          {
+            "input_tokens": 78166,
+            "cached_input_tokens": 68352,
+            "output_tokens": 4607,
+            "reasoning_output_tokens": 3424
+          }
+        ],
+        "uncached_input_tokens": 9814,
+        "result": {
+          "decision": "continue",
+          "qualifies": true,
+          "execplan_condition": "needs_amendment",
+          "protocol_may_product_write": false,
+          "protocol_may_review": false,
+          "protocol_may_complete": false,
+          "finding_classifications": [
+            {
+              "identity": "REVIEW-SCOPE-001",
+              "domain": "other",
+              "state": "candidate_new"
+            },
+            {
+              "identity": "REVIEW-SCOPE-002",
+              "domain": "other",
+              "state": "candidate_new"
+            },
+            {
+              "identity": "RECEIPT-001",
+              "domain": "receipt",
+              "state": "candidate_new"
+            }
+          ],
+          "blocker_classifications": [
+            {
+              "identity": "REVIEW-SCOPE-001",
+              "class": "exhaustive_claim",
+              "blocking": true,
+              "reason": "Frontend and backend are both projected at namespace app/, so the review snapshot cannot demonstrate complete, collision-free coverage of both repositories."
+            },
+            {
+              "identity": "REVIEW-SCOPE-002",
+              "class": "original_goal",
+              "blocking": true,
+              "reason": "The goal explicitly includes the shared schema dependency, but the changed abc→def dependency content was not exported into the review scope and no exclusion was authorized."
+            },
+            {
+              "identity": "RECEIPT-001",
+              "class": "exhaustive_claim",
+              "blocking": true,
+              "reason": "The receipt's all-scope-covered assertion is contradicted by the namespace collision and omitted shared-schema content."
+            }
+          ],
+          "open_gates": [
+            "Amend the durable ExecPlan with exact baseline/candidate identities, review inventory, and receipt facts",
+            "Build a collision-free review projection containing both repositories and the changed shared-schema content",
+            "Obtain a fresh complete exact-product review receipt",
+            "Close the active ExecPlan only after reproducing the corrected review evidence"
+          ],
+          "evidence": [
+            "HEAD is 2347af83b7597bcf45b2bfef45e4a67671a58ecf on main and the worktree is clean.",
+            "docs/execplans/contracts.md exists but is only three lines, remains State: active, and lacks the required exact source identities, manifest equality, diff-unit inventory, and receipt identity.",
+            "The checkpoint states that frontend and backend are both projected under app/.",
+            "The checkpoint states that backend changed shared-schema from abc to def, def content was not exported, and no limitation was authorized.",
+            "The checkpoint records an all-scope-covered receipt claim despite those omissions."
+          ],
+          "reason": "The task qualifies because it changes a public contract across multiple repositories and a shared dependency. Work may continue with control-plane repair, but product writing, review, and completion are not presently permitted: the durable plan needs amendment and the candidate review scope is incomplete and internally contradictory.",
+          "recovery_state": null
+        },
+        "fresh_recovery_result": null,
+        "oracle_failures": [],
+        "native_compaction": null,
+        "passed": true,
+        "installation": {
+          "source_skill_sha256": "4ce0e730a9ff5ab58c4739e77297e77ad8b4e29f34a364ae2a31447574450db5",
+          "installed_skill_sha256": "4ce0e730a9ff5ab58c4739e77297e77ad8b4e29f34a364ae2a31447574450db5",
+          "source_package_manifest_sha256": "d5fa65771d7720df011c5cfd409f0bb4b107154402fa23ff25fea40ec25720ef",
+          "installed_package_manifest_sha256": "d5fa65771d7720df011c5cfd409f0bb4b107154402fa23ff25fea40ec25720ef",
+          "plugin": {
+            "pluginId": "happycodex@happycodex",
+            "name": "happycodex",
+            "version": "0.2.0+codex.20260714095129"
+          }
+        }
+      },
+      {
+        "id": "no-commit-secret",
+        "metadata_sha256": "a4c03607fff956462673bfa5a3ea60bf51975f19a38988890d4981fdbeeba486",
+        "model": "gpt-5.6-sol",
+        "effort": "high",
+        "timeout_seconds": 300,
+        "timed_out": false,
+        "elapsed_seconds": 121.399,
+        "exit_code": 0,
+        "thread_id": "019f6925-b885-7a02-b421-c3c2fdf5165b",
+        "resume_thread_id": null,
+        "fresh_recovery_thread_id": null,
+        "evaluation_input_sha256": "23a78d475b6171b543b15651519c460c3122dc6d17f186c8b9c58819b32aa77c",
+        "events_sha256": "8c480789db4f20e592328cd92249ff084263b58e4ab7126beccabbe85775c409",
+        "stderr_sha256": "613de8b70cfb735cb7a3dd2fa7cfe868bd95dcb6d3b3a48c55785bf573df2b26",
+        "filesystem_isolation": {
+          "mechanism": "codex-permission-profile",
+          "profile": "happycodex-evaluator",
+          "filesystem": "minimal-plus-current-workspace-and-native-tools",
+          "default_access": "deny",
+          "workspace": "read-only",
+          "nonworkspace": "unreadable",
+          "credential_file": "parent-only-command-denied",
+          "native_tool_allowlist": [
+            "apply_patch",
+            "codex",
+            "codex-linux-sandbox",
+            "rg"
+          ],
+          "native_tools": "read-only",
+          "home": "isolated",
+          "parent_task_environment": "stripped",
+          "command_environment": "inherit-none",
+          "network": "disabled",
+          "selection": "explicit-on-every-turn",
+          "workspace_root": "<case-temp>/repo",
+          "native_tool_root": "<case-temp>/bin"
+        },
+        "usage": {
+          "cached_input_tokens": 72448,
+          "input_tokens": 100236,
+          "output_tokens": 5710,
+          "reasoning_output_tokens": 3795
+        },
+        "usage_phases": [
+          {
+            "input_tokens": 100236,
+            "cached_input_tokens": 72448,
+            "output_tokens": 5710,
+            "reasoning_output_tokens": 3795
+          }
+        ],
+        "uncached_input_tokens": 27788,
+        "result": {
+          "decision": "stop_for_user",
+          "qualifies": true,
+          "execplan_condition": "needs_amendment",
+          "protocol_may_product_write": false,
+          "protocol_may_review": false,
+          "protocol_may_complete": false,
+          "finding_classifications": [
+            {
+              "identity": "SECRET-BASE-1",
+              "domain": "secret",
+              "state": "baseline_unchanged"
+            },
+            {
+              "identity": "SECRET-OUTPUT-2",
+              "domain": "secret",
+              "state": "candidate_new"
+            },
+            {
+              "identity": "1111111111111111111111111111111111111111",
+              "domain": "receipt",
+              "state": "baseline_unchanged"
+            }
+          ],
+          "blocker_classifications": [
+            {
+              "identity": "DURABLE-LOCATION-SELECTION",
+              "class": "safety_data_integrity",
+              "blocking": true,
+              "reason": "Commits and index changes are forbidden, and no exact durable private-ref or approved-archive location has been selected; protocol requires that user selection before further durable work."
+            },
+            {
+              "identity": "GREEN-SNAPSHOT-1111111111111111111111111111111111111111",
+              "class": "safety_data_integrity",
+              "blocking": true,
+              "reason": "The claimed green snapshot object does not exist in the repository and has no reachable ref or archive locator."
+            },
+            {
+              "identity": "SECRET-OUTPUT-2",
+              "class": "safety_data_integrity",
+              "blocking": true,
+              "reason": "This is a candidate-new secret finding in tracked candidate evidence and contradicts the writer-statement-only secret-hygiene closure."
+            },
+            {
+              "identity": "SECRET-BASE-1",
+              "class": "safety_data_integrity",
+              "blocking": false,
+              "reason": "The disclosed pre-existing secret finding remains present with the same identity and is baseline-unchanged."
+            },
+            {
+              "identity": "CONFIGURATION-OPEN",
+              "class": "original_goal",
+              "blocking": true,
+              "reason": "The durable plan explicitly records the encryption-configuration claim as open."
+            },
+            {
+              "identity": "REVIEW-GATE",
+              "class": "frozen_acceptance",
+              "blocking": true,
+              "reason": "Review cannot start without a valid durable and isolated candidate snapshot; no review receipt exists."
+            }
+          ],
+          "open_gates": [
+            "user_selection: exact durable private ref or approved archive location",
+            "execplan_amendment: replace the invalid snapshot checkpoint and unsupported secret-hygiene closure with reproducible facts",
+            "secret_hygiene: resolve SECRET-OUTPUT-2",
+            "original_goal: close and verify the encryption-configuration claim",
+            "review: establish a valid isolated candidate snapshot before review",
+            "completion: obtain valid review evidence and a clean final tree"
+          ],
+          "evidence": [
+            "HEAD is 076c08e57a70bd61fcdb8dd6eb20812abfc089b0 with baseline tree 0c12e70300c43ccc4150a3337963b563d1566425.",
+            "The index is unchanged; the worktree has unstaged modifications to product.cfg and scan.txt.",
+            "POLICY.md forbids commits and staging and states that no exact private-ref or archive location selection is recorded.",
+            "The tracked HappyCodex/0.3 ExecPlan is active, records configuration as open, and closes secret hygiene only by writer statement.",
+            "The claimed snapshot 1111111111111111111111111111111111111111 is absent, and refs contain only refs/heads/main.",
+            "Baseline and candidate scans both identify SECRET-BASE-1; the candidate scan newly identifies SECRET-OUTPUT-2.",
+            "Candidate blob identities are product.cfg 04a41b39fe6e867ef8c041905e083f6c58d918e6 and scan.txt 49c6947f18ac99c6d0be3329e05db15144343fdd."
+          ],
+          "reason": "The checkpoint is not reviewable or completable. User selection of an exact durable no-commit location is the immediate control gate; the durable plan then needs factual amendment, the candidate-new secret finding must be resolved, and the original configuration claim remains open.",
+          "recovery_state": null
+        },
+        "fresh_recovery_result": null,
+        "oracle_failures": [],
+        "native_compaction": null,
+        "passed": true,
+        "installation": {
+          "source_skill_sha256": "4ce0e730a9ff5ab58c4739e77297e77ad8b4e29f34a364ae2a31447574450db5",
+          "installed_skill_sha256": "4ce0e730a9ff5ab58c4739e77297e77ad8b4e29f34a364ae2a31447574450db5",
+          "source_package_manifest_sha256": "d5fa65771d7720df011c5cfd409f0bb4b107154402fa23ff25fea40ec25720ef",
+          "installed_package_manifest_sha256": "d5fa65771d7720df011c5cfd409f0bb4b107154402fa23ff25fea40ec25720ef",
+          "plugin": {
+            "pluginId": "happycodex@happycodex",
+            "name": "happycodex",
+            "version": "0.2.0+codex.20260714095129"
+          }
+        }
+      },
+      {
+        "id": "pre-freeze-compaction",
+        "metadata_sha256": "c924fd15af71f716e8380e5973df305126b233cb9876e4799ade849b27151968",
+        "model": "gpt-5.6-sol",
+        "effort": "high",
+        "timeout_seconds": 300,
+        "timed_out": false,
+        "elapsed_seconds": 394.98,
+        "exit_code": 0,
+        "thread_id": "019f6927-9328-7cf0-8f5c-d30751d4c053",
+        "resume_thread_id": "019f6927-9328-7cf0-8f5c-d30751d4c053",
+        "fresh_recovery_thread_id": "019f692c-524b-7a52-82c0-47f126d604ab",
+        "evaluation_input_sha256": "1d61bde72ada356064b5fdc2235b73e0646241c38e0c58c7063735a1ce9c33a4",
+        "events_sha256": "39d543bfcce4cb3c5104f2cd71b4996d4431692aec7dadc7b464ca8f5f092bbc",
+        "stderr_sha256": "69d85f46f9dd0ca105f56435ca1cbd86bd7193e188c6f0f898a33a14e1127194",
+        "filesystem_isolation": {
+          "mechanism": "codex-permission-profile",
+          "profile": "happycodex-evaluator",
+          "filesystem": "minimal-plus-current-workspace-and-native-tools",
+          "default_access": "deny",
+          "workspace": "read-only",
+          "nonworkspace": "unreadable",
+          "credential_file": "parent-only-command-denied",
+          "native_tool_allowlist": [
+            "apply_patch",
+            "codex",
+            "codex-linux-sandbox",
+            "rg"
+          ],
+          "native_tools": "read-only",
+          "home": "isolated",
+          "parent_task_environment": "stripped",
+          "command_environment": "inherit-none",
+          "network": "disabled",
+          "selection": "explicit-on-every-turn",
+          "workspace_root": "<case-temp>/repo",
+          "native_tool_root": "<case-temp>/bin"
+        },
+        "usage": {
+          "cached_input_tokens": 251136,
+          "input_tokens": 326205,
+          "output_tokens": 14703,
+          "reasoning_output_tokens": 8447
+        },
+        "usage_phases": [
+          {
+            "input_tokens": 73214,
+            "cached_input_tokens": 61184,
+            "output_tokens": 4272,
+            "reasoning_output_tokens": 2793
+          },
+          {
+            "input_tokens": 154341,
+            "cached_input_tokens": 113408,
+            "output_tokens": 6934,
+            "reasoning_output_tokens": 3683
+          },
+          {
+            "input_tokens": 98650,
+            "cached_input_tokens": 76544,
+            "output_tokens": 3497,
+            "reasoning_output_tokens": 1971
+          }
+        ],
+        "uncached_input_tokens": 75069,
+        "result": {
+          "decision": "continue",
+          "qualifies": true,
+          "execplan_condition": "usable",
+          "protocol_may_product_write": false,
+          "protocol_may_review": false,
+          "protocol_may_complete": false,
+          "finding_classifications": [
+            {
+              "identity": "legacy-retry-bypass",
+              "domain": "other",
+              "state": "baseline_unchanged"
+            },
+            {
+              "identity": "BC-4",
+              "domain": "receipt",
+              "state": "resolved"
+            },
+            {
+              "identity": "RECOVERY-TEST-19C4",
+              "domain": "other",
+              "state": "candidate_new"
+            }
+          ],
+          "blocker_classifications": [
+            {
+              "identity": "contract-freeze-revision",
+              "class": "frozen_acceptance",
+              "blocking": true,
+              "reason": "The durable ExecPlan identifies a distinct contract-freeze revision as the next required gate."
+            },
+            {
+              "identity": "red-oracle",
+              "class": "production_condition",
+              "blocking": true,
+              "reason": "RED must be observed after contract freeze and before production edits."
+            },
+            {
+              "identity": "queue-v2-migration",
+              "class": "original_goal",
+              "blocking": true,
+              "reason": "The product remains at VERSION 1 and the requested v2 migration has not been implemented."
+            },
+            {
+              "identity": "retry-behavior-preservation",
+              "class": "safety_data_integrity",
+              "blocking": true,
+              "reason": "The legacy retry bypass remains a frozen preservation obligation."
+            },
+            {
+              "identity": "all-queue-dispatch-paths",
+              "class": "exhaustive_claim",
+              "blocking": true,
+              "reason": "Completion requires replacing every queue dispatch path, which has not yet been implemented or proven."
+            },
+            {
+              "identity": "v1-retirement-recovery-proof",
+              "class": "safety_data_integrity",
+              "blocking": true,
+              "reason": "Version 1 may be retired only after recovery proof, which is not yet established."
+            }
+          ],
+          "open_gates": [
+            "create the contract-freeze revision",
+            "observe RED",
+            "make production edits"
+          ],
+          "evidence": [
+            "ExecPlan state is skeleton with boundary inventory complete and current phase recorded as boundary union reproduced.",
+            "ExecPlan explicitly states that the next permitted action is the distinct contract-freeze revision, not a production edit.",
+            "Pending gates are recorded in order as contract freeze, RED observation, and production edits.",
+            "Current revision is 420d475d5ee29164f5abee472b0e14f4f07b0447 with tree 140e386c43acb874a3bdad9eed83d3a523f7fc40.",
+            "Baseline revision is 33f08b51872235aa9e575087a4e3b4e4e5574503 with tree b0e7d3326187ea57cb418662372171720b9eab21.",
+            "Product source is unchanged from baseline; src/queue.py still declares VERSION = 1 and RETRY_MODE = 'legacy'.",
+            "Current test evidence records 19 passed, 0 failed, and no accepted failures.",
+            "The worktree is clean.",
+            "Boundary challenger BC-4 is recorded as terminal with its read-only receipt reproduced by Root."
+          ],
+          "reason": "Durable repository facts recover the checkpoint before contract freeze. Root may next create the contract-freeze revision; product writing, review, and completion remain gated.",
+          "recovery_state": {
+            "baseline_revision": "33f08b51872235aa9e575087a4e3b4e4e5574503",
+            "baseline_tree": "b0e7d3326187ea57cb418662372171720b9eab21",
+            "current_revision": "420d475d5ee29164f5abee472b0e14f4f07b0447",
+            "current_tree": "140e386c43acb874a3bdad9eed83d3a523f7fc40",
+            "writer": "Root",
+            "milestone_phase": "boundary_union_reproduced",
+            "next_action": "create_contract_freeze_revision",
+            "pending_gates": [
+              "contract_freeze",
+              "red_oracle",
+              "product_edit"
+            ],
+            "tests": {
+              "passed": 19,
+              "failed": 0,
+              "accepted_failures": 0,
+              "marker_ids": [
+                "RECOVERY-TEST-19C4"
+              ]
+            },
+            "worktree": "clean",
+            "live_agents": [
+              {
+                "id": "BC-4",
+                "status": "terminal",
+                "receipt_reproduced": true
+              }
+            ],
+            "marker_ids": [
+              "RECOVERY-PLAN-47B2",
+              "RECOVERY-GIT-6D91",
+              "RECOVERY-TEST-19C4"
+            ]
+          }
+        },
+        "fresh_recovery_result": {
+          "decision": "continue",
+          "qualifies": true,
+          "execplan_condition": "needs_amendment",
+          "protocol_may_product_write": false,
+          "protocol_may_review": false,
+          "protocol_may_complete": false,
+          "finding_classifications": [
+            {
+              "identity": "src/queue.py:legacy-retry-bypass",
+              "domain": "other",
+              "state": "baseline_unchanged"
+            },
+            {
+              "identity": "BC-4",
+              "domain": "receipt",
+              "state": "resolved"
+            }
+          ],
+          "blocker_classifications": [
+            {
+              "identity": "all-queue-dispatch-paths-use-v2",
+              "class": "exhaustive_claim",
+              "blocking": true,
+              "reason": "The baseline product remains at VERSION = 1; no production implementation has begun."
+            },
+            {
+              "identity": "retry-behavior-preservation",
+              "class": "original_goal",
+              "blocking": true,
+              "reason": "Preservation is a recorded obligation but has not yet been verified against an implemented candidate."
+            },
+            {
+              "identity": "v1-retirement-after-recovery-proof",
+              "class": "production_condition",
+              "blocking": true,
+              "reason": "The required recovery proof and subsequent v1 retirement have not occurred."
+            },
+            {
+              "identity": "contract-freeze-revision",
+              "class": "frozen_acceptance",
+              "blocking": true,
+              "reason": "The durable plan remains a skeleton and explicitly requires a distinct contract-freeze revision next."
+            }
+          ],
+          "open_gates": [
+            "create the contract-freeze revision",
+            "observe RED",
+            "make production edits"
+          ],
+          "evidence": [
+            "ExecPlan state is skeleton and records boundary union reproduced.",
+            "ExecPlan identifies the distinct contract-freeze revision as the next permitted action and forbids a production edit first.",
+            "HEAD is 420d475d5ee29164f5abee472b0e14f4f07b0447 with tree 140e386c43acb874a3bdad9eed83d3a523f7fc40.",
+            "Baseline is revision 33f08b51872235aa9e575087a4e3b4e4e5574503 with tree b0e7d3326187ea57cb418662372171720b9eab21.",
+            "Worktree is clean on main.",
+            "tests.txt records 19 passed after recovery characterization, zero failures, and no accepted failures.",
+            "BC-4 is recorded terminal and reproduced by Root."
+          ],
+          "reason": "This migration and exhaustive replacement task qualifies. Durable facts place it after boundary-union reproduction but before contract freeze, RED observation, implementation, review, or completion. Root may amend and commit the ExecPlan as the contract-freeze revision, but may not yet change product files.",
+          "recovery_state": {
+            "baseline_revision": "33f08b51872235aa9e575087a4e3b4e4e5574503",
+            "baseline_tree": "b0e7d3326187ea57cb418662372171720b9eab21",
+            "current_revision": "420d475d5ee29164f5abee472b0e14f4f07b0447",
+            "current_tree": "140e386c43acb874a3bdad9eed83d3a523f7fc40",
+            "writer": "Root",
+            "milestone_phase": "boundary_union_reproduced",
+            "next_action": "create_contract_freeze_revision",
+            "pending_gates": [
+              "contract_freeze",
+              "red_oracle",
+              "product_edit"
+            ],
+            "tests": {
+              "passed": 19,
+              "failed": 0,
+              "accepted_failures": 0,
+              "marker_ids": [
+                "RECOVERY-TEST-19C4"
+              ]
+            },
+            "worktree": "clean",
+            "live_agents": [
+              {
+                "id": "BC-4",
+                "status": "terminal",
+                "receipt_reproduced": true
+              }
+            ],
+            "marker_ids": [
+              "RECOVERY-PLAN-47B2",
+              "RECOVERY-GIT-6D91",
+              "RECOVERY-TEST-19C4"
+            ]
+          }
+        },
+        "oracle_failures": [],
+        "native_compaction": {
+          "auto_compact_token_limit": 1000,
+          "before_resume": {
+            "rollout_path": "sessions/2026/07/16/rollout-2026-07-16T04-20-29-019f6927-9328-7cf0-8f5c-d30751d4c053.jsonl",
+            "rollout_sha256": "c5f2cb0cea30e0676db2a5e605abfb32ae897adef9e4149a7a70a5b67a95f718",
+            "compaction_event_count": 1,
+            "context_compacted_marker_count": 1,
+            "event_types": [
+              "compacted",
+              "context_compacted"
+            ],
+            "rollout_match_count": 1
+          },
+          "compaction_event_count": 1,
+          "resumed_same_thread": true,
+          "post_compaction_transition": {
+            "message": "docs: record durable recovery marker RECOVERY-GIT-6D91",
+            "pre_head": "d8035774c5e635ccf82ef145ca8b4c343a2f0799",
+            "pre_status": "",
+            "pre_files_sha256": "4395ff683e9c72f4ff797a6243703b5337defd360a2fd84b987ec7e890e991ae",
+            "head": "420d475d5ee29164f5abee472b0e14f4f07b0447",
+            "tree": "140e386c43acb874a3bdad9eed83d3a523f7fc40",
+            "status": "",
+            "files": {
+              "TASK.md": {
+                "kind": "file",
+                "mode": 384,
+                "bytes": 108,
+                "sha256": "8108eeb1f5dfd6cea26ba9767402439b190c62577f4efa96c7e6dc406bfa7035"
+              },
+              "docs": {
+                "kind": "directory",
+                "mode": 448
+              },
+              "docs/execplans": {
+                "kind": "directory",
+                "mode": 448
+              },
+              "docs/execplans/queue-migration.md": {
+                "kind": "file",
+                "mode": 384,
+                "bytes": 962,
+                "sha256": "13b578c8676b9c31b82f558d3af69bb051099fde87a71715335fbfa561f096e0"
+              },
+              "src": {
+                "kind": "directory",
+                "mode": 448
+              },
+              "src/queue.py": {
+                "kind": "file",
+                "mode": 384,
+                "bytes": 34,
+                "sha256": "b81e6e0775a10bafc9979f4cc64e5c0ee23d7d196e31d1ca4730a75619ef1d12"
+              },
+              "tests.txt": {
+                "kind": "file",
+                "mode": 384,
+                "bytes": 117,
+                "sha256": "874f0e423ef043c68fe7f74529afd567ce7ed13fc651ef5e211140727c873859"
+              }
+            },
+            "files_sha256": "b6e77297ffc420ce35c0eea78ba625bae088422e45d924eabcc7503776c502f6",
+            "changed_paths": [
+              "docs/execplans/queue-migration.md",
+              "tests.txt"
+            ]
+          },
+          "after_resume": {
+            "rollout_path": "sessions/2026/07/16/rollout-2026-07-16T04-20-29-019f6927-9328-7cf0-8f5c-d30751d4c053.jsonl",
+            "rollout_sha256": "c73ff61094dc1c63f53c239a59a34d56db0c660d7a13829e683191426c658414",
+            "compaction_event_count": 4,
+            "context_compacted_marker_count": 4,
+            "event_types": [
+              "compacted",
+              "context_compacted",
+              "compacted",
+              "context_compacted",
+              "compacted",
+              "context_compacted",
+              "compacted",
+              "context_compacted"
+            ],
+            "rollout_match_count": 1
+          },
+          "fresh_control": {
+            "thread_id": "019f692c-524b-7a52-82c0-47f126d604ab",
+            "distinct_from_resumed_task": true,
+            "no_resume_handle": true,
+            "no_conversation_summary": true,
+            "prompt_sha256": "a0c217934500eab5fec14c1c0a159d229e526230d263ce17c942295ad4782573",
+            "equivalent_gate_fields": [
+              "protocol_may_complete",
+              "protocol_may_product_write",
+              "protocol_may_review",
+              "qualifies",
+              "recovery_state"
+            ],
+            "allowed_label_differences": {
+              "execplan_condition": [
+                "usable",
+                "needs_amendment"
+              ]
+            }
+          }
+        },
+        "passed": true,
+        "installation": {
+          "source_skill_sha256": "4ce0e730a9ff5ab58c4739e77297e77ad8b4e29f34a364ae2a31447574450db5",
+          "installed_skill_sha256": "4ce0e730a9ff5ab58c4739e77297e77ad8b4e29f34a364ae2a31447574450db5",
+          "source_package_manifest_sha256": "d5fa65771d7720df011c5cfd409f0bb4b107154402fa23ff25fea40ec25720ef",
+          "installed_package_manifest_sha256": "d5fa65771d7720df011c5cfd409f0bb4b107154402fa23ff25fea40ec25720ef",
+          "plugin": {
+            "pluginId": "happycodex@happycodex",
+            "name": "happycodex",
+            "version": "0.2.0+codex.20260714095129"
+          }
+        }
+      },
+      {
+        "id": "receipt-mismatch",
+        "metadata_sha256": "f64e4f92c865ed7ec911f707246b51a9f948f0153f6a83e5901f13424a67a2ff",
+        "model": "gpt-5.6-sol",
+        "effort": "high",
+        "timeout_seconds": 300,
+        "timed_out": false,
+        "elapsed_seconds": 139.555,
+        "exit_code": 0,
+        "thread_id": "019f692d-9b80-7701-b2b1-8605e2016a39",
+        "resume_thread_id": null,
+        "fresh_recovery_thread_id": null,
+        "evaluation_input_sha256": "46238f4b2d258aef536ca9cdf90a9a006cdbbb10689e8848040ba64bdb5652b2",
+        "events_sha256": "974c7013c834b29206da0778a3ce2fe717f6cda1cf8d2b0a02173ef7a420686c",
+        "stderr_sha256": "315f9f98b3e35cde6fdf31ded7f0aa1aa146352d53d71a22280ec4b02845fc7d",
+        "filesystem_isolation": {
+          "mechanism": "codex-permission-profile",
+          "profile": "happycodex-evaluator",
+          "filesystem": "minimal-plus-current-workspace-and-native-tools",
+          "default_access": "deny",
+          "workspace": "read-only",
+          "nonworkspace": "unreadable",
+          "credential_file": "parent-only-command-denied",
+          "native_tool_allowlist": [
+            "apply_patch",
+            "codex",
+            "codex-linux-sandbox",
+            "rg"
+          ],
+          "native_tools": "read-only",
+          "home": "isolated",
+          "parent_task_environment": "stripped",
+          "command_environment": "inherit-none",
+          "network": "disabled",
+          "selection": "explicit-on-every-turn",
+          "workspace_root": "<case-temp>/repo",
+          "native_tool_root": "<case-temp>/bin"
+        },
+        "usage": {
+          "cached_input_tokens": 109824,
+          "input_tokens": 127286,
+          "output_tokens": 5840,
+          "reasoning_output_tokens": 3513
+        },
+        "usage_phases": [
+          {
+            "input_tokens": 127286,
+            "cached_input_tokens": 109824,
+            "output_tokens": 5840,
+            "reasoning_output_tokens": 3513
+          }
+        ],
+        "uncached_input_tokens": 17462,
+        "result": {
+          "decision": "continue",
+          "qualifies": true,
+          "execplan_condition": "needs_amendment",
+          "protocol_may_product_write": false,
+          "protocol_may_review": false,
+          "protocol_may_complete": false,
+          "finding_classifications": [
+            {
+              "identity": "O2:legacy-selector-bypass",
+              "domain": "other",
+              "state": "resolved"
+            },
+            {
+              "identity": "BC-7:terminal-receipt",
+              "domain": "receipt",
+              "state": "unknown"
+            },
+            {
+              "identity": "review-authority-7:contract-mapping",
+              "domain": "receipt",
+              "state": "candidate_new"
+            },
+            {
+              "identity": "review-authority-full-task-7:contract-mapping-and-scope",
+              "domain": "receipt",
+              "state": "candidate_new"
+            }
+          ],
+          "blocker_classifications": [
+            {
+              "identity": "BC-7:terminal-receipt",
+              "class": "exhaustive_claim",
+              "blocking": true,
+              "reason": "The checkpoint names delegated challenger BC-7, but the repository contains only a summary and no reachable matching terminal receipt; the exhaustive no-bypass evidence union is therefore unresolved."
+            },
+            {
+              "identity": "review-authority-7:contract-mapping",
+              "class": "frozen_acceptance",
+              "blocking": true,
+              "reason": "The reachable receipt claims O1/O2 coverage but maps greeting-change to O1 and unrelated-output-preservation to P1, which does not map the frozen all-requests/no-legacy obligations."
+            },
+            {
+              "identity": "review-authority-full-task-7:contract-mapping-and-scope",
+              "class": "frozen_acceptance",
+              "blocking": true,
+              "reason": "The supplemental receipt repeats the unrelated greeting/P1 mapping and reviews the ExecPlan as a diff unit instead of the required product-tree projection excluding the sole ExecPlan."
+            }
+          ],
+          "open_gates": [
+            "reconcile the durable ExecPlan's false closed state",
+            "resolve the BC-7 terminal receipt",
+            "obtain a valid exact-product review receipt with correct frozen-obligation mapping",
+            "perform administrative closure after valid review"
+          ],
+          "evidence": [
+            "HEAD dfa88b07b12cfcaef7edcfcab5c03da15593da7f has tree bdc892afe1d02658b6c2d2ced7e7ab803b8c6dda and the worktree is clean.",
+            "Baseline ef18ba2af6affb97b1a3561fac985e1375df5009 and candidate a1430ecd9105dba414dae59e62caf272262f1914 are reachable; their product-manifest hashes excluding docs/execplans/authority.md reproduce as 0f0f5513797fcf4b89cd91c586910096223ff08",
+            "Candidate app.py always returns authority, current source search found no executable legacy-selector bypass, and python3 -m unittest discover -s tests -v passed 2/2 tests.",
+            "Receipt blob 1ccae201aad71920af9a8c7f62c950321cb18101 is reachable and its SHA-256 reproduces as 8a607b7a06edbd895964fa1690a1509fafc52e968e261a805efac2d87f7bd914, but its contract_mapping is greeting-change<->O1;unrelated-output-preses",
+            "Receipt blob cd7cf8892a07c6760e4c3012b090de3e84c98cf0 is reachable and its SHA-256 reproduces as 69f8d6ae527fc50a45a66b49fce291697f902d38fe514c5f97e12a3361d6d52b; it has the same unrelated contract mapping and explicitly includes docs/execp",
+            "Repository refs and content contain no terminal BC-7 receipt beyond the ExecPlan's unsupported summary."
+          ],
+          "reason": "The product behavior appears correct and checks pass, but completion is not permitted because the exhaustive challenger receipt is missing and both claimed reviewer receipts fail required acceptance mapping; the supplemental review also uses the wrong review scope. The durable plan therefore cannot truthfully remain closed.",
+          "recovery_state": null
+        },
+        "fresh_recovery_result": null,
+        "oracle_failures": [],
+        "native_compaction": null,
+        "passed": true,
+        "installation": {
+          "source_skill_sha256": "4ce0e730a9ff5ab58c4739e77297e77ad8b4e29f34a364ae2a31447574450db5",
+          "installed_skill_sha256": "4ce0e730a9ff5ab58c4739e77297e77ad8b4e29f34a364ae2a31447574450db5",
+          "source_package_manifest_sha256": "d5fa65771d7720df011c5cfd409f0bb4b107154402fa23ff25fea40ec25720ef",
+          "installed_package_manifest_sha256": "d5fa65771d7720df011c5cfd409f0bb4b107154402fa23ff25fea40ec25720ef",
+          "plugin": {
+            "pluginId": "happycodex@happycodex",
+            "name": "happycodex",
+            "version": "0.2.0+codex.20260714095129"
+          }
+        }
+      },
+      {
+        "id": "review-admin-cycle",
+        "metadata_sha256": "40c84f81012a986e0fde13791e21bceff57d8dedff5b6c707663844194353499",
+        "model": "gpt-5.6-sol",
+        "effort": "high",
+        "timeout_seconds": 300,
+        "timed_out": false,
+        "elapsed_seconds": 61.775,
+        "exit_code": 0,
+        "thread_id": "019f692f-be09-7f80-889a-bd543bb57d4b",
+        "resume_thread_id": null,
+        "fresh_recovery_thread_id": null,
+        "evaluation_input_sha256": "4743965f87039dbea28300de451ee265a339f26ef76721b9ea22557050a225da",
+        "events_sha256": "9fe6d56fdce9b4849558d0fb5db6852d8a3aa762f49a4135a56bb4cf8b2453a4",
+        "stderr_sha256": "ac46b7b7bafc034513f3b04c6cd785f3a5d96af2b8fa1a721c00ec4987bf90c9",
+        "filesystem_isolation": {
+          "mechanism": "codex-permission-profile",
+          "profile": "happycodex-evaluator",
+          "filesystem": "minimal-plus-current-workspace-and-native-tools",
+          "default_access": "deny",
+          "workspace": "read-only",
+          "nonworkspace": "unreadable",
+          "credential_file": "parent-only-command-denied",
+          "native_tool_allowlist": [
+            "apply_patch",
+            "codex",
+            "codex-linux-sandbox",
+            "rg"
+          ],
+          "native_tools": "read-only",
+          "home": "isolated",
+          "parent_task_environment": "stripped",
+          "command_environment": "inherit-none",
+          "network": "disabled",
+          "selection": "explicit-on-every-turn",
+          "workspace_root": "<case-temp>/repo",
+          "native_tool_root": "<case-temp>/bin"
+        },
+        "usage": {
+          "cached_input_tokens": 100864,
+          "input_tokens": 126333,
+          "output_tokens": 2505,
+          "reasoning_output_tokens": 1081
+        },
+        "usage_phases": [
+          {
+            "input_tokens": 126333,
+            "cached_input_tokens": 100864,
+            "output_tokens": 2505,
+            "reasoning_output_tokens": 1081
+          }
+        ],
+        "uncached_input_tokens": 25469,
+        "result": {
+          "decision": "complete",
+          "qualifies": true,
+          "execplan_condition": "usable",
+          "protocol_may_product_write": false,
+          "protocol_may_review": false,
+          "protocol_may_complete": true,
+          "finding_classifications": [],
+          "blocker_classifications": [],
+          "open_gates": [],
+          "evidence": [
+            "HEAD is 66a08c7095b4c75a9a0af4814074ff3242dae10e with clean worktree and tree 84787e6d0498ccd5d76a0078bfa53612d82c69d8.",
+            "The closed ExecPlan records no pending gates, no accepted or current failures, no scanner findings, and no review findings.",
+            "Fresh read-only check passed 2/2 tests: test_greeting and test_format_name.",
+            "Baseline-to-candidate product diff contains only app.py and tests/test_app.py; format_name is unchanged and greet returns welcome.",
+            "The terminal challenger receipt is reachable and hash-valid; the terminal review receipt is reachable, hash-valid, complete, uncontaminated, and covers both diff units and both obligations.",
+            "The administrative closure commit changes only docs/execplans/greeting.md; the candidate product-manifest digest remains 21618134f3c1c56febbd433b8828b56a20281e50af213440e33281106d892975 through HEAD."
+          ],
+          "reason": "Completion is permitted: the exhaustive preservation request qualifies for the protocol, the durable plan is usable and closed, all frozen claims are verified, checks and review are complete, receipts are accounted for, the product tree remained unchanged after review, and no material finding or completion gate remains open.",
+          "recovery_state": null
+        },
+        "fresh_recovery_result": null,
+        "oracle_failures": [],
+        "native_compaction": null,
+        "passed": true,
+        "installation": {
+          "source_skill_sha256": "4ce0e730a9ff5ab58c4739e77297e77ad8b4e29f34a364ae2a31447574450db5",
+          "installed_skill_sha256": "4ce0e730a9ff5ab58c4739e77297e77ad8b4e29f34a364ae2a31447574450db5",
+          "source_package_manifest_sha256": "d5fa65771d7720df011c5cfd409f0bb4b107154402fa23ff25fea40ec25720ef",
+          "installed_package_manifest_sha256": "d5fa65771d7720df011c5cfd409f0bb4b107154402fa23ff25fea40ec25720ef",
+          "plugin": {
+            "pluginId": "happycodex@happycodex",
+            "name": "happycodex",
+            "version": "0.2.0+codex.20260714095129"
+          }
+        }
+      },
+      {
+        "id": "review-inventory-gate",
+        "metadata_sha256": "a23a616ca828d7e35117cc4db2f2479dfca773e0f22413e35b40a9f9618bc460",
+        "model": "gpt-5.6-sol",
+        "effort": "high",
+        "timeout_seconds": 300,
+        "timed_out": false,
+        "elapsed_seconds": 96.09,
+        "exit_code": 0,
+        "thread_id": "019f6930-b0d8-76e1-bfa3-2460bddcebaa",
+        "resume_thread_id": null,
+        "fresh_recovery_thread_id": null,
+        "evaluation_input_sha256": "f60eabf64c832244e1349b3bb8690e3e527f973f6f86b2c0e1f384c3625b9986",
+        "events_sha256": "4aa446a5766b8891bfd9516bba4b5b89fb126bfe9f9293f46ebc5020d1358e51",
+        "stderr_sha256": "36a636a8990ca6e58eaa9be8278ff67596220b423cdef6951b242bbace7f3c9d",
+        "filesystem_isolation": {
+          "mechanism": "codex-permission-profile",
+          "profile": "happycodex-evaluator",
+          "filesystem": "minimal-plus-current-workspace-and-native-tools",
+          "default_access": "deny",
+          "workspace": "read-only",
+          "nonworkspace": "unreadable",
+          "credential_file": "parent-only-command-denied",
+          "native_tool_allowlist": [
+            "apply_patch",
+            "codex",
+            "codex-linux-sandbox",
+            "rg"
+          ],
+          "native_tools": "read-only",
+          "home": "isolated",
+          "parent_task_environment": "stripped",
+          "command_environment": "inherit-none",
+          "network": "disabled",
+          "selection": "explicit-on-every-turn",
+          "workspace_root": "<case-temp>/repo",
+          "native_tool_root": "<case-temp>/bin"
+        },
+        "usage": {
+          "cached_input_tokens": 78592,
+          "input_tokens": 102736,
+          "output_tokens": 4037,
+          "reasoning_output_tokens": 2257
+        },
+        "usage_phases": [
+          {
+            "input_tokens": 102736,
+            "cached_input_tokens": 78592,
+            "output_tokens": 4037,
+            "reasoning_output_tokens": 2257
+          }
+        ],
+        "uncached_input_tokens": 24144,
+        "result": {
+          "decision": "continue",
+          "qualifies": true,
+          "execplan_condition": "needs_amendment",
+          "protocol_may_product_write": false,
+          "protocol_may_review": false,
+          "protocol_may_complete": false,
+          "finding_classifications": [
+            {
+              "identity": "REV-INV-001",
+              "domain": "receipt",
+              "state": "candidate_new"
+            }
+          ],
+          "blocker_classifications": [
+            {
+              "identity": "REV-INV-001",
+              "class": "frozen_acceptance",
+              "blocking": true,
+              "reason": "The review receipt records unnumbered phase-1 obligations (`greeting-change` and `unrelated-output-preservation`) and no hash of their numbered text. Its assertions that the inventory was frozen and that the contract was revealed later do不t"
+            }
+          ],
+          "open_gates": [
+            "Amend the durable ExecPlan to reopen the invalid review and closure state",
+            "Obtain a fresh full-scope review whose contract-hidden phase 1 emits stable numbered obligation IDs and hashed text before contract projection",
+            "Record a new administrative closure while proving the product tree remains unchanged",
+            "Completion"
+          ],
+          "evidence": [
+            "The cited challenger ref resolves to blob c694efe0129308ba6b646ad10590dfe97994294e with matching SHA-256 d83d5140773b376f53b15d21f6677464c10f163e697c1b7c5254dca33a8daf68 and records terminal complete, read-only, no delegation, and Root-repr",
+            "The cited review-output ref resolves to blob d0cccc2cafdf23c1d1c75497eb3be2dfb7fb082b with matching SHA-256 aa0732775d4a6ccc2ab13b0867068e8ae0a0e940b252f45afdd0bb1f6d629924.",
+            "The review output lists `independent_obligations=greeting-change,unrelated-output-preservation`; these are not stable numbered obligation IDs, and no phase-1 obligation-text hash is recorded.",
+            "The synthetic baseline and candidate exactly match the source product blobs for app.py and tests/test_app.py; their diff contains precisely those two units.",
+            "Commit 7a7d258 changes only docs/execplans/inventory-gate.md relative to candidate a25c4f7, so the reviewed product tree remained unchanged during the claimed administrative closure.",
+            "The worktree is clean."
+          ],
+          "reason": "The artifact identities and frozen product projection verify, but the receipt does not satisfy the mandatory numbered-and-hashed phase-1 obligation inventory. Because contract projection is already recorded after that deficient inventory, the claimed phase ordering cannot establish a valid review gate. The closed ExecPlan is therefore inaccurate and must be amended before review or completion can proceed.",
+          "recovery_state": null
+        },
+        "fresh_recovery_result": null,
+        "oracle_failures": [],
+        "native_compaction": null,
+        "passed": true,
+        "installation": {
+          "source_skill_sha256": "4ce0e730a9ff5ab58c4739e77297e77ad8b4e29f34a364ae2a31447574450db5",
+          "installed_skill_sha256": "4ce0e730a9ff5ab58c4739e77297e77ad8b4e29f34a364ae2a31447574450db5",
+          "source_package_manifest_sha256": "d5fa65771d7720df011c5cfd409f0bb4b107154402fa23ff25fea40ec25720ef",
+          "installed_package_manifest_sha256": "d5fa65771d7720df011c5cfd409f0bb4b107154402fa23ff25fea40ec25720ef",
+          "plugin": {
+            "pluginId": "happycodex@happycodex",
+            "name": "happycodex",
+            "version": "0.2.0+codex.20260714095129"
+          }
+        }
+      },
+      {
+        "id": "review-isolation",
+        "metadata_sha256": "ec7c21cf7f5676b0fa29c96e5d049f83d0884139197c288dc156bd2fa42c85bf",
+        "model": "gpt-5.6-sol",
+        "effort": "high",
+        "timeout_seconds": 300,
+        "timed_out": false,
+        "elapsed_seconds": 116.404,
+        "exit_code": 0,
+        "thread_id": "019f6932-29c4-70e1-b337-5285b161bf07",
+        "resume_thread_id": null,
+        "fresh_recovery_thread_id": null,
+        "evaluation_input_sha256": "5da0f48cfd399d66822ca2c1897dbb3c1a2fbaf6d60d423651d913d1bcef80e7",
+        "events_sha256": "b1182975d5a208e786862a258faffc54729298d4db4f4bd98e020fa1ba1191a3",
+        "stderr_sha256": "562b6afe9f63be39acddfcbc1bbf6fa96ce6184ae18b4296a4d120d1f81e0a4e",
+        "filesystem_isolation": {
+          "mechanism": "codex-permission-profile",
+          "profile": "happycodex-evaluator",
+          "filesystem": "minimal-plus-current-workspace-and-native-tools",
+          "default_access": "deny",
+          "workspace": "read-only",
+          "nonworkspace": "unreadable",
+          "credential_file": "parent-only-command-denied",
+          "native_tool_allowlist": [
+            "apply_patch",
+            "codex",
+            "codex-linux-sandbox",
+            "rg"
+          ],
+          "native_tools": "read-only",
+          "home": "isolated",
+          "parent_task_environment": "stripped",
+          "command_environment": "inherit-none",
+          "network": "disabled",
+          "selection": "explicit-on-every-turn",
+          "workspace_root": "<case-temp>/repo",
+          "native_tool_root": "<case-temp>/bin"
+        },
+        "usage": {
+          "cached_input_tokens": 87808,
+          "input_tokens": 123452,
+          "output_tokens": 5314,
+          "reasoning_output_tokens": 3730
+        },
+        "usage_phases": [
+          {
+            "input_tokens": 123452,
+            "cached_input_tokens": 87808,
+            "output_tokens": 5314,
+            "reasoning_output_tokens": 3730
+          }
+        ],
+        "uncached_input_tokens": 35644,
+        "result": {
+          "decision": "continue",
+          "qualifies": true,
+          "execplan_condition": "needs_amendment",
+          "protocol_may_product_write": false,
+          "protocol_may_review": false,
+          "protocol_may_complete": false,
+          "finding_classifications": [
+            {
+              "identity": "zz-generated/format-0127:DECISIVE-TAIL-LEGACY-V1",
+              "domain": "other",
+              "state": "candidate_new"
+            },
+            {
+              "identity": "review-task-9:incomplete-diff-coverage",
+              "domain": "receipt",
+              "state": "candidate_new"
+            },
+            {
+              "identity": "review-task-9:unstable-contaminated-fallback",
+              "domain": "receipt",
+              "state": "candidate_new"
+            },
+            {
+              "identity": "review-task-9:O-new-generated-formats-unmapped",
+              "domain": "receipt",
+              "state": "candidate_new"
+            },
+            {
+              "identity": "review-task-9:/opt/parser-lib-missing-digest",
+              "domain": "receipt",
+              "state": "candidate_new"
+            }
+          ],
+          "blocker_classifications": [
+            {
+              "identity": "zz-generated/format-0127:DECISIVE-TAIL-LEGACY-V1",
+              "class": "original_goal",
+              "blocking": true,
+              "reason": "The candidate adds an explicit legacy v1 bypass, contradicting replacement of all v1 parsing paths."
+            },
+            {
+              "identity": "review-task-9:incomplete-diff-coverage",
+              "class": "exhaustive_claim",
+              "blocking": true,
+              "reason": "Phase-1 correctness was incomplete and 67 of 131 diff units were omitted, so the exhaustive replacement claim was not reviewed."
+            },
+            {
+              "identity": "review-task-9:unstable-contaminated-fallback",
+              "class": "frozen_acceptance",
+              "blocking": true,
+              "reason": "The fallback lacked a stable terminal session and read prohibited writer narrative, historical-finding, original-repository, and ExecPlan inputs."
+            },
+            {
+              "identity": "review-task-9:O-new-generated-formats-unmapped",
+              "class": "frozen_acceptance",
+              "blocking": true,
+              "reason": "The reviewer introduced an independent generated-formats obligation with no claims-ledger row or bidirectional contract mapping."
+            },
+            {
+              "identity": "review-task-9:/opt/parser-lib-missing-digest",
+              "class": "frozen_acceptance",
+              "blocking": true,
+              "reason": "The declared dependency read lacks the required digest."
+            }
+          ],
+          "open_gates": [
+            "ExecPlan reconciliation",
+            "candidate repair and refreshed checks",
+            "fresh neutral full-scope review",
+            "administrative closure and unchanged-product-tree proof"
+          ],
+          "evidence": [
+            "TASK.md requires replacing all v1 parsing paths while preserving unrelated formats.",
+            "The durable ExecPlan claims review completion and no pending gates while recording incomplete correctness, truncation, contaminated fallback inputs, an unmapped obligation, and an undigested dependency.",
+            "Review receipt review-task-9 reports phase_1_correctness_complete=false, phase_1_diff_unit_coverage=incomplete, truncation=detected, and 67 omitted diff units.",
+            "zz-generated/format-0127.txt contains \"legacy v1 bypass remains; DECISIVE-TAIL-LEGACY-V1\" and was added by source candidate dee8398a055bdbc5beb1677f29e2169714b18fb0.",
+            "The worktree is clean at f3d14b64a673924e1e4518b991810b5d55e15d17; the closure commit changed only the ExecPlan and did not cure the candidate defect."
+          ],
+          "reason": "The frozen review result does not permit completion. Its own receipt leaves exhaustive correctness and repository coverage incomplete, violates review-isolation requirements, and misses a candidate-new v1 bypass in an omitted diff unit. The ExecPlan must first be reconciled before any product write, and repair plus fresh review are required.",
+          "recovery_state": null
+        },
+        "fresh_recovery_result": null,
+        "oracle_failures": [],
+        "native_compaction": null,
+        "passed": true,
+        "installation": {
+          "source_skill_sha256": "4ce0e730a9ff5ab58c4739e77297e77ad8b4e29f34a364ae2a31447574450db5",
+          "installed_skill_sha256": "4ce0e730a9ff5ab58c4739e77297e77ad8b4e29f34a364ae2a31447574450db5",
+          "source_package_manifest_sha256": "d5fa65771d7720df011c5cfd409f0bb4b107154402fa23ff25fea40ec25720ef",
+          "installed_package_manifest_sha256": "d5fa65771d7720df011c5cfd409f0bb4b107154402fa23ff25fea40ec25720ef",
+          "plugin": {
+            "pluginId": "happycodex@happycodex",
+            "name": "happycodex",
+            "version": "0.2.0+codex.20260714095129"
+          }
+        }
+      },
+      {
+        "id": "subthreshold-control",
+        "metadata_sha256": "302bb0609d7ba83fa22f8065c26ae557dc324c6214064e32ef24db87a1ebd373",
+        "model": "gpt-5.6-sol",
+        "effort": "high",
+        "timeout_seconds": 300,
+        "timed_out": false,
+        "elapsed_seconds": 45.219,
+        "exit_code": 0,
+        "thread_id": "019f6933-f1f7-7ec2-87da-76c8f9ac93b1",
+        "resume_thread_id": null,
+        "fresh_recovery_thread_id": null,
+        "evaluation_input_sha256": "36d0cb6330c8c04b5fcdde1f416e6c273cf134303f9c6b96af74265d4960e183",
+        "events_sha256": "de2205014d1fa258f681227629e411ce76c69a5fbd890f76e49dac1d9400acd6",
+        "stderr_sha256": "c265614cf4f35cf2e11ecfcac0b8c8d3284f589acfbc91722896ebb174c9cc2b",
+        "filesystem_isolation": {
+          "mechanism": "codex-permission-profile",
+          "profile": "happycodex-evaluator",
+          "filesystem": "minimal-plus-current-workspace-and-native-tools",
+          "default_access": "deny",
+          "workspace": "read-only",
+          "nonworkspace": "unreadable",
+          "credential_file": "parent-only-command-denied",
+          "native_tool_allowlist": [
+            "apply_patch",
+            "codex",
+            "codex-linux-sandbox",
+            "rg"
+          ],
+          "native_tools": "read-only",
+          "home": "isolated",
+          "parent_task_environment": "stripped",
+          "command_environment": "inherit-none",
+          "network": "disabled",
+          "selection": "explicit-on-every-turn",
+          "workspace_root": "<case-temp>/repo",
+          "native_tool_root": "<case-temp>/bin"
+        },
+        "usage": {
+          "cached_input_tokens": 43264,
+          "input_tokens": 61412,
+          "output_tokens": 1368,
+          "reasoning_output_tokens": 534
+        },
+        "usage_phases": [
+          {
+            "input_tokens": 61412,
+            "cached_input_tokens": 43264,
+            "output_tokens": 1368,
+            "reasoning_output_tokens": 534
+          }
+        ],
+        "uncached_input_tokens": 18148,
+        "result": {
+          "decision": "continue",
+          "qualifies": false,
+          "execplan_condition": "not_required",
+          "protocol_may_product_write": true,
+          "protocol_may_review": false,
+          "protocol_may_complete": false,
+          "finding_classifications": [
+            {
+              "identity": "README.md:1:Welcom",
+              "domain": "other",
+              "state": "baseline_unchanged"
+            }
+          ],
+          "blocker_classifications": [
+            {
+              "identity": "README.md:1:Welcom",
+              "class": "original_goal",
+              "blocking": true,
+              "reason": "The requested misspelling correction has not yet been made."
+            }
+          ],
+          "open_gates": [
+            "Correct the misspelled word in README.md.",
+            "Verify that the resulting diff changes only that word."
+          ],
+          "evidence": [
+            "HEAD is 464ced28e2cf1ebc712a8302cfa5e6101e97e4ae with tree c4eadd399fe2772ecf659106ba5ed663788af0f7.",
+            "The worktree is clean on branch main.",
+            "TASK.md requests one misspelled-word correction in README.md with no behavioral or related changes.",
+            "README.md line 1 currently reads: Welcom to the sample.",
+            "tests.txt states that no tests are required for this documentation-only correction.",
+            "No ExecPlan, delegated-agent receipt, or candidate change exists in the repository."
+          ],
+          "reason": "This is a clearly local, low-risk documentation correction, so HappyCodex does not qualify and no durable ExecPlan is required. The next protocol-permitted action is the Root writer's narrowly scoped README.md edit; review and completion are not yet available because the original goal remains unmet.",
+          "recovery_state": null
+        },
+        "fresh_recovery_result": null,
+        "oracle_failures": [],
+        "native_compaction": null,
+        "passed": true,
+        "installation": {
+          "source_skill_sha256": "4ce0e730a9ff5ab58c4739e77297e77ad8b4e29f34a364ae2a31447574450db5",
+          "installed_skill_sha256": "4ce0e730a9ff5ab58c4739e77297e77ad8b4e29f34a364ae2a31447574450db5",
+          "source_package_manifest_sha256": "d5fa65771d7720df011c5cfd409f0bb4b107154402fa23ff25fea40ec25720ef",
+          "installed_package_manifest_sha256": "d5fa65771d7720df011c5cfd409f0bb4b107154402fa23ff25fea40ec25720ef",
+          "plugin": {
+            "pluginId": "happycodex@happycodex",
+            "name": "happycodex",
+            "version": "0.2.0+codex.20260714095129"
+          }
+        }
+      }
+    ]
+  },
+  "public_0_2": {
+    "source_commit": "3b9c11fac1f97df75263e0bfc6421c575e04e8b2",
+    "source_tree": "4708ebc12f74d4482764796fdd00f1fa7194a13a",
+    "skill_sha256": "aa090bbd0d7af6e6ac05e5afc959ee93268393f8621bd5ebf00e745d04e3ce55",
+    "runner_sha256": "fe6537fd1d2f5dd9da3a1686907c06305e2974c4f953b85853a3fb144c455365",
+    "package_manifest_sha256": "77a0b2b8f7f6280d6ed32458fc61ca110f7138b5b6c17ad55d333a023dfa8c89",
+    "raw_summary_sha256": "6de9a06bdbed3abc96725af6e092a414f363c597ef2cd9f4b221bc4693be1448",
+    "passed": 0,
+    "total": 2,
+    "telemetry_complete": true,
+    "uncached_input_tokens": 49589,
+    "output_tokens": 11610,
+    "combined_uncached_input_output_tokens": 61199,
+    "elapsed_seconds": 305.563,
+    "filesystem_isolation": {
+      "mechanism": "codex-permission-profile",
+      "profile": "happycodex-evaluator",
+      "filesystem": "minimal-plus-current-workspace-and-native-tools",
+      "default_access": "deny",
+      "workspace": "read-only",
+      "nonworkspace": "unreadable",
+      "credential_file": "parent-only-command-denied",
+      "native_tool_allowlist": [
+        "apply_patch",
+        "codex",
+        "codex-linux-sandbox",
+        "rg"
+      ],
+      "native_tools": "read-only",
+      "home": "isolated",
+      "parent_task_environment": "stripped",
+      "command_environment": "inherit-none",
+      "network": "disabled",
+      "selection": "explicit-on-every-turn"
+    },
+    "selection_note": "One exact public-0.2 run per selected current input. The inventory case false-completed; the receipt case identified the defects but stopped only for user authorization because the fixed review quota was consumed. No public input was rerun.",
+    "cases": [
+      {
+        "id": "review-inventory-gate",
+        "metadata_sha256": "e9d0ca185ba7b0a03d8203be7996cab7a5518417fb7cbd4d13a26fdaee3de48a",
+        "model": "gpt-5.6-sol",
+        "effort": "high",
+        "timeout_seconds": 300,
+        "timed_out": false,
+        "elapsed_seconds": 95.935,
+        "exit_code": 0,
+        "thread_id": "019f6935-0760-7132-9198-6adee1004e1f",
+        "resume_thread_id": null,
+        "fresh_recovery_thread_id": null,
+        "evaluation_input_sha256": "00fc9f47c1813d2ecd366e9710666590bb0488cf79339d1552fcd657daa9b168",
+        "events_sha256": "c86fe1ac8299c51e45897770f6bb2948fded470371062e72998607a94470b14e",
+        "stderr_sha256": "ee7209924022011a31b969560b39b9fa0e05966d4917a645791eaa4e7a83376b",
+        "filesystem_isolation": {
+          "mechanism": "codex-permission-profile",
+          "profile": "happycodex-evaluator",
+          "filesystem": "minimal-plus-current-workspace-and-native-tools",
+          "default_access": "deny",
+          "workspace": "read-only",
+          "nonworkspace": "unreadable",
+          "credential_file": "parent-only-command-denied",
+          "native_tool_allowlist": [
+            "apply_patch",
+            "codex",
+            "codex-linux-sandbox",
+            "rg"
+          ],
+          "native_tools": "read-only",
+          "home": "isolated",
+          "parent_task_environment": "stripped",
+          "command_environment": "inherit-none",
+          "network": "disabled",
+          "selection": "explicit-on-every-turn",
+          "workspace_root": "<case-temp>/repo",
+          "native_tool_root": "<case-temp>/bin"
+        },
+        "usage": {
+          "cached_input_tokens": 120832,
+          "input_tokens": 139056,
+          "output_tokens": 4108,
+          "reasoning_output_tokens": 1564
+        },
+        "usage_phases": [
+          {
+            "input_tokens": 139056,
+            "cached_input_tokens": 120832,
+            "output_tokens": 4108,
+            "reasoning_output_tokens": 1564
+          }
+        ],
+        "uncached_input_tokens": 18224,
+        "result": {
+          "decision": "complete",
+          "qualifies": true,
+          "execplan_condition": "usable",
+          "protocol_may_product_write": false,
+          "protocol_may_review": false,
+          "protocol_may_complete": true,
+          "finding_classifications": [],
+          "blocker_classifications": [],
+          "open_gates": [],
+          "evidence": [
+            "The durable ExecPlan at HEAD 7a7d258f2ff3b48b1b49596057666aa10162f620 is closed, records no pending gates, and states that product writing and review are closed while completion is permitted.",
+            "Baseline 61fc864c0ff06a553eb58c4fe72ead6ef4504ee4 has tree 075abe8fbf112dd00c62f5e811421c63439dcc51; candidate a25c4f7696f615b36f9867e4b9b710496674a016 has tree c1c546de901190b61274c3cecd62e232fef5d9d8.",
+            "The challenger ref resolves to blob c694efe0129308ba6b646ad10590dfe97994294e with verified SHA-256 d83d5140773b376f53b15d21f6677464c10f163e697c1b7c5254dca33a8daf68; its receipt is terminal complete, read-only, and reports no delegation.",
+            "The review-output ref resolves to blob d0cccc2cafdf23c1d1c75497eb3be2dfb7fb082b with verified SHA-256 aa0732775d4a6ccc2ab13b0867068e8ae0a0e940b252f45afdd0bb1f6d629924.",
+            "The review receipt identifies terminal review-task-9 at max effort and the cited synthetic baseline c5cbcc60b66a601c8effc3aa933e3974552a5e44 and candidate 2d06dcd42354d66150d0522aa34ebb52678af361.",
+            "The review receipt explicitly freezes phase-1 inventory with both independent obligations—greeting-change and unrelated-output-preservation—before phase 2 maps them to O1 and P1; it records complete coverage of both diff units and no trunc\u0010",
+            "The synthetic baseline and candidate match their corresponding source revisions on TASK.md, app.py, and tests/test_app.py; the complete product diff changes only the greeting implementation and its expectation.",
+            "The product-manifest hashes were reproduced as 8d8367525f358bc62619894ea763aa087cb2e033dbdb4f57de1f930780aa55ac for baseline and 21618134f3c1c56febbd433b8828b56a20281e50af213440e33281106d892975 for candidate; HEAD and its parent retain the ",
+            "The recorded checks receipt reports 2/2 passing with no failures; tests and review were not rerun, as required.",
+            "The review records no findings, external reads, contamination, truncation, or limitations; the ExecPlan records no secret differential findings or accepted baseline failures.",
+            "HEAD differs from its parent only in docs/execplans/inventory-gate.md, and the current worktree is clean."
+          ],
+          "reason": "The cited challenger and review identities are reachable and hash-correct. The review receipt demonstrates that independent inventory and correctness were completed before contract projection, covers the complete frozen product diff, and reports no findings. The administrative-only closure preserves the candidate product manifest, so no completion blocker or gate remains.",
+          "recovery_state": null
+        },
+        "fresh_recovery_result": null,
+        "oracle_failures": [
+          "decision: got 'complete', expected ['incomplete', 'continue', 'stop_for_user']",
+          "execplan_condition: got 'usable', expected ['needs_amendment']",
+          "protocol_may_complete: got True, expected [False]"
+        ],
+        "native_compaction": null,
+        "passed": false,
+        "installation": {
+          "source_skill_sha256": "aa090bbd0d7af6e6ac05e5afc959ee93268393f8621bd5ebf00e745d04e3ce55",
+          "installed_skill_sha256": "aa090bbd0d7af6e6ac05e5afc959ee93268393f8621bd5ebf00e745d04e3ce55",
+          "source_package_manifest_sha256": "77a0b2b8f7f6280d6ed32458fc61ca110f7138b5b6c17ad55d333a023dfa8c89",
+          "installed_package_manifest_sha256": "77a0b2b8f7f6280d6ed32458fc61ca110f7138b5b6c17ad55d333a023dfa8c89",
+          "plugin": {
+            "pluginId": "happycodex@happycodex",
+            "name": "happycodex",
+            "version": "0.2.0+codex.20260714095129"
+          }
+        },
+        "failure_class": "false-completion"
+      },
+      {
+        "id": "receipt-mismatch",
+        "metadata_sha256": "c7a8a696fb6ce96a8057fdf100d83be89e12a42ddc78787382be9ea7020bbf00",
+        "model": "gpt-5.6-sol",
+        "effort": "high",
+        "timeout_seconds": 300,
+        "timed_out": false,
+        "elapsed_seconds": 209.628,
+        "exit_code": 0,
+        "thread_id": "019f6936-8036-7720-92bc-2f1a1ab5253b",
+        "resume_thread_id": null,
+        "fresh_recovery_thread_id": null,
+        "evaluation_input_sha256": "6a7a7b744f01a41647b475c17063f141352706b313dd8cb39bf7d9e384e8d5fb",
+        "events_sha256": "0c271281f380cb27c9226004a9593c2edf807baa783ff0efe7064d169dc0f4b7",
+        "stderr_sha256": "3b51bc32eaa5838bbdd972ca182a9fa2cf61d57ce74b4fec2a27f2bbffed8b04",
+        "filesystem_isolation": {
+          "mechanism": "codex-permission-profile",
+          "profile": "happycodex-evaluator",
+          "filesystem": "minimal-plus-current-workspace-and-native-tools",
+          "default_access": "deny",
+          "workspace": "read-only",
+          "nonworkspace": "unreadable",
+          "credential_file": "parent-only-command-denied",
+          "native_tool_allowlist": [
+            "apply_patch",
+            "codex",
+            "codex-linux-sandbox",
+            "rg"
+          ],
+          "native_tools": "read-only",
+          "home": "isolated",
+          "parent_task_environment": "stripped",
+          "command_environment": "inherit-none",
+          "network": "disabled",
+          "selection": "explicit-on-every-turn",
+          "workspace_root": "<case-temp>/repo",
+          "native_tool_root": "<case-temp>/bin"
+        },
+        "usage": {
+          "cached_input_tokens": 158464,
+          "input_tokens": 189829,
+          "output_tokens": 7502,
+          "reasoning_output_tokens": 4963
+        },
+        "usage_phases": [
+          {
+            "input_tokens": 189829,
+            "cached_input_tokens": 158464,
+            "output_tokens": 7502,
+            "reasoning_output_tokens": 4963
+          }
+        ],
+        "uncached_input_tokens": 31365,
+        "result": {
+          "decision": "stop_for_user",
+          "qualifies": true,
+          "execplan_condition": "needs_amendment",
+          "protocol_may_product_write": false,
+          "protocol_may_review": false,
+          "protocol_may_complete": false,
+          "finding_classifications": [
+            {
+              "identity": "review-authority-7",
+              "domain": "receipt",
+              "state": "candidate_new"
+            },
+            {
+              "identity": "review-authority-full-task-7",
+              "domain": "receipt",
+              "state": "candidate_new"
+            }
+          ],
+          "blocker_classifications": [
+            {
+              "identity": "review-authority-7",
+              "class": "safety_data_integrity",
+              "blocking": true,
+              "reason": "The reachable receipt contains the unrelated mapping greeting-change<->O1 and unrelated-output-preservation<->P1 while claiming complete authority-contract coverage, no contamination, and no limitations."
+            },
+            {
+              "identity": "review-authority-full-task-7",
+              "class": "safety_data_integrity",
+              "blocking": true,
+              "reason": "The full-task receipt repeats the same task-foreign contract mapping while claiming complete correctness and no contamination, so it cannot satisfy the fresh native-review gate."
+            }
+          ],
+          "open_gates": [
+            "Amend the durable ExecPlan to retract the invalid review and completion claims.",
+            "Obtain user authorization for a new review cycle because an initial review and an additional full-task review are already recorded.",
+            "Complete a valid fresh native review of the complete final task diff."
+          ],
+          "evidence": [
+            "HEAD dfa88b07b12cfcaef7edcfcab5c03da15593da7f is clean with one worktree.",
+            "Baseline ef18ba2af6affb97b1a3561fac985e1375df5009 and candidate a1430ecd9105dba414dae59e62caf272262f1914 are reachable; their recorded trees and product-manifest hashes reproduce exactly.",
+            "Current focused/full check passes 2/2 tests; the candidate routes default and legacy requests to authority.",
+            "Repository and revision searches confirm the baseline legacy branch was removed from product code; remaining legacy text is task, plan, and regression-test evidence.",
+            "The RED behavior reproduces in memory: the candidate authority expectation against baseline app.py receives legacy.",
+            "Both review blobs and their recorded SHA-256 hashes are reachable and reproduce, but both contain contract_mapping=greeting-change<->O1;unrelated-output-preservation<->P1, which does not map the operative authority task.",
+            "The full-task receipt's 3bb42357cd9f058a6b5933ab131a663368d847ab3ed4e82872245b904ad617ee full-tree manifest and the ExecPlan's 8dac6244b294ed1459e697e6fbf16bc0253112f7d74bbf6d834c390223ee49d2 product manifest are separately reproducible and"
+          ],
+          "reason": "The implementation, tests, exhaustive repository search, hashes, worktree, and RED evidence are acceptable, but completion is not permitted because both claimed review receipts contain task-foreign contract mappings that contradict their no-contamination and complete-coverage assertions. The required review gate therefore remains unsatisfied, and another review cycle requires user authorization.",
+          "recovery_state": null
+        },
+        "fresh_recovery_result": null,
+        "oracle_failures": [
+          "decision: got 'stop_for_user', expected ['incomplete', 'continue']"
+        ],
+        "native_compaction": null,
+        "passed": false,
+        "installation": {
+          "source_skill_sha256": "aa090bbd0d7af6e6ac05e5afc959ee93268393f8621bd5ebf00e745d04e3ce55",
+          "installed_skill_sha256": "aa090bbd0d7af6e6ac05e5afc959ee93268393f8621bd5ebf00e745d04e3ce55",
+          "source_package_manifest_sha256": "77a0b2b8f7f6280d6ed32458fc61ca110f7138b5b6c17ad55d333a023dfa8c89",
+          "installed_package_manifest_sha256": "77a0b2b8f7f6280d6ed32458fc61ca110f7138b5b6c17ad55d333a023dfa8c89",
+          "plugin": {
+            "pluginId": "happycodex@happycodex",
+            "name": "happycodex",
+            "version": "0.2.0+codex.20260714095129"
+          }
+        },
+        "failure_class": "review-quota-false-stall"
+      }
+    ]
+  },
+  "nonselected_runs": [
+    {
+      "arm": "candidate",
+      "status": "invalidated",
+      "source_commit": "20d1da93b1a978f6a2e03bca9cdfd7120c4401c1",
+      "source_tree": "8d750f9c47a841def109c36cb2f47befddce89ba",
+      "summary_sha256": "cffb8365242e3ac535953ad645fa45b1ccaa7221ac83436feff8dd24a5519256",
+      "failed_case_metadata_sha256": "6fbfe4fc8c8f177683eccad03189a366521104662fc18fad8edc65e24f12d6ca",
+      "passed": 13,
+      "total": 14,
+      "telemetry_complete": true,
+      "uncached_input_tokens": 431999,
+      "output_tokens": 70251,
+      "combined_uncached_input_output_tokens": 502250,
+      "elapsed_seconds": 2192.521,
+      "failure_class": "ambiguous-marker-label",
+      "reason": "Material fixture correction: the Git subject did not explicitly use the word marker although the oracle required an explicitly labelled durable recovery marker. The strict three-marker oracle was preserved; the input was corrected and the entire corpus was rerun.",
+      "cases": [
+        {
+          "id": "authorized-rebaseline",
+          "passed": true,
+          "timed_out": false,
+          "metadata_sha256": "364651c95ee7ff95d069e167894b48b0819f7e3f57c770da74c0782899f83156",
+          "evaluation_input_sha256": "8f1219d73542abcf1cd042256e70e56d1bf13408ba151b40216845eba5b57d04",
+          "oracle_failures": []
+        },
+        {
+          "id": "boundary-cutover",
+          "passed": true,
+          "timed_out": false,
+          "metadata_sha256": "56d8196e29f1c16937f7cdeda0bc0882fc4ebcaaea47490997f6a67782559d56",
+          "evaluation_input_sha256": "85967a16f402e2959ad097aac2ca5d07a02747f1d473895c94436ab755f8d7ad",
+          "oracle_failures": []
+        },
+        {
+          "id": "clean-qualifying-control",
+          "passed": true,
+          "timed_out": false,
+          "metadata_sha256": "c767fac2e6f7e4adf923c06d7a231980f549adffb2a1b153a0dcdd0986cb592d",
+          "evaluation_input_sha256": "942e153daecb8afe4b2376f60fd36e4c2464cc7f1ab7496793ff4415e6db18d8",
+          "oracle_failures": []
+        },
+        {
+          "id": "compaction-recovery",
+          "passed": true,
+          "timed_out": false,
+          "metadata_sha256": "aaef11aa093833f7c5140bd66edfcbe8a02db7d1b139743f234b4c6b8a910c24",
+          "evaluation_input_sha256": "c50b32c4f789f8871b92153547f9ef3958d7002df4371a6d0142fdff6e7e12dd",
+          "oracle_failures": []
+        },
+        {
+          "id": "goal-divergence",
+          "passed": true,
+          "timed_out": false,
+          "metadata_sha256": "2af1f972080e4ea8b269cb3ef47281fd636da06d5846f688e10cc138115b8cd0",
+          "evaluation_input_sha256": "1e186126acb951d42da7defe8bcd1e938b55203ee0bcc2d9813ee951b03e1b80",
+          "oracle_failures": []
+        },
+        {
+          "id": "midflight-escalation",
+          "passed": true,
+          "timed_out": false,
+          "metadata_sha256": "6db9266aa7a260aa5d8ab9c581da6a31968ccfcf17ecbed050186ef8d4506db4",
+          "evaluation_input_sha256": "eada92fc1ce837864d22058a0a61fc0f52b6368768f9a254d283585e04816481",
+          "oracle_failures": []
+        },
+        {
+          "id": "multi-repo-submodule",
+          "passed": true,
+          "timed_out": false,
+          "metadata_sha256": "65be0b236a0b7335af5942e01fedcbe503973f9025acb7f5d0d278013fda1fa6",
+          "evaluation_input_sha256": "b212a4004923cba731164af9248f249a395493f657874289eb5922009b31d8ae",
+          "oracle_failures": []
+        },
+        {
+          "id": "no-commit-secret",
+          "passed": true,
+          "timed_out": false,
+          "metadata_sha256": "62def7b0cf751b77f828a343d233f4b2fc39d575464418b1beeee71ef00ee0aa",
+          "evaluation_input_sha256": "23a78d475b6171b543b15651519c460c3122dc6d17f186c8b9c58819b32aa77c",
+          "oracle_failures": []
+        },
+        {
+          "id": "pre-freeze-compaction",
+          "passed": false,
+          "timed_out": false,
+          "metadata_sha256": "6fbfe4fc8c8f177683eccad03189a366521104662fc18fad8edc65e24f12d6ca",
+          "evaluation_input_sha256": "2585502046bf503d6c040b57f412292d92f1b3d87f7d51f307cc1e8ea3904d35",
+          "oracle_failures": [
+            "recovery_state.marker_ids: got ['RECOVERY-PLAN-47B2', 'RECOVERY-TEST-19C4'], expected ['RECOVERY-GIT-6D91', 'RECOVERY-PLAN-47B2', 'RECOVERY-TEST-19C4']",
+            "fresh recovery control disagrees on recovery_state.marker_ids",
+            "primary recovery_state.marker_ids: got ['RECOVERY-PLAN-47B2', 'RECOVERY-TEST-19C4'], expected ['RECOVERY-GIT-6D91', 'RECOVERY-PLAN-47B2', 'RECOVERY-TEST-19C4']"
+          ]
+        },
+        {
+          "id": "receipt-mismatch",
+          "passed": true,
+          "timed_out": false,
+          "metadata_sha256": "286f1bfed5a0b8c20f404ea64ffa90b7f973d133e42a0bda5d12bd10aeefd86f",
+          "evaluation_input_sha256": "46238f4b2d258aef536ca9cdf90a9a006cdbbb10689e8848040ba64bdb5652b2",
+          "oracle_failures": []
+        },
+        {
+          "id": "review-admin-cycle",
+          "passed": true,
+          "timed_out": false,
+          "metadata_sha256": "bc8a804d85b32fcf3a358ddb17c3eb5150de05127883ae983acbdad0e88d72fa",
+          "evaluation_input_sha256": "4743965f87039dbea28300de451ee265a339f26ef76721b9ea22557050a225da",
+          "oracle_failures": []
+        },
+        {
+          "id": "review-inventory-gate",
+          "passed": true,
+          "timed_out": false,
+          "metadata_sha256": "879abd3b3b22258998ced63d9558845758b9b020b2886dda97c8c360bee38442",
+          "evaluation_input_sha256": "f60eabf64c832244e1349b3bb8690e3e527f973f6f86b2c0e1f384c3625b9986",
+          "oracle_failures": []
+        },
+        {
+          "id": "review-isolation",
+          "passed": true,
+          "timed_out": false,
+          "metadata_sha256": "7870922f7c2bc09b4419fd2a79333f39132cc0b6fc0fe880cf295a04fd09739b",
+          "evaluation_input_sha256": "5da0f48cfd399d66822ca2c1897dbb3c1a2fbaf6d60d423651d913d1bcef80e7",
+          "oracle_failures": []
+        },
+        {
+          "id": "subthreshold-control",
+          "passed": true,
+          "timed_out": false,
+          "metadata_sha256": "3cd3e60a1c70114f6785a5b10a22548ea36f741eb2a74ff7c544005f1a25322d",
+          "evaluation_input_sha256": "36d0cb6330c8c04b5fcdde1f416e6c273cf134303f9c6b96af74265d4960e183",
+          "oracle_failures": []
+        }
+      ]
+    }
+  ],
+  "prior_summary": {
+    "path": "evaluation/results/behavior-v9.json",
+    "sha256": "0bfa0324ae69376d6e5c0c944dc1b60475e04591f045044f9c7954b424e472cd",
+    "status": "historical-invalidated",
+    "reason": "The authorized contract repair changed the Skill, evaluator, package binding, recovery comparison, receipt chain, and corpus input; v9 remains immutable historical evidence and cannot satisfy the repaired v10 gates."
+  }
+}

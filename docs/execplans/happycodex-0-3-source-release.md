@@ -195,12 +195,14 @@ closure may not alter the integrated product tree. Push the closure and open a P
 
 ## Current checkpoint
 
-Contract freeze is revision `73cb98f`. The runtime/release slice is staged from the
-candidate object with 11 exact path effects: five modified blobs, `AGENTS.md` and the
-single `execplan.md` reference added, and five superseded references removed. A
-candidate-to-worktree diff over the entire slice is empty and staged diff hygiene is
-clean. No file was hand-rewritten. Next: commit this slice, then transplant the exact
-certified support tree as the second and final semantic integration revision.
+Contract freeze is `73cb98f`; exact runtime integration is `abf594b`. The certified
+support tree is now staged with A46/D53/M1 path effects. The complete index excluding
+this release ExecPlan has recursive-manifest SHA-256 `05509f86…e459`, exactly the
+candidate manifest, and a candidate-to-worktree diff over all included paths is empty.
+All staged diff hygiene checks pass; no product/support file was hand-rewritten. The
+removed rejected ExecPlan/raw evidence remains reachable through preserved main-only
+ancestors. Next: commit this second semantic slice, then prove the committed filtered
+tree and run only the authorized offline gates.
 
 ## Pending gates
 

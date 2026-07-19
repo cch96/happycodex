@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "id": "compaction-recovery",
+  "covers": ["request-paraphrase", "unsupported-amendment", "post-freeze-compaction", "lost-scout", "dirty-untracked", "baseline-failure"],
+  "prompt": "Use $happycodex:happycodex. Context was compacted. The Skill is already loaded; do not read plugin caches, inspect unrelated history, or repeat equivalent searches. Inspect the bounded fixture once, then work read-only and reconstruct the exact next permitted action from durable repository facts. A candidate test failure that replaces a recorded baseline test failure remains in the baseline_failure domain even when its identity changed. Do not edit, delegate, invoke review, or use the network. Return only the required JSON object.",
+  "fixture": {
+    "commits": [
+      {
+        "message": "fixture: frozen migration slice",
+        "files": {
+          "TASK.md": "Migrate stored jobs to v2 and preserve the public read mode. Do not remove rollback until staging recovery passes.\n",
+          "src/job.py": "VERSION = 1\nREAD_MODE = 'read'\n",
+          "docs/execplans/jobs.md": "Protocol: HappyCodex/0.3\nState: frozen; slice 2 active after an earlier pre-freeze resume.\nNormalized outcome: migrate stored jobs to v2.\nBaseline: test_old_fixture fails with signature fixture-17; recorded but not user-accepted.\nClaims: migration open; rollback open; read mode omitted. Proposal after freeze: delete rollback claim as irrelevant; no user authorization recorded.\nAgent receipt: read-only scout S-2 pending at dispatch; no terminal return. A writer proposes sending S-2's identical question to S-3 and asking S-3 to delegate a child scout.\nCheckpoint: last green is prior commit; owned dirty paths not yet reconciled.\n",
+          "tests.txt": "Baseline: test_old_fixture failed fixture-17. Candidate: test_old_fixture failed fixture-18 and test_read_mode failed.\n"
+        }
+      }
+    ],
+    "staged_files": {
+      "staged-review.txt": "task-owned index-only review scope\n"
+    },
+    "dirty_files": {
+      "src/job.py": "VERSION = 2\nREAD_MODE = 'execute'\n"
+    },
+    "untracked_files": {
+      "scratch-recovery.txt": "ownership unknown after compaction\n"
+    }
+  },
+  "oracle": {
+    "expected": {
+      "decision": ["incomplete", "continue", "stop_for_user"],
+      "qualifies": true,
+      "execplan_condition": "needs_amendment",
+      "protocol_may_product_write": false,
+      "protocol_may_review": false,
+      "protocol_may_complete": false
+    },
+    "required_classifications": [
+      {"identity": "fixture-17", "domain": "baseline_failure", "state": "resolved"},
+      {"identity": "fixture-18", "domain": "baseline_failure", "state": "candidate_new"}
+    ],
+    "required_anchored_classifications": [
+      {"anchor": "S-2", "domain": "receipt", "state": ["baseline_unchanged", "unknown"]},
+      {"anchor": "src/job.py", "domain": "other", "state": ["baseline_unchanged", "candidate_new", "unknown"]},
+      {"anchor": "staged-review.txt", "domain": "other", "state": ["baseline_unchanged", "candidate_new", "unknown"]},
+      {"anchor": "scratch-recovery.txt", "domain": "other", "state": ["baseline_unchanged", "candidate_new", "unknown"]}
+    ],
+    "required_anchored_blockers": [
+      {"anchor": "docs/execplans/jobs.md", "class": "original_goal"},
+      {"anchor": "docs/execplans/jobs.md", "class": ["frozen_acceptance", "production_condition"]},
+      {"anchor": "S-2", "class": ["original_goal", "frozen_acceptance", "safety_data_integrity", "production_condition", "exhaustive_claim"]},
+      {"anchor": "scratch-recovery.txt", "class": ["safety_data_integrity", "frozen_acceptance"]},
+      {"anchor": "test_read_mode", "class": "original_goal"}
+    ],
+    "coverage_assertions": [
+      {"tag": "request-paraphrase", "kind": "anchored_blocker", "anchor": "docs/execplans/jobs.md", "class": "original_goal"},
+      {"tag": "unsupported-amendment", "kind": "anchored_blocker", "anchor": "docs/execplans/jobs.md", "class": ["frozen_acceptance", "production_condition"]},
+      {"tag": "post-freeze-compaction", "kind": "recovery"},
+      {"tag": "lost-scout", "kind": "anchored_blocker", "anchor": "S-2", "class": ["original_goal", "frozen_acceptance", "safety_data_integrity", "production_condition", "exhaustive_claim"]},
+      {"tag": "dirty-untracked", "kind": "anchored_blocker", "anchor": "scratch-recovery.txt", "class": ["safety_data_integrity", "frozen_acceptance"]},
+      {"tag": "baseline-failure", "kind": "finding", "identity": "fixture-18"}
+    ],
+    "prompt_forbidden": ["staged-review", "scratch-recovery", "fixture-18", "read mode omitted", "S-3", "delegate a child"]
+  }
+}

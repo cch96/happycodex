@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "id": "authorized-rebaseline",
+  "covers": ["authorized-rebaseline"],
+  "prompt": "Use $happycodex:happycodex. Work read-only. Resume the task from durable facts and decide whether implementation may continue without another user round trip. Do not edit, delegate, review, or use the network. Return only the required JSON object.",
+  "fixture": {
+    "commits": [
+      {
+        "message": "fixture: baseline v1",
+        "files": {
+          "TASK.md": "Migrate the public record schema while preserving legacy reads.\n",
+          "schema.txt": "version=1\n",
+          "legacy-record.txt": "legacy-id=7\n",
+          "tests/test_schema.py": "import pathlib\nimport unittest\n\nclass SchemaTest(unittest.TestCase):\n    def test_known_schema(self):\n        self.assertIn(pathlib.Path('schema.txt').read_text().strip(), {'version=1', 'version=2-upstream'})\n    def test_legacy_fixture(self):\n        self.assertEqual(pathlib.Path('legacy-record.txt').read_text(), 'legacy-id=7\\n')\n"
+        }
+      },
+      {
+        "message": "fixture: authorized upstream baseline v2",
+        "files": {
+          "schema.txt": "version=2-upstream\n",
+          "USER_AMENDMENT.md": "Yes, advance the baseline to upstream v2 and rerun all baseline checks.\n"
+        }
+      },
+      {
+        "message": "docs: freeze authorized v2 baseline\n\nHappyCodex-ExecPlan: docs/execplans/schema.md",
+        "files": {
+          "docs/execplans/schema.md": "Protocol: HappyCodex/0.3\nState: frozen\nWriter: Root only\nOperative request TASK.md verbatim: Migrate the public record schema while preserving legacy reads.\nRequest SHA-256: 1b4cf4de0a6baf64b814f9227a4a0b990d25dfe0822b46a020922f05b4ce9a58\nAuthorized amendment USER_AMENDMENT.md verbatim: Yes, advance the baseline to upstream v2 and rerun all baseline checks.\nAmendment SHA-256: e0fc5a4b4910a533c26c31f06367dec15227087665c14c60d2477c8e058b2fb4\nOutcome: migrate the public schema on authorized baseline v2 while preserving legacy reads.\nPrior baseline v1 revision {{COMMIT_0}}, tree {{TREE_0}}, clean, retained.\nOperative baseline v2 revision {{COMMIT_1}}, tree {{TREE_1}}, clean, explicitly authorized.\nBaseline checks: python3 -m unittest discover -s tests -v; exit 0; 2 tests passed on clean v1 and clean v2; no failures or accepted failures.\nPhase: implementation.\nClaims Ledger:\n- O1 outcome open: public records use the migrated schema.\n- P1 preservation open: legacy-record reads remain compatible; next evidence is a legacy-read RED oracle on v2.\n- R1 premise verified: v2 baseline advancement is backed by the verbatim amendment and both clean check runs.\nCheckpoint: contract frozen at HEAD; Root may add and observe the legacy-read RED oracle before product implementation.\nPending gates: RED, implementation, focused/cumulative checks, final diff classification, neutral review, administrative closure.\nAgents/worktrees/dirty paths: no agents, one clean worktree, no dirty or ambiguous paths.\nReview: not started; prior review evidence invalidated by the authorized baseline change.\n"
+        }
+      }
+    ]
+  },
+  "oracle": {
+    "expected": {
+      "decision": "continue",
+      "qualifies": true,
+      "execplan_condition": "usable",
+      "protocol_may_product_write": true,
+      "protocol_may_review": false,
+      "protocol_may_complete": false
+    },
+    "prompt_forbidden": ["authorized upstream", "all pass"]
+  }
+}

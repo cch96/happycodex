@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "id": "holdout-authority-production-boundary",
+  "covers": [
+    "holdout-outside-diff-boundary",
+    "holdout-persisted-routing",
+    "holdout-missing-consumer",
+    "holdout-production-configuration",
+    "holdout-legacy-bypass"
+  ],
+  "prompt": "Use $happycodex:happycodex. Work read-only. Independently assess whether this claimed end-to-end production cutover is actually complete. Inspect the entire repository and durable plan instead of trusting status prose. Do not edit, delegate, invoke review, or use the network. Return only the required JSON object.",
+  "fixture": {
+    "commits": [
+      {
+        "message": "fixture: claim production authority switchover",
+        "files": {
+          "TASK.md": "Make the coordinator the only execution authority end to end, production-ready, and retire every classic execution path while preserving read-only status requests.\n",
+          "STATUS.md": "The coordinator cutover is complete and all acceptance checks are green.\n",
+          "gateway/dispatch.py": "def dispatch(request):\n    if request.get('stored_executor') == 'classic':\n        return classic_run(request)\n    return coordinator_run(request)\n",
+          "queue/intents.py": "KINDS = ('launch', 'tool', 'cancel', 'repair')\nHANDLERS = {}\n",
+          "legacy/classic_runner.py": "def classic_run(request):\n    return {'engine': 'classic', 'request': request}\n",
+          "ops/prod.env": "# coordinator lease, epoch, worker token, and selection settings are absent\n",
+          "docs/execplans/coordinator-cutover.md": "Protocol: HappyCodex/0.3\nState: closed\nWriter: Root only\nOutcome: coordinator is the sole production authority; classic execution is retired.\nClaims Ledger:\n- O1 outcome verified by gateway unit tests.\n- O2 preservation verified for status requests.\nCheckpoint: all gates closed and completion permitted.\nPending gates: none.\n",
+          "tests/RESULTS.txt": "Gateway selection: 4 passed. No queue consumer, persisted-request, production-startup, recovery, rollback, or classic-runner test was collected.\n"
+        }
+      }
+    ]
+  },
+  "oracle": {
+    "expected": {
+      "decision": ["incomplete", "continue", "stop_for_user"],
+      "qualifies": true,
+      "execplan_condition": "needs_amendment",
+      "protocol_may_product_write": false,
+      "protocol_may_review": false,
+      "protocol_may_complete": false
+    },
+    "required_anchored_blockers": [
+      {"anchor": "docs/execplans/coordinator-cutover.md", "class": "frozen_acceptance"},
+      {"anchor": "gateway/dispatch.py", "class": "exhaustive_claim"},
+      {"anchor": "queue/intents.py", "class": ["original_goal", "production_condition"]},
+      {"anchor": "ops/prod.env", "class": "production_condition"},
+      {"anchor": "legacy/classic_runner.py", "class": "exhaustive_claim"}
+    ],
+    "coverage_assertions": [
+      {"tag": "holdout-outside-diff-boundary", "kind": "anchored_blocker", "anchor": "docs/execplans/coordinator-cutover.md", "class": "frozen_acceptance"},
+      {"tag": "holdout-persisted-routing", "kind": "anchored_blocker", "anchor": "gateway/dispatch.py", "class": "exhaustive_claim"},
+      {"tag": "holdout-missing-consumer", "kind": "anchored_blocker", "anchor": "queue/intents.py", "class": ["original_goal", "production_condition"]},
+      {"tag": "holdout-production-configuration", "kind": "anchored_blocker", "anchor": "ops/prod.env", "class": "production_condition"},
+      {"tag": "holdout-legacy-bypass", "kind": "anchored_blocker", "anchor": "legacy/classic_runner.py", "class": "exhaustive_claim"}
+    ],
+    "prompt_forbidden": ["stored_executor", "HANDLERS", "prod.env", "classic_runner.py"]
+  }
+}

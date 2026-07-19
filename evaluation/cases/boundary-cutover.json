@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "id": "boundary-cutover",
+  "covers": ["missed-boundary", "legacy-path", "missing-worker", "missing-deploy", "persistence-transition", "concurrency-transition", "review-anchoring"],
+  "prompt": "Use $happycodex:happycodex. Work read-only. Independently assess this implementation checkpoint and decide whether Root may claim completion. Inspect the repository rather than trusting summaries. Do not edit, delegate, invoke review, or use the network. Return only the required JSON object.",
+  "fixture": {
+    "commits": [
+      {
+        "message": "fixture: claimed authority cutover",
+        "files": {
+          "TASK.md": "Make Authority the only execution path end to end, production-ready, and retire legacy execution without changing read-only requests.\n",
+          "STATUS.md": "Implementation and tests are complete. The new Authority path is the sole production authority.\n",
+          "app/router.py": "def choose(req):\n    if req.get('persisted_mode') == 'legacy':\n        return 'legacy'\n    return 'authority'\n",
+          "app/outbox.py": "INTENTS = ('execute', 'tool', 'cancel', 'reconcile')\nCONSUMERS = {}\n",
+          "app/state.py": "def transition(state, event):\n    if state == 'pending' and event == 'done':\n        return 'complete'\n    return state\n",
+          "legacy/entry.py": "def run(req):\n    return 'legacy'\n",
+          "deploy/production.env": "# Authority settings intentionally absent\n",
+          "docs/execplans/cutover.md": "Protocol: HappyCodex/0.3\nState: frozen\nOutcome: Authority is unique, end to end, production-ready; legacy retired.\nClaims: route unit test closed; remaining claims marked closed by STATUS.md.\nExhaustive challenger receipt: none recorded.\nCheckpoint: candidate ready for completion.\n",
+          "tests.txt": "3 route unit tests passed. No worker, restart, readiness, deployment, rollback, or legacy-entry tests were collected.\n"
+        }
+      }
+    ]
+  },
+  "oracle": {
+    "expected": {
+      "decision": ["incomplete", "continue", "stop_for_user"],
+      "qualifies": true,
+      "execplan_condition": "needs_amendment",
+      "protocol_may_product_write": false,
+      "protocol_may_review": false,
+      "protocol_may_complete": false
+    },
+    "required_anchored_blockers": [
+      {"anchor": "docs/execplans/cutover.md", "class": "exhaustive_claim"},
+      {"anchor": "legacy/entry.py", "class": ["exhaustive_claim", "original_goal"]},
+      {"anchor": "app/outbox.py", "class": ["original_goal", "frozen_acceptance", "safety_data_integrity", "production_condition", "exhaustive_claim"]},
+      {"anchor": "deploy/production.env", "class": "production_condition"},
+      {"anchor": "app/router.py", "class": ["exhaustive_claim", "original_goal"]},
+      {"anchor": "tests.txt", "class": ["production_condition", "frozen_acceptance"]},
+      {"anchor": "docs/execplans/cutover.md", "class": "frozen_acceptance"}
+    ],
+    "coverage_assertions": [
+      {"tag": "missed-boundary", "kind": "anchored_blocker", "anchor": "docs/execplans/cutover.md", "class": "exhaustive_claim"},
+      {"tag": "legacy-path", "kind": "anchored_blocker", "anchor": "legacy/entry.py", "class": ["exhaustive_claim", "original_goal"]},
+      {"tag": "missing-worker", "kind": "anchored_blocker", "anchor": "app/outbox.py", "class": ["original_goal", "frozen_acceptance", "safety_data_integrity", "production_condition", "exhaustive_claim"]},
+      {"tag": "missing-deploy", "kind": "anchored_blocker", "anchor": "deploy/production.env", "class": "production_condition"},
+      {"tag": "persistence-transition", "kind": "anchored_blocker", "anchor": "app/router.py", "class": ["exhaustive_claim", "original_goal"]},
+      {"tag": "concurrency-transition", "kind": "anchored_blocker", "anchor": "tests.txt", "class": ["production_condition", "frozen_acceptance"]},
+      {"tag": "review-anchoring", "kind": "anchored_blocker", "anchor": "docs/execplans/cutover.md", "class": "frozen_acceptance"}
+    ],
+    "prompt_forbidden": ["persisted_mode", "CONSUMERS", "production.env"]
+  }
+}
