@@ -3,7 +3,7 @@
 Protocol: `HappyCodex/0.3`
 Invocation: `$happycodex:happycodex`
 Writer: Root only
-State: architectural stop; tenth fresh review NOT-YET; user direction required
+State: simplification refactor frozen; five relationship REDs pending
 Resume: read this entire ExecPlan and reconcile Goal, Native Plan, Git, tests,
 receipts, worktrees, and agents before any write, review, or completion claim.
 
@@ -1252,6 +1252,93 @@ holdout receipts affected by that semantic change become invalid and must receiv
 new frozen impact/cost estimate before any live run. No expensive behavior, holdout,
 or full review rerun is authorized at this stop.
 
+## Simplification-refactor authorization and freeze
+
+The operative user clauses already authorize a high-benefit internal clean-break
+refactor without compatibility and then direct Root to define the Goal and execute.
+They do not authorize changing shipped Runtime bytes, live cost, Fable, or any other
+Outcome boundary. The tenth review does not create a new Outcome: its five findings
+are in-contract defects in the certification engine. Root therefore resolves the
+previous architecture-choice stop in favor of a simplifying repair, using that
+verbatim authorization rather than treating Goal continuation as an amendment.
+
+Fresh baseline-only challenger `/root/cert_engine_simplification_challenger` compared
+four materially distinct designs at baseline
+`2836d7363db364807a2ec384dc1b6c2cc13df95e` / tree
+`c27536825a34421522fbf1b3b759f2cc63aa8144`: stateless receipt scanning, SQLite,
+append-only JSONL, and an atomic JSON snapshot ledger with a pure planner and thin
+authority-gated executor. It selected the last option at design saturation. Stateless
+scanning cannot persist pre-call authority atomically; SQLite adds an opaque migration
+surface unnecessary under one writer; JSONL adds replay and superseded-state recovery.
+The selected design matches the repository's inspectable single-ledger boundary.
+
+The challenger inspected baseline policy, package/public surfaces, evaluator runners,
+holdout policy/manifest, and relevant tests in a removed temporary archive. It did not
+inspect candidate code, this task ExecPlan, result JSON, later commits, Root context,
+or prior reviews. One bounded `tests/test_evaluation.py` read indirectly exposed a few
+historical snapshot status/failure labels; the challenger excluded them from its
+reasoning, so the receipt is useful but not represented as strictly uncontaminated.
+No prohibited action ran.
+
+Root accepts the challenger's planner/executor/ledger boundary but rejects a new
+`certify.py`, persisted `inflight` controller, retry state, and external ledger: the
+existing `evaluation.cli` plus `evaluation.live` can be the sole coordinator, the
+tracked `current.json` is the already-frozen single ledger, and controller/recovery
+state is outside the Outcome. The frozen simplification is:
+
+1. `evaluation.cli` is the only live command surface. The ledger validator returns a
+   non-serializable authorized-invocation capability after validating the exact
+   persisted authority. Corpus and holdout modules expose read-only list/dry-run
+   commands plus capability-gated leaf execution; raw digest strings can no longer
+   reach a model runner.
+2. Native review remains the required external HappyCodex completion gate, persisted
+   in this ExecPlan and an administrative Git revision. The evaluator no longer
+   implements a second reviewer protocol or attempts to infer obligation coverage,
+   query work, or product-tree review from self-authored JSON. Terminal evidence keeps
+   content-addressed corpus/holdout receipts; the external exact-product review still
+   excludes only this ExecPlan. This changes an internal clean-break receipt schema
+   under B-01 while preserving O-07 itself.
+3. Certification derives the exact impact from the authority-bearing source ledger.
+   Nonzero live scope requires the exact authority; zero-live artifact/install/receipt
+   refresh requires authority to remain null and may certify from exact prior coverage
+   plus source identity. No fabricated zero-call authority is introduced.
+4. Any holdout invalidation expands to the complete ordered manifest because the
+   adaptive runner always starts at pair one and may reach pair three. A partial
+   pending pair set is normalized to that executable scope, so impact and live dispatch
+   share one contract.
+5. Holdout quality compares only completed, exit-zero, non-timeout arms. Infrastructure
+   timeout/nonzero results abort the pair instead of becoming evidence that either
+   product is better; an exit-zero oracle failure remains an authentic failed arm and
+   can still produce `better`. Producer and terminal validation share this rule.
+6. Historical cost retains observed estimates but gains exact durable provenance. The
+   locally retained v23 raw artifacts reproduce run receipt
+   `bb2fa16edfd82c3da004d630bcdc87a098488ae483a1026b012ce117447fd580`,
+   summary `f301f23d0d841deaef538cf07d9fba36705ebb175a3a1e4f099bb68cfc91ea3d`,
+   and ordered pair receipts
+   `18164c21533563b15bc483996e0f9a8db6c2080b7e3bf819dd2a003948395c82`,
+   `27c1bcbf3566379b7c71255fadddcda5aa82509d3f01d15a170933a527de5f2c`,
+   and `10b6cf8a40bdb9d1097d287d80a9c7106686f6b6c19458984366994833f2c3a2`.
+   The reachable baseline plan blob is
+   `a5b16c5edb54324ee0a7a2efb17a7d7fdef3f207`; only these privacy-safe
+   identities and derived metrics enter the ledger, never raw output.
+
+This refactor intentionally invalidates the current engine/snapshot/ledger/impact
+identities, the tenth review, machine-review-receipt tests, direct-runner tests, and
+holdout infrastructure-failure semantics. The v23 quality receipt is not reusable as
+0.4 behavior evidence after the runner rule changes; its immutable raw cost metrics
+remain valid historical observations. There is no 0.4 live authority, corpus,
+holdout, certification, install, or release receipt to invalidate. The current full
+20-to-22-call pending scope already covers the changed runner and holdout policy; no
+cost increase is introduced and no live call is authorized.
+
+Before production edits, RED must prove all five tenth-review relationships plus the
+recovered cost provenance. GREEN requires focused tests, the cumulative suite, both
+official validators, Ruff, verify/impact, both dry-runs, JSON/diff/package/public
+checks, and one new fresh isolated exact-product review. Review-protocol removal is a
+code deletion and external-gate clarification, not a waived review. No expensive
+behavior or holdout run occurs until that review is `GO` and the exact maximum cost
+receives explicit user approval.
+
 ## Validation envelope
 
 Candidate offline commands, exact live-run costs, required reruns, and review launch
@@ -1262,23 +1349,23 @@ publication requires a later explicit user request.
 ## Checkpoint
 
 - Milestone: the tenth fresh exact review is complete with terminal `NOT-YET`, five
-  confirmed architectural blockers, and an explicit `YES` over-optimization verdict.
+  confirmed architectural blockers, and an explicit `YES` over-optimization verdict;
+  the authorized simplification design and evidence invalidation are now frozen.
 - Goal: active `019f780e-925e-7193-8bd2-0a04d6efe31e`; its objective is the
   Normalized Outcome plus all frozen preservation, exclusion, offline validation, and
   live-cost gates in this document.
 - RED/GREEN: all prior rounds and the ninth two-failure/two-error plus reachable-
   review RED are persisted; 31/31 focused and 116/116 cumulative GREEN are current
   but do not cover the five contradictory reachable states found by the tenth review.
-- Next: user chooses a simplifying clean-break refactor, a narrow repair with accepted
-  complexity, or abandonment. No automatic product edit, live authority, or model
-  call proceeds at this architectural stop.
-- Product/support writes: product paths are frozen pending that choice; this
-  administrative review record is the only open support write. Shipped-package paths
-  remain closed.
+- Next: commit this administrative freeze, add the six relationship/provenance REDs,
+  then implement the single capability-gated executor, external review gate,
+  zero-live transition, complete adaptive scope, and shared holdout status rule.
+- Product/support writes: evaluator/test/policy support paths reopen after this freeze;
+  shipped-package paths remain closed.
 - Owned paths: `evaluation/`, `tests/`, `AGENTS.md`, and this ExecPlan; shipped-package
   paths remain closed.
-- Missing facts: explicit architecture decision, corrected historical-cost provenance,
-  explicit user cost decision, and any later live successor receipts.
+- Missing facts: new RED/GREEN identities, fresh exact-product review receipt, explicit
+  user cost decision, and any later live successor receipts.
 
 ## Retrospective
 
