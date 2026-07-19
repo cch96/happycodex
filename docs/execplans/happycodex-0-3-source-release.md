@@ -3,7 +3,9 @@
 Protocol: `HappyCodex/0.3`
 Invocation: `$happycodex:happycodex`
 Writer: Root only
-State: frozen by the commit with subject
+State: closed by the commit with subject
+`docs: close HappyCodex 0.3 source release`
+Contract freeze: commit with subject
 `docs: freeze HappyCodex 0.3 source release contract`
 Guard: restore this ExecPlan before any write, review, or completion claim.
 Goal: none; this independent Outcome uses Native Plan plus this ExecPlan.
@@ -183,7 +185,8 @@ closure may not alter the integrated product tree. Push the closure and open a P
 
 ## Integrated candidate and offline validation receipt
 
-Semantic revisions are `abf594b` (certified runtime/release surface) and `5f5ce4e`
+Semantic revisions are `abf594bafafe1991ae3050161c337005ad77342f` (certified
+runtime/release surface) and `5f5ce4ea3bc4eef846c848375bc2f95f3a7dc94a`
 (certified support tree). Both are single-parent descendants of `origin/main`; the
 release range contains no merge and zero candidate-only commit. The committed tree
 contains 56 files: the candidate's exact 55-file manifest plus this release ExecPlan.
@@ -263,6 +266,20 @@ The public checkout is clean and tracks the same public release ref. Its filtere
 manifest exactly matches the certified candidate, so the install receipt closes
 SR-05 without reopening product certification or invoking any model.
 
+## Release delivery receipt
+
+The release branch was created from and still contains fetched base
+`5c5d4c0a4d7590871acd14e4f1ef282f2f564177`. It was pushed to `origin` using normal
+fast-forward pushes only; no force option, direct `main` update, or branch deletion
+occurred. Install receipt revision is
+`be66d40c9c6bb4e794b197876d16685d2778667d`.
+
+GitHub draft PR [#1](https://github.com/cch96/happycodex/pull/1), titled
+`release: publish HappyCodex 0.3`, is open with base `main` and head
+`release/happycodex-0.3`. This final administrative closure changes only this
+ExecPlan. The certified 55-file product/support tree remains exact, all required
+gates are GREEN, and no completion blocker remains.
+
 ## Claims and gates
 
 | ID | Claim / gate | State |
@@ -272,21 +289,29 @@ SR-05 without reopening product certification or invoking any model.
 | SR-03 | Certified Skill, manifest, and every product-support file retain exact bytes; no unclassified path remains. | verified |
 | SR-04 | Authorized offline unit tests, official validators, and diff hygiene pass. | verified |
 | SR-05 | One fresh isolated public marketplace install discovers and installs exact 0.3, with source/install equality and no mutation of the personal install. | verified |
-| SR-06 | Release branch is pushed without force and a PR targets `main`. | open |
-| SR-07 | Final worktree is clean and no completion blocker remains. | open |
+| SR-06 | Release branch is pushed without force and a PR targets `main`. | verified |
+| SR-07 | Final worktree is clean and no completion blocker remains. | verified |
 
 ## Current checkpoint
 
-The certified cumulative tree is committed and every authorized offline and public
-install gate is GREEN. No product path changed after exact equality was established;
-only this plan records the receipt. Next: commit and push this administrative
-checkpoint, open the PR to `main`, then record the PR identity and final clean state.
+Outcome complete. The exact certified tree is integrated on current-main ancestry,
+authorized offline and isolated public-install gates are GREEN, the release branch is
+public, and draft PR #1 targets `main`. The closure commit and final fast-forward push
+are administrative delivery of this receipt only.
 
 ## Pending gates
 
-- push and pull request
-- administrative closure with unchanged integrated product tree
+None.
 
 ## Retrospective
 
-Fill only after every completion gate closes.
+Exact-blob transplantation kept the certified product boundary mechanically provable
+while retaining main-only work in ancestry and excluding all 172 experimental
+candidate commits from release ancestry. Separating runtime and support-tree commits
+made the integration legible without manufacturing a synthetic merge history.
+
+The only execution anomaly was a missing empty `CODEX_HOME` directory in the isolated
+install harness. It failed before network fetch or installation, was corrected by
+creating that directory alone, and did not invalidate or expand any product gate.
+No 0.3 product certification was reopened, no expensive evaluation was rerun, and no
+0.4 work entered the release.
