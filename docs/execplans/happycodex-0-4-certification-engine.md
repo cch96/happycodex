@@ -670,6 +670,19 @@ impact is ready; live authority is null and the cost remains 18-to-20 calls,
 585,209-to-637,027 combined tokens, and 2,911.874-to-3,187.085 seconds. No model,
 Fable, network, install, publication, or external mutation ran.
 
+## Seventh fresh review launch
+
+The frozen product repair is
+`3be9d2574cb4bc04c0cd0f79a1a80eb864b77df9` over baseline
+`2836d7363db364807a2ec384dc1b6c2cc13df95e`; this administrative launch record does
+not change the product tree. A new `fork_turns=none` read-only reviewer will receive
+the exact candidate, frozen Outcome/exclusions, and a neutral request to reproduce the
+four sixth-review probes, audit every diff unit and obligation, and hunt new blockers.
+Its durable terminal output destination is agent task
+`/root/cert_engine_terminal_final_review`. The reviewer may use only local detached
+clones and offline validators; model/live corpus/live holdout, network, Fable, Goal,
+installation, plugin, marketplace, Git ref, and repository writes are forbidden.
+
 ## Validation envelope
 
 Candidate offline commands, exact live-run costs, required reruns, and review launch
