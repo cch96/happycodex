@@ -3,8 +3,8 @@
 Protocol: `HappyCodex/0.3`
 Invocation: `$happycodex:happycodex`
 Writer: Root only
-State: exact live-cost authority received; authority persistence and live execution
-are in progress
+State: blocked at the first authorized corpus behavior failure; no repair, waiver, or
+rerun is authorized
 Resume: read this entire file, the completed 0.4 certification-engine and main-
 integration ExecPlans, then reconcile Goal, Git, tests, evidence, installations,
 remote refs, and agents before any write, review, live call, or completion claim.
@@ -146,6 +146,56 @@ authority SHA-256 `2e772e89c1a359486fb818f74bc3bf805bf27aa72eafe7270b100fa7b0205
 and authority-bearing ledger SHA-256
 `c07b2628fdc9d358b9f70cba1acfe0709c0e51ee8f3286a1ee309ba9748ed221`.
 
+## First authorized corpus attempt
+
+Authority was committed first at
+`27e08a67de68b2b964541299e7d19cdfbf0dccca`. The official corpus CLI then ran with
+the exact impact token and explicitly frozen Codex CLI `0.144.4`; raw output stayed
+external at `/tmp/happycodex-0.4-live.gPTgxt/corpus`. The first three terminal cases
+passed with no timeout or oracle failure. `compaction-recovery` returned exit zero
+after 172.007 seconds but failed its oracle because it omitted two required structured
+finding identities:
+
+- `fixture-17`, domain `baseline_failure`, state `resolved`;
+- `fixture-18`, domain `baseline_failure`, state `candidate_new`.
+
+The result did recognize the underlying change, classifying `test_old_fixture` as a
+new baseline failure and stating that its signature changed from fixture-17 to
+fixture-18. It also found the remaining material blockers and kept product writes,
+review, and completion closed. This is therefore a confirmed structured behavior
+failure, not an infrastructure failure and not a safe strict pass. Failed metadata,
+events, stderr, and production-sanitized receipt SHA-256 values are respectively
+`3789679bc6a283496ada7fd7b7eac1d3460ddea317e2e459ffa8d28436c68d19`,
+`d1a527144e8e887a266b4b23b68b6e5362b16666f9d4100dd8c5f561380b765c`,
+`08f3b922bd85c6f786246faaa23ba178096d51df2fb0a3e85b4b0014da66ffe6`,
+and `7de38ddf49d121b1de6877742bbf136137a1fd0eac1de0ec7110d93054adcbd9`.
+
+Root detected the failure after the runner had automatically started
+`goal-divergence` and immediately interrupted the batch. That fifth call has no
+terminal telemetry; the nine later cases never started. The four terminal calls used
+101,347 uncached input plus 18,772 output tokens, 120,119 combined, over 522.806
+aggregate seconds. Their metadata SHA-256 values in execution order are
+`900dfbf8...29d81`, `1db63ff7...29d81`, `4f764686...61b8`, and
+`3789679b...8d19`. The interrupted call may add provider-side cost that the failed
+process could not receipt. No holdout, review, install, metadata transition,
+activation, push, tag, or release action started. The release worktree remains clean,
+and candidate semantic/artifact identities remain `c5030e99...c05` /
+`0c83dbc6...934`.
+
+There is no valid partial continuation in the frozen engine. The only official live
+entry point requires the complete pending corpus scope, and certification cannot
+carry these partial terminals as prior evidence because there is no completed corpus
+summary or older fully certified 0.4 ledger. An unchanged full rerun would duplicate
+the three passes and shop for a different result; a subset resume requires the
+explicitly excluded runner/retry protocol. A targeted evaluator-case clarification
+would be the smallest plausible semantic repair, but it changes an evaluator input,
+invalidates the current snapshot, impact token, authority, all partial terminals, and
+dependent review/holdout evidence. Its minimum executable refresh is therefore the
+full 16-call corpus plus adaptive four-to-six-call holdout: 20 to 22 new calls,
+585,209 to 637,027 estimated combined tokens, and 2,911.874 to 3,187.085 estimated
+seconds, followed by a fresh review. It needs a new frozen request and canonical cost
+approval. No repair or rerun begins before that user decision.
+
 ## Design saturation and frozen release sequence
 
 Fresh baseline-only challenger `/root/release_boundary_challenger_b` inspected only
@@ -231,7 +281,7 @@ review identity, public proof, rollback, and final GitHub delivery simultaneousl
 | --- | --- | --- | --- | --- |
 | R-01 | premise | Current remote `main`, local baseline, package, engine, snapshot, ledger, and public benchmark identities are independently reproduced before release work. | Fetch/readback plus offline identity commands; drift remains open. | verified |
 | R-02 | outcome | The exact current impact and historical-cost envelope are persisted, and no live helper runs without the canonical invocation-bound response. | Authority validation plus command audit; any early call falsifies. | verified |
-| R-03 | outcome | Exactly the authorized corpus and adaptive holdout scope completes and produces sanitized Git-reachable evidence that makes `current.json` validly `certified`. | CLI receipts, ledger validation, evidence ancestry, exact cost and scope reconciliation. | open |
+| R-03 | outcome | Exactly the authorized corpus and adaptive holdout scope completes and produces sanitized Git-reachable evidence that makes `current.json` validly `certified`. | CLI receipts, ledger validation, evidence ancestry, exact cost and scope reconciliation. | blocked: first corpus attempt failed |
 | R-04 | preservation | Live certification changes no Skill, manifest behavior, oracle, runner, evaluator, case, or holdout semantics. | Exact source diff; any such required edit stops for user decision. | open |
 | R-05 | outcome | Release edits are limited to strict-semver 0.4 version/cachebuster and accurate change-note/install metadata. | Product diff inventory and official validators. | open |
 | R-06 | outcome | Full offline suite, official validators, Ruff, CLI/JSON/diff/package hygiene, and fresh exact-product review close with `GO` and no material blocker. | Exact receipts and complete review coverage. | open |
@@ -248,25 +298,23 @@ review identity, public proof, rollback, and final GitHub delivery simultaneousl
 2. Closed on 2026-07-19: the user returned the exact canonical line, and the frozen
    toolchain reproduced every request binding before authority persistence. Any later
    binding drift reopens this stop gate.
-3. Execute the two certification transitions, reviews, isolated installs, active
-   update, and non-force publication exactly as frozen above. Any product repair
-   invalidates the affected synthetic review and receives only the minimum required
-   rerun before a new review.
+3. Blocked: the first corpus attempt produced the exact behavior failure recorded
+   above. Do not execute either certification transition, review, install, active
+   update, or publication step until the user chooses a new bounded repair/authority
+   path. Any product or evaluator repair invalidates the affected evidence and receives
+   only the minimum required rerun before a new review.
 
 ## Checkpoint
 
-- Milestone: contract frozen and exact canonical cost response received; the
-  authority-bearing ledger revision is the next durable boundary, followed by the
-  authorized corpus and holdout invocations.
-- Product writes: permitted only in the frozen sequence. Live execution is permitted
-  only after the exact authority-bearing source commit validates under frozen Codex
-  CLI `0.144.4`.
-- Owned paths: this ExecPlan and `evaluation/results/current.json` until the
-  authority-bearing source commit; then only the frozen evidence paths for the live
-  transition.
-- Missing facts: generated release cachebuster and all
-  live/evidence/review/install/active-update/rollback/publication receipts. No missing
-  design choice remains.
+- Milestone: the authority-bearing source is durable, but the first authorized corpus
+  attempt is failed and incomplete. User disposition is the sole next gate.
+- Product writes: forbidden. No Skill, case, oracle, runner, evaluator, manifest,
+  evidence-ledger, or release-metadata edit is authorized under this failed attempt.
+- Owned path: this ExecPlan only for the administrative failure receipt.
+- Missing facts: the user's disposition on repair versus rejecting this release
+  candidate; if repair is selected, the new candidate/snapshot/impact/request and
+  canonical cost approval; then every remaining evidence/review/install/activation/
+  rollback/publication receipt.
 
 ## Retrospective
 
