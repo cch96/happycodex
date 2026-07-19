@@ -3,7 +3,7 @@
 Protocol: `HappyCodex/0.3`
 Invocation: `$happycodex:happycodex`
 Writer: Root only
-State: immutable repair and detached preflight GREEN; fresh exact review pending
+State: local candidate complete; live certification and release remain unauthorized
 Resume: read this entire ExecPlan and reconcile Goal, Native Plan, Git, tests,
 receipts, worktrees, and agents before any write, review, or completion claim.
 
@@ -85,7 +85,7 @@ explicit user cost decision before launch.
 | O-04 | outcome | Historical behavior v1-v20 files and version-specific compatibility tests leave the active tree while remaining reachable in Git history. | Final path inventory and ancestry proof. | verified |
 | O-05 | preservation | Installed Skill behavior, plugin identity, public install commands, and `$happycodex:happycodex` invocation remain stable except the intentional 0.4 version/change note. | Exact runtime diff and contract tests. | verified; no version edit in phase one |
 | O-06 | outcome | Maintainer policy describes current public 0.3 baseline, the 0.4 gate model, and this task's explicit Fable exclusion correctly. | Policy review and tests. | verified |
-| O-07 | outcome | Offline suite, official Skill/plugin validators, dry-runs, diff hygiene, and final fresh native review close with no unresolved blocker. | Exact command receipts and review coverage. | NOT-YET: repair preflight is green; fresh exact repair review pending |
+| O-07 | outcome | Offline suite, official Skill/plugin validators, dry-runs, diff hygiene, and final fresh native review close with no unresolved blocker. | Exact command receipts and review coverage. | verified; fresh repair review GO |
 | O-08 | preservation | No Fable invocation, controller, hook, daemon, scheduler, MCP/app runtime, or authoritative Task State JSON is added or run. | Tree/command inventory. | verified |
 | O-09 | outcome | Every transitive evaluator module/schema is classified into and bound by a canonical semantic, harness, or artifact manifest. | Module inventory and mutation tests; any executable unclassified file falsifies. | verified offline |
 | O-10 | outcome | The evidence ledger has one new-schema `current.json`, explicitly records `refresh_required`, and cannot claim certification without a live successor receipt. | State-machine tests and final ledger inspection. | verified offline |
@@ -1582,6 +1582,64 @@ invocation descriptors and historical cost of 585,209 to 637,027 combined tokens
 public archive were removed. No model/live evaluation, network, Fable, installation,
 activation, plugin mutation, Goal mutation, ref change, push, or publication ran.
 
+## Fresh repair review GO
+
+The first attempted fresh task `/root/cert_engine_authority_repair_final_review`
+stalled in baseline-only Phase 1 and was discarded before it received any candidate
+identity; no output from it is used. Replacement reviewer
+`/root/cert_engine_authority_repair_review_b` used `fork_turns=none`, read the exact
+installed `0.3.0+codex.20260716113414` Skill, and inspected only baseline
+`2836d7363` plus the verbatim operative request before candidate disclosure. It froze
+24 immutable obligations `HC04R-01` through `HC04R-24`; canonical manifest SHA-256 is
+`ad802c854c00dc5186331623c956e33563673f08801241483d8a49f8c44c049f`.
+Its baseline tree and Skill/corpus/holdout/result identities matched Root's receipts,
+and it reported no candidate, current-head, task-ExecPlan, review-history, memory,
+model, network, installation, Fable, live-evaluation, source/ref/Goal, push, or
+publication contamination.
+
+Only after that freeze did Phase 2 receive immutable candidate `1c1fa4f`, admin head
+`94fd262`, the frozen public commit, exact Root claims to reproduce, and the explicit
+task boundary. Two attempted terminal responses were rejected by a platform safety
+filter and supplied no verdict; the same reviewer completed a neutral read-only
+release-candidate review using source inspection and existing offline commands. It
+never read this ExecPlan's contents, confirmed it is the sole candidate-to-admin
+path, excluded it, and independently matched the 49-entry product projection, its
+SHA-256, all 46 diff units and raw diff SHA-256, candidate/admin/public trees, engine,
+snapshot, ledger, impact token, null authority/certification, and package identities.
+
+The reviewer mapped all 24 frozen obligations and accounted for every product unit.
+It traced the supported live dispatcher through corpus evaluation/invocation and
+holdout run/pair paths; found the immutable capability present before fixture,
+mapping, or subprocess work with exact settings/unit/arm/actual-package matching;
+and found zero-live offline evidence strictly post-source, content-addressed, and
+bound to source-ledger/snapshot/gate identities. It reported no unresolved P0, P1,
+or P2 completion finding. The broad per-phase/retry wording in three Phase-1
+obligations was explicitly scoped to certification integrity rather than permission
+to add the excluded controller or retry workflow.
+
+Independent review validation was repair 5/5, prior simplification 6/6, and full
+123/123 in 7.385 seconds. Both official validators, Ruff, Python compile, CLI
+verify/impact and both dry-runs, diff hygiene, legacy absence, shipped-package
+preservation, public reconstruction, exact snapshot equality, clean checkout, and
+historical-cost reconstruction passed. The reviewer parsed all 19 non-hidden
+evaluator JSON documents; official validators separately covered the two hidden
+package JSON documents, and Root's detached preflight parsed all 21 directly.
+Historical v21 and v23 receipts independently reproduced 20 to 22 calls,
+585,209 to 637,027 combined tokens, and 2,911.874 to 3,187.085 seconds.
+
+Disclosed limitations: reviewer identity was Codex/GPT-5 with no exposed numeric
+effort control; the host permission surface was unrestricted with approval policy
+`never`, while actual review behavior stayed within the read-only/offline restriction;
+one mistyped focused-test class produced only loader errors before the corrected 5/5
+run; and one in-process mocked call-chain experiment from the pre-filter attempt was
+excluded from the supported-API verdict and launched no external command. The review
+clone/archive/public reconstruction was removed by the reviewer. Root removed the
+remaining reproducible Phase-1 archive directory after validating its exact `/tmp`
+path. No user-owned data was deleted.
+
+Terminal receipt: `High-benefit refactor: YES`, `Over-optimization: NO`,
+`Final verdict: GO`.
+
 ## Validation envelope
 
 Candidate offline commands, exact live-run costs, required reruns, and review launch
@@ -1591,25 +1649,35 @@ publication requires a later explicit user request.
 
 ## Checkpoint
 
-- Milestone: immutable repair `1c1fa4f` and its detached offline preflight are GREEN;
-  the required new fresh exact-product review is pending.
-- Goal: active `019f780e-925e-7193-8bd2-0a04d6efe31e`; its objective is the
-  Normalized Outcome plus all frozen preservation, exclusion, offline validation, and
-  live-cost gates in this document.
+- Milestone: immutable repair `1c1fa4f`, detached offline preflight, and fresh exact
+  product review are GREEN; the requested local 0.4 candidate is complete.
+- Goal `019f780e-925e-7193-8bd2-0a04d6efe31e` covers the Normalized Outcome plus all
+  frozen preservation, exclusion, offline validation, and live-cost gates in this
+  document.
 - RED/GREEN: original simplification RED `b239487` and candidate GREEN `24ace04` remain
   durable comparison points; remaining-seam RED `0546473` is durable at five tests,
   four failures, and one error; repair GREEN is 5/5, prior relationships are 6/6,
   and the cumulative detached suite is 123/123.
-- Next: launch the frozen two-phase fresh exact-product review against `1c1fa4f` and
-  reconcile its terminal verdict without any live action.
-- Product/support writes: closed pending review; only this ExecPlan administrative
-  record is mutable. Shipped-package paths remain closed.
+- Next: no action remains inside this local-candidate Outcome. Any live corpus,
+  holdout, certification, version/release, plugin activation, push, or publication is
+  a separate explicitly authorized phase.
+- Product/support writes: closed. Shipped-package paths remain closed.
 - Owned paths: `evaluation/`, `tests/`, `AGENTS.md`, and this ExecPlan; shipped-package
   paths remain closed.
-- Missing facts: fresh exact-product `GO`, explicit user cost decision, and later live
-  receipts. The last two are outside local-candidate completion and remain forbidden
-  until a separate exact approval.
+- Missing facts: none for local-candidate completion. An explicit exact cost decision
+  and later live receipts do not yet exist, are not reused from 0.3, and are outside
+  this completed Outcome.
 
 ## Retrospective
 
-Fill only after every completion gate closes.
+The high-return decision was the internal clean break: 21 historical ledgers, the
+index, and both old runner entry points leave the active tree while one classified
+engine, one CLI, one active ledger, and an exact impact/cost planner remain. No public
+package byte or Runtime invocation changed. The simplification review was valuable:
+it identified a publicly constructible/mutable capability and empty zero-live gate
+evidence that made strict surrounding machinery less trustworthy. The bounded repair
+closed those two concrete false greens using one lexical capability and the existing
+evidence-locator map; it did not add orchestration, persistence, reviewer protocol,
+or release machinery. The final independent verdict is therefore high-benefit and
+not over-optimized within the frozen scope. Live evidence is intentionally absent and
+cannot begin without a later exact user approval of the persisted maximum cost.
