@@ -3,7 +3,7 @@
 Protocol: `HappyCodex/0.3`
 Invocation: `$happycodex:happycodex`
 Writer: Root only
-State: skeleton committed; remote reconciliation pending
+State: remote reconciled; fast-forward integration frozen
 Resume: read this entire ExecPlan and reconcile Git, remote refs, checks, and push
 receipts before any merge, push, or completion claim.
 
@@ -62,13 +62,39 @@ remote ref overwrite, or history rewrite is allowed.
 5. Run the complete offline integration matrix and inspect the final diff/tree.
 6. Push `main`, verify the remote identity, and record closure.
 
+## Remote reconciliation and frozen strategy
+
+`git fetch origin main` completed successfully. The fetched `origin/main`, local
+`main`, and source merge-base are all
+`2836d7363db364807a2ec384dc1b6c2cc13df95e`. The exact range is zero
+`origin/main`-only commits and 49 source-only commits. Source HEAD is
+`525d0f5c99adc9342f599145afd60b402cec4a27`; the only delta from reviewed closure
+`f633a664cfc6bde9afa071dee390067627376a9e` is this task-owned ExecPlan. The
+worktree is clean, and `.agents`, `.codex-plugin`, `README.md`, and `skills` retain
+their reviewed package bytes.
+
+Because `origin/main` is the direct ancestor of the source, the minimum auditable
+integration is a fast-forward only update:
+
+```text
+git switch main
+git merge --ff-only feat/happycodex-0.4-certification-engine
+```
+
+This preserves every existing main commit and the exact source tree without an
+extra merge commit. After the complete offline matrix passes on local `main`, push
+with ordinary `git push origin main:main`. Any non-fast-forward result, remote drift,
+or validation failure stops before push; force options remain forbidden.
+
 ## Checkpoint
 
-- Milestone: source closure recovered; integration skeleton pending commit.
-- Next: commit this file, then fetch `origin` and freeze current remote state.
-- Owned path before merge: this ExecPlan only.
-- Missing facts: current fetched `origin/main`, integration topology, post-merge test
-  receipts, final local/remote `main` identity, and push receipt.
+- Milestone: current remote is reconciled and fast-forward topology is frozen.
+- Next: commit this strategy record, fast-forward local `main`, and run the full
+  offline integration matrix before any push.
+- Owned path before merge: this ExecPlan only; after fast-forward the source tree is
+  immutable pending validation.
+- Missing facts: post-merge test receipts, final local/remote `main` identity, and push
+  receipt.
 
 ## Retrospective
 
