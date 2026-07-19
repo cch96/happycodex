@@ -50,118 +50,7 @@
       }
     }
   },
-  "live_authority": {
-    "approval_request_sha256": "19e738c53ea2ca1d9ce8f3cb00d873fa820e12ba7d502664495ae17dcd1f399d",
-    "approval_response": "APPROVE HAPPYCODEX LIVE COST 19e738c53ea2ca1d9ce8f3cb00d873fa820e12ba7d502664495ae17dcd1f399d\n",
-    "approval_response_sha256": "b018d8b75981efb71e10a145b780b9ac16c70b1aee5e3390d48227314d2fd5c5",
-    "impact": {
-      "corpus_cases": [
-        "authorized-rebaseline",
-        "boundary-cutover",
-        "clean-qualifying-control",
-        "compaction-recovery",
-        "goal-divergence",
-        "midflight-escalation",
-        "multi-repo-submodule",
-        "no-commit-secret",
-        "pre-freeze-compaction",
-        "receipt-mismatch",
-        "review-admin-cycle",
-        "review-inventory-gate",
-        "review-isolation",
-        "subthreshold-control"
-      ],
-      "cost": {
-        "basis": "0.3 v21 corpus and v23 holdout observed combined-token/wall receipts",
-        "combined_tokens": {
-          "maximum": 637027,
-          "minimum": 585209
-        },
-        "provenance": {
-          "baseline_commit": "2836d7363db364807a2ec384dc1b6c2cc13df95e",
-          "baseline_plan_blob": "a5b16c5edb54324ee0a7a2efb17a7d7fdef3f207",
-          "baseline_plan_path": "docs/execplans/happycodex-0-3-cleanroom.md",
-          "corpus_receipt_sha256": "89b9760e08752dc9600f600268d447364970b89cb16d253e7a098b01f76fb56c",
-          "holdout_pair_receipt_sha256s": {
-            "authority-production-boundary": "18164c21533563b15bc483996e0f9a8db6c2080b7e3bf819dd2a003948395c82",
-            "destructive-migration-fallback": "10b6cf8a40bdb9d1097d287d80a9c7106686f6b6c19458984366994833f2c3a2",
-            "local-documentation-control": "27c1bcbf3566379b7c71255fadddcda5aa82509d3f01d15a170933a527de5f2c"
-          },
-          "holdout_run_receipt_sha256": "bb2fa16edfd82c3da004d630bcdc87a098488ae483a1026b012ce117447fd580",
-          "holdout_summary_sha256": "f301f23d0d841deaef538cf07d9fba36705ebb175a3a1e4f099bb68cfc91ea3d",
-          "selected_corpus_receipts_sha256": "5159899e8c950885b5c210921ff5b4738b5d81b17293e41a7df8c6b0efb33616"
-        },
-        "wall_seconds": {
-          "maximum": 3187.085,
-          "minimum": 2911.874
-        }
-      },
-      "gates": [
-        "corpus",
-        "holdout",
-        "review"
-      ],
-      "holdout_pairs": [
-        "authority-production-boundary",
-        "destructive-migration-fallback",
-        "local-documentation-control"
-      ],
-      "live_calls": {
-        "maximum": 22,
-        "minimum": 20
-      },
-      "reasons": [
-        "engine_generation_changed"
-      ],
-      "schema_version": 1
-    },
-    "impact_token": "ec536a860732399da2f9db09898dcac49dd57ae203584bda005d52d24e56932e",
-    "invocations": [
-      {
-        "arm": "candidate",
-        "cases": [
-          "authorized-rebaseline",
-          "boundary-cutover",
-          "clean-qualifying-control",
-          "compaction-recovery",
-          "goal-divergence",
-          "midflight-escalation",
-          "multi-repo-submodule",
-          "no-commit-secret",
-          "pre-freeze-compaction",
-          "receipt-mismatch",
-          "review-admin-cycle",
-          "review-inventory-gate",
-          "review-isolation",
-          "subthreshold-control"
-        ],
-        "command": "corpus",
-        "effort": "high",
-        "model": "gpt-5.6-sol",
-        "package_artifact_sha256": "0c83dbc694cb98bf811dd2d1c199b5d2aa734c484476a638884e775289c1d934",
-        "package_semantic_sha256": "c5030e99dd7cd1681148c069775671c5720bb8dd366930ff90f61cbc54cdfc05",
-        "timeout_seconds": 300
-      },
-      {
-        "candidate_artifact_sha256": "0c83dbc694cb98bf811dd2d1c199b5d2aa734c484476a638884e775289c1d934",
-        "candidate_semantic_sha256": "c5030e99dd7cd1681148c069775671c5720bb8dd366930ff90f61cbc54cdfc05",
-        "command": "holdout",
-        "effort": "high",
-        "model": "gpt-5.6-sol",
-        "pairs": [
-          "authority-production-boundary",
-          "destructive-migration-fallback",
-          "local-documentation-control"
-        ],
-        "public_artifact_sha256": "77a0b2b8f7f6280d6ed32458fc61ca110f7138b5b6c17ad55d333a023dfa8c89",
-        "public_semantic_sha256": "fb3cb419795a6edcb284695769b5487b1f23ae46286c5fceba8042fcb41f9ce4",
-        "timeout_seconds": 300
-      }
-    ],
-    "schema_version": 1,
-    "snapshot_sha256": "8e4929f0a1bad0794f6e6c27b8c6355f02e259ad0e1101e6e0f496981b15808f",
-    "source": "current-task/user/happycodex-0.4-release-cost"
-  },
+  "live_authority": null,
   "pending": {
     "corpus_cases": [
       "authorized-rebaseline",
@@ -205,7 +94,7 @@
         "authorized-rebaseline": "8923237ac1b60cdea619000d5766f3c73aa2c911921902156934c2374c593ab3",
         "boundary-cutover": "b97b0dd5dc28baf476f9414280932d6f51284e031f28825ec2df9ae5afe7c938",
         "clean-qualifying-control": "5d14c6a4d8bd2134381d7cfd07e1a3ad7dccd1687d305a913c9a8a11618af8cd",
-        "compaction-recovery": "8a17393d2ce0fd9435d1639c504ba42770387463471f570449842dc48889bb07",
+        "compaction-recovery": "7851ce7738528cab83380e00bf53a82fc6409d2d1da033ab58645caf3e12e8bf",
         "goal-divergence": "6114e6754ef8f062d5beb506f1788ef8519f6b847f6e2a012389160e3cca39cd",
         "midflight-escalation": "8bde143e19848276acac5e7e3fd5b1d4e641ab01e73f40709fe6bdcb47a47170",
         "multi-repo-submodule": "44ce4fe364d71e392e2d7a810cc0033ba0950344610bb20da5cb088104cb2793",
@@ -224,7 +113,7 @@
         "harness": "3cf0bc56cfe589946746ba284d0a3e54c20f49dba35238f9077e2c9ec123aff1",
         "semantic": "8f73619db63d7d64b934a9e70c627756bda8ea39978dbb7a9d42d37f65e29477"
       },
-      "manifest_sha256": "a11f5aa6181944f9e1d87f6129cc5b9647e536e26ae397af7e6f662d8bcfd000",
+      "manifest_sha256": "f1ce49ef0ea9e63cbb6bb74b2bd68e9d32cddd179a938a4dc656f2ddb57e6423",
       "scopes": {
         "corpus_harness": "cec27631f4a43f77911ae729dbd0269b6925a2bf51f31dabb1d30820f43216a2",
         "holdout_harness": "c365e77fb8fb356e49307819e3657d438cdda7fccb62380d78ca0eb7b9b310a4",

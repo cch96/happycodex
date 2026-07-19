@@ -3,8 +3,8 @@
 Protocol: `HappyCodex/0.3`
 Invocation: `$happycodex:happycodex`
 Writer: Root only
-State: minimum evaluator-case prompt clarification authorized; amendment freeze is
-the next durable boundary, then offline RED/GREEN and a new exact cost request
+State: minimum evaluator-case prompt clarification is offline GREEN; semantic source
+commit and new exact public-bound cost request are the next boundaries
 Resume: read this entire file, the completed 0.4 certification-engine and main-
 integration ExecPlans, then reconcile Goal, Git, tests, evidence, installations,
 remote refs, and agents before any write, review, live call, or completion claim.
@@ -233,6 +233,54 @@ estimate of 20 to 22 calls, 585,209 to 637,027 combined tokens, and 2,911.874 to
 3,187.085 seconds. Only a later canonical response for the new request may reopen
 live execution.
 
+## Minimum repair RED/GREEN
+
+The amendment freeze is
+`59d47230521b72b9d8e283cefb47f15b9632ab9c`. The existing focused test
+`HappyCodexEvaluationTests.test_baseline_failure_case_requires_structured_identities`
+was first extended to require the four generic prompt constraints and failed because
+the old prompt contained none of them. The test selector was then run correctly; an
+earlier wrong-class selector produced only an import error and is not RED evidence.
+
+The sole semantic edit adds one generic sentence to
+`evaluation/cases/compaction-recovery.json`: different durable identities must produce
+separate `finding_classifications`; the recorded identity is `resolved`, the
+replacement is `candidate_new`, and neither may be collapsed under the shared test
+name. The focused test then passed. Exact fixture and oracle canonical SHA-256 values
+remain `9c989a84f5620e595be3682c4f3f588deb591c5abe647af02476cfb2725785fe`
+and `92e445e16b840a70ca767fea7e53de7059a87c0244d5becf3f166c02b8868a4d`
+before and after the edit.
+
+The source ledger now has null authority and the mechanically rebuilt snapshot. Only
+the case digest `7851ce7738528cab83380e00bf53a82fc6409d2d1da033ab58645caf3e12e8bf`
+and engine manifest
+`f1ce49ef0ea9e63cbb6bb74b2bd68e9d32cddd179a938a4dc656f2ddb57e6423`
+differ inside the snapshot; its SHA-256 is
+`91f1235245486c000970cba7b7d1d394862ccf44e84c102fcb55e8da9a478b14`.
+Production verify reports ledger
+`43ec0be99c9875bd303268aa6c0f3307d813218c16bc2a6cebd14229ee0c1a6b`,
+impact token `be79dcd733b5eab6708f84ffc0dfeea5c3e6999f26b9ca320a4a96c1e0762c5b`,
+null authority, and the unchanged complete 14-case/three-pair 20-to-22-call scope.
+Package semantic/artifact remain `c5030e99...c05` / `0c83dbc6...934`.
+
+Offline validation is GREEN under the frozen Codex CLI `0.144.4` toolchain:
+
+- focused RED then GREEN exactly as above;
+- 123/123 cumulative tests passed in 7.834 seconds;
+- official Skill and plugin validators passed;
+- Ruff check passed and all 19 Python files passed format-check;
+- production verify/impact, both official dry-runs, Python compile, all 21 JSON
+  parses, and diff hygiene passed.
+
+One cumulative run without the frozen PATH correctly failed two authority tests
+because desktop-default Codex `0.144.6` mismatched the ledger's `0.144.4` snapshot.
+No code changed in response; the exact frozen rerun is the valid GREEN receipt. The
+three non-ExecPlan changed paths are exactly the authorized case, focused test, and
+source ledger; their pre-commit diff SHA-256 is
+`9deca7b99ae13bfc58844787a5335744b0472b518bbf732253c1bc355d9d2e79`.
+Skill, plugin manifest, corpus runner/contract, holdout runner, fixture, and oracle
+bytes are unchanged. No model, holdout, review, install, push, or release action ran.
+
 ## Design saturation and frozen release sequence
 
 Fresh baseline-only challenger `/root/release_boundary_challenger_b` inspected only
@@ -319,7 +367,7 @@ review identity, public proof, rollback, and final GitHub delivery simultaneousl
 | R-01 | premise | Current remote `main`, local baseline, package, engine, snapshot, ledger, and public benchmark identities are independently reproduced before release work. | Fetch/readback plus offline identity commands; drift remains open. | verified |
 | R-02 | outcome | The exact current impact and historical-cost envelope are persisted, and no live helper runs without the canonical invocation-bound response. | Authority validation plus command audit; any early call falsifies. | reopened for repaired request |
 | R-03 | outcome | Exactly the authorized corpus and adaptive holdout scope completes and produces sanitized Git-reachable evidence that makes `current.json` validly `certified`. | CLI receipts, ledger validation, evidence ancestry, exact cost and scope reconciliation. | repair authorized; rerun not authorized |
-| R-04 | preservation | The repair changes only the explicitly authorized evaluator-case prompt and focused structural test; Skill, manifest behavior, fixture/oracle/matcher/schema, runner/evaluator code, and holdout semantics remain unchanged. | Exact source diff; any wider edit stops for user decision. | open |
+| R-04 | preservation | The repair changes only the explicitly authorized evaluator-case prompt and focused structural test; Skill, manifest behavior, fixture/oracle/matcher/schema, runner/evaluator code, and holdout semantics remain unchanged. | Exact source diff; any wider edit stops for user decision. | verified for repair |
 | R-05 | outcome | Release edits are limited to strict-semver 0.4 version/cachebuster and accurate change-note/install metadata. | Product diff inventory and official validators. | open |
 | R-06 | outcome | Full offline suite, official validators, Ruff, CLI/JSON/diff/package hygiene, and fresh exact-product review close with `GO` and no material blocker. | Exact receipts and complete review coverage. | open |
 | R-07 | outcome | A clean isolated public marketplace install/invocation reports the exact 0.4 version and release identity. | Fresh-home install plus invocation receipt; source/cache mismatch falsifies. | open |
@@ -343,18 +391,17 @@ review identity, public proof, rollback, and final GitHub delivery simultaneousl
 
 ## Checkpoint
 
-- Milestone: the failed attempt is preserved and the minimum repair is explicitly
-  authorized. The amendment-freeze revision is next, followed by offline RED/GREEN and
-  the new request freeze.
-- Product writes: permitted only for the generic `compaction-recovery` prompt
-  clarification, its focused structural test, and the mechanically derived source
-  ledger transition. All other product/evaluator/release paths remain forbidden.
-- Owned paths after amendment freeze:
-  `evaluation/cases/compaction-recovery.json`, `tests/test_evaluation.py`,
-  `evaluation/results/current.json`, and this ExecPlan only.
-- Missing facts: the repaired snapshot/impact/request and canonical cost approval;
-  then every remaining live evidence/review/install/activation/rollback/publication
-  receipt. The old Native Goal remains blocked and is not amendment authority.
+- Milestone: the minimum repair and source-ledger transition are offline GREEN. Commit
+  this semantic boundary, reconstruct public 0.2, freeze the exact public-bound request,
+  and stop.
+- Product writes: the authorized repair is complete. Further product/evaluator writes
+  are forbidden until a new finding or explicit amendment; no live execution is
+  permitted before the new canonical approval.
+- Owned paths until the semantic commit: the authorized case, focused test, source
+  ledger, and this ExecPlan. After it, only this ExecPlan may record the cost request.
+- Missing facts: the new public-bound request and canonical cost approval; then every
+  remaining live evidence/review/install/activation/rollback/publication receipt. The
+  old Native Goal remains blocked and is not amendment authority.
 
 ## Retrospective
 

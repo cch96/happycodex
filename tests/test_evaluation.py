@@ -1766,9 +1766,8 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             runner.validate_case(case, Path("ambiguous.json"))
 
     def test_baseline_failure_case_requires_structured_identities(self) -> None:
-        required = self.cases["compaction-recovery"]["oracle"][
-            "required_classifications"
-        ]
+        case = self.cases["compaction-recovery"]
+        required = case["oracle"]["required_classifications"]
         self.assertIn(
             {
                 "identity": "fixture-17",
@@ -1777,6 +1776,11 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             },
             required,
         )
+        prompt = case["prompt"]
+        self.assertIn("separate finding_classifications for both identities", prompt)
+        self.assertIn("recorded identity as resolved", prompt)
+        self.assertIn("replacement identity as candidate_new", prompt)
+        self.assertIn("do not collapse them under the shared test name", prompt)
         self.assertIn(
             {
                 "identity": "fixture-18",
