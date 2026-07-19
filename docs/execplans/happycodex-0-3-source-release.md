@@ -3,7 +3,8 @@
 Protocol: `HappyCodex/0.3`
 Invocation: `$happycodex:happycodex`
 Writer: Root only
-State: skeleton; contract freeze pending
+State: frozen by the commit with subject
+`docs: freeze HappyCodex 0.3 source release contract`
 Guard: restore this ExecPlan before any write, review, or completion claim.
 Goal: none; this independent Outcome uses Native Plan plus this ExecPlan.
 
@@ -74,6 +75,77 @@ and isolated public-install gates, then push the branch and open a pull request.
 | Native Goal | none |
 | Accepted baseline failures | none |
 
+## Baseline evidence and exact identities
+
+| Check | Result |
+| --- | --- |
+| `git fetch origin`; `git rev-parse origin/main` | fetched base remains `5c5d4c0a4d7590871acd14e4f1ef282f2f564177` |
+| `git rev-parse feat/happycodex-0.3-cleanroom` | certified source remains `89e6a8b2711b869e8fad0ce3d112cfd97b9c3833` |
+| `git merge-base origin/main feat/happycodex-0.3-cleanroom` | `3b9c11fac1f97df75263e0bfc6421c575e04e8b2` |
+| `git rev-list --left-right --count origin/main...feat/happycodex-0.3-cleanroom` | `11 172` |
+| `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -v` on the release skeleton | 24/24 baseline tests passed; exit 0 |
+| main-only range | all 11 commits inspected by subject, ancestry, paths, and per-commit stats; every changed path belongs to the rejected 0.3 prototype/evidence surface |
+| candidate tree | tree `8441b737f4dd0ffddc8860959d6e513803cd3c57`; 55 entries; all mode `100644`; no gitlink or submodule |
+| candidate recursive `ls-tree` manifest | SHA-256 `05509f86830b1b97d61b9256c98e255c0ee17327f5ea90c9a51a637cd41ae459` |
+| main-to-candidate path classes | 48 added, 58 deleted, 5 modified, 2 unchanged; no type or mode change |
+| candidate Skill | SHA-256 `0f2223498e398325d1f9728f485b46282778f1199be4f0d80802073f191c6b71` |
+| loaded/active Skill | exact same SHA-256; `codex plugin list --json` reports installed+enabled personal `0.3.0+codex.20260716113414` |
+| candidate manifest | `.codex-plugin/plugin.json` version `0.3.0+codex.20260716113414` |
+| starting status | clean after plan-only skeleton `e362a381da49e800fc10254dd30b80c910300327` |
+
+The final product/support identity is the complete recursive candidate manifest above.
+The only allowed additional path is this release ExecPlan. Equality is path-, mode-,
+and blob-exact; prose similarity, a patch checksum, or selected-file hashes cannot
+substitute.
+
+## Design saturation and boundary decision
+
+Material alternatives were compared:
+
+1. Merge the candidate branch. Rejected: it imports the 172 experimental commits as
+   release ancestry, contrary to the explicit request.
+2. Cherry-pick a subset of the experimental range. Rejected: selecting from 172
+   revisions recreates provenance ambiguity and can miss a final-tree unit.
+3. Retain main-only prototype artifacts beside the certified tree. Rejected: it makes
+   exact candidate-tree equality impossible, preserves rejected legacy references,
+   and retains repository-local raw model-event evidence that the certified policy
+   moved outside the repository.
+4. Transplant the exact certified blobs onto the single-parent release history in two
+   semantic commits. Selected: ancestry preserves every main-only commit, no candidate
+   commit becomes a parent, and filtered final-tree equality is mechanical.
+
+“保留 main-only 工作” is therefore frozen as Git-history/ancestry preservation, not
+retention of rejected main-only artifacts in the release tree. That interpretation is
+required to satisfy the same request's exact final-product-tree and no-172-history
+clauses. The old artifacts remain reachable in the 11 preserved ancestor commits.
+
+Semantic integration revisions are limited to:
+
+- runtime/release surface: exact candidate `.codex-plugin/plugin.json`, `AGENTS.md`,
+  `README.md`, and `skills/happycodex/**`, including removal of superseded references;
+- certified support tree: exact candidate clean-room ExecPlan, `evaluation/**`, and
+  `tests/**`, including removal of the rejected main-only ExecPlan and repository-local
+  raw evidence.
+
+`.agents/plugins/marketplace.json` and `.gitignore` already have the candidate blobs
+and must remain unchanged. No intermediate product commit is independently certified;
+the cumulative two-commit tree is the candidate-bound unit.
+
+## Independent boundary receipt
+
+Dispatch `/root/release_boundary_challenger` received no Root inventory and was
+read-only, single-level, and forbidden from edits, network, model evaluation, install,
+or delegation. It independently checked the exact revisions, clean state, ancestry,
+path collision, modes, submodules, and path classes, then returned
+`GO-WITH-CONDITIONS`.
+
+The condition is the main-only interpretation frozen above. It found no path, mode,
+submodule, or Git-history conflict under ancestry preservation. Root reproduced the
+union: base is an ancestor of the release skeleton; zero candidate-only commit is
+reachable; candidate+release-plan has 56 unique paths; all modes are `100644`; path
+classes are A48/D58/M5; 52 deleted paths are old repository-local evidence. No
+uncertainty remains after the contract interpretation is frozen.
+
 ## Scope and exclusions
 
 Allowed: this ExecPlan, a small number of semantic integration commits, offline unit
@@ -84,6 +156,30 @@ Excluded: any behavioral change to Skill, manifest, tests, oracle, runner, evalu
 schema, hook, controller, Task State JSON, reviewer protocol, behavior corpus,
 holdout, full review, Fable retry, or 0.4 suggestion. A need for such a change stops
 before the edit and requires an invalidation/cost report.
+
+The user's validation envelope explicitly replaces a fresh behavior/holdout/full
+review cycle for this history-only integration. Existing candidate certification is
+reused only after exact tree equality. Fable is not invoked: the user limited checks
+to the named offline validators plus one public install, and its absence cannot block.
+
+## Exact validation protocol
+
+After both semantic revisions, run only:
+
+1. `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -v`
+2. `python3 /home/caichenghang/.codex/skills/.system/skill-creator/scripts/quick_validate.py skills/happycodex`
+3. `python3 /home/caichenghang/.codex/skills/.system/plugin-creator/scripts/validate_plugin.py .`
+4. `git diff --check origin/main..HEAD`, clean-status checks, candidate-vs-release
+   filtered manifest comparison, and candidate-vs-release filtered diff.
+
+If offline checks pass, push the release branch once without force so the public Git
+ref exists. In one fresh isolated `HOME`/`CODEX_HOME`, use the supported public Git
+marketplace command `codex plugin marketplace add cch96/happycodex --ref
+release/happycodex-0.3 --json`, install `happycodex@happycodex` once, and verify exact
+version plus source/install Skill and filtered package equality. The personal install
+must remain unchanged. Record the receipt in this ExecPlan only; that administrative
+closure may not alter the integrated product tree. Push the closure and open a PR to
+`main`.
 
 ## Claims and gates
 
@@ -99,16 +195,15 @@ before the edit and requires an invalidation/cost report.
 
 ## Current checkpoint
 
-Read-only baseline verification is complete: Skill locator/version matched the
-required 0.3 build; repository policy and the complete 3,629-line certified ExecPlan
-were read; candidate/base/merge-base/divergence values matched; main-only subjects and
-file effects were inventoried; candidate has 55 tracked files and main has 65. The
-release branch now points at the fetched base. Next: commit this skeleton, freeze the
-integration design and exact tree identities in a separate revision, then integrate.
+Contract discovery is saturated. Skill locator/version matched the required 0.3
+build; repository policy and the complete 3,629-line certified ExecPlan were read;
+candidate/base/merge-base/divergence values matched; all main-only commits and the
+candidate final tree were inventoried; baseline tests pass; the independent boundary
+receipt is terminal and reproduced. Next: commit this contract freeze, then perform
+only the two exact semantic tree integrations above.
 
 ## Pending gates
 
-- skeleton revision
 - contract-freeze revision
 - semantic tree integration
 - exact tree/blob preservation proof
