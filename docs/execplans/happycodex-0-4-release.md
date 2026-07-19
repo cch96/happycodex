@@ -3,8 +3,8 @@
 Protocol: `HappyCodex/0.3`
 Invocation: `$happycodex:happycodex`
 Writer: Root only
-State: repaired source and exact public-bound cost request are frozen; canonical user
-approval is the sole next execution gate
+State: repaired canonical live authority received and validated; authority-bearing
+source commit is the next boundary, then the one authorized corpus attempt
 Resume: read this entire file, the completed 0.4 certification-engine and main-
 integration ExecPlans, then reconcile Goal, Git, tests, evidence, installations,
 remote refs, and agents before any write, review, live call, or completion claim.
@@ -320,6 +320,17 @@ one interrupted calls from the retired failed attempt. The earlier response for
 request `19e738...99d`, a paraphrase, the impact token, or Goal continuation grants
 nothing for this repaired request.
 
+On 2026-07-19 the user returned the repaired canonical line verbatim. A fresh clean-
+tree/public-archive readback reproduced request `3a8c390a...06f5e`, response SHA-256
+`ba83ebe8...c35c`, snapshot `91f12352...78b14`, impact `be79dcd7...62c5b`, both
+public identities, and both invocation descriptors exactly before persistence. The
+validated authority source is
+`current-task/user/happycodex-0.4-repaired-release-cost`; authority SHA-256 is
+`a41eda6bcf55440e4467bb0575cfee8138229fe8d4166a41fce56b5a24c38775`
+and authority-bearing ledger SHA-256 is
+`ec4dd7e3bb3069a57bc0212024b041145d8ae4cbddc7364b0aa61335862dca75`.
+No model call ran before this exact receipt was persisted.
+
 ## Design saturation and frozen release sequence
 
 Fresh baseline-only challenger `/root/release_boundary_challenger_b` inspected only
@@ -404,7 +415,7 @@ review identity, public proof, rollback, and final GitHub delivery simultaneousl
 | ID | Type | Claim | Closure / falsifier | State |
 | --- | --- | --- | --- | --- |
 | R-01 | premise | Current remote `main`, local baseline, package, engine, snapshot, ledger, and public benchmark identities are independently reproduced before release work. | Fetch/readback plus offline identity commands; drift remains open. | verified |
-| R-02 | outcome | The exact current impact and historical-cost envelope are persisted, and no live helper runs without the canonical invocation-bound response. | Authority validation plus command audit; any early call falsifies. | repaired request frozen; approval pending |
+| R-02 | outcome | The exact current impact and historical-cost envelope are persisted, and no live helper runs without the canonical invocation-bound response. | Authority validation plus command audit; any early call falsifies. | verified for repaired authority |
 | R-03 | outcome | Exactly the authorized corpus and adaptive holdout scope completes and produces sanitized Git-reachable evidence that makes `current.json` validly `certified`. | CLI receipts, ledger validation, evidence ancestry, exact cost and scope reconciliation. | repair authorized; rerun not authorized |
 | R-04 | preservation | The repair changes only the explicitly authorized evaluator-case prompt and focused structural test; Skill, manifest behavior, fixture/oracle/matcher/schema, runner/evaluator code, and holdout semantics remain unchanged. | Exact source diff; any wider edit stops for user decision. | verified for repair |
 | R-05 | outcome | Release edits are limited to strict-semver 0.4 version/cachebuster and accurate change-note/install metadata. | Product diff inventory and official validators. | open |
@@ -427,21 +438,22 @@ review identity, public proof, rollback, and final GitHub delivery simultaneousl
    prompt/test plus source-ledger transition, and run offline validation. Then freeze
    the new exact request and stop for canonical approval. Do not execute either live
    certification transition, review, install, active update, or publication step yet.
-4. Stop until the user returns the exact repaired canonical line. The prior approval,
-   Goal wake/resume, a paraphrase, or any other digest is not authority.
+4. Closed on 2026-07-19: the user returned the exact repaired canonical line and every
+   binding reproduced before persistence. Commit the authority-bearing source before
+   the first model call; any later drift reopens this gate.
 
 ## Checkpoint
 
-- Milestone: the repaired source is offline GREEN and the exact public-bound request is
-  frozen. Canonical approval is the sole next execution gate.
-- Product writes: forbidden. No further product/evaluator/ledger edit or live action is
-  allowed before the exact grant is received and then persisted in a later source
-  commit.
-- Owned path: this ExecPlan only for the request-freeze revision; worktree must finish
-  clean.
-- Missing facts: the repaired canonical cost approval and every remaining live
-  evidence/review/install/activation/rollback/publication receipt. The old Native Goal
-  remains blocked and is not authority.
+- Milestone: the repaired source is offline GREEN and exact live authority is
+  validated in the source ledger. Commit this authority-bearing boundary, then run the
+  one authorized corpus attempt into external raw output.
+- Product writes: only this authority-bearing ledger/ExecPlan persistence is allowed
+  before live execution. Skill, cases, tests, oracle, runner/evaluator, manifest, and
+  release metadata remain frozen.
+- Owned paths until the authority commit: `evaluation/results/current.json` and this
+  ExecPlan only; worktree must then be clean.
+- Missing facts: all repaired corpus/holdout evidence and every remaining
+  review/install/activation/rollback/publication receipt.
 
 ## Retrospective
 
