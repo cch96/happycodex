@@ -728,6 +728,26 @@ reports four `ValueError not raised` subtest failures in 1.013 seconds. The prod
 sanitizer positive path itself remains reachable; only the four runner-impossible
 mutations are RED. No model or runner invocation occurred.
 
+## Seventh supplemental nested-binding RED
+
+Root's pre-commit source audit found three more projections of the same accepted
+nested-receipt blocker. The sanitizer preserves the case oracle's six permission
+fields, the complete static isolation-policy digest, and all primary/resume/fresh
+thread digests, but certification checked only their types rather than binding them
+to the frozen case and to one another. A forged summary could therefore flip an
+oracle permission, substitute an arbitrary policy digest, or reuse the primary
+thread digest as the allegedly distinct fresh control while retaining `passed=true`.
+
+The positive fixture now derives its permission values and required
+finding/blocker anchors from each real case oracle, uses the native case's real
+recovery-oracle values, passes through `sanitized_case_receipt`, and independently
+reproduces an empty `match_oracle` result before certification. Three independent
+mutations exercise the unbound oracle, policy, and native-control projections. On
+the partially repaired validator, the focused command above reports exactly three
+`ValueError not raised` subtest failures in 1.007 seconds. This is an offline
+ledger/test repair only: no Skill, manifest, case oracle, runner, evaluator, model,
+network, Fable, install, or live authority changed.
+
 ## Validation envelope
 
 Candidate offline commands, exact live-run costs, required reruns, and review launch

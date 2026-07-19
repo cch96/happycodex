@@ -694,8 +694,10 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                 case_id: str,
                 semantic_sha256: str,
                 package: dict[str, str],
+                case_descriptor: dict[str, object] | None = None,
             ) -> dict[str, object]:
-                case = source_cases.get(case_id)
+                case = case_descriptor or source_cases.get(case_id)
+                self.assertIsInstance(case, dict)
                 native = (
                     case["fixture"].get("native_compaction_resume")
                     if isinstance(case, dict)
@@ -710,21 +712,94 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                 phase_count = 3 if native else 1
                 usage_phases = [copy.deepcopy(phase) for _ in range(phase_count)]
                 usage = {key: value * phase_count for key, value in phase.items()}
-                recovery_state = {} if native else None
+                recovery_state = (
+                    {
+                        "baseline_revision": "a" * 40,
+                        "baseline_tree": "b" * 40,
+                        "current_revision": "c" * 40,
+                        "current_tree": "d" * 40,
+                        **copy.deepcopy(native["recovery_oracle"]),
+                    }
+                    if native
+                    else None
+                )
+                expected = {
+                    field: values[0] if isinstance(values, list) else values
+                    for field, values in case["oracle"]["expected"].items()
+                }
+                findings = []
+                blockers = []
+                for required in case["oracle"].get("required_classifications", []):
+                    states = required["state"]
+                    findings.append(
+                        {
+                            "identity": required["identity"],
+                            "domain": required["domain"],
+                            "state": states[0] if isinstance(states, list) else states,
+                            "anchors": [],
+                        }
+                    )
+                for index, required in enumerate(
+                    case["oracle"].get("required_anchored_classifications", [])
+                ):
+                    states = required["state"]
+                    findings.append(
+                        {
+                            "identity": f"anchored-classification-{index}",
+                            "domain": required["domain"],
+                            "state": states[0] if isinstance(states, list) else states,
+                            "anchors": [required["anchor"]],
+                        }
+                    )
+                for index, required in enumerate(
+                    case["oracle"].get("required_anchored_blockers", [])
+                ):
+                    identity = f"anchored-blocker-{index}"
+                    classes = required["class"]
+                    findings.append(
+                        {
+                            "identity": identity,
+                            "domain": "other",
+                            "state": "candidate_new",
+                            "anchors": [required["anchor"]],
+                        }
+                    )
+                    blockers.append(
+                        {
+                            "identity": identity,
+                            "class": classes[0]
+                            if isinstance(classes, list)
+                            else classes,
+                            "blocking": True,
+                            "reason": "required by the case oracle",
+                        }
+                    )
+                open_gates = (
+                    ["Run /goal pause before ending at the user gate."]
+                    if corpus_engine.fixture_requires_goal_pause_handoff(
+                        case["fixture"]
+                    )
+                    and expected["decision"] == "stop_for_user"
+                    else []
+                )
                 result = {
-                    "decision": "continue",
-                    "qualifies": True,
-                    "execplan_condition": "usable",
-                    "protocol_may_product_write": False,
-                    "protocol_may_review": False,
-                    "protocol_may_complete": False,
-                    "finding_classifications": [],
-                    "blocker_classifications": [],
-                    "open_gates": [],
+                    **expected,
+                    "finding_classifications": findings,
+                    "blocker_classifications": blockers,
+                    "open_gates": open_gates,
                     "evidence": [],
                     "reason": "",
                     "recovery_state": recovery_state,
                 }
+                self.assertEqual(
+                    corpus_engine.match_oracle(
+                        result,
+                        case["oracle"],
+                        expected_recovery_state=recovery_state if native else None,
+                        fixture=case["fixture"],
+                    ),
+                    [],
+                )
                 compaction_phase = {
                     "rollout_path": ".codex/sessions/native.jsonl",
                     "rollout_sha256": "7" * 64,
@@ -866,11 +941,48 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
             empty_result = copy.deepcopy(corpus_summary)
             empty_result["cases"][0]["result"] = {}
 
+            wrong_oracle_projection = copy.deepcopy(corpus_summary)
+            wrong_oracle_projection["cases"][0]["result"][
+                "protocol_may_product_write"
+            ] = not wrong_oracle_projection["cases"][0]["result"][
+                "protocol_may_product_write"
+            ]
+
+            forged_isolation_policy = copy.deepcopy(corpus_summary)
+            forged_isolation_policy["cases"][0]["filesystem_isolation"][
+                "policy_sha256"
+            ] = "e" * 64
+
+            mismatched_native_control = copy.deepcopy(corpus_summary)
+            native_control = next(
+                item
+                for item in mismatched_native_control["cases"]
+                if item["id"] == "pre-freeze-compaction"
+            )
+            native_control["fresh_recovery_thread_id_sha256"] = native_control[
+                "thread_id_sha256"
+            ]
+
             corpus_false_greens = (
-                ("missing-native-recovery", missing_native, "native|usage phase"),
+                (
+                    "missing-native-recovery",
+                    missing_native,
+                    "native|usage phase|evidence telemetry",
+                ),
                 ("mismatched-install", mismatched_install, "installation"),
                 ("empty-isolation", empty_isolation, "isolation"),
                 ("empty-result-envelope", empty_result, "result receipt"),
+                ("wrong-oracle-projection", wrong_oracle_projection, "oracle"),
+                (
+                    "forged-isolation-policy",
+                    forged_isolation_policy,
+                    "isolation",
+                ),
+                (
+                    "mismatched-native-control",
+                    mismatched_native_control,
+                    "native|thread|control",
+                ),
             )
             for label, false_green, expected_error in corpus_false_greens:
                 with self.subTest(corpus_false_green=label):
@@ -955,6 +1067,7 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                             arm=arm,
                         ),
                         package,
+                        case,
                     )
                     for arm, package in (
                         ("candidate", snapshot["package"]),
