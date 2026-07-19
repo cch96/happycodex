@@ -540,9 +540,9 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
             git("config", "user.name", "HappyCodex test")
             git("config", "user.email", "happycodex-test@example.invalid")
             git("add", ".")
-            git("commit", "-qm", "source")
-            source_commit = git("rev-parse", "HEAD")
-            source_tree = git("rev-parse", "HEAD^{tree}")
+            git("commit", "-qm", "source without authority")
+            unauthorized_source_commit = git("rev-parse", "HEAD")
+            unauthorized_source_tree = git("rev-parse", "HEAD^{tree}")
 
             snapshot = build_snapshot(repo)
             pending = {
@@ -557,7 +557,7 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                 "state": "refresh_required",
                 "snapshot": snapshot,
                 "prior_evidence": {
-                    "source_commit": source_commit,
+                    "source_commit": unauthorized_source_commit,
                     "source_path": "evaluation/results/current.json",
                     "sha256": "0" * 64,
                 },
@@ -567,6 +567,22 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                 "certification": None,
             }
             authority = complete_live_authority(ledger, snapshot, impact)
+            authorized_ledger = copy.deepcopy(ledger)
+            authorized_ledger["live_authority"] = authority
+            (repo / "evaluation" / "results" / "current.json").write_text(
+                json.dumps(
+                    authorized_ledger,
+                    ensure_ascii=False,
+                    sort_keys=True,
+                    indent=2,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            git("add", "evaluation/results/current.json")
+            git("commit", "-qm", "persist exact live authority")
+            source_commit = git("rev-parse", "HEAD")
+            source_tree = git("rev-parse", "HEAD^{tree}")
             settings = snapshot["settings"]
             engine_identity = engine_inventory(repo)
 
@@ -636,6 +652,8 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
             corpus_summary = {
                 "schema_version": 1,
                 "engine_generation": "0.4",
+                "impact_token": authority["impact_token"],
+                "live_authority_sha256": canonical_sha256(authority),
                 "arm": "candidate",
                 "model": settings["model"],
                 "effort": settings["effort"],
@@ -671,6 +689,8 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
             holdout_run = {
                 "schema_version": 1,
                 "engine_generation": "0.4",
+                "impact_token": authority["impact_token"],
+                "live_authority_sha256": canonical_sha256(authority),
                 "manifest_sha256": sha256_bytes(manifest_path.read_bytes()),
                 "model": settings["model"],
                 "effort": settings["effort"],
@@ -813,16 +833,18 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                 "evidence": locators,
                 "live_authority_sha256": canonical_sha256(authority),
             }
-            with self.assertRaisesRegex(ValueError, "source.*authority"):
-                validate_ledger(certified, repo=repo)
+            validate_ledger(certified, repo=repo)
+            self.assertEqual(build_snapshot(repo), snapshot)
 
-            forged = copy.deepcopy(certified)
-            forged["certification"]["successor_source_commit"] = evidence_commit
-            forged["certification"]["successor_source_tree"] = git(
-                "rev-parse", f"{evidence_commit}^{{tree}}"
+            late_authority = copy.deepcopy(certified)
+            late_authority["certification"]["successor_source_commit"] = (
+                unauthorized_source_commit
             )
-            with self.assertRaisesRegex(ValueError, "successor"):
-                validate_ledger(forged, repo=repo)
+            late_authority["certification"]["successor_source_tree"] = (
+                unauthorized_source_tree
+            )
+            with self.assertRaisesRegex(ValueError, "source.*authority"):
+                validate_ledger(late_authority, repo=repo)
 
     def test_verify_and_impact_commands_are_read_only_json(self) -> None:
         for command in ("verify", "impact"):

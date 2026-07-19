@@ -32,12 +32,14 @@ closed to the exact live gates; artifact-only changes require no model call.
 
 `results/current.json` is the only active ledger. Its `refresh_required` state cannot
 be promoted by offline checks. `certified` requires a Git-reachable successor whose
-package content and engine manifest match the snapshot, plus descendant
-content-addressed corpus, holdout, and opaque fresh-review JSON evidence. Corpus and
-holdout validators bind the exact source engine, cases, package/toolchain identities,
-adaptive policy, and cost gate; every evidence locator binds commit, Git blob, and
-SHA-256. Historical v1-v21 ledgers remain reachable in Git and have no active-tree
-reader, alias, migration, or compatibility path.
+package content, engine manifest, and already-persisted live authority match the
+snapshot and source pending impact, plus descendant content-addressed corpus,
+holdout, and opaque fresh-review JSON evidence. Corpus and holdout run receipts bind
+the impact token and authority digest; validators also bind the exact source engine,
+cases, package/toolchain identities, adaptive policy, and cost gate. Every evidence
+locator binds commit, Git blob, and SHA-256. Historical v1-v21 ledgers remain
+reachable in Git and have no active-tree reader, alias, migration, or compatibility
+path.
 
 ## Offline and live commands
 

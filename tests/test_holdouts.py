@@ -258,6 +258,8 @@ class HappyCodexHoldoutTests(unittest.TestCase):
                         model="test-model",
                         effort="high",
                         timeout=10,
+                        impact_token="a" * 64,
+                        live_authority_sha256="b" * 64,
                     )
             run_pair.assert_not_called()
             self.assertEqual(list(output.iterdir()), [])

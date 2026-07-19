@@ -427,6 +427,27 @@ engine inventory, and (4) certified `verify` drops repository context. This rema
 bounded offline control/receipt repair; package bytes and the already-pending live
 scope/cost do not change. A new immutable fresh review is required after closure.
 
+The bounded closure is now green. The successor source validator reads that exact
+commit's `current.json`, requires `refresh_required`, the same snapshot, null
+certification, and the exact final authority, validates the source ledger, and
+recomputes the authority impact from its pending scope. Live dispatch injects the
+canonical authority digest into the runner; corpus summary and the pre-model holdout
+run receipt both bind that digest and the approved impact token, and certification
+requires those exact bindings. Content-addressed evidence JSON is explicitly treated
+as non-executable output, while unknown JSON elsewhere still fails closed. Certified
+`verify` now preserves repository context when revalidating the ledger hash.
+
+All 27 focused tests and the full 111/111 suite pass. Both official validators, Ruff,
+format-check, verify/impact, both dry-runs, JSON/diff hygiene, and package preservation
+are green. Final offline identities for this closure are engine
+`0f01a09f4fe7c4b582b06e40c2276b78f298302a29c9b45325a04660d4309344`,
+snapshot `1b41997e8a7ba7545b0a102a74f9d1a2720ab37d727abd647674ac6a6db07390`,
+ledger `3d273593e30e0eb9c342bdb270dc49def3962eab4d13c4130f76a3327cc1ce2c`,
+and impact token
+`f655f4dccb37bd837a0d929e85e99da3e44af3e4c0f9eac2940af26ea508de2b`.
+The live authority remains null and the 18-to-20-call maximum cost is unchanged. A
+new exact fresh review remains mandatory before requesting cost approval.
+
 ## Validation envelope
 
 Candidate offline commands, exact live-run costs, required reruns, and review launch

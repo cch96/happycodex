@@ -203,7 +203,15 @@ def run_holdouts(
     model: str,
     effort: str,
     timeout: int,
+    impact_token: str,
+    live_authority_sha256: str,
 ) -> dict[str, Any]:
+    for field, value in (
+        ("impact_token", impact_token),
+        ("live_authority_sha256", live_authority_sha256),
+    ):
+        if not isinstance(value, str) or not re.fullmatch(r"[0-9a-f]{64}", value):
+            raise ValueError(f"invalid holdout {field}")
     manifest = load_manifest()
     candidate_manifest = package_manifest_sha256(candidate)
     public_manifest = package_manifest_sha256(public)
@@ -220,6 +228,8 @@ def run_holdouts(
     run_receipt = {
         "schema_version": 1,
         "engine_generation": "0.4",
+        "impact_token": impact_token,
+        "live_authority_sha256": live_authority_sha256,
         "manifest_sha256": manifest["manifest_sha256"],
         "identities": {
             "engine": engine_inventory(ROOT),
@@ -325,6 +335,8 @@ def run_command(args: Any) -> int:
             model=args.model,
             effort=args.effort,
             timeout=args.timeout,
+            impact_token=args.bind_impact,
+            live_authority_sha256=args.live_authority_sha256,
         )
     except (OSError, RuntimeError, ValueError) as exc:
         raise SystemExit(str(exc)) from exc

@@ -320,7 +320,14 @@ def engine_inventory(root: Path) -> dict[str, Any]:
         if "__pycache__" not in path.parts
     }
     ledger_outputs = {"evaluation/results/current.json"}
-    unknown_json = sorted(discovered_json - set(schema_paths) - ledger_outputs)
+    evidence_outputs = {
+        relative
+        for relative in discovered_json
+        if Path(relative).parts[:3] == ("evaluation", "results", "evidence")
+    }
+    unknown_json = sorted(
+        discovered_json - set(schema_paths) - ledger_outputs - evidence_outputs
+    )
     if unknown_json:
         raise IdentityError(f"unclassified engine input: {', '.join(unknown_json)}")
     classified.update(schema_paths)

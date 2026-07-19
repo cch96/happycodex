@@ -19,7 +19,12 @@ from evaluation.core.identity import (
     package_identities,
     sha256_bytes,
 )
-from evaluation.core.impact import impact_token, validate_impact, validate_snapshot
+from evaluation.core.impact import (
+    impact_token,
+    plan_impact,
+    validate_impact,
+    validate_snapshot,
+)
 from evaluation.corpus.contract import PUBLIC_02_PACKAGE_ARTIFACT_SHA256
 from evaluation.holdout.compare import (
     adaptive_next,
@@ -91,6 +96,8 @@ EVIDENCE_LOCATOR_FIELDS = {"commit", "path", "git_blob", "sha256"}
 CORPUS_SUMMARY_FIELDS = {
     "schema_version",
     "engine_generation",
+    "impact_token",
+    "live_authority_sha256",
     "arm",
     "model",
     "effort",
@@ -135,6 +142,8 @@ CASE_RECEIPT_FIELDS = {
 HOLDOUT_RUN_FIELDS = {
     "schema_version",
     "engine_generation",
+    "impact_token",
+    "live_authority_sha256",
     "manifest_sha256",
     "identities",
     "model",
@@ -340,7 +349,10 @@ def _require_reachable_commit(repo: Path, commit: str, *, label: str) -> None:
 
 
 def _validate_source_identity(
-    repo: Path, commit: str, snapshot: dict[str, Any]
+    repo: Path,
+    commit: str,
+    snapshot: dict[str, Any],
+    live_authority: dict[str, Any],
 ) -> dict[str, Any]:
     archive = _run_git(repo, "archive", "--format=tar", commit)
     if archive.returncode:
@@ -369,6 +381,30 @@ def _validate_source_identity(
             raise ValueError("certification successor package mismatch")
         if inventory["manifest_sha256"] != snapshot["engine"]["manifest_sha256"]:
             raise ValueError("certification successor engine mismatch")
+        source_ledger_path = root / "evaluation" / "results" / "current.json"
+        try:
+            source_ledger = json.loads(source_ledger_path.read_bytes())
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise ValueError("invalid certification source authority ledger") from exc
+        if (
+            not isinstance(source_ledger, dict)
+            or source_ledger.get("state") != "refresh_required"
+            or source_ledger.get("snapshot") != snapshot
+            or source_ledger.get("live_authority") != live_authority
+            or source_ledger.get("certification") is not None
+        ):
+            raise ValueError("certification source authority was not persisted")
+        try:
+            validate_ledger(source_ledger, repo=root)
+            source_impact = plan_impact(
+                snapshot,
+                snapshot,
+                pending=source_ledger["pending"],
+            )
+        except (OSError, ValueError) as exc:
+            raise ValueError("invalid certification source authority ledger") from exc
+        if live_authority["impact"] != source_impact:
+            raise ValueError("certification source authority impact mismatch")
         manifest_path = root / "evaluation" / "holdouts" / "manifest.json"
         try:
             manifest = json.loads(manifest_path.read_bytes())
@@ -567,7 +603,10 @@ def _validate_case_identity(
 
 
 def _validate_corpus_summary(
-    payload: dict[str, Any], snapshot: dict[str, Any], source: dict[str, Any]
+    payload: dict[str, Any],
+    snapshot: dict[str, Any],
+    source: dict[str, Any],
+    live_authority: dict[str, Any],
 ) -> None:
     settings = snapshot["settings"]
     cases = payload.get("cases")
@@ -575,6 +614,8 @@ def _validate_corpus_summary(
         set(payload) != CORPUS_SUMMARY_FIELDS
         or payload.get("schema_version") != 1
         or payload.get("engine_generation") != "0.4"
+        or payload.get("impact_token") != live_authority["impact_token"]
+        or payload.get("live_authority_sha256") != canonical_sha256(live_authority)
         or payload.get("arm") != "candidate"
         or payload.get("model") != settings["model"]
         or payload.get("effort") != settings["effort"]
@@ -628,6 +669,8 @@ def _validate_holdout_run(
         set(payload) != HOLDOUT_RUN_FIELDS
         or payload.get("schema_version") != 1
         or payload.get("engine_generation") != "0.4"
+        or payload.get("impact_token") != authority["impact_token"]
+        or payload.get("live_authority_sha256") != canonical_sha256(authority)
         or payload.get("manifest_sha256") != source["holdout_manifest_sha256"]
         or payload.get("model") != settings["model"]
         or payload.get("effort") != settings["effort"]
@@ -820,7 +863,12 @@ def _validate_certification_receipt(
         or certification.get("successor_source_tree") != tree.stdout.decode().strip()
     ):
         raise ValueError("certification successor source tree mismatch")
-    source = _validate_source_identity(repo, source_commit, snapshot)
+    source = _validate_source_identity(
+        repo,
+        source_commit,
+        snapshot,
+        live_authority,
+    )
     evidence = certification.get("evidence")
     if not isinstance(evidence, dict) or set(evidence) != EVIDENCE_FIELDS:
         raise ValueError("invalid certification evidence envelope")
@@ -833,7 +881,12 @@ def _validate_certification_receipt(
             label=label,
             source_commit=source_commit,
         )
-    _validate_corpus_summary(loaded["corpus_summary"], snapshot, source)
+    _validate_corpus_summary(
+        loaded["corpus_summary"],
+        snapshot,
+        source,
+        live_authority,
+    )
     pair_ids, public_package = _validate_holdout_run(
         loaded["holdout_run"], snapshot, live_authority, source
     )

@@ -4,7 +4,7 @@ import argparse
 from pathlib import Path
 from typing import Any
 
-from evaluation.core.identity import package_identities
+from evaluation.core.identity import canonical_sha256, package_identities
 from evaluation.core.impact import (
     build_snapshot,
     impact_token as snapshot_impact_token,
@@ -188,6 +188,7 @@ def run_command(args: argparse.Namespace, parser: argparse.ArgumentParser) -> in
             impact=impact,
             invocation=invocation,
         )
+        args.live_authority_sha256 = canonical_sha256(ledger["live_authority"])
     except (OSError, RuntimeError, ValueError) as exc:
         parser.error(str(exc))
     return runner(args)

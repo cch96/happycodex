@@ -20,7 +20,7 @@ def verify_command() -> int:
         "schema_version": 1,
         "status": "ok",
         "ledger_state": ledger["state"],
-        "ledger_sha256": ledger_sha256(ledger),
+        "ledger_sha256": ledger_sha256(ledger, repo=ROOT),
         "snapshot_sha256": canonical_sha256(current),
         "engine_manifest_sha256": inventory["manifest_sha256"],
         "pending_gates": impact["gates"],

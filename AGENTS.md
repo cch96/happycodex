@@ -20,8 +20,10 @@ not Skill runtime and must never be linked from `skills/happycodex/SKILL.md`.
   `refresh_required` to `certified` from offline checks, and do not add historical
   result readers, aliases, migrations, or dual writes. Certification additionally
   requires a Git-reachable successor source whose package content and engine manifest
-  match the snapshot, plus descendant content-addressed corpus, holdout, and review
-  evidence whose Git blobs and SHA-256 digests validate.
+  match the snapshot and whose `current.json` already persists the exact authority
+  and pending-derived impact, plus descendant content-addressed corpus, holdout, and
+  review evidence whose Git blobs, SHA-256 digests, impact token, and authority digest
+  validate.
 - Store raw model events outside the repository. Track only sanitized summaries,
   hashes, fixed fixtures, prompts, hidden oracles, and executable evaluation code.
 - Maintainer evaluation must prove native same-task compaction plus a distinct

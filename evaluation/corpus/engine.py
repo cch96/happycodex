@@ -1973,6 +1973,12 @@ def run_command(args: Any) -> int:
             json.dumps({"cases": selected, "coverage": sorted(REQUIRED_TAGS)}, indent=2)
         )
         return 0
+    if any(
+        not isinstance(getattr(args, field, None), str)
+        or not re.fullmatch(r"[0-9a-f]{64}", getattr(args, field))
+        for field in ("bind_impact", "live_authority_sha256")
+    ):
+        raise SystemExit("live certification binding is missing or invalid")
     plugin = args.plugin.resolve()
     try:
         output = resolve_output_path(args.output, plugin=plugin)
@@ -1994,6 +2000,8 @@ def run_command(args: Any) -> int:
     summary = {
         "schema_version": 1,
         "engine_generation": "0.4",
+        "impact_token": args.bind_impact,
+        "live_authority_sha256": args.live_authority_sha256,
         "arm": args.arm,
         "model": args.model,
         "effort": args.effort,

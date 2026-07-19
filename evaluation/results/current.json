@@ -96,13 +96,13 @@
     "engine": {
       "categories": {
         "artifact": "e1a7afcd992d08314039184c007b3ded8478eb52ebcb32c8fb149038c0cc8de9",
-        "harness": "15c2fe45a015949fac27a8ccb95159a0e7027d01cc916fd05325e2d5913b9ef1",
+        "harness": "87f66be781c6e5c2cdd6a8eae3d2cf3a68534f1e325824ab89c7d557d6f70ede",
         "semantic": "8f73619db63d7d64b934a9e70c627756bda8ea39978dbb7a9d42d37f65e29477"
       },
-      "manifest_sha256": "fbda676ee49a8f12d4d98b16ba4381954e77cb37a948eb5b63ec222b73dfc609",
+      "manifest_sha256": "0f01a09f4fe7c4b582b06e40c2276b78f298302a29c9b45325a04660d4309344",
       "scopes": {
-        "corpus_harness": "3b2bdde1eb7559c8791cc11d7894ec016ed8915fc9497e369684a6ead50c5c3d",
-        "holdout_harness": "ddba9d8f9ac9f4ba56bbcbacd1075924ceee8efd3b54927dc508ba46430a7a01",
+        "corpus_harness": "040d08d6234bad85b6794255169f9bf692af5a39262d1235df3a61117838c58c",
+        "holdout_harness": "9f1b8b5ebda9d5264814259487bd5313c712c50bd7b1b9bc9cbd86bbb4f63cdf",
         "holdout_semantic": "0da4c74d2f524d4511f39331b3754301638f5e23d0f097b38b61b94d102dae58"
       }
     },
