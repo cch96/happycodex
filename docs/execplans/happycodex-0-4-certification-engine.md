@@ -3,7 +3,7 @@
 Protocol: `HappyCodex/0.3`
 Invocation: `$happycodex:happycodex`
 Writer: Root only
-State: simplification review NOT-YET; bounded authority/offline-evidence repair frozen
+State: second RED frozen; bounded authority/offline-evidence implementation pending
 Resume: read this entire ExecPlan and reconcile Goal, Native Plan, Git, tests,
 receipts, worktrees, and agents before any write, review, or completion claim.
 
@@ -1524,6 +1524,19 @@ the Phase-2 review. They do not invalidate shipped bytes or change the already-p
 20-to-22 live-call/cost envelope; no prior 0.4 live evidence exists. No model/live
 action is authorized.
 
+## Remaining-seam RED
+
+RED commit `0546473e7356be6a4a0d6768ec14b0ee810507c3` adds tests only. Its exact five-test
+command reports four failures and one error in 1.902 seconds: the module seal is
+present and the capability fields are mutable; the corpus evaluator reaches fixture
+construction without a capability; the offline-summary validator is absent; the
+real-Git zero-live transition accepts empty evidence; and holdout `run_pair` reaches
+mapping creation without a capability. The corpus subprocess sentinel is ordered
+after the evaluator gate and will become independently reachable only after the first
+check is repaired. Ruff and diff hygiene pass. No product, Skill, manifest, oracle,
+model/live, network, Fable, installation, plugin, Goal/ref, push, or publication action
+changed or ran. The next write is the single frozen coherent repair.
+
 ## Validation envelope
 
 Candidate offline commands, exact live-run costs, required reruns, and review launch
@@ -1540,9 +1553,10 @@ publication requires a later explicit user request.
   Normalized Outcome plus all frozen preservation, exclusion, offline validation, and
   live-cost gates in this document.
 - RED/GREEN: original simplification RED `b239487` and candidate GREEN `24ace04` remain
-  durable comparison points; the new two-blocker RED and repaired GREEN are pending.
-- Next: add the exact authority-encapsulation and offline-evidence RED, then implement
-  the single bounded repair and rerun the immutable offline/review envelope.
+  durable comparison points; remaining-seam RED `0546473` is durable at five tests,
+  four failures, and one error, while its repaired GREEN is pending.
+- Next: implement the single bounded authority/offline-evidence repair, then rerun the
+  immutable offline and fresh-review envelope.
 - Product/support writes: evaluator/test/policy paths reopen only for this frozen
   repair; shipped-package paths remain closed.
 - Owned paths: `evaluation/`, `tests/`, `AGENTS.md`, and this ExecPlan; shipped-package
