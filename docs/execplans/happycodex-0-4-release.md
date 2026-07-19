@@ -3,8 +3,8 @@
 Protocol: `HappyCodex/0.3`
 Invocation: `$happycodex:happycodex`
 Writer: Root only
-State: minimum evaluator-case prompt clarification is offline GREEN; semantic source
-commit and new exact public-bound cost request are the next boundaries
+State: repaired source and exact public-bound cost request are frozen; canonical user
+approval is the sole next execution gate
 Resume: read this entire file, the completed 0.4 certification-engine and main-
 integration ExecPlans, then reconcile Goal, Git, tests, evidence, installations,
 remote refs, and agents before any write, review, live call, or completion claim.
@@ -281,6 +281,45 @@ source ledger; their pre-commit diff SHA-256 is
 Skill, plugin manifest, corpus runner/contract, holdout runner, fixture, and oracle
 bytes are unchanged. No model, holdout, review, install, push, or release action ran.
 
+## Repaired exact live-cost request
+
+The offline-GREEN repaired source is
+`1aa690f8a40eaaef8356b5fd6f5e5da310ffe290`. A fresh archive of frozen public commit
+`3b9c11fac1f97df75263e0bfc6421c575e04e8b2` reproduced public semantic/artifact
+`fb3cb419795a6edcb284695769b5487b1f23ae46286c5fceba8042fcb41f9ce4` /
+`77a0b2b8f7f6280d6ed32458fc61ca110f7138b5b6c17ad55d333a023dfa8c89`
+and was removed after read-only computation. Under frozen Codex CLI `0.144.4`, the
+new exact request binds:
+
+- engine manifest
+  `f1ce49ef0ea9e63cbb6bb74b2bd68e9d32cddd179a938a4dc656f2ddb57e6423`;
+- ledger `43ec0be99c9875bd303268aa6c0f3307d813218c16bc2a6cebd14229ee0c1a6b`;
+- snapshot `91f1235245486c000970cba7b7d1d394862ccf44e84c102fcb55e8da9a478b14`;
+- impact token `be79dcd733b5eab6708f84ffc0dfeea5c3e6999f26b9ca320a4a96c1e0762c5b`;
+- unchanged candidate semantic/artifact `c5030e99...c05` / `0c83dbc6...934`;
+- corpus invocation: all ordered 14 cases, candidate arm, `gpt-5.6-sol`, high,
+  300 seconds, 16 total model calls;
+- holdout invocation: all ordered three pairs, the pinned public identities above,
+  the same model/effort/timeout, and the adaptive four-to-six-call policy.
+
+The exact approval-request SHA-256 is
+`3a8c390a011356255e612fd1d522a6ec4b049167c69a5f2668d529d1c2f06f5e`.
+The canonical response including final LF has SHA-256
+`ba83ebe89da173a9766652666d07daaffb524377f34d7c20e5375932587ac35c`.
+The source ledger still has null authority. The only valid grant, with no surrounding
+prose, is:
+
+```text
+APPROVE HAPPYCODEX LIVE COST 3a8c390a011356255e612fd1d522a6ec4b049167c69a5f2668d529d1c2f06f5e
+```
+
+This authorizes one complete repaired corpus plus adaptive holdout attempt only. The
+new exposure is 20 to 22 calls, 585,209 to 637,027 estimated combined tokens, and
+2,911.874 to 3,187.085 estimated seconds. It is additional to the four receipted and
+one interrupted calls from the retired failed attempt. The earlier response for
+request `19e738...99d`, a paraphrase, the impact token, or Goal continuation grants
+nothing for this repaired request.
+
 ## Design saturation and frozen release sequence
 
 Fresh baseline-only challenger `/root/release_boundary_challenger_b` inspected only
@@ -365,7 +404,7 @@ review identity, public proof, rollback, and final GitHub delivery simultaneousl
 | ID | Type | Claim | Closure / falsifier | State |
 | --- | --- | --- | --- | --- |
 | R-01 | premise | Current remote `main`, local baseline, package, engine, snapshot, ledger, and public benchmark identities are independently reproduced before release work. | Fetch/readback plus offline identity commands; drift remains open. | verified |
-| R-02 | outcome | The exact current impact and historical-cost envelope are persisted, and no live helper runs without the canonical invocation-bound response. | Authority validation plus command audit; any early call falsifies. | reopened for repaired request |
+| R-02 | outcome | The exact current impact and historical-cost envelope are persisted, and no live helper runs without the canonical invocation-bound response. | Authority validation plus command audit; any early call falsifies. | repaired request frozen; approval pending |
 | R-03 | outcome | Exactly the authorized corpus and adaptive holdout scope completes and produces sanitized Git-reachable evidence that makes `current.json` validly `certified`. | CLI receipts, ledger validation, evidence ancestry, exact cost and scope reconciliation. | repair authorized; rerun not authorized |
 | R-04 | preservation | The repair changes only the explicitly authorized evaluator-case prompt and focused structural test; Skill, manifest behavior, fixture/oracle/matcher/schema, runner/evaluator code, and holdout semantics remain unchanged. | Exact source diff; any wider edit stops for user decision. | verified for repair |
 | R-05 | outcome | Release edits are limited to strict-semver 0.4 version/cachebuster and accurate change-note/install metadata. | Product diff inventory and official validators. | open |
@@ -388,20 +427,21 @@ review identity, public proof, rollback, and final GitHub delivery simultaneousl
    prompt/test plus source-ledger transition, and run offline validation. Then freeze
    the new exact request and stop for canonical approval. Do not execute either live
    certification transition, review, install, active update, or publication step yet.
+4. Stop until the user returns the exact repaired canonical line. The prior approval,
+   Goal wake/resume, a paraphrase, or any other digest is not authority.
 
 ## Checkpoint
 
-- Milestone: the minimum repair and source-ledger transition are offline GREEN. Commit
-  this semantic boundary, reconstruct public 0.2, freeze the exact public-bound request,
-  and stop.
-- Product writes: the authorized repair is complete. Further product/evaluator writes
-  are forbidden until a new finding or explicit amendment; no live execution is
-  permitted before the new canonical approval.
-- Owned paths until the semantic commit: the authorized case, focused test, source
-  ledger, and this ExecPlan. After it, only this ExecPlan may record the cost request.
-- Missing facts: the new public-bound request and canonical cost approval; then every
-  remaining live evidence/review/install/activation/rollback/publication receipt. The
-  old Native Goal remains blocked and is not amendment authority.
+- Milestone: the repaired source is offline GREEN and the exact public-bound request is
+  frozen. Canonical approval is the sole next execution gate.
+- Product writes: forbidden. No further product/evaluator/ledger edit or live action is
+  allowed before the exact grant is received and then persisted in a later source
+  commit.
+- Owned path: this ExecPlan only for the request-freeze revision; worktree must finish
+  clean.
+- Missing facts: the repaired canonical cost approval and every remaining live
+  evidence/review/install/activation/rollback/publication receipt. The old Native Goal
+  remains blocked and is not authority.
 
 ## Retrospective
 
