@@ -195,16 +195,15 @@ closure may not alter the integrated product tree. Push the closure and open a P
 
 ## Current checkpoint
 
-Contract discovery is saturated. Skill locator/version matched the required 0.3
-build; repository policy and the complete 3,629-line certified ExecPlan were read;
-candidate/base/merge-base/divergence values matched; all main-only commits and the
-candidate final tree were inventoried; baseline tests pass; the independent boundary
-receipt is terminal and reproduced. Next: commit this contract freeze, then perform
-only the two exact semantic tree integrations above.
+Contract freeze is revision `73cb98f`. The runtime/release slice is staged from the
+candidate object with 11 exact path effects: five modified blobs, `AGENTS.md` and the
+single `execplan.md` reference added, and five superseded references removed. A
+candidate-to-worktree diff over the entire slice is empty and staged diff hygiene is
+clean. No file was hand-rewritten. Next: commit this slice, then transplant the exact
+certified support tree as the second and final semantic integration revision.
 
 ## Pending gates
 
-- contract-freeze revision
 - semantic tree integration
 - exact tree/blob preservation proof
 - authorized offline validation

@@ -1,78 +1,76 @@
 # HappyCodex
 
-HappyCodex is a lightweight reliability workflow for long-running Codex
-implementation. It helps complex changes keep their acceptance criteria across
-exploration, implementation, compaction, and fresh review while Codex's native
-plan, agents, Goal, Git, tests, and review remain the execution engine. It adds
-instructions only: no hook, controller, daemon, or parallel writer.
-
-Its state model is deliberately small: the ExecPlan stores the durable completion
-contract, Native Plan stores the current execution cursor, and Git and tests store
-facts. Goal is optional and only enabled when the user explicitly requests it.
+HappyCodex is a lightweight reliability protocol for long-running and high-risk
+Codex implementation. It keeps the system boundary and acceptance contract durable
+without replacing Codex's native plan, agents, Goal, Git, tests, or review.
 
 ## When to use it
 
-Use HappyCodex for cross-cutting refactors, public-contract changes, migrations,
-persistence or concurrency work, and tasks likely to span compaction. Skip it for
-small localized edits where its evidence and review steps would cost more than the
-risk they remove.
+Use HappyCodex for cross-system changes, public contracts, migrations, persistence,
+concurrency, destructive or exhaustive claims, and work likely to span compaction.
+Clearly local low-risk edits should stay on the normal Native Plan/test/diff flow.
 
 ## Install
-
-Add the GitHub marketplace, then install the plugin:
 
 ```bash
 codex plugin marketplace add cch96/happycodex
 codex plugin add happycodex@happycodex
 ```
 
-Start a new Codex task after installation so the bundled skill is discovered.
+Start a new Codex task after installation so it discovers the installed Skill.
 
 ## Use
 
-Invoke it explicitly when you want the workflow:
-
 ```text
-Use $happycodex:happycodex for this cross-cutting refactor. Preserve every acceptance
-criterion and finish with fresh native review.
+Use $happycodex:happycodex for this high-risk cross-system change.
 ```
 
-Goal remains optional. If you request unattended or automatic continuation without
-selecting Goal, HappyCodex asks once; without approval, it continues with the native plan:
+For a qualifying task, HappyCodex separates three kinds of state:
 
-```text
-Use $happycodex:happycodex with Goal for this compaction-prone migration.
-```
+- one repo-resident ExecPlan stores the durable completion contract;
+- Native Plan stores only the current execution cursor;
+- Git, tests, logs, and runtime observations store facts.
+
+Root remains the only writer. Read-only challengers and reviewers provide independent
+counterexamples. For unattended continuation without Goal approval, HappyCodex asks once;
+it creates or changes Goal only when you explicitly request it. Declining keeps Native Plan
+active. Otherwise an existing Goal is only an objective pointer and cannot silently override
+a different ExecPlan Outcome.
 
 ### Optional Fable review
 
-Native review remains the default. Opt in explicitly when you want an independent
-second reviewer:
+Request an independent external review explicitly:
 
 ```text
 Use $happycodex:happycodex with Fable 5 max review when available.
 ```
 
-Fable defaults to `max`; a task or `AGENTS.md` may select another supported effort.
-Both reviewers inspect the same frozen candidate independently, preferably in
-parallel, and the Root reproduces their findings before editing.
+The external reviewer receives the same frozen synthetic product scope and neutral
+brief as native review, never the writer's preferred verdict. Fable 5 at `max` is the
+default absent an exact user or scoped-policy override. Root reproduces the union of
+findings without voting. A required unavailable reviewer stops completion; “when
+available” permits a disclosed skip.
 
 ## What it adds
 
-- one Root writer and an immutable task baseline;
-- an early committed ExecPlan with frozen obligations and acceptance evidence;
-- an independent boundary challenger for exhaustive system claims;
-- system-boundary coverage across entries, persisted routing, producers and
-  consumers, workers, deployment, recovery, migration, and legacy paths;
-- optional bounded read-only investigation with Root reproduction;
-- vertical RED/GREEN milestones and semantic commits;
-- compaction recovery from the ExecPlan, Native Plan, Git, and tests;
-- two-stage fresh review: independent discovery first, frozen-contract mapping
-  second, with at most one unanchored post-fix re-review;
-- behavioral micro tests and blinded paired holdouts for workflow releases.
+- an early durable contract for compaction-prone work;
+- Root-first system-boundary discovery plus one fresh challenger for strong claims;
+- typed claims that cannot be silently narrowed;
+- vertical RED/GREEN milestones and fact-based recovery;
+- exact product-tree review isolated from the ExecPlan and original history;
+- honest completion only after evidence, scope, review, and ownership close.
 
-It adds no Agent runtime, scheduler, daemon, hook, MCP server, custom persistence,
-or review implementation. Short localized work should remain in the Root.
+The plugin adds no hook, controller, scheduler, daemon, app, MCP server, custom
+persistence, or Task State JSON. Its runtime is one Skill, one ExecPlan reference,
+and UI metadata.
+
+## What's new in 0.3
+
+Version 0.3 is a clean-room replacement of the internal 0.2 workflow. It freezes a
+durable system-boundary contract before implementation, restores execution from
+repository facts after compaction, and isolates fresh review from the writer's plan
+and conclusions. Public installation and `$happycodex:happycodex` invocation remain
+unchanged.
 
 ## Development checks
 
@@ -81,7 +79,3 @@ python3 -m unittest discover -s tests -v
 python3 /path/to/skill-creator/scripts/quick_validate.py skills/happycodex
 python3 /path/to/plugin-creator/scripts/validate_plugin.py .
 ```
-
-The candidate protocol adds durable boundary freeze, fact-based recovery, neutral
-staged review, and a measured release gate. Public release metadata remains at 0.2
-until every evaluation gate passes.
