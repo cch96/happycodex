@@ -21,7 +21,12 @@ from evaluation.core.identity import (
     package_identities,
     sha256_bytes,
 )
-from evaluation.core.impact import CORPUS_MODEL_CALLS, build_snapshot, plan_impact
+from evaluation.core.impact import (
+    CORPUS_MODEL_CALLS,
+    build_snapshot,
+    historical_cost_receipt,
+    plan_impact,
+)
 from evaluation.core.ledger import load_ledger, validate_ledger
 from evaluation.core.receipt import sanitized_case_receipt
 from evaluation.corpus import engine as corpus_engine
@@ -88,7 +93,6 @@ def complete_live_authority(
         )
     token = live.impact_token(ledger, current, impact)
     snapshot_sha256 = canonical_sha256(current)
-    response = "批准\n"
     request = {
         "schema_version": 1,
         "snapshot_sha256": snapshot_sha256,
@@ -96,10 +100,12 @@ def complete_live_authority(
         "impact_token": token,
         "invocations": invocations,
     }
+    request_sha256 = canonical_sha256(request)
+    response = ledger_engine.affirmative_approval_response(request_sha256)
     return {
         "schema_version": 1,
         "source": "current-task/user/approve-exact-cost",
-        "approval_request_sha256": canonical_sha256(request),
+        "approval_request_sha256": request_sha256,
         "approval_response": response,
         "approval_response_sha256": sha256_bytes(response.encode()),
         "snapshot_sha256": snapshot_sha256,
@@ -698,7 +704,7 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                     "sha256": "0" * 64,
                 },
                 "pending": pending,
-                "historical_cost": {},
+                "historical_cost": historical_cost_receipt(),
                 "live_authority": None,
                 "certification": None,
             }
@@ -858,6 +864,8 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                 compaction_phase = {
                     "rollout_path": ".codex/sessions/native.jsonl",
                     "rollout_sha256": "7" * 64,
+                    "rollout_byte_count": 128,
+                    "rollout_prefix_sha256": None,
                     "compaction_event_count": 1,
                     "context_compacted_marker_count": 0,
                     "event_types": ["compacted"],
@@ -875,6 +883,8 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                         "after_resume": {
                             **copy.deepcopy(compaction_phase),
                             "rollout_sha256": "6" * 64,
+                            "rollout_byte_count": 256,
+                            "rollout_prefix_sha256": "7" * 64,
                         },
                         "fresh_control": {
                             "thread_id": "fresh-thread",
@@ -1054,6 +1064,16 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                 "rollout_path_sha256"
             ] = "e" * 64
 
+            rewritten_after_rollout = copy.deepcopy(corpus_summary)
+            rewritten_rollout = next(
+                item
+                for item in rewritten_after_rollout["cases"]
+                if item["id"] == "pre-freeze-compaction"
+            )
+            rewritten_rollout["native_compaction"]["after_resume"][
+                "rollout_prefix_sha256"
+            ] = "e" * 64
+
             missing_required_classifications = copy.deepcopy(corpus_summary)
             classification_case = next(
                 item
@@ -1105,6 +1125,11 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                     "unrelated-after-rollout",
                     unrelated_after_rollout,
                     "compaction|rollout",
+                ),
+                (
+                    "rewritten-after-rollout",
+                    rewritten_after_rollout,
+                    "compaction|rollout|append",
                 ),
                 (
                     "missing-required-classifications",
@@ -1302,9 +1327,7 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                     "covered_diff_unit_count": len(diff_units),
                     "query_manifest_sha256": canonical_sha256(queries),
                     "query_count": len(queries),
-                    "inspected_path_manifest_sha256": canonical_sha256(
-                        inspected_paths
-                    ),
+                    "inspected_path_manifest_sha256": canonical_sha256(inspected_paths),
                     "inspected_path_count": len(inspected_paths),
                     "unresolved_material_findings": [],
                     "limitations": [],
@@ -1462,16 +1485,55 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                 "holdout_summary", holdout_summary
             )
             reviewed_evidence = dict(sorted(evidence_sha.items()))
+            review_payload = review_receipt(
+                baseline_commit=unauthorized_source_commit,
+                reviewed_source_commit=source_commit,
+                reviewed_source_tree=source_tree,
+                reviewed_snapshot=snapshot,
+                reviewed_authority=authority,
+                reviewed_evidence=reviewed_evidence,
+            )
+            ledger_engine._validate_review_receipt(
+                review_payload,
+                repo=repo,
+                source_commit=source_commit,
+                source_tree=source_tree,
+                snapshot=snapshot,
+                prior_evidence=ledger["prior_evidence"],
+                live_authority=authority,
+                evidence_sha256s=reviewed_evidence,
+            )
+            review_false_greens = []
+            for field, value in (
+                ("verdict", "NOT-YET"),
+                ("reviewed_source_commit", unauthorized_source_commit),
+                ("evidence_sha256s", {}),
+                ("covered_obligation_count", 0),
+                ("diff_manifest_sha256", "f" * 64),
+                ("unresolved_material_findings", ["P1"]),
+            ):
+                changed = copy.deepcopy(review_payload)
+                changed[field] = value
+                review_false_greens.append((field, changed))
+            for label, false_green in review_false_greens:
+                with self.subTest(review_false_green=label):
+                    with self.assertRaisesRegex(
+                        ValueError,
+                        "fresh review|review source|review product|review diff",
+                    ):
+                        ledger_engine._validate_review_receipt(
+                            false_green,
+                            repo=repo,
+                            source_commit=source_commit,
+                            source_tree=source_tree,
+                            snapshot=snapshot,
+                            prior_evidence=ledger["prior_evidence"],
+                            live_authority=authority,
+                            evidence_sha256s=reviewed_evidence,
+                        )
             evidence_sha["review"] = write_evidence(
                 "review",
-                review_receipt(
-                    baseline_commit=unauthorized_source_commit,
-                    reviewed_source_commit=source_commit,
-                    reviewed_source_tree=source_tree,
-                    reviewed_snapshot=snapshot,
-                    reviewed_authority=authority,
-                    reviewed_evidence=reviewed_evidence,
-                ),
+                review_payload,
             )
             git("add", "evaluation/results/evidence")
             git("commit", "-qm", "evidence")
@@ -1604,7 +1666,7 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                     "sha256": sha256_bytes(prior_encoded),
                 },
                 "pending": next_pending,
-                "historical_cost": {},
+                "historical_cost": historical_cost_receipt(),
                 "live_authority": None,
                 "certification": None,
             }
@@ -1658,10 +1720,19 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
             }
             next_evidence_sha = {
                 "corpus_summary": write_evidence("corpus_summary", partial_summary),
-                "review": write_evidence(
-                    "review", {"reviewed_source_commit": next_source_commit}
-                ),
             }
+            next_reviewed_evidence = dict(sorted(next_evidence_sha.items()))
+            next_evidence_sha["review"] = write_evidence(
+                "review",
+                review_receipt(
+                    baseline_commit=prior_commit,
+                    reviewed_source_commit=next_source_commit,
+                    reviewed_source_tree=next_source_tree,
+                    reviewed_snapshot=next_snapshot,
+                    reviewed_authority=next_authority,
+                    reviewed_evidence=next_reviewed_evidence,
+                ),
+            )
             git("add", "evaluation/results/evidence")
             git("commit", "-qm", "incremental evidence")
             next_evidence_commit = git("rev-parse", "HEAD")

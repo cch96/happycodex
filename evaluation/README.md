@@ -34,16 +34,19 @@ closed to the exact live gates; artifact-only changes require no model call.
 be promoted by offline checks. `certified` requires a Git-reachable successor whose
 normalized Git package artifact, engine manifest, and already-persisted live
 authority match the snapshot and source pending impact, plus strictly later
-content-addressed corpus, holdout, and opaque fresh-review JSON evidence. The merged
-coverage manifest marks every current case and pair as refreshed or prior. Prior
-coverage requires a strictly older digest-bound 0.4 certified ledger; validators
-revalidate that chain and recompute its snapshot-to-successor impact, so pending scope
-cannot authorize reuse by itself. Corpus and holdout run receipts bind the impact
-token and authority digest; validators also bind the exact source engine, cases,
-package/toolchain identities, adaptive policy, and cost gate. Impact and execution
-share the same complete corpus/holdout schema validation. Historical v1-v21 ledgers
-remain reachable in Git and have no active-tree reader, alias, migration, or
-compatibility path.
+content-addressed corpus, holdout, and strict fresh-review JSON evidence. The review
+receipt binds a `GO` verdict, reviewer session/profile and read-only permissions,
+exact baseline/source/tree, snapshot/engine/authority, non-review evidence digests,
+complete obligation/diff/query/path coverage counts, limitations, and zero unresolved
+material findings. The merged coverage manifest marks every current case and pair as
+refreshed or prior. Prior coverage requires a strictly older digest-bound 0.4
+certified ledger; validators revalidate that chain and recompute its snapshot-to-
+successor impact, so pending scope cannot authorize reuse by itself. Corpus and
+holdout run receipts bind the impact token and authority digest; validators also bind
+the exact source engine, cases, package/toolchain identities, adaptive policy, and
+cost gate. Impact and execution share the same complete corpus/holdout schema
+validation. Historical v1-v21 ledgers remain reachable in Git and have no active-tree
+reader, alias, migration, or compatibility path.
 
 ## Offline and live commands
 
@@ -57,8 +60,11 @@ python3 -m evaluation.cli corpus --case receipt-mismatch --dry-run
 `impact` emits an `impact_token`, but that hash is not approval. After the user
 approves the exact printed maximum cost and invocations, a maintainer must persist a
 `live_authority` receipt in `current.json` with a current-task user source and exact
-package/settings/scope descriptors. Only then may the same fresh token be bound to a
-live corpus run whose output stays outside the repository:
+package/settings/scope descriptors. The verbatim approval response must be the
+canonical line `APPROVE HAPPYCODEX LIVE COST <approval-request-sha256>`; arbitrary
+nonempty prose, including a rejection, grants nothing. The ledger's historical-cost
+envelope must also exactly equal the source-derived receipt. Only then may the same
+fresh token be bound to a live corpus run whose output stays outside the repository:
 
 ```bash
 python3 -m evaluation.cli impact --public /path/to/public-checkout

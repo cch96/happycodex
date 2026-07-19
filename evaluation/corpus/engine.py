@@ -1220,10 +1220,17 @@ def invoke_codex(
     return completed, timed_out, time.monotonic() - started
 
 
-def compaction_receipt(home: Path, thread_id: str | None) -> dict[str, Any]:
+def compaction_receipt(
+    home: Path,
+    thread_id: str | None,
+    *,
+    prefix_length: int | None = None,
+) -> dict[str, Any]:
     receipt: dict[str, Any] = {
         "rollout_path": None,
         "rollout_sha256": None,
+        "rollout_byte_count": 0,
+        "rollout_prefix_sha256": None,
         "compaction_event_count": 0,
         "context_compacted_marker_count": 0,
         "event_types": [],
@@ -1236,6 +1243,13 @@ def compaction_receipt(home: Path, thread_id: str | None) -> dict[str, Any]:
         return receipt
     rollout = matches[0]
     content = rollout.read_bytes()
+    if prefix_length is not None and (
+        not isinstance(prefix_length, int)
+        or isinstance(prefix_length, bool)
+        or prefix_length < 0
+        or prefix_length > len(content)
+    ):
+        raise ValueError("invalid compaction rollout prefix length")
     event_types: list[str] = []
     for raw_line in content.splitlines():
         try:
@@ -1252,6 +1266,10 @@ def compaction_receipt(home: Path, thread_id: str | None) -> dict[str, Any]:
     return {
         "rollout_path": rollout.relative_to(home).as_posix(),
         "rollout_sha256": sha256_bytes(content),
+        "rollout_byte_count": len(content),
+        "rollout_prefix_sha256": (
+            sha256_bytes(content[:prefix_length]) if prefix_length is not None else None
+        ),
         "compaction_event_count": event_types.count("compacted"),
         "context_compacted_marker_count": event_types.count("context_compacted"),
         "event_types": event_types,
@@ -1744,7 +1762,18 @@ def evaluate_case(
                 else:
                     failures.append(f"codex resume exit {resumed.returncode}")
                 native_receipt["resumed_same_thread"] = resume_thread_id == thread_id
-                native_receipt["after_resume"] = compaction_receipt(home, thread_id)
+                native_receipt["after_resume"] = compaction_receipt(
+                    home,
+                    thread_id,
+                    prefix_length=before_resume["rollout_byte_count"],
+                )
+                if (
+                    native_receipt["after_resume"]["rollout_byte_count"]
+                    <= before_resume["rollout_byte_count"]
+                    or native_receipt["after_resume"]["rollout_prefix_sha256"]
+                    != before_resume["rollout_sha256"]
+                ):
+                    failures.append("native rollout was not append-consistent")
                 if not native_receipt["resumed_same_thread"]:
                     failures.append("resume did not report the same native thread")
 

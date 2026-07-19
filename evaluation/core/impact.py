@@ -91,6 +91,62 @@ HOLDOUT_COST = {
     "local-documentation-control": (29091, 93.427),
     "destructive-migration-fallback": (51818, 275.211),
 }
+HISTORICAL_COST_BASIS = (
+    "HappyCodex 0.3 v21 candidate corpus and v23 adaptive holdout receipts"
+)
+MANDATORY_HOLDOUT_PAIRS = (
+    "authority-production-boundary",
+    "local-documentation-control",
+)
+
+
+def historical_cost_receipt() -> dict[str, Any]:
+    corpus_tokens = sum(tokens for tokens, _wall in CORPUS_COST.values())
+    corpus_wall = round(sum(wall for _tokens, wall in CORPUS_COST.values()), 3)
+    corpus_calls = corpus_model_calls(set(CORPUS_COST))
+    minimum_holdout_tokens = sum(
+        HOLDOUT_COST[pair_id][0] for pair_id in MANDATORY_HOLDOUT_PAIRS
+    )
+    maximum_holdout_tokens = sum(tokens for tokens, _wall in HOLDOUT_COST.values())
+    minimum_holdout_wall = round(
+        sum(HOLDOUT_COST[pair_id][1] for pair_id in MANDATORY_HOLDOUT_PAIRS), 3
+    )
+    maximum_holdout_wall = round(
+        sum(wall for _tokens, wall in HOLDOUT_COST.values()), 3
+    )
+    return {
+        "basis": HISTORICAL_COST_BASIS,
+        "corpus": {
+            "combined_tokens": corpus_tokens,
+            "live_calls": corpus_calls,
+            "wall_seconds": corpus_wall,
+        },
+        "holdout": {
+            "combined_tokens": {
+                "minimum": minimum_holdout_tokens,
+                "maximum": maximum_holdout_tokens,
+            },
+            "live_calls": {"minimum": 4, "maximum": 6},
+            "wall_seconds": {
+                "minimum": minimum_holdout_wall,
+                "maximum": maximum_holdout_wall,
+            },
+        },
+        "total": {
+            "combined_tokens": {
+                "minimum": corpus_tokens + minimum_holdout_tokens,
+                "maximum": corpus_tokens + maximum_holdout_tokens,
+            },
+            "live_calls": {
+                "minimum": corpus_calls + 4,
+                "maximum": corpus_calls + 6,
+            },
+            "wall_seconds": {
+                "minimum": round(corpus_wall + minimum_holdout_wall, 3),
+                "maximum": round(corpus_wall + maximum_holdout_wall, 3),
+            },
+        },
+    }
 
 
 def _read_json(path: Path) -> dict[str, Any]:

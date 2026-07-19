@@ -161,6 +161,8 @@ def sanitized_compaction_phase(value: Any) -> dict[str, Any] | None:
         "phase_sha256": canonical_sha256(value),
         "rollout_path_sha256": text_sha256(value.get("rollout_path", "")),
         "rollout_sha256": value.get("rollout_sha256"),
+        "rollout_byte_count": value.get("rollout_byte_count"),
+        "rollout_prefix_sha256": value.get("rollout_prefix_sha256"),
         "compaction_event_count": value.get("compaction_event_count"),
         "context_compacted_marker_count": value.get("context_compacted_marker_count"),
         "event_types": value.get("event_types", []),

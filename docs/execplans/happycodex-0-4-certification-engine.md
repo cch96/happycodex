@@ -3,7 +3,7 @@
 Protocol: `HappyCodex/0.3`
 Invocation: `$happycodex:happycodex`
 Writer: Root only
-State: ninth fresh review NOT-YET; bounded terminal-evidence repair pending
+State: offline-green; tenth fresh exact review pending
 Resume: read this entire ExecPlan and reconcile Goal, Native Plan, Git, tests,
 receipts, worktrees, and agents before any write, review, or completion claim.
 
@@ -80,15 +80,15 @@ explicit user cost decision before launch.
 | ID | Type | Claim | Closure / falsifier | State |
 | --- | --- | --- | --- | --- |
 | O-01 | outcome | A modular pure-standard-library certification engine replaces the monolithic internal evaluator without legacy internal compatibility. | Module/CLI inventory plus tests; legacy reader or dual-write path falsifies. | verified offline |
-| O-02 | outcome | Canonical receipts separate semantic input, harness implementation, and derived artifact identities. | Deterministic hash tests and mutation counterexamples. | terminal append/review receipt repair pending |
-| O-03 | outcome | A read-only impact command reports exact invalidated gates, reasons, and live-run count/cost before execution. | Table-driven dependency tests; an unclassified material input change falsifies. | exact 20-to-22 calculation verified; persisted cost/approval strictness repair pending |
+| O-02 | outcome | Canonical receipts separate semantic input, harness implementation, and derived artifact identities. | Deterministic hash tests and mutation counterexamples. | verified offline |
+| O-03 | outcome | A read-only impact command reports exact invalidated gates, reasons, and live-run count/cost before execution. | Table-driven dependency tests; an unclassified material input change falsifies. | verified offline at 20-to-22 calls; live execution unapproved |
 | O-04 | outcome | Historical behavior v1-v20 files and version-specific compatibility tests leave the active tree while remaining reachable in Git history. | Final path inventory and ancestry proof. | verified |
 | O-05 | preservation | Installed Skill behavior, plugin identity, public install commands, and `$happycodex:happycodex` invocation remain stable except the intentional 0.4 version/change note. | Exact runtime diff and contract tests. | verified; no version edit in phase one |
 | O-06 | outcome | Maintainer policy describes current public 0.3 baseline, the 0.4 gate model, and this task's explicit Fable exclusion correctly. | Policy review and tests. | verified |
-| O-07 | outcome | Offline suite, official Skill/plugin validators, dry-runs, diff hygiene, and final fresh native review close with no unresolved blocker. | Exact command receipts and review coverage. | offline matrix green on e158870; ninth review NOT-YET |
+| O-07 | outcome | Offline suite, official Skill/plugin validators, dry-runs, diff hygiene, and final fresh native review close with no unresolved blocker. | Exact command receipts and review coverage. | offline matrix green; tenth fresh review pending |
 | O-08 | preservation | No Fable invocation, controller, hook, daemon, scheduler, MCP/app runtime, or authoritative Task State JSON is added or run. | Tree/command inventory. | verified |
 | O-09 | outcome | Every transitive evaluator module/schema is classified into and bound by a canonical semantic, harness, or artifact manifest. | Module inventory and mutation tests; any executable unclassified file falsifies. | verified offline |
-| O-10 | outcome | The evidence ledger has one new-schema `current.json`, explicitly records `refresh_required`, and cannot claim certification without a live successor receipt. | State-machine tests and final ledger inspection. | current refresh state verified; terminal evidence strictness repair pending |
+| O-10 | outcome | The evidence ledger has one new-schema `current.json`, explicitly records `refresh_required`, and cannot claim certification without a live successor receipt. | State-machine tests and final ledger inspection. | verified offline; approved live successor still pending |
 | O-11 | preservation | Phase-one changes do not alter `.agents`, `.codex-plugin`, `README.md`, or `skills`; therefore the full shipped-package manifest remains `0c83dbc694cb98bf811dd2d1c199b5d2aa734c484476a638884e775289c1d934`. | Exact package-manifest check and Git diff. | verified |
 | B-01 | allowed-break | Internal evaluator imports, CLI syntax, receipt/result schema, and historical result paths have no backward-compatibility obligation. | Any compatibility shim must be removed or separately authorized. | exercised |
 | B-02 | allowed-break | Internal raw filenames, output-directory layout, write-once ordering, stdout payloads, and exit codes may change to the new CLI contract. | New CLI integration tests are authoritative; preserving an old path is not a requirement. | exercised |
@@ -1068,6 +1068,56 @@ one-field replacement, which isolates the missing schema rather than making the
 positive path unreachable. No production, Skill, manifest, case, oracle, model,
 network, Fable, install, or external action changed or ran.
 
+## Ninth terminal-evidence repair green
+
+Live authority now accepts exactly one affirmative response derived from the already-
+validated approval-request digest:
+`APPROVE HAPPYCODEX LIVE COST <approval-request-sha256>`. The request binds snapshot,
+impact including exact cost, token, and every invocation; any rejection, paraphrase,
+stale digest, or extra text fails. The historical-cost receipt is mechanically rebuilt
+from the 14 per-case costs/call counts and adaptive two-to-three-pair policy, then
+compared to the ledger as an exact object rather than a type.
+
+The native producer now records rollout byte count on both phases and, after resume,
+the SHA-256 of the prefix whose length equals the complete pre-resume rollout. The
+sanitizer retains only count and digest; terminal validation requires a null prefix
+on the before phase, after-prefix equality to the before whole-file digest, a strictly
+larger after byte count, the same privacy-safe path identity, changed whole-file hash,
+and the existing event append prefix. The runner also records a local failure if its
+own receipt is not append-consistent. No rollout bytes or path prose enter evidence.
+
+Fresh-review JSON now has one strict versioned terminal envelope rather than an
+opaque object. It requires `GO`, reviewer task/session, configured/effective profile,
+read-only/no-network permissions, exact prior baseline and successor source/tree,
+snapshot/engine/authority, exact non-review evidence digests, positive and fully
+covered obligation/diff inventories, query/path inventories, limitations, and zero
+unresolved material findings. The validator independently recomputes the Git diff and
+inspected-path manifests. A later content-addressed one-field review, `NOT-YET`, wrong
+source/evidence/diff, incomplete coverage, or retained blocker is rejected.
+
+All original REDs and the added relationship counterexamples are green. The focused
+certification module passes 31/31 in 5.219 seconds and the cumulative suite passes
+116/116 in 6.475 seconds. Both official validators, Ruff check and 19-file format-
+check, verify/impact, both dry-runs, all 21 JSON documents, diff hygiene, exact
+snapshot equality, shipped-package preservation, and isolated public reconstruction
+pass. Current identities are engine
+`3df4d26aa9df66a5ea9b472bddc7923c1d3f24a430adbd3c69fa744731bbaec8`,
+snapshot `d36e582e7a4f9351e893d8b9591076912940343ccf353e6e6e20abb0e662227e`,
+ledger `9e7de1b85ab7b542504ff3948053347c96a2a758dcebd12d81cfb9615eaa2bf9`,
+and impact token
+`68f00b5c573a58209f99bdc82b1d0d9784f3b40b23a654014a096b20380b9760`.
+
+The shipped package remains
+`0c83dbc694cb98bf811dd2d1c199b5d2aa734c484476a638884e775289c1d934`.
+Frozen public commit `3b9c11fac1f97df75263e0bfc6421c575e04e8b2` again reproduces
+semantic `fb3cb419795a6edcb284695769b5487b1f23ae46286c5fceba8042fcb41f9ce4`
+and artifact
+`77a0b2b8f7f6280d6ed32458fc61ca110f7138b5b6c17ad55d333a023dfa8c89`;
+public-bound impact is authority-ready at 20 to 22 calls. Live authority remains null,
+cost remains 585,209 to 637,027 tokens and 2,911.874 to 3,187.085 seconds, and no
+model, live evaluation, network, Fable, install, publication, or external mutation
+ran. A tenth exact fresh review remains mandatory.
+
 ## Validation envelope
 
 Candidate offline commands, exact live-run costs, required reruns, and review launch
@@ -1077,18 +1127,16 @@ publication requires a later explicit user request.
 
 ## Checkpoint
 
-- Milestone: the ninth fresh review returned NOT-YET; four bounded terminal-evidence
-  false greens are reproduced and await RED/GREEN repair.
+- Milestone: every ninth-review terminal-evidence finding is repaired and the exact
+  offline envelope is green; the tenth fresh exact review remains open.
 - Goal: active `019f780e-925e-7193-8bd2-0a04d6efe31e`; its objective is the
   Normalized Outcome plus all frozen preservation, exclusion, offline validation, and
   live-cost gates in this document.
-- RED/GREEN: all prior rounds are persisted above; the ninth repair is RED with two
-  failures, two errors, and one independent reachable-review false green. GREEN is
-  pending.
-- Next: add the four exact REDs, apply the smallest terminal-evidence repair, rerun
-  the offline envelope, and launch a tenth fresh exact review. A green review stops
-  at the explicit corrected 20-to-22 call maximum-cost user decision before
-  authority or live calls.
+- RED/GREEN: all prior rounds and the ninth two-failure/two-error plus reachable-
+  review RED are persisted; 31/31 focused and 116/116 cumulative GREEN are current.
+- Next: freeze the repair commit, reproduce it in a clean detached clone, and launch
+  a tenth fresh exact review. A green review stops at the explicit corrected 20-to-22
+  call maximum-cost user decision before authority or live calls.
 - Product/support writes: support-only paths remain open; shipped-package paths remain
   closed.
 - Owned paths: `evaluation/`, `tests/`, `AGENTS.md`, and this ExecPlan; shipped-package
