@@ -344,6 +344,12 @@ extend Python runtime identity. The current full pending live scope already cove
 these harness changes, so the historical maximum remains unchanged. A third fresh
 review is required after the bounded repair.
 
+Focused `NR-05/06` RED is now durable: 23 tests ran with three failures and five
+errors. It reproduced artifact-only zero-call plans for real `cli.py` and
+`core/impact.py` mutations, missing `core/ledger.py`, absent Python stdlib/shared-lib
+identities, acceptance of the old incomplete authority envelope, and no repository
+argument for reachable certification evidence. No model or external mutation ran.
+
 ## Validation envelope
 
 Candidate offline commands, exact live-run costs, required reruns, and review launch

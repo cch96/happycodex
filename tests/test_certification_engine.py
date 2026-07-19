@@ -17,6 +17,7 @@ from evaluation.core.identity import (
     canonical_sha256,
     engine_inventory,
     package_identities,
+    sha256_bytes,
 )
 from evaluation.core.impact import build_snapshot, plan_impact
 from evaluation.core.receipt import load_ledger, validate_ledger
@@ -30,6 +31,7 @@ EXPECTED_MODULES = {
     "evaluation/core/__init__.py",
     "evaluation/core/identity.py",
     "evaluation/core/impact.py",
+    "evaluation/core/ledger.py",
     "evaluation/core/receipt.py",
     "evaluation/corpus/__init__.py",
     "evaluation/corpus/contract.py",
@@ -39,6 +41,64 @@ EXPECTED_MODULES = {
     "evaluation/holdout/compare.py",
     "evaluation/holdout/engine.py",
 }
+
+
+def complete_live_authority(
+    ledger: dict[str, object],
+    current: dict[str, object],
+    impact: dict[str, object],
+) -> dict[str, object]:
+    settings = current["settings"]
+    package = current["package"]
+    invocations: list[dict[str, object]] = []
+    if impact["corpus_cases"]:
+        invocations.append(
+            {
+                "command": "corpus",
+                "package_semantic_sha256": package["semantic_sha256"],
+                "package_artifact_sha256": package["artifact_sha256"],
+                "model": settings["model"],
+                "effort": settings["effort"],
+                "timeout_seconds": settings["timeout_seconds"],
+                "arm": "candidate",
+                "cases": impact["corpus_cases"],
+            }
+        )
+    if impact["holdout_pairs"]:
+        invocations.append(
+            {
+                "command": "holdout",
+                "candidate_semantic_sha256": package["semantic_sha256"],
+                "candidate_artifact_sha256": package["artifact_sha256"],
+                "public_semantic_sha256": "fb3cb419795a6edcb284695769b5487b1f23ae46286c5fceba8042fcb41f9ce4",
+                "public_artifact_sha256": "77a0b2b8f7f6280d6ed32458fc61ca110f7138b5b6c17ad55d333a023dfa8c89",
+                "model": settings["model"],
+                "effort": settings["effort"],
+                "timeout_seconds": settings["timeout_seconds"],
+                "pairs": impact["holdout_pairs"],
+            }
+        )
+    token = live.impact_token(ledger, current, impact)
+    snapshot_sha256 = canonical_sha256(current)
+    response = "批准\n"
+    request = {
+        "schema_version": 1,
+        "snapshot_sha256": snapshot_sha256,
+        "impact": impact,
+        "impact_token": token,
+        "invocations": invocations,
+    }
+    return {
+        "schema_version": 1,
+        "source": "current-task/user/approve-exact-cost",
+        "approval_request_sha256": canonical_sha256(request),
+        "approval_response": response,
+        "approval_response_sha256": sha256_bytes(response.encode()),
+        "snapshot_sha256": snapshot_sha256,
+        "impact": impact,
+        "impact_token": token,
+        "invocations": invocations,
+    }
 
 
 class CertificationIdentityTests(unittest.TestCase):
@@ -59,8 +119,11 @@ class CertificationIdentityTests(unittest.TestCase):
         )
         self.assertTrue(all(first["categories"][name] for name in first["categories"]))
         categories = {item["path"]: item["category"] for item in first["entries"]}
-        self.assertEqual(categories["evaluation/cli.py"], "artifact")
+        self.assertEqual(categories["evaluation/cli.py"], "harness")
         self.assertEqual(categories["evaluation/live.py"], "harness")
+        self.assertEqual(categories["evaluation/core/impact.py"], "harness")
+        self.assertEqual(categories["evaluation/core/ledger.py"], "harness")
+        self.assertEqual(categories["evaluation/core/receipt.py"], "artifact")
         self.assertEqual(categories["evaluation/holdout/compare.py"], "semantic")
 
     def test_sanitizers_live_only_in_the_artifact_module(self) -> None:
@@ -151,6 +214,10 @@ class CertificationImpactTests(unittest.TestCase):
         self.assertEqual(
             set(snapshot["settings"]["toolchain"]), {"python", "codex", "git", "rg"}
         )
+        python = snapshot["settings"]["toolchain"]["python"]
+        self.assertRegex(python["stdlib_sha256"], r"^[0-9a-f]{64}$")
+        self.assertGreater(python["stdlib_file_count"], 0)
+        self.assertRegex(python["shared_libraries_sha256"], r"^[0-9a-f]{64}$")
         self.assertEqual(
             snapshot["engine"]["manifest_sha256"],
             engine_inventory(ROOT)["manifest_sha256"],
@@ -228,6 +295,35 @@ class CertificationImpactTests(unittest.TestCase):
         self.assertEqual(impact["gates"], ["receipt"])
         self.assertEqual(impact["live_calls"], {"minimum": 0, "maximum": 0})
 
+    def test_real_control_mutations_fail_closed_but_sanitizer_is_artifact(self) -> None:
+        for relative, expected_calls in (
+            ("evaluation/cli.py", {"minimum": 18, "maximum": 20}),
+            ("evaluation/core/impact.py", {"minimum": 18, "maximum": 20}),
+            ("evaluation/core/ledger.py", {"minimum": 18, "maximum": 20}),
+            ("evaluation/core/receipt.py", {"minimum": 0, "maximum": 0}),
+        ):
+            with self.subTest(relative=relative), tempfile.TemporaryDirectory() as raw:
+                clone = Path(raw) / "repo"
+                shutil.copytree(ROOT / "evaluation", clone / "evaluation")
+                for package_path in (".agents", ".codex-plugin", "README.md", "skills"):
+                    source = ROOT / package_path
+                    target = clone / package_path
+                    if source.is_dir():
+                        shutil.copytree(source, target)
+                    else:
+                        shutil.copy2(source, target)
+                baseline = build_snapshot(clone)
+                path = clone / relative
+                path.write_text(
+                    path.read_text(encoding="utf-8") + "\n", encoding="utf-8"
+                )
+                impact = plan_impact(baseline, build_snapshot(clone))
+                self.assertEqual(impact["live_calls"], expected_calls)
+                if relative.endswith("receipt.py"):
+                    self.assertEqual(impact["gates"], ["receipt"])
+                else:
+                    self.assertEqual(impact["gates"][:2], ["corpus", "holdout"])
+
         changed = copy.deepcopy(self.snapshot)
         changed["package"]["artifact_sha256"] = "c" * 64
         impact = plan_impact(self.snapshot, changed)
@@ -273,27 +369,12 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
             validate_ledger(invalid)
 
     def test_user_authority_is_exact_and_invocation_bound(self) -> None:
-        invocation = {
-            "command": "corpus",
-            "package_semantic_sha256": "1" * 64,
-            "package_artifact_sha256": "2" * 64,
-            "model": "gpt-5.6-sol",
-            "effort": "high",
-            "timeout_seconds": 300,
-            "arm": "candidate",
-            "cases": ["receipt-mismatch"],
-        }
-        impact_sha256 = "3" * 64
-        authority = {
-            "schema_version": 1,
-            "source": "current-task/user/approve-exact-cost",
-            "source_sha256": "4" * 64,
-            "impact_sha256": impact_sha256,
-            "invocations": [invocation],
-        }
-        receipt_engine.validate_live_authority(authority)
+        ledger, current, impact = live.load_state()
+        authority = complete_live_authority(ledger, current, impact)
+        invocation = authority["invocations"][0]
+        receipt_engine.validate_live_authority(authority, snapshot=current)
         receipt_engine.require_authorized_invocation(
-            authority, impact_sha256=impact_sha256, invocation=invocation
+            authority, snapshot=current, impact=impact, invocation=invocation
         )
         for field, value in (
             ("model", "unapproved-model"),
@@ -307,61 +388,34 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "invocation is not authorized"):
                     receipt_engine.require_authorized_invocation(
                         authority,
-                        impact_sha256=impact_sha256,
+                        snapshot=current,
+                        impact=impact,
                         invocation=changed,
                     )
+
+        incomplete = copy.deepcopy(authority)
+        incomplete["invocations"] = incomplete["invocations"][:1]
+        with self.assertRaisesRegex(ValueError, "complete impact scope"):
+            receipt_engine.validate_live_authority(incomplete, snapshot=current)
+
+        fabricated = copy.deepcopy(authority)
+        fabricated["approval_response"] = "not the approved response"
+        with self.assertRaisesRegex(ValueError, "approval response"):
+            receipt_engine.validate_live_authority(fabricated, snapshot=current)
 
     def test_persisting_authority_does_not_create_a_token_cycle(self) -> None:
         ledger, current, impact = live.load_state()
         token = live.impact_token(ledger, current, impact)
         authorized = copy.deepcopy(ledger)
-        authorized["live_authority"] = {
-            "schema_version": 1,
-            "source": "current-task/user/approve-exact-cost",
-            "source_sha256": "4" * 64,
-            "impact_sha256": token,
-            "invocations": [
-                {
-                    "command": "corpus",
-                    "package_semantic_sha256": current["package"]["semantic_sha256"],
-                    "package_artifact_sha256": current["package"]["artifact_sha256"],
-                    "model": current["settings"]["model"],
-                    "effort": current["settings"]["effort"],
-                    "timeout_seconds": current["settings"]["timeout_seconds"],
-                    "arm": "candidate",
-                    "cases": impact["corpus_cases"],
-                }
-            ],
-        }
+        authorized["live_authority"] = complete_live_authority(ledger, current, impact)
         validate_ledger(authorized)
         self.assertEqual(live.impact_token(authorized, current, impact), token)
 
     def test_certified_state_requires_a_digest_bound_successor_receipt(self) -> None:
         ledger = load_ledger(ROOT / "evaluation" / "results" / "current.json")
-        authority = {
-            "schema_version": 1,
-            "source": "current-task/user/approve-exact-cost",
-            "source_sha256": "4" * 64,
-            "impact_sha256": "5" * 64,
-            "invocations": [
-                {
-                    "command": "corpus",
-                    "package_semantic_sha256": ledger["snapshot"]["package"][
-                        "semantic_sha256"
-                    ],
-                    "package_artifact_sha256": ledger["snapshot"]["package"][
-                        "artifact_sha256"
-                    ],
-                    "model": ledger["snapshot"]["settings"]["model"],
-                    "effort": ledger["snapshot"]["settings"]["effort"],
-                    "timeout_seconds": ledger["snapshot"]["settings"][
-                        "timeout_seconds"
-                    ],
-                    "arm": "candidate",
-                    "cases": ledger["pending"]["corpus_cases"],
-                }
-            ],
-        }
+        current = build_snapshot(ROOT)
+        impact = plan_impact(ledger["snapshot"], current, pending=ledger["pending"])
+        authority = complete_live_authority(ledger, current, impact)
         certified = copy.deepcopy(ledger)
         certified["state"] = "certified"
         certified["pending"] = {
@@ -379,17 +433,24 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
             "engine_manifest_sha256": certified["snapshot"]["engine"][
                 "manifest_sha256"
             ],
-            "corpus_receipt_sha256": "8" * 64,
-            "holdout_receipt_sha256": "9" * 64,
-            "review_receipt_sha256": "a" * 64,
+            "evidence": {
+                name: {
+                    "commit": "8" * 40,
+                    "path": f"evaluation/results/evidence/{name}.json",
+                    "git_blob": "9" * 40,
+                    "sha256": "a" * 64,
+                }
+                for name in (
+                    "corpus_summary",
+                    "holdout_run",
+                    "holdout_summary",
+                    "review",
+                )
+            },
             "live_authority_sha256": canonical_sha256(authority),
         }
-        validate_ledger(certified)
-
-        invalid = copy.deepcopy(certified)
-        invalid["certification"]["engine_manifest_sha256"] = "b" * 64
-        with self.assertRaisesRegex(ValueError, "engine manifest mismatch"):
-            validate_ledger(invalid)
+        with self.assertRaisesRegex(ValueError, "reachable certification evidence"):
+            validate_ledger(certified, repo=ROOT)
 
     def test_verify_and_impact_commands_are_read_only_json(self) -> None:
         for command in ("verify", "impact"):
