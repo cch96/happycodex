@@ -790,6 +790,26 @@ authority-ready. Live authority remains null, and exact cost remains 18-to-20 ca
 was removed. No Skill, manifest, case oracle, runner, evaluator, model, network,
 Fable, install, publication, or external mutation ran.
 
+## Eighth fresh review launch
+
+The frozen product repair is
+`e11dcdac42d2d36a26d0afcad5a946db70353dc7` over baseline
+`2836d7363db364807a2ec384dc1b6c2cc13df95e`. A clean detached local clone reproduced
+30/30 focused tests in 4.744 seconds and 114/114 cumulative tests in 6.131 seconds,
+both official validators, Ruff check/format-check, verify/impact, both dry-runs, 21
+JSON documents, exact package/public identities, baseline-range diff hygiene, and a
+clean final status. The temporary clone and public archive were removed.
+
+This administrative launch record does not change the product tree. A new
+`fork_turns=none` read-only reviewer will receive the immutable baseline and repair,
+the frozen Outcome/exclusions, and a neutral request to audit the complete diff and
+all prior blocker classes, reproduce the seven nested-receipt probes, trace real
+sanitizer/runner reachability, and hunt any new completion blocker. Its durable
+terminal output destination is agent task `/root/cert_engine_nested_final_review`.
+The reviewer may use only local detached clones and offline validators; repository
+writes, model/live corpus/live holdout calls, network, Fable, Goal actions, install,
+plugin/marketplace mutation, Git ref changes, push, and publication are forbidden.
+
 ## Validation envelope
 
 Candidate offline commands, exact live-run costs, required reruns, and review launch
@@ -807,9 +827,9 @@ publication requires a later explicit user request.
   live-cost gates in this document.
 - RED/GREEN: all architecture, seven review rounds, seven nested false-green probes,
   and the exact offline repair envelope are persisted above.
-- Next: freeze the repair commit, reproduce it in a clean detached clone, then launch
-  an eighth fresh exact review. A green review still stops at the explicit maximum-
-  cost user decision before authority or live calls.
+- Next: collect and independently reproduce the eighth fresh exact review. A green
+  review still stops at the explicit maximum-cost user decision before authority or
+  live calls.
 - Product/support writes: support-only paths remain open; shipped-package paths remain
   closed.
 - Owned paths: `evaluation/`, `tests/`, `AGENTS.md`, and this ExecPlan; shipped-package
