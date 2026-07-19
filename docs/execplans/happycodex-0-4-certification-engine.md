@@ -628,6 +628,22 @@ terminal adaptive state, refresh offline identities, and receive a seventh fresh
 exact review. This invalidates no behavior, holdout, install, or product receipt and
 does not change the exact live cost.
 
+## Sixth focused RED
+
+At commit parent `61fff4c`, the exact reachable-evidence test now presents four
+runner-impossible summaries as subtests: successful candidate exit 7; a failed public
+arm with a non-object usage phase plus scalar result/native-compaction receipts;
+candidate arm telemetry whose actual combined-token/wall ratios require
+`simplify_and_retest` while its free-standing pair metrics claim `pass`; and a
+one-pair `equal` history whose next action remains `run_second`. The command
+
+    PYTHONDONTWRITEBYTECODE=1 python3 -m unittest tests.test_certification_engine.CertificationReceiptAndCliTests.test_certified_state_accepts_only_reachable_bound_evidence -v
+
+reports four `ValueError not raised` failures in 1.012 seconds. This exactly
+reproduces every accepted sixth-review false green without invoking a runner or model.
+The valid positive fixture's pair metrics were also aligned with its arm telemetry so
+the eventual GREEN cannot depend on the pre-existing inconsistency.
+
 ## Validation envelope
 
 Candidate offline commands, exact live-run costs, required reruns, and review launch

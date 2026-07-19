@@ -807,7 +807,7 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                 },
             }
             metrics = {
-                "uncached_input_tokens": 1,
+                "uncached_input_tokens": 2,
                 "output_tokens": 1,
                 "elapsed_seconds": 1.0,
             }
@@ -939,6 +939,66 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                     public_package=public_identity,
                     source=source_evidence,
                 )
+
+            nonzero_exit = copy.deepcopy(holdout_summary)
+            nonzero_exit["pair_receipts"][0]["arms"]["candidate"]["exit_code"] = 7
+
+            malformed_nested = copy.deepcopy(authentic_better)
+            malformed_public = malformed_nested["pair_receipts"][0]["arms"][
+                "public-0.2"
+            ]
+            malformed_public["usage_phases"] = [None]
+            malformed_public["result"] = "runner-impossible"
+            malformed_public["native_compaction"] = "runner-impossible"
+
+            unbound_metrics = copy.deepcopy(holdout_summary)
+            expensive_candidate = unbound_metrics["pair_receipts"][0]["arms"][
+                "candidate"
+            ]
+            expensive_candidate["usage"] = {
+                "input_tokens": 20,
+                "cached_input_tokens": 0,
+                "output_tokens": 10,
+                "reasoning_output_tokens": 0,
+            }
+            expensive_candidate["usage_phases"] = [
+                copy.deepcopy(expensive_candidate["usage"])
+            ]
+            expensive_candidate["uncached_input_tokens"] = 20
+            expensive_candidate["elapsed_seconds"] = 10.0
+
+            nonterminal = copy.deepcopy(holdout_summary)
+            nonterminal["adaptive_history"] = ["equal"]
+            nonterminal["adaptive_terminal_action"] = "run_second"
+            nonterminal["pairs_run"] = 1
+            nonterminal["pair_receipts"] = nonterminal["pair_receipts"][:1]
+            nonterminal["cost_gate"] = ledger_engine.cost_gate(
+                metrics,
+                metrics,
+                quality="equal",
+            )
+
+            false_greens = (
+                ("nonzero-pass-exit", nonzero_exit, "did not pass"),
+                (
+                    "runner-impossible-nested-receipt",
+                    malformed_nested,
+                    "nested receipt|evidence telemetry",
+                ),
+                ("unbound-cost-metrics", unbound_metrics, "metrics mismatch"),
+                ("nonterminal-adaptive-history", nonterminal, "not terminal"),
+            )
+            for label, false_green, expected_error in false_greens:
+                with self.subTest(false_green=label):
+                    with self.assertRaisesRegex(ValueError, expected_error):
+                        ledger_engine._validate_holdout_summary(
+                            false_green,
+                            snapshot,
+                            run_pair_ids=run_pair_ids,
+                            run_sha256=evidence_sha["holdout_run"],
+                            public_package=public_identity,
+                            source=source_evidence,
+                        )
 
             evidence_sha["holdout_summary"] = write_evidence(
                 "holdout_summary", holdout_summary
