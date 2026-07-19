@@ -23,6 +23,12 @@ from evaluation.core.identity import (
 )
 from evaluation.core.impact import build_snapshot, plan_impact
 from evaluation.core.ledger import load_ledger, validate_ledger
+from evaluation.core.receipt import sanitized_case_receipt
+from evaluation.corpus import engine as corpus_engine
+from evaluation.corpus.contract import (
+    FILESYSTEM_ISOLATION_POLICY,
+    RECOVERY_GATE_FIELDS,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -682,22 +688,83 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
             git("update-index", "--chmod=-x", "skills/happycodex/SKILL.md")
             settings = snapshot["settings"]
             engine_identity = engine_inventory(repo)
+            source_cases = corpus_engine.load_cases(repo / "evaluation" / "cases")
 
             def case_receipt(
                 case_id: str,
                 semantic_sha256: str,
                 package: dict[str, str],
             ) -> dict[str, object]:
-                return {
-                    "schema_version": 1,
-                    "engine_generation": "0.4",
-                    "id": case_id,
-                    "metadata_sha256": "0" * 64,
+                case = source_cases.get(case_id)
+                native = (
+                    case["fixture"].get("native_compaction_resume")
+                    if isinstance(case, dict)
+                    else None
+                )
+                phase = {
+                    "input_tokens": 2,
+                    "cached_input_tokens": 0,
+                    "output_tokens": 1,
+                    "reasoning_output_tokens": 0,
+                }
+                phase_count = 3 if native else 1
+                usage_phases = [copy.deepcopy(phase) for _ in range(phase_count)]
+                usage = {key: value * phase_count for key, value in phase.items()}
+                recovery_state = {} if native else None
+                result = {
+                    "decision": "continue",
+                    "qualifies": True,
+                    "execplan_condition": "usable",
+                    "protocol_may_product_write": False,
+                    "protocol_may_review": False,
+                    "protocol_may_complete": False,
+                    "finding_classifications": [],
+                    "blocker_classifications": [],
+                    "open_gates": [],
+                    "evidence": [],
+                    "reason": "",
+                    "recovery_state": recovery_state,
+                }
+                compaction_phase = {
+                    "rollout_path": ".codex/sessions/native.jsonl",
+                    "rollout_sha256": "7" * 64,
+                    "compaction_event_count": 1,
+                    "context_compacted_marker_count": 0,
+                    "event_types": ["compacted"],
+                    "rollout_match_count": 1,
+                }
+                native_compaction = (
+                    {
+                        "auto_compact_token_limit": native["auto_compact_token_limit"],
+                        "before_resume": copy.deepcopy(compaction_phase),
+                        "compaction_event_count": 1,
+                        "resumed_same_thread": True,
+                        "post_compaction_transition": {},
+                        "after_resume": copy.deepcopy(compaction_phase),
+                        "fresh_control": {
+                            "thread_id": "fresh-thread",
+                            "distinct_from_resumed_task": True,
+                            "no_resume_handle": True,
+                            "no_conversation_summary": True,
+                            "prompt_sha256": "8" * 64,
+                            "equivalent_gate_fields": [
+                                *sorted(RECOVERY_GATE_FIELDS),
+                                "recovery_state",
+                            ],
+                            "allowed_label_differences": {},
+                        },
+                    }
+                    if native
+                    else None
+                )
+                raw_receipt = {
+                    "case": case_id,
                     "installation": {
                         "source_skill_sha256": "1" * 64,
                         "installed_skill_sha256": "1" * 64,
                         "source_package_manifest_sha256": package["artifact_sha256"],
                         "installed_package_manifest_sha256": package["artifact_sha256"],
+                        "plugin": {"installedPath": "/isolated/plugin"},
                     },
                     "model": settings["model"],
                     "effort": settings["effort"],
@@ -713,34 +780,27 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                     },
                     "events_sha256": "2" * 64,
                     "stderr_sha256": "3" * 64,
-                    "usage": {
-                        "input_tokens": 2,
-                        "cached_input_tokens": 0,
-                        "output_tokens": 1,
-                        "reasoning_output_tokens": 0,
-                    },
-                    "usage_phases": [
-                        {
-                            "input_tokens": 2,
-                            "cached_input_tokens": 0,
-                            "output_tokens": 1,
-                            "reasoning_output_tokens": 0,
-                        }
-                    ],
-                    "uncached_input_tokens": 2,
+                    "usage": usage,
+                    "usage_phases": usage_phases,
+                    "uncached_input_tokens": 2 * phase_count,
                     "passed": True,
-                    "result": {},
-                    "fresh_recovery_result": None,
-                    "oracle_failures": {
-                        "count": 0,
-                        "sha256": canonical_sha256([]),
+                    "result": result,
+                    "fresh_recovery_result": copy.deepcopy(result) if native else None,
+                    "oracle_failures": [],
+                    "native_compaction": native_compaction,
+                    "thread_id": "primary-thread",
+                    "resume_thread_id": "primary-thread" if native else None,
+                    "fresh_recovery_thread_id": "fresh-thread" if native else None,
+                    "filesystem_isolation": {
+                        **FILESYSTEM_ISOLATION_POLICY,
+                        "workspace_root": "<case-temp>/repo",
+                        "native_tool_root": "<case-temp>/bin",
                     },
-                    "native_compaction": None,
-                    "thread_id_sha256": "4" * 64,
-                    "resume_thread_id_sha256": "5" * 64,
-                    "fresh_recovery_thread_id_sha256": "6" * 64,
-                    "filesystem_isolation": {},
                 }
+                return sanitized_case_receipt(
+                    raw_receipt,
+                    metadata_sha256="0" * 64,
+                )
 
             corpus_cases = [
                 case_receipt(case_id, semantic_sha256, snapshot["package"])
@@ -757,12 +817,74 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                 "timeout_seconds": settings["timeout_seconds"],
                 "passed": len(snapshot["corpus"]["cases"]),
                 "total": len(snapshot["corpus"]["cases"]),
-                "uncached_input_tokens": len(corpus_cases) * 2,
+                "uncached_input_tokens": sum(
+                    item["uncached_input_tokens"] for item in corpus_cases
+                ),
                 "telemetry_complete": True,
-                "output_tokens": len(corpus_cases),
-                "elapsed_seconds": float(len(corpus_cases)),
+                "output_tokens": sum(
+                    item["usage"]["output_tokens"] for item in corpus_cases
+                ),
+                "elapsed_seconds": round(
+                    sum(item["elapsed_seconds"] for item in corpus_cases), 3
+                ),
                 "cases": corpus_cases,
             }
+
+            def retotal_corpus(summary: dict[str, object]) -> None:
+                cases = summary["cases"]
+                summary["uncached_input_tokens"] = sum(
+                    item["uncached_input_tokens"] for item in cases
+                )
+                summary["output_tokens"] = sum(
+                    item["usage"]["output_tokens"] for item in cases
+                )
+                summary["elapsed_seconds"] = round(
+                    sum(item["elapsed_seconds"] for item in cases), 3
+                )
+
+            missing_native = copy.deepcopy(corpus_summary)
+            native_receipt = next(
+                item
+                for item in missing_native["cases"]
+                if item["id"] == "pre-freeze-compaction"
+            )
+            native_receipt["usage_phases"] = [native_receipt["usage_phases"][0]]
+            native_receipt["usage"] = copy.deepcopy(native_receipt["usage_phases"][0])
+            native_receipt["uncached_input_tokens"] = 2
+            native_receipt["fresh_recovery_result"] = None
+            native_receipt["native_compaction"] = None
+            retotal_corpus(missing_native)
+
+            mismatched_install = copy.deepcopy(corpus_summary)
+            mismatched_install["cases"][0]["installation"]["installed_skill_sha256"] = (
+                "f" * 64
+            )
+
+            empty_isolation = copy.deepcopy(corpus_summary)
+            empty_isolation["cases"][0]["filesystem_isolation"] = {}
+
+            empty_result = copy.deepcopy(corpus_summary)
+            empty_result["cases"][0]["result"] = {}
+
+            corpus_false_greens = (
+                ("missing-native-recovery", missing_native, "native|usage phase"),
+                ("mismatched-install", mismatched_install, "installation"),
+                ("empty-isolation", empty_isolation, "isolation"),
+                ("empty-result-envelope", empty_result, "result receipt"),
+            )
+            for label, false_green, expected_error in corpus_false_greens:
+                with self.subTest(corpus_false_green=label):
+                    with self.assertRaisesRegex(ValueError, expected_error):
+                        ledger_engine._validate_corpus_summary(
+                            false_green,
+                            snapshot,
+                            {
+                                "engine": engine_identity,
+                                "corpus_cases": source_cases,
+                            },
+                            authority,
+                        )
+
             holdout_binding = next(
                 item
                 for item in authority["invocations"]

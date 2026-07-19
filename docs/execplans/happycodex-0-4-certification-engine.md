@@ -713,6 +713,21 @@ sanitizer instead of hand-written minimal nested objects. This remains harness/t
 only, retains the existing full-refresh cost, and requires an eighth fresh exact
 review.
 
+## Seventh focused RED
+
+The positive reachable-certification fixture now builds every case receipt through
+the production `sanitized_case_receipt` path. It emits three phases and complete
+native/fresh recovery for `pre-freeze-compaction`, one phase for ordinary and holdout
+cases, the full isolation policy receipt, and matching installed/source Skill
+digests. Four independent mutations then remove native recovery, mismatch installed
+Skill identity, empty isolation, or replace the sanitized result envelope with `{}`.
+
+    PYTHONDONTWRITEBYTECODE=1 python3 -m unittest tests.test_certification_engine.CertificationReceiptAndCliTests.test_certified_state_accepts_only_reachable_bound_evidence -v
+
+reports four `ValueError not raised` subtest failures in 1.013 seconds. The production-
+sanitizer positive path itself remains reachable; only the four runner-impossible
+mutations are RED. No model or runner invocation occurred.
+
 ## Validation envelope
 
 Candidate offline commands, exact live-run costs, required reruns, and review launch
