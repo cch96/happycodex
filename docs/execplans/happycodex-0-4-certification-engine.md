@@ -810,6 +810,47 @@ The reviewer may use only local detached clones and offline validators; reposito
 writes, model/live corpus/live holdout calls, network, Fable, Goal actions, install,
 plugin/marketplace mutation, Git ref changes, push, and publication are forbidden.
 
+## Eighth fresh review and producer-binding NOT-YET
+
+Fresh read-only reviewer `/root/cert_engine_nested_final_review` audited exact
+administrative candidate `1a93f781d8f21d0918326bac47d4f3297c228552` and product
+repair `e11dcdac42d2d36a26d0afcad5a946db70353dc7` from a detached local clone. The
+review returned `NOT-YET` with four P1 findings:
+
+1. Impact counts the native corpus case once although its producer performs initial,
+   resume, and fresh-control model calls. Exact live-call scope is therefore 20 to
+   22, not the persisted 18 to 20; historical token/wall estimates remain unchanged.
+2. Native recovery receipts are schema-valid but not bound to the source case's
+   recovery oracle, and primary/fresh receipts compare only permission gates rather
+   than every producer-equivalent recovery-state field. Synthetic writer/phase/gate
+   drift and a fresh-only `current_revision` drift certified.
+3. Before/after compaction phases validate locally but do not require the same
+   rollout-path identity or an append-consistent event history. An unrelated after-
+   resume rollout path certified.
+4. Sanitized required classification/blocker evidence is not rebound to the case
+   oracle, while failed public arms accept producer-impossible timeout/exit/result
+   combinations. Removing all required classifications from `compaction-recovery`,
+   or pairing `timed_out=true` with exit zero, certified.
+
+The reviewer independently reproduced 30/30 focused, 114/114 candidate, 97/97
+baseline, the exact nested test, both official validators, Ruff, dry-runs, 21 JSON
+documents, and diff hygiene. It confirmed engine
+`f7a8e8b4c5dc95faa85c93698a777d1ff69eb4646e1248cb7c6fda9003260d6a`,
+snapshot `a4d9a22b9237b982791d47e1425d4c54a6ac563341fc82c2b7087113177e17d2`,
+ledger `355938448c26de624fc8bf7b51de6617395cfa1c2e780b4b18f5d3b20f8555c3`,
+impact token
+`04e734cd65c8b2220be5ad4c754c143096634cebbdc634a9f8d531c253be397b`,
+the exact shipped/public identities, null authority, and unchanged historical
+token/wall estimates. The administrative delta is ExecPlan-only; the 49-entry
+product projection is identical at
+`d280f7bf2f2675cc66b251551ad3526d7db8fda1472b886f1b919a02e158fda1`.
+No prohibited action ran.
+
+Root accepts these as the next bounded repair class pending independent local RED
+reproduction. No Skill, manifest, case oracle, runner, evaluator, or sanitizer change
+is indicated: the impact planner and certification verifier already retain enough
+producer metadata to fail closed.
+
 ## Validation envelope
 
 Candidate offline commands, exact live-run costs, required reruns, and review launch
@@ -819,23 +860,23 @@ publication requires a later explicit user request.
 
 ## Checkpoint
 
-- Milestone: the seventh review's accepted case-specific nested-receipt blocker and
-  Root's three same-class supplemental projections are repaired and offline-green;
-  the eighth fresh exact review remains open.
+- Milestone: the eighth review returned `NOT-YET` with four accepted producer-binding
+  findings; local RED reproduction and bounded planner/ledger repair remain open.
 - Goal: active `019f780e-925e-7193-8bd2-0a04d6efe31e`; its objective is the
   Normalized Outcome plus all frozen preservation, exclusion, offline validation, and
   live-cost gates in this document.
-- RED/GREEN: all architecture, seven review rounds, seven nested false-green probes,
-  and the exact offline repair envelope are persisted above.
-- Next: collect and independently reproduce the eighth fresh exact review. A green
-  review still stops at the explicit maximum-cost user decision before authority or
-  live calls.
+- RED/GREEN: all architecture, eight review rounds, seven prior nested false-green
+  probes, and the last exact offline repair envelope are persisted above.
+- Next: reproduce all four eighth-review counterexamples, freeze RED, repair only the
+  impact planner and ledger verifier, then rerun the offline envelope and a ninth
+  fresh exact review. A green review still stops at the explicit maximum-cost user
+  decision before authority or live calls.
 - Product/support writes: support-only paths remain open; shipped-package paths remain
   closed.
 - Owned paths: `evaluation/`, `tests/`, `AGENTS.md`, and this ExecPlan; shipped-package
   paths remain closed.
-- Missing facts: eighth-review terminal receipt, explicit user cost decision, and
-  live successor receipts.
+- Missing facts: eighth-review repair and ninth-review terminal receipt, explicit
+  user cost decision, and live successor receipts.
 
 ## Retrospective
 
