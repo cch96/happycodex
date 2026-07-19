@@ -929,6 +929,38 @@ calls, and is authority-ready. Live authority remains null. The archive was remo
 no model, live runner, network, Fable, install, publication, or external mutation
 ran.
 
+## Ninth fresh review launch
+
+The frozen producer-binding repair is
+`e15887042d4a1df271abf46ab97d6bef5da7426f` over baseline
+`2836d7363db364807a2ec384dc1b6c2cc13df95e`. Its 49-entry product projection,
+excluding only this ExecPlan, is
+`c10fcdff74c60c3cdc43dffa4e96cf0e59187c056a3398659ef4ab44972c8866`.
+
+A clean detached local clone reproduced 31/31 focused tests in 4.962 seconds and
+115/115 cumulative tests in 6.357 seconds. Both official Skill/plugin validators,
+Ruff check and 19-file format-check, verify/impact, both dry-runs, all 21 JSON
+documents, baseline-range diff hygiene, shipped-package preservation, public archive
+reconstruction, public-bound impact, and clean final status passed. Exact engine,
+snapshot, ledger, and impact-token identities matched the preceding repair receipt;
+the public semantic/artifact identities and corrected 20-to-22-call scope also
+matched. The temporary public archive was removed. No model, live corpus, live
+holdout, network, Fable, Goal action, install, plugin/marketplace mutation, Git ref
+change, push, or publication ran.
+
+This administrative launch record does not change the product projection. A new
+`fork_turns=none` read-only reviewer will receive the immutable baseline and product
+repair, the verbatim operative request and frozen Outcome/exclusions, and a neutral
+request to audit every diff unit and obligation. It must reproduce all eighth-review
+producer-binding probes; trace sanitizer, impact, runner, source-oracle, recovery,
+compaction, and holdout producer reachability; verify the corrected 20-to-22-call
+scope and privacy-safe receipt projection; and hunt any new completion blocker or
+over-strict unreachable acceptance path. Its durable terminal output destination is
+agent task `/root/cert_engine_producer_final_review`. Only local detached clones and
+offline validators are allowed; repository writes, model/live evaluation, network,
+Fable, Goal actions, installation, activation, Git ref mutation, push, and
+publication are forbidden.
+
 ## Validation envelope
 
 Candidate offline commands, exact live-run costs, required reruns, and review launch
