@@ -35,7 +35,10 @@ be promoted by offline checks. `certified` requires a Git-reachable successor wh
 normalized Git package artifact, engine manifest, and source pending impact match the
 snapshot, plus strictly later content-addressed corpus and holdout evidence for every
 refreshed item. Nonzero live scope also requires the exact authority to be persisted
-before that successor commit; zero-live artifact transitions require no authority.
+before that successor commit; zero-live artifact transitions require no authority but
+do require strictly post-source, content-addressed `offline_summary` evidence. That
+summary binds the source ledger bytes and current artifact identity for a `receipt`
+gate, and binds the exact source/installed package receipt for `isolated_install`.
 The coverage manifest marks every current case and pair as refreshed or prior. Prior
 coverage requires a strictly older digest-bound 0.4 certified ledger; validators
 revalidate that chain and recompute its snapshot-to-successor impact, so pending scope
@@ -69,6 +72,10 @@ fresh token be bound to a live corpus run whose output stays outside the reposit
 ```bash
 python3 -m evaluation.cli impact --public /path/to/public-checkout
 ```
+
+Persisted authority validation mints an immutable process-local capability. Corpus
+and holdout propagate and rebind it at every model-reaching evaluator, pair, and
+subprocess seam; callers cannot substitute a digest string or a mutable descriptor.
 
 Without `--public`, impact stays useful for cost inspection but reports
 `live_authority_ready: false` when a holdout refresh is pending.

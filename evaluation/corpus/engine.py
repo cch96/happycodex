@@ -1199,9 +1199,23 @@ def parse_events(stdout: str) -> tuple[dict[str, Any], dict[str, int], str | Non
     return final, usage, thread_id
 
 
+def _validated_capability(authorization: Any) -> Any:
+    from evaluation.core.ledger import AuthorizedInvocation
+
+    if not isinstance(authorization, AuthorizedInvocation):
+        raise ValueError("live execution requires a validated capability")
+    return authorization
+
+
 def invoke_codex(
-    argv: list[str], *, cwd: Path, env: dict[str, str], timeout: int
+    argv: list[str],
+    *,
+    cwd: Path,
+    env: dict[str, str],
+    timeout: int,
+    authorization: Any = None,
 ) -> tuple[subprocess.CompletedProcess[str], bool, float]:
+    _validated_capability(authorization)
     started = time.monotonic()
     try:
         completed = run(argv, cwd=cwd, env=env, timeout=timeout)
@@ -1577,6 +1591,76 @@ def expected_recovery_state(
     }
 
 
+def _validate_case_capability(
+    authorization: Any,
+    *,
+    case: dict[str, Any],
+    plugin: Path,
+    model: str,
+    effort: str,
+    timeout: int,
+    arm: str,
+    unit_id: str | None,
+) -> None:
+    capability = _validated_capability(authorization)
+    descriptor = capability.descriptor()
+    snapshot = capability.snapshot()
+    settings = snapshot.get("settings")
+    if (
+        not isinstance(settings, dict)
+        or descriptor.get("model") != model
+        or descriptor.get("effort") != effort
+        or descriptor.get("timeout_seconds") != timeout
+        or settings.get("model") != model
+        or settings.get("effort") != effort
+        or settings.get("timeout_seconds") != timeout
+    ):
+        raise ValueError("case execution settings do not match the capability")
+    command = descriptor.get("command")
+    unit_id = unit_id or case.get("id")
+    if command == "corpus":
+        current = load_cases().get(unit_id)
+        expected_package = {
+            "semantic_sha256": descriptor.get("package_semantic_sha256"),
+            "artifact_sha256": descriptor.get("package_artifact_sha256"),
+        }
+        if (
+            unit_id not in descriptor.get("cases", [])
+            or unit_id not in snapshot.get("corpus", {}).get("cases", {})
+            or current != case
+            or descriptor.get("arm") != arm
+            or expected_package != snapshot.get("package")
+        ):
+            raise ValueError("corpus case does not match the capability")
+    elif command == "holdout":
+        if arm == "candidate":
+            expected_package = {
+                "semantic_sha256": descriptor.get("candidate_semantic_sha256"),
+                "artifact_sha256": descriptor.get("candidate_artifact_sha256"),
+            }
+        elif arm == "public-0.2":
+            expected_package = {
+                "semantic_sha256": descriptor.get("public_semantic_sha256"),
+                "artifact_sha256": descriptor.get("public_artifact_sha256"),
+            }
+        else:
+            raise ValueError("holdout arm does not match the capability")
+        if (
+            unit_id not in descriptor.get("pairs", [])
+            or unit_id not in snapshot.get("holdout", {}).get("pairs", {})
+            or {
+                "semantic_sha256": descriptor.get("candidate_semantic_sha256"),
+                "artifact_sha256": descriptor.get("candidate_artifact_sha256"),
+            }
+            != snapshot.get("package")
+        ):
+            raise ValueError("holdout case does not match the capability")
+    else:
+        raise ValueError("case execution command does not match the capability")
+    if package_identities(plugin) != expected_package:
+        raise ValueError("case package does not match the capability")
+
+
 def evaluate_case(
     case: dict[str, Any],
     *,
@@ -1586,7 +1670,19 @@ def evaluate_case(
     effort: str,
     timeout: int,
     arm: str,
+    authorization: Any = None,
+    authorization_unit: str | None = None,
 ) -> dict[str, Any]:
+    _validate_case_capability(
+        authorization,
+        case=case,
+        plugin=plugin,
+        model=model,
+        effort=effort,
+        timeout=timeout,
+        arm=arm,
+        unit_id=authorization_unit,
+    )
     case_output = output / case["id"]
     case_output.mkdir(parents=True)
     with tempfile.TemporaryDirectory(prefix=f"happycodex-{case['id']}-") as raw:
@@ -1660,6 +1756,7 @@ def evaluate_case(
             cwd=repo,
             env=env,
             timeout=timeout,
+            authorization=authorization,
         )
         completed = initial
         elapsed = initial_elapsed
@@ -1735,6 +1832,7 @@ def evaluate_case(
                     cwd=repo,
                     env=env,
                     timeout=timeout,
+                    authorization=authorization,
                 )
                 completed = resumed
                 elapsed += resume_elapsed
@@ -1799,6 +1897,7 @@ def evaluate_case(
                     cwd=repo,
                     env=env,
                     timeout=timeout,
+                    authorization=authorization,
                 )
                 completed = fresh_completed
                 elapsed += fresh_elapsed
@@ -2048,6 +2147,8 @@ def run_authorized(args: Any, authorization: Any) -> int:
             effort=args.effort,
             timeout=args.timeout,
             arm=args.arm,
+            authorization=authorization,
+            authorization_unit=case_id,
         )
         for case_id in selected
     ]

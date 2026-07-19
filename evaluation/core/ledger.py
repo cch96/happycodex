@@ -12,6 +12,7 @@ import tempfile
 from typing import Any
 
 from evaluation.core.identity import (
+    canonical_json_bytes,
     canonical_sha256,
     case_semantic_sha256,
     engine_category_sha256,
@@ -184,40 +185,18 @@ HOLDOUT_SUMMARY_FIELDS = {
     "pair_receipts",
     "cost_gate",
 }
-
-
-_AUTHORIZATION_SEAL = object()
-
-
-class AuthorizedInvocation:
-    """In-process capability minted only after persisted authority validation."""
-
-    __slots__ = ("_descriptor", "authority_sha256", "impact_token")
-
-    def __init__(
-        self,
-        *,
-        seal: object,
-        descriptor: dict[str, Any],
-        impact_token_value: str,
-        authority_sha256: str,
-    ) -> None:
-        if seal is not _AUTHORIZATION_SEAL:
-            raise TypeError("authorized invocation capabilities are validator-minted")
-        self._descriptor = json.loads(json.dumps(descriptor))
-        self.impact_token = impact_token_value
-        self.authority_sha256 = authority_sha256
-
-    @property
-    def command(self) -> str:
-        return self._descriptor["command"]
-
-    def descriptor(self) -> dict[str, Any]:
-        return json.loads(json.dumps(self._descriptor))
-
-    def __reduce__(self) -> Any:
-        raise TypeError("authorized invocation capabilities cannot be serialized")
-
+OFFLINE_GATES = frozenset({"receipt", "isolated_install"})
+OFFLINE_SUMMARY_FIELDS = {
+    "schema_version",
+    "engine_generation",
+    "source_commit",
+    "source_ledger_sha256",
+    "snapshot_sha256",
+    "engine_manifest_sha256",
+    "gates",
+    "receipt_artifact_sha256",
+    "isolated_installation",
+}
 
 INSTALLATION_RECEIPT_FIELDS = {
     "source_skill_sha256",
@@ -505,28 +484,98 @@ def validate_live_authority(authority: Any, *, snapshot: dict[str, Any]) -> None
         raise ValueError("approval response is not the canonical affirmative grant")
 
 
-def require_authorized_invocation(
-    authority: Any,
-    *,
-    snapshot: dict[str, Any],
-    impact: dict[str, Any],
-    invocation: dict[str, Any],
-) -> AuthorizedInvocation:
-    validate_live_authority(authority, snapshot=snapshot)
-    validate_impact(impact, snapshot)
-    if authority["impact"] != impact:
-        raise ValueError("live authority does not match current impact")
-    _validate_invocation(invocation)
-    requested = canonical_sha256(invocation)
-    authorized = {canonical_sha256(item) for item in authority["invocations"]}
-    if requested not in authorized:
-        raise ValueError("invocation is not authorized")
-    return AuthorizedInvocation(
-        seal=_AUTHORIZATION_SEAL,
-        descriptor=invocation,
-        impact_token_value=authority["impact_token"],
-        authority_sha256=canonical_sha256(authority),
-    )
+def _authorization_boundary() -> tuple[type[Any], Any]:
+    class AuthorizedInvocation:
+        """Immutable process-local proof of exact persisted authority validation."""
+
+        __slots__ = ("__payload_json",)
+
+        def __new__(cls, *_args: Any, **_kwargs: Any) -> Any:
+            raise TypeError("authorized invocation capabilities are validator-minted")
+
+        def __setattr__(self, _name: str, _value: Any) -> None:
+            raise AttributeError("authorized invocation capabilities are immutable")
+
+        @property
+        def authority_sha256(self) -> str:
+            return self._payload()["authority_sha256"]
+
+        @property
+        def command(self) -> str:
+            return self.descriptor()["command"]
+
+        @property
+        def impact_token(self) -> str:
+            return self._payload()["impact_token"]
+
+        def descriptor(self) -> dict[str, Any]:
+            return self._payload()["descriptor"]
+
+        def snapshot(self) -> dict[str, Any]:
+            return self._payload()["snapshot"]
+
+        def _payload(self) -> dict[str, Any]:
+            return json.loads(self.__payload_json)
+
+        def __copy__(self) -> Any:
+            raise TypeError("authorized invocation capabilities cannot be copied")
+
+        def __deepcopy__(self, _memo: dict[int, Any]) -> Any:
+            raise TypeError("authorized invocation capabilities cannot be copied")
+
+        def __reduce__(self) -> Any:
+            raise TypeError("authorized invocation capabilities cannot be serialized")
+
+    def mint(
+        *,
+        descriptor: dict[str, Any],
+        snapshot: dict[str, Any],
+        impact_token_value: str,
+        authority_sha256: str,
+    ) -> AuthorizedInvocation:
+        capability = object.__new__(AuthorizedInvocation)
+        object.__setattr__(
+            capability,
+            "_AuthorizedInvocation__payload_json",
+            canonical_json_bytes(
+                {
+                    "authority_sha256": authority_sha256,
+                    "descriptor": descriptor,
+                    "impact_token": impact_token_value,
+                    "snapshot": snapshot,
+                }
+            ),
+        )
+        return capability
+
+    def require_authorized_invocation(
+        authority: Any,
+        *,
+        snapshot: dict[str, Any],
+        impact: dict[str, Any],
+        invocation: dict[str, Any],
+    ) -> AuthorizedInvocation:
+        validate_live_authority(authority, snapshot=snapshot)
+        validate_impact(impact, snapshot)
+        if authority["impact"] != impact:
+            raise ValueError("live authority does not match current impact")
+        _validate_invocation(invocation)
+        requested = canonical_sha256(invocation)
+        authorized = {canonical_sha256(item) for item in authority["invocations"]}
+        if requested not in authorized:
+            raise ValueError("invocation is not authorized")
+        return mint(
+            descriptor=invocation,
+            snapshot=snapshot,
+            impact_token_value=authority["impact_token"],
+            authority_sha256=canonical_sha256(authority),
+        )
+
+    return AuthorizedInvocation, require_authorized_invocation
+
+
+AuthorizedInvocation, require_authorized_invocation = _authorization_boundary()
+del _authorization_boundary
 
 
 def _run_git(repo: Path, *args: str) -> subprocess.CompletedProcess[bytes]:
@@ -603,7 +652,8 @@ def _validate_source_identity(
             raise ValueError("certification successor engine mismatch")
         source_ledger_path = root / "evaluation" / "results" / "current.json"
         try:
-            source_ledger = json.loads(source_ledger_path.read_bytes())
+            source_ledger_bytes = source_ledger_path.read_bytes()
+            source_ledger = json.loads(source_ledger_bytes)
         except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
             raise ValueError("invalid certification source authority ledger") from exc
         if (
@@ -694,6 +744,7 @@ def _validate_source_identity(
             native_evidence_oracles[case_id] = expected
         return {
             "ledger": source_ledger,
+            "ledger_sha256": sha256_bytes(source_ledger_bytes),
             "engine": inventory,
             "corpus_semantic_sha256": engine_category_sha256(
                 inventory,
@@ -827,6 +878,50 @@ def _validate_coverage(
         for disposition in coverage[label].values()
     )
     return evidence_fields, carries_prior
+
+
+def _offline_gates(impact: dict[str, Any]) -> set[str]:
+    return set(impact["gates"]) & OFFLINE_GATES
+
+
+def _validate_offline_summary(
+    payload: Any,
+    *,
+    snapshot: dict[str, Any],
+    source_commit: str,
+    source_ledger_sha256: str,
+    gates: set[str],
+) -> None:
+    if not isinstance(payload, dict) or set(payload) != OFFLINE_SUMMARY_FIELDS:
+        raise ValueError("invalid offline certification evidence")
+    expected_gates = sorted(gates)
+    if (
+        not gates
+        or not gates.issubset(OFFLINE_GATES)
+        or payload.get("schema_version") != 1
+        or payload.get("engine_generation") != "0.4"
+        or payload.get("source_commit") != source_commit
+        or payload.get("source_ledger_sha256") != source_ledger_sha256
+        or payload.get("snapshot_sha256") != canonical_sha256(snapshot)
+        or payload.get("engine_manifest_sha256")
+        != snapshot["engine"]["manifest_sha256"]
+        or payload.get("gates") != expected_gates
+    ):
+        raise ValueError("offline certification evidence identity mismatch")
+    expected_receipt = (
+        snapshot["engine"]["categories"]["artifact"] if "receipt" in gates else None
+    )
+    if payload.get("receipt_artifact_sha256") != expected_receipt:
+        raise ValueError("offline receipt evidence mismatch")
+    installation = payload.get("isolated_installation")
+    if "isolated_install" in gates:
+        _validate_installation_receipt(
+            installation,
+            package=snapshot["package"],
+            case_id="offline certification",
+        )
+    elif installation is not None:
+        raise ValueError("unexpected offline installation evidence")
 
 
 def _nonnegative_int(value: Any) -> bool:
@@ -1917,10 +2012,17 @@ def _validate_certification_receipt(
         snapshot=snapshot,
         impact=expected_impact,
     )
+    offline_gate_set = _offline_gates(expected_impact)
+    if offline_gate_set:
+        evidence_fields.add("offline_summary")
     if carries_prior and not incremental:
         raise ValueError("certification prior coverage does not match source lineage")
     evidence = certification.get("evidence")
     if not isinstance(evidence, dict) or set(evidence) != evidence_fields:
+        if offline_gate_set and (
+            not isinstance(evidence, dict) or "offline_summary" not in evidence
+        ):
+            raise ValueError("offline certification evidence is required")
         raise ValueError("invalid certification evidence envelope")
     loaded: dict[str, dict[str, Any]] = {}
     evidence_sha: dict[str, str] = {}
@@ -1953,6 +2055,14 @@ def _validate_certification_receipt(
             run_sha256=evidence_sha["holdout_run"],
             public_package=public_package,
             source=source,
+        )
+    if "offline_summary" in loaded:
+        _validate_offline_summary(
+            loaded["offline_summary"],
+            snapshot=snapshot,
+            source_commit=source_commit,
+            source_ledger_sha256=source["ledger_sha256"],
+            gates=offline_gate_set,
         )
 
 

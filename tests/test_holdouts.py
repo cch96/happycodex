@@ -29,6 +29,20 @@ def metadata(*, passed: bool, uncached: int, output: int, elapsed: float) -> dic
     }
 
 
+class TestAuthorization:
+    def __init__(self, descriptor: dict, snapshot: dict) -> None:
+        self._descriptor = descriptor
+        self._snapshot = snapshot
+        self.impact_token = "a" * 64
+        self.authority_sha256 = "b" * 64
+
+    def descriptor(self) -> dict:
+        return copy.deepcopy(self._descriptor)
+
+    def snapshot(self) -> dict:
+        return copy.deepcopy(self._snapshot)
+
+
 class HappyCodexHoldoutTests(unittest.TestCase):
     def test_manifest_has_distinct_hidden_pairs_and_required_coverage(self) -> None:
         manifest = holdout_engine.load_manifest()
@@ -207,8 +221,12 @@ class HappyCodexHoldoutTests(unittest.TestCase):
             effort: str,
             timeout: int,
             arm: str,
+            authorization: object,
+            authorization_unit: str,
         ) -> dict:
             del plugin, model, effort, timeout
+            self.assertIsInstance(authorization, TestAuthorization)
+            self.assertEqual(authorization_unit, pair["id"])
             pair_output = output.parents[1]
             observations.append(
                 (
@@ -230,16 +248,57 @@ class HappyCodexHoldoutTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)
-            receipt = holdout_engine.run_pair(
-                pair,
-                candidate=root / "candidate",
-                public=root / "public",
-                output=root / "results",
-                model="test-model",
-                effort="high",
-                timeout=10,
-                evaluator=fake_evaluator,
+            package = {
+                "semantic_sha256": "c" * 64,
+                "artifact_sha256": "d" * 64,
+            }
+            public_package = {
+                "semantic_sha256": "e" * 64,
+                "artifact_sha256": "f" * 64,
+            }
+            authorization = TestAuthorization(
+                {
+                    "command": "holdout",
+                    "pairs": [pair["id"]],
+                    "model": "test-model",
+                    "effort": "high",
+                    "timeout_seconds": 10,
+                    "candidate_semantic_sha256": package["semantic_sha256"],
+                    "candidate_artifact_sha256": package["artifact_sha256"],
+                    "public_semantic_sha256": public_package["semantic_sha256"],
+                    "public_artifact_sha256": public_package["artifact_sha256"],
+                },
+                {
+                    "settings": {
+                        "model": "test-model",
+                        "effort": "high",
+                        "timeout_seconds": 10,
+                    },
+                    "holdout": {"pairs": {pair["id"]: "e" * 64}},
+                    "package": package,
+                },
             )
+            with (
+                mock.patch.object(
+                    ledger_engine, "AuthorizedInvocation", TestAuthorization
+                ),
+                mock.patch.object(
+                    holdout_engine,
+                    "package_identities",
+                    side_effect=[package, public_package],
+                ),
+            ):
+                receipt = holdout_engine.run_pair(
+                    pair,
+                    candidate=root / "candidate",
+                    public=root / "public",
+                    output=root / "results",
+                    model="test-model",
+                    effort="high",
+                    timeout=10,
+                    authorization=authorization,
+                    evaluator=fake_evaluator,
+                )
             pair_output = root / "results" / pair["id"]
             self.assertEqual(observations, [(True, False, False), (True, False, False)])
             self.assertEqual(receipt["outcome"], "better")
@@ -256,9 +315,8 @@ class HappyCodexHoldoutTests(unittest.TestCase):
             candidate.mkdir()
             public.mkdir()
             output.mkdir()
-            authorization = ledger_engine.AuthorizedInvocation(
-                seal=ledger_engine._AUTHORIZATION_SEAL,
-                descriptor={
+            authorization = TestAuthorization(
+                {
                     "command": "holdout",
                     "pairs": sorted(
                         pair["id"] for pair in holdout_engine.load_manifest()["pairs"]
@@ -267,10 +325,12 @@ class HappyCodexHoldoutTests(unittest.TestCase):
                     "effort": "high",
                     "timeout_seconds": 10,
                 },
-                impact_token_value="a" * 64,
-                authority_sha256="b" * 64,
+                {},
             )
             with (
+                mock.patch.object(
+                    ledger_engine, "AuthorizedInvocation", TestAuthorization
+                ),
                 mock.patch.object(
                     holdout_engine,
                     "package_manifest_sha256",
@@ -317,6 +377,63 @@ class HappyCodexHoldoutTests(unittest.TestCase):
                         model="gpt-5.6-sol",
                         effort="high",
                         timeout=300,
+                    )
+            mapping.assert_not_called()
+
+            package = {
+                "semantic_sha256": "c" * 64,
+                "artifact_sha256": "d" * 64,
+            }
+            authorization = TestAuthorization(
+                {
+                    "command": "holdout",
+                    "pairs": [pair["id"]],
+                    "model": "gpt-5.6-sol",
+                    "effort": "high",
+                    "timeout_seconds": 300,
+                    "candidate_semantic_sha256": package["semantic_sha256"],
+                    "candidate_artifact_sha256": package["artifact_sha256"],
+                    "public_semantic_sha256": "e" * 64,
+                    "public_artifact_sha256": "f" * 64,
+                },
+                {
+                    "settings": {
+                        "model": "gpt-5.6-sol",
+                        "effort": "high",
+                        "timeout_seconds": 300,
+                    },
+                    "holdout": {"pairs": {pair["id"]: "a" * 64}},
+                    "package": package,
+                },
+            )
+            with (
+                mock.patch.object(
+                    ledger_engine, "AuthorizedInvocation", TestAuthorization
+                ),
+                mock.patch.object(
+                    holdout_engine,
+                    "package_identities",
+                    return_value={
+                        "semantic_sha256": "0" * 64,
+                        "artifact_sha256": "1" * 64,
+                    },
+                ),
+                mock.patch.object(
+                    holdout_engine,
+                    "seal_mapping",
+                    side_effect=AssertionError("holdout live seam reached"),
+                ) as mapping,
+            ):
+                with self.assertRaisesRegex(ValueError, "pair"):
+                    holdout_engine.run_pair(
+                        pair,
+                        candidate=root / "candidate",
+                        public=root / "public",
+                        output=root / "output",
+                        model="gpt-5.6-sol",
+                        effort="high",
+                        timeout=300,
+                        authorization=authorization,
                     )
             mapping.assert_not_called()
 

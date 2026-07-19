@@ -592,6 +592,8 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
             authorization.authority_sha256, canonical_sha256(ledger["live_authority"])
         )
         self.assertFalse(hasattr(ledger_engine, "_AUTHORIZATION_SEAL"))
+        with self.assertRaisesRegex(TypeError, "validator-minted"):
+            ledger_engine.AuthorizedInvocation()
         descriptor = authorization.descriptor()
         descriptor["cases"] = []
         self.assertNotEqual(descriptor, authorization.descriptor())
@@ -599,6 +601,10 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
             authorization.impact_token = "f" * 64
         with self.assertRaises(AttributeError):
             authorization._descriptor  # type: ignore[attr-defined]
+        with self.assertRaisesRegex(TypeError, "cannot be copied"):
+            copy.copy(authorization)
+        with self.assertRaisesRegex(TypeError, "cannot be copied"):
+            copy.deepcopy(authorization)
         with self.assertRaisesRegex(TypeError, "cannot be serialized"):
             pickle.dumps(authorization)
 
@@ -1784,6 +1790,24 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
             }
             next_evidence_sha = {
                 "corpus_summary": write_evidence("corpus_summary", partial_summary),
+                "offline_summary": write_evidence(
+                    "offline_summary",
+                    {
+                        "schema_version": 1,
+                        "engine_generation": "0.4",
+                        "source_commit": next_source_commit,
+                        "source_ledger_sha256": sha256_bytes(prior_path.read_bytes()),
+                        "snapshot_sha256": canonical_sha256(next_snapshot),
+                        "engine_manifest_sha256": next_snapshot["engine"][
+                            "manifest_sha256"
+                        ],
+                        "gates": ["receipt"],
+                        "receipt_artifact_sha256": next_snapshot["engine"][
+                            "categories"
+                        ]["artifact"],
+                        "isolated_installation": None,
+                    },
+                ),
             }
             git("add", "evaluation/results/evidence")
             git("commit", "-qm", "incremental evidence")

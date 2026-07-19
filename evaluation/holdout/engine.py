@@ -112,6 +112,54 @@ def load_manifest(path: Path = MANIFEST_PATH) -> dict[str, Any]:
     }
 
 
+def _validate_pair_capability(
+    authorization: Any,
+    *,
+    pair: dict[str, Any],
+    candidate: Path,
+    public: Path,
+    model: str,
+    effort: str,
+    timeout: int,
+) -> None:
+    from evaluation.core.ledger import AuthorizedInvocation
+
+    if not isinstance(authorization, AuthorizedInvocation):
+        raise ValueError("live holdout execution requires a validated capability")
+    descriptor = authorization.descriptor()
+    snapshot = authorization.snapshot()
+    settings = snapshot.get("settings")
+    current = next(
+        (item for item in load_manifest()["pairs"] if item["id"] == pair.get("id")),
+        None,
+    )
+    candidate_identity = {
+        "semantic_sha256": descriptor.get("candidate_semantic_sha256"),
+        "artifact_sha256": descriptor.get("candidate_artifact_sha256"),
+    }
+    public_identity = {
+        "semantic_sha256": descriptor.get("public_semantic_sha256"),
+        "artifact_sha256": descriptor.get("public_artifact_sha256"),
+    }
+    if (
+        descriptor.get("command") != "holdout"
+        or pair.get("id") not in descriptor.get("pairs", [])
+        or pair.get("id") not in snapshot.get("holdout", {}).get("pairs", {})
+        or current != pair
+        or descriptor.get("model") != model
+        or descriptor.get("effort") != effort
+        or descriptor.get("timeout_seconds") != timeout
+        or not isinstance(settings, dict)
+        or settings.get("model") != model
+        or settings.get("effort") != effort
+        or settings.get("timeout_seconds") != timeout
+        or candidate_identity != snapshot.get("package")
+        or package_identities(candidate) != candidate_identity
+        or package_identities(public) != public_identity
+    ):
+        raise ValueError("holdout pair does not match the validated capability")
+
+
 def run_pair(
     pair: dict[str, Any],
     *,
@@ -121,8 +169,18 @@ def run_pair(
     model: str,
     effort: str,
     timeout: int,
+    authorization: Any = None,
     evaluator: Callable[..., dict[str, Any]] = corpus_engine.evaluate_case,
 ) -> dict[str, Any]:
+    _validate_pair_capability(
+        authorization,
+        pair=pair,
+        candidate=candidate,
+        public=public,
+        model=model,
+        effort=effort,
+        timeout=timeout,
+    )
     pair_output = output / pair["id"]
     pair_output.mkdir(parents=True, exist_ok=False)
     sealed = seal_mapping(pair["id"])
@@ -142,6 +200,8 @@ def run_pair(
             effort=effort,
             timeout=timeout,
             arm=arm,
+            authorization=authorization,
+            authorization_unit=pair["id"],
         )
     views = {alias: blind_view(raw[alias]) for alias in ALIASES}
     decision = freeze_blind_decision(views)
@@ -284,6 +344,7 @@ def run_holdouts(
             model=model,
             effort=effort,
             timeout=timeout,
+            authorization=authorization,
         )
         receipts.append(receipt)
         outcomes.append(receipt["outcome"])

@@ -18,7 +18,9 @@ not Skill runtime and must never be linked from `skills/happycodex/SKILL.md`.
   package identities, model, effort, timeout, arm, and complete invocation scope.
   The response must be the canonical affirmative line derived from the exact approval
   request digest; nonempty prose is not authority. The persisted historical-cost
-  envelope must equal the source-derived receipt exactly.
+  envelope must equal the source-derived receipt exactly. The validator mints one
+  immutable process-local capability, and every model-reaching corpus/holdout helper
+  must require and rebind that capability before fixture, mapping, or subprocess work.
 - `evaluation/results/current.json` is the sole active evidence ledger. Never promote
   `refresh_required` to `certified` from offline checks, and do not add historical
   result readers, aliases, migrations, or dual writes. Certification additionally
@@ -29,8 +31,12 @@ not Skill runtime and must never be linked from `skills/happycodex/SKILL.md`.
   refreshed or prior; prior coverage is valid only through a strictly older,
   digest-bound, fully validated 0.4 certified ledger whose snapshot-to-successor
   impact recomputes exactly. Corpus and holdout input schema validation must be shared
-  by impact planning and execution. Fresh Native review is an external
-  HappyCodex/ExecPlan administrative gate, not an evaluator schema or ledger receipt.
+  by impact planning and execution. A zero-live `receipt` or `isolated_install` gate
+  still requires strictly post-source, content-addressed `offline_summary` evidence:
+  receipt evidence binds the current artifact identity, and install evidence binds
+  the existing exact source/installed package receipt. Fresh Native review is an
+  external HappyCodex/ExecPlan administrative gate, not an evaluator schema or ledger
+  receipt.
   Its exact product scope excludes the sole mutable ExecPlan, and completion still
   requires `GO` with zero unresolved material blockers.
 - Store raw model events outside the repository. Track only sanitized summaries,
