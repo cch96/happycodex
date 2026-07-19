@@ -402,6 +402,31 @@ and artifact
 `live_authority_ready: true`. The archive was removed. No model call ran. A third
 immutable fresh review remains open.
 
+## Third review blocker and post-cert RED
+
+Fresh read-only reviewer `/root/cert_engine_final_repair_review` audited exact commit
+`7f7e6afa97298fbf1bd34d10216fa4738257ce71` and independently identified a critical
+remaining `NR-05` chronology false-green. The positive certification test commits a
+successor source while `current.json` still has `live_authority: null`, constructs
+authority only later in memory, then commits evidence and validates the final object.
+`core/ledger.py` proves source code/package identity but never reads the source
+commit's ledger, so it cannot prove exact authority was persisted before evidence or
+that the approved impact equals the source ledger's pending scope.
+
+Root then reproduced two downstream completion failures in the same state-machine
+path: tracked `results/evidence/*.json` is rejected as unclassified engine input after
+certification, and `verify` rehashes an already loaded certified ledger without the
+repository context required to resolve its evidence. The minimum closure also binds
+the impact token and authority digest into corpus/holdout run evidence, so reachable
+JSON cannot silently reuse an invocation lacking the persisted approval binding.
+
+The next focused RED is durable at 27 tests: two failures and two errors. It proves
+(1) authority created only after the source commit is accepted, (2) live dispatch does
+not pass the authority digest into the runner, (3) final evidence outputs poison the
+engine inventory, and (4) certified `verify` drops repository context. This remains a
+bounded offline control/receipt repair; package bytes and the already-pending live
+scope/cost do not change. A new immutable fresh review is required after closure.
+
 ## Validation envelope
 
 Candidate offline commands, exact live-run costs, required reruns, and review launch

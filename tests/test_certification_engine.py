@@ -160,6 +160,23 @@ class CertificationIdentityTests(unittest.TestCase):
             with self.assertRaisesRegex(IdentityError, "unclassified engine input"):
                 engine_inventory(clone)
 
+    def test_inventory_excludes_certification_evidence_outputs(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            clone = Path(raw) / "repo"
+            shutil.copytree(ROOT / "evaluation", clone / "evaluation")
+            baseline = engine_inventory(clone)
+            evidence = clone / "evaluation" / "results" / "evidence"
+            evidence.mkdir()
+            for name in (
+                "corpus_summary",
+                "holdout_run",
+                "holdout_summary",
+                "review",
+            ):
+                (evidence / f"{name}.json").write_text("{}\n", encoding="utf-8")
+
+            self.assertEqual(engine_inventory(clone), baseline)
+
     def test_release_metadata_is_artifact_only_but_skill_is_semantic(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             plugin = Path(raw) / "plugin"
@@ -412,6 +429,48 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
         authorized["live_authority"] = complete_live_authority(ledger, current, impact)
         validate_ledger(authorized)
         self.assertEqual(live.impact_token(authorized, current, impact), token)
+
+    def test_live_dispatch_binds_authority_digest_into_runner_args(self) -> None:
+        ledger, current, impact = live.load_state()
+        ledger["live_authority"] = complete_live_authority(ledger, current, impact)
+        parser = cli.build_parser()
+        args = parser.parse_args(
+            [
+                "corpus",
+                "--bind-impact",
+                live.impact_token(ledger, current, impact),
+                "--output",
+                "/tmp/happycodex-binding-test",
+            ]
+        )
+        with (
+            mock.patch.object(
+                live, "load_state", return_value=(ledger, current, impact)
+            ),
+            mock.patch.object(live.corpus_engine, "run_command", return_value=0),
+        ):
+            self.assertEqual(live.run_command(args, parser), 0)
+        self.assertEqual(
+            args.live_authority_sha256,
+            canonical_sha256(ledger["live_authority"]),
+        )
+
+    def test_verify_preserves_repo_context_for_certified_ledger_hash(self) -> None:
+        ledger = {"state": "certified", "live_authority": {}}
+        current = {"engine": {"manifest_sha256": "a" * 64}}
+        impact = {"gates": []}
+        inventory = {"manifest_sha256": "a" * 64}
+        with (
+            mock.patch.object(
+                cli.live, "load_state", return_value=(ledger, current, impact)
+            ),
+            mock.patch.object(cli, "engine_inventory", return_value=inventory),
+            mock.patch.object(cli, "canonical_sha256", return_value="b" * 64),
+            mock.patch.object(cli, "ledger_sha256", return_value="c" * 64) as digest,
+            mock.patch("builtins.print"),
+        ):
+            self.assertEqual(cli.verify_command(), 0)
+        digest.assert_called_once_with(ledger, repo=ROOT)
 
     def test_certified_state_requires_a_digest_bound_successor_receipt(self) -> None:
         ledger = load_ledger(ROOT / "evaluation" / "results" / "current.json")
@@ -754,7 +813,8 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                 "evidence": locators,
                 "live_authority_sha256": canonical_sha256(authority),
             }
-            validate_ledger(certified, repo=repo)
+            with self.assertRaisesRegex(ValueError, "source.*authority"):
+                validate_ledger(certified, repo=repo)
 
             forged = copy.deepcopy(certified)
             forged["certification"]["successor_source_commit"] = evidence_commit
