@@ -3,9 +3,9 @@
 Protocol: `HappyCodex/0.3`
 Invocation: `$happycodex:happycodex`
 Writer: Root only
-State: second authorized corpus stopped on a confirmed stale-positive
-`review-admin-cycle` fixture; evaluator-fixture repair authorization is required
-before any semantic edit or new live-cost request
+State: minimum `review-admin-cycle` fixture repair authorized; amendment freeze is
+the next boundary before focused RED, repair, offline validation, and a new exact
+live-cost request
 Resume: read this entire file, the completed 0.4 certification-engine and main-
 integration ExecPlans, then reconcile Goal, Git, tests, evidence, installations,
 remote refs, and agents before any write, review, live call, or completion claim.
@@ -401,6 +401,49 @@ authorized repair is offline GREEN and a fresh snapshot/impact/public binding is
 frozen. No fixture, oracle, runner, evaluator, holdout, or product edit and no model
 rerun begins before that user decision.
 
+## Authorized review-admin fixture repair amendment
+
+Source: `current-task/user/minimum-review-admin-cycle-fixture-repair`. Verbatim UTF-8
+text plus final LF has SHA-256
+`2efda00e518502a45106e872f39de86e996be9e7c65acf8c0e12bc22ce8f5c0c`:
+
+```text
+批准最小 review-admin-cycle fixture 修复，并在离线 GREEN 后生成新的精确成本授权请求
+```
+
+This explicitly authorizes one semantic correction in only the positive
+`review-admin-cycle` fixture: insert a docs-only prelaunch revision between the
+unchanged product candidate and the terminal administrative closure. That revision
+must persist the exact frozen-CLI `codex exec review` command, the authoritative
+source candidate revision/tree/product-manifest identity, the planned neutral review
+ref namespace, and the durable result destination before review starts. The existing
+terminal projection remains on the later closure entry, so fixture construction must
+create its synthetic refs and output only after the prelaunch source revision exists.
+One focused structural test may prove the six-revision ordering, exact prelaunch
+fields, terminal source/projection mapping, and unchanged closure product manifest.
+
+The amendment also authorizes the mechanically required source-ledger transition to
+the new semantic case identity with null live authority and the same complete pending
+14-case/three-pair scope, plus this ExecPlan. It does not authorize changing the
+Skill, positive oracle expectation, matcher, schema, corpus/holdout runner or
+evaluator code, any other case, holdout input, plugin or marketplace manifest,
+product package, model, effort, timeout, retry/resume protocol, review protocol, or
+release metadata. It does not waive `HC-REV-PRELAUNCH-1`, accept the failed receipt,
+or authorize any model call.
+
+Changing this fixture retires engine manifest `f1ce49ef...e6423`, snapshot
+`91f12352...78b14`, impact token `be79dcd7...62c5b`, authority
+`a41eda6b...8775`, authority-bearing ledger `ec4dd7e3...ca75`, request
+`3a8c390a...06f5e`, and every partial/failed terminal from the second attempt for
+certification. Candidate package semantic/artifact identities remain
+`c5030e99...c05` / `0c83dbc6...934`. After the focused RED/GREEN and complete
+offline envelope, reconstruct the frozen public-0.2 package, generate and freeze a
+fresh exact request, and stop. The minimum executable live refresh remains a complete
+sixteen-call corpus plus adaptive four-to-six-call holdout: 20 to 22 new calls,
+currently estimated at 585,209 to 637,027 combined tokens and 2,911.874 to 3,187.085
+seconds, followed by fresh exact-product review. Only a later canonical response for
+the new request may reopen live execution.
+
 ## Design saturation and frozen release sequence
 
 Fresh baseline-only challenger `/root/release_boundary_challenger_b` inspected only
@@ -487,7 +530,7 @@ review identity, public proof, rollback, and final GitHub delivery simultaneousl
 | R-01 | premise | Current remote `main`, local baseline, package, engine, snapshot, ledger, and public benchmark identities are independently reproduced before release work. | Fetch/readback plus offline identity commands; drift remains open. | verified |
 | R-02 | outcome | The exact current impact and historical-cost envelope are persisted, and no live helper runs without the canonical invocation-bound response. | Authority validation plus command audit; any early call falsifies. | verified for repaired authority |
 | R-03 | outcome | Exactly the authorized corpus and adaptive holdout scope completes and produces sanitized Git-reachable evidence that makes `current.json` validly `certified`. | CLI receipts, ledger validation, evidence ancestry, exact cost and scope reconciliation. | blocked by `HC-REV-PRELAUNCH-1`; repaired authority consumed |
-| R-04 | preservation | The repair changes only the explicitly authorized evaluator-case prompt and focused structural test; Skill, manifest behavior, fixture/oracle/matcher/schema, runner/evaluator code, and holdout semantics remain unchanged. | Exact source diff; any wider edit stops for user decision. | prompt repair verified; proposed fixture repair not authorized |
+| R-04 | preservation | Repairs change only the explicitly authorized evaluator-case prompt or fixture, focused structural tests, and mechanically required source ledger; Skill, manifest behavior, oracle/matcher/schema, runner/evaluator code, and holdout semantics remain unchanged. | Exact source diff; any wider edit stops for user decision. | fixture repair authorized; implementation pending |
 | R-05 | outcome | Release edits are limited to strict-semver 0.4 version/cachebuster and accurate change-note/install metadata. | Product diff inventory and official validators. | open |
 | R-06 | outcome | Full offline suite, official validators, Ruff, CLI/JSON/diff/package hygiene, and fresh exact-product review close with `GO` and no material blocker. | Exact receipts and complete review coverage. | open |
 | R-07 | outcome | A clean isolated public marketplace install/invocation reports the exact 0.4 version and release identity. | Fresh-home install plus invocation receipt; source/cache mismatch falsifies. | open |
@@ -511,21 +554,24 @@ review identity, public proof, rollback, and final GitHub delivery simultaneousl
 4. Closed on 2026-07-19: the user returned the exact repaired canonical line and every
    binding reproduced before persistence. Commit the authority-bearing source before
    the first model call; any later drift reopens this gate.
-5. Open: `review-admin-cycle` exposed a stale-positive fixture premise. No evaluator
-   fixture/test edit may begin until the user explicitly authorizes the minimum repair
-   above. After an offline-GREEN repair, freeze a fresh snapshot, impact, public
-   binding, and exact cost request; the consumed authority cannot be reused.
+5. Closed: `review-admin-cycle` exposed a stale-positive fixture premise, and the user
+   explicitly authorized the minimum fixture/test repair recorded above.
+6. Open: freeze this amendment separately, observe focused RED, make only the
+   authorized fixture/test and null-authority ledger transition, and run the complete
+   offline envelope. Then freeze a fresh snapshot, impact, public binding, and exact
+   cost request; the consumed authority cannot be reused and no live call may start.
 
 ## Checkpoint
 
-- Milestone: the second authorized corpus stopped at the confirmed
-  `HC-REV-PRELAUNCH-1` stale-positive fixture. The failure receipt is durable; user
-  authorization for the minimum fixture repair is the next gate.
-- Product writes: only this administrative ExecPlan receipt is allowed before that
-  decision. Skill, cases, tests, oracle, runner/evaluator, manifest, ledger, holdouts,
-  and release metadata remain frozen.
-- Owned path: this ExecPlan only; commit the receipt and restore a clean worktree.
-- Missing facts: repair authorization, repaired offline evidence, a new exact live-cost
+- Milestone: the minimum fixture repair is authorized. Commit this amendment freeze,
+  then observe focused RED before any fixture or ledger edit.
+- Product writes after the freeze: only `evaluation/cases/review-admin-cycle.json`,
+  its focused assertions in `tests/test_evaluation.py`, the mechanical
+  `evaluation/results/current.json` transition, and this ExecPlan. Everything else
+  remains frozen.
+- Owned path until the amendment-freeze commit: this ExecPlan only; worktree must then
+  be clean before RED.
+- Missing facts: focused RED/GREEN, repaired offline evidence, a new exact live-cost
   authority, complete corpus/holdout evidence, and every remaining review/install/
   activation/rollback/publication receipt.
 
