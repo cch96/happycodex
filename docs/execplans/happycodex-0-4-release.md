@@ -3,9 +3,8 @@
 Protocol: `HappyCodex/0.3`
 Invocation: `$happycodex:happycodex`
 Writer: Root only
-State: authorized `review-admin-cycle` fixture repair is offline GREEN; commit the
-semantic source boundary, then reconstruct public 0.2 and freeze a new exact
-live-cost request
+State: post-fixture source is offline GREEN and the new exact live-cost request is
+frozen below; canonical user approval is required before any model call
 Resume: read this entire file, the completed 0.4 certification-engine and main-
 integration ExecPlans, then reconcile Goal, Git, tests, evidence, installations,
 remote refs, and agents before any write, review, live call, or completion claim.
@@ -506,6 +505,52 @@ Skill `0f222349...6b71`, plugin manifest `b1d4e9c0...c213`, corpus runner
 inputs/code, and every product-package byte are unchanged. No model, holdout, review,
 install, activation, push, tag, PR, merge, or release action ran.
 
+## Post-fixture exact live-cost request
+
+The offline-GREEN source boundary is
+`0de16d103075116dd09f498710c707134e956642`, tree
+`9d14f21ee48360a45099c928bc4383192b50452a`. A fresh archive of frozen public commit
+`3b9c11fac1f97df75263e0bfc6421c575e04e8b2` at isolated path
+`/tmp/happycodex-0.4-reviewadmin-public.J2xiVb` reproduced public semantic/artifact
+`fb3cb419795a6edcb284695769b5487b1f23ae46286c5fceba8042fcb41f9ce4` /
+`77a0b2b8f7f6280d6ed32458fc61ca110f7138b5b6c17ad55d333a023dfa8c89`.
+The archive is retained read-only for the authorized holdout only; its commit and
+identities, not the temporary path, are authoritative.
+
+Under explicitly frozen Codex CLI `0.144.4`, the new request binds exactly:
+
+- engine manifest
+  `731ee44a274573bdf6731bdbe75a068ea750b0994a120764e21d6cdfa3ff254c`;
+- ledger `d84db540b1d8352c99200d1ae58544dd8b752c7defd0c06898ac2ef81dfb133c`;
+- snapshot `f59799b321b1e367b62f32f52352aba317765acd45523bcceb7152106f57248f`;
+- impact token
+  `dc1ee4d0c6227d3aea04dbd06848ae3baefcee083b00b9974aa3f4b0cbf914a4`;
+- unchanged candidate semantic/artifact `c5030e99...c05` / `0c83dbc6...934`;
+- corpus invocation: all ordered 14 cases, candidate arm, `gpt-5.6-sol`, high,
+  300 seconds, 16 total model calls;
+- holdout invocation: all ordered three pairs, the pinned public identities above,
+  the same model/effort/timeout, and the adaptive four-to-six-call policy.
+
+The exact approval-request SHA-256 is
+`eb645a9f8374499d7e60953dce6f15ea8ff001226b963c88f2ccd5dd2227e416`.
+The canonical response including final LF has SHA-256
+`edc33c7a0e07eaa7e1b54441a67225ea0f650d6de5e968ceec43220c2c086e3e`.
+The source ledger has null authority. The only valid grant, with no surrounding
+prose, is:
+
+```text
+APPROVE HAPPYCODEX LIVE COST eb645a9f8374499d7e60953dce6f15ea8ff001226b963c88f2ccd5dd2227e416
+```
+
+This authorizes one complete post-fixture corpus plus adaptive holdout attempt only.
+The new exposure is 20 to 22 calls, 585,209 to 637,027 estimated combined tokens,
+and 2,911.874 to 3,187.085 estimated seconds. It is additional to every terminal or
+interrupted call from both retired attempts. Earlier approvals, a paraphrase, the
+impact token, Goal continuation, or the repair authorization grant nothing for this
+request. On receipt, re-read a clean source/public binding, persist the exact authority
+in `current.json`, commit that authority-bearing source before the first model call,
+then run the official complete corpus once and stop on the first contract failure.
+
 ## Design saturation and frozen release sequence
 
 Fresh baseline-only challenger `/root/release_boundary_challenger_b` inspected only
@@ -591,7 +636,7 @@ review identity, public proof, rollback, and final GitHub delivery simultaneousl
 | --- | --- | --- | --- | --- |
 | R-01 | premise | Current remote `main`, local baseline, package, engine, snapshot, ledger, and public benchmark identities are independently reproduced before release work. | Fetch/readback plus offline identity commands; drift remains open. | verified |
 | R-02 | outcome | The exact current impact and historical-cost envelope are persisted, and no live helper runs without the canonical invocation-bound response. | Authority validation plus command audit; any early call falsifies. | verified for repaired authority |
-| R-03 | outcome | Exactly the authorized corpus and adaptive holdout scope completes and produces sanitized Git-reachable evidence that makes `current.json` validly `certified`. | CLI receipts, ledger validation, evidence ancestry, exact cost and scope reconciliation. | blocked by `HC-REV-PRELAUNCH-1`; repaired authority consumed |
+| R-03 | outcome | Exactly the authorized corpus and adaptive holdout scope completes and produces sanitized Git-reachable evidence that makes `current.json` validly `certified`. | CLI receipts, ledger validation, evidence ancestry, exact cost and scope reconciliation. | post-fixture request frozen; canonical approval pending |
 | R-04 | preservation | Repairs change only the explicitly authorized evaluator-case prompt or fixture, focused structural tests, and mechanically required source ledger; Skill, manifest behavior, oracle/matcher/schema, runner/evaluator code, and holdout semantics remain unchanged. | Exact source diff; any wider edit stops for user decision. | verified for both repairs |
 | R-05 | outcome | Release edits are limited to strict-semver 0.4 version/cachebuster and accurate change-note/install metadata. | Product diff inventory and official validators. | open |
 | R-06 | outcome | Full offline suite, official validators, Ruff, CLI/JSON/diff/package hygiene, and fresh exact-product review close with `GO` and no material blocker. | Exact receipts and complete review coverage. | open |
@@ -618,25 +663,22 @@ review identity, public proof, rollback, and final GitHub delivery simultaneousl
    the first model call; any later drift reopens this gate.
 5. Closed: `review-admin-cycle` exposed a stale-positive fixture premise, and the user
    explicitly authorized the minimum fixture/test repair recorded above.
-6. Closed through offline GREEN: the amendment was frozen separately, focused RED was
-   observed, and only the authorized fixture/test plus null-authority ledger changed.
-   Commit this source boundary, then freeze a fresh snapshot, impact, public binding,
-   and exact cost request; the consumed authority cannot be reused and no live call
-   may start.
+6. Closed: the amendment was frozen separately, focused RED was observed, only the
+   authorized fixture/test plus null-authority ledger changed, the complete offline
+   envelope passed, and the semantic source boundary was committed.
+7. Open: the fresh snapshot, impact, public binding, and exact cost request are frozen
+   above. Do not persist authority or execute any live helper until the user returns
+   the exact canonical line for request `eb645a9f...e416`.
 
 ## Checkpoint
 
-- Milestone: the authorized fixture repair and source ledger are offline GREEN.
-  Commit this semantic boundary, then reconstruct frozen public 0.2 and generate the
-  new exact request from the clean committed source.
-- Product writes before request freeze: only this repair set and ExecPlan closure are
-  allowed. After the semantic commit, only the ExecPlan request receipt may change;
-  all evaluator, ledger, package, and release bytes remain frozen.
-- Owned paths until the semantic commit: the repaired case, focused test, source
-  ledger, and this ExecPlan; worktree must then be clean.
-- Missing facts: committed source identity, fresh public binding, a new exact
-  live-cost authority, complete corpus/holdout evidence, and every remaining review/
-  install/activation/rollback/publication receipt.
+- Milestone: the post-fixture exact request is frozen. Commit this request-only
+  ExecPlan boundary, restore a clean worktree, and stop for the canonical response.
+- Product writes before approval: only this request receipt. After its commit, all
+  repository bytes remain frozen until exact authority is received and revalidated.
+- Owned path until request freeze: this ExecPlan only; no model call has started.
+- Missing facts: new exact live-cost authority, complete corpus/holdout evidence, and
+  every remaining review/install/activation/rollback/publication receipt.
 
 ## Retrospective
 
