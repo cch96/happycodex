@@ -3,7 +3,7 @@
 Protocol: `HappyCodex/0.3`
 Invocation: `$happycodex:happycodex`
 Writer: Root only
-State: simplification RED frozen; coherent implementation pending
+State: immutable simplification candidate and preflight GREEN; fresh review pending
 Resume: read this entire ExecPlan and reconcile Goal, Native Plan, Git, tests,
 receipts, worktrees, and agents before any write, review, or completion claim.
 
@@ -1357,6 +1357,92 @@ network, Fable, install, or publication action changed or ran. The next write is
 single coherent implementation; splitting these relationships into independent
 patches would recreate the contradictory intermediate states this refactor removes.
 
+## Simplification coherent GREEN
+
+The coherent implementation now matches the frozen planner/executor/ledger design.
+`evaluation.live` is the only live dispatcher and mints a non-serializable in-process
+capability only after exact persisted-authority validation. Corpus and holdout leaf
+commands retain list/dry-run behavior but reject live execution without that
+capability; each leaf rebinds the exact invocation settings and package identities
+before a runner can start. The adaptive holdout scope is always the full manifest,
+while its receipt preserves manifest execution order. Native review is removed from
+the evaluator schema and remains the external exact-product HappyCodex gate recorded
+here. Certification derives impact from the source ledger, requires authority only
+for nonzero live scope, and accepts a null-authority zero-live transition with exact
+prior coverage. Shared completed-execution quality rejects timeout/nonzero
+infrastructure failures before either arm enters comparison. Historical estimates now
+carry the frozen baseline, corpus, selected-receipt, holdout-run/summary, and three
+pair-receipt identities.
+
+The exact six-test RED command is GREEN at 6/6 in 2.368 seconds. The final cumulative
+offline suite is GREEN at 120/120 in 7.055 seconds. Both official Skill and plugin
+validators pass; Ruff check and format-check over 19 files pass; CLI verify, impact,
+corpus dry-run, and holdout dry-run pass; all 21 tracked JSON documents parse; and
+baseline-range/working-tree diff hygiene passes. Root's post-GREEN diff audit also
+closed four second-order inconsistencies before freeze: adaptive authority pairs are
+compared canonically while run receipts retain manifest order; corpus capability
+execution rechecks the package identity; a later 0.4 full rerun need not fabricate
+prior coverage merely because its lineage is incremental; and the invocation
+capability cannot be pickled into a reusable receipt.
+
+Current identities are engine
+`e9bc0470dfa4abeecbd9f8fe63aea2bd9cd54e1b9ef7aa5ffb78e925d868b0de`,
+snapshot `b27fa24202b3ab7f3d0789e99698386a12963f661af0ebc73c683cb97bcb893a`,
+ledger `582a9cd3051d7971bf1b957d626670a156421098b9d942c7d6addbbac5bc7ca7`,
+and impact token
+`eae29a5acef7219d1ac6b1813032aaadfed8dd6e7ee1d762b194ce8420f4afea`.
+The shipped package remains semantic
+`c5030e99dd7cd1681148c069775671c5720bb8dd366930ff90f61cbc54cdfc05`
+and artifact
+`0c83dbc694cb98bf811dd2d1c199b5d2aa734c484476a638884e775289c1d934`;
+the four shipped-package paths are byte-identical to the baseline. Frozen public
+commit `3b9c11fac1f97df75263e0bfc6421c575e04e8b2` reproduces semantic
+`fb3cb419795a6edcb284695769b5487b1f23ae46286c5fceba8042fcb41f9ce4`
+and artifact
+`77a0b2b8f7f6280d6ed32458fc61ca110f7138b5b6c17ad55d333a023dfa8c89`;
+public-bound impact is authority-ready at 20 to 22 calls. The coherent diff is net
+negative at 342 added and 425 deleted lines. Live authority remains null. No model,
+live corpus, live holdout, network, Fable, install, plugin mutation, push, or
+publication ran.
+
+## Simplification candidate and final review launch
+
+The coherent semantic candidate is
+`24ace04dd2ffc194014511434171fd3ad045feea`, tree
+`a5031a243f46a67f76dbe76528c4d22615ae0b0b`, over immutable baseline
+`2836d7363db364807a2ec384dc1b6c2cc13df95e`. Its 49-entry product projection,
+computed as SHA-256 over the newline-terminated `git ls-tree -r` manifest after
+excluding only this ExecPlan, is
+`5f186f09b2268d4266d48956863a98d2f9d85597abfb0b356087d33e2cd0d54e`.
+The baseline-to-candidate product diff has 46 `--no-renames` units and raw manifest
+SHA-256 `c6d4eb51958e2bee11be00acb7848374e6f017f28d83a3e40f4b4d6032a08198`.
+The semantic commit carries the mandatory ExecPlan trailer; this launch record is the
+only uncommitted administrative delta.
+
+A clean detached local clone of that exact candidate reproduced 120/120 tests in
+6.896 seconds, both official validators, Ruff check and 19-file format-check, CLI
+verify/impact and both dry-runs, all 21 JSON documents, baseline-range diff hygiene,
+shipped-package preservation, frozen public reconstruction, public-bound impact, and
+a clean final status. Engine, snapshot, ledger, impact token, candidate package,
+public package, null authority, 20-to-22 calls, and two public-bound invocation
+descriptors exactly match the preceding GREEN receipt. The detached clone and public
+archive were removed. No model, live evaluation, network, Fable, installation,
+activation, plugin/marketplace mutation, Goal mutation, push, publication, or Git ref
+change ran.
+
+The HappyCodex Skill now requires one new `fork_turns=none` read-only reviewer. Its
+first phase receives only the immutable baseline and the verbatim operative request
+to freeze candidate-independent obligations. Only after that durable freeze may it
+receive the exact semantic candidate, product projection, diff manifest, and this
+review brief: audit every product diff unit; reproduce all six RED/GREEN relationships
+and Root's four post-GREEN consistency checks; verify the simplified external review
+boundary, source-ledger/zero-live state machine, completed-execution semantics, cost
+provenance, package/public preservation, and exact offline envelope; then hunt any
+new completion blocker and give `GO` or `NOT-YET` plus an explicit over-optimization
+verdict. The reviewer may use only removed temporary clones and offline tools. Source
+writes, model/live evaluation, network, Fable, install, activation, plugin mutation,
+Goal actions, ref changes, push, and publication are forbidden.
+
 ## Validation envelope
 
 Candidate offline commands, exact live-run costs, required reruns, and review launch
@@ -1366,24 +1452,23 @@ publication requires a later explicit user request.
 
 ## Checkpoint
 
-- Milestone: the tenth fresh exact review is complete with terminal `NOT-YET`, five
-  confirmed architectural blockers, and an explicit `YES` over-optimization verdict;
-  the authorized simplification design and evidence invalidation are now frozen.
+- Milestone: semantic candidate `24ace04` and its clean detached preflight are GREEN;
+  all five architectural contradictions and historical provenance are repaired, and
+  only the fresh exact-product review remains open in the offline phase.
 - Goal: active `019f780e-925e-7193-8bd2-0a04d6efe31e`; its objective is the
   Normalized Outcome plus all frozen preservation, exclusion, offline validation, and
   live-cost gates in this document.
 - RED/GREEN: simplification RED `b239487` is durable at six tests, five failures and
-  two errors; the preceding 31/31 focused and 116/116 cumulative GREEN remain only the
-  pre-refactor comparison point.
-- Next: implement the single capability-gated executor, external review gate,
-  zero-live transition, complete adaptive scope, shared holdout status rule, and exact
-  historical provenance as one coherent GREEN.
-- Product/support writes: evaluator/test/policy support paths reopen after this freeze;
+  two errors; semantic candidate `24ace04` is GREEN at 6/6 focused and 120/120
+  cumulative tests with both official validators and the complete offline envelope.
+- Next: freeze candidate-independent obligations, disclose `24ace04`, and complete the
+  fresh isolated exact-product review; repair only a confirmed in-contract blocker.
+- Product/support writes: semantic candidate paths are frozen during review;
   shipped-package paths remain closed.
 - Owned paths: `evaluation/`, `tests/`, `AGENTS.md`, and this ExecPlan; shipped-package
   paths remain closed.
-- Missing facts: new RED/GREEN identities, fresh exact-product review receipt, explicit
-  user cost decision, and any later live successor receipts.
+- Missing facts: fresh exact-product review receipt, explicit user cost decision, and
+  any later live successor receipts.
 
 ## Retrospective
 
