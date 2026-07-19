@@ -74,6 +74,7 @@
       "local-documentation-control"
     ],
     "reasons": [
+      "authority_boundary_interrupted",
       "engine_generation_changed"
     ],
     "review": true

@@ -3,8 +3,8 @@
 Protocol: `HappyCodex/0.3`
 Invocation: `$happycodex:happycodex`
 Writer: Root only
-State: post-fixture source is offline GREEN and the new exact live-cost request is
-frozen below; canonical user approval is required before any model call
+State: the post-fixture grant was consumed by a precommit test-dispatch incident;
+authority is null again and the exact retry request below requires canonical approval
 Resume: read this entire file, the completed 0.4 certification-engine and main-
 integration ExecPlans, then reconcile Goal, Git, tests, evidence, installations,
 remote refs, and agents before any write, review, live call, or completion claim.
@@ -551,6 +551,86 @@ request. On receipt, re-read a clean source/public binding, persist the exact au
 in `current.json`, commit that authority-bearing source before the first model call,
 then run the official complete corpus once and stop on the first contract failure.
 
+On 2026-07-19 the user returned the canonical response verbatim. Its exact UTF-8
+bytes including final LF hash to
+`edc33c7a0e07eaa7e1b54441a67225ea0f650d6de5e968ceec43220c2c086e3e`, and its
+validated source locator was
+`current-task/user/happycodex-0.4-postfixture-release-cost`. A read using the desktop
+default Codex CLI `0.144.6` produced different toolchain-only snapshot/impact
+identities and was rejected before any write or model call. Explicitly selecting the
+frozen Codex CLI `0.144.4` reproduced snapshot `f59799...248f`, impact token
+`dc1ee4...14a4`, request `eb645a...e416`, both public identities, and the complete
+20-to-22-call scope exactly. The temporarily persisted authority SHA-256 was
+`0f07b28941bec38afa18acc941cf3975b3251c279787f7429b4e0ded2240712b`; its ledger
+SHA-256 was `52bbf1dd83692ea925207609062fa8472171d6aaf9efafaf57c66456f023e38e`.
+
+### Precommit test-dispatch incident
+
+Before that authority-bearing source was committed, Root incorrectly ran the complete
+unit discovery as a post-persistence check, then started a second copy after the first
+appeared silent. `test_impact_token_cannot_self_authorize_a_live_command` is safely
+offline only while the repository ledger has null authority; with exact authority
+present it reached `run_authorized` and launched a complete corpus in each process.
+This was an operational sequencing error, not a Skill, case, oracle, runner, or
+evaluator change. Root terminated only the exact two test/corpus process trees as soon
+as the live children were observed. No holdout, review, install, Git ref, or product
+write ran.
+
+Both copies completed `authorized-rebaseline` GREEN before termination:
+
+- `/tmp/tmp3gzhn1wt/results/authorized-rebaseline/metadata.json`, SHA-256
+  `f2afd52aadb4a4511c27ac90d31c58a7d5b2324ae707b7ef0fbe3673fee22f26`:
+  97,729 input plus 3,718 output tokens, 93.707 seconds;
+- `/tmp/tmpqo7yskk9/results/authorized-rebaseline/metadata.json`, SHA-256
+  `bd1c377a464a96a49ca1ef3e11bc6d93c4b756e4be55d023071d7d40ae130f61`:
+  82,424 input plus 3,317 output tokens, 87.594 seconds.
+
+Thus the two terminal calls consumed 187,188 combined tokens and 181.301 seconds.
+Each process then started one `boundary-cutover` call. Both were terminated without a
+terminal usage receipt; their retained external fixture-directory manifests hash to
+`259428f0c65055450bfb67f77dfddff71d9641ec78e84b998001881fd51fb8ac` and
+`b4793978a565a0f37a6805b4461ced35836f4ad21bd530699dbfb8d1e0466e66`.
+There were therefore four started calls: two terminal GREEN and two interrupted with
+unknown billed usage. The duplicate and interrupted scope, plus the missing pre-call
+commit, consumes and invalidates request `eb645a...e416`; none of its outputs are
+certification evidence and the grant cannot authorize a continuation or rerun.
+
+The ledger is mechanically returned to null authority and adds sorted pending reason
+`authority_boundary_interrupted`; product, Skill, fixture, oracle, runner, evaluator,
+holdout, and snapshot bytes are unchanged. Under frozen Codex CLI `0.144.4`, the new
+ledger SHA-256 is `8c65d6c953ad5db5a4fd92a79db170fe1295f24365fdf6e86ae59e5772978785`,
+snapshot remains `f59799...248f`, and impact token is
+`f6f6526b018075e4601b406580f7a3101771eeba05a5879bd4ec1c1fc54bf821`.
+The next full corpus plus adaptive holdout still requires 20 to 22 new calls,
+585,209 to 637,027 estimated combined tokens, and 2,911.874 to 3,187.085 estimated
+seconds, additional to all four calls above.
+
+The new approval-request SHA-256 is
+`daa751b4094248da1ef6e709b7eb460a6e1af4fa3410650af380b5de288ac8de`.
+The canonical response including final LF has SHA-256
+`fd26e659c300d5e8029e278564d96289003962407d326130f57780011752671f`.
+Its authority source will be
+`current-task/user/happycodex-0.4-postfixture-retry-cost`. The only valid grant, with
+no surrounding prose, is:
+
+```text
+APPROVE HAPPYCODEX LIVE COST daa751b4094248da1ef6e709b7eb460a6e1af4fa3410650af380b5de288ac8de
+```
+
+Freeze and commit this null-authority incident/request boundary. Do not persist new
+authority or run any model-reaching command until that exact response is received.
+After receipt, persist and commit authority first; do not run unit discovery while
+authority is non-null, because the complete offline suite is already required and
+recorded before the authority transition.
+
+The post-incident null-authority envelope is offline GREEN: 123/123 tests passed in
+7.340 seconds (including the expected parser rejection `live authority is not
+persisted` at the live-dispatch negative test); both official Skill/plugin validators
+passed; Ruff check and format-check passed over 19 Python files; frozen-toolchain CLI
+verify, exact public-bound impact, corpus dry-run, and holdout dry-run passed; all
+tracked JSON parsed; diff hygiene passed; and no evaluator child remained live. No
+model call occurred during this null-authority validation.
+
 ## Design saturation and frozen release sequence
 
 Fresh baseline-only challenger `/root/release_boundary_challenger_b` inspected only
@@ -635,8 +715,8 @@ review identity, public proof, rollback, and final GitHub delivery simultaneousl
 | ID | Type | Claim | Closure / falsifier | State |
 | --- | --- | --- | --- | --- |
 | R-01 | premise | Current remote `main`, local baseline, package, engine, snapshot, ledger, and public benchmark identities are independently reproduced before release work. | Fetch/readback plus offline identity commands; drift remains open. | verified |
-| R-02 | outcome | The exact current impact and historical-cost envelope are persisted, and no live helper runs without the canonical invocation-bound response. | Authority validation plus command audit; any early call falsifies. | verified for repaired authority |
-| R-03 | outcome | Exactly the authorized corpus and adaptive holdout scope completes and produces sanitized Git-reachable evidence that makes `current.json` validly `certified`. | CLI receipts, ledger validation, evidence ancestry, exact cost and scope reconciliation. | post-fixture request frozen; canonical approval pending |
+| R-02 | outcome | The exact current impact and historical-cost envelope are persisted, and no live helper runs without the canonical invocation-bound response. | Authority validation plus command audit; any early call falsifies. | prior grant consumed by precommit duplicate dispatch; retry request frozen |
+| R-03 | outcome | Exactly the authorized corpus and adaptive holdout scope completes and produces sanitized Git-reachable evidence that makes `current.json` validly `certified`. | CLI receipts, ledger validation, evidence ancestry, exact cost and scope reconciliation. | retry authority pending |
 | R-04 | preservation | Repairs change only the explicitly authorized evaluator-case prompt or fixture, focused structural tests, and mechanically required source ledger; Skill, manifest behavior, oracle/matcher/schema, runner/evaluator code, and holdout semantics remain unchanged. | Exact source diff; any wider edit stops for user decision. | verified for both repairs |
 | R-05 | outcome | Release edits are limited to strict-semver 0.4 version/cachebuster and accurate change-note/install metadata. | Product diff inventory and official validators. | open |
 | R-06 | outcome | Full offline suite, official validators, Ruff, CLI/JSON/diff/package hygiene, and fresh exact-product review close with `GO` and no material blocker. | Exact receipts and complete review coverage. | open |
@@ -666,19 +746,25 @@ review identity, public proof, rollback, and final GitHub delivery simultaneousl
 6. Closed: the amendment was frozen separately, focused RED was observed, only the
    authorized fixture/test plus null-authority ledger changed, the complete offline
    envelope passed, and the semantic source boundary was committed.
-7. Open: the fresh snapshot, impact, public binding, and exact cost request are frozen
-   above. Do not persist authority or execute any live helper until the user returns
-   the exact canonical line for request `eb645a9f...e416`.
+7. Failed closed on 2026-07-19: the user returned the exact canonical line for
+   `eb645a9f...e416`, but two post-persistence unit-discovery processes reached live
+   dispatch before the authority source was committed. Four calls started, so the
+   grant is consumed and cannot be reused; no resulting output is evidence.
+8. Open: commit the null-authority incident plus exact retry request. Do not persist
+   authority or execute any model-reaching command until the user returns the exact
+   canonical line for `daa751b4...c8de`.
 
 ## Checkpoint
 
-- Milestone: the post-fixture exact request is frozen. Commit this request-only
-  ExecPlan boundary, restore a clean worktree, and stop for the canonical response.
-- Product writes before approval: only this request receipt. After its commit, all
-  repository bytes remain frozen until exact authority is received and revalidated.
-- Owned path until request freeze: this ExecPlan only; no model call has started.
-- Missing facts: new exact live-cost authority, complete corpus/holdout evidence, and
-  every remaining review/install/activation/rollback/publication receipt.
+- Milestone: old authority is consumed and null. Validate offline, commit the
+  incident/new-request boundary, restore a clean worktree, and stop for exact retry
+  authority `daa751b4...c8de`.
+- Product writes: none. Current changes are the mechanical null-authority pending
+  transition and this ExecPlan only. No additional model-reaching command is allowed.
+- Retained raw paths: the two completed metadata roots and two interrupted fixture
+  roots above remain external and are not certification evidence.
+- Missing facts: retry authority, complete corpus/holdout evidence, and every
+  remaining review/install/activation/rollback/publication receipt.
 
 ## Retrospective
 
