@@ -559,6 +559,36 @@ fails before the forged branch is reached because certification raises
 the intended RED for the accepted fifth-review blocker. An earlier class-name typo
 only produced unittest discovery error and is not product evidence.
 
+## Fifth repair green
+
+Certification now treats `passed` as arm evidence instead of an all-pass corpus
+assumption. Candidate/public booleans mechanically derive `regression`, `better`, or
+`equal`; the declared receipt must match. A failed arm must carry a positive
+oracle-failure count and a non-empty valid digest, while a successful arm retains the
+exact no-timeout/empty-failure contract. The authentic `better` and forged-label
+regressions both pass after this bounded change.
+
+The complete offline envelope is green: the focused certification module passes
+30/30 in 4.718 seconds and the cumulative suite passes 114/114 in 6.070 seconds. Both
+official validators, Ruff check and format-check, verify/impact, both dry-runs, all 21
+JSON documents, working-tree diff hygiene, and package preservation pass. Current
+identities are engine
+`53b83e96fd0a3849eb53479123693403fc88e3af077ae72e2287765f2f635905`,
+snapshot `f4c6f3ec375f5255afb6e4bab2a0311d06338b95ef75fa2443f45c0ff71379e9`,
+ledger `dd395cd99221fda3415a5d82b819cf05dba1ccf533f1fd1c8dac0fdc9ea34296`,
+and impact token
+`56d3a366ae5ce57e2b58e02abfe1aab0ed03e8a24578bb6ae6f3a7e881d1b0ac`.
+The shipped package remains
+`0c83dbc694cb98bf811dd2d1c199b5d2aa734c484476a638884e775289c1d934`.
+An isolated archive of frozen public commit
+`3b9c11fac1f97df75263e0bfc6421c575e04e8b2` reproduces semantic
+`fb3cb419795a6edcb284695769b5487b1f23ae46286c5fceba8042fcb41f9ce4`
+and artifact
+`77a0b2b8f7f6280d6ed32458fc61ca110f7138b5b6c17ad55d333a023dfa8c89`;
+public-bound impact is ready and the archive was removed. Live authority remains
+null, the exact cost is unchanged, and no model, Fable, network, install, or release
+action ran.
+
 ## Validation envelope
 
 Candidate offline commands, exact live-run costs, required reruns, and review launch
@@ -568,22 +598,22 @@ publication requires a later explicit user request.
 
 ## Checkpoint
 
-- Milestone: fourth fresh review `NOT-YET` findings `NR-07` through `NR-10` are
-  repaired in the current bounded candidate; exact repair commit and fifth fresh
-  review remain open.
+- Milestone: the fifth fresh review's single holdout-outcome blocker is repaired and
+  the complete bounded offline envelope is green; the exact repair commit and sixth
+  fresh review remain open.
 - Goal: active `019f780e-925e-7193-8bd2-0a04d6efe31e`; its objective is the
   Normalized Outcome plus all frozen preservation, exclusion, offline validation, and
   live-cost gates in this document.
-- RED: all architecture and four review rounds are persisted above; the repaired
+- RED: all architecture and five review rounds are persisted above; the repaired
   focused certification contract is 30/30 and cumulative suite is 114/114.
-- Next: freeze the repair commit, rerun the complete exact-commit offline envelope,
-  and launch a fifth fresh exact review. A green review still stops at the explicit
+- Next: freeze the repair commit, rerun the exact commit from a clean archive, and
+  launch a sixth fresh exact review. A green review still stops at the explicit
   maximum-cost user decision before authority or live calls.
 - Product/support writes: support-only paths remain open; shipped-package paths remain
   closed.
 - Owned paths: `evaluation/`, `tests/`, `AGENTS.md`, and this ExecPlan; shipped-package
   paths remain closed.
-- Missing facts: final repair and fifth-review identities, explicit user cost
+- Missing facts: final repair and sixth-review identities, explicit user cost
   decision, and live successor receipts.
 
 ## Retrospective

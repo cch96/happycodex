@@ -96,12 +96,12 @@
     "engine": {
       "categories": {
         "artifact": "e1a7afcd992d08314039184c007b3ded8478eb52ebcb32c8fb149038c0cc8de9",
-        "harness": "9c6188839d217866ff8feac7393b7dd7cca9253a89ef06c487e6a210ca136781",
+        "harness": "af3615fd81632ad7b08e1da21e09e62cebd75e1fe0e2c333c63a8523011a4b8e",
         "semantic": "8f73619db63d7d64b934a9e70c627756bda8ea39978dbb7a9d42d37f65e29477"
       },
-      "manifest_sha256": "d683a5029137c59b8c894b699477f9767363d6dbed06a536f7e74f2391fff970",
+      "manifest_sha256": "53b83e96fd0a3849eb53479123693403fc88e3af077ae72e2287765f2f635905",
       "scopes": {
-        "corpus_harness": "07983d541773f4ba77ac6984a57acd01597692aee63c1049b2fb2922e5ba9d67",
+        "corpus_harness": "bacfc647b0f5f6dbc6453c4a3d19a1ba339f3b0a088650a11e57885750fd07e9",
         "holdout_harness": "0ad1754b7881c28064832b4d984d556351fb8771d9c279a233bd1fd41eb7531b",
         "holdout_semantic": "0da4c74d2f524d4511f39331b3754301638f5e23d0f097b38b61b94d102dae58"
       }

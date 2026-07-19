@@ -582,6 +582,7 @@ def _validate_case_identity(
     snapshot: dict[str, Any],
     case_id: str,
     *,
+    expected_passed: bool = True,
     semantic_sha256: str,
     package: dict[str, str],
     engine: dict[str, Any],
@@ -595,9 +596,13 @@ def _validate_case_identity(
         or receipt.get("id") != case_id
     ):
         raise ValueError("invalid corpus evidence case")
+    passed = receipt.get("passed")
+    timed_out = receipt.get("timed_out")
     if (
-        receipt.get("passed") is not True
-        or receipt.get("timed_out") is not False
+        not isinstance(passed, bool)
+        or passed is not expected_passed
+        or not isinstance(timed_out, bool)
+        or (expected_passed and timed_out)
         or receipt.get("model") != settings["model"]
         or receipt.get("effort") != settings["effort"]
         or receipt.get("timeout_seconds") != settings["timeout_seconds"]
@@ -641,8 +646,22 @@ def _validate_case_identity(
             installation.get(field), length=64, label=f"case installation {field}"
         )
     failures = receipt.get("oracle_failures")
-    if failures != {"count": 0, "sha256": canonical_sha256([])}:
-        raise ValueError(f"corpus evidence oracle failed: {case_id}")
+    if expected_passed:
+        if failures != {"count": 0, "sha256": canonical_sha256([])}:
+            raise ValueError(f"corpus evidence oracle failed: {case_id}")
+    elif (
+        not isinstance(failures, dict)
+        or set(failures) != {"count", "sha256"}
+        or not isinstance(failures.get("count"), int)
+        or isinstance(failures.get("count"), bool)
+        or failures["count"] <= 0
+        or failures.get("sha256") == canonical_sha256([])
+    ):
+        raise ValueError(f"invalid failed-arm oracle evidence: {case_id}")
+    else:
+        _require_digest(
+            failures.get("sha256"), length=64, label="failed-arm oracle failures"
+        )
     elapsed = receipt.get("elapsed_seconds")
     uncached = receipt.get("uncached_input_tokens")
     usage = receipt.get("usage")
@@ -781,6 +800,7 @@ def _validate_arm_identity(
     snapshot: dict[str, Any],
     *,
     arm: str,
+    expected_passed: bool,
     descriptor: dict[str, Any],
     package: dict[str, str],
     source: dict[str, Any],
@@ -799,6 +819,7 @@ def _validate_arm_identity(
         receipt,
         snapshot,
         descriptor["case"]["id"],
+        expected_passed=expected_passed,
         semantic_sha256=semantic_sha256,
         package=package,
         engine=source["engine"],
@@ -861,10 +882,34 @@ def _validate_holdout_summary(
         arms = receipt.get("arms") if isinstance(receipt, dict) else None
         if not isinstance(arms, dict) or set(arms) != {"candidate", "public-0.2"}:
             raise ValueError("invalid holdout arm evidence")
+        candidate_passed = (
+            arms["candidate"].get("passed")
+            if isinstance(arms["candidate"], dict)
+            else None
+        )
+        public_passed = (
+            arms["public-0.2"].get("passed")
+            if isinstance(arms["public-0.2"], dict)
+            else None
+        )
+        if not isinstance(candidate_passed, bool) or not isinstance(
+            public_passed, bool
+        ):
+            raise ValueError("invalid holdout arm outcome evidence")
+        derived_outcome = (
+            "regression"
+            if not candidate_passed
+            else "better"
+            if not public_passed
+            else "equal"
+        )
+        if receipt.get("outcome") != derived_outcome:
+            raise ValueError("holdout outcome mismatch")
         _validate_arm_identity(
             arms["candidate"],
             snapshot,
             arm="candidate",
+            expected_passed=candidate_passed,
             descriptor=descriptor,
             package=snapshot["package"],
             source=source,
@@ -873,6 +918,7 @@ def _validate_holdout_summary(
             arms["public-0.2"],
             snapshot,
             arm="public-0.2",
+            expected_passed=public_passed,
             descriptor=descriptor,
             package=public_package,
             source=source,
