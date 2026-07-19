@@ -961,6 +961,28 @@ offline validators are allowed; repository writes, model/live evaluation, networ
 Fable, Goal actions, installation, activation, Git ref mutation, push, and
 publication are forbidden.
 
+Phase 1 completed in that same fresh reviewer session before candidate disclosure.
+The reviewer inspected only detached baseline
+`2836d7363db364807a2ec384dc1b6c2cc13df95e`, tree
+`c27536825a34421522fbf1b3b759f2cc63aa8144`, then removed its temporary snapshot.
+It emitted 27 stable independent obligations, `HC04-01` through `HC04-27`, covering
+the frozen outcome/exclusions, module and stdlib boundaries, canonical separated
+identities, exact read-only impact/cost, single-ledger semantics, legacy retirement,
+persisted pre-live authority, package/runtime/fixture/runner/holdout preservation,
+evidence safety, deterministic fail-closed behavior, offline closure, and exact fresh
+review. Root's SHA-256 over UTF-8 canonical lines `ID<TAB>text<LF>` is
+`7fe6d7b67f90813af551a925de8ad76d9cda570347bb6ecd6d23b0c1db00c9fb`.
+
+The Phase-1 baseline inventory covered 56 tracked paths, 14 corpus cases, three
+holdout cases, 22 legacy result/index files, Python imports, CLI surfaces,
+identity/digest functions, legacy-result references, and shipped-package paths. It
+read policy, public/evaluation documentation, both old runners, relevant contract
+tests, metadata, and case/holdout envelopes. It did not inspect the source worktree,
+candidate, diff, this ExecPlan, historical-result bodies, prior findings, writer
+narrative, Root conversation, or candidate evidence, and ran no validation or
+prohibited action. Detailed obligation text remains in the durable terminal record
+for `/root/cert_engine_producer_final_review`.
+
 ## Validation envelope
 
 Candidate offline commands, exact live-run costs, required reruns, and review launch
