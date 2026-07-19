@@ -603,6 +603,7 @@ def _validate_case_identity(
         or passed is not expected_passed
         or not isinstance(timed_out, bool)
         or (expected_passed and timed_out)
+        or (expected_passed and receipt.get("exit_code") != 0)
         or receipt.get("model") != settings["model"]
         or receipt.get("effort") != settings["effort"]
         or receipt.get("timeout_seconds") != settings["timeout_seconds"]
@@ -665,6 +666,40 @@ def _validate_case_identity(
     elapsed = receipt.get("elapsed_seconds")
     uncached = receipt.get("uncached_input_tokens")
     usage = receipt.get("usage")
+    phases = receipt.get("usage_phases")
+    required_usage = {"input_tokens", "cached_input_tokens", "output_tokens"}
+    if (
+        not isinstance(usage, dict)
+        or not isinstance(phases, list)
+        or not phases
+        or any(
+            not isinstance(phase, dict)
+            or not required_usage.issubset(phase)
+            or any(
+                not isinstance(key, str)
+                or not isinstance(value, int)
+                or isinstance(value, bool)
+                or value < 0
+                for key, value in phase.items()
+            )
+            for phase in phases
+        )
+    ):
+        raise ValueError(f"invalid corpus evidence telemetry: {case_id}")
+    combined_usage = {
+        key: sum(phase.get(key, 0) for phase in phases)
+        for key in sorted({key for phase in phases for key in phase})
+    }
+    if (
+        usage != combined_usage
+        or usage["cached_input_tokens"] > usage["input_tokens"]
+        or uncached != usage["input_tokens"] - usage["cached_input_tokens"]
+    ):
+        raise ValueError(f"invalid corpus evidence telemetry: {case_id}")
+    for field in ("result", "fresh_recovery_result", "native_compaction"):
+        nested = receipt.get(field)
+        if nested is not None and not isinstance(nested, dict):
+            raise ValueError(f"invalid nested receipt evidence telemetry: {case_id}")
     if (
         not isinstance(receipt.get("exit_code"), int)
         or isinstance(receipt.get("exit_code"), bool)
@@ -675,12 +710,6 @@ def _validate_case_identity(
         or not isinstance(uncached, int)
         or isinstance(uncached, bool)
         or uncached < 0
-        or not isinstance(usage, dict)
-        or not isinstance(usage.get("output_tokens"), int)
-        or isinstance(usage.get("output_tokens"), bool)
-        or usage["output_tokens"] < 0
-        or not isinstance(receipt.get("usage_phases"), list)
-        or not receipt["usage_phases"]
         or not isinstance(receipt.get("filesystem_isolation"), dict)
     ):
         raise ValueError(f"invalid corpus evidence telemetry: {case_id}")
@@ -850,10 +879,16 @@ def _validate_holdout_summary(
     if pair_ids != run_pair_ids[: len(pair_ids)] or len(pair_ids) != len(receipts):
         raise ValueError("holdout summary pair ordering mismatch")
     outcomes = [item.get("outcome") for item in receipts]
-    if payload.get("adaptive_history") != outcomes or payload.get(
-        "adaptive_terminal_action"
-    ) != adaptive_next(outcomes):
+    if not all(isinstance(outcome, str) for outcome in outcomes):
+        raise ValueError("invalid holdout outcome evidence")
+    terminal_action = adaptive_next(outcomes)
+    if (
+        payload.get("adaptive_history") != outcomes
+        or payload.get("adaptive_terminal_action") != terminal_action
+    ):
         raise ValueError("holdout adaptive evidence mismatch")
+    if terminal_action not in {"stop", "reject"}:
+        raise ValueError("holdout adaptive evidence is not terminal")
     for receipt in receipts:
         if not isinstance(receipt, dict) or set(receipt) != PAIR_RECEIPT_FIELDS:
             raise ValueError("invalid holdout pair evidence")
@@ -923,6 +958,16 @@ def _validate_holdout_summary(
             package=public_package,
             source=source,
         )
+        expected_metrics = {
+            arm: {
+                "uncached_input_tokens": arms[arm]["uncached_input_tokens"],
+                "output_tokens": arms[arm]["usage"]["output_tokens"],
+                "elapsed_seconds": arms[arm]["elapsed_seconds"],
+            }
+            for arm in ("candidate", "public-0.2")
+        }
+        if receipt.get("metrics") != expected_metrics:
+            raise ValueError("holdout arm metrics mismatch")
     quality = aggregate_quality(outcomes)
     aggregate = {
         arm: sum_metrics([receipt["metrics"][arm] for receipt in receipts])

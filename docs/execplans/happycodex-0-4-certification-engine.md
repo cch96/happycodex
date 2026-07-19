@@ -644,6 +644,32 @@ reproduces every accepted sixth-review false green without invoking a runner or 
 The valid positive fixture's pair metrics were also aligned with its arm telemetry so
 the eventual GREEN cannot depend on the pre-existing inconsistency.
 
+## Sixth repair green
+
+Successful evidence now requires `passed=true`, no timeout, zero exit, and the exact
+empty oracle-failure receipt. Every usage phase must be a non-empty object containing
+non-negative input/cached/output counters; certification recomputes aggregate usage
+and uncached input from those phases. Result, fresh-recovery, and native-compaction
+receipts are object-or-null, never scalar. Pair metrics must exactly equal the two
+validated arm receipts before aggregation, and an adaptive summary is complete only
+at `stop` or `reject`. The four false-green subtests and the authentic `better` path
+all pass.
+
+The focused certification suite passes 30/30 in 4.677 seconds and the cumulative
+suite passes 114/114 in 6.101 seconds. Both official validators, Ruff check and
+format-check, verify/impact, both dry-runs, all 21 JSON documents, working-tree diff
+hygiene, package preservation, and isolated public-benchmark reconstruction pass.
+Current identities are engine
+`cbf619655a6ca73818a51ab09442d85e687dcaa7889370225c177712beca635d`,
+snapshot `308854c01f7fc7f288d701cdb6c52abfeffb719288c27df2901eded091470aba`,
+ledger `f3f4e01b847f0115ca7ddc415ac002e2ef612bf0e1b0bbc498d6fe2f9154a4ab`,
+and impact token
+`02f313e76676e771f5655ad5f8cd077e627c9fd7c941542e8a85e84183063a58`.
+The shipped package and public benchmark identities remain byte-exact. Public-bound
+impact is ready; live authority is null and the cost remains 18-to-20 calls,
+585,209-to-637,027 combined tokens, and 2,911.874-to-3,187.085 seconds. No model,
+Fable, network, install, publication, or external mutation ran.
+
 ## Validation envelope
 
 Candidate offline commands, exact live-run costs, required reruns, and review launch
@@ -653,16 +679,17 @@ publication requires a later explicit user request.
 
 ## Checkpoint
 
-- Milestone: the sixth fresh review returned `NOT-YET` with three accepted offline
-  receipt-consistency blockers; focused REDs and bounded repair remain open.
+- Milestone: the sixth review's receipt-consistency blockers are repaired and the
+  complete bounded offline envelope is green; exact commit and seventh fresh review
+  remain open.
 - Goal: active `019f780e-925e-7193-8bd2-0a04d6efe31e`; its objective is the
   Normalized Outcome plus all frozen preservation, exclusion, offline validation, and
   live-cost gates in this document.
-- RED: all architecture and six review rounds are persisted above; three fresh
-  acceptance false-greens need exact regression coverage.
-- Next: add three focused REDs, repair only nested arm status/cost/adaptive receipt
-  validation, rerun the exact commit from a clean clone, and launch a seventh fresh
-  exact review. A green review still stops at the explicit
+- RED: all architecture and six review rounds are persisted above; the four accepted
+  false-greens are now passing regression subtests.
+- Next: freeze the repair commit with its ExecPlan trailer, rerun it from a clean
+  detached clone, and launch a seventh fresh exact review. A green review still stops
+  at the explicit
   maximum-cost user decision before authority or live calls.
 - Product/support writes: support-only paths remain open; shipped-package paths remain
   closed.
