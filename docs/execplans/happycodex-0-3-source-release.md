@@ -181,34 +181,81 @@ must remain unchanged. Record the receipt in this ExecPlan only; that administra
 closure may not alter the integrated product tree. Push the closure and open a PR to
 `main`.
 
+## Integrated candidate and offline validation receipt
+
+Semantic revisions are `abf594b` (certified runtime/release surface) and `5f5ce4e`
+(certified support tree). Both are single-parent descendants of `origin/main`; the
+release range contains no merge and zero candidate-only commit. The committed tree
+contains 56 files: the candidate's exact 55-file manifest plus this release ExecPlan.
+
+Candidate-vs-release filtered `git diff` is empty. The committed filtered recursive
+manifest remains SHA-256 `05509f86830b1b97d61b9256c98e255c0ee17327f5ea90c9a51a637cd41ae459`.
+`origin/main` is an ancestor, and every one of its 11 post-merge-base commits remains
+reachable. These facts close SR-01 through SR-03 without reinterpreting product
+behavior.
+
+Authorized offline checks on integrated revision `5f5ce4e`:
+
+| Command | Result |
+| --- | --- |
+| `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -v` | exit 0; 97/97 passed in 1.475 s |
+| official Skill `quick_validate.py skills/happycodex` | exit 0; `Skill is valid!` |
+| official Plugin `validate_plugin.py .` | exit 0; plugin validation passed |
+| `git diff --check origin/main..HEAD` and working-tree `git diff --check` | both exit 0; empty output |
+| filtered candidate diff and recursive manifest | exact; empty diff; expected SHA-256 above |
+| status after checks | clean; branch four commits ahead of `origin/main` |
+
+No behavior, holdout, full review, Fable, runner, evaluator, oracle, or schema command
+ran. The active personal plugin list before public verification hashes to
+`a3d98977b883f10dec26ad213ed1b45d26bf9dc0ecab4d7940c6e823d236e3f8` and reports
+personal 0.3 installed+enabled.
+
+## Public install launch record
+
+After this plan-only receipt is committed, push `release/happycodex-0.3` normally to
+`origin` without force. The immutable install subject is product/support revision
+`5f5ce4e` and filtered manifest `05509f86…e459`; later changes may touch only this
+release ExecPlan. Fresh isolated root is
+`/tmp/happycodex-public-release-install.1lQ5JC`, with absent nested `home/.codex`
+before launch and no copied authentication.
+
+Use CLI `/home/caichenghang/.local/bin/codex` 0.144.4 in an inherit-none environment
+whose `HOME` is `<root>/home`, `CODEX_HOME` is `<root>/home/.codex`, and PATH contains
+only the local binary plus standard system bins. Run exactly one public install:
+
+1. `codex plugin marketplace add cch96/happycodex --ref release/happycodex-0.3 --json`
+2. inspect isolated available state;
+3. `codex plugin add happycodex@happycodex --json` once;
+4. inspect isolated installed state and compare version, Skill SHA-256, and filtered
+   source/install package manifest;
+5. re-hash the non-isolated personal list and require it to remain unchanged.
+
+Any fetch, ref, version, install, hash, credential-isolation, or personal-state
+mismatch stops before PR creation. This is the sole public marketplace install for
+the task; it invokes no model.
+
 ## Claims and gates
 
 | ID | Claim / gate | State |
 | --- | --- | --- |
-| SR-01 | Release ancestry contains `origin/main` and all 11 main-only commits, without merging/cherry-picking the 172 candidate-only commits. | open |
-| SR-02 | Final tree excluding this ExecPlan exactly equals certified candidate `89e6a8b...3833`, including modes, paths, and blob identities. | open |
-| SR-03 | Certified Skill, manifest, and every product-support file retain exact bytes; no unclassified path remains. | open |
-| SR-04 | Authorized offline unit tests, official validators, and diff hygiene pass. | open |
+| SR-01 | Release ancestry contains `origin/main` and all 11 main-only commits, without merging/cherry-picking the 172 candidate-only commits. | verified |
+| SR-02 | Final tree excluding this ExecPlan exactly equals certified candidate `89e6a8b...3833`, including modes, paths, and blob identities. | verified |
+| SR-03 | Certified Skill, manifest, and every product-support file retain exact bytes; no unclassified path remains. | verified |
+| SR-04 | Authorized offline unit tests, official validators, and diff hygiene pass. | verified |
 | SR-05 | One fresh isolated public marketplace install discovers and installs exact 0.3, with source/install equality and no mutation of the personal install. | open |
 | SR-06 | Release branch is pushed without force and a PR targets `main`. | open |
 | SR-07 | Final worktree is clean and no completion blocker remains. | open |
 
 ## Current checkpoint
 
-Contract freeze is `73cb98f`; exact runtime integration is `abf594b`. The certified
-support tree is now staged with A46/D53/M1 path effects. The complete index excluding
-this release ExecPlan has recursive-manifest SHA-256 `05509f86…e459`, exactly the
-candidate manifest, and a candidate-to-worktree diff over all included paths is empty.
-All staged diff hygiene checks pass; no product/support file was hand-rewritten. The
-removed rejected ExecPlan/raw evidence remains reachable through preserved main-only
-ancestors. Next: commit this second semantic slice, then prove the committed filtered
-tree and run only the authorized offline gates.
+The certified cumulative tree is committed and all authorized offline gates are
+GREEN. No product path changed after exact equality was established; only this plan
+records the receipts and the frozen public-install command. Next: commit this
+administrative checkpoint, push the release branch without force, run the sole public
+install, and stop before PR creation on any mismatch.
 
 ## Pending gates
 
-- semantic tree integration
-- exact tree/blob preservation proof
-- authorized offline validation
 - one isolated public marketplace install
 - push and pull request
 - administrative closure with unchanged integrated product tree
