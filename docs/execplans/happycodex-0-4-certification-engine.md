@@ -1118,6 +1118,37 @@ cost remains 585,209 to 637,027 tokens and 2,911.874 to 3,187.085 seconds, and n
 model, live evaluation, network, Fable, install, publication, or external mutation
 ran. A tenth exact fresh review remains mandatory.
 
+## Tenth fresh review launch
+
+The frozen terminal-evidence repair is
+`e29ddc872b9446e1d13dce5ba73dcdc200c63bad` with tree
+`25cd795ca50d89da7a779130055bf5b405fa177e` over baseline
+`2836d7363db364807a2ec384dc1b6c2cc13df95e`. Its 49-entry product
+projection, excluding only this ExecPlan, is
+`38ac643470370cbfb6df8efcdf80891d89c3789b8f8caae8860866126cad6d2f`.
+
+A clean detached local clone reproduced 31/31 focused tests in 5.101 seconds and
+116/116 cumulative tests in 6.477 seconds. Both official Skill/plugin validators,
+Ruff check and 19-file format-check, verify/impact, both dry-runs, all 21 JSON
+documents, baseline-range diff hygiene, shipped-package preservation, public archive
+reconstruction, public-bound impact, exact current snapshot equality, and clean final
+status passed. Engine, snapshot, ledger, impact token, package, public identities,
+null authority, corrected cost, and 20-to-22-call scope match the preceding repair
+receipt. The temporary public archive is removed; the detached preflight clone will
+be removed after launch. No prohibited action ran.
+
+This launch record is administrative and leaves the product projection unchanged. A
+new `fork_turns=none` read-only reviewer will receive the immutable baseline and
+repair plus the verbatim operative request and a fresh contract-only obligation
+phase. It must audit the entire range and every diff unit, independently exercise all
+ninth-review RED/GREEN relationships, test authentic producer reachability and
+over-strict rejection, recompute cost, and hunt any new completion blocker without
+using prior findings or writer narrative. Its durable terminal output destination is
+agent task `/root/cert_engine_terminal_evidence_final_review`. Only local detached
+clones and offline validators are allowed; repository writes, model/live evaluation,
+network, Fable, Goal actions, installation, activation, ref mutation, push, and
+publication are forbidden.
+
 ## Validation envelope
 
 Candidate offline commands, exact live-run costs, required reruns, and review launch
