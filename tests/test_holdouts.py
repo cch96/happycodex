@@ -68,6 +68,27 @@ class HappyCodexHoldoutTests(unittest.TestCase):
         self.assertNotIn("package_manifest", rendered)
         self.assertNotIn("hidden-pair", rendered)
 
+    def test_blind_view_rejects_infrastructure_failures_as_quality_evidence(
+        self,
+    ) -> None:
+        for label, timed_out, exit_code in (
+            ("timeout", True, 124),
+            ("nonzero", False, 7),
+        ):
+            with self.subTest(label=label):
+                failed = metadata(
+                    passed=False,
+                    uncached=45,
+                    output=10,
+                    elapsed=4.0,
+                )
+                failed["timed_out"] = timed_out
+                failed["exit_code"] = exit_code
+                with self.assertRaisesRegex(
+                    ValueError, "infrastructure|completed execution"
+                ):
+                    blind.blind_view(failed)
+
     def test_blind_decision_rejects_identity_contamination(self) -> None:
         views = {
             "arm-a": blind.blind_view(
