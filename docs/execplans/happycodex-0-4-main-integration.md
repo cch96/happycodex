@@ -3,7 +3,7 @@
 Protocol: `HappyCodex/0.3`
 Invocation: `$happycodex:happycodex`
 Writer: Root only
-State: remote reconciled; fast-forward integration frozen
+State: local main integrated and validated; push pending
 Resume: read this entire ExecPlan and reconcile Git, remote refs, checks, and push
 receipts before any merge, push, or completion claim.
 
@@ -86,15 +86,49 @@ extra merge commit. After the complete offline matrix passes on local `main`, pu
 with ordinary `git push origin main:main`. Any non-fast-forward result, remote drift,
 or validation failure stops before push; force options remain forbidden.
 
+## Local integration and pre-push validation
+
+Local `main` switched cleanly from
+`2836d7363db364807a2ec384dc1b6c2cc13df95e` to source
+`df5cc0885255b68837df83322dfb02ebedcbbde4` using `git merge --ff-only`.
+No merge commit or history rewrite was created. `main` and
+`feat/happycodex-0.4-certification-engine` were then identical at tree
+`fccf40527c0064eaf84dc2a0309183d35c84f971`; local `main` was exactly 50
+commits ahead of fetched `origin/main`, with zero remote-only commits.
+
+The complete pre-push matrix on local `main` is GREEN:
+
+- `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -v`: 123/123
+  passed in 7.419 seconds;
+- official Skill validator: `Skill is valid!`; official plugin validator: passed;
+- Ruff format-check over 19 files and Ruff check: passed;
+- CLI verify, impact, corpus dry-run, and holdout dry-run: four valid JSON payloads;
+- all 21 tracked JSON documents parse; baseline-range `git diff --check` passes;
+- shipped-package diff against fetched `origin/main` is empty;
+- current engine, snapshot, ledger, and impact token remain respectively
+  `a11f5aa6181944f9e1d87f6129cc5b9647e536e26ae397af7e6f662d8bcfd000`,
+  `8e4929f0a1bad0794f6e6c27b8c6355f02e259ad0e1101e6e0f496981b15808f`,
+  `98969b5d130b8d7c03f95fa76a059abebe8679a0e7dc93eb7e71d10ed9f1aacb`,
+  and `ec536a860732399da2f9db09898dcac49dd57ae203584bda005d52d24e56932e`;
+- candidate package semantic/artifact identities remain
+  `c5030e99dd7cd1681148c069775671c5720bb8dd366930ff90f61cbc54cdfc05`
+  and `0c83dbc694cb98bf811dd2d1c199b5d2aa734c484476a638884e775289c1d934`;
+- the ledger remains `refresh_required`, live authority remains null, and the
+  worktree is clean.
+
+No model/live evaluation, install/activation, Fable, plugin/marketplace mutation,
+controller/hook work, branch deletion, force operation, or publication ran. This
+receipt changes only the task ExecPlan and does not invalidate the reviewed product
+or pre-push matrix.
+
 ## Checkpoint
 
-- Milestone: current remote is reconciled and fast-forward topology is frozen.
-- Next: commit this strategy record, fast-forward local `main`, and run the full
-  offline integration matrix before any push.
-- Owned path before merge: this ExecPlan only; after fast-forward the source tree is
-  immutable pending validation.
-- Missing facts: post-merge test receipts, final local/remote `main` identity, and push
-  receipt.
+- Milestone: local `main` is fast-forward integrated and the complete pre-push matrix
+  is GREEN.
+- Next: commit this receipt, fetch/recheck `origin/main`, push local `main` without
+  force, and verify exact remote identity.
+- Product tree is immutable; only this ExecPlan administrative record is mutable.
+- Missing facts: final local/remote `main` identity and push receipt.
 
 ## Retrospective
 
