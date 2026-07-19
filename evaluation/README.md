@@ -1,57 +1,72 @@
-# Behavior corpus
+# Certification engine
 
-`run_corpus.py` builds each JSON fixture in a fresh temporary Git repository,
-packages only the plugin runtime/metadata (never this evaluation directory), installs
-it into an isolated `CODEX_HOME`, and starts a fresh ephemeral read-only Codex task.
-The model sees the fixture and neutral prompt, not the case oracle. Results and usage
-are written to the requested output directory; keep raw runs outside the repository
-and commit only sanitized summaries and digests.
-
-The evaluator itself never writes. `execplan_condition` records a durable fact rather
-than an action. `protocol_may_product_write` asks whether Root may immediately change
-product files before any mandatory user or control-plane action; ExecPlan writes do
-not count. The other `protocol_may_*` fields carry review and completion gates, so
-read-only evaluation is not mistaken for a missing implementation permission.
-`finding_classifications` makes stable baseline/candidate identities machine-checkable
-instead of relying on whether a free-text summary repeats a keyword.
-`decision` is only coarse next-step routing: safety cases accept either continued
-remediation, a user stop, or an incomplete hold when the gates and evidence agree.
-
-Validate fixture/schema coverage without a model call:
+The evaluator is maintainer-only, pure-standard-library support code. It is excluded
+from the shipped plugin. The sole command surface is:
 
 ```bash
-python3 evaluation/run_corpus.py --dry-run
+python3 -m evaluation.cli verify
+python3 -m evaluation.cli impact
+python3 -m evaluation.cli corpus --dry-run
+python3 -m evaluation.cli holdout --dry-run
 ```
 
-Run one case:
+`verify` validates the complete classified engine inventory and the tracked evidence
+ledger. `impact` is read-only: it reports exact invalidated cases/pairs, downstream
+gates, live-call range, and historical combined-token/wall estimates. A live run is
+not authorized by either command.
+
+## Identities and evidence
+
+The engine records three independent identities:
+
+- semantic inputs: case/holdout data, prompt/schema/policy contract, runtime-semantic
+  package projection, model, effort, timeout, and arm;
+- harness inputs: every executable fixture/install/invoke/blind module;
+- artifact inputs: receipt serialization, sanitization, and impact projection.
+
+Every evaluator Python module and JSON case/schema is explicitly classified. An
+unknown module fails validation. Semantic or execution-affecting harness changes fail
+closed to the exact live gates; artifact-only changes require no model call.
+
+`results/current.json` is the only active ledger. Its `refresh_required` state cannot
+be promoted by offline checks. Historical v1-v21 ledgers remain reachable in Git and
+have no active-tree reader, alias, migration, or compatibility path.
+
+## Offline and live commands
+
+Inspect one or every corpus case without a model call:
 
 ```bash
-python3 evaluation/run_corpus.py --case receipt-mismatch --output /tmp/hc-results
+python3 -m evaluation.cli corpus --list
+python3 -m evaluation.cli corpus --case receipt-mismatch --dry-run
 ```
 
-Run the complete candidate corpus by omitting `--case`. Compare a public-0.2 arm
-with the same model, effort, timeout, fixtures, prompts, and oracles. Never put the
-arm mapping or expected result in a task-visible repository or prompt.
-
-After the final candidate review is green, inspect the frozen three-pair holdout plan
-without a model call:
+After an exact persisted user cost approval, copy the `approval_token` from a fresh
+`impact` receipt and run live corpus output outside the repository:
 
 ```bash
-python3 evaluation/run_holdouts.py --dry-run
+python3 -m evaluation.cli corpus \
+  --case receipt-mismatch \
+  --approve-impact <exact-impact-token> \
+  --output /tmp/happycodex-corpus
 ```
 
-Run the blinded adaptive comparison against an immutable public-0.2 checkout:
+Inspect the blinded adaptive holdout plan:
 
 ```bash
-python3 evaluation/run_holdouts.py \
+python3 -m evaluation.cli holdout --dry-run
+```
+
+After separate approval, compare an immutable public checkout with raw output outside
+both source trees:
+
+```bash
+python3 -m evaluation.cli holdout \
   --candidate . \
-  --public /path/to/public-0.2 \
+  --public /path/to/public-checkout \
+  --approve-impact <exact-impact-token> \
   --output /tmp/happycodex-holdouts
 ```
 
-The runner commits a nonce-protected alias mapping before either arm runs, persists
-the blind decision before reveal, always runs a second pair after a non-regressing
-first pair, and uses the third only for split or uncertain results. A regression
-rejects immediately. The 25% release gate uses only cumulative uncached-input plus
-output tokens and wall time; separate input/output ratios are diagnostic. Raw events
-and identity-bearing metadata remain in the external output directory.
+Raw events and identity-bearing metadata stay external. Only sanitized summaries,
+digests, fixed fixtures, and the explicit ledger state may be tracked.

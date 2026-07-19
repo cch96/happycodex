@@ -7,8 +7,10 @@ import tempfile
 import unittest
 from unittest import mock
 
-from evaluation import run_corpus
-from evaluation import run_holdouts as holdouts
+from evaluation.core.identity import canonical_sha256
+from evaluation.corpus import engine as corpus_engine
+from evaluation.holdout import blind, compare
+from evaluation.holdout import engine as holdout_engine
 
 
 def metadata(*, passed: bool, uncached: int, output: int, elapsed: float) -> dict:
@@ -28,7 +30,7 @@ def metadata(*, passed: bool, uncached: int, output: int, elapsed: float) -> dic
 
 class HappyCodexHoldoutTests(unittest.TestCase):
     def test_manifest_has_distinct_hidden_pairs_and_required_coverage(self) -> None:
-        manifest = holdouts.load_manifest()
+        manifest = holdout_engine.load_manifest()
         pairs = manifest["pairs"]
         self.assertEqual(len(pairs), 3)
         self.assertEqual(len({pair["id"] for pair in pairs}), 3)
@@ -40,13 +42,13 @@ class HappyCodexHoldoutTests(unittest.TestCase):
                 for pair in pairs[:2]
             )
         )
-        corpus_ids = set(run_corpus.load_cases())
+        corpus_ids = set(corpus_engine.load_cases())
         for pair in pairs:
             self.assertNotIn(pair["case"]["id"], corpus_ids)
-            run_corpus.validate_case(pair["case"], pair["case_path"])
+            corpus_engine.validate_case(pair["case"], pair["case_path"])
 
     def test_blind_view_strips_every_identity_field(self) -> None:
-        view = holdouts.blind_view(
+        view = blind.blind_view(
             metadata(passed=True, uncached=40, output=10, elapsed=3.5)
         )
         self.assertEqual(
@@ -68,45 +70,43 @@ class HappyCodexHoldoutTests(unittest.TestCase):
 
     def test_blind_decision_rejects_identity_contamination(self) -> None:
         views = {
-            "arm-a": holdouts.blind_view(
+            "arm-a": blind.blind_view(
                 metadata(passed=True, uncached=40, output=10, elapsed=3.5)
             ),
-            "arm-b": holdouts.blind_view(
+            "arm-b": blind.blind_view(
                 metadata(passed=False, uncached=45, output=10, elapsed=4.0)
             ),
         }
         contaminated = copy.deepcopy(views)
         contaminated["arm-a"]["arm"] = "candidate"
         with self.assertRaisesRegex(ValueError, "blind receipt fields"):
-            holdouts.freeze_blind_decision(contaminated)
-        decision = holdouts.freeze_blind_decision(views)
+            blind.freeze_blind_decision(contaminated)
+        decision = blind.freeze_blind_decision(views)
         self.assertEqual(
             {item["quality"] for item in decision["aliases"]}, {"pass", "fail"}
         )
 
     def test_reveal_is_committed_and_chained_after_blind_decision(self) -> None:
-        sealed = holdouts.seal_mapping(
-            "pair-one", candidate_alias="arm-b", nonce="n" * 32
-        )
+        sealed = blind.seal_mapping("pair-one", candidate_alias="arm-b", nonce="n" * 32)
         views = {
-            "arm-a": holdouts.blind_view(
+            "arm-a": blind.blind_view(
                 metadata(passed=False, uncached=45, output=10, elapsed=4.0)
             ),
-            "arm-b": holdouts.blind_view(
+            "arm-b": blind.blind_view(
                 metadata(passed=True, uncached=40, output=10, elapsed=3.5)
             ),
         }
-        decision = holdouts.freeze_blind_decision(views)
-        reveal = holdouts.reveal_mapping(
-            sealed, pre_reveal_decision_sha256=holdouts.canonical_sha256(decision)
+        decision = blind.freeze_blind_decision(views)
+        reveal = blind.reveal_mapping(
+            sealed, pre_reveal_decision_sha256=canonical_sha256(decision)
         )
-        holdouts.validate_reveal(reveal, decision)
+        blind.validate_reveal(reveal, decision)
         self.assertEqual(reveal["mapping"]["candidate"], "arm-b")
-        self.assertEqual(holdouts.compare_pair(decision, reveal), "better")
+        self.assertEqual(compare.compare_pair(decision, reveal), "better")
         tampered = copy.deepcopy(reveal)
         tampered["mapping"]["candidate"] = "arm-a"
         with self.assertRaisesRegex(ValueError, "mapping commitment"):
-            holdouts.validate_reveal(tampered, decision)
+            blind.validate_reveal(tampered, decision)
 
     def test_candidate_failure_is_always_a_pair_regression(self) -> None:
         expected = {
@@ -120,11 +120,11 @@ class HappyCodexHoldoutTests(unittest.TestCase):
                 candidate=candidate_passed,
                 public=public_passed,
             ):
-                sealed = holdouts.seal_mapping(
+                sealed = blind.seal_mapping(
                     "pair-matrix", candidate_alias="arm-a", nonce="n" * 32
                 )
                 views = {
-                    "arm-a": holdouts.blind_view(
+                    "arm-a": blind.blind_view(
                         metadata(
                             passed=candidate_passed,
                             uncached=40,
@@ -132,7 +132,7 @@ class HappyCodexHoldoutTests(unittest.TestCase):
                             elapsed=3.5,
                         )
                     ),
-                    "arm-b": holdouts.blind_view(
+                    "arm-b": blind.blind_view(
                         metadata(
                             passed=public_passed,
                             uncached=40,
@@ -141,12 +141,12 @@ class HappyCodexHoldoutTests(unittest.TestCase):
                         )
                     ),
                 }
-                decision = holdouts.freeze_blind_decision(views)
-                reveal = holdouts.reveal_mapping(
+                decision = blind.freeze_blind_decision(views)
+                reveal = blind.reveal_mapping(
                     sealed,
-                    pre_reveal_decision_sha256=holdouts.canonical_sha256(decision),
+                    pre_reveal_decision_sha256=canonical_sha256(decision),
                 )
-                self.assertEqual(holdouts.compare_pair(decision, reveal), outcome)
+                self.assertEqual(compare.compare_pair(decision, reveal), outcome)
 
     def test_any_reachable_candidate_regression_rejects_release(self) -> None:
         metrics = {
@@ -163,17 +163,17 @@ class HappyCodexHoldoutTests(unittest.TestCase):
         ]
         for history in histories:
             with self.subTest(history=history):
-                self.assertEqual(holdouts.adaptive_next(history), "reject")
-                quality = holdouts.aggregate_quality(history)
+                self.assertEqual(compare.adaptive_next(history), "reject")
+                quality = compare.aggregate_quality(history)
                 self.assertEqual(quality, "regression")
                 self.assertFalse(
-                    holdouts.cost_gate(metrics, metrics, quality=quality)[
+                    compare.cost_gate(metrics, metrics, quality=quality)[
                         "release_permitted"
                     ]
                 )
 
     def test_pair_runner_persists_commitment_before_runs_and_reveal_after(self) -> None:
-        pair = holdouts.load_manifest()["pairs"][0]
+        pair = holdout_engine.load_manifest()["pairs"][0]
         observations: list[tuple[bool, bool, bool]] = []
 
         def fake_evaluator(
@@ -208,7 +208,7 @@ class HappyCodexHoldoutTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)
-            receipt = holdouts.run_pair(
+            receipt = holdout_engine.run_pair(
                 pair,
                 candidate=root / "candidate",
                 public=root / "public",
@@ -236,12 +236,12 @@ class HappyCodexHoldoutTests(unittest.TestCase):
             output.mkdir()
             with (
                 mock.patch.object(
-                    holdouts.run_corpus,
+                    holdout_engine,
                     "package_manifest_sha256",
                     side_effect=["c" * 64, "b" * 64],
                 ),
                 mock.patch.object(
-                    holdouts,
+                    holdout_engine,
                     "run_pair",
                     side_effect=AssertionError(
                         "holdout execution started before public baseline binding"
@@ -251,7 +251,7 @@ class HappyCodexHoldoutTests(unittest.TestCase):
                 with self.assertRaisesRegex(
                     ValueError, "public-0.2 package manifest mismatch"
                 ):
-                    holdouts.run_holdouts(
+                    holdout_engine.run_holdouts(
                         candidate=candidate,
                         public=public,
                         output=output,
@@ -265,32 +265,30 @@ class HappyCodexHoldoutTests(unittest.TestCase):
     def test_adaptive_sequence_rejects_first_regression_and_requires_second(
         self,
     ) -> None:
-        self.assertEqual(holdouts.adaptive_next([]), "run_first")
-        self.assertEqual(holdouts.adaptive_next(["regression"]), "reject")
-        self.assertEqual(holdouts.adaptive_next(["equal"]), "run_second")
-        self.assertEqual(holdouts.adaptive_next(["better"]), "run_second")
-        self.assertEqual(holdouts.adaptive_next(["equal", "equal"]), "stop")
-        self.assertEqual(holdouts.adaptive_next(["better", "equal"]), "run_third")
-        self.assertEqual(holdouts.adaptive_next(["equal", "uncertain"]), "run_third")
+        self.assertEqual(compare.adaptive_next([]), "run_first")
+        self.assertEqual(compare.adaptive_next(["regression"]), "reject")
+        self.assertEqual(compare.adaptive_next(["equal"]), "run_second")
+        self.assertEqual(compare.adaptive_next(["better"]), "run_second")
+        self.assertEqual(compare.adaptive_next(["equal", "equal"]), "stop")
+        self.assertEqual(compare.adaptive_next(["better", "equal"]), "run_third")
+        self.assertEqual(compare.adaptive_next(["equal", "uncertain"]), "run_third")
+        self.assertEqual(compare.adaptive_next(["equal", "uncertain", "equal"]), "stop")
         self.assertEqual(
-            holdouts.adaptive_next(["equal", "uncertain", "equal"]), "stop"
+            compare.aggregate_quality(["equal", "uncertain", "equal"]), "equal"
         )
         self.assertEqual(
-            holdouts.aggregate_quality(["equal", "uncertain", "equal"]), "equal"
-        )
-        self.assertEqual(
-            holdouts.aggregate_quality(["better", "equal", "better"]),
+            compare.aggregate_quality(["better", "equal", "better"]),
             "materially_better",
         )
         self.assertEqual(
-            holdouts.aggregate_quality(["better", "equal", "equal"]), "equal"
+            compare.aggregate_quality(["better", "equal", "equal"]), "equal"
         )
         self.assertEqual(
-            holdouts.aggregate_quality(["better", "uncertain", "equal"]),
+            compare.aggregate_quality(["better", "uncertain", "equal"]),
             "inconclusive",
         )
         self.assertEqual(
-            holdouts.aggregate_quality(["uncertain", "uncertain", "equal"]),
+            compare.aggregate_quality(["uncertain", "uncertain", "equal"]),
             "inconclusive",
         )
 
@@ -305,7 +303,7 @@ class HappyCodexHoldoutTests(unittest.TestCase):
             "output_tokens": 20,
             "elapsed_seconds": 10.0,
         }
-        gate = holdouts.cost_gate(
+        gate = compare.cost_gate(
             equal_total_different_components, public, quality="equal"
         )
         self.assertEqual(gate["decision"], "pass")
@@ -317,7 +315,7 @@ class HappyCodexHoldoutTests(unittest.TestCase):
             "output_tokens": 10,
             "elapsed_seconds": 12.6,
         }
-        gate = holdouts.cost_gate(expensive, public, quality="equal")
+        gate = compare.cost_gate(expensive, public, quality="equal")
         self.assertEqual(gate["decision"], "simplify_and_retest")
         self.assertFalse(gate["release_permitted"])
         self.assertGreater(gate["blocking_ratios"]["combined_tokens"], 1.25)
@@ -334,7 +332,7 @@ class HappyCodexHoldoutTests(unittest.TestCase):
             "output_tokens": 10,
             "elapsed_seconds": 10.0,
         }
-        gate = holdouts.cost_gate(candidate, public, quality="materially_better")
+        gate = compare.cost_gate(candidate, public, quality="materially_better")
         self.assertEqual(gate["decision"], "user_confirmation_required")
         self.assertFalse(gate["release_permitted"])
 
@@ -349,7 +347,7 @@ class HappyCodexHoldoutTests(unittest.TestCase):
             "output_tokens": 0,
             "elapsed_seconds": 0.0,
         }
-        gate = holdouts.cost_gate(candidate, public, quality="equal")
+        gate = compare.cost_gate(candidate, public, quality="equal")
         self.assertEqual(
             gate["blocking_ratios"],
             {"combined_tokens": "infinity", "wall": "infinity"},
@@ -365,7 +363,7 @@ class HappyCodexHoldoutTests(unittest.TestCase):
         }
         for quality in ("regression", "inconclusive"):
             with self.subTest(quality=quality):
-                gate = holdouts.cost_gate(metrics, metrics, quality=quality)
+                gate = compare.cost_gate(metrics, metrics, quality=quality)
                 self.assertEqual(gate["decision"], "reject")
                 self.assertFalse(gate["release_permitted"])
 

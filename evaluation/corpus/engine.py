@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-import argparse
 from datetime import datetime, timezone
-import hashlib
 import json
 import os
 from pathlib import Path
@@ -14,10 +12,38 @@ import tempfile
 import time
 from typing import Any
 
+from evaluation.core.identity import (
+    PACKAGE_PATHS,
+    canonical_sha256,
+    case_semantic_sha256,
+    engine_category_sha256,
+    engine_inventory,
+    package_identities,
+    package_manifest_sha256,
+    read_json,
+    selected_package_paths,
+    sha256_bytes,
+    workspace_file_manifest,
+)
+from evaluation.core.receipt import write_new_json
+from evaluation.corpus.contract import (
+    BASE_COMMAND_PATHS,
+    BLOCKER_CLASSES,
+    DISABLED_FEATURES,
+    EVALUATOR_CONTEXT,
+    FILESYSTEM_ISOLATION_POLICY,
+    FIXED_GIT_DATE,
+    OUTPUT_SCHEMA,
+    PARENT_CONTEXT_ENV,
+    PERMISSION_FIELDS,
+    PERMISSION_PROFILE,
+    RECOVERY_GATE_FIELDS,
+    RECOVERY_STATE_FIELDS,
+    REQUIRED_TAGS,
+)
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 CASES = ROOT / "evaluation" / "cases"
-PACKAGE_PATHS = (".agents", ".codex-plugin", "README.md", "skills")
 EXPECTED_CANDIDATE_SKILL_ENTRIES = frozenset(
     {
         "SKILL.md",
@@ -67,382 +93,6 @@ NATIVE_TOOL_BINARIES = (
     ("rg", RG_BINARY),
 )
 SOURCE_CODEX_HOME = Path(os.environ.get("CODEX_HOME", Path.home() / ".codex")).resolve()
-PERMISSION_PROFILE = "happycodex-evaluator"
-BASE_COMMAND_PATHS = ("/usr/local/bin", "/usr/bin", "/bin")
-PARENT_CONTEXT_ENV = ("CODEX_REMOTE_PAYLOAD", "CODEX_THREAD_ID", "PWD", "OLDPWD")
-FILESYSTEM_ISOLATION_POLICY = {
-    "mechanism": "codex-permission-profile",
-    "profile": PERMISSION_PROFILE,
-    "filesystem": "minimal-plus-current-workspace-and-native-tools",
-    "default_access": "deny",
-    "workspace": "read-only",
-    "nonworkspace": "unreadable",
-    "credential_file": "parent-only-command-denied",
-    "native_tool_allowlist": tuple(name for name, _ in NATIVE_TOOL_BINARIES),
-    "native_tools": "read-only",
-    "home": "isolated",
-    "parent_task_environment": "stripped",
-    "command_environment": "inherit-none",
-    "network": "disabled",
-    "selection": "explicit-on-every-turn",
-}
-DISABLED_FEATURES = (
-    "apps",
-    "goals",
-    "hooks",
-    "memories",
-    "remote_plugin",
-    "multi_agent",
-)
-PERMISSION_FIELDS = frozenset(
-    {
-        "decision",
-        "qualifies",
-        "execplan_condition",
-        "protocol_may_product_write",
-        "protocol_may_review",
-        "protocol_may_complete",
-    }
-)
-RECOVERY_GATE_FIELDS = frozenset(
-    {
-        "qualifies",
-        "protocol_may_product_write",
-        "protocol_may_review",
-        "protocol_may_complete",
-    }
-)
-RECOVERY_STATE_FIELDS = frozenset(
-    {
-        "baseline_revision",
-        "baseline_tree",
-        "current_revision",
-        "current_tree",
-        "writer",
-        "milestone_phase",
-        "next_action",
-        "pending_gates",
-        "tests",
-        "worktree",
-        "live_agents",
-        "marker_ids",
-    }
-)
-BLOCKER_CLASSES = frozenset(
-    {
-        "original_goal",
-        "frozen_acceptance",
-        "safety_data_integrity",
-        "production_condition",
-        "exhaustive_claim",
-    }
-)
-REQUIRED_TAGS = {
-    "request-paraphrase",
-    "unsupported-amendment",
-    "uncertain-qualification",
-    "midflight-escalation",
-    "subthreshold-control",
-    "clean-qualifying-control",
-    "missed-boundary",
-    "legacy-path",
-    "missing-worker",
-    "missing-deploy",
-    "pre-freeze-compaction",
-    "post-freeze-compaction",
-    "lost-scout",
-    "dirty-untracked",
-    "baseline-failure",
-    "authorized-rebaseline",
-    "no-commit",
-    "secret-output",
-    "baseline-secret",
-    "review-anchoring",
-    "declared-dependency",
-    "ledger-review-mismatch",
-    "review-fallback",
-    "goal-divergence",
-    "submodule",
-    "multi-repository",
-    "omitted-diff-unit",
-    "truncated-search",
-    "persistence-transition",
-    "concurrency-transition",
-    "receipt-mismatch",
-    "review-admin-cycle",
-    "repository-policy",
-}
-EVALUATOR_CONTEXT = (
-    "This invocation is an observational checkpoint only. execplan_condition is a "
-    "fact about the durable plan, not an action already taken. "
-    "protocol_may_product_write is true only when the next authorized Root writer "
-    "action may change product files without first resolving a user or control gate; "
-    "source and RED-test edits are product writes, while creating or amending an "
-    "ExecPlan is not. An open implementation finding does not close write permission "
-    "when its RED or implementation is the next authorized action. protocol_may_review and "
-    "protocol_may_complete carry the other immediate gates. Put every material "
-    "baseline/candidate finding with a stable identity in finding_classifications. "
-    "Each finding's anchors must list exact supporting repository-relative paths, test "
-    "IDs, claim IDs, or receipt IDs; do not invent anchors, and use [] only when none "
-    "exists. "
-    "use an empty array only when none exists. Classify each current completion "
-    "blocker in blocker_classifications as original_goal, frozen_acceptance, "
-    "safety_data_integrity, production_condition, or exhaustive_claim; a harmless "
-    "observation is non-blocking. A blocker reuses its finding identity. These fields do not describe or "
-    "expand this read-only evaluator's permissions. Inspect only the current fixture "
-    "repository; do not search for evaluator code, case definitions, or hidden oracles. "
-    "Set recovery_state to null unless this is the runner's native compaction recovery "
-    "control; there encode exact durable Git, plan, test, worktree, and agent facts. "
-    "Copy pending_gates in checkpoint order without inferring downstream gates. "
-    "live_agents contains only delegated scout, challenger, or reviewer facts, never "
-    "the Root writer, and must include every delegated receipt named by the checkpoint. "
-    "marker_ids contains only IDs explicitly labeled as durable recovery markers."
-)
-FIXED_GIT_DATE = "2000-01-01T00:00:00+00:00"
-OUTPUT_SCHEMA = {
-    "type": "object",
-    "additionalProperties": False,
-    "properties": {
-        "decision": {
-            "type": "string",
-            "enum": ["continue", "stop_for_user", "complete", "incomplete"],
-            "description": (
-                "Coarse next control flow, not a synonym for task completeness; "
-                "the protocol_may_* fields carry the permission gates."
-            ),
-        },
-        "qualifies": {"type": "boolean"},
-        "execplan_condition": {
-            "type": "string",
-            "enum": ["not_required", "missing", "usable", "needs_amendment"],
-            "description": "Current durable-plan condition at this checkpoint.",
-        },
-        "protocol_may_product_write": {
-            "type": "boolean",
-            "description": (
-                "Whether Root may modify product files immediately, before any "
-                "mandatory user or control-plane action."
-            ),
-        },
-        "protocol_may_review": {
-            "type": "boolean",
-            "description": "Whether the protocol's review gate is open.",
-        },
-        "protocol_may_complete": {
-            "type": "boolean",
-            "description": "Whether the protocol permits a completion claim.",
-        },
-        "finding_classifications": {
-            "type": "array",
-            "description": "Material baseline/candidate findings with stable IDs.",
-            "items": {
-                "type": "object",
-                "additionalProperties": False,
-                "properties": {
-                    "identity": {"type": "string", "maxLength": 160},
-                    "domain": {
-                        "type": "string",
-                        "enum": ["secret", "baseline_failure", "receipt", "other"],
-                    },
-                    "state": {
-                        "type": "string",
-                        "enum": [
-                            "baseline_unchanged",
-                            "resolved",
-                            "candidate_new",
-                            "unknown",
-                        ],
-                    },
-                    "anchors": {
-                        "type": "array",
-                        "items": {"type": "string", "maxLength": 240},
-                    },
-                },
-                "required": ["identity", "domain", "state", "anchors"],
-            },
-        },
-        "blocker_classifications": {
-            "type": "array",
-            "description": "Semantic disposition of material completion findings.",
-            "items": {
-                "type": "object",
-                "additionalProperties": False,
-                "properties": {
-                    "identity": {"type": "string", "maxLength": 160},
-                    "class": {
-                        "type": "string",
-                        "enum": sorted(BLOCKER_CLASSES),
-                    },
-                    "blocking": {"type": "boolean"},
-                    "reason": {"type": "string", "maxLength": 240},
-                },
-                "required": ["identity", "class", "blocking", "reason"],
-            },
-        },
-        "open_gates": {
-            "type": "array",
-            "items": {"type": "string", "maxLength": 240},
-        },
-        "evidence": {
-            "type": "array",
-            "items": {"type": "string", "maxLength": 240},
-        },
-        "reason": {"type": "string", "maxLength": 1_200},
-        "recovery_state": {
-            "type": ["object", "null"],
-            "additionalProperties": False,
-            "properties": {
-                "baseline_revision": {
-                    "type": "string",
-                    "pattern": "^[0-9a-f]{40}$",
-                },
-                "baseline_tree": {
-                    "type": "string",
-                    "pattern": "^[0-9a-f]{40}$",
-                },
-                "current_revision": {
-                    "type": "string",
-                    "pattern": "^[0-9a-f]{40}$",
-                },
-                "current_tree": {
-                    "type": "string",
-                    "pattern": "^[0-9a-f]{40}$",
-                },
-                "writer": {"type": "string", "enum": ["Root", "unknown"]},
-                "milestone_phase": {
-                    "type": "string",
-                    "enum": [
-                        "bootstrap",
-                        "boundary_investigation",
-                        "boundary_union_reproduced",
-                        "contract_frozen",
-                        "implementation",
-                        "review",
-                        "release",
-                        "complete",
-                        "unknown",
-                    ],
-                },
-                "next_action": {
-                    "type": "string",
-                    "enum": [
-                        "ask_user",
-                        "create_execplan",
-                        "complete_boundary_union",
-                        "create_contract_freeze_revision",
-                        "observe_red",
-                        "implement",
-                        "run_checks",
-                        "review",
-                        "release",
-                        "none",
-                        "unknown",
-                    ],
-                },
-                "pending_gates": {
-                    "type": "array",
-                    "items": {
-                        "type": "string",
-                        "enum": [
-                            "user_selection",
-                            "contract_freeze",
-                            "red_oracle",
-                            "product_edit",
-                            "checks",
-                            "review",
-                            "release",
-                        ],
-                    },
-                },
-                "tests": {
-                    "type": "object",
-                    "additionalProperties": False,
-                    "properties": {
-                        "passed": {"type": "integer", "minimum": 0},
-                        "failed": {"type": "integer", "minimum": 0},
-                        "accepted_failures": {
-                            "type": "integer",
-                            "minimum": 0,
-                        },
-                        "marker_ids": {
-                            "type": "array",
-                            "description": (
-                                "Test IDs explicitly labeled as durable "
-                                "recovery markers."
-                            ),
-                            "items": {"type": "string", "maxLength": 160},
-                        },
-                    },
-                    "required": [
-                        "passed",
-                        "failed",
-                        "accepted_failures",
-                        "marker_ids",
-                    ],
-                },
-                "worktree": {
-                    "type": "string",
-                    "enum": ["clean", "dirty", "unknown"],
-                },
-                "live_agents": {
-                    "type": "array",
-                    "description": (
-                        "Every delegated scout, challenger, or reviewer "
-                        "receipt named by the durable checkpoint; never Root."
-                    ),
-                    "items": {
-                        "type": "object",
-                        "additionalProperties": False,
-                        "properties": {
-                            "id": {"type": "string", "maxLength": 160},
-                            "status": {
-                                "type": "string",
-                                "enum": ["pending", "terminal", "missing"],
-                            },
-                            "receipt_reproduced": {"type": "boolean"},
-                        },
-                        "required": ["id", "status", "receipt_reproduced"],
-                    },
-                },
-                "marker_ids": {
-                    "type": "array",
-                    "description": (
-                        "Only IDs explicitly labeled as durable recovery "
-                        "markers; order is not semantic."
-                    ),
-                    "items": {"type": "string", "maxLength": 160},
-                },
-            },
-            "required": sorted(RECOVERY_STATE_FIELDS),
-        },
-    },
-    "required": [
-        "decision",
-        "qualifies",
-        "execplan_condition",
-        "protocol_may_product_write",
-        "protocol_may_review",
-        "protocol_may_complete",
-        "finding_classifications",
-        "blocker_classifications",
-        "open_gates",
-        "evidence",
-        "reason",
-        "recovery_state",
-    ],
-}
-
-
-def sha256_bytes(data: bytes) -> str:
-    return hashlib.sha256(data).hexdigest()
-
-
-def canonical_sha256(value: Any) -> str:
-    return sha256_bytes(
-        json.dumps(
-            value, ensure_ascii=False, sort_keys=True, separators=(",", ":")
-        ).encode()
-    )
 
 
 def neutral_review_brief(
@@ -473,88 +123,33 @@ def neutral_review_brief(
     }
 
 
-def read_json(path: Path) -> dict[str, Any]:
-    return json.loads(path.read_text(encoding="utf-8"))
-
-
-def path_record(path: Path) -> dict[str, Any]:
-    mode = path.lstat().st_mode & 0o7777
-    if path.is_symlink():
-        return {"kind": "symlink", "mode": mode, "target": os.readlink(path)}
-    if path.is_file():
-        content = path.read_bytes()
-        return {
-            "kind": "file",
-            "mode": mode,
-            "bytes": len(content),
-            "sha256": sha256_bytes(content),
-        }
-    if path.is_dir():
-        return {"kind": "directory", "mode": mode}
-    return {"kind": "other", "mode": mode}
-
-
-def workspace_file_manifest(repo: Path) -> dict[str, dict[str, Any]]:
-    return {
-        path.relative_to(repo).as_posix(): path_record(path)
-        for path in sorted(repo.rglob("*"))
-        if path.relative_to(repo).parts[0] != ".git"
-    }
-
-
-def selected_package_paths(plugin: Path) -> list[Path]:
-    paths: list[Path] = []
-    for relative in PACKAGE_PATHS:
-        root = plugin / relative
-        if not root.exists() and not root.is_symlink():
-            raise FileNotFoundError(root)
-        paths.append(root)
-        if root.is_dir() and not root.is_symlink():
-            paths.extend(root.rglob("*"))
-    return paths
-
-
-def package_manifest_sha256(plugin: Path) -> str:
-    entries = {
-        path.relative_to(plugin).as_posix(): path_record(path)
-        for path in selected_package_paths(plugin)
-    }
-    return canonical_sha256(entries)
-
-
-def evaluation_input_sha256_from_manifest(
+def semantic_input_sha256_from_package(
     case: dict[str, Any],
     *,
-    package_manifest: str,
+    package_semantic_sha256: str,
     model: str,
     effort: str,
     timeout: int,
     arm: str = "candidate",
 ) -> str:
-    expected_skill_entries = expected_skill_entries_for_arm(arm)
-    return canonical_sha256(
-        {
-            "schema_version": 1,
-            "case": case,
-            "package_manifest_sha256": package_manifest,
-            "arm": arm,
-            "expected_skill_entries": sorted(expected_skill_entries),
-            "runner_sha256": sha256_bytes(Path(__file__).resolve().read_bytes()),
-            "model": model,
-            "effort": effort,
-            "timeout_seconds": timeout,
-            "evaluator_context": EVALUATOR_CONTEXT,
-            "output_schema": OUTPUT_SCHEMA,
-            "sandbox": PERMISSION_PROFILE,
-            "approval_policy": "never",
-            "stdin_sha256": sha256_bytes(b""),
-            "disabled_features": DISABLED_FEATURES,
-            "filesystem_isolation": FILESYSTEM_ISOLATION_POLICY,
-        }
+    inventory = engine_inventory(ROOT)
+    shared_semantic = engine_category_sha256(
+        inventory,
+        "semantic",
+        paths={"evaluation/corpus/contract.py"},
+    )
+    return case_semantic_sha256(
+        case,
+        shared_semantic_sha256=shared_semantic,
+        package_semantic_sha256=package_semantic_sha256,
+        model=model,
+        effort=effort,
+        timeout=timeout,
+        arm=arm,
     )
 
 
-def evaluation_input_sha256(
+def semantic_input_sha256(
     case: dict[str, Any],
     *,
     plugin: Path,
@@ -563,9 +158,9 @@ def evaluation_input_sha256(
     timeout: int,
     arm: str = "candidate",
 ) -> str:
-    return evaluation_input_sha256_from_manifest(
+    return semantic_input_sha256_from_package(
         case,
-        package_manifest=package_manifest_sha256(plugin),
+        package_semantic_sha256=package_identities(plugin)["semantic_sha256"],
         model=model,
         effort=effort,
         timeout=timeout,
@@ -1980,14 +1575,14 @@ def evaluate_case(
         repo = temp / "repo"
         fixture = build_fixture(case, repo)
         package = temp / "package"
-        source_package_digest = package_manifest_sha256(plugin)
+        source_package = package_identities(plugin)
         copy_plugin_package(plugin, package, arm=arm)
-        copied_package_digest = package_manifest_sha256(package)
-        if copied_package_digest != source_package_digest:
-            raise RuntimeError("copied package manifest differs from evaluated source")
-        input_digest = evaluation_input_sha256_from_manifest(
+        copied_package = package_identities(package)
+        if copied_package != source_package:
+            raise RuntimeError("copied package identities differ from evaluated source")
+        input_digest = semantic_input_sha256_from_package(
             case,
-            package_manifest=copied_package_digest,
+            package_semantic_sha256=copied_package["semantic_sha256"],
             model=model,
             effort=effort,
             timeout=timeout,
@@ -2291,9 +1886,11 @@ def evaluate_case(
             "prepare_prompt_sha256": (
                 sha256_bytes(initial_prompt.encode()) if native else None
             ),
-            "evaluation_input_sha256": input_digest,
-            "runner_sha256": sha256_bytes(Path(__file__).resolve().read_bytes()),
-            "package_manifest_sha256": copied_package_digest,
+            "semantic_input_sha256": input_digest,
+            "identities": {
+                "engine": engine_inventory(ROOT),
+                "package": copied_package,
+            },
             "filesystem_isolation": {
                 **FILESYSTEM_ISOLATION_POLICY,
                 "workspace_root": "<case-temp>/repo",
@@ -2512,6 +2109,8 @@ def sanitized_case_receipt(
     if plugin:
         safe_installation["plugin_sha256"] = canonical_sha256(plugin)
     receipt = {
+        "schema_version": 1,
+        "engine_generation": "0.4",
         "id": result["case"],
         "metadata_sha256": metadata_sha256,
         "installation": safe_installation,
@@ -2524,7 +2123,8 @@ def sanitized_case_receipt(
                 "timed_out",
                 "elapsed_seconds",
                 "exit_code",
-                "evaluation_input_sha256",
+                "semantic_input_sha256",
+                "identities",
                 "events_sha256",
                 "stderr_sha256",
                 "usage",
@@ -2565,22 +2165,6 @@ def sanitized_case_receipt(
     return receipt
 
 
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Run the HappyCodex behavior corpus")
-    parser.add_argument("--plugin", type=Path, default=ROOT)
-    parser.add_argument("--case", action="append", dest="cases")
-    parser.add_argument("--list", action="store_true")
-    parser.add_argument("--dry-run", action="store_true")
-    parser.add_argument("--model", default="gpt-5.6-sol")
-    parser.add_argument("--effort", default="high")
-    parser.add_argument("--timeout", type=int, default=300)
-    parser.add_argument(
-        "--arm", choices=tuple(EXPECTED_SKILL_ENTRIES_BY_ARM), default="candidate"
-    )
-    parser.add_argument("--output", type=Path)
-    return parser.parse_args()
-
-
 def resolve_output_path(requested: Path | None, *, plugin: Path) -> Path:
     output = (
         requested.expanduser().resolve()
@@ -2593,11 +2177,12 @@ def resolve_output_path(requested: Path | None, *, plugin: Path) -> Path:
     plugin = plugin.expanduser().resolve()
     if output == plugin or output.is_relative_to(plugin):
         raise ValueError("raw output must stay outside the evaluated plugin")
+    if output.exists() and any(output.iterdir()):
+        raise ValueError("raw output directory must be empty")
     return output
 
 
-def main() -> int:
-    args = parse_args()
+def run_command(args: Any) -> int:
     cases = load_cases()
     if args.list:
         for case_id in cases:
@@ -2631,7 +2216,8 @@ def main() -> int:
         for case_id in selected
     ]
     summary = {
-        "schema_version": 2,
+        "schema_version": 1,
+        "engine_generation": "0.4",
         "arm": args.arm,
         "model": args.model,
         "effort": args.effort,
@@ -2662,12 +2248,6 @@ def main() -> int:
             for result in results
         ],
     }
-    (output / "summary.json").write_text(
-        json.dumps(summary, indent=2) + "\n", encoding="utf-8"
-    )
+    write_new_json(output / "summary.json", summary)
     print(json.dumps(summary, indent=2))
     return 0 if summary["passed"] == summary["total"] else 1
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())

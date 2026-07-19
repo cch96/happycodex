@@ -131,14 +131,9 @@ class HappyCodexContractTests(unittest.TestCase):
             probe_root.rmdir()
 
     def test_python_validation_uses_only_declared_stdlib_dependencies(self) -> None:
-        allowed = set(sys.stdlib_module_names) | {
-            "__future__",
-            "evaluation",
-            "run_corpus",
-        }
+        allowed = set(sys.stdlib_module_names) | {"__future__", "evaluation"}
         for path in (
-            ROOT / "evaluation/run_corpus.py",
-            ROOT / "evaluation/run_holdouts.py",
+            *sorted((ROOT / "evaluation").rglob("*.py")),
             *ROOT.glob("tests/*.py"),
         ):
             imported: set[str] = set()
@@ -502,7 +497,9 @@ class HappyCodexContractTests(unittest.TestCase):
         current = (
             read(SKILL)
             + read(EXECPLAN)
-            + read(ROOT / "evaluation/run_corpus.py")
+            + "".join(
+                read(path) for path in sorted((ROOT / "evaluation").rglob("*.py"))
+            )
             + "".join(
                 read(path)
                 for path in sorted((ROOT / "evaluation/cases").glob("*.json"))

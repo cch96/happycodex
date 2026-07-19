@@ -43,12 +43,8 @@ class CertificationIdentityTests(unittest.TestCase):
 
         self.assertEqual(first, second)
         self.assertEqual(first["schema_version"], 1)
-        self.assertEqual(
-            set(first["categories"]), {"semantic", "harness", "artifact"}
-        )
-        entries = {
-            item["path"]: item["category"] for item in first["entries"]
-        }
+        self.assertEqual(set(first["categories"]), {"semantic", "harness", "artifact"})
+        entries = {item["path"]: item["category"] for item in first["entries"]}
         self.assertEqual(
             {path for path in entries if path.endswith(".py")}, EXPECTED_MODULES
         )
@@ -64,6 +60,16 @@ class CertificationIdentityTests(unittest.TestCase):
             shutil.copytree(ROOT / "evaluation", clone / "evaluation")
             unexpected = clone / "evaluation" / "corpus" / "unexpected.py"
             unexpected.write_text("VALUE = 1\n", encoding="utf-8")
+
+            with self.assertRaisesRegex(IdentityError, "unclassified engine input"):
+                engine_inventory(clone)
+
+    def test_inventory_fails_closed_on_an_unclassified_schema(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            clone = Path(raw) / "repo"
+            shutil.copytree(ROOT / "evaluation", clone / "evaluation")
+            unexpected = clone / "evaluation" / "corpus" / "unexpected.json"
+            unexpected.write_text("{}\n", encoding="utf-8")
 
             with self.assertRaisesRegex(IdentityError, "unclassified engine input"):
                 engine_inventory(clone)
@@ -144,13 +150,24 @@ class CertificationImpactTests(unittest.TestCase):
             with self.subTest(category=category):
                 changed = copy.deepcopy(self.snapshot)
                 changed["engine"]["categories"][category] = "e" * 64
+                if category == "harness":
+                    changed["engine"]["scopes"]["corpus_harness"] = "d" * 64
                 impact = plan_impact(self.snapshot, changed)
                 self.assertEqual(len(impact["corpus_cases"]), 14)
                 self.assertEqual(len(impact["holdout_pairs"]), 3)
                 self.assertEqual(impact["gates"], ["corpus", "holdout"])
-                self.assertEqual(
-                    impact["live_calls"], {"minimum": 18, "maximum": 20}
-                )
+                self.assertEqual(impact["live_calls"], {"minimum": 18, "maximum": 20})
+
+    def test_holdout_only_harness_change_does_not_rerun_corpus(self) -> None:
+        changed = copy.deepcopy(self.snapshot)
+        changed["engine"]["categories"]["harness"] = "e" * 64
+        changed["engine"]["scopes"]["holdout_harness"] = "d" * 64
+
+        impact = plan_impact(self.snapshot, changed)
+        self.assertEqual(impact["corpus_cases"], [])
+        self.assertEqual(len(impact["holdout_pairs"]), 3)
+        self.assertEqual(impact["gates"], ["holdout"])
+        self.assertEqual(impact["live_calls"], {"minimum": 4, "maximum": 6})
 
     def test_artifact_engine_or_package_change_needs_no_model_call(self) -> None:
         changed = copy.deepcopy(self.snapshot)
@@ -173,7 +190,9 @@ class CertificationImpactTests(unittest.TestCase):
 
     def test_refresh_ledger_forces_full_exact_pending_scope_and_cost(self) -> None:
         ledger = load_ledger(ROOT / "evaluation" / "results" / "current.json")
-        impact = plan_impact(ledger["snapshot"], self.snapshot, pending=ledger["pending"])
+        impact = plan_impact(
+            ledger["snapshot"], self.snapshot, pending=ledger["pending"]
+        )
         self.assertEqual(len(impact["corpus_cases"]), 14)
         self.assertEqual(len(impact["holdout_pairs"]), 3)
         self.assertEqual(impact["live_calls"], {"minimum": 18, "maximum": 20})
@@ -205,6 +224,27 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
             self.assertEqual(completed.returncode, 0, completed.stderr)
             payload = json.loads(completed.stdout)
             self.assertEqual(payload["schema_version"], 1)
+
+    def test_live_command_requires_the_exact_impact_token(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            completed = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "evaluation.cli",
+                    "corpus",
+                    "--case",
+                    "receipt-mismatch",
+                    "--output",
+                    str(Path(raw) / "results"),
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+        self.assertEqual(completed.returncode, 2)
+        self.assertIn("exact approval_token", completed.stderr)
 
 
 if __name__ == "__main__":

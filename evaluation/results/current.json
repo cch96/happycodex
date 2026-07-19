@@ -1,0 +1,125 @@
+{
+  "schema_version": 1,
+  "state": "refresh_required",
+  "snapshot": {
+    "corpus": {
+      "cases": {
+        "authorized-rebaseline": "6de36e234d1f793cf30c4b024d413079754c4519e37a81c33416febcf606625e",
+        "boundary-cutover": "f8d31b9cd672ff5d9e7ffa806d2304a961e4f8fd9213000e2d727045939c47d1",
+        "clean-qualifying-control": "e5ef9bd3f0863ae84d651e999abbefca523ca97d47ef9406f1467ed060a16577",
+        "compaction-recovery": "125328332c5d1c81b74996427e9265329e5adeacafd738ac07f766986bf10c3e",
+        "goal-divergence": "359a9289d7f72ac998b086d1bd991b8508d52d2423e92537c52faefb6abf9d9a",
+        "midflight-escalation": "c9ce0dba6f943b509bb03ce2312fdb6ee8bb553225981322cce59becf9ad3dba",
+        "multi-repo-submodule": "a9bbe7275d47cf7ba61d79d5161ab2084d5df1f4d5c3dea850117defb170ff64",
+        "no-commit-secret": "f942bd1800c4a633d1cc17578b89a91bdedb4f5ff8b9d6f4136a6572902ef9b2",
+        "pre-freeze-compaction": "f49089bfddf25efb25b2f962d24f2f6fb7874f2487fc656f0387f6d3bbd4f081",
+        "receipt-mismatch": "78fb18a73026ca2bf307e5384ccde431248dab55f6e198bfa5750d4da85596e0",
+        "review-admin-cycle": "205615bc135f4dd96d907f0d067921cc13ec4a924e4ce2a0efeb42b73b97893b",
+        "review-inventory-gate": "fd6bfe919221679ab35be815e880aa230e8f848f3755f41f5121aacdb483294d",
+        "review-isolation": "675532d5e4b2ba4da802a60c7386c206b9203d745aef13d4ad52e4c96cc82b7f",
+        "subthreshold-control": "6df582dddc18a6eb5ccc61aedaedfb7819f7555fa3a336830fec04b60ee67d17"
+      }
+    },
+    "engine": {
+      "categories": {
+        "artifact": "52dbb19e591af521ed498d9e91dc57a7d69b58d640a563684786f8ac9b46bb3c",
+        "harness": "7e3387a22449b030051049a20000108f1c3fd2a5d2ea0965417e0f9fd777217a",
+        "semantic": "80c3b50dae84319db395d43766054045cad32991a7c5c1c4506e705dde4dd176"
+      },
+      "scopes": {
+        "corpus_harness": "d440e0e30677cba9f6e1b9cbfbac424115441f6d887f910d06fdc883031614eb",
+        "holdout_harness": "6da4a9103480063a81f07fcebdcd42a53ca3f8e2abdf7e36e4498e108cd8825e"
+      }
+    },
+    "holdout": {
+      "pairs": {
+        "authority-production-boundary": "3fa267fbe52cd78627d069ec8625b9253d9507c1894a574ae2c38c94ef3e40d0",
+        "destructive-migration-fallback": "1e000daaad15a039eac083b86ec076d04df6e56daf4833fd5d66a780d9f861ca",
+        "local-documentation-control": "10970c22d6b9c7b075650daa885c3b33cd9fef82db9dd61ba6feacf8f6d15641"
+      }
+    },
+    "package": {
+      "artifact_sha256": "0c83dbc694cb98bf811dd2d1c199b5d2aa734c484476a638884e775289c1d934",
+      "semantic_sha256": "c5030e99dd7cd1681148c069775671c5720bb8dd366930ff90f61cbc54cdfc05"
+    },
+    "schema_version": 1,
+    "settings": {
+      "effort": "high",
+      "model": "gpt-5.6-sol",
+      "timeout_seconds": 300
+    }
+  },
+  "prior_evidence": {
+    "source_commit": "2836d7363db364807a2ec384dc1b6c2cc13df95e",
+    "source_path": "evaluation/results/behavior-v21.json",
+    "sha256": "89b9760e08752dc9600f600268d447364970b89cb16d253e7a098b01f76fb56c",
+    "product_source_commit": "5ee1ea9c12d01122f7ab4a8acf24610335c30d9a",
+    "product_source_tree": "e8b8e12915b191d9187b447ff037a24ae6bc7030",
+    "package_artifact_sha256": "0c83dbc694cb98bf811dd2d1c199b5d2aa734c484476a638884e775289c1d934",
+    "selected_receipts_sha256": "5159899e8c950885b5c210921ff5b4738b5d81b17293e41a7df8c6b0efb33616"
+  },
+  "pending": {
+    "reasons": [
+      "engine_generation_changed"
+    ],
+    "corpus_cases": [
+      "authorized-rebaseline",
+      "boundary-cutover",
+      "clean-qualifying-control",
+      "compaction-recovery",
+      "goal-divergence",
+      "midflight-escalation",
+      "multi-repo-submodule",
+      "no-commit-secret",
+      "pre-freeze-compaction",
+      "receipt-mismatch",
+      "review-admin-cycle",
+      "review-inventory-gate",
+      "review-isolation",
+      "subthreshold-control"
+    ],
+    "holdout_pairs": [
+      "authority-production-boundary",
+      "destructive-migration-fallback",
+      "local-documentation-control"
+    ],
+    "review": true
+  },
+  "historical_cost": {
+    "basis": "HappyCodex 0.3 v21 candidate corpus and v23 adaptive holdout receipts",
+    "corpus": {
+      "combined_tokens": 498708,
+      "wall_seconds": 2429.409,
+      "live_calls": 14
+    },
+    "holdout": {
+      "combined_tokens": {
+        "minimum": 86501,
+        "maximum": 138319
+      },
+      "wall_seconds": {
+        "minimum": 482.465,
+        "maximum": 757.676
+      },
+      "live_calls": {
+        "minimum": 4,
+        "maximum": 6
+      }
+    },
+    "total": {
+      "combined_tokens": {
+        "minimum": 585209,
+        "maximum": 637027
+      },
+      "wall_seconds": {
+        "minimum": 2911.874,
+        "maximum": 3187.085
+      },
+      "live_calls": {
+        "minimum": 18,
+        "maximum": 20
+      }
+    }
+  },
+  "certification": null
+}
