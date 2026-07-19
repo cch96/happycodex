@@ -3,7 +3,8 @@
 Protocol: `HappyCodex/0.3`
 Invocation: `$happycodex:happycodex`
 Writer: Root only
-State: contract frozen; exact live-cost approval is the next open gate
+State: exact live-cost authority received; authority persistence and live execution
+are in progress
 Resume: read this entire file, the completed 0.4 certification-engine and main-
 integration ExecPlans, then reconcile Goal, Git, tests, evidence, installations,
 remote refs, and agents before any write, review, live call, or completion claim.
@@ -133,9 +134,17 @@ The only valid response, including no surrounding prose, is:
 APPROVE HAPPYCODEX LIVE COST 19e738c53ea2ca1d9ce8f3cb00d873fa820e12ba7d502664495ae17dcd1f399d
 ```
 
-The current user request authorizes the release Outcome but is not this cost grant.
-Goal continuation, an impact token, a paraphrase, extra prose, or a stale digest grants
-nothing.
+On 2026-07-19 the user returned that canonical response verbatim. Recovery first
+found that the desktop default had moved from frozen Codex CLI `0.144.4` to `0.144.6`,
+which changed only the toolchain settings identity. No authority was persisted and no
+model call was made under that drift. Explicitly selecting the frozen `0.144.4`
+binary reproduced snapshot `8e4929...808f`, impact token `ec536a...32e`, both public
+package identities, and request `19e738...99d` exactly. The response is therefore
+valid only for commands run with that frozen toolchain; its exact bytes and digest are
+persisted in `current.json` before live execution. Production validation reports
+authority SHA-256 `2e772e89c1a359486fb818f74bc3bf805bf27aa72eafe7270b100fa7b02057aa`
+and authority-bearing ledger SHA-256
+`c07b2628fdc9d358b9f70cba1acfe0709c0e51ee8f3286a1ee309ba9748ed221`.
 
 ## Design saturation and frozen release sequence
 
@@ -221,7 +230,7 @@ review identity, public proof, rollback, and final GitHub delivery simultaneousl
 | ID | Type | Claim | Closure / falsifier | State |
 | --- | --- | --- | --- | --- |
 | R-01 | premise | Current remote `main`, local baseline, package, engine, snapshot, ledger, and public benchmark identities are independently reproduced before release work. | Fetch/readback plus offline identity commands; drift remains open. | verified |
-| R-02 | outcome | The exact current impact and historical-cost envelope are persisted, and no live helper runs without the canonical invocation-bound response. | Authority validation plus command audit; any early call falsifies. | open |
+| R-02 | outcome | The exact current impact and historical-cost envelope are persisted, and no live helper runs without the canonical invocation-bound response. | Authority validation plus command audit; any early call falsifies. | verified |
 | R-03 | outcome | Exactly the authorized corpus and adaptive holdout scope completes and produces sanitized Git-reachable evidence that makes `current.json` validly `certified`. | CLI receipts, ledger validation, evidence ancestry, exact cost and scope reconciliation. | open |
 | R-04 | preservation | Live certification changes no Skill, manifest behavior, oracle, runner, evaluator, case, or holdout semantics. | Exact source diff; any such required edit stops for user decision. | open |
 | R-05 | outcome | Release edits are limited to strict-semver 0.4 version/cachebuster and accurate change-note/install metadata. | Product diff inventory and official validators. | open |
@@ -236,8 +245,9 @@ review identity, public proof, rollback, and final GitHub delivery simultaneousl
 1. Skeleton, baseline reconciliation, independent omission challenge, design
    saturation, exact cost request, version strategy, review boundary, rollback, and
    publication topology are frozen in distinct revisions.
-2. Stop at the live-cost gate until the user returns the exact canonical line. Goal
-   continuation is not approval.
+2. Closed on 2026-07-19: the user returned the exact canonical line, and the frozen
+   toolchain reproduced every request binding before authority persistence. Any later
+   binding drift reopens this stop gate.
 3. Execute the two certification transitions, reviews, isolated installs, active
    update, and non-force publication exactly as frozen above. Any product repair
    invalidates the affected synthetic review and receives only the minimum required
@@ -245,14 +255,18 @@ review identity, public proof, rollback, and final GitHub delivery simultaneousl
 
 ## Checkpoint
 
-- Milestone: baseline and omission union reproduced; contract freeze is the next
-  durable revision; canonical cost approval is the sole next execution gate.
-- Product writes: permitted only after this contract-freeze revision and only in the
-  frozen sequence. Live execution remains forbidden until exact persisted authority.
-- Owned path: this ExecPlan only.
-- Missing facts: the user's canonical approval response; generated release
-  cachebuster; all live/evidence/review/install/active-update/rollback/publication
-  receipts. No missing design choice remains.
+- Milestone: contract frozen and exact canonical cost response received; the
+  authority-bearing ledger revision is the next durable boundary, followed by the
+  authorized corpus and holdout invocations.
+- Product writes: permitted only in the frozen sequence. Live execution is permitted
+  only after the exact authority-bearing source commit validates under frozen Codex
+  CLI `0.144.4`.
+- Owned paths: this ExecPlan and `evaluation/results/current.json` until the
+  authority-bearing source commit; then only the frozen evidence paths for the live
+  transition.
+- Missing facts: generated release cachebuster and all
+  live/evidence/review/install/active-update/rollback/publication receipts. No missing
+  design choice remains.
 
 ## Retrospective
 
