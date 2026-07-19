@@ -3,8 +3,8 @@
 Protocol: `HappyCodex/0.3`
 Invocation: `$happycodex:happycodex`
 Writer: Root only
-State: canonical retry authority is validated and persisted below; commit this exact
-authority-bearing source before the first model call, then run one complete corpus
+State: the authorized corpus is GREEN and the adaptive holdout is materially better,
+but its exact +34.1873% combined-token tradeoff requires a user decision; stop here
 Resume: read this entire file, the completed 0.4 certification-engine and main-
 integration ExecPlans, then reconcile Goal, Git, tests, evidence, installations,
 remote refs, and agents before any write, review, live call, or completion claim.
@@ -652,6 +652,60 @@ No model call ran before this exact receipt was persisted. The commit containing
 these bytes is the only authorized source boundary; after that commit no unit
 discovery or repository write may precede the official corpus.
 
+## Retry live terminal and cost stop
+
+Commit `46e6730472236b0f282d5ff38ed6fad259b22688` (tree
+`3749fa3451ca3a1696f62e6ea90355d9ac8bf38f`) is the clean authority-bearing source.
+Frozen Codex CLI `0.144.4` reproduced the authority, ledger, snapshot, impact, public
+archive, and both invocation descriptors exactly after commit. The sole retry raw
+root is `/tmp/happycodex-0.4-retry-live.hLLmk0`; no repository write or second live
+invocation overlapped either official command.
+
+The one complete corpus exited zero. All ordered 14 cases pass, including the
+three-call native `pre-freeze-compaction` control; no case timed out and every oracle
+failure list is empty. Summary SHA-256 is
+`c797f4bcb75be9a752045bdd1e3d6320e4fa5991541d9490507d5863d92269d5`.
+It records 429,139 uncached input, 70,433 output, 499,572 combined tokens, and
+1,862.879 seconds across 16 calls.
+
+The one adaptive holdout is also terminal and must not be rerun. Run-receipt,
+summary, authority-pair, and local-control-pair SHA-256 values are respectively
+`1fda19700c75cd2885d47ae8b5ed2487d2b7a92df38ef83e8c29e8cb358df5d9`,
+`9ddb451ba28d57da6a7110bb95551b8291ce81392d9daf48cb4966c8e783b5e9`,
+`dc7edd4a424f4fe24100942bad058bb522f2afb415b1795a751e103cb19e01f7`,
+and `7a964d17e5660db1f6270a07a88b2b59835616fe4ba9cc6602cb2c05f2de6982`.
+Both adaptive outcomes are `better`, so the required terminal action is `stop` after
+two pairs and four calls; the destructive-migration pair correctly did not run.
+Candidate arms pass with zero oracle failures or timeouts. The corresponding public
+0.2 arms fail their frozen oracles without infrastructure failure.
+
+Aggregate holdout quality is `materially_better`. Candidate/public metrics are
+40,049/29,383 uncached input, 9,395/7,464 output, 49,444/36,847 combined tokens, and
+227.644/193.441 seconds. Combined-token ratio is `1.3418731511384916`
+(+34.1873%), above the exact 1.25 threshold; wall ratio is `1.176813602080221`
+(+17.6814%). The official CLI therefore correctly exits 1 with
+`decision=user_confirmation_required` and `release_permitted=false`. This is a
+measured quality/cost choice, not a behavior regression. The complete authorized
+attempt used exactly 20 calls, 585,863 combined tokens, and 2,283.964 model seconds.
+No evaluator child remains live and the source worktree stayed clean.
+
+This result also exposes a certification-contract gap that cannot be silently
+papered over. `HOLDOUT_SUMMARY_FIELDS` has no user-confirmation receipt, and
+`_validate_holdout_summary` recomputes the gate and rejects every summary whose
+computed `release_permitted` is false. Thus an ordinary external cost confirmation
+cannot make the frozen Goal's required `current.json=certified` state valid. The only
+honest continuations are (a) an explicit user amendment waiving the certified-ledger
+and dependent zero-live lineage gates for this exact release, or (b) explicit user
+authorization for minimum evaluator/ledger cost-waiver support. Option (b) changes
+the engine manifest and invalidates this corpus, holdout, authority, and future
+review identity; after offline GREEN it requires a fresh exact authority and all
+14 corpus cases plus the adaptive two-to-three holdout pairs: 20--22 live calls,
+conservatively 585,209--637,027 combined tokens and 2,911.874--3,187.085 seconds from
+the frozen envelope, followed by the already-pending fresh exact-product review.
+Do not alter the Skill, manifest, case, oracle, runner, evaluator, schema, evidence,
+version, installation, or refs until the user chooses. Do not rerun unchanged live
+inputs under either option.
+
 ## Design saturation and frozen release sequence
 
 Fresh baseline-only challenger `/root/release_boundary_challenger_b` inspected only
@@ -736,8 +790,8 @@ review identity, public proof, rollback, and final GitHub delivery simultaneousl
 | ID | Type | Claim | Closure / falsifier | State |
 | --- | --- | --- | --- | --- |
 | R-01 | premise | Current remote `main`, local baseline, package, engine, snapshot, ledger, and public benchmark identities are independently reproduced before release work. | Fetch/readback plus offline identity commands; drift remains open. | verified |
-| R-02 | outcome | The exact current impact and historical-cost envelope are persisted, and no live helper runs without the canonical invocation-bound response. | Authority validation plus command audit; any early call falsifies. | retry authority validated and persisted |
-| R-03 | outcome | Exactly the authorized corpus and adaptive holdout scope completes and produces sanitized Git-reachable evidence that makes `current.json` validly `certified`. | CLI receipts, ledger validation, evidence ancestry, exact cost and scope reconciliation. | authority commit and complete corpus next |
+| R-02 | outcome | The exact current impact and historical-cost envelope are persisted, and no live helper runs without the canonical invocation-bound response. | Authority validation plus command audit; any early call falsifies. | verified; exact 20-call grant consumed terminally |
+| R-03 | outcome | Exactly the authorized corpus and adaptive holdout scope completes and produces sanitized Git-reachable evidence that makes `current.json` validly `certified`. | CLI receipts, ledger validation, evidence ancestry, exact cost and scope reconciliation. | corpus GREEN; materially-better holdout blocked by exact cost gate and missing waiver representation |
 | R-04 | preservation | Repairs change only the explicitly authorized evaluator-case prompt or fixture, focused structural tests, and mechanically required source ledger; Skill, manifest behavior, oracle/matcher/schema, runner/evaluator code, and holdout semantics remain unchanged. | Exact source diff; any wider edit stops for user decision. | verified for both repairs |
 | R-05 | outcome | Release edits are limited to strict-semver 0.4 version/cachebuster and accurate change-note/install metadata. | Product diff inventory and official validators. | open |
 | R-06 | outcome | Full offline suite, official validators, Ruff, CLI/JSON/diff/package hygiene, and fresh exact-product review close with `GO` and no material blocker. | Exact receipts and complete review coverage. | open |
@@ -775,18 +829,22 @@ review identity, public proof, rollback, and final GitHub delivery simultaneousl
    the user returned the exact canonical line for `daa751b4...c8de`, and frozen
    toolchain/source/public bindings reproduced exactly. Commit this persisted
    authority before the first model call; any later drift invalidates it.
+9. Open: the sole retry corpus is 14/14 GREEN and the adaptive holdout is terminal
+   `better,better`, but combined tokens are 1.341873x public and the engine returns
+   `user_confirmation_required`. Stop for the exact user choice above; do not infer
+   a cost waiver, weaken certification, change the evaluator, or rerun live inputs.
 
 ## Checkpoint
 
-- Milestone: retry authority is persisted. Commit the exact ledger/ExecPlan boundary,
-  require a clean worktree, then run the official complete corpus once with frozen
-  Codex CLI `0.144.4` and impact `f6f652...f821`.
-- Product writes: none. Current authority-stage changes are `current.json` and this
-  ExecPlan only. Do not run unit discovery while authority is non-null.
-- Owned path after the authority commit: one fresh external raw corpus root only;
-  repository bytes remain frozen until a terminal corpus result exists.
-- Missing facts: complete corpus/holdout evidence and every remaining
-  review/install/activation/rollback/publication receipt.
+- Milestone: exact 20-call live scope is terminal. Corpus is strict GREEN and holdout
+  quality is materially better, but the measured +34.1873% combined-token gate and
+  absent ledger waiver representation require an explicit user decision.
+- Product writes: none. Persist only this administrative checkpoint; leave authority,
+  raw outputs, evaluator, product, and ledger semantics unchanged.
+- Owned raw path: `/tmp/happycodex-0.4-retry-live.hLLmk0`. Retain it unchanged; no
+  evaluator child is live and no unchanged live rerun is permitted.
+- Missing facts: exact cost/certification disposition and every remaining sanitized-
+  evidence/review/install/activation/rollback/publication receipt.
 
 ## Retrospective
 
