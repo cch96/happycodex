@@ -545,6 +545,20 @@ runner; candidate must pass for a releasable summary, public failure is valid on
 `better`, and failed-arm telemetry must remain structurally valid. A focused RED,
 complete offline rerun, and a sixth fresh exact review are required.
 
+## Fifth focused RED
+
+At commit parent `a1e06e0`, root added one exact regression that exercises both sides
+of the holdout outcome contract. An authentic two-pair `better` summary uses passing
+candidate receipts and failing public-0.2 receipts with non-empty oracle-failure
+digests; a forged `better` summary leaves both arms passing. The command
+
+    python -m unittest tests.test_certification_engine.CertificationReceiptAndCliTests.test_certified_state_accepts_only_reachable_bound_evidence
+
+fails before the forged branch is reached because certification raises
+`corpus evidence case did not pass` on the authentic public control failure. This is
+the intended RED for the accepted fifth-review blocker. An earlier class-name typo
+only produced unittest discovery error and is not product evidence.
+
 ## Validation envelope
 
 Candidate offline commands, exact live-run costs, required reruns, and review launch

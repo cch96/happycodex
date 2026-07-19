@@ -891,6 +891,55 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                     quality="equal",
                 ),
             }
+
+            source_evidence = {
+                "corpus_semantic_sha256": shared_semantic,
+                "engine": engine_identity,
+                "holdout_descriptors": descriptors,
+            }
+            authentic_better = copy.deepcopy(holdout_summary)
+            authentic_better["adaptive_history"] = ["better", "better"]
+            for pair_receipt in authentic_better["pair_receipts"]:
+                pair_receipt["outcome"] = "better"
+                public_receipt = pair_receipt["arms"]["public-0.2"]
+                public_receipt["passed"] = False
+                public_receipt["oracle_failures"] = {
+                    "count": 1,
+                    "sha256": canonical_sha256(["public control failed"]),
+                }
+            authentic_better["cost_gate"] = ledger_engine.cost_gate(
+                {key: value * 2 for key, value in metrics.items()},
+                {key: value * 2 for key, value in metrics.items()},
+                quality="materially_better",
+            )
+            ledger_engine._validate_holdout_summary(
+                authentic_better,
+                snapshot,
+                run_pair_ids=run_pair_ids,
+                run_sha256=evidence_sha["holdout_run"],
+                public_package=public_identity,
+                source=source_evidence,
+            )
+
+            mislabeled_better = copy.deepcopy(holdout_summary)
+            mislabeled_better["adaptive_history"] = ["better", "better"]
+            for pair_receipt in mislabeled_better["pair_receipts"]:
+                pair_receipt["outcome"] = "better"
+            mislabeled_better["cost_gate"] = ledger_engine.cost_gate(
+                {key: value * 2 for key, value in metrics.items()},
+                {key: value * 2 for key, value in metrics.items()},
+                quality="materially_better",
+            )
+            with self.assertRaisesRegex(ValueError, "holdout outcome mismatch"):
+                ledger_engine._validate_holdout_summary(
+                    mislabeled_better,
+                    snapshot,
+                    run_pair_ids=run_pair_ids,
+                    run_sha256=evidence_sha["holdout_run"],
+                    public_package=public_identity,
+                    source=source_evidence,
+                )
+
             evidence_sha["holdout_summary"] = write_evidence(
                 "holdout_summary", holdout_summary
             )
