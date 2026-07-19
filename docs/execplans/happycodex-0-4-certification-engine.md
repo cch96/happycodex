@@ -3,7 +3,7 @@
 Protocol: `HappyCodex/0.3`
 Invocation: `$happycodex:happycodex`
 Writer: Root only
-State: offline candidate; fresh review and live-cost decision pending
+State: in-contract repair after fresh Native NOT-YET
 Resume: read this entire ExecPlan and reconcile Goal, Native Plan, Git, tests,
 receipts, worktrees, and agents before any write, review, or completion claim.
 
@@ -80,15 +80,15 @@ explicit user cost decision before launch.
 | ID | Type | Claim | Closure / falsifier | State |
 | --- | --- | --- | --- | --- |
 | O-01 | outcome | A modular pure-standard-library certification engine replaces the monolithic internal evaluator without legacy internal compatibility. | Module/CLI inventory plus tests; legacy reader or dual-write path falsifies. | verified offline |
-| O-02 | outcome | Canonical receipts separate semantic input, harness implementation, and derived artifact identities. | Deterministic hash tests and mutation counterexamples. | verified offline |
-| O-03 | outcome | A read-only impact command reports exact invalidated gates, reasons, and live-run count/cost before execution. | Table-driven dependency tests; an unclassified material input change falsifies. | verified offline |
+| O-02 | outcome | Canonical receipts separate semantic input, harness implementation, and derived artifact identities. | Deterministic hash tests and mutation counterexamples. | blocked by NR-03 |
+| O-03 | outcome | A read-only impact command reports exact invalidated gates, reasons, and live-run count/cost before execution. | Table-driven dependency tests; an unclassified material input change falsifies. | blocked by NR-01/03/04 |
 | O-04 | outcome | Historical behavior v1-v20 files and version-specific compatibility tests leave the active tree while remaining reachable in Git history. | Final path inventory and ancestry proof. | verified |
 | O-05 | preservation | Installed Skill behavior, plugin identity, public install commands, and `$happycodex:happycodex` invocation remain stable except the intentional 0.4 version/change note. | Exact runtime diff and contract tests. | verified; no version edit in phase one |
 | O-06 | outcome | Maintainer policy describes current public 0.3 baseline, the 0.4 gate model, and this task's explicit Fable exclusion correctly. | Policy review and tests. | verified |
-| O-07 | outcome | Offline suite, official Skill/plugin validators, dry-runs, diff hygiene, and final fresh native review close with no unresolved blocker. | Exact command receipts and review coverage. | open |
+| O-07 | outcome | Offline suite, official Skill/plugin validators, dry-runs, diff hygiene, and final fresh native review close with no unresolved blocker. | Exact command receipts and review coverage. | blocked by NR-01 through NR-04 |
 | O-08 | preservation | No Fable invocation, controller, hook, daemon, scheduler, MCP/app runtime, or authoritative Task State JSON is added or run. | Tree/command inventory. | verified |
-| O-09 | outcome | Every transitive evaluator module/schema is classified into and bound by a canonical semantic, harness, or artifact manifest. | Module inventory and mutation tests; any executable unclassified file falsifies. | verified offline |
-| O-10 | outcome | The evidence ledger has one new-schema `current.json`, explicitly records `refresh_required`, and cannot claim certification without a live successor receipt. | State-machine tests and final ledger inspection. | verified offline; live successor pending |
+| O-09 | outcome | Every transitive evaluator module/schema is classified into and bound by a canonical semantic, harness, or artifact manifest. | Module inventory and mutation tests; any executable unclassified file falsifies. | blocked by NR-03/04 |
+| O-10 | outcome | The evidence ledger has one new-schema `current.json`, explicitly records `refresh_required`, and cannot claim certification without a live successor receipt. | State-machine tests and final ledger inspection. | blocked by NR-02 |
 | O-11 | preservation | Phase-one changes do not alter `.agents`, `.codex-plugin`, `README.md`, or `skills`; therefore the full shipped-package manifest remains `0c83dbc694cb98bf811dd2d1c199b5d2aa734c484476a638884e775289c1d934`. | Exact package-manifest check and Git diff. | verified |
 | B-01 | allowed-break | Internal evaluator imports, CLI syntax, receipt/result schema, and historical result paths have no backward-compatibility obligation. | Any compatibility shim must be removed or separately authorized. | exercised |
 | B-02 | allowed-break | Internal raw filenames, output-directory layout, write-once ordering, stdout payloads, and exit codes may change to the new CLI contract. | New CLI integration tests are authoritative; preserving an old path is not a requirement. | exercised |
@@ -217,6 +217,42 @@ Candidate unit validation is 99/99 green in 1.558 seconds; Ruff check/format and
 new dry-runs are green. Exact official validators and fresh review follow the
 implementation commit.
 
+## Native review receipt and repair impact
+
+Fresh read-only reviewer `/root/cert_engine_final_review` inspected immutable baseline
+`2836d7363db364807a2ec384dc1b6c2cc13df95e` through candidate
+`444e53e297b7131556e73f6a59ce5d75b7702467`. It read the full plan, source/diff,
+deletion inventory, and changed tests; independently reproduced 99/99 and all offline
+gates; reported no contamination or truncation; and invoked no network, Fable, Goal,
+live evaluator, or write. Verdict: NOT-YET with four findings:
+
+- `NR-01` critical: the impact token is not bound to actual CLI model/effort/timeout,
+  case/arm, or package identities and no persisted user-cost authority exists.
+- `NR-02` high: `state=certified`, empty pending, and `certification={}` passes ledger
+  validation without a live successor receipt.
+- `NR-03` high: artifact sanitizers remain inside corpus harness; holdout policy and
+  CLI/interpreter boundaries are also too coarse for exact invalidation.
+- `NR-04` high: a removed corpus case is excluded from current rerun scope and reports
+  zero calls/cost.
+
+Root reproduced all four offline. The minimum repair adds counterexamples first, then:
+
+1. persist a nullable, exact invocation-bound user authority receipt in the evidence
+   ledger; live CLI remains mechanically blocked while it is null;
+2. require a closed certification receipt with successor commit/tree and exact
+   corpus/holdout/review/authority/snapshot digests before `certified` validates;
+3. move derived sanitization into the artifact module, split CLI/interpreter and
+   holdout-policy identities to the narrowest safe gates, and keep unknown changes
+   fail-closed;
+4. classify case removal as a review/blocking schema change rather than zero-cost
+   success, with no live token minted until the corpus is valid again.
+
+This repair changes only evaluator/tests/ledger/plan support. It does not touch the
+shipped package and does not enlarge the already-pending maximum 14 corpus plus three
+paired holdouts. It invalidates the current engine/snapshot/token receipts, which must
+be regenerated offline. The repaired revision requires a fresh exact Native review;
+no live call is authorized before that review and the later user cost decision.
+
 ## Validation envelope
 
 Candidate offline commands, exact live-run costs, required reruns, and review launch
@@ -226,18 +262,16 @@ publication requires a later explicit user request.
 
 ## Checkpoint
 
-- Milestone: offline engine, ledger transition, compatibility deletion, tests, and
-  exact impact/cost receipt implemented after contract freeze
-  `c03c6e1a1c644a4ca32f18f9cfd261746be1eb3a`.
+- Milestone: first offline candidate `444e53e297b7131556e73f6a59ce5d75b7702467`
+  received a fresh Native NOT-YET with four reproduced in-contract findings.
 - Goal: active `019f780e-925e-7193-8bd2-0a04d6efe31e`; its objective is the
   Normalized Outcome plus all frozen preservation, exclusion, offline validation, and
   live-cost gates in this document.
 - RED: `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest
   tests.test_certification_engine -v` exited 1 before implementation because
   `evaluation.core` did not exist; the same contract is now green.
-- Next: commit the implementation, run exact offline/official validation on that
-  revision, launch a fresh full-scope native review, reproduce any findings, and stop
-  at the explicit live-cost decision.
+- Next: commit this review receipt, add four focused RED counterexamples, implement the
+  bounded repair, rerun every offline gate, and launch a fresh exact repair review.
 - Product/support writes: open after the distinct freeze revision.
 - Owned paths: `evaluation/`, `tests/`, `AGENTS.md`, and this ExecPlan; shipped-package
   paths remain closed.
