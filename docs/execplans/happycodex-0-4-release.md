@@ -3,8 +3,8 @@
 Protocol: `HappyCodex/0.3`
 Invocation: `$happycodex:happycodex`
 Writer: Root only
-State: minimum `review-admin-cycle` fixture repair authorized; amendment freeze is
-the next boundary before focused RED, repair, offline validation, and a new exact
+State: authorized `review-admin-cycle` fixture repair is offline GREEN; commit the
+semantic source boundary, then reconstruct public 0.2 and freeze a new exact
 live-cost request
 Resume: read this entire file, the completed 0.4 certification-engine and main-
 integration ExecPlans, then reconcile Goal, Git, tests, evidence, installations,
@@ -444,6 +444,68 @@ currently estimated at 585,209 to 637,027 combined tokens and 2,911.874 to 3,187
 seconds, followed by fresh exact-product review. Only a later canonical response for
 the new request may reopen live execution.
 
+## Review-admin fixture repair RED/GREEN
+
+The amendment freeze is
+`0b30ee4061dc1ea36d60a5eada26d2f2dc16c186`. The focused
+`HappyCodexEvaluationTests.test_review_admin_cycle_changes_only_control_record` was
+first extended, without changing the fixture, to require six ordered source commits,
+a docs-only prelaunch transition, exact command/candidate/ref/output fields, later
+terminal projection, and unchanged product entries. It failed in 0.074 seconds with
+`AssertionError: 5 != 6`; this is the intended RED against the stale five-commit
+fixture.
+
+The sole semantic fixture edit inserts one docs-only `review-prelaunch` commit after
+unchanged product candidate index 3 and before terminal closure index 5. It records
+the authoritative source candidate revision/tree/product manifest, planned neutral
+baseline/candidate refs, exact frozen-CLI `codex exec review --commit ...` command,
+external result file, archival output ref, isolation, and `Review status: not
+started`. The existing `review_projection` stays only on the later closure entry, so
+the generator creates its synthetic refs and terminal output after the prelaunch
+source revision exists. Closure binds prelaunch revision index 4 to the terminal
+source/projection mapping. The focused test then passed in 0.097 seconds.
+
+Fixture canonical SHA-256 changed from
+`a056271d425b172ef757a3b22aebe0cb6a2721535f56c1281fd2f15dcd7de01a`
+to `fa139aceb6610fbe4b7daa7d1a36b512fc90996e162babc2ffce7fc04276f5ee`.
+The positive oracle remains byte-semantically identical at canonical SHA-256
+`9fdc83ce1f7addf709588a587196c45f47daffa8232209e2cfed20d5dc4c368e`.
+Source file SHA-256 values for the repaired case, focused test, and null-authority
+ledger are `5deb20b3...d126`, `6f90b09d...0c13`, and `a1fe6618...4a9b`.
+
+The mechanical source-ledger transition removes the consumed live authority and
+changes only the `review-admin-cycle` semantic input from `928c5550...7cff` to
+`46de334b40c8fa21560e56b45ff62ff4192ee475721bcbab280992b8e3c8ae88`
+and engine manifest from `f1ce49ef...e6423` to
+`731ee44a274573bdf6731bdbe75a068ea750b0994a120764e21d6cdfa3ff254c`.
+The new snapshot is
+`f59799b321b1e367b62f32f52352aba317765acd45523bcceb7152106f57248f`;
+production verification reports ledger
+`d84db540b1d8352c99200d1ae58544dd8b752c7defd0c06898ac2ef81dfb133c`,
+impact token `dc1ee4d0c6227d3aea04dbd06848ae3baefcee083b00b9974aa3f4b0cbf914a4`,
+null authority, and the complete 14-case/three-pair corpus/holdout/review scope.
+Candidate package semantic/artifact remain exactly `c5030e99...c05` /
+`0c83dbc6...934`.
+
+Offline validation is GREEN under frozen Codex CLI `0.144.4`:
+
+- final focused test 1/1 and cumulative tests 123/123 passed in 7.363 seconds;
+- official Skill and plugin validators passed;
+- Ruff check passed and all 19 Python files passed format-check;
+- production verify/impact and both official dry-runs passed; their output SHA-256
+  values are `57f014fe...325a1`, `880faa04...e5a7`, `e5d76b34...2a0a`, and
+  `2f147cff...692`;
+- all 21 JSON documents parse, all 19 Python files parse as AST, and diff hygiene
+  passes.
+
+The three non-ExecPlan changed paths are exactly the authorized case, focused test,
+and source ledger; their binary diff SHA-256 from the amendment freeze is
+`3540872fb06453143ad60bcd9debae1a4bb391a5660f88a505fb3d718c1f461c`.
+Skill `0f222349...6b71`, plugin manifest `b1d4e9c0...c213`, corpus runner
+`3dc5ae1d...5f24`, corpus contract `57039c16...da93`, positive oracle, all holdout
+inputs/code, and every product-package byte are unchanged. No model, holdout, review,
+install, activation, push, tag, PR, merge, or release action ran.
+
 ## Design saturation and frozen release sequence
 
 Fresh baseline-only challenger `/root/release_boundary_challenger_b` inspected only
@@ -530,7 +592,7 @@ review identity, public proof, rollback, and final GitHub delivery simultaneousl
 | R-01 | premise | Current remote `main`, local baseline, package, engine, snapshot, ledger, and public benchmark identities are independently reproduced before release work. | Fetch/readback plus offline identity commands; drift remains open. | verified |
 | R-02 | outcome | The exact current impact and historical-cost envelope are persisted, and no live helper runs without the canonical invocation-bound response. | Authority validation plus command audit; any early call falsifies. | verified for repaired authority |
 | R-03 | outcome | Exactly the authorized corpus and adaptive holdout scope completes and produces sanitized Git-reachable evidence that makes `current.json` validly `certified`. | CLI receipts, ledger validation, evidence ancestry, exact cost and scope reconciliation. | blocked by `HC-REV-PRELAUNCH-1`; repaired authority consumed |
-| R-04 | preservation | Repairs change only the explicitly authorized evaluator-case prompt or fixture, focused structural tests, and mechanically required source ledger; Skill, manifest behavior, oracle/matcher/schema, runner/evaluator code, and holdout semantics remain unchanged. | Exact source diff; any wider edit stops for user decision. | fixture repair authorized; implementation pending |
+| R-04 | preservation | Repairs change only the explicitly authorized evaluator-case prompt or fixture, focused structural tests, and mechanically required source ledger; Skill, manifest behavior, oracle/matcher/schema, runner/evaluator code, and holdout semantics remain unchanged. | Exact source diff; any wider edit stops for user decision. | verified for both repairs |
 | R-05 | outcome | Release edits are limited to strict-semver 0.4 version/cachebuster and accurate change-note/install metadata. | Product diff inventory and official validators. | open |
 | R-06 | outcome | Full offline suite, official validators, Ruff, CLI/JSON/diff/package hygiene, and fresh exact-product review close with `GO` and no material blocker. | Exact receipts and complete review coverage. | open |
 | R-07 | outcome | A clean isolated public marketplace install/invocation reports the exact 0.4 version and release identity. | Fresh-home install plus invocation receipt; source/cache mismatch falsifies. | open |
@@ -556,24 +618,25 @@ review identity, public proof, rollback, and final GitHub delivery simultaneousl
    the first model call; any later drift reopens this gate.
 5. Closed: `review-admin-cycle` exposed a stale-positive fixture premise, and the user
    explicitly authorized the minimum fixture/test repair recorded above.
-6. Open: freeze this amendment separately, observe focused RED, make only the
-   authorized fixture/test and null-authority ledger transition, and run the complete
-   offline envelope. Then freeze a fresh snapshot, impact, public binding, and exact
-   cost request; the consumed authority cannot be reused and no live call may start.
+6. Closed through offline GREEN: the amendment was frozen separately, focused RED was
+   observed, and only the authorized fixture/test plus null-authority ledger changed.
+   Commit this source boundary, then freeze a fresh snapshot, impact, public binding,
+   and exact cost request; the consumed authority cannot be reused and no live call
+   may start.
 
 ## Checkpoint
 
-- Milestone: the minimum fixture repair is authorized. Commit this amendment freeze,
-  then observe focused RED before any fixture or ledger edit.
-- Product writes after the freeze: only `evaluation/cases/review-admin-cycle.json`,
-  its focused assertions in `tests/test_evaluation.py`, the mechanical
-  `evaluation/results/current.json` transition, and this ExecPlan. Everything else
-  remains frozen.
-- Owned path until the amendment-freeze commit: this ExecPlan only; worktree must then
-  be clean before RED.
-- Missing facts: focused RED/GREEN, repaired offline evidence, a new exact live-cost
-  authority, complete corpus/holdout evidence, and every remaining review/install/
-  activation/rollback/publication receipt.
+- Milestone: the authorized fixture repair and source ledger are offline GREEN.
+  Commit this semantic boundary, then reconstruct frozen public 0.2 and generate the
+  new exact request from the clean committed source.
+- Product writes before request freeze: only this repair set and ExecPlan closure are
+  allowed. After the semantic commit, only the ExecPlan request receipt may change;
+  all evaluator, ledger, package, and release bytes remain frozen.
+- Owned paths until the semantic commit: the repaired case, focused test, source
+  ledger, and this ExecPlan; worktree must then be clean.
+- Missing facts: committed source identity, fresh public binding, a new exact
+  live-cost authority, complete corpus/holdout evidence, and every remaining review/
+  install/activation/rollback/publication receipt.
 
 ## Retrospective
 
