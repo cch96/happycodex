@@ -3,7 +3,7 @@
 Protocol: `HappyCodex/0.3`
 Invocation: `$happycodex:happycodex`
 Writer: Root only
-State: immutable simplification candidate and preflight GREEN; fresh review pending
+State: simplification review NOT-YET; bounded authority/offline-evidence repair frozen
 Resume: read this entire ExecPlan and reconcile Goal, Native Plan, Git, tests,
 receipts, worktrees, and agents before any write, review, or completion claim.
 
@@ -1443,6 +1443,87 @@ verdict. The reviewer may use only removed temporary clones and offline tools. S
 writes, model/live evaluation, network, Fable, install, activation, plugin mutation,
 Goal actions, ref changes, push, and publication are forbidden.
 
+## Simplification review NOT-YET and bounded repair
+
+Fresh Phase 1 at task `/root/cert_engine_simplification_review_b` inspected only the
+immutable baseline and froze 24 candidate-independent obligations `HC04-01` through
+`HC04-24`. SHA-256 over canonical UTF-8 `ID<TAB>text<LF>` lines is
+`6704a85e30b4b38999df962e648ba567067379f7791ddf11f9c533cfa1d6452f`.
+It verified the baseline commit/tree, disclosed the installed Skill as byte-identical
+to the baseline Skill, and reported no candidate, current-head, task-ExecPlan, prior-
+review, conversation, network, model, Fable, installation, Goal/ref, source-write,
+push, or publication contamination.
+
+Phase 2 independently reproduced the candidate/tree/admin/projection/diff identities
+above and returned terminal `NOT-YET` with over-optimization `YES`. It passed 120/120
+tests in 6.887 seconds, Ruff check/format, and CLI verify before Root's requested stop;
+the official validators, full CLI matrix, JSON/diff/public checks were left incomplete
+in that reviewer only, but were already complete in Root's detached preflight. It
+independently reconstructed every historical cost identity and exact corpus/holdout/
+combined arithmetic from baseline v21 plus the permitted sanitized v23 receipts. The
+reviewer's disposable clone `/tmp/hc04-review-rY5jLh` was safely removed by Root after
+the terminal receipt; no source or ref mutation occurred.
+
+Two reproduced P1 blockers remain:
+
+1. `evaluation.core.ledger` exposes the capability constructor seal at module scope
+   and stores mutable descriptor/digest fields. Corpus can therefore receive a
+   normally constructed, scope-mutable capability, while the model-reaching corpus
+   evaluator and holdout `run_pair` helper do not themselves require the validated
+   capability. Root independently reproduced direct construction and descriptor
+   mutation without any model call. The CLI wrapper is exact, but the promised single
+   authority boundary is not a repository-wide invariant.
+2. A zero-live `receipt` or `isolated_install` impact adds no corpus/holdout coverage,
+   so certification currently accepts an empty evidence envelope. The accepted
+   artifact-only Git transition in the candidate test proves the false green: prior
+   behavior evidence remains valid, but no current identity-matching receipt or
+   isolated-install evidence closes the new non-live gate.
+
+The review also challenged global mechanism size under `HC04-03`. Root accepts the
+specific evidence that public capability construction/mutation and empty offline gate
+evidence are unnecessary complexity, but does not infer that dependency-complete
+toolchain identities or strict terminal validators should be weakened without a
+false-green counterexample. The candidate already removes 83 net lines in this
+refactor. This repair must close the two concrete invariants without adding a
+controller, database, retry state, reviewer schema, generic workflow layer, or new
+live command surface.
+
+The frozen bounded repair is:
+
+1. Define the capability and its only minting validator in one lexical boundary. No
+   module-level seal or mint helper remains. Store the descriptor, authority digest,
+   impact token, and bound snapshot as private immutable canonical bytes/read-only
+   properties; reject ordinary construction, assignment, mutation, copying, and
+   serialization. Normal interpreter introspection or `object.__new__` is outside the
+   trusted maintainer-code boundary, but no supported evaluator API may fabricate or
+   alter the capability.
+2. Require that capability at the model-reaching corpus evaluator/invocation helper
+   and at holdout `run_pair`, propagate it from the sole live dispatcher, and rebind
+   command, settings, selected case/pair, arm, and package against its immutable
+   descriptor/snapshot before execution. Direct list/dry-run behavior remains
+   capability-free and read-only. The exact live authority remains reusable only
+   under the existing one-writer/user-approval trust boundary; no `inflight` controller
+   or retry protocol is added.
+3. When derived impact contains `receipt` or `isolated_install`, require a strictly
+   post-source content-addressed `offline_summary` evidence locator in the existing
+   certification evidence map. Its exact schema binds source commit and source-ledger
+   bytes, snapshot and engine identities, the sorted offline gate set, the current
+   artifact-engine identity for `receipt`, and the existing exact source/installed
+   package receipt for `isolated_install`; absent, stale, extra, or self-asserted-only
+   gate fields fail closed. This reuses the one ledger and evidence-locator mechanism
+   rather than adding a state machine or command.
+4. RED first proves public seal/construction/mutation, both inner live seams, and empty
+   offline evidence. GREEN must include an isolated-install receipt case, the existing
+   zero-live real-Git transition with current offline evidence, the six prior
+   simplification relationships, full suite, both official validators, Ruff, CLI
+   verify/impact/dry-runs, 21 JSON documents, diff/package/public checks, an immutable
+   repair commit, and a new fresh isolated exact-product review.
+
+These changes invalidate the candidate engine/snapshot/ledger/impact identities and
+the Phase-2 review. They do not invalidate shipped bytes or change the already-pending
+20-to-22 live-call/cost envelope; no prior 0.4 live evidence exists. No model/live
+action is authorized.
+
 ## Validation envelope
 
 Candidate offline commands, exact live-run costs, required reruns, and review launch
@@ -1452,23 +1533,22 @@ publication requires a later explicit user request.
 
 ## Checkpoint
 
-- Milestone: semantic candidate `24ace04` and its clean detached preflight are GREEN;
-  all five architectural contradictions and historical provenance are repaired, and
-  only the fresh exact-product review remains open in the offline phase.
+- Milestone: candidate `24ace04` preflight is GREEN but its fresh exact review is
+  terminal `NOT-YET`; two bounded authority/offline-evidence blockers are reproduced
+  and their minimal coherent repair is frozen.
 - Goal: active `019f780e-925e-7193-8bd2-0a04d6efe31e`; its objective is the
   Normalized Outcome plus all frozen preservation, exclusion, offline validation, and
   live-cost gates in this document.
-- RED/GREEN: simplification RED `b239487` is durable at six tests, five failures and
-  two errors; semantic candidate `24ace04` is GREEN at 6/6 focused and 120/120
-  cumulative tests with both official validators and the complete offline envelope.
-- Next: freeze candidate-independent obligations, disclose `24ace04`, and complete the
-  fresh isolated exact-product review; repair only a confirmed in-contract blocker.
-- Product/support writes: semantic candidate paths are frozen during review;
-  shipped-package paths remain closed.
+- RED/GREEN: original simplification RED `b239487` and candidate GREEN `24ace04` remain
+  durable comparison points; the new two-blocker RED and repaired GREEN are pending.
+- Next: add the exact authority-encapsulation and offline-evidence RED, then implement
+  the single bounded repair and rerun the immutable offline/review envelope.
+- Product/support writes: evaluator/test/policy paths reopen only for this frozen
+  repair; shipped-package paths remain closed.
 - Owned paths: `evaluation/`, `tests/`, `AGENTS.md`, and this ExecPlan; shipped-package
   paths remain closed.
-- Missing facts: fresh exact-product review receipt, explicit user cost decision, and
-  any later live successor receipts.
+- Missing facts: repair RED/GREEN identities, immutable repair commit/tree/projection,
+  fresh exact-product `GO`, explicit user cost decision, and later live receipts.
 
 ## Retrospective
 
