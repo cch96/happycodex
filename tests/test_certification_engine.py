@@ -103,6 +103,14 @@ def complete_live_authority(
     }
 
 
+def refreshed_coverage(snapshot: dict[str, object]) -> dict[str, object]:
+    return {
+        "corpus": {case_id: "refreshed" for case_id in snapshot["corpus"]["cases"]},
+        "holdout": {pair_id: "refreshed" for pair_id in snapshot["holdout"]["pairs"]},
+        "review": "refreshed",
+    }
+
+
 class CertificationIdentityTests(unittest.TestCase):
     def test_inventory_classifies_every_engine_module_and_schema(self) -> None:
         first = engine_inventory(ROOT)
@@ -349,6 +357,28 @@ class CertificationImpactTests(unittest.TestCase):
         self.assertEqual(impact["gates"], ["isolated_install"])
         self.assertEqual(impact["live_calls"], {"minimum": 0, "maximum": 0})
 
+    def test_impact_rejects_the_same_malformed_case_as_execution(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            clone = Path(raw) / "repo"
+            shutil.copytree(ROOT / "evaluation", clone / "evaluation")
+            for package_path in (".agents", ".codex-plugin", "README.md", "skills"):
+                source = ROOT / package_path
+                target = clone / package_path
+                if source.is_dir():
+                    shutil.copytree(source, target)
+                else:
+                    shutil.copy2(source, target)
+            case_path = next((clone / "evaluation" / "cases").glob("*.json"))
+            malformed = json.loads(case_path.read_text(encoding="utf-8"))
+            malformed.pop("oracle")
+            case_path.write_text(
+                json.dumps(malformed, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(IdentityError, "invalid case envelope"):
+                build_snapshot(clone)
+
     def test_unknown_snapshot_dimension_fails_closed(self) -> None:
         changed = copy.deepcopy(self.snapshot)
         changed["unknown"] = {"value": True}
@@ -472,6 +502,45 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
             self.assertEqual(cli.verify_command(), 0)
         digest.assert_called_once_with(ledger, repo=ROOT)
 
+    def test_corpus_certification_accepts_the_exact_authorized_subset(self) -> None:
+        snapshot = build_snapshot(ROOT)
+        changed = copy.deepcopy(snapshot)
+        case_id = sorted(changed["corpus"]["cases"])[0]
+        changed["corpus"]["cases"][case_id] = "f" * 64
+        impact = plan_impact(snapshot, changed)
+        authority = {"impact_token": "a" * 64, "impact": impact}
+        case = {
+            "id": case_id,
+            "uncached_input_tokens": 2,
+            "usage": {"output_tokens": 1},
+            "elapsed_seconds": 1.0,
+        }
+        payload = {
+            "schema_version": 1,
+            "engine_generation": "0.4",
+            "impact_token": authority["impact_token"],
+            "live_authority_sha256": canonical_sha256(authority),
+            "arm": "candidate",
+            "model": changed["settings"]["model"],
+            "effort": changed["settings"]["effort"],
+            "timeout_seconds": changed["settings"]["timeout_seconds"],
+            "passed": 1,
+            "total": 1,
+            "uncached_input_tokens": 2,
+            "telemetry_complete": True,
+            "output_tokens": 1,
+            "elapsed_seconds": 1.0,
+            "cases": [case],
+        }
+        with mock.patch.object(ledger_engine, "_validate_case_identity") as validate:
+            ledger_engine._validate_corpus_summary(
+                payload,
+                changed,
+                {"engine": engine_inventory(ROOT)},
+                authority,
+            )
+        validate.assert_called_once()
+
     def test_certified_state_requires_a_digest_bound_successor_receipt(self) -> None:
         ledger = load_ledger(ROOT / "evaluation" / "results" / "current.json")
         current = build_snapshot(ROOT)
@@ -494,6 +563,7 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
             "engine_manifest_sha256": certified["snapshot"]["engine"][
                 "manifest_sha256"
             ],
+            "coverage": refreshed_coverage(certified["snapshot"]),
             "evidence": {
                 name: {
                     "commit": "8" * 40,
@@ -583,6 +653,11 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
             git("commit", "-qm", "persist exact live authority")
             source_commit = git("rev-parse", "HEAD")
             source_tree = git("rev-parse", "HEAD^{tree}")
+            git("update-index", "--chmod=+x", "skills/happycodex/SKILL.md")
+            git("commit", "-qm", "source with package mode drift")
+            mode_drift_source_commit = git("rev-parse", "HEAD")
+            mode_drift_source_tree = git("rev-parse", "HEAD^{tree}")
+            git("update-index", "--chmod=-x", "skills/happycodex/SKILL.md")
             settings = snapshot["settings"]
             engine_identity = engine_inventory(repo)
 
@@ -830,6 +905,7 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                 "successor_source_tree": source_tree,
                 "snapshot_sha256": canonical_sha256(snapshot),
                 "engine_manifest_sha256": snapshot["engine"]["manifest_sha256"],
+                "coverage": refreshed_coverage(snapshot),
                 "evidence": locators,
                 "live_authority_sha256": canonical_sha256(authority),
             }
@@ -845,6 +921,24 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
             )
             with self.assertRaisesRegex(ValueError, "source.*authority"):
                 validate_ledger(late_authority, repo=repo)
+
+            same_commit = copy.deepcopy(certified)
+            same_commit["certification"]["successor_source_commit"] = evidence_commit
+            same_commit["certification"]["successor_source_tree"] = git(
+                "rev-parse", f"{evidence_commit}^{{tree}}"
+            )
+            with self.assertRaisesRegex(ValueError, "strictly postdate"):
+                validate_ledger(same_commit, repo=repo)
+
+            wrong_artifact = copy.deepcopy(certified)
+            wrong_artifact["certification"]["successor_source_commit"] = (
+                mode_drift_source_commit
+            )
+            wrong_artifact["certification"]["successor_source_tree"] = (
+                mode_drift_source_tree
+            )
+            with self.assertRaisesRegex(ValueError, "source package"):
+                validate_ledger(wrong_artifact, repo=repo)
 
     def test_verify_and_impact_commands_are_read_only_json(self) -> None:
         for command in ("verify", "impact"):

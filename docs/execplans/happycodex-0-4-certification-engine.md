@@ -483,6 +483,17 @@ faithful source artifact reconstruction, and a single shared case-schema validat
 path. New RED counterexamples and another exact fresh review are mandatory; the live
 cost gate remains closed.
 
+The fourth-review RED is now durable. Three focused tests produce one failure and two
+errors: malformed corpus input reaches snapshot/impact, an authorized one-case
+summary is rejected as incomplete, and the positive Git certification fixture is
+rejected because the intended merged-coverage manifest is not yet part of the
+schema. That Git fixture also carries the next-layer same-commit evidence and
+executable-bit source variants, which must be rejected once the coverage envelope is
+implemented. The safe incremental contract will not trust pending scope alone: it
+must validate a reachable prior 0.4 certified ledger, recompute impact from its
+snapshot, and make refreshed-versus-prior coverage explicit for every current case
+and pair; otherwise only full fresh coverage is valid.
+
 ## Validation envelope
 
 Candidate offline commands, exact live-run costs, required reruns, and review launch
