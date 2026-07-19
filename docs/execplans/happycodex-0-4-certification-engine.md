@@ -3,7 +3,7 @@
 Protocol: `HappyCodex/0.3`
 Invocation: `$happycodex:happycodex`
 Writer: Root only
-State: second RED frozen; bounded authority/offline-evidence implementation pending
+State: immutable repair and detached preflight GREEN; fresh exact review pending
 Resume: read this entire ExecPlan and reconcile Goal, Native Plan, Git, tests,
 receipts, worktrees, and agents before any write, review, or completion claim.
 
@@ -81,14 +81,14 @@ explicit user cost decision before launch.
 | --- | --- | --- | --- | --- |
 | O-01 | outcome | A modular pure-standard-library certification engine replaces the monolithic internal evaluator without legacy internal compatibility. | Module/CLI inventory plus tests; legacy reader or dual-write path falsifies. | verified offline |
 | O-02 | outcome | Canonical receipts separate semantic input, harness implementation, and derived artifact identities. | Deterministic hash tests and mutation counterexamples. | verified offline |
-| O-03 | outcome | A read-only impact command reports exact invalidated gates, reasons, and live-run count/cost before execution. | Table-driven dependency tests; an unclassified material input change falsifies. | NOT-YET: a partial pending holdout scope can be planned but not executed |
+| O-03 | outcome | A read-only impact command reports exact invalidated gates, reasons, and live-run count/cost before execution. | Table-driven dependency tests; an unclassified material input change falsifies. | verified offline |
 | O-04 | outcome | Historical behavior v1-v20 files and version-specific compatibility tests leave the active tree while remaining reachable in Git history. | Final path inventory and ancestry proof. | verified |
 | O-05 | preservation | Installed Skill behavior, plugin identity, public install commands, and `$happycodex:happycodex` invocation remain stable except the intentional 0.4 version/change note. | Exact runtime diff and contract tests. | verified; no version edit in phase one |
 | O-06 | outcome | Maintainer policy describes current public 0.3 baseline, the 0.4 gate model, and this task's explicit Fable exclusion correctly. | Policy review and tests. | verified |
-| O-07 | outcome | Offline suite, official Skill/plugin validators, dry-runs, diff hygiene, and final fresh native review close with no unresolved blocker. | Exact command receipts and review coverage. | NOT-YET: offline matrix is green but the tenth fresh review found five blockers |
+| O-07 | outcome | Offline suite, official Skill/plugin validators, dry-runs, diff hygiene, and final fresh native review close with no unresolved blocker. | Exact command receipts and review coverage. | NOT-YET: repair preflight is green; fresh exact repair review pending |
 | O-08 | preservation | No Fable invocation, controller, hook, daemon, scheduler, MCP/app runtime, or authoritative Task State JSON is added or run. | Tree/command inventory. | verified |
 | O-09 | outcome | Every transitive evaluator module/schema is classified into and bound by a canonical semantic, harness, or artifact manifest. | Module inventory and mutation tests; any executable unclassified file falsifies. | verified offline |
-| O-10 | outcome | The evidence ledger has one new-schema `current.json`, explicitly records `refresh_required`, and cannot claim certification without a live successor receipt. | State-machine tests and final ledger inspection. | NOT-YET: direct runner seams bypass persisted authority and zero-call refresh cannot certify |
+| O-10 | outcome | The evidence ledger has one new-schema `current.json`, explicitly records `refresh_required`, and cannot claim certification without a live successor receipt. | State-machine tests and final ledger inspection. | verified offline |
 | O-11 | preservation | Phase-one changes do not alter `.agents`, `.codex-plugin`, `README.md`, or `skills`; therefore the full shipped-package manifest remains `0c83dbc694cb98bf811dd2d1c199b5d2aa734c484476a638884e775289c1d934`. | Exact package-manifest check and Git diff. | verified |
 | B-01 | allowed-break | Internal evaluator imports, CLI syntax, receipt/result schema, and historical result paths have no backward-compatibility obligation. | Any compatibility shim must be removed or separately authorized. | exercised |
 | B-02 | allowed-break | Internal raw filenames, output-directory layout, write-once ordering, stdout payloads, and exit codes may change to the new CLI contract. | New CLI integration tests are authoritative; preserving an old path is not a requirement. | exercised |
@@ -1537,6 +1537,51 @@ check is repaired. Ruff and diff hygiene pass. No product, Skill, manifest, orac
 model/live, network, Fable, installation, plugin, Goal/ref, push, or publication action
 changed or ran. The next write is the single frozen coherent repair.
 
+## Authority and offline-evidence repair GREEN
+
+The bounded repair is immutable at
+`1c1fa4fc46c7396f514171ec5d4cce559944f06c`, tree
+`54ef54f1cef72d23d45d5ec7bceab9e9de28b8fd`. The commit carries the required
+ExecPlan trailer. Its 49-entry product projection, excluding only this ExecPlan, is
+`d2220151738be288417672a10802bcc44a12b96d328bef12743b67e2f9c6779d`.
+The baseline-to-repair product diff remains 46 `--no-renames` units with raw manifest
+SHA-256 `d953468b6836d7dfce631971edb1371e96beec3656ee3fc8c7711ee7f4608b83`.
+
+The former public module seal and mutable capability fields are gone. One lexical
+validator boundary now mints an ordinary-construction/copy/serialization-resistant
+capability backed by private canonical bytes. Corpus evaluator and subprocess seams
+require it; holdout `run_pair` requires it before mapping and rebinds the current
+pair plus both actual package trees. A zero-live `receipt` or `isolated_install`
+transition now requires strictly post-source content-addressed `offline_summary`
+evidence in the existing evidence map. This closes the two reproduced false greens
+without a controller, extra ledger, reviewer schema, retry protocol, or live command.
+
+The exact remaining-seam command is GREEN at 5/5, and the prior simplification
+relationships remain GREEN at 6/6. The cumulative suite is GREEN at 123/123. Both
+official validators, Ruff check and 19-file format-check, CLI verify/impact and both
+dry-runs, 21 tracked JSON documents, baseline-range diff hygiene, legacy-path
+absence, shipped-package preservation, frozen public reconstruction, and public-bound
+impact pass. Current identities are engine
+`a11f5aa6181944f9e1d87f6129cc5b9647e536e26ae397af7e6f662d8bcfd000`,
+snapshot `8e4929f0a1bad0794f6e6c27b8c6355f02e259ad0e1101e6e0f496981b15808f`,
+ledger `98969b5d130b8d7c03f95fa76a059abebe8679a0e7dc93eb7e71d10ed9f1aacb`,
+and impact token
+`ec536a860732399da2f9db09898dcac49dd57ae203584bda005d52d24e56932e`.
+
+A clean detached local clone of the exact repair reproduced 123/123 in 7.355
+seconds and every preceding offline gate. It independently matched the product
+projection and diff identities, candidate package semantic/artifact
+`c5030e99dd7cd1681148c069775671c5720bb8dd366930ff90f61cbc54cdfc05` /
+`0c83dbc694cb98bf811dd2d1c199b5d2aa734c484476a638884e775289c1d934`,
+and frozen public package semantic/artifact
+`fb3cb419795a6edcb284695769b5487b1f23ae46286c5fceba8042fcb41f9ce4` /
+`77a0b2b8f7f6280d6ed32458fc61ca110f7138b5b6c17ad55d333a023dfa8c89`.
+Public-bound impact remains authority-ready at 20 to 22 calls with two exact
+invocation descriptors and historical cost of 585,209 to 637,027 combined tokens and
+2,911.874 to 3,187.085 seconds. Live authority remains null. The disposable clone and
+public archive were removed. No model/live evaluation, network, Fable, installation,
+activation, plugin mutation, Goal mutation, ref change, push, or publication ran.
+
 ## Validation envelope
 
 Candidate offline commands, exact live-run costs, required reruns, and review launch
@@ -1546,23 +1591,24 @@ publication requires a later explicit user request.
 
 ## Checkpoint
 
-- Milestone: candidate `24ace04` preflight is GREEN but its fresh exact review is
-  terminal `NOT-YET`; two bounded authority/offline-evidence blockers are reproduced
-  and their minimal coherent repair is frozen.
+- Milestone: immutable repair `1c1fa4f` and its detached offline preflight are GREEN;
+  the required new fresh exact-product review is pending.
 - Goal: active `019f780e-925e-7193-8bd2-0a04d6efe31e`; its objective is the
   Normalized Outcome plus all frozen preservation, exclusion, offline validation, and
   live-cost gates in this document.
 - RED/GREEN: original simplification RED `b239487` and candidate GREEN `24ace04` remain
   durable comparison points; remaining-seam RED `0546473` is durable at five tests,
-  four failures, and one error, while its repaired GREEN is pending.
-- Next: implement the single bounded authority/offline-evidence repair, then rerun the
-  immutable offline and fresh-review envelope.
-- Product/support writes: evaluator/test/policy paths reopen only for this frozen
-  repair; shipped-package paths remain closed.
+  four failures, and one error; repair GREEN is 5/5, prior relationships are 6/6,
+  and the cumulative detached suite is 123/123.
+- Next: launch the frozen two-phase fresh exact-product review against `1c1fa4f` and
+  reconcile its terminal verdict without any live action.
+- Product/support writes: closed pending review; only this ExecPlan administrative
+  record is mutable. Shipped-package paths remain closed.
 - Owned paths: `evaluation/`, `tests/`, `AGENTS.md`, and this ExecPlan; shipped-package
   paths remain closed.
-- Missing facts: repair RED/GREEN identities, immutable repair commit/tree/projection,
-  fresh exact-product `GO`, explicit user cost decision, and later live receipts.
+- Missing facts: fresh exact-product `GO`, explicit user cost decision, and later live
+  receipts. The last two are outside local-candidate completion and remain forbidden
+  until a separate exact approval.
 
 ## Retrospective
 
