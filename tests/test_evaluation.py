@@ -9,6 +9,7 @@ import tempfile
 import unittest
 from unittest import mock
 
+from evaluation.core import receipt as receipt_engine
 from evaluation.corpus import engine as runner
 
 
@@ -586,7 +587,9 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                 },
             },
         }
-        receipt = runner.sanitized_case_receipt(result, metadata_sha256="f" * 64)
+        receipt = receipt_engine.sanitized_case_receipt(
+            result, metadata_sha256="f" * 64
+        )
         for key in (
             "metadata_sha256",
             "model",

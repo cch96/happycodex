@@ -12,8 +12,10 @@ not Skill runtime and must never be linked from `skills/happycodex/SKILL.md`.
 - Use only `python3 -m evaluation.cli`. Every evaluator Python/schema input must be
   classified as semantic, harness, or artifact. Unknown inputs fail closed. The
   read-only impact receipt and exact historical cost must be persisted before any
-  live corpus or holdout authorization; live CLI execution also requires that exact
-  receipt's `approval_token`.
+  live corpus or holdout authorization. Its `impact_token` is only an identity
+  binding and never grants permission by itself: live CLI execution also requires a
+  current-task user authority persisted in `current.json`, bound to the exact token,
+  package identities, model, effort, timeout, arm, and complete invocation scope.
 - `evaluation/results/current.json` is the sole active evidence ledger. Never promote
   `refresh_required` to `certified` from offline checks, and do not add historical
   result readers, aliases, migrations, or dual writes.

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import re
 from typing import Any
 
 from evaluation.core.identity import (
@@ -11,6 +12,7 @@ from evaluation.core.identity import (
     engine_category_sha256,
     engine_inventory,
     package_identities,
+    toolchain_identity,
 )
 
 
@@ -26,10 +28,14 @@ SNAPSHOT_FIELDS = {
     "holdout",
 }
 ENGINE_CATEGORY_FIELDS = {"semantic", "harness", "artifact"}
-ENGINE_SCOPE_FIELDS = {"corpus_harness", "holdout_harness"}
+ENGINE_SCOPE_FIELDS = {"corpus_harness", "holdout_harness", "holdout_semantic"}
+ENGINE_FIELDS = {"categories", "scopes", "manifest_sha256"}
+SETTINGS_FIELDS = {"model", "effort", "timeout_seconds", "toolchain"}
+TOOLCHAIN_FIELDS = {"python", "codex", "git", "rg"}
+TOOL_IDENTITY_FIELDS = {"path", "sha256", "version"}
 CORPUS_HARNESS_PATHS = {
     "evaluation/__init__.py",
-    "evaluation/cli.py",
+    "evaluation/live.py",
     "evaluation/core/__init__.py",
     "evaluation/core/identity.py",
     "evaluation/corpus/__init__.py",
@@ -38,9 +44,9 @@ CORPUS_HARNESS_PATHS = {
 HOLDOUT_HARNESS_PATHS = {
     "evaluation/holdout/__init__.py",
     "evaluation/holdout/blind.py",
-    "evaluation/holdout/compare.py",
     "evaluation/holdout/engine.py",
 }
+HOLDOUT_SEMANTIC_PATHS = {"evaluation/holdout/compare.py"}
 GATE_ORDER = ("corpus", "holdout", "receipt", "isolated_install", "review")
 CORPUS_COST = {
     "authorized-rebaseline": (26015, 93.933),
@@ -89,7 +95,11 @@ def _load_holdouts(root: Path) -> tuple[dict[str, Any], dict[str, dict[str, Any]
     manifest_path = root / "evaluation" / "holdouts" / "manifest.json"
     manifest = _read_json(manifest_path)
     raw_pairs = manifest.get("pairs")
-    if manifest.get("schema_version") != 1 or not isinstance(raw_pairs, list):
+    if (
+        manifest.get("schema_version") != 1
+        or not isinstance(raw_pairs, list)
+        or len(raw_pairs) != 3
+    ):
         raise IdentityError("invalid holdout manifest")
     pairs: dict[str, dict[str, Any]] = {}
     for row in raw_pairs:
@@ -168,8 +178,10 @@ def build_snapshot(
             "model": model,
             "effort": effort,
             "timeout_seconds": timeout,
+            "toolchain": toolchain_identity(),
         },
         "engine": {
+            "manifest_sha256": inventory["manifest_sha256"],
             "categories": {
                 "semantic": shared_semantic,
                 "harness": inventory["categories"]["harness"],
@@ -182,6 +194,9 @@ def build_snapshot(
                 "holdout_harness": engine_category_sha256(
                     inventory, "harness", paths=HOLDOUT_HARNESS_PATHS
                 ),
+                "holdout_semantic": engine_category_sha256(
+                    inventory, "semantic", paths=HOLDOUT_SEMANTIC_PATHS
+                ),
             },
         },
         "package": package,
@@ -190,7 +205,7 @@ def build_snapshot(
     }
 
 
-def _validate_snapshot(snapshot: dict[str, Any]) -> None:
+def validate_snapshot(snapshot: dict[str, Any]) -> None:
     unknown = set(snapshot) - SNAPSHOT_FIELDS
     missing = SNAPSHOT_FIELDS - set(snapshot)
     if unknown:
@@ -199,18 +214,78 @@ def _validate_snapshot(snapshot: dict[str, Any]) -> None:
         raise IdentityError(f"missing snapshot field: {', '.join(sorted(missing))}")
     if snapshot.get("schema_version") != 1:
         raise IdentityError("unsupported snapshot schema")
-    categories = snapshot.get("engine", {}).get("categories")
+    settings = snapshot.get("settings")
+    if not isinstance(settings, dict) or set(settings) != SETTINGS_FIELDS:
+        raise IdentityError("invalid snapshot settings")
+    if not isinstance(settings["model"], str) or not settings["model"]:
+        raise IdentityError("invalid snapshot model")
+    if not isinstance(settings["effort"], str) or not settings["effort"]:
+        raise IdentityError("invalid snapshot effort")
+    timeout = settings["timeout_seconds"]
+    if not isinstance(timeout, int) or isinstance(timeout, bool) or timeout <= 0:
+        raise IdentityError("invalid snapshot timeout")
+    toolchain = settings["toolchain"]
+    if not isinstance(toolchain, dict) or set(toolchain) != TOOLCHAIN_FIELDS:
+        raise IdentityError("invalid snapshot toolchain")
+    for name, identity in toolchain.items():
+        if (
+            not isinstance(identity, dict)
+            or set(identity) != TOOL_IDENTITY_FIELDS
+            or not isinstance(identity["path"], str)
+            or not identity["path"]
+            or not isinstance(identity["version"], str)
+            or not identity["version"]
+            or not isinstance(identity["sha256"], str)
+            or not re.fullmatch(r"[0-9a-f]{64}", identity["sha256"])
+        ):
+            raise IdentityError(f"invalid snapshot tool identity: {name}")
+    engine = snapshot.get("engine")
+    if not isinstance(engine, dict) or set(engine) != ENGINE_FIELDS:
+        raise IdentityError("invalid engine identity envelope")
+    if not re.fullmatch(r"[0-9a-f]{64}", engine["manifest_sha256"]):
+        raise IdentityError("invalid engine manifest identity")
+    categories = engine.get("categories")
     if not isinstance(categories, dict) or set(categories) != ENGINE_CATEGORY_FIELDS:
         raise IdentityError("invalid engine categories")
-    scopes = snapshot.get("engine", {}).get("scopes")
+    scopes = engine.get("scopes")
     if not isinstance(scopes, dict) or set(scopes) != ENGINE_SCOPE_FIELDS:
         raise IdentityError("invalid engine scopes")
-    if set(snapshot.get("package", {})) != {"semantic_sha256", "artifact_sha256"}:
+    for label, values in (("engine category", categories), ("engine scope", scopes)):
+        if any(
+            not isinstance(value, str) or not re.fullmatch(r"[0-9a-f]{64}", value)
+            for value in values.values()
+        ):
+            raise IdentityError(f"invalid {label} identity")
+    package = snapshot.get("package")
+    if not isinstance(package, dict) or set(package) != {
+        "semantic_sha256",
+        "artifact_sha256",
+    }:
         raise IdentityError("invalid package identities")
-    if not isinstance(snapshot.get("corpus", {}).get("cases"), dict):
-        raise IdentityError("invalid corpus identities")
-    if not isinstance(snapshot.get("holdout", {}).get("pairs"), dict):
-        raise IdentityError("invalid holdout identities")
+    if any(
+        not isinstance(value, str) or not re.fullmatch(r"[0-9a-f]{64}", value)
+        for value in package.values()
+    ):
+        raise IdentityError("invalid package identity digest")
+    for envelope, field in (("corpus", "cases"), ("holdout", "pairs")):
+        value = snapshot.get(envelope)
+        identities = value.get(field) if isinstance(value, dict) else None
+        if (
+            not isinstance(value, dict)
+            or set(value) != {field}
+            or not isinstance(identities, dict)
+            or not identities
+            or any(
+                not isinstance(name, str)
+                or not name
+                or not isinstance(digest, str)
+                or not re.fullmatch(r"[0-9a-f]{64}", digest)
+                for name, digest in identities.items()
+            )
+        ):
+            raise IdentityError(f"invalid {envelope} identities")
+    if len(snapshot["holdout"]["pairs"]) != 3:
+        raise IdentityError("holdout identity requires exactly three pairs")
 
 
 def _changed_keys(before: dict[str, str], after: dict[str, str]) -> set[str]:
@@ -257,14 +332,26 @@ def plan_impact(
     *,
     pending: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    _validate_snapshot(baseline)
-    _validate_snapshot(current)
+    validate_snapshot(baseline)
+    validate_snapshot(current)
     reasons: set[str] = set()
     gates: set[str] = set()
     corpus_cases: set[str] = set()
     holdout_pairs: set[str] = set()
     all_cases = set(current["corpus"]["cases"])
     all_pairs = set(current["holdout"]["pairs"])
+    removed_cases = set(baseline["corpus"]["cases"]) - all_cases
+    if removed_cases:
+        raise IdentityError(
+            "removed corpus case requires explicit schema/cost rebaseline: "
+            + ", ".join(sorted(removed_cases))
+        )
+    removed_pairs = set(baseline["holdout"]["pairs"]) - all_pairs
+    if removed_pairs:
+        raise IdentityError(
+            "removed holdout pair requires explicit schema/cost rebaseline: "
+            + ", ".join(sorted(removed_pairs))
+        )
 
     def full_live(reason: str) -> None:
         reasons.add(reason)
@@ -274,6 +361,9 @@ def plan_impact(
 
     if baseline["settings"] != current["settings"]:
         full_live("settings_changed")
+    if baseline["engine"]["manifest_sha256"] != current["engine"]["manifest_sha256"]:
+        reasons.add("engine_manifest_changed")
+        gates.add("receipt")
     if (
         baseline["engine"]["categories"]["semantic"]
         != current["engine"]["categories"]["semantic"]
@@ -297,12 +387,20 @@ def plan_impact(
         baseline["engine"]["scopes"]["holdout_harness"]
         != current["engine"]["scopes"]["holdout_harness"]
     )
+    holdout_semantic_changed = (
+        baseline["engine"]["scopes"]["holdout_semantic"]
+        != current["engine"]["scopes"]["holdout_semantic"]
+    )
     if harness_changed != (corpus_harness_changed or holdout_harness_changed):
         raise IdentityError("inconsistent harness aggregate and scope identities")
     if corpus_harness_changed:
         full_live("corpus_harness_changed")
     elif holdout_harness_changed:
         reasons.add("holdout_harness_changed")
+        gates.add("holdout")
+        holdout_pairs.update(all_pairs)
+    if holdout_semantic_changed:
+        reasons.add("holdout_semantic_changed")
         gates.add("holdout")
         holdout_pairs.update(all_pairs)
     if baseline["package"]["semantic_sha256"] != current["package"]["semantic_sha256"]:

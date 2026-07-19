@@ -80,15 +80,15 @@ explicit user cost decision before launch.
 | ID | Type | Claim | Closure / falsifier | State |
 | --- | --- | --- | --- | --- |
 | O-01 | outcome | A modular pure-standard-library certification engine replaces the monolithic internal evaluator without legacy internal compatibility. | Module/CLI inventory plus tests; legacy reader or dual-write path falsifies. | verified offline |
-| O-02 | outcome | Canonical receipts separate semantic input, harness implementation, and derived artifact identities. | Deterministic hash tests and mutation counterexamples. | blocked by NR-03 |
-| O-03 | outcome | A read-only impact command reports exact invalidated gates, reasons, and live-run count/cost before execution. | Table-driven dependency tests; an unclassified material input change falsifies. | blocked by NR-01/03/04 |
+| O-02 | outcome | Canonical receipts separate semantic input, harness implementation, and derived artifact identities. | Deterministic hash tests and mutation counterexamples. | verified offline after NR-03 repair |
+| O-03 | outcome | A read-only impact command reports exact invalidated gates, reasons, and live-run count/cost before execution. | Table-driven dependency tests; an unclassified material input change falsifies. | verified offline after NR-01/03/04 repair; live execution remains unapproved |
 | O-04 | outcome | Historical behavior v1-v20 files and version-specific compatibility tests leave the active tree while remaining reachable in Git history. | Final path inventory and ancestry proof. | verified |
 | O-05 | preservation | Installed Skill behavior, plugin identity, public install commands, and `$happycodex:happycodex` invocation remain stable except the intentional 0.4 version/change note. | Exact runtime diff and contract tests. | verified; no version edit in phase one |
 | O-06 | outcome | Maintainer policy describes current public 0.3 baseline, the 0.4 gate model, and this task's explicit Fable exclusion correctly. | Policy review and tests. | verified |
-| O-07 | outcome | Offline suite, official Skill/plugin validators, dry-runs, diff hygiene, and final fresh native review close with no unresolved blocker. | Exact command receipts and review coverage. | blocked by NR-01 through NR-04 |
+| O-07 | outcome | Offline suite, official Skill/plugin validators, dry-runs, diff hygiene, and final fresh native review close with no unresolved blocker. | Exact command receipts and review coverage. | offline gates verified; fresh repair review pending |
 | O-08 | preservation | No Fable invocation, controller, hook, daemon, scheduler, MCP/app runtime, or authoritative Task State JSON is added or run. | Tree/command inventory. | verified |
-| O-09 | outcome | Every transitive evaluator module/schema is classified into and bound by a canonical semantic, harness, or artifact manifest. | Module inventory and mutation tests; any executable unclassified file falsifies. | blocked by NR-03/04 |
-| O-10 | outcome | The evidence ledger has one new-schema `current.json`, explicitly records `refresh_required`, and cannot claim certification without a live successor receipt. | State-machine tests and final ledger inspection. | blocked by NR-02 |
+| O-09 | outcome | Every transitive evaluator module/schema is classified into and bound by a canonical semantic, harness, or artifact manifest. | Module inventory and mutation tests; any executable unclassified file falsifies. | verified offline after NR-03/04 repair |
+| O-10 | outcome | The evidence ledger has one new-schema `current.json`, explicitly records `refresh_required`, and cannot claim certification without a live successor receipt. | State-machine tests and final ledger inspection. | verified offline after NR-02 repair; live successor still pending |
 | O-11 | preservation | Phase-one changes do not alter `.agents`, `.codex-plugin`, `README.md`, or `skills`; therefore the full shipped-package manifest remains `0c83dbc694cb98bf811dd2d1c199b5d2aa734c484476a638884e775289c1d934`. | Exact package-manifest check and Git diff. | verified |
 | B-01 | allowed-break | Internal evaluator imports, CLI syntax, receipt/result schema, and historical result paths have no backward-compatibility obligation. | Any compatibility shim must be removed or separately authorized. | exercised |
 | B-02 | allowed-break | Internal raw filenames, output-directory layout, write-once ordering, stdout payloads, and exit codes may change to the new CLI contract. | New CLI integration tests are authoritative; preserving an old path is not a requirement. | exercised |
@@ -136,6 +136,7 @@ The target package is:
 evaluation/
   __init__.py
   cli.py
+  live.py
   core/{__init__,identity,impact,receipt}.py
   corpus/{__init__,contract,engine}.py
   holdout/{__init__,blind,compare,engine}.py
@@ -157,7 +158,7 @@ Identity layers are non-overlapping:
   timeout, prompt/context/schema, isolation/permission policy, oracle and comparison
   policy;
 - harness: every executable module that realizes fixture/install/invoke/parse/blind
-  behavior, plus interpreter/CLI contract identity;
+  behavior, plus exact Python/Codex/Git/rg toolchain identities;
 - artifact: sanitizers, receipt serialization, tracked ledger projection, and the
   exact full-package artifact digest.
 
@@ -208,7 +209,7 @@ blinding, adaptive, and cost-policy tests remain.
   20 live calls;
 - historical estimate: 585,209 to 637,027 combined tokens and 2,911.874 to
   3,187.085 wall seconds;
-- bound approval token
+- then-called bound approval token (later rejected by `NR-01`)
   `80c73a726fa384e75ce8e4da7d13f02307c336d63d8551be18720fa9656ca337`.
 
 The CLI rejects live corpus/holdout execution without that exact current token, but a
@@ -253,6 +254,58 @@ paired holdouts. It invalidates the current engine/snapshot/token receipts, whic
 be regenerated offline. The repaired revision requires a fresh exact Native review;
 no live call is authorized before that review and the later user cost decision.
 
+## Repair closure candidate
+
+The four review findings now have executable counterexamples and bounded repairs:
+
+- `NR-01`: `live_authority` is a required nullable ledger field. The printed
+  `impact_token` excludes that field from its binding basis to avoid a persistence
+  cycle, but it cannot authorize execution. Live dispatch moved to classified harness
+  module `evaluation/live.py` and requires both the fresh binding and a persisted
+  `current-task/user/...` receipt whose exact package identities, model, effort,
+  timeout, candidate arm, cases, and holdout pairs match the actual invocation.
+- `NR-02`: `certified` now requires a closed successor commit/tree receipt plus exact
+  snapshot, engine-manifest, corpus, holdout, review, and authority digests. Empty or
+  malformed receipts, mismatched engine/authority/package/settings, retained pending
+  gates, and certified-state input drift fail closed.
+- `NR-03`: sanitizers moved from corpus harness to artifact-only receipt code; CLI is
+  artifact/control projection, live dispatch is shared harness, holdout comparison is
+  holdout-only semantic policy, and Python/Codex/Git/rg path/version/binary identities
+  are in every current snapshot and raw run identity receipt.
+- `NR-04`: corpus-case removal raises an identity error before scope intersection or
+  token minting. The holdout manifest and snapshot also require exactly three pairs;
+  unknown new corpus cost continues to fail closed.
+
+The focused RED ran before repair and failed on all four classes: missing
+`evaluation/live.py`, sanitizer functions still inside corpus harness, absent
+toolchain and `live_authority`, permissive empty certification, missing authority APIs,
+and zero-cost case deletion. The repaired focused suite is 22/22 green; cumulative
+offline validation is 106/106 green in 2.582 seconds. Both official validators pass,
+Ruff check and format-check pass, both dry-runs pass, JSON and `git diff --check` pass,
+and the shipped package remains byte-exact at
+`0c83dbc694cb98bf811dd2d1c199b5d2aa734c484476a638884e775289c1d934`.
+
+Final formatted offline identities are:
+
+- engine manifest `34963db0de975f18ad2c0fdeb40f419eb0942feaf90a8d6de2eb5e974be3de75`;
+- snapshot `084ee4172dc283ac916033a7170510316bc6a93ebadfa61748f4d0404d494442`;
+- ledger `f7e9e5f47c569f300bb35c5e4616481cbcbb5d464fdaf401115605170bd49c83`;
+- impact token `205d1c0d13aa34411c6c9309dc6eb920edd340acde535580046a61fcca908fa2`.
+
+The sole persisted invalidation reason remains `engine_generation_changed`; exact live
+scope remains 14 candidate cases plus two to three adaptive pairs, 18 to 20 model
+calls, 585,209 to 637,027 combined tokens, and 2,911.874 to 3,187.085 seconds. The
+ledger still has `live_authority: null`, so no live call can start.
+
+The frozen public benchmark is commit
+`3b9c11fac1f97df75263e0bfc6421c575e04e8b2`, not later 0.2 repository head
+`5c5d4c0a4d7590871acd14e4f1ef282f2f564177`. A temporary archive of the frozen commit
+reproduces package artifact `77a0b2b8f7f6280d6ed32458fc61ca110f7138b5b6c17ad55d333a023dfa8c89`
+and semantic identity `fb3cb419795a6edcb284695769b5487b1f23ae46286c5fceba8042fcb41f9ce4`;
+`impact --public` then reports `live_authority_ready: true` with exactly one corpus and
+one adaptive-holdout invocation descriptor. The temporary archive was removed. This
+read-only proof made no model call and does not alter the benchmark.
+
 ## Validation envelope
 
 Candidate offline commands, exact live-run costs, required reruns, and review launch
@@ -262,21 +315,24 @@ publication requires a later explicit user request.
 
 ## Checkpoint
 
-- Milestone: first offline candidate `444e53e297b7131556e73f6a59ce5d75b7702467`
-  received a fresh Native NOT-YET with four reproduced in-contract findings.
+- Milestone: all four findings against first candidate
+  `444e53e297b7131556e73f6a59ce5d75b7702467` are repaired and the exact offline
+  envelope is green; the repair commit and fresh exact review remain pending.
 - Goal: active `019f780e-925e-7193-8bd2-0a04d6efe31e`; its objective is the
   Normalized Outcome plus all frozen preservation, exclusion, offline validation, and
   live-cost gates in this document.
-- RED: `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest
-  tests.test_certification_engine -v` exited 1 before implementation because
-  `evaluation.core` did not exist; the same contract is now green.
-- Next: commit this review receipt, add four focused RED counterexamples, implement the
-  bounded repair, rerun every offline gate, and launch a fresh exact repair review.
-- Product/support writes: open after the distinct freeze revision.
+- RED: the original architecture RED and the later four-finding repair RED are both
+  persisted above; the repaired focused contract is 22/22 and cumulative suite is
+  106/106.
+- Next: commit the bounded repair, launch a fresh exact read-only review, and resolve
+  any in-contract finding. If review is green, stop for the explicit maximum-cost user
+  decision before persisting authority or making any live call.
+- Product/support writes: support-only paths remain open; shipped-package paths remain
+  closed.
 - Owned paths: `evaluation/`, `tests/`, `AGENTS.md`, and this ExecPlan; shipped-package
   paths remain closed.
-- Missing facts: post-implementation exact impact/cost, live successor receipts, and
-  final review identity.
+- Missing facts: repair commit/review identity, explicit user cost decision, and live
+  successor receipts.
 
 ## Retrospective
 

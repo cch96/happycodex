@@ -4,6 +4,9 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import shutil
+import subprocess
+import sys
 from typing import Any
 
 
@@ -11,7 +14,8 @@ PACKAGE_PATHS = (".agents", ".codex-plugin", "README.md", "skills")
 ENGINE_CATEGORIES = ("semantic", "harness", "artifact")
 MODULE_CATEGORIES = {
     "evaluation/__init__.py": "harness",
-    "evaluation/cli.py": "harness",
+    "evaluation/cli.py": "artifact",
+    "evaluation/live.py": "harness",
     "evaluation/core/__init__.py": "harness",
     "evaluation/core/identity.py": "harness",
     "evaluation/core/impact.py": "artifact",
@@ -21,7 +25,7 @@ MODULE_CATEGORIES = {
     "evaluation/corpus/engine.py": "harness",
     "evaluation/holdout/__init__.py": "harness",
     "evaluation/holdout/blind.py": "harness",
-    "evaluation/holdout/compare.py": "harness",
+    "evaluation/holdout/compare.py": "semantic",
     "evaluation/holdout/engine.py": "harness",
 }
 
@@ -124,6 +128,43 @@ def package_identities(plugin: Path) -> dict[str, str]:
     return {
         "semantic_sha256": canonical_sha256(semantic_payload),
         "artifact_sha256": package_manifest_sha256(plugin),
+    }
+
+
+def _executable_identity(name: str, *, executable: str | None = None) -> dict[str, str]:
+    raw_path = executable or shutil.which(name)
+    if not raw_path:
+        raise IdentityError(f"required certification tool is unavailable: {name}")
+    path = Path(raw_path).resolve()
+    if not path.is_file():
+        raise IdentityError(f"invalid certification tool path: {name}")
+    try:
+        completed = subprocess.run(
+            [str(path), "--version"],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=10,
+            env={**os.environ, "LC_ALL": "C"},
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise IdentityError(f"cannot identify certification tool: {name}") from exc
+    version = (completed.stdout or completed.stderr).strip().splitlines()
+    if completed.returncode or not version:
+        raise IdentityError(f"cannot identify certification tool: {name}")
+    return {
+        "path": str(path),
+        "sha256": sha256_bytes(path.read_bytes()),
+        "version": version[0],
+    }
+
+
+def toolchain_identity() -> dict[str, dict[str, str]]:
+    return {
+        "python": _executable_identity("python", executable=sys.executable),
+        "codex": _executable_identity("codex"),
+        "git": _executable_identity("git"),
+        "rg": _executable_identity("rg"),
     }
 
 

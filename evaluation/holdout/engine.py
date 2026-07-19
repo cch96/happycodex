@@ -13,8 +13,9 @@ from evaluation.core.identity import (
     package_identities,
     package_manifest_sha256,
     sha256_bytes,
+    toolchain_identity,
 )
-from evaluation.core.receipt import write_new_json
+from evaluation.core.receipt import sanitized_case_receipt, write_new_json
 from evaluation.corpus import engine as corpus_engine
 from evaluation.holdout.blind import (
     ACTUAL_ARMS,
@@ -155,7 +156,7 @@ def run_pair(
         metadata_path = (
             pair_output / "raw" / alias / pair["case"]["id"] / "metadata.json"
         )
-        sanitized[arm] = corpus_engine.sanitized_case_receipt(
+        sanitized[arm] = sanitized_case_receipt(
             raw[alias], metadata_sha256=file_sha256(metadata_path)
         )
     receipt = {
@@ -226,6 +227,7 @@ def run_holdouts(
                 "candidate": package_identities(candidate),
                 "public-0.2": package_identities(public),
             },
+            "toolchain": toolchain_identity(),
         },
         "model": model,
         "effort": effort,
