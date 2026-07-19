@@ -3,8 +3,8 @@
 Protocol: `HappyCodex/0.3`
 Invocation: `$happycodex:happycodex`
 Writer: Root only
-State: blocked at the first authorized corpus behavior failure; no repair, waiver, or
-rerun is authorized
+State: minimum evaluator-case prompt clarification authorized; amendment freeze is
+the next durable boundary, then offline RED/GREEN and a new exact cost request
 Resume: read this entire file, the completed 0.4 certification-engine and main-
 integration ExecPlans, then reconcile Goal, Git, tests, evidence, installations,
 remote refs, and agents before any write, review, live call, or completion claim.
@@ -196,6 +196,43 @@ full 16-call corpus plus adaptive four-to-six-call holdout: 20 to 22 new calls,
 seconds, followed by a fresh review. It needs a new frozen request and canonical cost
 approval. No repair or rerun begins before that user decision.
 
+## Authorized minimum repair amendment
+
+Source: `current-task/user/minimum-evaluator-case-prompt-clarification`. Verbatim
+UTF-8 text plus final LF has SHA-256
+`87a25ef3cf693e6a4a6aad528b0d12586660ddcf725ebbeb16d2fbb269d9086f`:
+
+```text
+批准最小 evaluator-case 提示澄清，并生成新的精确成本授权请求
+```
+
+This explicitly authorizes one semantic clarification in only the
+`compaction-recovery` evaluator-case prompt: when a recorded baseline-failure identity
+is replaced by a different candidate identity, require two separate structured
+`finding_classifications` entries instead of collapsing both under the shared test
+name. The clarification may state the generic required transitions (`resolved` for
+the recorded identity and `candidate_new` for the replacement) but must not reveal
+fixture-specific hidden oracle values. One focused structural test may encode that
+contract.
+
+The amendment does not authorize changing the Skill, plugin or marketplace manifest,
+fixture facts, oracle, matcher, output schema, corpus/holdout runner or evaluator code,
+holdout inputs, model, effort, timeout, controller, retry/resume protocol, review
+protocol, or any release/product byte. It does not waive the failed receipt and does
+not authorize a model call. The failed and partial terminals remain immutable and
+invalid for certification.
+
+Changing the case semantic input retires snapshot `8e4929...808f`, impact token
+`ec536a...32e`, authority `2e772e89...57aa`, request `19e738...99d`, and all partial
+terminals from the failed attempt. The candidate source ledger must persist the new
+snapshot with null authority and a complete 14-case/three-pair pending scope. After
+focused and cumulative offline checks, reconstruct the pinned public-0.2 package,
+print the exact new public-bound request, and stop. The minimum executable live refresh
+remains 16 corpus plus adaptive four-to-six holdout calls, with the existing historical
+estimate of 20 to 22 calls, 585,209 to 637,027 combined tokens, and 2,911.874 to
+3,187.085 seconds. Only a later canonical response for the new request may reopen
+live execution.
+
 ## Design saturation and frozen release sequence
 
 Fresh baseline-only challenger `/root/release_boundary_challenger_b` inspected only
@@ -280,9 +317,9 @@ review identity, public proof, rollback, and final GitHub delivery simultaneousl
 | ID | Type | Claim | Closure / falsifier | State |
 | --- | --- | --- | --- | --- |
 | R-01 | premise | Current remote `main`, local baseline, package, engine, snapshot, ledger, and public benchmark identities are independently reproduced before release work. | Fetch/readback plus offline identity commands; drift remains open. | verified |
-| R-02 | outcome | The exact current impact and historical-cost envelope are persisted, and no live helper runs without the canonical invocation-bound response. | Authority validation plus command audit; any early call falsifies. | verified |
-| R-03 | outcome | Exactly the authorized corpus and adaptive holdout scope completes and produces sanitized Git-reachable evidence that makes `current.json` validly `certified`. | CLI receipts, ledger validation, evidence ancestry, exact cost and scope reconciliation. | blocked: first corpus attempt failed |
-| R-04 | preservation | Live certification changes no Skill, manifest behavior, oracle, runner, evaluator, case, or holdout semantics. | Exact source diff; any such required edit stops for user decision. | open |
+| R-02 | outcome | The exact current impact and historical-cost envelope are persisted, and no live helper runs without the canonical invocation-bound response. | Authority validation plus command audit; any early call falsifies. | reopened for repaired request |
+| R-03 | outcome | Exactly the authorized corpus and adaptive holdout scope completes and produces sanitized Git-reachable evidence that makes `current.json` validly `certified`. | CLI receipts, ledger validation, evidence ancestry, exact cost and scope reconciliation. | repair authorized; rerun not authorized |
+| R-04 | preservation | The repair changes only the explicitly authorized evaluator-case prompt and focused structural test; Skill, manifest behavior, fixture/oracle/matcher/schema, runner/evaluator code, and holdout semantics remain unchanged. | Exact source diff; any wider edit stops for user decision. | open |
 | R-05 | outcome | Release edits are limited to strict-semver 0.4 version/cachebuster and accurate change-note/install metadata. | Product diff inventory and official validators. | open |
 | R-06 | outcome | Full offline suite, official validators, Ruff, CLI/JSON/diff/package hygiene, and fresh exact-product review close with `GO` and no material blocker. | Exact receipts and complete review coverage. | open |
 | R-07 | outcome | A clean isolated public marketplace install/invocation reports the exact 0.4 version and release identity. | Fresh-home install plus invocation receipt; source/cache mismatch falsifies. | open |
@@ -298,23 +335,26 @@ review identity, public proof, rollback, and final GitHub delivery simultaneousl
 2. Closed on 2026-07-19: the user returned the exact canonical line, and the frozen
    toolchain reproduced every request binding before authority persistence. Any later
    binding drift reopens this stop gate.
-3. Blocked: the first corpus attempt produced the exact behavior failure recorded
-   above. Do not execute either certification transition, review, install, active
-   update, or publication step until the user chooses a new bounded repair/authority
-   path. Any product or evaluator repair invalidates the affected evidence and receives
-   only the minimum required rerun before a new review.
+3. The user selected the bounded evaluator-case prompt clarification recorded above.
+   Freeze that amendment separately, observe the focused RED, make only the authorized
+   prompt/test plus source-ledger transition, and run offline validation. Then freeze
+   the new exact request and stop for canonical approval. Do not execute either live
+   certification transition, review, install, active update, or publication step yet.
 
 ## Checkpoint
 
-- Milestone: the authority-bearing source is durable, but the first authorized corpus
-  attempt is failed and incomplete. User disposition is the sole next gate.
-- Product writes: forbidden. No Skill, case, oracle, runner, evaluator, manifest,
-  evidence-ledger, or release-metadata edit is authorized under this failed attempt.
-- Owned path: this ExecPlan only for the administrative failure receipt.
-- Missing facts: the user's disposition on repair versus rejecting this release
-  candidate; if repair is selected, the new candidate/snapshot/impact/request and
-  canonical cost approval; then every remaining evidence/review/install/activation/
-  rollback/publication receipt.
+- Milestone: the failed attempt is preserved and the minimum repair is explicitly
+  authorized. The amendment-freeze revision is next, followed by offline RED/GREEN and
+  the new request freeze.
+- Product writes: permitted only for the generic `compaction-recovery` prompt
+  clarification, its focused structural test, and the mechanically derived source
+  ledger transition. All other product/evaluator/release paths remain forbidden.
+- Owned paths after amendment freeze:
+  `evaluation/cases/compaction-recovery.json`, `tests/test_evaluation.py`,
+  `evaluation/results/current.json`, and this ExecPlan only.
+- Missing facts: the repaired snapshot/impact/request and canonical cost approval;
+  then every remaining live evidence/review/install/activation/rollback/publication
+  receipt. The old Native Goal remains blocked and is not amendment authority.
 
 ## Retrospective
 
