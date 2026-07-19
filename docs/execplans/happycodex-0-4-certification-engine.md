@@ -520,6 +520,31 @@ and impact token
 Live authority remains null and the 18-to-20-call cost is unchanged. A new exact
 fresh review is mandatory before cost approval.
 
+## Fifth fresh review and holdout outcome NOT-YET
+
+Fresh read-only reviewer `/root/cert_engine_coverage_final_review` audited exact
+commit `ebd65d80117edc3868ba373830f69b81a859e0d9` in clean detached clones and
+returned `NOT-YET` with one high-severity evidence-consistency finding. The runner
+defines `better` as candidate pass plus public-0.2 fail, `equal` as both pass, and
+`regression` as candidate fail. Certification instead applies the corpus all-pass
+rule to both holdout arms and trusts the declared pair outcome. It therefore rejects
+the legitimate public-fail receipt for `better`, while accepting two passing arms
+mislabelled as `better`.
+
+The reviewer independently verified every `NR-07` through `NR-10` repair, the exact
+current 18-to-20-call impact and identities, 114/114 candidate tests, 97/97 baseline
+tests, both official validators, Ruff, dry-runs, JSON/diff hygiene, package
+preservation, and all exclusion claims. It classified zero-call artifact/install
+certification as a disclosed later-phase limitation rather than a blocker for this
+unchanged-package full-refresh phase. No model, Fable, network, Goal, install,
+publication, or repository write ran.
+
+Root accepts the single finding. The bounded repair must derive every holdout outcome
+from exact candidate/public `passed` states using the same comparison rule as the
+runner; candidate must pass for a releasable summary, public failure is valid only as
+`better`, and failed-arm telemetry must remain structurally valid. A focused RED,
+complete offline rerun, and a sixth fresh exact review are required.
+
 ## Validation envelope
 
 Candidate offline commands, exact live-run costs, required reruns, and review launch
