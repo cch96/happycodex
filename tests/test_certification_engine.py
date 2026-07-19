@@ -273,6 +273,19 @@ class CertificationImpactTests(unittest.TestCase):
         self.assertEqual(impact["gates"], ["corpus"])
         self.assertEqual(impact["live_calls"], {"minimum": 1, "maximum": 1})
 
+    def test_native_case_counts_initial_resume_and_fresh_model_calls(self) -> None:
+        impact = plan_impact(
+            self.snapshot,
+            self.snapshot,
+            pending={
+                "reasons": ["native-proof-required"],
+                "corpus_cases": ["pre-freeze-compaction"],
+                "holdout_pairs": [],
+                "review": False,
+            },
+        )
+        self.assertEqual(impact["live_calls"], {"minimum": 3, "maximum": 3})
+
     def test_removed_case_blocks_impact_instead_of_reporting_zero_cost(self) -> None:
         changed = copy.deepcopy(self.snapshot)
         changed["corpus"]["cases"].pop(sorted(changed["corpus"]["cases"])[0])
@@ -963,6 +976,54 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                 "thread_id_sha256"
             ]
 
+            source_recovery_drift = copy.deepcopy(corpus_summary)
+            source_recovery = next(
+                item
+                for item in source_recovery_drift["cases"]
+                if item["id"] == "pre-freeze-compaction"
+            )
+            source_recovery["result"]["recovery_state"]["writer"] = "unknown"
+            source_recovery["fresh_recovery_result"]["recovery_state"]["writer"] = (
+                "unknown"
+            )
+
+            fresh_revision_drift = copy.deepcopy(corpus_summary)
+            fresh_revision = next(
+                item
+                for item in fresh_revision_drift["cases"]
+                if item["id"] == "pre-freeze-compaction"
+            )
+            fresh_revision["fresh_recovery_result"]["recovery_state"][
+                "current_revision"
+            ] = "e" * 40
+
+            unrelated_after_rollout = copy.deepcopy(corpus_summary)
+            unrelated_rollout = next(
+                item
+                for item in unrelated_after_rollout["cases"]
+                if item["id"] == "pre-freeze-compaction"
+            )
+            unrelated_rollout["native_compaction"]["after_resume"][
+                "rollout_path_sha256"
+            ] = "e" * 64
+
+            missing_required_classifications = copy.deepcopy(corpus_summary)
+            classification_case = next(
+                item
+                for item in missing_required_classifications["cases"]
+                if item["id"] == "compaction-recovery"
+            )
+            classification_case["result"]["finding_classifications"] = []
+
+            missing_required_anchors = copy.deepcopy(corpus_summary)
+            anchored_case = next(
+                item
+                for item in missing_required_anchors["cases"]
+                if item["id"] == "boundary-cutover"
+            )
+            anchored_case["result"]["finding_classifications"] = []
+            anchored_case["result"]["blocker_classifications"] = []
+
             corpus_false_greens = (
                 (
                     "missing-native-recovery",
@@ -982,6 +1043,23 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                     "mismatched-native-control",
                     mismatched_native_control,
                     "native|thread|control",
+                ),
+                ("source-recovery-drift", source_recovery_drift, "recovery|oracle"),
+                ("fresh-revision-drift", fresh_revision_drift, "recovery|control"),
+                (
+                    "unrelated-after-rollout",
+                    unrelated_after_rollout,
+                    "compaction|rollout",
+                ),
+                (
+                    "missing-required-classifications",
+                    missing_required_classifications,
+                    "classification|oracle",
+                ),
+                (
+                    "missing-required-anchors",
+                    missing_required_anchors,
+                    "anchor|blocker|oracle",
                 ),
             )
             for label, false_green, expected_error in corpus_false_greens:
@@ -1186,6 +1264,16 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
             malformed_public["result"] = "runner-impossible"
             malformed_public["native_compaction"] = "runner-impossible"
 
+            timed_out_zero_exit = copy.deepcopy(authentic_better)
+            timed_out_zero_exit["pair_receipts"][0]["arms"]["public-0.2"][
+                "timed_out"
+            ] = True
+
+            null_result_with_usage = copy.deepcopy(authentic_better)
+            null_result_with_usage["pair_receipts"][0]["arms"]["public-0.2"][
+                "result"
+            ] = None
+
             unbound_metrics = copy.deepcopy(holdout_summary)
             expensive_candidate = unbound_metrics["pair_receipts"][0]["arms"][
                 "candidate"
@@ -1219,6 +1307,16 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                     "runner-impossible-nested-receipt",
                     malformed_nested,
                     "nested receipt|evidence telemetry",
+                ),
+                (
+                    "timed-out-zero-exit",
+                    timed_out_zero_exit,
+                    "timed out|timeout|did not pass",
+                ),
+                (
+                    "null-result-with-usage",
+                    null_result_with_usage,
+                    "result receipt",
                 ),
                 ("unbound-cost-metrics", unbound_metrics, "metrics mismatch"),
                 ("nonterminal-adaptive-history", nonterminal, "not terminal"),

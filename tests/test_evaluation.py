@@ -612,7 +612,22 @@ class HappyCodexEvaluationTests(unittest.TestCase):
         self.assertIn(
             "identity_sha256", receipt["result"]["finding_classifications"][0]
         )
+        self.assertIn(
+            "identity_match_sha256s",
+            receipt["result"]["finding_classifications"][0],
+        )
+        self.assertIn(
+            "identity_casefold_sha256",
+            receipt["result"]["finding_classifications"][0],
+        )
+        self.assertIn(
+            "anchor_sha256s", receipt["result"]["finding_classifications"][0]
+        )
         self.assertIn("reason_sha256", receipt["result"]["blocker_classifications"][0])
+        self.assertIn(
+            "identity_match_sha256s",
+            receipt["result"]["blocker_classifications"][0],
+        )
         self.assertIn("anchors_sha256", receipt["result"]["finding_classifications"][0])
 
     def test_phrase_presence_is_not_an_acceptance_oracle(self) -> None:

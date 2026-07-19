@@ -847,9 +847,35 @@ product projection is identical at
 No prohibited action ran.
 
 Root accepts these as the next bounded repair class pending independent local RED
-reproduction. No Skill, manifest, case oracle, runner, evaluator, or sanitizer change
-is indicated: the impact planner and certification verifier already retain enough
-producer metadata to fail closed.
+reproduction. No Skill, manifest, case oracle, runner, or evaluator change is
+indicated. If aggregate sanitizer hashes cannot prove required anchor membership
+without exposing raw text, an artifact-only privacy-safe digest projection is the
+allowed bounded extension; it carries no live model cost.
+
+## Eighth producer-binding RED
+
+Root independently reproduced all four review classes with one exact offline command.
+A one-case impact containing only `pre-freeze-compaction` reports one call instead of
+three. Five corpus mutations then drift both recovery writers from the source oracle,
+drift only the fresh `current_revision`, substitute the after-resume rollout path,
+remove direct required classifications, or remove all required anchored
+finding/blocker evidence. Two holdout mutations retain a complete failed-public arm
+while setting timeout with exit zero or deleting its result. Every mutation
+certifies on the eighth-review candidate.
+
+The current sanitizer hashes identities and aggregate anchor lists but does not
+retain privacy-safe membership digests needed to re-evaluate the producer's
+delimiter-aware identity and anchor predicates without exposing raw model text. The
+bounded clean-break receipt repair will add only case-folded identity-match and
+anchor-member digests; this is artifact evidence, not a case-oracle or runner change.
+Recovery marker order can remain producer-compatible because the exact source oracle
+is available and contains only three markers.
+
+    PYTHONDONTWRITEBYTECODE=1 python3 -m unittest tests.test_certification_engine.CertificationImpactTests.test_native_case_counts_initial_resume_and_fresh_model_calls tests.test_certification_engine.CertificationReceiptAndCliTests.test_certified_state_accepts_only_reachable_bound_evidence tests.test_evaluation.HappyCodexEvaluationTests.test_sanitized_case_receipt_preserves_auditable_fields -v
+
+reports nine failures in 1.213 seconds: the call-count assertion, all seven new
+producer-binding false greens, and the missing privacy-safe sanitizer projection.
+No model, live runner, network, Fable, install, or external mutation ran.
 
 ## Validation envelope
 
@@ -865,12 +891,12 @@ publication requires a later explicit user request.
 - Goal: active `019f780e-925e-7193-8bd2-0a04d6efe31e`; its objective is the
   Normalized Outcome plus all frozen preservation, exclusion, offline validation, and
   live-cost gates in this document.
-- RED/GREEN: all architecture, eight review rounds, seven prior nested false-green
-  probes, and the last exact offline repair envelope are persisted above.
-- Next: reproduce all four eighth-review counterexamples, freeze RED, repair only the
-  impact planner and ledger verifier, then rerun the offline envelope and a ninth
-  fresh exact review. A green review still stops at the explicit maximum-cost user
-  decision before authority or live calls.
+- RED/GREEN: all architecture, eight review rounds, seven prior probes, and the exact
+  nine-failure producer-binding RED are persisted above.
+- Next: repair the impact planner, privacy-safe receipt projection, and ledger
+  verifier; then rerun the offline envelope and a ninth fresh exact review. A green
+  review still stops at the explicit maximum-cost user decision before authority or
+  live calls.
 - Product/support writes: support-only paths remain open; shipped-package paths remain
   closed.
 - Owned paths: `evaluation/`, `tests/`, `AGENTS.md`, and this ExecPlan; shipped-package
