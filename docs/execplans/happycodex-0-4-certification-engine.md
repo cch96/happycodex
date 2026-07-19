@@ -3,7 +3,7 @@
 Protocol: `HappyCodex/0.3`
 Invocation: `$happycodex:happycodex`
 Writer: Root only
-State: simplification refactor frozen; five relationship REDs pending
+State: simplification RED frozen; coherent implementation pending
 Resume: read this entire ExecPlan and reconcile Goal, Native Plan, Git, tests,
 receipts, worktrees, and agents before any write, review, or completion claim.
 
@@ -1339,6 +1339,24 @@ code deletion and external-gate clarification, not a waived review. No expensive
 behavior or holdout run occurs until that review is `GO` and the exact maximum cost
 receives explicit user approval.
 
+## Simplification relationship RED
+
+RED revision `b239487` adds only tests and no production change. One exact offline
+command exercises six named relationships and reports six tests with five failures
+and two errors in 1.707 seconds: a one-pair pending holdout remains one pair; impact
+cost has no provenance; machine certification still contains a reviewer protocol;
+fabricated digest strings reach the corpus evaluator before the holdout subcase can
+run; a real Git-backed zero-live artifact refresh raises because authority is
+unconditionally required; and both timeout and nonzero holdout arms enter blind
+quality comparison. The existing error/failure messages map one-to-one to the frozen
+design and do not depend on a model or external service.
+
+Ruff check/format and diff hygiene pass for the RED revision. No product support file,
+Skill, manifest, case, oracle, runner, evaluator, ledger, live authority, model,
+network, Fable, install, or publication action changed or ran. The next write is the
+single coherent implementation; splitting these relationships into independent
+patches would recreate the contradictory intermediate states this refactor removes.
+
 ## Validation envelope
 
 Candidate offline commands, exact live-run costs, required reruns, and review launch
@@ -1354,12 +1372,12 @@ publication requires a later explicit user request.
 - Goal: active `019f780e-925e-7193-8bd2-0a04d6efe31e`; its objective is the
   Normalized Outcome plus all frozen preservation, exclusion, offline validation, and
   live-cost gates in this document.
-- RED/GREEN: all prior rounds and the ninth two-failure/two-error plus reachable-
-  review RED are persisted; 31/31 focused and 116/116 cumulative GREEN are current
-  but do not cover the five contradictory reachable states found by the tenth review.
-- Next: commit this administrative freeze, add the six relationship/provenance REDs,
-  then implement the single capability-gated executor, external review gate,
-  zero-live transition, complete adaptive scope, and shared holdout status rule.
+- RED/GREEN: simplification RED `b239487` is durable at six tests, five failures and
+  two errors; the preceding 31/31 focused and 116/116 cumulative GREEN remain only the
+  pre-refactor comparison point.
+- Next: implement the single capability-gated executor, external review gate,
+  zero-live transition, complete adaptive scope, shared holdout status rule, and exact
+  historical provenance as one coherent GREEN.
 - Product/support writes: evaluator/test/policy support paths reopen after this freeze;
   shipped-package paths remain closed.
 - Owned paths: `evaluation/`, `tests/`, `AGENTS.md`, and this ExecPlan; shipped-package
