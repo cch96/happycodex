@@ -299,6 +299,27 @@ class HappyCodexHoldoutTests(unittest.TestCase):
             run_pair.assert_not_called()
             self.assertEqual(list(output.iterdir()), [])
 
+    def test_pair_runner_requires_authorized_capability(self) -> None:
+        pair = holdout_engine.load_manifest()["pairs"][0]
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            with mock.patch.object(
+                holdout_engine,
+                "seal_mapping",
+                side_effect=AssertionError("holdout live seam reached"),
+            ) as mapping:
+                with self.assertRaisesRegex(ValueError, "capability"):
+                    holdout_engine.run_pair(
+                        pair,
+                        candidate=root / "candidate",
+                        public=root / "public",
+                        output=root / "output",
+                        model="gpt-5.6-sol",
+                        effort="high",
+                        timeout=300,
+                    )
+            mapping.assert_not_called()
+
     def test_adaptive_sequence_rejects_first_regression_and_requires_second(
         self,
     ) -> None:

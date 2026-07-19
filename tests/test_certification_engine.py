@@ -591,8 +591,89 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
         self.assertEqual(
             authorization.authority_sha256, canonical_sha256(ledger["live_authority"])
         )
+        self.assertFalse(hasattr(ledger_engine, "_AUTHORIZATION_SEAL"))
+        descriptor = authorization.descriptor()
+        descriptor["cases"] = []
+        self.assertNotEqual(descriptor, authorization.descriptor())
+        with self.assertRaises((AttributeError, TypeError)):
+            authorization.impact_token = "f" * 64
+        with self.assertRaises(AttributeError):
+            authorization._descriptor  # type: ignore[attr-defined]
         with self.assertRaisesRegex(TypeError, "cannot be serialized"):
             pickle.dumps(authorization)
+
+    def test_model_reaching_helpers_require_authorized_capability(self) -> None:
+        case = corpus_engine.load_cases()["receipt-mismatch"]
+        with tempfile.TemporaryDirectory() as raw:
+            with mock.patch.object(
+                corpus_engine,
+                "build_fixture",
+                side_effect=AssertionError("corpus live seam reached"),
+            ) as fixture:
+                with self.assertRaisesRegex(ValueError, "capability"):
+                    corpus_engine.evaluate_case(
+                        case,
+                        plugin=ROOT,
+                        output=Path(raw),
+                        model="gpt-5.6-sol",
+                        effort="high",
+                        timeout=300,
+                        arm="candidate",
+                    )
+            fixture.assert_not_called()
+
+            with mock.patch.object(
+                corpus_engine,
+                "run",
+                side_effect=AssertionError("Codex invocation reached"),
+            ) as runner:
+                with self.assertRaisesRegex(ValueError, "capability"):
+                    corpus_engine.invoke_codex(
+                        ["codex", "exec"],
+                        cwd=Path(raw),
+                        env={},
+                        timeout=1,
+                    )
+            runner.assert_not_called()
+
+    def test_offline_summary_requires_exact_gate_evidence(self) -> None:
+        snapshot = build_snapshot(ROOT)
+        installation = {
+            "source_skill_sha256": "1" * 64,
+            "installed_skill_sha256": "1" * 64,
+            "source_package_manifest_sha256": snapshot["package"]["artifact_sha256"],
+            "installed_package_manifest_sha256": snapshot["package"]["artifact_sha256"],
+            "plugin_sha256": "2" * 64,
+        }
+        payload = {
+            "schema_version": 1,
+            "engine_generation": "0.4",
+            "source_commit": "3" * 40,
+            "source_ledger_sha256": "4" * 64,
+            "snapshot_sha256": canonical_sha256(snapshot),
+            "engine_manifest_sha256": snapshot["engine"]["manifest_sha256"],
+            "gates": ["isolated_install", "receipt"],
+            "receipt_artifact_sha256": snapshot["engine"]["categories"]["artifact"],
+            "isolated_installation": installation,
+        }
+        ledger_engine._validate_offline_summary(
+            payload,
+            snapshot=snapshot,
+            source_commit="3" * 40,
+            source_ledger_sha256="4" * 64,
+            gates={"isolated_install", "receipt"},
+        )
+
+        missing_installation = copy.deepcopy(payload)
+        missing_installation["isolated_installation"] = None
+        with self.assertRaisesRegex(ValueError, "installation"):
+            ledger_engine._validate_offline_summary(
+                missing_installation,
+                snapshot=snapshot,
+                source_commit="3" * 40,
+                source_ledger_sha256="4" * 64,
+                gates={"isolated_install", "receipt"},
+            )
 
     def test_leaf_runner_commands_reject_fabricated_live_bindings(self) -> None:
         parser = cli.build_parser()
@@ -1841,6 +1922,39 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                 },
                 "evidence": {},
                 "live_authority_sha256": canonical_sha256(None),
+            }
+            with self.assertRaisesRegex(ValueError, "offline"):
+                validate_ledger(artifact_certified, repo=repo)
+
+            offline_summary = {
+                "schema_version": 1,
+                "engine_generation": "0.4",
+                "source_commit": artifact_source_commit,
+                "source_ledger_sha256": sha256_bytes(prior_path.read_bytes()),
+                "snapshot_sha256": canonical_sha256(artifact_snapshot),
+                "engine_manifest_sha256": artifact_snapshot["engine"][
+                    "manifest_sha256"
+                ],
+                "gates": ["receipt"],
+                "receipt_artifact_sha256": artifact_snapshot["engine"]["categories"][
+                    "artifact"
+                ],
+                "isolated_installation": None,
+            }
+            offline_sha = write_evidence("offline_summary", offline_summary)
+            git("add", "evaluation/results/evidence/offline_summary.json")
+            git("commit", "-qm", "offline artifact evidence")
+            offline_commit = git("rev-parse", "HEAD")
+            artifact_certified["certification"]["evidence"] = {
+                "offline_summary": {
+                    "commit": offline_commit,
+                    "path": "evaluation/results/evidence/offline_summary.json",
+                    "git_blob": git(
+                        "rev-parse",
+                        f"{offline_commit}:evaluation/results/evidence/offline_summary.json",
+                    ),
+                    "sha256": offline_sha,
+                }
             }
             validate_ledger(artifact_certified, repo=repo)
 
