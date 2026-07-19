@@ -234,6 +234,35 @@ Any fetch, ref, version, install, hash, credential-isolation, or personal-state
 mismatch stops before PR creation. This is the sole public marketplace install for
 the task; it invokes no model.
 
+## Public marketplace install receipt
+
+The public ref resolved to
+`6fc754eeb48aace06632a13a162e6b989addf888`. The first marketplace command exited
+before fetch because the declared empty `CODEX_HOME` directory itself did not yet
+exist. It created no marketplace and installed no plugin. Root created only that
+empty directory and repeated the same public-ref command; this preflight correction
+did not touch the repository, product, authentication, or personal Codex state.
+
+The corrected marketplace add succeeded from
+`https://github.com/cch96/happycodex.git` at `release/happycodex-0.3`. Codex emitted
+only its expected warning that PATH helper aliases are refused below `/tmp`. Exactly
+one `codex plugin add happycodex@happycodex --json` then succeeded and reported:
+
+| Field | Receipt |
+| --- | --- |
+| plugin/version | `happycodex@happycodex`; `0.3.0+codex.20260716113414` |
+| isolated state | installed `true`; enabled `true`; Git marketplace source is the public repository above |
+| installed path | `<root>/home/.codex/plugins/cache/happycodex/happycodex/0.3.0+codex.20260716113414` |
+| installed Skill | SHA-256 `0f2223498e398325d1f9728f485b46282778f1199be4f0d80802073f191c6b71` |
+| public filtered manifest | SHA-256 `05509f86830b1b97d61b9256c98e255c0ee17327f5ea90c9a51a637cd41ae459` |
+| source/install comparison | recursive diff excluding `.git` is empty |
+| isolated credentials | no `auth.json`, credential, token, PEM, or key file exists; config contains only the public marketplace ref and enabled plugin |
+| personal state after install | list SHA-256 remains `a3d98977b883f10dec26ad213ed1b45d26bf9dc0ecab4d7940c6e823d236e3f8` |
+
+The public checkout is clean and tracks the same public release ref. Its filtered
+manifest exactly matches the certified candidate, so the install receipt closes
+SR-05 without reopening product certification or invoking any model.
+
 ## Claims and gates
 
 | ID | Claim / gate | State |
@@ -242,21 +271,19 @@ the task; it invokes no model.
 | SR-02 | Final tree excluding this ExecPlan exactly equals certified candidate `89e6a8b...3833`, including modes, paths, and blob identities. | verified |
 | SR-03 | Certified Skill, manifest, and every product-support file retain exact bytes; no unclassified path remains. | verified |
 | SR-04 | Authorized offline unit tests, official validators, and diff hygiene pass. | verified |
-| SR-05 | One fresh isolated public marketplace install discovers and installs exact 0.3, with source/install equality and no mutation of the personal install. | open |
+| SR-05 | One fresh isolated public marketplace install discovers and installs exact 0.3, with source/install equality and no mutation of the personal install. | verified |
 | SR-06 | Release branch is pushed without force and a PR targets `main`. | open |
 | SR-07 | Final worktree is clean and no completion blocker remains. | open |
 
 ## Current checkpoint
 
-The certified cumulative tree is committed and all authorized offline gates are
-GREEN. No product path changed after exact equality was established; only this plan
-records the receipts and the frozen public-install command. Next: commit this
-administrative checkpoint, push the release branch without force, run the sole public
-install, and stop before PR creation on any mismatch.
+The certified cumulative tree is committed and every authorized offline and public
+install gate is GREEN. No product path changed after exact equality was established;
+only this plan records the receipt. Next: commit and push this administrative
+checkpoint, open the PR to `main`, then record the PR identity and final clean state.
 
 ## Pending gates
 
-- one isolated public marketplace install
 - push and pull request
 - administrative closure with unchanged integrated product tree
 
