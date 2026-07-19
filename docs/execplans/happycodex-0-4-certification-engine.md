@@ -683,6 +683,36 @@ Its durable terminal output destination is agent task
 clones and offline validators; model/live corpus/live holdout, network, Fable, Goal,
 installation, plugin, marketplace, Git ref, and repository writes are forbidden.
 
+## Seventh fresh review and case-specific receipt NOT-YET
+
+Fresh read-only reviewer `/root/cert_engine_terminal_final_review` audited exact
+administrative candidate `2746a206af4ce7e82c0519856b8f387c345d3d32` and product
+repair `3be9d2574cb4bc04c0cd0f79a1a80eb864b77df9` from clean detached local
+clones. It confirmed the intervening diff is ExecPlan-only and returned `NOT-YET`
+with one P1 nested-receipt finding.
+
+The source case `pre-freeze-compaction` requires the runner's native compaction path,
+which produces exactly three usage phases plus primary/fresh recovery and native
+compaction receipts. Certification accepts the positive Git fixture's one phase,
+empty result/isolation, and null fresh/native receipts for every case. It also accepts
+mismatched source/installed Skill digests, although installation rejects that state.
+Consequently a terminal ledger can claim the required native reconstruction without
+the runner-shaped evidence.
+
+Root accepts the finding. The reviewer independently confirmed every sixth-review
+repair and the authentic `better` path, 30/30 focused, 114/114 candidate, 97/97
+baseline, both official validators, Ruff, verify/impact, dry-runs, JSON/diff hygiene,
+package/public identities, exact cost, null authority, and all exclusions. No model,
+live runner, network, Fable, Goal, install, external mutation, or repository write
+ran.
+
+The bounded repair must validate the exact sanitizer envelopes, source/installed
+Skill equality, static isolation policy, source-case phase count, and native versus
+ordinary recovery receipt presence. The positive Git fixture must use the real
+sanitizer instead of hand-written minimal nested objects. This remains harness/test
+only, retains the existing full-refresh cost, and requires an eighth fresh exact
+review.
+
 ## Validation envelope
 
 Candidate offline commands, exact live-run costs, required reruns, and review launch
@@ -692,16 +722,16 @@ publication requires a later explicit user request.
 
 ## Checkpoint
 
-- Milestone: the sixth review's receipt-consistency blockers are repaired and the
-  complete bounded offline envelope is green; exact commit and seventh fresh review
-  remain open.
+- Milestone: the seventh review returned `NOT-YET` with one accepted case-specific
+  nested-receipt blocker; focused RED and bounded repair remain open.
 - Goal: active `019f780e-925e-7193-8bd2-0a04d6efe31e`; its objective is the
   Normalized Outcome plus all frozen preservation, exclusion, offline validation, and
   live-cost gates in this document.
-- RED: all architecture and six review rounds are persisted above; the four accepted
-  false-greens are now passing regression subtests.
-- Next: freeze the repair commit with its ExecPlan trailer, rerun it from a clean
-  detached clone, and launch a seventh fresh exact review. A green review still stops
+- RED: all architecture and seven review rounds are persisted above; a native case
+  currently certifies with an ordinary one-phase minimal receipt.
+- Next: generate the positive fixture through the production sanitizer, add the exact
+  case-specific RED, repair nested receipt validation, rerun a clean detached clone,
+  and launch an eighth fresh exact review. A green review still stops
   at the explicit
   maximum-cost user decision before authority or live calls.
 - Product/support writes: support-only paths remain open; shipped-package paths remain
