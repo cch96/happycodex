@@ -379,6 +379,28 @@ class CertificationImpactTests(unittest.TestCase):
             with self.assertRaisesRegex(IdentityError, "invalid case envelope"):
                 build_snapshot(clone)
 
+    def test_impact_rejects_the_same_malformed_holdout_as_execution(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            clone = Path(raw) / "repo"
+            shutil.copytree(ROOT / "evaluation", clone / "evaluation")
+            for package_path in (".agents", ".codex-plugin", "README.md", "skills"):
+                source = ROOT / package_path
+                target = clone / package_path
+                if source.is_dir():
+                    shutil.copytree(source, target)
+                else:
+                    shutil.copy2(source, target)
+            manifest_path = clone / "evaluation" / "holdouts" / "manifest.json"
+            malformed = json.loads(manifest_path.read_text(encoding="utf-8"))
+            malformed["pairs"][0].pop("oracle_kind")
+            manifest_path.write_text(
+                json.dumps(malformed, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(IdentityError, "holdout pair envelope"):
+                build_snapshot(clone)
+
     def test_unknown_snapshot_dimension_fails_closed(self) -> None:
         changed = copy.deepcopy(self.snapshot)
         changed["unknown"] = {"value": True}
@@ -939,6 +961,162 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
             )
             with self.assertRaisesRegex(ValueError, "source package"):
                 validate_ledger(wrong_artifact, repo=repo)
+
+            prior_path = repo / "evaluation" / "results" / "current.json"
+            prior_encoded = (
+                json.dumps(certified, ensure_ascii=False, sort_keys=True, indent=2)
+                + "\n"
+            ).encode()
+            prior_path.write_bytes(prior_encoded)
+            git("add", "evaluation/results/current.json")
+            git("commit", "-qm", "persist first certified ledger")
+            prior_commit = git("rev-parse", "HEAD")
+
+            changed_case_path = (
+                repo
+                / "evaluation"
+                / "cases"
+                / (sorted(snapshot["corpus"]["cases"])[0] + ".json")
+            )
+            changed_case = json.loads(changed_case_path.read_text(encoding="utf-8"))
+            changed_case["prompt"] += "\nReconfirm the exact bounded outcome."
+            changed_case_path.write_text(
+                json.dumps(changed_case, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+            next_snapshot = build_snapshot(repo)
+            planned = plan_impact(snapshot, next_snapshot)
+            next_pending = {
+                "reasons": planned["reasons"],
+                "corpus_cases": planned["corpus_cases"],
+                "holdout_pairs": planned["holdout_pairs"],
+                "review": True,
+            }
+            next_impact = plan_impact(
+                snapshot,
+                next_snapshot,
+                pending=next_pending,
+            )
+            self.assertEqual(len(next_impact["corpus_cases"]), 1)
+            self.assertEqual(next_impact["holdout_pairs"], [])
+            next_ledger = {
+                "schema_version": 1,
+                "state": "refresh_required",
+                "snapshot": next_snapshot,
+                "prior_evidence": {
+                    "source_commit": prior_commit,
+                    "source_path": "evaluation/results/current.json",
+                    "sha256": sha256_bytes(prior_encoded),
+                },
+                "pending": next_pending,
+                "historical_cost": {},
+                "live_authority": None,
+                "certification": None,
+            }
+            next_authority = complete_live_authority(
+                next_ledger,
+                next_snapshot,
+                next_impact,
+            )
+            next_source_ledger = copy.deepcopy(next_ledger)
+            next_source_ledger["live_authority"] = next_authority
+            prior_path.write_text(
+                json.dumps(
+                    next_source_ledger,
+                    ensure_ascii=False,
+                    sort_keys=True,
+                    indent=2,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            git("add", "evaluation/cases", "evaluation/results/current.json")
+            git("commit", "-qm", "persist incremental authority")
+            next_source_commit = git("rev-parse", "HEAD")
+            next_source_tree = git("rev-parse", "HEAD^{tree}")
+
+            engine_identity = engine_inventory(repo)
+            changed_case_id = next_impact["corpus_cases"][0]
+            partial_cases = [
+                case_receipt(
+                    changed_case_id,
+                    next_snapshot["corpus"]["cases"][changed_case_id],
+                    next_snapshot["package"],
+                )
+            ]
+            partial_summary = {
+                "schema_version": 1,
+                "engine_generation": "0.4",
+                "impact_token": next_authority["impact_token"],
+                "live_authority_sha256": canonical_sha256(next_authority),
+                "arm": "candidate",
+                "model": settings["model"],
+                "effort": settings["effort"],
+                "timeout_seconds": settings["timeout_seconds"],
+                "passed": 1,
+                "total": 1,
+                "uncached_input_tokens": 2,
+                "telemetry_complete": True,
+                "output_tokens": 1,
+                "elapsed_seconds": 1.0,
+                "cases": partial_cases,
+            }
+            next_evidence_sha = {
+                "corpus_summary": write_evidence("corpus_summary", partial_summary),
+                "review": write_evidence(
+                    "review", {"reviewed_source_commit": next_source_commit}
+                ),
+            }
+            git("add", "evaluation/results/evidence")
+            git("commit", "-qm", "incremental evidence")
+            next_evidence_commit = git("rev-parse", "HEAD")
+            next_locators = {
+                name: {
+                    "commit": next_evidence_commit,
+                    "path": f"evaluation/results/evidence/{name}.json",
+                    "git_blob": git(
+                        "rev-parse",
+                        f"{next_evidence_commit}:evaluation/results/evidence/{name}.json",
+                    ),
+                    "sha256": digest,
+                }
+                for name, digest in next_evidence_sha.items()
+            }
+            next_coverage = {
+                "corpus": {
+                    case_id: ("refreshed" if case_id == changed_case_id else "prior")
+                    for case_id in next_snapshot["corpus"]["cases"]
+                },
+                "holdout": {
+                    pair_id: "prior" for pair_id in next_snapshot["holdout"]["pairs"]
+                },
+                "review": "refreshed",
+            }
+            next_certified = copy.deepcopy(next_ledger)
+            next_certified["state"] = "certified"
+            next_certified["pending"] = {
+                "reasons": [],
+                "corpus_cases": [],
+                "holdout_pairs": [],
+                "review": False,
+            }
+            next_certified["live_authority"] = next_authority
+            next_certified["certification"] = {
+                "schema_version": 1,
+                "successor_source_commit": next_source_commit,
+                "successor_source_tree": next_source_tree,
+                "snapshot_sha256": canonical_sha256(next_snapshot),
+                "engine_manifest_sha256": next_snapshot["engine"]["manifest_sha256"],
+                "coverage": next_coverage,
+                "evidence": next_locators,
+                "live_authority_sha256": canonical_sha256(next_authority),
+            }
+            validate_ledger(next_certified, repo=repo)
+
+            wrong_prior = copy.deepcopy(next_certified)
+            wrong_prior["prior_evidence"]["sha256"] = "f" * 64
+            with self.assertRaisesRegex(ValueError, "prior certified ledger digest"):
+                validate_ledger(wrong_prior, repo=repo)
 
     def test_verify_and_impact_commands_are_read_only_json(self) -> None:
         for command in ("verify", "impact"):

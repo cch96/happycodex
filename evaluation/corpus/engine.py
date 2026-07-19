@@ -256,9 +256,10 @@ def deterministic_git_env() -> dict[str, str]:
     return env
 
 
-def load_cases() -> dict[str, dict[str, Any]]:
+def load_cases(cases_root: Path | None = None) -> dict[str, dict[str, Any]]:
+    cases_root = CASES if cases_root is None else cases_root.resolve()
     loaded: dict[str, dict[str, Any]] = {}
-    for path in sorted(CASES.glob("*.json")):
+    for path in sorted(cases_root.glob("*.json")):
         case = read_json(path)
         validate_case(case, path)
         if case["id"] in loaded:

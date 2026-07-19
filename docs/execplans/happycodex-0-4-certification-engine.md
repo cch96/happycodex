@@ -494,6 +494,32 @@ must validate a reachable prior 0.4 certified ledger, recompute impact from its
 snapshot, and make refreshed-versus-prior coverage explicit for every current case
 and pair; otherwise only full fresh coverage is valid.
 
+The bounded repair is green. Evidence commits must be strict descendants of the
+authority-bearing source. A source archive is normalized from Git file-mode classes
+to the repository's private package modes before its complete semantic/artifact
+identity is compared with the snapshot, so an executable-bit drift is rejected.
+Corpus and holdout snapshot construction now call the same full schema validators as
+execution. Certification carries an exact merged coverage manifest: newly authorized
+summaries cover precisely the impact scope, while every `prior` case or pair requires
+a strictly older, SHA-bound, recursively valid 0.4 certified ledger. The validator
+recomputes prior-snapshot-to-successor impact, binds the source and final prior/cost
+records, and still requires a fresh review. If that chain is absent or changed, only
+full refreshed coverage can certify.
+
+The expanded positive Git fixture first certifies a complete snapshot, then mutates
+one valid case and certifies the one-call successor using explicit prior coverage. It
+also rejects same-commit evidence, source executable-bit drift, and a changed prior
+ledger digest. Both corpus and holdout malformed-input controls fail during impact,
+before token or cost construction. The focused certification suite is 30/30 and the
+complete offline suite is 114/114 green. Final offline identities are engine
+`d683a5029137c59b8c894b699477f9767363d6dbed06a536f7e74f2391fff970`,
+snapshot `16c8c6b612469a81d2a5bd29a93d0a9c1643b9cb30a5e48564c8d6b47a848448`,
+ledger `8ccdd7607e10bf958e8b9298d2815458183e1240f126c70fcedf1d86a3e47fc1`,
+and impact token
+`b3316e278a43d125a1e41f7ea369e166bbd2a86570bacc5274dbd0b9eb4a8a5a`.
+Live authority remains null and the 18-to-20-call cost is unchanged. A new exact
+fresh review is mandatory before cost approval.
+
 ## Validation envelope
 
 Candidate offline commands, exact live-run costs, required reruns, and review launch
@@ -503,25 +529,22 @@ publication requires a later explicit user request.
 
 ## Checkpoint
 
-- Milestone: first four findings are repaired at
-  `c5a325c4a87cb0687f7d3633d9bd6666ba2a7306`, but its fresh exact review is
-  NOT-YET on `NR-05` forged certification evidence and `NR-06` unsafe control
-  classification/runtime identity.
+- Milestone: fourth fresh review `NOT-YET` findings `NR-07` through `NR-10` are
+  repaired in the current bounded candidate; exact repair commit and fifth fresh
+  review remain open.
 - Goal: active `019f780e-925e-7193-8bd2-0a04d6efe31e`; its objective is the
   Normalized Outcome plus all frozen preservation, exclusion, offline validation, and
   live-cost gates in this document.
-- RED: the original architecture RED and the later four-finding repair RED are both
-  persisted above; the repaired focused contract is 22/22 and cumulative suite is
-  106/106.
-- Next: persist this review, add focused RED counterexamples for `NR-05/06`, implement
-  only the bounded control/evidence repair, rerun the complete offline envelope, and
-  launch a third fresh exact review. A green review still stops at the explicit
+- RED: all architecture and four review rounds are persisted above; the repaired
+  focused certification contract is 30/30 and cumulative suite is 114/114.
+- Next: freeze the repair commit, rerun the complete exact-commit offline envelope,
+  and launch a fifth fresh exact review. A green review still stops at the explicit
   maximum-cost user decision before authority or live calls.
 - Product/support writes: support-only paths remain open; shipped-package paths remain
   closed.
 - Owned paths: `evaluation/`, `tests/`, `AGENTS.md`, and this ExecPlan; shipped-package
   paths remain closed.
-- Missing facts: second repair and third-review identities, explicit user cost
+- Missing facts: final repair and fifth-review identities, explicit user cost
   decision, and live successor receipts.
 
 ## Retrospective

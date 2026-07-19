@@ -98,43 +98,31 @@ def _read_json(path: Path) -> dict[str, Any]:
 
 
 def _load_cases(root: Path) -> dict[str, dict[str, Any]]:
-    cases: dict[str, dict[str, Any]] = {}
-    for path in sorted((root / "evaluation" / "cases").glob("*.json")):
-        case = _read_json(path)
-        case_id = case.get("id")
-        if not isinstance(case_id, str) or case_id in cases:
-            raise IdentityError(f"invalid or duplicate corpus case id: {case_id!r}")
-        cases[case_id] = case
-    if not cases:
-        raise IdentityError("empty corpus")
-    return cases
+    from evaluation.corpus.engine import load_cases
+
+    try:
+        return load_cases(root / "evaluation" / "cases")
+    except (KeyError, OSError, TypeError, ValueError) as exc:
+        raise IdentityError(str(exc)) from exc
 
 
 def _load_holdouts(root: Path) -> tuple[dict[str, Any], dict[str, dict[str, Any]]]:
+    from evaluation.holdout.engine import load_manifest
+
     manifest_path = root / "evaluation" / "holdouts" / "manifest.json"
-    manifest = _read_json(manifest_path)
-    raw_pairs = manifest.get("pairs")
-    if (
-        manifest.get("schema_version") != 1
-        or not isinstance(raw_pairs, list)
-        or len(raw_pairs) != 3
-    ):
-        raise IdentityError("invalid holdout manifest")
-    pairs: dict[str, dict[str, Any]] = {}
-    for row in raw_pairs:
-        if not isinstance(row, dict) or not isinstance(row.get("id"), str):
-            raise IdentityError("invalid holdout pair")
-        pair_id = row["id"]
-        if pair_id in pairs:
-            raise IdentityError(f"duplicate holdout pair id: {pair_id}")
-        relative = row.get("case_path")
-        if not isinstance(relative, str):
-            raise IdentityError(f"invalid holdout case path: {pair_id}")
-        path = (root / relative).resolve()
-        holdout_root = (root / "evaluation" / "holdouts").resolve()
-        if not path.is_relative_to(holdout_root) or not path.is_file():
-            raise IdentityError(f"unsafe holdout case path: {relative}")
-        pairs[pair_id] = {"descriptor": row, "case": _read_json(path)}
+    try:
+        loaded = load_manifest(manifest_path)
+        manifest = _read_json(manifest_path)
+    except (KeyError, OSError, TypeError, ValueError) as exc:
+        raise IdentityError(str(exc)) from exc
+    raw_by_id = {pair["id"]: pair for pair in manifest["pairs"]}
+    pairs = {
+        pair["id"]: {
+            "descriptor": raw_by_id[pair["id"]],
+            "case": pair["case"],
+        }
+        for pair in loaded["pairs"]
+    }
     return manifest, pairs
 
 

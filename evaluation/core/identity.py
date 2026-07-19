@@ -96,6 +96,17 @@ def selected_package_paths(plugin: Path) -> list[Path]:
     return paths
 
 
+def normalize_package_modes(plugin: Path) -> None:
+    """Reconstruct the repository's private package modes from Git mode classes."""
+    for path in selected_package_paths(plugin.resolve()):
+        if path.is_symlink():
+            continue
+        if path.is_dir():
+            path.chmod(0o700)
+        elif path.is_file():
+            path.chmod(0o700 if path.stat().st_mode & 0o111 else 0o600)
+
+
 def package_manifest(plugin: Path) -> dict[str, dict[str, Any]]:
     return {
         path.relative_to(plugin).as_posix(): path_record(path)
@@ -105,28 +116,6 @@ def package_manifest(plugin: Path) -> dict[str, dict[str, Any]]:
 
 def package_manifest_sha256(plugin: Path) -> str:
     return canonical_sha256(package_manifest(plugin))
-
-
-def package_content_sha256(plugin: Path) -> str:
-    plugin = plugin.resolve()
-    records: list[dict[str, Any]] = []
-    for path in sorted(selected_package_paths(plugin)):
-        relative = path.relative_to(plugin).as_posix()
-        if path.is_symlink():
-            records.append(
-                {"path": relative, "kind": "symlink", "target": os.readlink(path)}
-            )
-        elif path.is_file():
-            content = path.read_bytes()
-            records.append(
-                {
-                    "path": relative,
-                    "kind": "file",
-                    "bytes": len(content),
-                    "sha256": sha256_bytes(content),
-                }
-            )
-    return canonical_sha256(records)
 
 
 def _skill_semantic_manifest(plugin: Path) -> dict[str, dict[str, Any]]:

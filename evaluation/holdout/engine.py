@@ -46,6 +46,9 @@ def file_sha256(path: Path) -> str:
 
 
 def load_manifest(path: Path = MANIFEST_PATH) -> dict[str, Any]:
+    path = path.resolve()
+    holdout_root = path.parent
+    repo_root = holdout_root.parents[1]
     raw = json.loads(path.read_text(encoding="utf-8"))
     if set(raw) != {"schema_version", "pairs"} or raw["schema_version"] != 1:
         raise ValueError("invalid holdout manifest envelope")
@@ -71,10 +74,10 @@ def load_manifest(path: Path = MANIFEST_PATH) -> dict[str, Any]:
             raise ValueError(f"duplicate holdout pair id: {pair_id}")
         pair_ids.add(pair_id)
         relative = Path(raw_pair["case_path"])
-        case_path = (ROOT / relative).resolve()
+        case_path = (repo_root / relative).resolve()
         if (
             relative.is_absolute()
-            or not case_path.is_relative_to(HOLDOUT_ROOT.resolve())
+            or not case_path.is_relative_to(holdout_root)
             or case_path.suffix != ".json"
             or not case_path.is_file()
         ):

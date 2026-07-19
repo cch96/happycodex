@@ -15,7 +15,7 @@ from evaluation.core.identity import (
     case_semantic_sha256,
     engine_category_sha256,
     engine_inventory,
-    package_content_sha256,
+    normalize_package_modes,
     package_identities,
     sha256_bytes,
 )
@@ -83,15 +83,11 @@ CERTIFICATION_FIELDS = {
     "successor_source_tree",
     "snapshot_sha256",
     "engine_manifest_sha256",
+    "coverage",
     "evidence",
     "live_authority_sha256",
 }
-EVIDENCE_FIELDS = {
-    "corpus_summary",
-    "holdout_run",
-    "holdout_summary",
-    "review",
-}
+COVERAGE_FIELDS = {"corpus", "holdout", "review"}
 EVIDENCE_LOCATOR_FIELDS = {"commit", "path", "git_blob", "sha256"}
 CORPUS_SUMMARY_FIELDS = {
     "schema_version",
@@ -370,15 +366,13 @@ def _validate_source_identity(
                         raise ValueError("unsafe certification successor archive link")
             source.extractall(root)
         try:
-            source_package_content = package_content_sha256(root)
+            normalize_package_modes(root)
+            source_package = package_identities(root)
             inventory = engine_inventory(root)
         except (OSError, ValueError) as exc:
             raise ValueError("invalid certification successor source") from exc
-        if (
-            package_identities(repo) != snapshot["package"]
-            or package_content_sha256(repo) != source_package_content
-        ):
-            raise ValueError("certification successor package mismatch")
+        if source_package != snapshot["package"]:
+            raise ValueError("certification source package mismatch")
         if inventory["manifest_sha256"] != snapshot["engine"]["manifest_sha256"]:
             raise ValueError("certification successor engine mismatch")
         source_ledger_path = root / "evaluation" / "results" / "current.json"
@@ -396,15 +390,8 @@ def _validate_source_identity(
             raise ValueError("certification source authority was not persisted")
         try:
             validate_ledger(source_ledger, repo=root)
-            source_impact = plan_impact(
-                snapshot,
-                snapshot,
-                pending=source_ledger["pending"],
-            )
         except (OSError, ValueError) as exc:
             raise ValueError("invalid certification source authority ledger") from exc
-        if live_authority["impact"] != source_impact:
-            raise ValueError("certification source authority impact mismatch")
         manifest_path = root / "evaluation" / "holdouts" / "manifest.json"
         try:
             manifest = json.loads(manifest_path.read_bytes())
@@ -454,6 +441,7 @@ def _validate_source_identity(
         if set(pair_order) != set(snapshot["holdout"]["pairs"]):
             raise ValueError("certification successor holdout scope mismatch")
         return {
+            "ledger": source_ledger,
             "engine": inventory,
             "corpus_semantic_sha256": engine_category_sha256(
                 inventory,
@@ -477,6 +465,10 @@ def _load_evidence(
         raise ValueError(f"invalid certification evidence locator: {label}")
     commit = locator["commit"]
     _require_reachable_commit(repo, commit, label=f"{label} commit")
+    if commit == source_commit:
+        raise ValueError(
+            f"certification evidence must strictly postdate source: {label}"
+        )
     after_source = _run_git(repo, "merge-base", "--is-ancestor", source_commit, commit)
     if after_source.returncode:
         raise ValueError(f"certification evidence predates source: {label}")
@@ -510,6 +502,79 @@ def _load_evidence(
     if not isinstance(payload, dict):
         raise ValueError(f"certification evidence must be an object: {label}")
     return payload, actual_sha256
+
+
+def _load_prior_certified_ledger(
+    repo: Path,
+    prior: dict[str, Any],
+    *,
+    source_commit: str,
+) -> dict[str, Any]:
+    commit = prior.get("source_commit")
+    _require_reachable_commit(repo, commit, label="prior certified ledger commit")
+    if commit == source_commit:
+        raise ValueError("prior certified ledger must predate successor source")
+    ancestor = _run_git(repo, "merge-base", "--is-ancestor", commit, source_commit)
+    if ancestor.returncode:
+        raise ValueError("prior certified ledger must predate successor source")
+    path = prior.get("source_path")
+    if path != "evaluation/results/current.json":
+        raise ValueError("incremental certification requires a prior 0.4 ledger")
+    content = _run_git(repo, "show", f"{commit}:{path}")
+    if content.returncode:
+        raise ValueError("prior certified ledger is unreachable")
+    if prior.get("sha256") != sha256_bytes(content.stdout):
+        raise ValueError("prior certified ledger digest mismatch")
+    try:
+        ledger = json.loads(content.stdout)
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ValueError("prior certified ledger is not JSON") from exc
+    if not isinstance(ledger, dict) or ledger.get("state") != "certified":
+        raise ValueError("incremental certification requires prior certified state")
+    validate_ledger(ledger, repo=repo)
+    return ledger
+
+
+def _validate_coverage(
+    coverage: Any,
+    *,
+    snapshot: dict[str, Any],
+    impact: dict[str, Any],
+) -> tuple[set[str], bool]:
+    if not isinstance(coverage, dict) or set(coverage) != COVERAGE_FIELDS:
+        raise ValueError("invalid certification coverage manifest")
+    refreshed: dict[str, set[str]] = {}
+    for label, available in (
+        ("corpus", set(snapshot["corpus"]["cases"])),
+        ("holdout", set(snapshot["holdout"]["pairs"])),
+    ):
+        values = coverage.get(label)
+        if (
+            not isinstance(values, dict)
+            or set(values) != available
+            or any(value not in {"refreshed", "prior"} for value in values.values())
+        ):
+            raise ValueError(f"invalid certification {label} coverage")
+        refreshed[label] = {
+            name for name, disposition in values.items() if disposition == "refreshed"
+        }
+    if refreshed["corpus"] != set(impact["corpus_cases"]):
+        raise ValueError("certification corpus coverage does not match impact")
+    if refreshed["holdout"] != set(impact["holdout_pairs"]):
+        raise ValueError("certification holdout coverage does not match impact")
+    if coverage.get("review") != "refreshed":
+        raise ValueError("certification requires a fresh review")
+    evidence_fields = {"review"}
+    if refreshed["corpus"]:
+        evidence_fields.add("corpus_summary")
+    if refreshed["holdout"]:
+        evidence_fields.update({"holdout_run", "holdout_summary"})
+    carries_prior = any(
+        disposition == "prior"
+        for label in ("corpus", "holdout")
+        for disposition in coverage[label].values()
+    )
+    return evidence_fields, carries_prior
 
 
 def _validate_case_identity(
@@ -629,7 +694,9 @@ def _validate_corpus_summary(
         for item in cases
         if isinstance(item, dict) and isinstance(item.get("id"), str)
     }
-    expected = set(snapshot["corpus"]["cases"])
+    expected = set(live_authority["impact"]["corpus_cases"])
+    if not expected:
+        raise ValueError("corpus certification evidence has no authorized scope")
     if set(by_id) != expected or len(by_id) != len(cases):
         raise ValueError("corpus certification evidence is incomplete")
     if payload.get("total") != len(expected) or payload.get("passed") != len(expected):
@@ -829,6 +896,8 @@ def _validate_certification_receipt(
     certification: Any,
     *,
     snapshot: dict[str, Any],
+    prior_evidence: dict[str, Any],
+    historical_cost: dict[str, Any],
     live_authority: dict[str, Any] | None,
     repo: Path | None,
 ) -> None:
@@ -869,35 +938,76 @@ def _validate_certification_receipt(
         snapshot,
         live_authority,
     )
+    if source["ledger"]["prior_evidence"] != prior_evidence:
+        raise ValueError("prior certified ledger digest or locator mismatch")
+    if source["ledger"]["historical_cost"] != historical_cost:
+        raise ValueError("certification source historical cost mismatch")
+    evidence_fields, carries_prior = _validate_coverage(
+        certification.get("coverage"),
+        snapshot=snapshot,
+        impact=live_authority["impact"],
+    )
+    source_pending = source["ledger"]["pending"]
+    if source_pending["review"] is not True:
+        raise ValueError("certification source must require a fresh review")
+    if carries_prior:
+        prior = _load_prior_certified_ledger(
+            repo,
+            source["ledger"]["prior_evidence"],
+            source_commit=source_commit,
+        )
+        try:
+            expected_impact = plan_impact(
+                prior["snapshot"],
+                snapshot,
+                pending=source_pending,
+            )
+        except (OSError, ValueError) as exc:
+            raise ValueError("invalid incremental certification impact") from exc
+        if expected_impact != live_authority["impact"]:
+            raise ValueError("incremental certification impact mismatch")
+    else:
+        try:
+            expected_impact = plan_impact(
+                snapshot,
+                snapshot,
+                pending=source_pending,
+            )
+        except (OSError, ValueError) as exc:
+            raise ValueError("invalid certification source pending impact") from exc
+        if expected_impact != live_authority["impact"]:
+            raise ValueError("certification source authority impact mismatch")
     evidence = certification.get("evidence")
-    if not isinstance(evidence, dict) or set(evidence) != EVIDENCE_FIELDS:
+    if not isinstance(evidence, dict) or set(evidence) != evidence_fields:
         raise ValueError("invalid certification evidence envelope")
     loaded: dict[str, dict[str, Any]] = {}
     evidence_sha: dict[str, str] = {}
-    for label in sorted(EVIDENCE_FIELDS):
+    for label in sorted(evidence_fields):
         loaded[label], evidence_sha[label] = _load_evidence(
             repo,
             evidence[label],
             label=label,
             source_commit=source_commit,
         )
-    _validate_corpus_summary(
-        loaded["corpus_summary"],
-        snapshot,
-        source,
-        live_authority,
-    )
-    pair_ids, public_package = _validate_holdout_run(
-        loaded["holdout_run"], snapshot, live_authority, source
-    )
-    _validate_holdout_summary(
-        loaded["holdout_summary"],
-        snapshot,
-        run_pair_ids=pair_ids,
-        run_sha256=evidence_sha["holdout_run"],
-        public_package=public_package,
-        source=source,
-    )
+    if "corpus_summary" in loaded:
+        _validate_corpus_summary(
+            loaded["corpus_summary"],
+            snapshot,
+            source,
+            live_authority,
+        )
+    if "holdout_run" in loaded:
+        pair_ids, public_package = _validate_holdout_run(
+            loaded["holdout_run"], snapshot, live_authority, source
+        )
+        _validate_holdout_summary(
+            loaded["holdout_summary"],
+            snapshot,
+            run_pair_ids=pair_ids,
+            run_sha256=evidence_sha["holdout_run"],
+            public_package=public_package,
+            source=source,
+        )
     if not loaded["review"]:
         raise ValueError("review certification evidence is empty")
 
@@ -966,6 +1076,8 @@ def validate_ledger(ledger: dict[str, Any], *, repo: Path | None = None) -> None
         _validate_certification_receipt(
             certification,
             snapshot=snapshot,
+            prior_evidence=prior,
+            historical_cost=ledger["historical_cost"],
             live_authority=live_authority,
             repo=repo,
         )
