@@ -7,6 +7,7 @@ import tempfile
 import unittest
 from unittest import mock
 
+from evaluation.core import ledger as ledger_engine
 from evaluation.core.identity import canonical_sha256
 from evaluation.corpus import engine as corpus_engine
 from evaluation.holdout import blind, compare
@@ -255,6 +256,20 @@ class HappyCodexHoldoutTests(unittest.TestCase):
             candidate.mkdir()
             public.mkdir()
             output.mkdir()
+            authorization = ledger_engine.AuthorizedInvocation(
+                seal=ledger_engine._AUTHORIZATION_SEAL,
+                descriptor={
+                    "command": "holdout",
+                    "pairs": sorted(
+                        pair["id"] for pair in holdout_engine.load_manifest()["pairs"]
+                    ),
+                    "model": "test-model",
+                    "effort": "high",
+                    "timeout_seconds": 10,
+                },
+                impact_token_value="a" * 64,
+                authority_sha256="b" * 64,
+            )
             with (
                 mock.patch.object(
                     holdout_engine,
@@ -279,8 +294,7 @@ class HappyCodexHoldoutTests(unittest.TestCase):
                         model="test-model",
                         effort="high",
                         timeout=10,
-                        impact_token="a" * 64,
-                        live_authority_sha256="b" * 64,
+                        authorization=authorization,
                     )
             run_pair.assert_not_called()
             self.assertEqual(list(output.iterdir()), [])

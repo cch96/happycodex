@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import json
 from pathlib import Path
+import pickle
 import shutil
 import subprocess
 import sys
@@ -120,7 +121,6 @@ def refreshed_coverage(snapshot: dict[str, object]) -> dict[str, object]:
     return {
         "corpus": {case_id: "refreshed" for case_id in snapshot["corpus"]["cases"]},
         "holdout": {pair_id: "refreshed" for pair_id in snapshot["holdout"]["pairs"]},
-        "review": "refreshed",
     }
 
 
@@ -577,13 +577,22 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
             mock.patch.object(
                 live, "load_state", return_value=(ledger, current, impact)
             ),
-            mock.patch.object(live.corpus_engine, "run_command", return_value=0),
+            mock.patch.object(
+                live.corpus_engine, "run_authorized", return_value=0
+            ) as runner,
         ):
             self.assertEqual(live.run_command(args, parser), 0)
+        authorization = runner.call_args.args[1]
+        self.assertIsInstance(authorization, ledger_engine.AuthorizedInvocation)
+        self.assertEqual(authorization.command, "corpus")
         self.assertEqual(
-            args.live_authority_sha256,
-            canonical_sha256(ledger["live_authority"]),
+            authorization.impact_token, ledger["live_authority"]["impact_token"]
         )
+        self.assertEqual(
+            authorization.authority_sha256, canonical_sha256(ledger["live_authority"])
+        )
+        with self.assertRaisesRegex(TypeError, "cannot be serialized"):
+            pickle.dumps(authorization)
 
     def test_leaf_runner_commands_reject_fabricated_live_bindings(self) -> None:
         parser = cli.build_parser()
@@ -607,6 +616,37 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
             ) as evaluator:
                 with self.assertRaisesRegex(SystemExit, "evaluation.cli"):
                     corpus_engine.run_command(corpus_args)
+            evaluator.assert_not_called()
+
+            ledger, current, impact = live.load_state()
+            authority = complete_live_authority(ledger, current, impact)
+            corpus_invocation = next(
+                item for item in authority["invocations"] if item["command"] == "corpus"
+            )
+            authorization = ledger_engine.require_authorized_invocation(
+                authority,
+                snapshot=current,
+                impact=impact,
+                invocation=corpus_invocation,
+            )
+            mismatched_plugin = Path(raw) / "mismatched-plugin"
+            mismatched_plugin.mkdir()
+            mismatched_args = parser.parse_args(
+                [
+                    "corpus",
+                    "--plugin",
+                    str(mismatched_plugin),
+                    "--output",
+                    str(Path(raw) / "mismatched-corpus"),
+                ]
+            )
+            with mock.patch.object(
+                corpus_engine,
+                "evaluate_case",
+                side_effect=AssertionError("corpus evaluator reached"),
+            ) as evaluator:
+                with self.assertRaisesRegex(SystemExit, "package"):
+                    corpus_engine.run_authorized(mismatched_args, authorization)
             evaluator.assert_not_called()
 
             holdout_args = parser.parse_args(
@@ -722,7 +762,6 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                     "corpus_summary",
                     "holdout_run",
                     "holdout_summary",
-                    "review",
                 )
             },
             "live_authority_sha256": canonical_sha256(authority),
@@ -775,7 +814,7 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                 "snapshot": snapshot,
                 "prior_evidence": {
                     "source_commit": unauthorized_source_commit,
-                    "source_path": "evaluation/results/current.json",
+                    "source_path": "evaluation/results/behavior-v21.json",
                     "sha256": "0" * 64,
                 },
                 "pending": pending,
@@ -1347,67 +1386,6 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                 path.write_bytes(encoded)
                 return sha256_bytes(encoded)
 
-            def review_receipt(
-                *,
-                baseline_commit: str,
-                reviewed_source_commit: str,
-                reviewed_source_tree: str,
-                reviewed_snapshot: dict[str, object],
-                reviewed_authority: dict[str, object],
-                reviewed_evidence: dict[str, str],
-            ) -> dict[str, object]:
-                diff_units = []
-                for line in git(
-                    "diff",
-                    "--name-status",
-                    "--no-renames",
-                    baseline_commit,
-                    reviewed_source_commit,
-                ).splitlines():
-                    status, path = line.split("\t", 1)
-                    diff_units.append({"status": status, "path": path})
-                inspected_paths = sorted(item["path"] for item in diff_units)
-                obligations = [
-                    {"id": "HC04-01", "text_sha256": "1" * 64},
-                    {"id": "HC04-27", "text_sha256": "2" * 64},
-                ]
-                queries = ["git diff --name-status", "python -m unittest"]
-                return {
-                    "schema_version": 1,
-                    "verdict": "GO",
-                    "review_task": "fresh-certification-test-review",
-                    "reviewer_session_sha256": "3" * 64,
-                    "configured_model": settings["model"],
-                    "effective_model": settings["model"],
-                    "effective_effort": settings["effort"],
-                    "permission_profile": {
-                        "source_write": False,
-                        "network": False,
-                        "temporary_write_only": True,
-                    },
-                    "baseline_commit": baseline_commit,
-                    "reviewed_source_commit": reviewed_source_commit,
-                    "reviewed_source_tree": reviewed_source_tree,
-                    "snapshot_sha256": canonical_sha256(reviewed_snapshot),
-                    "engine_manifest_sha256": reviewed_snapshot["engine"][
-                        "manifest_sha256"
-                    ],
-                    "live_authority_sha256": canonical_sha256(reviewed_authority),
-                    "evidence_sha256s": dict(sorted(reviewed_evidence.items())),
-                    "obligation_manifest_sha256": canonical_sha256(obligations),
-                    "obligation_count": len(obligations),
-                    "covered_obligation_count": len(obligations),
-                    "diff_manifest_sha256": canonical_sha256(diff_units),
-                    "diff_unit_count": len(diff_units),
-                    "covered_diff_unit_count": len(diff_units),
-                    "query_manifest_sha256": canonical_sha256(queries),
-                    "query_count": len(queries),
-                    "inspected_path_manifest_sha256": canonical_sha256(inspected_paths),
-                    "inspected_path_count": len(inspected_paths),
-                    "unresolved_material_findings": [],
-                    "limitations": [],
-                }
-
             evidence_sha = {
                 "corpus_summary": write_evidence("corpus_summary", corpus_summary),
                 "holdout_run": write_evidence("holdout_run", holdout_run),
@@ -1525,7 +1503,7 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
             )
 
             false_greens = (
-                ("nonzero-pass-exit", nonzero_exit, "did not pass"),
+                ("nonzero-pass-exit", nonzero_exit, "infrastructure"),
                 (
                     "runner-impossible-nested-receipt",
                     malformed_nested,
@@ -1534,7 +1512,7 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                 (
                     "timed-out-zero-exit",
                     timed_out_zero_exit,
-                    "timed out|timeout|did not pass",
+                    "infrastructure",
                 ),
                 (
                     "null-result-with-usage",
@@ -1558,57 +1536,6 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
 
             evidence_sha["holdout_summary"] = write_evidence(
                 "holdout_summary", holdout_summary
-            )
-            reviewed_evidence = dict(sorted(evidence_sha.items()))
-            review_payload = review_receipt(
-                baseline_commit=unauthorized_source_commit,
-                reviewed_source_commit=source_commit,
-                reviewed_source_tree=source_tree,
-                reviewed_snapshot=snapshot,
-                reviewed_authority=authority,
-                reviewed_evidence=reviewed_evidence,
-            )
-            ledger_engine._validate_review_receipt(
-                review_payload,
-                repo=repo,
-                source_commit=source_commit,
-                source_tree=source_tree,
-                snapshot=snapshot,
-                prior_evidence=ledger["prior_evidence"],
-                live_authority=authority,
-                evidence_sha256s=reviewed_evidence,
-            )
-            review_false_greens = []
-            for field, value in (
-                ("verdict", "NOT-YET"),
-                ("reviewed_source_commit", unauthorized_source_commit),
-                ("evidence_sha256s", {}),
-                ("covered_obligation_count", 0),
-                ("diff_manifest_sha256", "f" * 64),
-                ("unresolved_material_findings", ["P1"]),
-            ):
-                changed = copy.deepcopy(review_payload)
-                changed[field] = value
-                review_false_greens.append((field, changed))
-            for label, false_green in review_false_greens:
-                with self.subTest(review_false_green=label):
-                    with self.assertRaisesRegex(
-                        ValueError,
-                        "fresh review|review source|review product|review diff",
-                    ):
-                        ledger_engine._validate_review_receipt(
-                            false_green,
-                            repo=repo,
-                            source_commit=source_commit,
-                            source_tree=source_tree,
-                            snapshot=snapshot,
-                            prior_evidence=ledger["prior_evidence"],
-                            live_authority=authority,
-                            evidence_sha256s=reviewed_evidence,
-                        )
-            evidence_sha["review"] = write_evidence(
-                "review",
-                review_payload,
             )
             git("add", "evaluation/results/evidence")
             git("commit", "-qm", "evidence")
@@ -1646,25 +1573,6 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
             }
             validate_ledger(certified, repo=repo)
             self.assertEqual(build_snapshot(repo), snapshot)
-
-            minimal_review_sha = write_evidence(
-                "review", {"reviewed_source_commit": source_commit}
-            )
-            git("add", "evaluation/results/evidence/review.json")
-            git("commit", "-qm", "minimal review evidence")
-            minimal_review_commit = git("rev-parse", "HEAD")
-            minimal_review = copy.deepcopy(certified)
-            minimal_review["certification"]["evidence"]["review"] = {
-                "commit": minimal_review_commit,
-                "path": "evaluation/results/evidence/review.json",
-                "git_blob": git(
-                    "rev-parse",
-                    f"{minimal_review_commit}:evaluation/results/evidence/review.json",
-                ),
-                "sha256": minimal_review_sha,
-            }
-            with self.assertRaisesRegex(ValueError, "review"):
-                validate_ledger(minimal_review, repo=repo)
 
             late_authority = copy.deepcopy(certified)
             late_authority["certification"]["successor_source_commit"] = (
@@ -1796,18 +1704,6 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
             next_evidence_sha = {
                 "corpus_summary": write_evidence("corpus_summary", partial_summary),
             }
-            next_reviewed_evidence = dict(sorted(next_evidence_sha.items()))
-            next_evidence_sha["review"] = write_evidence(
-                "review",
-                review_receipt(
-                    baseline_commit=prior_commit,
-                    reviewed_source_commit=next_source_commit,
-                    reviewed_source_tree=next_source_tree,
-                    reviewed_snapshot=next_snapshot,
-                    reviewed_authority=next_authority,
-                    reviewed_evidence=next_reviewed_evidence,
-                ),
-            )
             git("add", "evaluation/results/evidence")
             git("commit", "-qm", "incremental evidence")
             next_evidence_commit = git("rev-parse", "HEAD")
@@ -1831,7 +1727,6 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                 "holdout": {
                     pair_id: "prior" for pair_id in next_snapshot["holdout"]["pairs"]
                 },
-                "review": "refreshed",
             }
             next_certified = copy.deepcopy(next_ledger)
             next_certified["state"] = "certified"

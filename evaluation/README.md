@@ -32,21 +32,21 @@ closed to the exact live gates; artifact-only changes require no model call.
 
 `results/current.json` is the only active ledger. Its `refresh_required` state cannot
 be promoted by offline checks. `certified` requires a Git-reachable successor whose
-normalized Git package artifact, engine manifest, and already-persisted live
-authority match the snapshot and source pending impact, plus strictly later
-content-addressed corpus, holdout, and strict fresh-review JSON evidence. The review
-receipt binds a `GO` verdict, reviewer session/profile and read-only permissions,
-exact baseline/source/tree, snapshot/engine/authority, non-review evidence digests,
-complete obligation/diff/query/path coverage counts, limitations, and zero unresolved
-material findings. The merged coverage manifest marks every current case and pair as
-refreshed or prior. Prior coverage requires a strictly older digest-bound 0.4
-certified ledger; validators revalidate that chain and recompute its snapshot-to-
-successor impact, so pending scope cannot authorize reuse by itself. Corpus and
-holdout run receipts bind the impact token and authority digest; validators also bind
-the exact source engine, cases, package/toolchain identities, adaptive policy, and
-cost gate. Impact and execution share the same complete corpus/holdout schema
-validation. Historical v1-v21 ledgers remain reachable in Git and have no active-tree
-reader, alias, migration, or compatibility path.
+normalized Git package artifact, engine manifest, and source pending impact match the
+snapshot, plus strictly later content-addressed corpus and holdout evidence for every
+refreshed item. Nonzero live scope also requires the exact authority to be persisted
+before that successor commit; zero-live artifact transitions require no authority.
+The coverage manifest marks every current case and pair as refreshed or prior. Prior
+coverage requires a strictly older digest-bound 0.4 certified ledger; validators
+revalidate that chain and recompute its snapshot-to-successor impact, so pending scope
+cannot authorize reuse by itself. Corpus and holdout run receipts bind the impact
+token and authority digest; validators also bind the exact source engine, cases,
+package/toolchain identities, adaptive policy, and cost gate. Impact and execution
+share the same complete corpus/holdout schema validation. Fresh Native review remains
+an external HappyCodex/ExecPlan completion gate over the exact product diff; the
+evaluator deliberately defines no reviewer protocol or review receipt. Historical
+v1-v21 ledgers remain reachable in Git and have no active-tree reader, alias,
+migration, or compatibility path.
 
 ## Offline and live commands
 
@@ -99,3 +99,7 @@ python3 -m evaluation.cli holdout \
 
 Raw events and identity-bearing metadata stay external. Only sanitized summaries,
 digests, fixed fixtures, and the explicit ledger state may be tracked.
+
+A holdout arm contributes quality evidence only after a completed, exit-zero runner
+execution whose pass status agrees with its oracle failures. A timeout or nonzero exit
+is infrastructure failure and aborts the pair; it is never scored as candidate quality.

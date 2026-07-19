@@ -100,6 +100,37 @@ MANDATORY_HOLDOUT_PAIRS = (
 )
 
 
+def historical_cost_provenance() -> dict[str, Any]:
+    return {
+        "baseline_commit": "2836d7363db364807a2ec384dc1b6c2cc13df95e",
+        "baseline_plan_path": "docs/execplans/happycodex-0-3-cleanroom.md",
+        "baseline_plan_blob": "a5b16c5edb54324ee0a7a2efb17a7d7fdef3f207",
+        "corpus_receipt_sha256": (
+            "89b9760e08752dc9600f600268d447364970b89cb16d253e7a098b01f76fb56c"
+        ),
+        "selected_corpus_receipts_sha256": (
+            "5159899e8c950885b5c210921ff5b4738b5d81b17293e41a7df8c6b0efb33616"
+        ),
+        "holdout_run_receipt_sha256": (
+            "bb2fa16edfd82c3da004d630bcdc87a098488ae483a1026b012ce117447fd580"
+        ),
+        "holdout_summary_sha256": (
+            "f301f23d0d841deaef538cf07d9fba36705ebb175a3a1e4f099bb68cfc91ea3d"
+        ),
+        "holdout_pair_receipt_sha256s": {
+            "authority-production-boundary": (
+                "18164c21533563b15bc483996e0f9a8db6c2080b7e3bf819dd2a003948395c82"
+            ),
+            "local-documentation-control": (
+                "27c1bcbf3566379b7c71255fadddcda5aa82509d3f01d15a170933a527de5f2c"
+            ),
+            "destructive-migration-fallback": (
+                "10b6cf8a40bdb9d1097d287d80a9c7106686f6b6c19458984366994833f2c3a2"
+            ),
+        },
+    }
+
+
 def historical_cost_receipt() -> dict[str, Any]:
     corpus_tokens = sum(tokens for tokens, _wall in CORPUS_COST.values())
     corpus_wall = round(sum(wall for _tokens, wall in CORPUS_COST.values()), 3)
@@ -116,6 +147,7 @@ def historical_cost_receipt() -> dict[str, Any]:
     )
     return {
         "basis": HISTORICAL_COST_BASIS,
+        "provenance": historical_cost_provenance(),
         "corpus": {
             "combined_tokens": corpus_tokens,
             "live_calls": corpus_calls,
@@ -407,6 +439,7 @@ def _cost(corpus_cases: set[str], holdout: bool) -> dict[str, Any]:
     maximum_wall = corpus_wall + sum(HOLDOUT_COST[pair][1] for pair in maximum_pairs)
     return {
         "basis": "0.3 v21 corpus and v23 holdout observed combined-token/wall receipts",
+        "provenance": historical_cost_provenance(),
         "combined_tokens": {
             "minimum": minimum_tokens,
             "maximum": maximum_tokens,
@@ -451,6 +484,12 @@ def validate_impact(impact: dict[str, Any], snapshot: dict[str, Any]) -> None:
             raise IdentityError(f"invalid impact scope: {field}")
     corpus_cases = set(impact["corpus_cases"])
     holdout_live = bool(impact["holdout_pairs"])
+    if holdout_live and set(impact["holdout_pairs"]) != set(
+        snapshot["holdout"]["pairs"]
+    ):
+        raise IdentityError(
+            "impact holdout scope must be the complete adaptive manifest"
+        )
     if bool(corpus_cases) != ("corpus" in gates):
         raise IdentityError("impact corpus gate does not match scope")
     if holdout_live != ("holdout" in gates):
@@ -594,7 +633,7 @@ def plan_impact(
             corpus_cases.update(pending_cases)
         if pending_pairs:
             gates.add("holdout")
-            holdout_pairs.update(pending_pairs)
+            holdout_pairs.update(all_pairs)
         if pending.get("review"):
             gates.add("review")
 

@@ -29,9 +29,10 @@ not Skill runtime and must never be linked from `skills/happycodex/SKILL.md`.
   refreshed or prior; prior coverage is valid only through a strictly older,
   digest-bound, fully validated 0.4 certified ledger whose snapshot-to-successor
   impact recomputes exactly. Corpus and holdout input schema validation must be shared
-  by impact planning and execution. Fresh-review evidence must itself bind `GO`, the
-  exact source/product/evidence scope, reviewer/profile/isolation disclosure, complete
-  obligation and diff coverage, limitations, and zero unresolved material blockers.
+  by impact planning and execution. Fresh Native review is an external
+  HappyCodex/ExecPlan administrative gate, not an evaluator schema or ledger receipt.
+  Its exact product scope excludes the sole mutable ExecPlan, and completion still
+  requires `GO` with zero unresolved material blockers.
 - Store raw model events outside the repository. Track only sanitized summaries,
   hashes, fixed fixtures, prompts, hidden oracles, and executable evaluation code.
 - Maintainer evaluation must prove native same-task compaction plus a distinct

@@ -2003,13 +2003,37 @@ def run_command(args: Any) -> int:
             json.dumps({"cases": selected, "coverage": sorted(REQUIRED_TAGS)}, indent=2)
         )
         return 0
-    if any(
-        not isinstance(getattr(args, field, None), str)
-        or not re.fullmatch(r"[0-9a-f]{64}", getattr(args, field))
-        for field in ("bind_impact", "live_authority_sha256")
+    raise SystemExit("live corpus execution is available only through evaluation.cli")
+
+
+def run_authorized(args: Any, authorization: Any) -> int:
+    from evaluation.core.ledger import AuthorizedInvocation
+
+    if not isinstance(authorization, AuthorizedInvocation):
+        raise SystemExit("live corpus execution requires a validated capability")
+    descriptor = authorization.descriptor()
+    if descriptor.get("command") != "corpus":
+        raise SystemExit("invalid corpus execution capability")
+    cases = load_cases()
+    selected = sorted(args.cases or list(cases))
+    if (
+        selected != descriptor.get("cases")
+        or args.model != descriptor.get("model")
+        or args.effort != descriptor.get("effort")
+        or args.timeout != descriptor.get("timeout_seconds")
+        or args.arm != descriptor.get("arm")
     ):
-        raise SystemExit("live certification binding is missing or invalid")
+        raise SystemExit("corpus execution does not match the validated capability")
     plugin = args.plugin.resolve()
+    try:
+        plugin_identity = package_identities(plugin)
+    except (OSError, ValueError) as exc:
+        raise SystemExit("invalid corpus package") from exc
+    if plugin_identity != {
+        "semantic_sha256": descriptor.get("package_semantic_sha256"),
+        "artifact_sha256": descriptor.get("package_artifact_sha256"),
+    }:
+        raise SystemExit("corpus package does not match the validated capability")
     try:
         output = resolve_output_path(args.output, plugin=plugin)
     except ValueError as exc:
@@ -2030,8 +2054,8 @@ def run_command(args: Any) -> int:
     summary = {
         "schema_version": 1,
         "engine_generation": "0.4",
-        "impact_token": args.bind_impact,
-        "live_authority_sha256": args.live_authority_sha256,
+        "impact_token": authorization.impact_token,
+        "live_authority_sha256": authorization.authority_sha256,
         "arm": args.arm,
         "model": args.model,
         "effort": args.effort,

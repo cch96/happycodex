@@ -206,16 +206,24 @@ def run_holdouts(
     model: str,
     effort: str,
     timeout: int,
-    impact_token: str,
-    live_authority_sha256: str,
+    authorization: Any,
 ) -> dict[str, Any]:
-    for field, value in (
-        ("impact_token", impact_token),
-        ("live_authority_sha256", live_authority_sha256),
-    ):
-        if not isinstance(value, str) or not re.fullmatch(r"[0-9a-f]{64}", value):
-            raise ValueError(f"invalid holdout {field}")
+    from evaluation.core.ledger import AuthorizedInvocation
+
+    if not isinstance(authorization, AuthorizedInvocation):
+        raise ValueError("live holdout execution requires a validated capability")
+    descriptor = authorization.descriptor()
+    if descriptor.get("command") != "holdout":
+        raise ValueError("invalid holdout execution capability")
     manifest = load_manifest()
+    pair_ids = [pair["id"] for pair in manifest["pairs"]]
+    if (
+        descriptor.get("pairs") != sorted(pair_ids)
+        or descriptor.get("model") != model
+        or descriptor.get("effort") != effort
+        or descriptor.get("timeout_seconds") != timeout
+    ):
+        raise ValueError("holdout execution does not match the validated capability")
     candidate_manifest = package_manifest_sha256(candidate)
     public_manifest = package_manifest_sha256(public)
     if public_manifest != corpus_engine.EXPECTED_PUBLIC_02_PACKAGE_MANIFEST_SHA256:
@@ -228,24 +236,36 @@ def run_holdouts(
         "candidate": candidate_manifest,
         "public-0.2": public_manifest,
     }
+    package_identity = {
+        "candidate": package_identities(candidate),
+        "public-0.2": package_identities(public),
+    }
+    if package_identity != {
+        "candidate": {
+            "semantic_sha256": descriptor.get("candidate_semantic_sha256"),
+            "artifact_sha256": descriptor.get("candidate_artifact_sha256"),
+        },
+        "public-0.2": {
+            "semantic_sha256": descriptor.get("public_semantic_sha256"),
+            "artifact_sha256": descriptor.get("public_artifact_sha256"),
+        },
+    }:
+        raise ValueError("holdout packages do not match the validated capability")
     run_receipt = {
         "schema_version": 1,
         "engine_generation": "0.4",
-        "impact_token": impact_token,
-        "live_authority_sha256": live_authority_sha256,
+        "impact_token": authorization.impact_token,
+        "live_authority_sha256": authorization.authority_sha256,
         "manifest_sha256": manifest["manifest_sha256"],
         "identities": {
             "engine": engine_inventory(ROOT),
-            "packages": {
-                "candidate": package_identities(candidate),
-                "public-0.2": package_identities(public),
-            },
+            "packages": package_identity,
             "toolchain": toolchain_identity(),
         },
         "model": model,
         "effort": effort,
         "timeout_seconds": timeout,
-        "pair_ids": [pair["id"] for pair in manifest["pairs"]],
+        "pair_ids": pair_ids,
         "case_sha256": {pair["id"]: pair["case_sha256"] for pair in manifest["pairs"]},
     }
     write_new_json(output / "00-run-receipt.json", run_receipt)
@@ -325,6 +345,14 @@ def run_command(args: Any) -> int:
             )
         )
         return 0
+    raise SystemExit("live holdout execution is available only through evaluation.cli")
+
+
+def run_authorized(args: Any, authorization: Any) -> int:
+    from evaluation.core.ledger import AuthorizedInvocation
+
+    if not isinstance(authorization, AuthorizedInvocation):
+        raise SystemExit("live holdout execution requires a validated capability")
     if args.public is None:
         raise SystemExit("--public is required for a live paired run")
     candidate = args.candidate.expanduser().resolve()
@@ -338,8 +366,7 @@ def run_command(args: Any) -> int:
             model=args.model,
             effort=args.effort,
             timeout=args.timeout,
-            impact_token=args.bind_impact,
-            live_authority_sha256=args.live_authority_sha256,
+            authorization=authorization,
         )
     except (OSError, RuntimeError, ValueError) as exc:
         raise SystemExit(str(exc)) from exc

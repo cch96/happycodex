@@ -4,7 +4,7 @@ import argparse
 from pathlib import Path
 from typing import Any
 
-from evaluation.core.identity import canonical_sha256, package_identities
+from evaluation.core.identity import package_identities
 from evaluation.core.impact import (
     build_snapshot,
     impact_token as snapshot_impact_token,
@@ -163,12 +163,12 @@ def holdout_invocation(
 
 
 def run_command(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
-    runner = {
+    offline_runner = {
         "corpus": corpus_engine.run_command,
         "holdout": holdout_engine.run_command,
     }[args.command]
     if args.list or args.dry_run:
-        return runner(args)
+        return offline_runner(args)
     try:
         ledger, current, impact = load_state()
         binding = impact_token(ledger, current, impact)
@@ -182,13 +182,16 @@ def run_command(args: argparse.Namespace, parser: argparse.ArgumentParser) -> in
             if args.command == "corpus"
             else holdout_invocation(args, current=current, impact=impact)
         )
-        require_authorized_invocation(
+        authorization = require_authorized_invocation(
             ledger["live_authority"],
             snapshot=current,
             impact=impact,
             invocation=invocation,
         )
-        args.live_authority_sha256 = canonical_sha256(ledger["live_authority"])
     except (OSError, RuntimeError, ValueError) as exc:
         parser.error(str(exc))
-    return runner(args)
+    live_runner = {
+        "corpus": corpus_engine.run_authorized,
+        "holdout": holdout_engine.run_authorized,
+    }[args.command]
+    return live_runner(args, authorization)

@@ -2,6 +2,20 @@
   "certification": null,
   "historical_cost": {
     "basis": "HappyCodex 0.3 v21 candidate corpus and v23 adaptive holdout receipts",
+    "provenance": {
+      "baseline_commit": "2836d7363db364807a2ec384dc1b6c2cc13df95e",
+      "baseline_plan_blob": "a5b16c5edb54324ee0a7a2efb17a7d7fdef3f207",
+      "baseline_plan_path": "docs/execplans/happycodex-0-3-cleanroom.md",
+      "corpus_receipt_sha256": "89b9760e08752dc9600f600268d447364970b89cb16d253e7a098b01f76fb56c",
+      "holdout_pair_receipt_sha256s": {
+        "authority-production-boundary": "18164c21533563b15bc483996e0f9a8db6c2080b7e3bf819dd2a003948395c82",
+        "destructive-migration-fallback": "10b6cf8a40bdb9d1097d287d80a9c7106686f6b6c19458984366994833f2c3a2",
+        "local-documentation-control": "27c1bcbf3566379b7c71255fadddcda5aa82509d3f01d15a170933a527de5f2c"
+      },
+      "holdout_run_receipt_sha256": "bb2fa16edfd82c3da004d630bcdc87a098488ae483a1026b012ce117447fd580",
+      "holdout_summary_sha256": "f301f23d0d841deaef538cf07d9fba36705ebb175a3a1e4f099bb68cfc91ea3d",
+      "selected_corpus_receipts_sha256": "5159899e8c950885b5c210921ff5b4738b5d81b17293e41a7df8c6b0efb33616"
+    },
     "corpus": {
       "combined_tokens": 498708,
       "live_calls": 16,
@@ -96,13 +110,13 @@
     "engine": {
       "categories": {
         "artifact": "8542b02d73e07d4f7ccfa58775969c22097eca157e151365632d71e92e6a07ea",
-        "harness": "b85069a218ab57b8337e43b3e895c8a40418216254ad33f355c52d5e262787aa",
+        "harness": "15de7035b0dc4810490099aaf53ca18e4a0fbe431de9206959103a55d7613ea1",
         "semantic": "8f73619db63d7d64b934a9e70c627756bda8ea39978dbb7a9d42d37f65e29477"
       },
-      "manifest_sha256": "3df4d26aa9df66a5ea9b472bddc7923c1d3f24a430adbd3c69fa744731bbaec8",
+      "manifest_sha256": "e9bc0470dfa4abeecbd9f8fe63aea2bd9cd54e1b9ef7aa5ffb78e925d868b0de",
       "scopes": {
-        "corpus_harness": "38494ec0bf05a391cdd5c18063e36d7be268254db370d5752987301c6e75487a",
-        "holdout_harness": "0ad1754b7881c28064832b4d984d556351fb8771d9c279a233bd1fd41eb7531b",
+        "corpus_harness": "ae11788c8c01f140b49faf5eea961124e7bec9a22b545a40882380268d9e7ba7",
+        "holdout_harness": "7793c77aa39205c01d7cc08f9b3708eb0d807ac017b633905f6c5506e948b80b",
         "holdout_semantic": "0da4c74d2f524d4511f39331b3754301638f5e23d0f097b38b61b94d102dae58"
       }
     },

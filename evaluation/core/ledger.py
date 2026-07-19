@@ -34,6 +34,7 @@ from evaluation.corpus.contract import (
     PUBLIC_02_PACKAGE_ARTIFACT_SHA256,
     RECOVERY_GATE_FIELDS,
 )
+from evaluation.holdout.blind import completed_quality
 from evaluation.holdout.compare import (
     adaptive_next,
     aggregate_quality,
@@ -95,42 +96,8 @@ CERTIFICATION_FIELDS = {
     "evidence",
     "live_authority_sha256",
 }
-COVERAGE_FIELDS = {"corpus", "holdout", "review"}
+COVERAGE_FIELDS = {"corpus", "holdout"}
 EVIDENCE_LOCATOR_FIELDS = {"commit", "path", "git_blob", "sha256"}
-REVIEW_RECEIPT_FIELDS = {
-    "schema_version",
-    "verdict",
-    "review_task",
-    "reviewer_session_sha256",
-    "configured_model",
-    "effective_model",
-    "effective_effort",
-    "permission_profile",
-    "baseline_commit",
-    "reviewed_source_commit",
-    "reviewed_source_tree",
-    "snapshot_sha256",
-    "engine_manifest_sha256",
-    "live_authority_sha256",
-    "evidence_sha256s",
-    "obligation_manifest_sha256",
-    "obligation_count",
-    "covered_obligation_count",
-    "diff_manifest_sha256",
-    "diff_unit_count",
-    "covered_diff_unit_count",
-    "query_manifest_sha256",
-    "query_count",
-    "inspected_path_manifest_sha256",
-    "inspected_path_count",
-    "unresolved_material_findings",
-    "limitations",
-}
-REVIEW_PERMISSION_FIELDS = {
-    "source_write",
-    "network",
-    "temporary_write_only",
-}
 CORPUS_SUMMARY_FIELDS = {
     "schema_version",
     "engine_generation",
@@ -217,6 +184,41 @@ HOLDOUT_SUMMARY_FIELDS = {
     "pair_receipts",
     "cost_gate",
 }
+
+
+_AUTHORIZATION_SEAL = object()
+
+
+class AuthorizedInvocation:
+    """In-process capability minted only after persisted authority validation."""
+
+    __slots__ = ("_descriptor", "authority_sha256", "impact_token")
+
+    def __init__(
+        self,
+        *,
+        seal: object,
+        descriptor: dict[str, Any],
+        impact_token_value: str,
+        authority_sha256: str,
+    ) -> None:
+        if seal is not _AUTHORIZATION_SEAL:
+            raise TypeError("authorized invocation capabilities are validator-minted")
+        self._descriptor = json.loads(json.dumps(descriptor))
+        self.impact_token = impact_token_value
+        self.authority_sha256 = authority_sha256
+
+    @property
+    def command(self) -> str:
+        return self._descriptor["command"]
+
+    def descriptor(self) -> dict[str, Any]:
+        return json.loads(json.dumps(self._descriptor))
+
+    def __reduce__(self) -> Any:
+        raise TypeError("authorized invocation capabilities cannot be serialized")
+
+
 INSTALLATION_RECEIPT_FIELDS = {
     "source_skill_sha256",
     "installed_skill_sha256",
@@ -509,7 +511,7 @@ def require_authorized_invocation(
     snapshot: dict[str, Any],
     impact: dict[str, Any],
     invocation: dict[str, Any],
-) -> None:
+) -> AuthorizedInvocation:
     validate_live_authority(authority, snapshot=snapshot)
     validate_impact(impact, snapshot)
     if authority["impact"] != impact:
@@ -519,6 +521,12 @@ def require_authorized_invocation(
     authorized = {canonical_sha256(item) for item in authority["invocations"]}
     if requested not in authorized:
         raise ValueError("invocation is not authorized")
+    return AuthorizedInvocation(
+        seal=_AUTHORIZATION_SEAL,
+        descriptor=invocation,
+        impact_token_value=authority["impact_token"],
+        authority_sha256=canonical_sha256(authority),
+    )
 
 
 def _run_git(repo: Path, *args: str) -> subprocess.CompletedProcess[bytes]:
@@ -566,7 +574,7 @@ def _validate_source_identity(
     repo: Path,
     commit: str,
     snapshot: dict[str, Any],
-    live_authority: dict[str, Any],
+    live_authority: dict[str, Any] | None,
 ) -> dict[str, Any]:
     archive = _run_git(repo, "archive", "--format=tar", commit)
     if archive.returncode:
@@ -750,150 +758,6 @@ def _load_evidence(
     return payload, actual_sha256
 
 
-def _review_diff_receipt(
-    repo: Path,
-    *,
-    baseline_commit: str,
-    source_commit: str,
-) -> dict[str, Any]:
-    completed = _run_git(
-        repo,
-        "diff",
-        "--name-status",
-        "--no-renames",
-        baseline_commit,
-        source_commit,
-    )
-    if completed.returncode:
-        raise ValueError("cannot reconstruct review diff inventory")
-    try:
-        lines = completed.stdout.decode().splitlines()
-    except UnicodeDecodeError as exc:
-        raise ValueError("invalid review diff inventory encoding") from exc
-    units: list[dict[str, str]] = []
-    for line in lines:
-        try:
-            status, path = line.split("\t", 1)
-        except ValueError as exc:
-            raise ValueError("invalid review diff inventory") from exc
-        relative = PurePosixPath(path)
-        if (
-            status not in {"A", "M", "D", "T", "U", "X", "B"}
-            or relative.is_absolute()
-            or ".." in relative.parts
-            or not relative.parts
-        ):
-            raise ValueError("invalid review diff unit")
-        units.append({"status": status, "path": path})
-    paths = sorted(unit["path"] for unit in units)
-    return {
-        "diff_manifest_sha256": canonical_sha256(units),
-        "diff_unit_count": len(units),
-        "inspected_path_manifest_sha256": canonical_sha256(paths),
-        "inspected_path_count": len(paths),
-    }
-
-
-def _validate_review_receipt(
-    value: Any,
-    *,
-    repo: Path,
-    source_commit: str,
-    source_tree: str,
-    snapshot: dict[str, Any],
-    prior_evidence: dict[str, Any],
-    live_authority: dict[str, Any],
-    evidence_sha256s: dict[str, str],
-) -> None:
-    if not isinstance(value, dict) or set(value) != REVIEW_RECEIPT_FIELDS:
-        raise ValueError("invalid fresh review evidence envelope")
-    if value.get("schema_version") != 1 or value.get("verdict") != "GO":
-        raise ValueError("fresh review evidence does not record a GO verdict")
-    for field in (
-        "review_task",
-        "configured_model",
-        "effective_model",
-        "effective_effort",
-    ):
-        item = value.get(field)
-        if not isinstance(item, str) or not item or len(item) > 512:
-            raise ValueError(f"invalid fresh review field: {field}")
-    _require_digest(
-        value.get("reviewer_session_sha256"),
-        length=64,
-        label="fresh review session",
-    )
-    permission = value.get("permission_profile")
-    if (
-        not isinstance(permission, dict)
-        or set(permission) != REVIEW_PERMISSION_FIELDS
-        or permission
-        != {
-            "source_write": False,
-            "network": False,
-            "temporary_write_only": True,
-        }
-    ):
-        raise ValueError("fresh review was not isolated and read-only")
-    baseline_commit = prior_evidence.get("source_commit")
-    if value.get("baseline_commit") != baseline_commit:
-        raise ValueError("fresh review baseline mismatch")
-    _require_reachable_commit(repo, baseline_commit, label="fresh review baseline")
-    if _run_git(
-        repo,
-        "merge-base",
-        "--is-ancestor",
-        baseline_commit,
-        source_commit,
-    ).returncode:
-        raise ValueError("fresh review baseline does not predate source")
-    if (
-        value.get("reviewed_source_commit") != source_commit
-        or value.get("reviewed_source_tree") != source_tree
-    ):
-        raise ValueError("fresh review source mismatch")
-    if (
-        value.get("snapshot_sha256") != canonical_sha256(snapshot)
-        or value.get("engine_manifest_sha256") != snapshot["engine"]["manifest_sha256"]
-        or value.get("live_authority_sha256") != canonical_sha256(live_authority)
-    ):
-        raise ValueError("fresh review product identity mismatch")
-    if value.get("evidence_sha256s") != dict(sorted(evidence_sha256s.items())):
-        raise ValueError("fresh review evidence scope mismatch")
-    for field in (
-        "obligation_manifest_sha256",
-        "query_manifest_sha256",
-    ):
-        _require_digest(value.get(field), length=64, label=f"fresh review {field}")
-    for count, covered in (
-        ("obligation_count", "covered_obligation_count"),
-        ("diff_unit_count", "covered_diff_unit_count"),
-    ):
-        if (
-            not _nonnegative_int(value.get(count))
-            or value[count] < 1
-            or value.get(covered) != value[count]
-        ):
-            raise ValueError("fresh review coverage is incomplete")
-    if not _nonnegative_int(value.get("query_count")) or value["query_count"] < 1:
-        raise ValueError("fresh review query inventory is empty")
-    expected_diff = _review_diff_receipt(
-        repo,
-        baseline_commit=baseline_commit,
-        source_commit=source_commit,
-    )
-    for field, expected in expected_diff.items():
-        if value.get(field) != expected:
-            raise ValueError("fresh review diff inventory mismatch")
-    if value.get("unresolved_material_findings") != []:
-        raise ValueError("fresh review has unresolved material findings")
-    limitations = value.get("limitations")
-    if not isinstance(limitations, list) or not all(
-        isinstance(item, str) and item and len(item) <= 2_000 for item in limitations
-    ):
-        raise ValueError("invalid fresh review limitations")
-
-
 def _load_prior_certified_ledger(
     repo: Path,
     prior: dict[str, Any],
@@ -952,9 +816,7 @@ def _validate_coverage(
         raise ValueError("certification corpus coverage does not match impact")
     if refreshed["holdout"] != set(impact["holdout_pairs"]):
         raise ValueError("certification holdout coverage does not match impact")
-    if coverage.get("review") != "refreshed":
-        raise ValueError("certification requires a fresh review")
-    evidence_fields = {"review"}
+    evidence_fields: set[str] = set()
     if refreshed["corpus"]:
         evidence_fields.add("corpus_summary")
     if refreshed["holdout"]:
@@ -1542,10 +1404,7 @@ def _validate_case_identity(
     timed_out = receipt.get("timed_out")
     if (
         not isinstance(passed, bool)
-        or passed is not expected_passed
         or not isinstance(timed_out, bool)
-        or timed_out
-        or receipt.get("exit_code") != 0
         or receipt.get("model") != settings["model"]
         or receipt.get("effort") != settings["effort"]
         or receipt.get("timeout_seconds") != settings["timeout_seconds"]
@@ -1595,6 +1454,14 @@ def _validate_case_identity(
         _require_digest(
             failures.get("sha256"), length=64, label="failed-arm oracle failures"
         )
+    quality = completed_quality(
+        passed=passed,
+        timed_out=timed_out,
+        exit_code=receipt.get("exit_code"),
+        oracle_failures_count=failures["count"],
+    )
+    if (quality == "pass") is not expected_passed:
+        raise ValueError(f"corpus evidence case outcome mismatch: {case_id}")
     elapsed = receipt.get("elapsed_seconds")
     uncached = receipt.get("uncached_input_tokens")
     usage = receipt.get("usage")
@@ -1982,11 +1849,10 @@ def _validate_certification_receipt(
         != snapshot["engine"]["manifest_sha256"]
     ):
         raise ValueError("certification receipt engine manifest mismatch")
-    if live_authority is None:
-        raise ValueError("certification receipt requires live authority")
-    validate_live_authority(live_authority, snapshot=snapshot)
     if certification.get("live_authority_sha256") != canonical_sha256(live_authority):
         raise ValueError("certification receipt authority mismatch")
+    if live_authority is not None:
+        validate_live_authority(live_authority, snapshot=snapshot)
     if repo is None or not (repo / ".git").exists():
         raise ValueError("reachable certification evidence requires a Git repository")
     repo = repo.resolve()
@@ -2008,15 +1874,14 @@ def _validate_certification_receipt(
         raise ValueError("prior certified ledger digest or locator mismatch")
     if source["ledger"]["historical_cost"] != historical_cost:
         raise ValueError("certification source historical cost mismatch")
-    evidence_fields, carries_prior = _validate_coverage(
-        certification.get("coverage"),
-        snapshot=snapshot,
-        impact=live_authority["impact"],
-    )
     source_pending = source["ledger"]["pending"]
     if source_pending["review"] is not True:
-        raise ValueError("certification source must require a fresh review")
-    if carries_prior:
+        raise ValueError("certification source must retain the external review gate")
+    incremental = (
+        source["ledger"]["prior_evidence"].get("source_path")
+        == "evaluation/results/current.json"
+    )
+    if incremental:
         prior = _load_prior_certified_ledger(
             repo,
             source["ledger"]["prior_evidence"],
@@ -2030,8 +1895,6 @@ def _validate_certification_receipt(
             )
         except (OSError, ValueError) as exc:
             raise ValueError("invalid incremental certification impact") from exc
-        if expected_impact != live_authority["impact"]:
-            raise ValueError("incremental certification impact mismatch")
     else:
         try:
             expected_impact = plan_impact(
@@ -2041,8 +1904,21 @@ def _validate_certification_receipt(
             )
         except (OSError, ValueError) as exc:
             raise ValueError("invalid certification source pending impact") from exc
+    live_required = expected_impact["live_calls"]["maximum"] > 0
+    if live_required:
+        if live_authority is None:
+            raise ValueError("nonzero certification impact requires live authority")
         if expected_impact != live_authority["impact"]:
             raise ValueError("certification source authority impact mismatch")
+    elif live_authority is not None:
+        raise ValueError("zero-live certification must not carry live authority")
+    evidence_fields, carries_prior = _validate_coverage(
+        certification.get("coverage"),
+        snapshot=snapshot,
+        impact=expected_impact,
+    )
+    if carries_prior and not incremental:
+        raise ValueError("certification prior coverage does not match source lineage")
     evidence = certification.get("evidence")
     if not isinstance(evidence, dict) or set(evidence) != evidence_fields:
         raise ValueError("invalid certification evidence envelope")
@@ -2056,6 +1932,8 @@ def _validate_certification_receipt(
             source_commit=source_commit,
         )
     if "corpus_summary" in loaded:
+        if live_authority is None:
+            raise AssertionError("corpus evidence cannot exist without live authority")
         _validate_corpus_summary(
             loaded["corpus_summary"],
             snapshot,
@@ -2063,6 +1941,8 @@ def _validate_certification_receipt(
             live_authority,
         )
     if "holdout_run" in loaded:
+        if live_authority is None:
+            raise AssertionError("holdout evidence cannot exist without live authority")
         pair_ids, public_package = _validate_holdout_run(
             loaded["holdout_run"], snapshot, live_authority, source
         )
@@ -2074,18 +1954,6 @@ def _validate_certification_receipt(
             public_package=public_package,
             source=source,
         )
-    _validate_review_receipt(
-        loaded["review"],
-        repo=repo,
-        source_commit=source_commit,
-        source_tree=tree.stdout.decode().strip(),
-        snapshot=snapshot,
-        prior_evidence=prior_evidence,
-        live_authority=live_authority,
-        evidence_sha256s={
-            label: digest for label, digest in evidence_sha.items() if label != "review"
-        },
-    )
 
 
 def validate_ledger(ledger: dict[str, Any], *, repo: Path | None = None) -> None:

@@ -24,6 +24,29 @@ BLIND_FIELDS = frozenset(
 )
 
 
+def completed_quality(
+    *, passed: Any, timed_out: Any, exit_code: Any, oracle_failures_count: Any
+) -> str:
+    if not isinstance(passed, bool) or not isinstance(timed_out, bool):
+        raise ValueError("invalid execution status")
+    if not isinstance(exit_code, int) or isinstance(exit_code, bool):
+        raise ValueError("invalid execution exit code")
+    if (
+        not isinstance(oracle_failures_count, int)
+        or isinstance(oracle_failures_count, bool)
+        or oracle_failures_count < 0
+    ):
+        raise ValueError("invalid oracle failure count")
+    if timed_out or exit_code != 0:
+        raise ValueError(
+            "quality evidence requires a completed execution without infrastructure "
+            "failure"
+        )
+    if passed is not (oracle_failures_count == 0):
+        raise ValueError("pass status does not match oracle failures")
+    return "pass" if passed else "fail"
+
+
 def blind_view(metadata: dict[str, Any]) -> dict[str, Any]:
     failures = metadata.get("oracle_failures")
     usage = metadata.get("usage")
@@ -65,6 +88,12 @@ def validate_blind_view(view: dict[str, Any]) -> None:
         or elapsed < 0
     ):
         raise ValueError("invalid blind receipt elapsed time")
+    completed_quality(
+        passed=view["passed"],
+        timed_out=view["timed_out"],
+        exit_code=view["exit_code"],
+        oracle_failures_count=view["oracle_failures_count"],
+    )
 
 
 def freeze_blind_decision(views: dict[str, dict[str, Any]]) -> dict[str, Any]:
@@ -74,17 +103,16 @@ def freeze_blind_decision(views: dict[str, dict[str, Any]]) -> dict[str, Any]:
     for alias in ALIASES:
         view = views[alias]
         validate_blind_view(view)
-        passed = (
-            view["passed"]
-            and not view["timed_out"]
-            and view["exit_code"] == 0
-            and view["oracle_failures_count"] == 0
-        )
         aliases.append(
             {
                 "alias": alias,
                 "blind_view_sha256": canonical_sha256(view),
-                "quality": "pass" if passed else "fail",
+                "quality": completed_quality(
+                    passed=view["passed"],
+                    timed_out=view["timed_out"],
+                    exit_code=view["exit_code"],
+                    oracle_failures_count=view["oracle_failures_count"],
+                ),
                 "metrics": {
                     "uncached_input_tokens": view["uncached_input_tokens"],
                     "output_tokens": view["output_tokens"],
