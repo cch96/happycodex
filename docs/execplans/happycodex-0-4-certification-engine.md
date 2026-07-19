@@ -3,7 +3,7 @@
 Protocol: `HappyCodex/0.3`
 Invocation: `$happycodex:happycodex`
 Writer: Root only
-State: offline-green; ninth fresh exact review pending
+State: ninth fresh review NOT-YET; bounded terminal-evidence repair pending
 Resume: read this entire ExecPlan and reconcile Goal, Native Plan, Git, tests,
 receipts, worktrees, and agents before any write, review, or completion claim.
 
@@ -80,15 +80,15 @@ explicit user cost decision before launch.
 | ID | Type | Claim | Closure / falsifier | State |
 | --- | --- | --- | --- | --- |
 | O-01 | outcome | A modular pure-standard-library certification engine replaces the monolithic internal evaluator without legacy internal compatibility. | Module/CLI inventory plus tests; legacy reader or dual-write path falsifies. | verified offline |
-| O-02 | outcome | Canonical receipts separate semantic input, harness implementation, and derived artifact identities. | Deterministic hash tests and mutation counterexamples. | verified offline |
-| O-03 | outcome | A read-only impact command reports exact invalidated gates, reasons, and live-run count/cost before execution. | Table-driven dependency tests; an unclassified material input change falsifies. | verified offline at 20-to-22 calls; live execution unapproved |
+| O-02 | outcome | Canonical receipts separate semantic input, harness implementation, and derived artifact identities. | Deterministic hash tests and mutation counterexamples. | terminal append/review receipt repair pending |
+| O-03 | outcome | A read-only impact command reports exact invalidated gates, reasons, and live-run count/cost before execution. | Table-driven dependency tests; an unclassified material input change falsifies. | exact 20-to-22 calculation verified; persisted cost/approval strictness repair pending |
 | O-04 | outcome | Historical behavior v1-v20 files and version-specific compatibility tests leave the active tree while remaining reachable in Git history. | Final path inventory and ancestry proof. | verified |
 | O-05 | preservation | Installed Skill behavior, plugin identity, public install commands, and `$happycodex:happycodex` invocation remain stable except the intentional 0.4 version/change note. | Exact runtime diff and contract tests. | verified; no version edit in phase one |
 | O-06 | outcome | Maintainer policy describes current public 0.3 baseline, the 0.4 gate model, and this task's explicit Fable exclusion correctly. | Policy review and tests. | verified |
-| O-07 | outcome | Offline suite, official Skill/plugin validators, dry-runs, diff hygiene, and final fresh native review close with no unresolved blocker. | Exact command receipts and review coverage. | offline matrix green; ninth fresh review pending |
+| O-07 | outcome | Offline suite, official Skill/plugin validators, dry-runs, diff hygiene, and final fresh native review close with no unresolved blocker. | Exact command receipts and review coverage. | offline matrix green on e158870; ninth review NOT-YET |
 | O-08 | preservation | No Fable invocation, controller, hook, daemon, scheduler, MCP/app runtime, or authoritative Task State JSON is added or run. | Tree/command inventory. | verified |
 | O-09 | outcome | Every transitive evaluator module/schema is classified into and bound by a canonical semantic, harness, or artifact manifest. | Module inventory and mutation tests; any executable unclassified file falsifies. | verified offline |
-| O-10 | outcome | The evidence ledger has one new-schema `current.json`, explicitly records `refresh_required`, and cannot claim certification without a live successor receipt. | State-machine tests and final ledger inspection. | verified offline; approved live successor still pending |
+| O-10 | outcome | The evidence ledger has one new-schema `current.json`, explicitly records `refresh_required`, and cannot claim certification without a live successor receipt. | State-machine tests and final ledger inspection. | current refresh state verified; terminal evidence strictness repair pending |
 | O-11 | preservation | Phase-one changes do not alter `.agents`, `.codex-plugin`, `README.md`, or `skills`; therefore the full shipped-package manifest remains `0c83dbc694cb98bf811dd2d1c199b5d2aa734c484476a638884e775289c1d934`. | Exact package-manifest check and Git diff. | verified |
 | B-01 | allowed-break | Internal evaluator imports, CLI syntax, receipt/result schema, and historical result paths have no backward-compatibility obligation. | Any compatibility shim must be removed or separately authorized. | exercised |
 | B-02 | allowed-break | Internal raw filenames, output-directory layout, write-once ordering, stdout payloads, and exit codes may change to the new CLI contract. | New CLI integration tests are authoritative; preserving an old path is not a requirement. | exercised |
@@ -983,6 +983,70 @@ narrative, Root conversation, or candidate evidence, and ran no validation or
 prohibited action. Detailed obligation text remains in the durable terminal record
 for `/root/cert_engine_producer_final_review`.
 
+## Ninth fresh review and terminal-evidence NOT-YET
+
+The same uncontaminated reviewer then audited exact product
+`e15887042d4a1df271abf46ab97d6bef5da7426f` and administrative head
+`595cc7d7a76e263be9728a24ca9f41fb5e79ddb1`. It verified product tree
+`85b0c8a1e9136ee5e89a49cee9bb205828e2655c`, administrative tree
+`438eb1014d6e706f23da294d39e394fd3b521854`, the sole excluded ExecPlan
+delta, and the 49-entry product projection
+`c10fcdff74c60c3cdc43dffa4e96cf0e59187c056a3398659ef4ab44972c8866`.
+Its first terminal rendering was platform-filtered after the audit completed; the
+same reviewer session reissued the unchanged conclusion without rerunning or adding
+analysis. Verdict: `NOT-YET` with four P1 terminal-evidence findings:
+
+1. A live-authority response is content-addressed but need only be nonempty, so an
+   explicit rejection of the exact request still grants authority.
+2. Impact cost is derived exactly, but the ledger accepts any dictionary as its
+   persisted historical-cost receipt, including the empty object used by the
+   certification fixtures.
+3. Native compaction binds one rollout path, changed whole-file hashes, and an event-
+   type prefix, but carries no prior byte length or after-prefix digest. A rewrite is
+   therefore indistinguishable from an append at terminal validation.
+4. Fresh-review evidence is reachable and content-addressed but otherwise only
+   required to be nonempty. A payload without verdict, exact reviewed source/scope,
+   reviewer receipt, obligation coverage, or blocker state certifies.
+
+The reviewer independently reconciled 16 corpus plus four-to-six holdout model calls
+to the exact 20-to-22 range and the persisted 585,209-to-637,027 token and
+2,911.874-to-3,187.085 second estimates. It passed the offline unit/validator/Ruff/
+CLI/JSON/diff matrix and package, public, legacy-retirement, projection, identity,
+authority-null, and preservation checks. It found no authentic-producer over-strict
+rejection, no separate material producer race, and no excluded or external action.
+The runtime exposed the configured evaluation target `gpt-5.6-sol`/`high` but no
+separately attestable effective reviewer model/effort; this is disclosed, not
+substituted.
+
+Root reproduced the union before product edits. A digest-correct response stating an
+explicit rejection passes `validate_live_authority`; replacing the current exact
+historical-cost receipt with `{}` passes `validate_ledger`; the complete reachable-
+certification test passes with review evidence containing only
+`reviewed_source_commit`; and the sanitizer/validator source contains no byte-length
+or prefix-digest material from which append consistency could be proven. These are
+accepted false greens, not requests for broader architecture.
+
+The minimum repair is terminal-evidence only: require a canonical affirmative
+response derived from the exact approval request; validate the persisted cost
+envelope exactly; add privacy-safe rollout byte-length/prefix proof to the native
+receipt; and require a small strict fresh-review receipt binding a `GO` verdict,
+exact reviewed source/product scope, reviewer/session/effective-profile disclosure,
+the frozen obligation manifest and diff inventory, limitations, and zero unresolved
+material blockers. The append receipt adds audit metadata inside the clean-break
+internal runner schema but changes no model call, prompt, fixture, oracle, permission,
+comparison, adaptive, Skill, manifest, or shipped Runtime behavior. The review
+receipt is evidence schema, not a controller or general reviewer orchestration
+protocol.
+
+Invalidated evidence is limited to engine/snapshot/ledger/impact identities, native
+receipt and certification tests, the current ninth review, and downstream offline
+identity receipts. There is no current live authority, corpus successor, holdout,
+install, or release receipt to invalidate. Required rerun cost is the focused RED/
+GREEN, cumulative 115-test-class suite, official validators, Ruff, verify/impact,
+dry-runs, JSON/diff/package/public checks, and one new exact fresh review. Expected
+model cost remains zero; the pending live approval scope remains 20 to 22 calls and
+is not authorized or run.
+
 ## Validation envelope
 
 Candidate offline commands, exact live-run costs, required reruns, and review launch
@@ -992,21 +1056,22 @@ publication requires a later explicit user request.
 
 ## Checkpoint
 
-- Milestone: every eighth-review producer-binding finding is repaired and the exact
-  offline envelope is green; the ninth fresh exact review remains open.
+- Milestone: the ninth fresh review returned NOT-YET; four bounded terminal-evidence
+  false greens are reproduced and await RED/GREEN repair.
 - Goal: active `019f780e-925e-7193-8bd2-0a04d6efe31e`; its objective is the
   Normalized Outcome plus all frozen preservation, exclusion, offline validation, and
   live-cost gates in this document.
 - RED/GREEN: all architecture, eight review rounds, every prior probe, the exact
   nine-failure RED, and its 31/31 plus 115/115 GREEN are persisted above.
-- Next: freeze the repair commit, reproduce it in a clean detached clone, and launch
-  a ninth fresh exact review. A green review stops at the explicit corrected 20-to-22
-  call maximum-cost user decision before authority or live calls.
+- Next: add the four exact REDs, apply the smallest terminal-evidence repair, rerun
+  the offline envelope, and launch a tenth fresh exact review. A green review stops
+  at the explicit corrected 20-to-22 call maximum-cost user decision before
+  authority or live calls.
 - Product/support writes: support-only paths remain open; shipped-package paths remain
   closed.
 - Owned paths: `evaluation/`, `tests/`, `AGENTS.md`, and this ExecPlan; shipped-package
   paths remain closed.
-- Missing facts: ninth-review terminal receipt, explicit user cost decision, and live
+- Missing facts: tenth-review terminal receipt, explicit user cost decision, and live
   successor receipts.
 
 ## Retrospective
