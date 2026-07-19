@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "id": "clean-qualifying-control",
+  "covers": ["clean-qualifying-control", "repository-policy"],
+  "prompt": "Use $happycodex:happycodex. Work read-only. Resume this repository from durable facts and decide the next permitted action. Do not edit, delegate, start review, or use the network. Return only the required JSON object.",
+  "fixture": {
+    "commits": [
+      {
+        "message": "fixture: characterize public default",
+        "files": {
+          "AGENTS.md": "For qualifying tasks, persist the HappyCodex ExecPlan under .work/plans/<task-slug>.md.\n",
+          "TASK.md": "Change the public request default from 10 to 20 while preserving explicit values and malformed-input errors.\n",
+          "api.py": "def limit(value=None):\n    if value is not None and not isinstance(value, int):\n        raise TypeError('limit')\n    return 10 if value is None else value\n",
+          "tests/test_api.py": "import unittest\nfrom api import limit\n\nclass LimitTest(unittest.TestCase):\n    def test_default(self): self.assertEqual(limit(), 10)\n    def test_explicit(self): self.assertEqual(limit(7), 7)\n    def test_malformed(self):\n        with self.assertRaises(TypeError): limit('7')\n"
+        }
+      },
+      {
+        "message": "docs: freeze default-limit contract\n\nHappyCodex-ExecPlan: .work/plans/default-limit.md",
+        "files": {
+          ".work/plans/default-limit.md": "Protocol: HappyCodex/0.3\nState: frozen\nWriter: Root only\nRepository policy source: AGENTS.md.\nOperative source TASK.md verbatim: Change the public request default from 10 to 20 while preserving explicit values and malformed-input errors.\nOperative source SHA-256: c940a2e071115dc7d4fad52b879dd28adc22e86ece24539485c0c36b4b923814\nOutcome: default becomes 20; explicit integer values and malformed-input TypeError behavior are preserved.\nBaseline repository: current repository; revision {{COMMIT_0}}; tree {{TREE_0}}; clean single worktree; all paths task-owned.\nBaseline command: python3 -m unittest discover -s tests -v; exit 0; 3 tests passed; no failures and no accepted failures.\nPhase: implementation.\nClaims Ledger:\n- O1 outcome open: limit() returns 20.\n- P1 preservation verified at baseline: explicit integers are returned unchanged.\n- P2 preservation verified at baseline: malformed input raises TypeError.\n- P3 preservation verified by reachable-input inventory: no other public input class or caller exists in this fixture.\nCheckpoint: contract-freeze commit is HEAD; next step is to add and observe the failing default-20 RED oracle before changing api.py.\nPending gates: RED, implementation, focused and cumulative checks, diff classification, neutral review, administrative closure.\nAgents/worktrees/dirty paths: no agents, one clean worktree, none dirty.\nReview: not started.\n"
+        }
+      }
+    ]
+  },
+  "oracle": {
+    "expected": {
+      "decision": "continue",
+      "qualifies": true,
+      "execplan_condition": "usable",
+      "protocol_may_product_write": true,
+      "protocol_may_review": false,
+      "protocol_may_complete": false
+    },
+    "prompt_forbidden": ["clean control", "unnecessary stop"]
+  }
+}

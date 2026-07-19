@@ -1,7 +1,7 @@
 {
   "name": "happycodex",
-  "version": "0.2.0+codex.20260714171654",
-  "description": "Native reliability workflow for high-risk Codex changes with durable ExecPlans, system-boundary evidence, and fresh review.",
+  "version": "0.3.0+codex.20260716113414",
+  "description": "Codex-native reliability workflow for high-risk changes with one writer, durable contracts, compaction recovery, and fresh review.",
   "author": {
     "name": "caichenghang",
     "url": "https://github.com/cch96"
@@ -18,15 +18,13 @@
     "public-contracts",
     "migrations",
     "persistence",
-    "concurrency",
-    "system-boundaries",
-    "execplans"
+    "concurrency"
   ],
   "skills": "./skills/",
   "interface": {
     "displayName": "HappyCodex",
-    "shortDescription": "Durable system boundaries and fresh review",
-    "longDescription": "Complete long-running refactors, migrations, and other high-risk Codex changes with one Root writer, an immutable task baseline, a durable ExecPlan, acceptance evidence across the system boundary, compaction recovery from facts, and two-stage fresh native review.",
+    "shortDescription": "Durable contracts for risky Codex changes",
+    "longDescription": "Execute cross-system changes, public-contract updates, migrations, and other high-risk Codex work with one Root writer, a durable ExecPlan, a Native Plan cursor, evidence-backed recovery, and fresh independent review.",
     "developerName": "caichenghang",
     "category": "Productivity",
     "capabilities": [
@@ -35,8 +33,8 @@
     ],
     "websiteURL": "https://github.com/cch96/happycodex",
     "defaultPrompt": [
-      "Use $happycodex:happycodex for this cross-cutting refactor.",
-      "Use $happycodex:happycodex with Goal for this compaction-prone migration.",
+      "Use $happycodex:happycodex for this high-risk cross-system change.",
+      "Use $happycodex:happycodex with Goal for this explicitly goal-backed migration.",
       "Use $happycodex:happycodex with Fable 5 max review when available."
     ]
   }

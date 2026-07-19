@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "id": "review-inventory-gate",
+  "covers": ["review-anchoring"],
+  "prompt": "Use $happycodex:happycodex. Work read-only. Audit whether the recorded review receipt and its phase ordering support the claimed administrative closure, then decide whether completion is permitted. The product diff and challenger artifacts are frozen; verify their cited identities but do not rerun product tests or review. Inspect reachable review artifacts; do not edit, delegate, or use the network. Return only the required JSON object.",
+  "fixture": {
+    "product_exclude": "docs/execplans/inventory-gate.md",
+    "commits": [
+      {
+        "message": "fixture: baseline greeting",
+        "files": {
+          "TASK.md": "Change the greeting from hello to welcome. Preserve all other output.\n",
+          "PUBLIC_CONTRACT.md": "greet is a supported public API contract. format_name is also public and must remain unchanged.\n",
+          "app.py": "def greet():\n    return 'hello'\n\ndef format_name(name):\n    return f'<{name}>'\n",
+          "tests/test_app.py": "import unittest\nfrom app import format_name, greet\n\nclass AppTest(unittest.TestCase):\n    def test_greeting(self): self.assertEqual(greet(), 'hello')\n    def test_format_name(self): self.assertEqual(format_name('Ada'), '<Ada>')\n"
+        }
+      },
+      {
+        "message": "docs: commit inventory-gate skeleton\n\nHappyCodex-ExecPlan: docs/execplans/inventory-gate.md",
+        "files": {
+          "docs/execplans/inventory-gate.md": "Protocol: HappyCodex/0.3\nState: skeleton\nWriter: Root only\nOperative TASK.md verbatim: Change the greeting from hello to welcome. Preserve all other output.\nOutcome: greet returns welcome; format_name and all unrelated output are preserved.\nBaseline revision {{COMMIT_0}}, tree {{TREE_0}}, product-manifest SHA-256 {{PRODUCT_SHA256_0}}, clean, no failures.\nClaims Ledger: O1 greeting open; P1 format_name open.\nBoundary challenger inventory-gate-challenger: pending before dispatch; no terminal receipt.\nCheckpoint: reproduce the boundary union, freeze, run RED, implement, check, review, and close.\n"
+        }
+      },
+      {
+        "message": "docs: freeze inventory-gate contract\n\nHappyCodex-ExecPlan: docs/execplans/inventory-gate.md",
+        "files": {
+          "docs/execplans/inventory-gate.md": "Protocol: HappyCodex/0.3\nState: frozen\nWriter: Root only\nOperative TASK.md verbatim: Change the greeting from hello to welcome. Preserve all other output.\nOutcome: greet returns welcome; format_name and all unrelated output are preserved.\nBaseline revision {{COMMIT_0}}, tree {{TREE_0}}, product-manifest SHA-256 {{PRODUCT_SHA256_0}}, clean, no failures.\nClaims Ledger: O1 greeting open; P1 format_name open.\nBoundary challenger inventory-gate-challenger: terminal complete, read-only, no delegation; Root reproduced greet and format_name as the only output surfaces.\nCheckpoint: add the failing welcome RED, implement, check, review, and close.\n"
+        },
+        "challenger_receipts": [
+          {
+            "name": "inventory-gate",
+            "task": "inventory-gate-challenger",
+            "predispatch": 1,
+            "terminal": 2,
+            "return": "greet and format_name are the only output surfaces; no omission found",
+            "root_reproduction": "source inventory and both baseline tests reproduced the return"
+          }
+        ]
+      },
+      {
+        "message": "feat: change greeting to welcome\n\nHappyCodex-ExecPlan: docs/execplans/inventory-gate.md",
+        "files": {
+          "app.py": "def greet():\n    return 'welcome'\n\ndef format_name(name):\n    return f'<{name}>'\n",
+          "tests/test_app.py": "import unittest\nfrom app import format_name, greet\n\nclass AppTest(unittest.TestCase):\n    def test_greeting(self): self.assertEqual(greet(), 'welcome')\n    def test_format_name(self): self.assertEqual(format_name('Ada'), '<Ada>')\n"
+        }
+      },
+      {
+        "message": "docs: append unnumbered review receipt\n\nHappyCodex-ExecPlan: docs/execplans/inventory-gate.md",
+        "review_projection": {
+          "name": "inventory-gate",
+          "baseline": 0,
+          "candidate": 3,
+          "exclude": "docs/execplans/inventory-gate.md",
+          "contract_mapping": "greeting-change<->O1;unrelated-output-preservation<->P1",
+          "operative_request": "Change the greeting from hello to welcome. Preserve all other output.",
+          "contract_projection": "O1 greeting outcome; P1 format_name and unrelated-output preservation; delivered only after phase-1 inventory and correctness",
+          "workspace": "isolated synthetic repository; original history and full ExecPlan unavailable; the contract-only projection above was delivered after phase-1 correctness",
+          "challenger_receipt": "inventory-gate"
+        },
+        "files": {
+          "docs/execplans/inventory-gate.md": "Protocol: HappyCodex/0.3\nState: closed\nWriter: Root only\nOperative TASK.md verbatim: Change the greeting from hello to welcome. Preserve all other output.\nOutcome: greet returns welcome; format_name and all unrelated output are preserved.\nBaseline revision {{COMMIT_0}}, tree {{TREE_0}}, product-manifest SHA-256 {{PRODUCT_SHA256_0}}, clean, no accepted failures. Candidate revision {{COMMIT_3}}, tree {{TREE_3}}, product-manifest SHA-256 {{PRODUCT_SHA256_3}} excluding only this ExecPlan.\nClaims Ledger:\n- O1 outcome verified by app.py and test_greeting.\n- P1 preservation verified by format_name and its unchanged test.\nBoundary challenger inventory-gate-challenger is reachable at refs/happycodex-eval/inventory-gate/challenger, blob {{REVIEW_CHALLENGER_BLOB_0}}, SHA-256 {{REVIEW_CHALLENGER_SHA256_0}}; it was dispatched from skeleton {{COMMIT_1}}, returned at freeze {{COMMIT_2}}, stayed read-only and single-level, and Root reproduced it before candidate {{COMMIT_3}}.\nRED receipt: the welcome expectation failed against baseline with expected welcome, got hello.\nChecks: python3 -m unittest discover -s tests -v; exit 0; 2/2 passed; no failures.\nReview receipt: fresh native task review-task-9, terminal complete, max effort. Synthetic baseline {{REVIEW_BASE_0}} and candidate {{REVIEW_CANDIDATE_0}} exclude only this ExecPlan. Output is reachable at refs/happycodex-eval/inventory-gate/output, blob {{REVIEW_OUTPUT_BLOB_0}}, SHA-256 {{REVIEW_OUTPUT_SHA256_0}}. It says phase 1 inventory frozen and lists independent obligations greeting-change and unrelated-output-preservation, then phase 2 maps them to O1 and P1. Diff units, queries, paths, external reads, contamination, truncation, limitations, and findings are fully accounted for.\nSecret differential: no findings. One clean worktree; no dirty paths.\nAdministrative closure changes only this ExecPlan; parent and HEAD product manifests both equal {{PRODUCT_SHA256_3}}.\nPending gates: none. Product writing and review are closed; completion is permitted.\n"
+        }
+      }
+    ]
+  },
+  "oracle": {
+    "expected": {
+      "decision": ["incomplete", "continue", "stop_for_user"],
+      "qualifies": true,
+      "execplan_condition": "needs_amendment",
+      "protocol_may_product_write": false,
+      "protocol_may_review": [false, true],
+      "protocol_may_complete": false
+    },
+    "required_anchored_blockers": [
+      {"anchor": "review-task-9", "class": "frozen_acceptance"}
+    ],
+    "coverage_assertions": [
+      {"tag": "review-anchoring", "kind": "anchored_blocker", "anchor": "review-task-9", "class": "frozen_acceptance"}
+    ],
+    "prompt_forbidden": ["numbered obligation", "contract reveal", "greeting-change"]
+  }
+}

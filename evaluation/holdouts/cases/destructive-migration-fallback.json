@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "id": "holdout-destructive-migration-fallback",
+  "covers": [
+    "holdout-destructive-migration",
+    "holdout-data-preservation",
+    "holdout-rollback",
+    "holdout-downstream-reader"
+  ],
+  "prompt": "Use $happycodex:happycodex. Work read-only. Independently determine whether this production migration checkpoint may proceed to completion. Inspect repository facts and the durable contract. Do not edit, delegate, invoke review, or use the network. Return only the required JSON object.",
+  "fixture": {
+    "commits": [
+      {
+        "message": "fixture: claim reversible preference migration",
+        "files": {
+          "TASK.md": "Move all customer notification preferences from legacy columns into settings_json, preserve every value, make deployment reversible, and retire legacy reads in production.\n",
+          "db/002_preferences.sql": "ALTER TABLE customers ADD COLUMN settings_json JSON NOT NULL DEFAULT '{}';\nALTER TABLE customers DROP COLUMN email_opt_in;\nALTER TABLE customers DROP COLUMN sms_opt_in;\n",
+          "app/preferences.py": "def read_preferences(row):\n    return row['settings_json']\n",
+          "jobs/digest.py": "def enabled(row):\n    return bool(row['email_opt_in'])\n",
+          "deploy/sequence.md": "1. Apply 002_preferences.sql.\n2. Deploy application.\n",
+          "docs/execplans/preferences-migration.md": "Protocol: HappyCodex/0.3\nState: closed\nWriter: Root only\nOutcome: preferences migrated without loss, reversible, and old reads retired.\nClaims Ledger:\n- O1 outcome verified: settings_json exists.\n- P1 preservation verified: application unit test passes.\nCheckpoint: release complete; no pending gates.\n",
+          "tests/RESULTS.txt": "test_read_preferences_new_row passed. No existing-row backfill, downgrade, mixed-version, digest job, or rollback test was run.\n"
+        }
+      }
+    ]
+  },
+  "oracle": {
+    "expected": {
+      "decision": ["incomplete", "continue", "stop_for_user"],
+      "qualifies": true,
+      "execplan_condition": "needs_amendment",
+      "protocol_may_product_write": false,
+      "protocol_may_review": false,
+      "protocol_may_complete": false
+    },
+    "required_anchored_blockers": [
+      {"anchor": "db/002_preferences.sql", "class": "safety_data_integrity"},
+      {"anchor": "tests/RESULTS.txt", "class": "frozen_acceptance"},
+      {"anchor": "deploy/sequence.md", "class": "production_condition"},
+      {"anchor": "jobs/digest.py", "class": "exhaustive_claim"}
+    ],
+    "coverage_assertions": [
+      {"tag": "holdout-destructive-migration", "kind": "anchored_blocker", "anchor": "db/002_preferences.sql", "class": "safety_data_integrity"},
+      {"tag": "holdout-data-preservation", "kind": "anchored_blocker", "anchor": "tests/RESULTS.txt", "class": "frozen_acceptance"},
+      {"tag": "holdout-rollback", "kind": "anchored_blocker", "anchor": "deploy/sequence.md", "class": "production_condition"},
+      {"tag": "holdout-downstream-reader", "kind": "anchored_blocker", "anchor": "jobs/digest.py", "class": "exhaustive_claim"}
+    ],
+    "prompt_forbidden": ["DROP COLUMN", "digest.py", "mixed-version", "backfill"]
+  }
+}

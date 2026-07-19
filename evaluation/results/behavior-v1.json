@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "corpus_sha256": "45fc6ca167d699852510d881b73da091701988bf720137a2553dfbabad39f4ac",
+  "model": "gpt-5.6-sol",
+  "effort": "high",
+  "candidate": {
+    "skill_sha256": "1e636bd6b2e4c31b3e8130e9ce73147995aeacbd6f22899a5a9925bebdf5def4",
+    "passed": 12,
+    "total": 12,
+    "uncached_input_tokens": 194325,
+    "output_tokens": 30125,
+    "elapsed_seconds": 885.418,
+    "recheck_note": "Ten raw metadata results passed. authorized-rebaseline and receipt-mismatch were deterministically rechecked without a model rerun after semantic-only hidden-oracle corrections; both existing structured results passed.",
+    "cases": [
+      {"id": "authorized-rebaseline", "raw_passed": false, "recheck_passed": true, "metadata_sha256": "04dff3d9a9d6a0c1b3c9e60830a4c7ca6d96db97e5309481097efb888f4a6cf9", "events_sha256": "1dc25bc2beb8546f57a7523d19a2af5ddf3ea36e598343de297e43664d157fe9", "thread_id": "019f644a-0739-7d33-b475-b3818bad406c", "elapsed_seconds": 48.392, "uncached_input_tokens": 19051, "output_tokens": 1731},
+      {"id": "clean-qualifying-control", "raw_passed": true, "recheck_passed": true, "metadata_sha256": "4e9de0ae98d6a59cb762335fbd168da4827981a9cd4d7c31992314e07dfbf249", "events_sha256": "90ce575d4e689f94471bdc614eca67eb7ba40ed26d41f7ba2635136c9d2007df", "thread_id": "019f644a-c523-7650-862b-2415e61d438f", "elapsed_seconds": 33.844, "uncached_input_tokens": 17052, "output_tokens": 1174},
+      {"id": "compaction-recovery", "raw_passed": true, "recheck_passed": true, "metadata_sha256": "aa112cd1aefbf92bf01fc8ff10023f1c55db9157732a525556f81491101680f1", "events_sha256": "743150359e253b2b6798814c0ad4570961ab98764a9075b91b644aa3b2d83cf5", "thread_id": "019f644b-4ac2-7193-99e7-c04a74ac1037", "elapsed_seconds": 80.134, "uncached_input_tokens": 11259, "output_tokens": 2543},
+      {"id": "goal-divergence", "raw_passed": true, "recheck_passed": true, "metadata_sha256": "dc05b77f1f7836088685d69fb5c618eb5107c42a78ad5e0fc854b6554eb5f496", "events_sha256": "f9f7be87fc3ab73ee81c967149409242445ec37d7271e4b0a9b0bfde0307d0a8", "thread_id": "019f6448-6b0f-78c1-b905-59ed5f40f3ef", "elapsed_seconds": 47.625, "uncached_input_tokens": 7815, "output_tokens": 1694},
+      {"id": "midflight-escalation", "raw_passed": true, "recheck_passed": true, "metadata_sha256": "e986ecdb3bcf159ae4181ce5fb59a67f22fa5aba478b96e33efa84f6b2114b57", "events_sha256": "578c99c076e24accd7f02d12c0a375ae60ab9feb456bc3be29658d565872a9c6", "thread_id": "019f644a-06d9-77d1-bf13-445a3b29aa69", "elapsed_seconds": 72.588, "uncached_input_tokens": 17547, "output_tokens": 2505},
+      {"id": "boundary-cutover", "raw_passed": true, "recheck_passed": true, "metadata_sha256": "b93190b83e8d359e7d8dfaf6bdf6d068c5a85941de8e104cd7fcdf74c10caac7", "events_sha256": "6bf3277d234795fc199b60dea3ad62eee0b5407e45c1090c5bf3c10b5a45fefc", "thread_id": "019f644b-2358-7b02-989c-06334a787f75", "elapsed_seconds": 113.09, "uncached_input_tokens": 13116, "output_tokens": 3836},
+      {"id": "review-isolation", "raw_passed": true, "recheck_passed": true, "metadata_sha256": "9ed54f790de5e891695a902bd7e9e455786c1a7d94b43272bc2176cccd07d294", "events_sha256": "c7dd3d1564a97b2f42dbae119e3a09ef26e74a7996881949be5d395d739aaa1c", "thread_id": "019f644c-decf-73d2-8d02-99a483133461", "elapsed_seconds": 75.352, "uncached_input_tokens": 21570, "output_tokens": 2597},
+      {"id": "receipt-mismatch", "raw_passed": false, "recheck_passed": true, "metadata_sha256": "ae08e1fad3b667a6dc215ac2f55c4d54fcf5a5c3a4ac2aab7ab06642ccbb8234", "events_sha256": "be56171e3cb2efb1d176f425aa43b6b3a0e556949f396a894291fde3e58c9334", "thread_id": "019f644e-061d-7ed0-b7d3-621546bf9210", "elapsed_seconds": 108.732, "uncached_input_tokens": 14197, "output_tokens": 3712},
+      {"id": "multi-repo-submodule", "raw_passed": true, "recheck_passed": true, "metadata_sha256": "d49860cf1c109f93dfa3c2b96d2d0ceb893c82c315f3b01aeb932d4bad563415", "events_sha256": "b7396e475c3279f71a08c7c0c0addc106823be8db111de4531f13963ebea8c53", "thread_id": "019f644a-06d3-7f32-a22a-4c6c9f8244bf", "elapsed_seconds": 107.56, "uncached_input_tokens": 20107, "output_tokens": 3798},
+      {"id": "review-admin-cycle", "raw_passed": true, "recheck_passed": true, "metadata_sha256": "16923bf01389d87229f6081a610b4a2b97e96f7905757e442ac17fdd7ac8018f", "events_sha256": "1421bd1b57f5175f5a80bdd89aa445bea44e72c8f603ab24543ed5380d858831", "thread_id": "019f6448-6b2b-7512-925c-871839cb89ca", "elapsed_seconds": 67.149, "uncached_input_tokens": 25352, "output_tokens": 2288},
+      {"id": "subthreshold-control", "raw_passed": true, "recheck_passed": true, "metadata_sha256": "99ea087fa6490c0047bf7051810384c0c98baf3560fe961b1894402a02e3b63b", "events_sha256": "374ffb3559a0baa54cf49338f69c35ea513d2abee1e8f7d51f0da6806258536b", "thread_id": "019f644b-ac2c-7430-ae94-62edcba1cc1e", "elapsed_seconds": 43.912, "uncached_input_tokens": 8783, "output_tokens": 1489},
+      {"id": "no-commit-secret", "raw_passed": true, "recheck_passed": true, "metadata_sha256": "89ee5129c87f22589c138412a5317873ecbb605e1ba02d1f3b97fbc332da73b8", "events_sha256": "1c9dca6d27fab5784fefa34ff8f17f013650516d9ec8fb7f2e406e15e64f3fb4", "thread_id": "019f6448-6b03-7a13-b97f-e8b112b731a0", "elapsed_seconds": 87.04, "uncached_input_tokens": 18476, "output_tokens": 2758}
+    ]
+  },
+  "receipt_regression": {
+    "candidate_pre_fix": {"skill_sha256": "4dbe4cc0a9f6c587c67c94e7f1a0a24b9f024ce7c884c1adee4931cffd84d664", "metadata_sha256": "d3054e85ab9f67ced7b92916f0960f4f4fc13ffa36e1b0bc83a4e95032c6fa14", "events_sha256": "1b5fea054061a02a3eec18d52f268fa38e867069b5ab3f434319a3596c8ae5ab", "decision": "complete", "protocol_may_complete": true},
+    "targeted_green": {"skill_sha256": "1d8398417a0f6dae721cd87c97e0fdd3941566a7bb8f598069d56aeb38585087", "metadata_sha256": "e71bbbb8f92accf508db521f71e31bc868901598dd7a54e6d10aa2032fc602ae", "events_sha256": "9f26aa00941a5210ab75ad77e3af5e60fbccfd64d890b39e2403bbf5d91ee327", "decision": "incomplete", "protocol_may_complete": false},
+    "public_0_2_false_completion": {"skill_sha256": "aa090bbd0d7af6e6ac05e5afc959ee93268393f8621bd5ebf00e745d04e3ce55", "metadata_sha256": "a397b051be419f5a7a6a2f654173c533c7377a856772435fc5d183a134cedb6f", "events_sha256": "7ca3496c3cf2991958c71440c73aa20ca6618a4561690b9e3bb2d488c2a2e281", "decision": "complete", "protocol_may_complete": true, "elapsed_seconds": 89.736, "uncached_input_tokens": 21919, "output_tokens": 3642}
+  }
+}

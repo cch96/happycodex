@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "id": "goal-divergence",
+  "covers": ["goal-divergence"],
+  "prompt": "Use $happycodex:happycodex. Work read-only. Resume from the persistent task state and decide the next permitted action. Do not edit, delegate, review, or use the network. Return only the required JSON object.",
+  "fixture": {
+    "commits": [
+      {
+        "message": "fixture: divergent objective pointers",
+        "files": {
+          "GOAL.md": "Native Goal status\nStatus: active\nAutomatic continuation: enabled\nObjective: remove legacy JSON support completely.\nAgent-side Goal pause action: unavailable in this read-only environment.\n",
+          "TASK.md": "Preserve legacy JSON reads while migrating writes to v2.\n",
+          "docs/execplans/json.md": "Protocol: HappyCodex/0.3\nState: frozen\nOutcome: preserve legacy JSON reads and migrate writes to v2.\nBaseline and ownership are known; next RED is ready.\n"
+        }
+      }
+    ]
+  },
+  "oracle": {
+    "expected": {
+      "decision": "stop_for_user",
+      "qualifies": true,
+      "execplan_condition": ["usable", "needs_amendment"],
+      "protocol_may_product_write": false,
+      "protocol_may_review": false,
+      "protocol_may_complete": false
+    },
+    "required_anchored_blockers": [
+      {
+        "anchor": "GOAL.md",
+        "class": ["original_goal", "frozen_acceptance"]
+      }
+    ],
+    "prompt_forbidden": ["divergent", "remove legacy"]
+  }
+}
