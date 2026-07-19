@@ -589,6 +589,45 @@ public-bound impact is ready and the archive was removed. Live authority remains
 null, the exact cost is unchanged, and no model, Fable, network, install, or release
 action ran.
 
+## Sixth fresh review and receipt-consistency NOT-YET
+
+Fresh read-only reviewer `/root/cert_engine_holdout_final_review` audited exact clean
+commit `e29facbfeeb010c078e32f3995ee88fb110e8be4` from a detached local clone and
+returned `NOT-YET`. Root accepts three P1 evidence-consistency findings:
+
+1. Passing-arm evidence does not require zero exit status, and runner-impossible
+   nested receipt values remain accepted. A `passed=true, exit_code=7` arm can be
+   certified as `equal` even though the blinded runner grades it as failure; scalar
+   result/native-compaction values and a non-object usage phase also pass parsing.
+2. Pair-level cost metrics are free-standing. Certification never proves that each
+   pair metric equals its candidate/public arm's uncached tokens, output tokens, and
+   elapsed time, so forged cheap metrics can turn `simplify_and_retest` into `pass`.
+3. A one-pair `equal` summary whose next action is still `run_second` is accepted.
+   The runner cannot emit that as terminal because the second distinct pair is
+   mandatory.
+
+The reviewer reproduced all three acceptances in memory while 1/1 focused and
+114/114 cumulative tests remained green, proving missing oracles rather than existing
+test failures. It independently passed both official validators, Ruff check and
+format-check, all 21 JSON documents, diff hygiene, package and public-benchmark
+identities, and exact impact/cost reconstruction. Engine, snapshot, ledger, and token
+matched the identities above; `live_authority` remained null. No model, live runner,
+network, Fable, Goal mutation, install, publication, or repository write ran.
+
+The reviewer also observed that semantic revisions beginning at `7f7e6af` omitted
+the `HappyCodex-ExecPlan` commit trailer. Root records this as process drift and will
+restore the trailer on every subsequent semantic/admin revision. Rewriting reviewed
+history would invalidate exact durable review identities while adding no product or
+recovery information: the single task-owned ExecPlan is unique, committed, and the
+documented alternative recovery locator. Therefore history rewrite is rejected as an
+administrative regression, not treated as a product blocker.
+
+The bounded repair must add exact REDs for all three false greens, validate nested
+cost/status receipt structure, bind pair metrics to arm telemetry, require an actual
+terminal adaptive state, refresh offline identities, and receive a seventh fresh
+exact review. This invalidates no behavior, holdout, install, or product receipt and
+does not change the exact live cost.
+
 ## Validation envelope
 
 Candidate offline commands, exact live-run costs, required reruns, and review launch
@@ -598,22 +637,22 @@ publication requires a later explicit user request.
 
 ## Checkpoint
 
-- Milestone: the fifth fresh review's single holdout-outcome blocker is repaired and
-  the complete bounded offline envelope is green; the exact repair commit and sixth
-  fresh review remain open.
+- Milestone: the sixth fresh review returned `NOT-YET` with three accepted offline
+  receipt-consistency blockers; focused REDs and bounded repair remain open.
 - Goal: active `019f780e-925e-7193-8bd2-0a04d6efe31e`; its objective is the
   Normalized Outcome plus all frozen preservation, exclusion, offline validation, and
   live-cost gates in this document.
-- RED: all architecture and five review rounds are persisted above; the repaired
-  focused certification contract is 30/30 and cumulative suite is 114/114.
-- Next: freeze the repair commit, rerun the exact commit from a clean archive, and
-  launch a sixth fresh exact review. A green review still stops at the explicit
+- RED: all architecture and six review rounds are persisted above; three fresh
+  acceptance false-greens need exact regression coverage.
+- Next: add three focused REDs, repair only nested arm status/cost/adaptive receipt
+  validation, rerun the exact commit from a clean clone, and launch a seventh fresh
+  exact review. A green review still stops at the explicit
   maximum-cost user decision before authority or live calls.
 - Product/support writes: support-only paths remain open; shipped-package paths remain
   closed.
 - Owned paths: `evaluation/`, `tests/`, `AGENTS.md`, and this ExecPlan; shipped-package
   paths remain closed.
-- Missing facts: final repair and sixth-review identities, explicit user cost
+- Missing facts: final repair and seventh-review identities, explicit user cost
   decision, and live successor receipts.
 
 ## Retrospective
