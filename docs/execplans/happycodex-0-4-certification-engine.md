@@ -3,7 +3,7 @@
 Protocol: `HappyCodex/0.3`
 Invocation: `$happycodex:happycodex`
 Writer: Root only
-State: frozen for offline implementation
+State: offline implementation
 Resume: read this entire ExecPlan and reconcile Goal, Native Plan, Git, tests,
 receipts, worktrees, and agents before any write, review, or completion claim.
 
@@ -198,14 +198,20 @@ publication requires a later explicit user request.
 
 ## Checkpoint
 
-- Milestone: boundary union, baseline, and explicit native Goal reproduced.
+- Milestone: contract freeze `c03c6e1a1c644a4ca32f18f9cfd261746be1eb3a`
+  and first post-freeze RED reproduced.
 - Goal: active `019f780e-925e-7193-8bd2-0a04d6efe31e`; its objective is the
   Normalized Outcome plus all frozen preservation, exclusion, offline validation, and
   live-cost gates in this document.
-- Next: commit this document as the distinct contract-freeze revision, then open
-  product/support writes and implement the new engine from RED tests outward.
-- Product writes: closed until contract-freeze revision.
-- Owned paths: this ExecPlan only.
+- RED: `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest
+  tests.test_certification_engine -v` exited 1 because
+  `evaluation.core` does not exist. This is the expected architecture failure before
+  any engine implementation.
+- Next: implement the exact frozen modules and make the new contract tests green,
+  then replace legacy callers, historical tests, and result paths.
+- Product/support writes: open after the distinct freeze revision.
+- Owned paths: `evaluation/`, `tests/`, `AGENTS.md`, and this ExecPlan; shipped-package
+  paths remain closed.
 - Missing facts: post-implementation exact impact/cost, live successor receipts, and
   final review identity.
 
