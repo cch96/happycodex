@@ -83,6 +83,9 @@ CORPUS_COST = {
     "review-isolation": (42543, 152.363),
     "subthreshold-control": (20886, 49.584),
 }
+CORPUS_MODEL_CALLS = {
+    case_id: 3 if case_id == "pre-freeze-compaction" else 1 for case_id in CORPUS_COST
+}
 HOLDOUT_COST = {
     "authority-production-boundary": (57410, 389.038),
     "local-documentation-control": (29091, 93.427),
@@ -95,6 +98,15 @@ def _read_json(path: Path) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise IdentityError(f"JSON object required: {path}")
     return value
+
+
+def corpus_model_calls(case_ids: set[str]) -> int:
+    unknown = case_ids - set(CORPUS_MODEL_CALLS)
+    if unknown:
+        raise IdentityError(
+            "missing corpus model-call count: " + ", ".join(sorted(unknown))
+        )
+    return sum(CORPUS_MODEL_CALLS[case_id] for case_id in case_ids)
 
 
 def _load_cases(root: Path) -> dict[str, dict[str, Any]]:
@@ -387,9 +399,10 @@ def validate_impact(impact: dict[str, Any], snapshot: dict[str, Any]) -> None:
         raise IdentityError("impact corpus gate does not match scope")
     if holdout_live != ("holdout" in gates):
         raise IdentityError("impact holdout gate does not match scope")
+    corpus_calls = corpus_model_calls(corpus_cases)
     expected_calls = {
-        "minimum": len(corpus_cases) + (4 if holdout_live else 0),
-        "maximum": len(corpus_cases) + (6 if holdout_live else 0),
+        "minimum": corpus_calls + (4 if holdout_live else 0),
+        "maximum": corpus_calls + (6 if holdout_live else 0),
     }
     if impact["live_calls"] != expected_calls:
         raise IdentityError("impact live-call count does not match scope")
@@ -530,8 +543,9 @@ def plan_impact(
             gates.add("review")
 
     holdout_live = bool(holdout_pairs)
-    minimum_calls = len(corpus_cases) + (4 if holdout_live else 0)
-    maximum_calls = len(corpus_cases) + (6 if holdout_live else 0)
+    corpus_calls = corpus_model_calls(corpus_cases)
+    minimum_calls = corpus_calls + (4 if holdout_live else 0)
+    maximum_calls = corpus_calls + (6 if holdout_live else 0)
     result = {
         "schema_version": 1,
         "reasons": sorted(reasons),

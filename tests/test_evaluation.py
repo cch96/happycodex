@@ -609,6 +609,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
         self.assertNotIn("/tmp/", rendered)
         self.assertNotIn("isolated_home", rendered)
         self.assertEqual(receipt["result"]["decision"], "incomplete")
+        self.assertIs(receipt["result"]["goal_pause_handoff_present"], False)
         self.assertIn(
             "identity_sha256", receipt["result"]["finding_classifications"][0]
         )
@@ -620,9 +621,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             "identity_casefold_sha256",
             receipt["result"]["finding_classifications"][0],
         )
-        self.assertIn(
-            "anchor_sha256s", receipt["result"]["finding_classifications"][0]
-        )
+        self.assertIn("anchor_sha256s", receipt["result"]["finding_classifications"][0])
         self.assertIn("reason_sha256", receipt["result"]["blocker_classifications"][0])
         self.assertIn(
             "identity_match_sha256s",

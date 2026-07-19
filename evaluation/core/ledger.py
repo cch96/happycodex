@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+from itertools import permutations
 import json
 import math
 from pathlib import Path, PurePosixPath
@@ -206,6 +207,7 @@ RESULT_RECEIPT_FIELDS = {
     "blocker_classifications",
     "open_gates_count",
     "open_gates_sha256",
+    "goal_pause_handoff_present",
     "evidence_count",
     "evidence_sha256",
     "reason_sha256",
@@ -213,13 +215,18 @@ RESULT_RECEIPT_FIELDS = {
 }
 FINDING_RECEIPT_FIELDS = {
     "identity_sha256",
+    "identity_casefold_sha256",
+    "identity_match_sha256s",
     "domain",
     "state",
     "anchors_count",
     "anchors_sha256",
+    "anchor_sha256s",
 }
 BLOCKER_RECEIPT_FIELDS = {
     "identity_sha256",
+    "identity_casefold_sha256",
+    "identity_match_sha256s",
     "class",
     "blocking",
     "reason_sha256",
@@ -483,6 +490,29 @@ def _require_reachable_commit(repo: Path, commit: str, *, label: str) -> None:
         raise ValueError(f"reachable certification evidence missing: {label}")
 
 
+def _build_native_evidence_oracle(
+    case: dict[str, Any], *, scratch: Path
+) -> dict[str, Any] | None:
+    native = case["fixture"].get("native_compaction_resume")
+    if native is None:
+        return None
+    from evaluation.corpus.engine import (
+        apply_post_compaction_transition,
+        build_fixture,
+        expected_recovery_state,
+    )
+
+    fixture_repo = scratch / case["id"]
+    fixture = build_fixture(case, fixture_repo)
+    transition = apply_post_compaction_transition(
+        fixture_repo, native["post_compaction_transition"], fixture
+    )
+    return {
+        "recovery_state": expected_recovery_state(native, fixture, transition),
+        "post_compaction_transition_sha256": canonical_sha256(transition),
+    }
+
+
 def _validate_source_identity(
     repo: Path,
     commit: str,
@@ -587,6 +617,24 @@ def _validate_source_identity(
             }
         if set(pair_order) != set(snapshot["holdout"]["pairs"]):
             raise ValueError("certification successor holdout scope mismatch")
+        native_evidence_oracles: dict[str, dict[str, Any]] = {}
+        all_cases = [*corpus_cases.values()]
+        all_cases.extend(descriptor["case"] for descriptor in descriptors.values())
+        scratch = root / ".native-evidence"
+        for case in all_cases:
+            try:
+                expected = _build_native_evidence_oracle(case, scratch=scratch)
+            except (OSError, RuntimeError, ValueError) as exc:
+                raise ValueError(
+                    "invalid certification native evidence oracle"
+                ) from exc
+            if expected is None:
+                continue
+            case_id = case["id"]
+            prior = native_evidence_oracles.get(case_id)
+            if prior is not None and prior != expected:
+                raise ValueError("conflicting certification native evidence oracle")
+            native_evidence_oracles[case_id] = expected
         return {
             "ledger": source_ledger,
             "engine": inventory,
@@ -596,6 +644,7 @@ def _validate_source_identity(
                 paths={"evaluation/corpus/contract.py"},
             ),
             "corpus_cases": corpus_cases,
+            "native_evidence_oracles": native_evidence_oracles,
             "holdout_manifest_sha256": sha256_bytes(manifest_path.read_bytes()),
             "holdout_pair_order": pair_order,
             "holdout_descriptors": descriptors,
@@ -729,6 +778,175 @@ def _nonnegative_int(value: Any) -> bool:
     return isinstance(value, int) and not isinstance(value, bool) and value >= 0
 
 
+def _casefold_text_sha256(value: Any) -> str:
+    return sha256_bytes(str(value).casefold().encode())
+
+
+def _validate_digest_list(value: Any, *, label: str, required: bool) -> None:
+    if (
+        not isinstance(value, list)
+        or (required and not value)
+        or value != sorted(set(value))
+    ):
+        raise ValueError(f"invalid {label} digest list")
+    for item in value:
+        _require_digest(item, length=64, label=label)
+
+
+def _matches_unordered_list_digest(value: Any, expected: list[Any]) -> bool:
+    if len(expected) > 8:
+        raise ValueError("recovery marker set is too large to verify exactly")
+    expected_digests = {
+        canonical_sha256(list(order)) for order in set(permutations(expected))
+    }
+    return value in expected_digests
+
+
+def _validate_recovery_oracle_receipt(
+    value: dict[str, Any], *, oracle: dict[str, Any], label: str
+) -> None:
+    for field in (
+        "baseline_revision",
+        "baseline_tree",
+        "current_revision",
+        "current_tree",
+    ):
+        if field in oracle and value[field] != oracle[field]:
+            raise ValueError(f"invalid {label} recovery oracle receipt: {field}")
+    for field in (
+        "writer",
+        "milestone_phase",
+        "next_action",
+        "pending_gates",
+        "worktree",
+    ):
+        if value[field] != oracle[field]:
+            raise ValueError(f"invalid {label} recovery oracle receipt: {field}")
+    tests = value["tests"]
+    expected_tests = oracle["tests"]
+    for field in ("passed", "failed", "accepted_failures"):
+        if tests[field] != expected_tests[field]:
+            raise ValueError(f"invalid {label} recovery oracle tests: {field}")
+    expected_test_markers = expected_tests["marker_ids"]
+    if tests["marker_ids_count"] != len(
+        expected_test_markers
+    ) or not _matches_unordered_list_digest(
+        tests["marker_ids_sha256"], expected_test_markers
+    ):
+        raise ValueError(f"invalid {label} recovery oracle test markers")
+    expected_agents = [
+        {
+            "id_sha256": sha256_bytes(str(agent["id"]).encode()),
+            "status": agent["status"],
+            "receipt_reproduced": agent["receipt_reproduced"],
+        }
+        for agent in oracle["live_agents"]
+    ]
+    if sorted(value["live_agents"], key=canonical_sha256) != sorted(
+        expected_agents, key=canonical_sha256
+    ):
+        raise ValueError(f"invalid {label} recovery oracle agents")
+    expected_markers = oracle["marker_ids"]
+    if value["marker_ids_count"] != len(
+        expected_markers
+    ) or not _matches_unordered_list_digest(
+        value["marker_ids_sha256"], expected_markers
+    ):
+        raise ValueError(f"invalid {label} recovery oracle markers")
+
+
+def _validate_case_oracle_receipt(
+    value: dict[str, Any], *, case: dict[str, Any], label: str
+) -> None:
+    oracle = case["oracle"]
+    findings = value["finding_classifications"]
+    blockers = value["blocker_classifications"]
+    from evaluation.corpus.engine import fixture_requires_goal_pause_handoff
+
+    if (
+        fixture_requires_goal_pause_handoff(case["fixture"])
+        and value["decision"] == "stop_for_user"
+        and value["goal_pause_handoff_present"] is not True
+    ):
+        raise ValueError(f"missing {label} oracle Goal-pause handoff receipt")
+    for required in oracle.get("required_classifications", []):
+        states = required["state"]
+        allowed_states = states if isinstance(states, list) else [states]
+        identity = _casefold_text_sha256(required["identity"])
+        if not any(
+            identity in finding["identity_match_sha256s"]
+            and finding["domain"] == required["domain"]
+            and finding["state"] in allowed_states
+            for finding in findings
+        ):
+            raise ValueError(f"missing {label} oracle classification receipt")
+    for required_class in oracle.get("required_blocker_classes", []):
+        if not any(
+            blocker["class"] == required_class and blocker["blocking"] is True
+            for blocker in blockers
+        ):
+            raise ValueError(f"missing {label} oracle blocker-class receipt")
+    for required in oracle.get("required_blocker_classifications", []):
+        identity = _casefold_text_sha256(required["identity"])
+        if not any(
+            identity in blocker["identity_match_sha256s"]
+            and blocker["class"] == required["class"]
+            and blocker["blocking"] is True
+            for blocker in blockers
+        ):
+            raise ValueError(f"missing {label} oracle blocker receipt")
+    for required in oracle.get("required_anchored_blockers", []):
+        anchor = _casefold_text_sha256(required["anchor"])
+        classes = required["class"]
+        allowed_classes = classes if isinstance(classes, list) else [classes]
+        anchored = [
+            finding
+            for finding in findings
+            if finding["identity_casefold_sha256"] == anchor
+            or anchor in finding["anchor_sha256s"]
+        ]
+        if not any(
+            blocker["identity_casefold_sha256"] == finding["identity_casefold_sha256"]
+            and blocker["class"] in allowed_classes
+            and blocker["blocking"] is True
+            for finding in anchored
+            for blocker in blockers
+        ):
+            raise ValueError(f"missing {label} oracle anchored blocker receipt")
+    for required in oracle.get("required_anchored_classifications", []):
+        anchor = _casefold_text_sha256(required["anchor"])
+        states = required["state"]
+        allowed_states = states if isinstance(states, list) else [states]
+        if not any(
+            (
+                finding["identity_casefold_sha256"] == anchor
+                or anchor in finding["anchor_sha256s"]
+            )
+            and finding["domain"] == required["domain"]
+            and finding["state"] in allowed_states
+            for finding in findings
+        ):
+            raise ValueError(f"missing {label} oracle anchored classification receipt")
+    if value["decision"] == "complete" or value["protocol_may_complete"] is True:
+        accepted = [
+            _casefold_text_sha256(identity)
+            for identity in oracle.get("accepted_baseline_failures", [])
+        ]
+        for finding in findings:
+            if (
+                finding["domain"] == "baseline_failure"
+                and finding["state"] == "baseline_unchanged"
+                and sum(
+                    identity in finding["identity_match_sha256s"]
+                    for identity in accepted
+                )
+                != 1
+            ):
+                raise ValueError(
+                    f"invalid {label} accepted baseline classification receipt"
+                )
+
+
 def _validate_recovery_receipt(value: Any, *, label: str) -> None:
     if not isinstance(value, dict) or set(value) != RECOVERY_RECEIPT_FIELDS:
         raise ValueError(f"invalid {label} recovery receipt")
@@ -825,6 +1043,7 @@ def _validate_result_receipt(
         )
         or not _nonnegative_int(value.get("open_gates_count"))
         or not _nonnegative_int(value.get("evidence_count"))
+        or not isinstance(value.get("goal_pause_handoff_present"), bool)
     ):
         raise ValueError(f"invalid {label} result receipt")
     findings = value.get("finding_classifications")
@@ -842,10 +1061,28 @@ def _validate_result_receipt(
             or not _nonnegative_int(finding.get("anchors_count"))
         ):
             raise ValueError(f"invalid {label} result finding receipt")
-        for field in ("identity_sha256", "anchors_sha256"):
+        for field in (
+            "identity_sha256",
+            "identity_casefold_sha256",
+            "anchors_sha256",
+        ):
             _require_digest(
                 finding.get(field), length=64, label=f"{label} finding {field}"
             )
+        _validate_digest_list(
+            finding.get("identity_match_sha256s"),
+            label=f"{label} finding identity matches",
+            required=True,
+        )
+        if finding["identity_casefold_sha256"] not in finding["identity_match_sha256s"]:
+            raise ValueError(f"invalid {label} result finding identity matches")
+        _validate_digest_list(
+            finding.get("anchor_sha256s"),
+            label=f"{label} finding anchors",
+            required=finding["anchors_count"] > 0,
+        )
+        if finding["anchors_count"] == 0 and finding["anchor_sha256s"]:
+            raise ValueError(f"invalid {label} result finding anchors")
     for blocker in blockers:
         if (
             not isinstance(blocker, dict)
@@ -854,11 +1091,22 @@ def _validate_result_receipt(
             or not isinstance(blocker.get("blocking"), bool)
         ):
             raise ValueError(f"invalid {label} result blocker receipt")
-        for field in ("identity_sha256", "reason_sha256"):
+        for field in (
+            "identity_sha256",
+            "identity_casefold_sha256",
+            "reason_sha256",
+        ):
             _require_digest(
                 blocker.get(field), length=64, label=f"{label} blocker {field}"
             )
-    blocker_identities = [item["identity_sha256"] for item in blockers]
+        _validate_digest_list(
+            blocker.get("identity_match_sha256s"),
+            label=f"{label} blocker identity matches",
+            required=True,
+        )
+        if blocker["identity_casefold_sha256"] not in blocker["identity_match_sha256s"]:
+            raise ValueError(f"invalid {label} result blocker identity matches")
+    blocker_identities = [item["identity_casefold_sha256"] for item in blockers]
     if len(set(blocker_identities)) != len(blocker_identities):
         raise ValueError(f"invalid {label} duplicate blocker receipt")
     if expected_permissions is not None:
@@ -922,6 +1170,7 @@ def _validate_native_compaction(
     receipt: dict[str, Any],
     result: dict[str, Any] | None,
     fresh_result: dict[str, Any] | None,
+    native_evidence_oracle: dict[str, Any] | None,
 ) -> None:
     native = case["fixture"].get("native_compaction_resume")
     if native is None:
@@ -930,11 +1179,21 @@ def _validate_native_compaction(
         return
     if not isinstance(value, dict) or set(value) != NATIVE_COMPACTION_FIELDS:
         raise ValueError("missing or invalid native compaction receipt")
+    if not isinstance(native_evidence_oracle, dict) or set(native_evidence_oracle) != {
+        "recovery_state",
+        "post_compaction_transition_sha256",
+    }:
+        raise ValueError("missing native evidence oracle")
     for field in (
         "native_compaction_sha256",
         "post_compaction_transition_sha256",
     ):
         _require_digest(value.get(field), length=64, label=f"native {field}")
+    if (
+        value["post_compaction_transition_sha256"]
+        != native_evidence_oracle["post_compaction_transition_sha256"]
+    ):
+        raise ValueError("invalid native post-compaction transition receipt")
     if (
         value.get("auto_compact_token_limit") != native["auto_compact_token_limit"]
         or not _nonnegative_int(value.get("compaction_event_count"))
@@ -944,11 +1203,15 @@ def _validate_native_compaction(
         raise ValueError("invalid native compaction receipt")
     _validate_compaction_phase(value.get("before_resume"), label="before-resume")
     _validate_compaction_phase(value.get("after_resume"), label="after-resume")
+    before = value["before_resume"]
+    after = value["after_resume"]
     if (
-        value["compaction_event_count"]
-        != value["before_resume"]["compaction_event_count"]
+        value["compaction_event_count"] != before["compaction_event_count"]
+        or after["rollout_path_sha256"] != before["rollout_path_sha256"]
+        or after["rollout_sha256"] == before["rollout_sha256"]
+        or after["event_types"][: len(before["event_types"])] != before["event_types"]
     ):
-        raise ValueError("invalid native compaction count receipt")
+        raise ValueError("invalid native compaction rollout relationship")
     fresh = value.get("fresh_control")
     if not isinstance(fresh, dict) or set(fresh) != FRESH_CONTROL_FIELDS:
         raise ValueError("missing or invalid native fresh-control receipt")
@@ -994,6 +1257,23 @@ def _validate_native_compaction(
         allowed_differences
     ):
         raise ValueError("invalid native recovery-control labels receipt")
+    recovery = result["recovery_state"]
+    fresh_recovery = fresh_result["recovery_state"]
+    if not isinstance(recovery, dict) or not isinstance(fresh_recovery, dict):
+        raise ValueError("invalid native recovery-control state receipt")
+    recovery_oracle = native_evidence_oracle["recovery_state"]
+    _validate_recovery_oracle_receipt(recovery, oracle=recovery_oracle, label="primary")
+    _validate_recovery_oracle_receipt(
+        fresh_recovery, oracle=recovery_oracle, label="fresh"
+    )
+    for field in (
+        "baseline_revision",
+        "baseline_tree",
+        "current_revision",
+        "current_tree",
+    ):
+        if recovery[field] != fresh_recovery[field]:
+            raise ValueError(f"invalid native recovery-control state: {field}")
 
 
 def _validate_installation_receipt(
@@ -1037,6 +1317,7 @@ def _validate_case_identity(
     case_id: str,
     *,
     case: dict[str, Any],
+    native_evidence_oracle: dict[str, Any] | None,
     expected_passed: bool = True,
     semantic_sha256: str,
     package: dict[str, str],
@@ -1059,8 +1340,8 @@ def _validate_case_identity(
         not isinstance(passed, bool)
         or passed is not expected_passed
         or not isinstance(timed_out, bool)
-        or (expected_passed and timed_out)
-        or (expected_passed and receipt.get("exit_code") != 0)
+        or timed_out
+        or receipt.get("exit_code") != 0
         or receipt.get("model") != settings["model"]
         or receipt.get("effort") != settings["effort"]
         or receipt.get("timeout_seconds") != settings["timeout_seconds"]
@@ -1149,10 +1430,14 @@ def _validate_case_identity(
     result_receipt = _validate_result_receipt(
         receipt.get("result"),
         label=f"case {case_id}",
-        required=expected_passed,
+        required=True,
         recovery_required=True if native and expected_passed else None,
         expected_permissions=expected_permissions,
     )
+    if expected_passed:
+        _validate_case_oracle_receipt(
+            result_receipt, case=case, label=f"case {case_id}"
+        )
     fresh_result_receipt = None
     if native:
         fresh_result_receipt = _validate_result_receipt(
@@ -1162,6 +1447,12 @@ def _validate_case_identity(
             recovery_required=True if expected_passed else None,
             expected_permissions=expected_permissions,
         )
+        if expected_passed:
+            _validate_case_oracle_receipt(
+                fresh_result_receipt,
+                case=case,
+                label=f"case {case_id} fresh recovery",
+            )
     elif receipt.get("fresh_recovery_result") is not None:
         raise ValueError(f"unexpected fresh recovery result receipt: {case_id}")
     _validate_native_compaction(
@@ -1170,6 +1461,7 @@ def _validate_case_identity(
         receipt=receipt,
         result=result_receipt,
         fresh_result=fresh_result_receipt,
+        native_evidence_oracle=native_evidence_oracle,
     )
     _validate_isolation_receipt(receipt.get("filesystem_isolation"), case_id=case_id)
     if (
@@ -1226,6 +1518,9 @@ def _validate_corpus_summary(
             snapshot,
             case_id,
             case=source.get("corpus_cases", {}).get(case_id),
+            native_evidence_oracle=source.get("native_evidence_oracles", {}).get(
+                case_id
+            ),
             semantic_sha256=snapshot["corpus"]["cases"][case_id],
             package=snapshot["package"],
             engine=source["engine"],
@@ -1321,6 +1616,9 @@ def _validate_arm_identity(
         snapshot,
         descriptor["case"]["id"],
         case=descriptor["case"],
+        native_evidence_oracle=source.get("native_evidence_oracles", {}).get(
+            descriptor["case"]["id"]
+        ),
         expected_passed=expected_passed,
         semantic_sha256=semantic_sha256,
         package=package,

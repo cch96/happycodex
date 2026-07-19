@@ -21,7 +21,7 @@ from evaluation.core.identity import (
     package_identities,
     sha256_bytes,
 )
-from evaluation.core.impact import build_snapshot, plan_impact
+from evaluation.core.impact import CORPUS_MODEL_CALLS, build_snapshot, plan_impact
 from evaluation.core.ledger import load_ledger, validate_ledger
 from evaluation.core.receipt import sanitized_case_receipt
 from evaluation.corpus import engine as corpus_engine
@@ -274,6 +274,16 @@ class CertificationImpactTests(unittest.TestCase):
         self.assertEqual(impact["live_calls"], {"minimum": 1, "maximum": 1})
 
     def test_native_case_counts_initial_resume_and_fresh_model_calls(self) -> None:
+        cases = corpus_engine.load_cases(ROOT / "evaluation" / "cases")
+        native_cases = {
+            case_id
+            for case_id, case in cases.items()
+            if case["fixture"].get("native_compaction_resume") is not None
+        }
+        self.assertEqual(
+            {case_id for case_id, calls in CORPUS_MODEL_CALLS.items() if calls > 1},
+            native_cases,
+        )
         impact = plan_impact(
             self.snapshot,
             self.snapshot,
@@ -311,7 +321,7 @@ class CertificationImpactTests(unittest.TestCase):
                 self.assertEqual(len(impact["corpus_cases"]), 14)
                 self.assertEqual(len(impact["holdout_pairs"]), 3)
                 self.assertEqual(impact["gates"], ["corpus", "holdout"])
-                self.assertEqual(impact["live_calls"], {"minimum": 18, "maximum": 20})
+                self.assertEqual(impact["live_calls"], {"minimum": 20, "maximum": 22})
 
     def test_holdout_only_harness_change_does_not_rerun_corpus(self) -> None:
         changed = copy.deepcopy(self.snapshot)
@@ -343,9 +353,9 @@ class CertificationImpactTests(unittest.TestCase):
 
     def test_real_control_mutations_fail_closed_but_sanitizer_is_artifact(self) -> None:
         for relative, expected_calls in (
-            ("evaluation/cli.py", {"minimum": 18, "maximum": 20}),
-            ("evaluation/core/impact.py", {"minimum": 18, "maximum": 20}),
-            ("evaluation/core/ledger.py", {"minimum": 18, "maximum": 20}),
+            ("evaluation/cli.py", {"minimum": 20, "maximum": 22}),
+            ("evaluation/core/impact.py", {"minimum": 20, "maximum": 22}),
+            ("evaluation/core/ledger.py", {"minimum": 20, "maximum": 22}),
             ("evaluation/core/receipt.py", {"minimum": 0, "maximum": 0}),
         ):
             with self.subTest(relative=relative), tempfile.TemporaryDirectory() as raw:
@@ -433,7 +443,7 @@ class CertificationImpactTests(unittest.TestCase):
         )
         self.assertEqual(len(impact["corpus_cases"]), 14)
         self.assertEqual(len(impact["holdout_pairs"]), 3)
-        self.assertEqual(impact["live_calls"], {"minimum": 18, "maximum": 20})
+        self.assertEqual(impact["live_calls"], {"minimum": 20, "maximum": 22})
         self.assertEqual(impact["cost"]["combined_tokens"]["maximum"], 637027)
         self.assertEqual(impact["cost"]["wall_seconds"]["maximum"], 3187.085)
 
@@ -702,6 +712,29 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
             settings = snapshot["settings"]
             engine_identity = engine_inventory(repo)
             source_cases = corpus_engine.load_cases(repo / "evaluation" / "cases")
+            native_fixture_evidence: dict[str, dict[str, object]] = {}
+            for case_id, source_case in source_cases.items():
+                native = source_case["fixture"].get("native_compaction_resume")
+                if native is None:
+                    continue
+                fixture_repo = Path(raw) / f"native-fixture-{case_id}"
+                fixture = corpus_engine.build_fixture(source_case, fixture_repo)
+                transition = corpus_engine.apply_post_compaction_transition(
+                    fixture_repo, native["post_compaction_transition"], fixture
+                )
+                native_fixture_evidence[case_id] = {
+                    "recovery_state": corpus_engine.expected_recovery_state(
+                        native, fixture, transition
+                    ),
+                    "post_compaction_transition_sha256": canonical_sha256(transition),
+                    "transition": transition,
+                }
+            native_evidence_oracles = {
+                case_id: {
+                    key: value for key, value in evidence.items() if key != "transition"
+                }
+                for case_id, evidence in native_fixture_evidence.items()
+            }
 
             def case_receipt(
                 case_id: str,
@@ -726,13 +759,7 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                 usage_phases = [copy.deepcopy(phase) for _ in range(phase_count)]
                 usage = {key: value * phase_count for key, value in phase.items()}
                 recovery_state = (
-                    {
-                        "baseline_revision": "a" * 40,
-                        "baseline_tree": "b" * 40,
-                        "current_revision": "c" * 40,
-                        "current_tree": "d" * 40,
-                        **copy.deepcopy(native["recovery_oracle"]),
-                    }
+                    copy.deepcopy(native_fixture_evidence[case_id]["recovery_state"])
                     if native
                     else None
                 )
@@ -827,8 +854,13 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                         "before_resume": copy.deepcopy(compaction_phase),
                         "compaction_event_count": 1,
                         "resumed_same_thread": True,
-                        "post_compaction_transition": {},
-                        "after_resume": copy.deepcopy(compaction_phase),
+                        "post_compaction_transition": copy.deepcopy(
+                            native_fixture_evidence[case_id]["transition"]
+                        ),
+                        "after_resume": {
+                            **copy.deepcopy(compaction_phase),
+                            "rollout_sha256": "6" * 64,
+                        },
                         "fresh_control": {
                             "thread_id": "fresh-thread",
                             "distinct_from_resumed_task": True,
@@ -1024,6 +1056,14 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
             anchored_case["result"]["finding_classifications"] = []
             anchored_case["result"]["blocker_classifications"] = []
 
+            missing_goal_pause_handoff = copy.deepcopy(corpus_summary)
+            goal_case = next(
+                item
+                for item in missing_goal_pause_handoff["cases"]
+                if item["id"] == "goal-divergence"
+            )
+            goal_case["result"]["goal_pause_handoff_present"] = False
+
             corpus_false_greens = (
                 (
                     "missing-native-recovery",
@@ -1061,6 +1101,11 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                     missing_required_anchors,
                     "anchor|blocker|oracle",
                 ),
+                (
+                    "missing-goal-pause-handoff",
+                    missing_goal_pause_handoff,
+                    "Goal-pause|handoff|oracle",
+                ),
             )
             for label, false_green, expected_error in corpus_false_greens:
                 with self.subTest(corpus_false_green=label):
@@ -1071,6 +1116,7 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                             {
                                 "engine": engine_identity,
                                 "corpus_cases": source_cases,
+                                "native_evidence_oracles": native_evidence_oracles,
                             },
                             authority,
                         )
@@ -1209,6 +1255,7 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                 "corpus_semantic_sha256": shared_semantic,
                 "engine": engine_identity,
                 "holdout_descriptors": descriptors,
+                "native_evidence_oracles": native_evidence_oracles,
             }
             authentic_better = copy.deepcopy(holdout_summary)
             authentic_better["adaptive_history"] = ["better", "better"]

@@ -4,7 +4,7 @@
     "basis": "HappyCodex 0.3 v21 candidate corpus and v23 adaptive holdout receipts",
     "corpus": {
       "combined_tokens": 498708,
-      "live_calls": 14,
+      "live_calls": 16,
       "wall_seconds": 2429.409
     },
     "holdout": {
@@ -27,8 +27,8 @@
         "minimum": 585209
       },
       "live_calls": {
-        "maximum": 20,
-        "minimum": 18
+        "maximum": 22,
+        "minimum": 20
       },
       "wall_seconds": {
         "maximum": 3187.085,
@@ -95,13 +95,13 @@
     },
     "engine": {
       "categories": {
-        "artifact": "e1a7afcd992d08314039184c007b3ded8478eb52ebcb32c8fb149038c0cc8de9",
-        "harness": "3c19af7994fb19a9be8eb35518a8c2c59597ab77fd18c5db456b2a01273052b3",
+        "artifact": "1f436ec7d5df19780edf0226709880054f3cf5a7ea85b8ec9605efe28e1933fb",
+        "harness": "6e1d99f822a508559a5766ad8875f08dbf0dcc8a9c3a8b0f85522281d3e4a12e",
         "semantic": "8f73619db63d7d64b934a9e70c627756bda8ea39978dbb7a9d42d37f65e29477"
       },
-      "manifest_sha256": "f7a8e8b4c5dc95faa85c93698a777d1ff69eb4646e1248cb7c6fda9003260d6a",
+      "manifest_sha256": "80b98910ea8834d9fbbf4f6cddb002667b9b8db1545548f53687b10ebfc96132",
       "scopes": {
-        "corpus_harness": "764fd320b7fb694c88a0a06921e5034e40e33c5560f5f6b164f1828f166c9b1c",
+        "corpus_harness": "7e05f53d7e6517ed9d204334f77562eb2f568deca50bfc9cb413a844ff440a9d",
         "holdout_harness": "0ad1754b7881c28064832b4d984d556351fb8771d9c279a233bd1fd41eb7531b",
         "holdout_semantic": "0da4c74d2f524d4511f39331b3754301638f5e23d0f097b38b61b94d102dae58"
       }
