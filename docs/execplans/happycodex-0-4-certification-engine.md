@@ -748,6 +748,48 @@ the partially repaired validator, the focused command above reports exactly thre
 ledger/test repair only: no Skill, manifest, case oracle, runner, evaluator, model,
 network, Fable, install, or live authority changed.
 
+## Seventh nested-receipt repair green
+
+Certification now loads the exact successor corpus descriptors and uses each case to
+bind the expected phase count and preserved oracle permission projection. Passed
+native evidence requires three non-negative usage phases; exact primary and fresh
+result/recovery envelopes; a sanitizer-shaped compaction receipt whose event counts
+agree with its event list; distinct and internally consistent primary, resume, and
+fresh thread digests; and equivalent primary/fresh recovery permission gates.
+Ordinary cases require one phase and reject native/fresh-control material.
+
+Installation receipts require their exact sanitizer fields, equal source/installed
+Skill digests, and source/installed package manifests equal to the authorized arm.
+Isolation receipts require every visible static policy value plus the exact digest
+of the complete runner policy including normalized case workspace/tool roots.
+Result and recovery receipts reject truncated fields, invalid output-schema enums,
+duplicate blocker identities, contradictory completion projections, and case-oracle
+permission mismatches. The seven independent false-green mutations and both
+authentic holdout paths now pass the focused test.
+
+The focused certification module passes 30/30 in 4.730 seconds and the cumulative
+suite passes 114/114 in 6.100 seconds. Both official validators, Ruff check and
+format-check over 19 files, verify/impact, both dry-runs, all 21 JSON documents,
+working-tree diff hygiene, and package preservation pass. Current identities are
+engine `f7a8e8b4c5dc95faa85c93698a777d1ff69eb4646e1248cb7c6fda9003260d6a`,
+snapshot `a4d9a22b9237b982791d47e1425d4c54a6ac563341fc82c2b7087113177e17d2`,
+ledger `355938448c26de624fc8bf7b51de6617395cfa1c2e780b4b18f5d3b20f8555c3`,
+and impact token
+`04e734cd65c8b2220be5ad4c754c143096634cebbdc634a9f8d531c253be397b`.
+The shipped package remains
+`0c83dbc694cb98bf811dd2d1c199b5d2aa734c484476a638884e775289c1d934`.
+
+An isolated archive of frozen public commit
+`3b9c11fac1f97df75263e0bfc6421c575e04e8b2` reproduces semantic
+`fb3cb419795a6edcb284695769b5487b1f23ae46286c5fceba8042fcb41f9ce4`
+and artifact
+`77a0b2b8f7f6280d6ed32458fc61ca110f7138b5b6c17ad55d333a023dfa8c89`;
+public-bound impact contains only corpus and holdout invocation descriptors and is
+authority-ready. Live authority remains null, and exact cost remains 18-to-20 calls,
+585,209-to-637,027 combined tokens, and 2,911.874-to-3,187.085 seconds. The archive
+was removed. No Skill, manifest, case oracle, runner, evaluator, model, network,
+Fable, install, publication, or external mutation ran.
+
 ## Validation envelope
 
 Candidate offline commands, exact live-run costs, required reruns, and review launch
@@ -757,24 +799,23 @@ publication requires a later explicit user request.
 
 ## Checkpoint
 
-- Milestone: the seventh review returned `NOT-YET` with one accepted case-specific
-  nested-receipt blocker; focused RED and bounded repair remain open.
+- Milestone: the seventh review's accepted case-specific nested-receipt blocker and
+  Root's three same-class supplemental projections are repaired and offline-green;
+  the eighth fresh exact review remains open.
 - Goal: active `019f780e-925e-7193-8bd2-0a04d6efe31e`; its objective is the
   Normalized Outcome plus all frozen preservation, exclusion, offline validation, and
   live-cost gates in this document.
-- RED: all architecture and seven review rounds are persisted above; a native case
-  currently certifies with an ordinary one-phase minimal receipt.
-- Next: generate the positive fixture through the production sanitizer, add the exact
-  case-specific RED, repair nested receipt validation, rerun a clean detached clone,
-  and launch an eighth fresh exact review. A green review still stops
-  at the explicit
-  maximum-cost user decision before authority or live calls.
+- RED/GREEN: all architecture, seven review rounds, seven nested false-green probes,
+  and the exact offline repair envelope are persisted above.
+- Next: freeze the repair commit, reproduce it in a clean detached clone, then launch
+  an eighth fresh exact review. A green review still stops at the explicit maximum-
+  cost user decision before authority or live calls.
 - Product/support writes: support-only paths remain open; shipped-package paths remain
   closed.
 - Owned paths: `evaluation/`, `tests/`, `AGENTS.md`, and this ExecPlan; shipped-package
   paths remain closed.
-- Missing facts: final repair and seventh-review identities, explicit user cost
-  decision, and live successor receipts.
+- Missing facts: eighth-review terminal receipt, explicit user cost decision, and
+  live successor receipts.
 
 ## Retrospective
 

@@ -25,7 +25,13 @@ from evaluation.core.impact import (
     validate_impact,
     validate_snapshot,
 )
-from evaluation.corpus.contract import PUBLIC_02_PACKAGE_ARTIFACT_SHA256
+from evaluation.corpus.contract import (
+    BLOCKER_CLASSES,
+    FILESYSTEM_ISOLATION_POLICY,
+    PERMISSION_FIELDS,
+    PUBLIC_02_PACKAGE_ARTIFACT_SHA256,
+    RECOVERY_GATE_FIELDS,
+)
 from evaluation.holdout.compare import (
     adaptive_next,
     aggregate_quality,
@@ -175,6 +181,139 @@ HOLDOUT_SUMMARY_FIELDS = {
     "pair_receipts",
     "cost_gate",
 }
+INSTALLATION_RECEIPT_FIELDS = {
+    "source_skill_sha256",
+    "installed_skill_sha256",
+    "source_package_manifest_sha256",
+    "installed_package_manifest_sha256",
+    "plugin_sha256",
+}
+FILESYSTEM_RECEIPT_FIELDS = {
+    "mechanism",
+    "profile",
+    "default_access",
+    "workspace",
+    "nonworkspace",
+    "native_tools",
+    "network",
+    "selection",
+    "policy_sha256",
+}
+RESULT_RECEIPT_FIELDS = {
+    "result_sha256",
+    *PERMISSION_FIELDS,
+    "finding_classifications",
+    "blocker_classifications",
+    "open_gates_count",
+    "open_gates_sha256",
+    "evidence_count",
+    "evidence_sha256",
+    "reason_sha256",
+    "recovery_state",
+}
+FINDING_RECEIPT_FIELDS = {
+    "identity_sha256",
+    "domain",
+    "state",
+    "anchors_count",
+    "anchors_sha256",
+}
+BLOCKER_RECEIPT_FIELDS = {
+    "identity_sha256",
+    "class",
+    "blocking",
+    "reason_sha256",
+}
+RECOVERY_RECEIPT_FIELDS = {
+    "recovery_state_sha256",
+    "baseline_revision",
+    "baseline_tree",
+    "current_revision",
+    "current_tree",
+    "writer",
+    "milestone_phase",
+    "next_action",
+    "pending_gates",
+    "tests",
+    "worktree",
+    "live_agents",
+    "marker_ids_count",
+    "marker_ids_sha256",
+}
+RECOVERY_TEST_FIELDS = {
+    "passed",
+    "failed",
+    "accepted_failures",
+    "marker_ids_count",
+    "marker_ids_sha256",
+}
+RECOVERY_AGENT_FIELDS = {"id_sha256", "status", "receipt_reproduced"}
+COMPACTION_PHASE_FIELDS = {
+    "phase_sha256",
+    "rollout_path_sha256",
+    "rollout_sha256",
+    "compaction_event_count",
+    "context_compacted_marker_count",
+    "event_types",
+    "rollout_match_count",
+}
+NATIVE_COMPACTION_FIELDS = {
+    "native_compaction_sha256",
+    "auto_compact_token_limit",
+    "compaction_event_count",
+    "resumed_same_thread",
+    "before_resume",
+    "after_resume",
+    "post_compaction_transition_sha256",
+    "fresh_control",
+}
+FRESH_CONTROL_FIELDS = {
+    "fresh_control_sha256",
+    "thread_id_sha256",
+    "distinct_from_resumed_task",
+    "no_resume_handle",
+    "no_conversation_summary",
+    "prompt_sha256",
+    "equivalent_gate_fields",
+    "allowed_label_differences_sha256",
+}
+RECOVERY_WRITERS = {"Root", "unknown"}
+RECOVERY_PHASES = {
+    "bootstrap",
+    "boundary_investigation",
+    "boundary_union_reproduced",
+    "contract_frozen",
+    "implementation",
+    "review",
+    "release",
+    "complete",
+    "unknown",
+}
+RECOVERY_ACTIONS = {
+    "ask_user",
+    "create_execplan",
+    "complete_boundary_union",
+    "create_contract_freeze_revision",
+    "observe_red",
+    "implement",
+    "run_checks",
+    "review",
+    "release",
+    "none",
+    "unknown",
+}
+RECOVERY_PENDING_GATES = {
+    "user_selection",
+    "contract_freeze",
+    "red_oracle",
+    "product_edit",
+    "checks",
+    "review",
+    "release",
+}
+RECOVERY_WORKTREE_STATES = {"clean", "dirty", "unknown"}
+RECOVERY_AGENT_STATES = {"pending", "terminal", "missing"}
+COMPACTION_EVENT_TYPES = {"compacted", "context_compacted"}
 
 
 def _require_digest(value: Any, *, length: int, label: str) -> None:
@@ -392,6 +531,14 @@ def _validate_source_identity(
             validate_ledger(source_ledger, repo=root)
         except (OSError, ValueError) as exc:
             raise ValueError("invalid certification source authority ledger") from exc
+        try:
+            from evaluation.corpus.engine import load_cases
+
+            corpus_cases = load_cases(root / "evaluation" / "cases")
+        except (OSError, ValueError) as exc:
+            raise ValueError("invalid certification successor corpus") from exc
+        if set(corpus_cases) != set(snapshot["corpus"]["cases"]):
+            raise ValueError("certification successor corpus scope mismatch")
         manifest_path = root / "evaluation" / "holdouts" / "manifest.json"
         try:
             manifest = json.loads(manifest_path.read_bytes())
@@ -448,6 +595,7 @@ def _validate_source_identity(
                 "semantic",
                 paths={"evaluation/corpus/contract.py"},
             ),
+            "corpus_cases": corpus_cases,
             "holdout_manifest_sha256": sha256_bytes(manifest_path.read_bytes()),
             "holdout_pair_order": pair_order,
             "holdout_descriptors": descriptors,
@@ -577,11 +725,318 @@ def _validate_coverage(
     return evidence_fields, carries_prior
 
 
+def _nonnegative_int(value: Any) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool) and value >= 0
+
+
+def _validate_recovery_receipt(value: Any, *, label: str) -> None:
+    if not isinstance(value, dict) or set(value) != RECOVERY_RECEIPT_FIELDS:
+        raise ValueError(f"invalid {label} recovery receipt")
+    _require_digest(
+        value.get("recovery_state_sha256"), length=64, label=f"{label} recovery"
+    )
+    for field in (
+        "baseline_revision",
+        "baseline_tree",
+        "current_revision",
+        "current_tree",
+    ):
+        _require_digest(value.get(field), length=40, label=f"{label} recovery {field}")
+    pending_gates = value.get("pending_gates")
+    if (
+        value.get("writer") not in RECOVERY_WRITERS
+        or value.get("milestone_phase") not in RECOVERY_PHASES
+        or value.get("next_action") not in RECOVERY_ACTIONS
+        or value.get("worktree") not in RECOVERY_WORKTREE_STATES
+        or not isinstance(pending_gates, list)
+        or any(gate not in RECOVERY_PENDING_GATES for gate in pending_gates)
+    ):
+        raise ValueError(f"invalid {label} recovery receipt")
+    tests = value.get("tests")
+    if not isinstance(tests, dict) or set(tests) != RECOVERY_TEST_FIELDS:
+        raise ValueError(f"invalid {label} recovery tests receipt")
+    if any(
+        not _nonnegative_int(tests.get(field))
+        for field in ("passed", "failed", "accepted_failures", "marker_ids_count")
+    ):
+        raise ValueError(f"invalid {label} recovery tests receipt")
+    _require_digest(
+        tests.get("marker_ids_sha256"),
+        length=64,
+        label=f"{label} recovery test markers",
+    )
+    agents = value.get("live_agents")
+    if not isinstance(agents, list):
+        raise ValueError(f"invalid {label} recovery agents receipt")
+    for agent in agents:
+        if (
+            not isinstance(agent, dict)
+            or set(agent) != RECOVERY_AGENT_FIELDS
+            or agent.get("status") not in RECOVERY_AGENT_STATES
+            or not isinstance(agent.get("receipt_reproduced"), bool)
+        ):
+            raise ValueError(f"invalid {label} recovery agent receipt")
+        _require_digest(
+            agent.get("id_sha256"), length=64, label=f"{label} recovery agent"
+        )
+    if not _nonnegative_int(value.get("marker_ids_count")):
+        raise ValueError(f"invalid {label} recovery marker receipt")
+    _require_digest(
+        value.get("marker_ids_sha256"),
+        length=64,
+        label=f"{label} recovery markers",
+    )
+
+
+def _validate_result_receipt(
+    value: Any,
+    *,
+    label: str,
+    required: bool,
+    recovery_required: bool | None,
+    expected_permissions: dict[str, Any] | None = None,
+) -> dict[str, Any] | None:
+    if value is None:
+        if required:
+            raise ValueError(f"missing {label} result receipt")
+        return None
+    if not isinstance(value, dict) or set(value) != RESULT_RECEIPT_FIELDS:
+        raise ValueError(f"invalid {label} result receipt")
+    for field in (
+        "result_sha256",
+        "open_gates_sha256",
+        "evidence_sha256",
+        "reason_sha256",
+    ):
+        _require_digest(value.get(field), length=64, label=f"{label} result {field}")
+    if (
+        value.get("decision")
+        not in {"continue", "stop_for_user", "complete", "incomplete"}
+        or not isinstance(value.get("qualifies"), bool)
+        or value.get("execplan_condition")
+        not in {"not_required", "missing", "usable", "needs_amendment"}
+        or any(
+            not isinstance(value.get(field), bool)
+            for field in (
+                "protocol_may_product_write",
+                "protocol_may_review",
+                "protocol_may_complete",
+            )
+        )
+        or not _nonnegative_int(value.get("open_gates_count"))
+        or not _nonnegative_int(value.get("evidence_count"))
+    ):
+        raise ValueError(f"invalid {label} result receipt")
+    findings = value.get("finding_classifications")
+    blockers = value.get("blocker_classifications")
+    if not isinstance(findings, list) or not isinstance(blockers, list):
+        raise ValueError(f"invalid {label} result classifications")
+    for finding in findings:
+        if (
+            not isinstance(finding, dict)
+            or set(finding) != FINDING_RECEIPT_FIELDS
+            or finding.get("domain")
+            not in {"secret", "baseline_failure", "receipt", "other"}
+            or finding.get("state")
+            not in {"baseline_unchanged", "resolved", "candidate_new", "unknown"}
+            or not _nonnegative_int(finding.get("anchors_count"))
+        ):
+            raise ValueError(f"invalid {label} result finding receipt")
+        for field in ("identity_sha256", "anchors_sha256"):
+            _require_digest(
+                finding.get(field), length=64, label=f"{label} finding {field}"
+            )
+    for blocker in blockers:
+        if (
+            not isinstance(blocker, dict)
+            or set(blocker) != BLOCKER_RECEIPT_FIELDS
+            or blocker.get("class") not in BLOCKER_CLASSES
+            or not isinstance(blocker.get("blocking"), bool)
+        ):
+            raise ValueError(f"invalid {label} result blocker receipt")
+        for field in ("identity_sha256", "reason_sha256"):
+            _require_digest(
+                blocker.get(field), length=64, label=f"{label} blocker {field}"
+            )
+    blocker_identities = [item["identity_sha256"] for item in blockers]
+    if len(set(blocker_identities)) != len(blocker_identities):
+        raise ValueError(f"invalid {label} duplicate blocker receipt")
+    if expected_permissions is not None:
+        for field in PERMISSION_FIELDS:
+            allowed = expected_permissions.get(field)
+            allowed = allowed if isinstance(allowed, list) else [allowed]
+            if value.get(field) not in allowed:
+                raise ValueError(f"invalid {label} oracle permission receipt")
+    completion_claimed = (
+        value["decision"] == "complete" or value["protocol_may_complete"] is True
+    )
+    if completion_claimed and (
+        value["decision"] != "complete"
+        or value["protocol_may_complete"] is not True
+        or value["open_gates_count"] != 0
+        or any(item["blocking"] is True for item in blockers)
+        or any(item["state"] in {"candidate_new", "unknown"} for item in findings)
+    ):
+        raise ValueError(f"invalid {label} completion receipt")
+    recovery = value.get("recovery_state")
+    if recovery_required is True:
+        _validate_recovery_receipt(recovery, label=label)
+    elif recovery_required is False:
+        if recovery is not None:
+            raise ValueError(f"unexpected {label} recovery receipt")
+    elif recovery is not None:
+        _validate_recovery_receipt(recovery, label=label)
+    return value
+
+
+def _validate_compaction_phase(value: Any, *, label: str) -> None:
+    if not isinstance(value, dict) or set(value) != COMPACTION_PHASE_FIELDS:
+        raise ValueError(f"invalid native compaction {label} receipt")
+    for field in ("phase_sha256", "rollout_path_sha256", "rollout_sha256"):
+        _require_digest(value.get(field), length=64, label=f"native {label} {field}")
+    event_types = value.get("event_types")
+    if (
+        any(
+            not _nonnegative_int(value.get(field))
+            for field in (
+                "compaction_event_count",
+                "context_compacted_marker_count",
+                "rollout_match_count",
+            )
+        )
+        or not isinstance(event_types, list)
+        or any(event not in COMPACTION_EVENT_TYPES for event in event_types)
+        or value["compaction_event_count"] != event_types.count("compacted")
+        or value["context_compacted_marker_count"]
+        != event_types.count("context_compacted")
+        or value["rollout_match_count"] != 1
+        or value["compaction_event_count"] < 1
+    ):
+        raise ValueError(f"invalid native compaction {label} receipt")
+
+
+def _validate_native_compaction(
+    value: Any,
+    *,
+    case: dict[str, Any],
+    receipt: dict[str, Any],
+    result: dict[str, Any] | None,
+    fresh_result: dict[str, Any] | None,
+) -> None:
+    native = case["fixture"].get("native_compaction_resume")
+    if native is None:
+        if value is not None:
+            raise ValueError("unexpected native compaction receipt")
+        return
+    if not isinstance(value, dict) or set(value) != NATIVE_COMPACTION_FIELDS:
+        raise ValueError("missing or invalid native compaction receipt")
+    for field in (
+        "native_compaction_sha256",
+        "post_compaction_transition_sha256",
+    ):
+        _require_digest(value.get(field), length=64, label=f"native {field}")
+    if (
+        value.get("auto_compact_token_limit") != native["auto_compact_token_limit"]
+        or not _nonnegative_int(value.get("compaction_event_count"))
+        or value["compaction_event_count"] < 1
+        or value.get("resumed_same_thread") is not True
+    ):
+        raise ValueError("invalid native compaction receipt")
+    _validate_compaction_phase(value.get("before_resume"), label="before-resume")
+    _validate_compaction_phase(value.get("after_resume"), label="after-resume")
+    if (
+        value["compaction_event_count"]
+        != value["before_resume"]["compaction_event_count"]
+    ):
+        raise ValueError("invalid native compaction count receipt")
+    fresh = value.get("fresh_control")
+    if not isinstance(fresh, dict) or set(fresh) != FRESH_CONTROL_FIELDS:
+        raise ValueError("missing or invalid native fresh-control receipt")
+    for field in (
+        "fresh_control_sha256",
+        "thread_id_sha256",
+        "prompt_sha256",
+        "allowed_label_differences_sha256",
+    ):
+        _require_digest(value=fresh.get(field), length=64, label=f"native {field}")
+    if (
+        fresh.get("distinct_from_resumed_task") is not True
+        or fresh.get("no_resume_handle") is not True
+        or fresh.get("no_conversation_summary") is not True
+        or fresh.get("equivalent_gate_fields")
+        != [*sorted(RECOVERY_GATE_FIELDS), "recovery_state"]
+    ):
+        raise ValueError("invalid native fresh-control receipt")
+    primary_thread = receipt["thread_id_sha256"]
+    resume_thread = receipt["resume_thread_id_sha256"]
+    fresh_thread = receipt["fresh_recovery_thread_id_sha256"]
+    missing_thread = sha256_bytes(b"None")
+    if (
+        primary_thread == missing_thread
+        or resume_thread != primary_thread
+        or fresh_thread == missing_thread
+        or fresh_thread == primary_thread
+        or fresh["thread_id_sha256"] != fresh_thread
+    ):
+        raise ValueError("invalid native thread-control receipt")
+    if (
+        result is None
+        or fresh_result is None
+        or any(result[field] != fresh_result[field] for field in RECOVERY_GATE_FIELDS)
+    ):
+        raise ValueError("invalid native recovery-control receipt")
+    allowed_differences = {
+        field: [result[field], fresh_result[field]]
+        for field in ("decision", "execplan_condition")
+        if result[field] != fresh_result[field]
+    }
+    if fresh["allowed_label_differences_sha256"] != canonical_sha256(
+        allowed_differences
+    ):
+        raise ValueError("invalid native recovery-control labels receipt")
+
+
+def _validate_installation_receipt(
+    value: Any, *, package: dict[str, str], case_id: str
+) -> None:
+    if not isinstance(value, dict) or set(value) != INSTALLATION_RECEIPT_FIELDS:
+        raise ValueError(f"invalid corpus evidence installation: {case_id}")
+    for field in INSTALLATION_RECEIPT_FIELDS:
+        _require_digest(value.get(field), length=64, label=f"case installation {field}")
+    if (
+        value["source_skill_sha256"] != value["installed_skill_sha256"]
+        or value["source_package_manifest_sha256"] != package["artifact_sha256"]
+        or value["installed_package_manifest_sha256"] != package["artifact_sha256"]
+    ):
+        raise ValueError(f"corpus evidence installation mismatch: {case_id}")
+
+
+def _validate_isolation_receipt(value: Any, *, case_id: str) -> None:
+    if not isinstance(value, dict) or set(value) != FILESYSTEM_RECEIPT_FIELDS:
+        raise ValueError(f"invalid corpus evidence isolation: {case_id}")
+    expected = {
+        field: FILESYSTEM_ISOLATION_POLICY[field]
+        for field in FILESYSTEM_RECEIPT_FIELDS - {"policy_sha256"}
+    }
+    if any(value.get(field) != expected[field] for field in expected):
+        raise ValueError(f"corpus evidence isolation mismatch: {case_id}")
+    expected_policy_sha256 = canonical_sha256(
+        {
+            **FILESYSTEM_ISOLATION_POLICY,
+            "workspace_root": "<case-temp>/repo",
+            "native_tool_root": "<case-temp>/bin",
+        }
+    )
+    if value.get("policy_sha256") != expected_policy_sha256:
+        raise ValueError(f"corpus evidence isolation policy mismatch: {case_id}")
+
+
 def _validate_case_identity(
     receipt: Any,
     snapshot: dict[str, Any],
     case_id: str,
     *,
+    case: dict[str, Any],
     expected_passed: bool = True,
     semantic_sha256: str,
     package: dict[str, str],
@@ -594,6 +1049,8 @@ def _validate_case_identity(
         or receipt.get("schema_version") != 1
         or receipt.get("engine_generation") != "0.4"
         or receipt.get("id") != case_id
+        or not isinstance(case, dict)
+        or case.get("id") != case_id
     ):
         raise ValueError("invalid corpus evidence case")
     passed = receipt.get("passed")
@@ -633,19 +1090,9 @@ def _validate_case_identity(
         "fresh_recovery_thread_id_sha256",
     ):
         _require_digest(receipt.get(field), length=64, label=f"case {field}")
-    installation = receipt.get("installation")
-    if not isinstance(installation, dict) or any(
-        installation.get(field) != package["artifact_sha256"]
-        for field in (
-            "source_package_manifest_sha256",
-            "installed_package_manifest_sha256",
-        )
-    ):
-        raise ValueError(f"corpus evidence installation mismatch: {case_id}")
-    for field in ("source_skill_sha256", "installed_skill_sha256"):
-        _require_digest(
-            installation.get(field), length=64, label=f"case installation {field}"
-        )
+    _validate_installation_receipt(
+        receipt.get("installation"), package=package, case_id=case_id
+    )
     failures = receipt.get("oracle_failures")
     if expected_passed:
         if failures != {"count": 0, "sha256": canonical_sha256([])}:
@@ -668,10 +1115,12 @@ def _validate_case_identity(
     usage = receipt.get("usage")
     phases = receipt.get("usage_phases")
     required_usage = {"input_tokens", "cached_input_tokens", "output_tokens"}
+    native = case["fixture"].get("native_compaction_resume") is not None
+    expected_phases = 3 if native else 1
     if (
         not isinstance(usage, dict)
         or not isinstance(phases, list)
-        or not phases
+        or len(phases) != expected_phases
         or any(
             not isinstance(phase, dict)
             or not required_usage.issubset(phase)
@@ -696,10 +1145,33 @@ def _validate_case_identity(
         or uncached != usage["input_tokens"] - usage["cached_input_tokens"]
     ):
         raise ValueError(f"invalid corpus evidence telemetry: {case_id}")
-    for field in ("result", "fresh_recovery_result", "native_compaction"):
-        nested = receipt.get(field)
-        if nested is not None and not isinstance(nested, dict):
-            raise ValueError(f"invalid nested receipt evidence telemetry: {case_id}")
+    expected_permissions = case["oracle"]["expected"] if expected_passed else None
+    result_receipt = _validate_result_receipt(
+        receipt.get("result"),
+        label=f"case {case_id}",
+        required=expected_passed,
+        recovery_required=True if native and expected_passed else None,
+        expected_permissions=expected_permissions,
+    )
+    fresh_result_receipt = None
+    if native:
+        fresh_result_receipt = _validate_result_receipt(
+            receipt.get("fresh_recovery_result"),
+            label=f"case {case_id} fresh recovery",
+            required=expected_passed,
+            recovery_required=True if expected_passed else None,
+            expected_permissions=expected_permissions,
+        )
+    elif receipt.get("fresh_recovery_result") is not None:
+        raise ValueError(f"unexpected fresh recovery result receipt: {case_id}")
+    _validate_native_compaction(
+        receipt.get("native_compaction"),
+        case=case,
+        receipt=receipt,
+        result=result_receipt,
+        fresh_result=fresh_result_receipt,
+    )
+    _validate_isolation_receipt(receipt.get("filesystem_isolation"), case_id=case_id)
     if (
         not isinstance(receipt.get("exit_code"), int)
         or isinstance(receipt.get("exit_code"), bool)
@@ -710,7 +1182,6 @@ def _validate_case_identity(
         or not isinstance(uncached, int)
         or isinstance(uncached, bool)
         or uncached < 0
-        or not isinstance(receipt.get("filesystem_isolation"), dict)
     ):
         raise ValueError(f"invalid corpus evidence telemetry: {case_id}")
 
@@ -754,6 +1225,7 @@ def _validate_corpus_summary(
             by_id[case_id],
             snapshot,
             case_id,
+            case=source.get("corpus_cases", {}).get(case_id),
             semantic_sha256=snapshot["corpus"]["cases"][case_id],
             package=snapshot["package"],
             engine=source["engine"],
@@ -848,6 +1320,7 @@ def _validate_arm_identity(
         receipt,
         snapshot,
         descriptor["case"]["id"],
+        case=descriptor["case"],
         expected_passed=expected_passed,
         semantic_sha256=semantic_sha256,
         package=package,
