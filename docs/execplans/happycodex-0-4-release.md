@@ -3,8 +3,9 @@
 Protocol: `HappyCodex/0.3`
 Invocation: `$happycodex:happycodex`
 Writer: Root only
-State: repaired canonical live authority received and validated; authority-bearing
-source commit is the next boundary, then the one authorized corpus attempt
+State: second authorized corpus stopped on a confirmed stale-positive
+`review-admin-cycle` fixture; evaluator-fixture repair authorization is required
+before any semantic edit or new live-cost request
 Resume: read this entire file, the completed 0.4 certification-engine and main-
 integration ExecPlans, then reconcile Goal, Git, tests, evidence, installations,
 remote refs, and agents before any write, review, live call, or completion claim.
@@ -331,6 +332,75 @@ and authority-bearing ledger SHA-256 is
 `ec4dd7e3bb3069a57bc0212024b041145d8ae4cbddc7364b0aa61335862dca75`.
 No model call ran before this exact receipt was persisted.
 
+## Second authorized corpus attempt
+
+The repaired authority-bearing boundary was committed first at
+`fcae3db37752cc22232ef36d24f2dbde5078fc41`. The official corpus CLI then ran the
+complete bound candidate scope with explicit Codex CLI `0.144.4`; raw output stayed
+external at `/tmp/happycodex-0.4-repaired-live.cRiMSg/corpus`. Eleven cases reached a
+durable terminal, representing thirteen model calls because `pre-freeze-compaction`
+uses three calls. Ten passed. In particular, the repaired `compaction-recovery` case
+now separately returned `fixture-17` as `resolved` and `fixture-18` as
+`candidate_new`, with no oracle failure.
+
+`review-admin-cycle` returned exit zero without timeout after 184.581 seconds but
+failed three oracle fields: it returned `stop_for_user`, `needs_amendment`, and
+`protocol_may_complete=false` instead of `complete`, `usable`, and `true`. Its sole
+finding/blocker is `HC-REV-PRELAUNCH-1`: candidate revision
+`fa2855694799e539ea67f9e06b655d6be2815951` says review has not started, and the next
+reachable source revision is closure
+`c355b42c86567ad664806c6eba12e6d92668f653`; no intervening durable record persists
+the exact review command, candidate identity, and output destination before launch.
+The terminal output ref cannot retroactively prove that ordering.
+
+Failed metadata, events, stderr, and production-sanitized receipt SHA-256 values are
+respectively
+`874cbecc3aa3bdc9edc6ea9b96a9fb994d535a146e7527d750f0421a1d80bf54`,
+`adc06700f1e43fcbd869d9815cbbdf9239c9bb500796947f4f4adc69398a64c8`,
+`cf0ae50db8127341b253dee4a30351a4b6cbfebb55936b128656250fb9fdc7d1`,
+and `fbf7860c54a37b4c25bdcfe7c94c7254709a2d97deff0188b299ce45d25fcee5`.
+The exact semantic input SHA-256 is
+`928c5550a9b26635c73c17ff22ee3284e73d699d923bf514d554bbb226247cff`.
+
+Root independently reproduced the finding. The loaded Skill explicitly requires the
+command, candidate identity, and durable output destination to be persisted before
+reviewer launch. The fixture generator creates only baseline/candidate refs and a
+terminal output blob/ref; it creates no prelaunch receipt and records no exact launch
+command. The focused mechanical tests likewise prove terminal projection and closure
+properties but no review-predispatch revision. The positive oracle nevertheless
+requires completion. This is therefore a confirmed stale-positive fixture/oracle
+premise, not a 0.4 Skill regression, infrastructure error, or safe strict pass. No
+oracle weakening is justified.
+
+The runner had already announced `review-inventory-gate` before Root interrupted the
+batch. It produced no durable case file or terminal telemetry and may add one
+provider-side call of unknown cost. `review-isolation` and `subthreshold-control`
+never started. The thirteen terminal calls used 317,909 uncached input plus 65,228
+output tokens, 383,137 combined, over 1,763.240 aggregate seconds. No corpus summary
+was produced, and no holdout, review, install, version transition, activation, push,
+tag, PR, merge, or release action started.
+
+The current live authority is consumed by this failed attempt and cannot authorize a
+retry. The ten passing terminals and failed receipt are retained as diagnostic
+evidence but cannot certify the candidate: the official entry point requires the
+complete pending corpus scope, and there is neither a completed summary nor an older
+fully certified 0.4 ledger to continue from.
+
+The minimum honest repair is one semantic fixture correction in
+`evaluation/cases/review-admin-cycle.json`, plus a focused structural test: insert a
+real durable prelaunch revision recording the exact review command, candidate
+identity, and durable output destination before the separate terminal closure. Keep
+the Skill, positive oracle expectation, matcher, schema, runner/evaluator code,
+manifest, holdouts, and product package byte-identical. This repair is proposed, not
+authorized. Because it changes a semantic case identity and the current engine cannot
+resume a subset, the minimum executable refresh remains the complete sixteen-call
+corpus plus adaptive four-to-six-call holdout: 20 to 22 new model calls, an estimated
+585,209 to 637,027 combined tokens and 2,911.874 to 3,187.085 seconds, followed by a
+fresh exact-product review. A new exact request digest can be generated only after an
+authorized repair is offline GREEN and a fresh snapshot/impact/public binding is
+frozen. No fixture, oracle, runner, evaluator, holdout, or product edit and no model
+rerun begins before that user decision.
+
 ## Design saturation and frozen release sequence
 
 Fresh baseline-only challenger `/root/release_boundary_challenger_b` inspected only
@@ -416,8 +486,8 @@ review identity, public proof, rollback, and final GitHub delivery simultaneousl
 | --- | --- | --- | --- | --- |
 | R-01 | premise | Current remote `main`, local baseline, package, engine, snapshot, ledger, and public benchmark identities are independently reproduced before release work. | Fetch/readback plus offline identity commands; drift remains open. | verified |
 | R-02 | outcome | The exact current impact and historical-cost envelope are persisted, and no live helper runs without the canonical invocation-bound response. | Authority validation plus command audit; any early call falsifies. | verified for repaired authority |
-| R-03 | outcome | Exactly the authorized corpus and adaptive holdout scope completes and produces sanitized Git-reachable evidence that makes `current.json` validly `certified`. | CLI receipts, ledger validation, evidence ancestry, exact cost and scope reconciliation. | repair authorized; rerun not authorized |
-| R-04 | preservation | The repair changes only the explicitly authorized evaluator-case prompt and focused structural test; Skill, manifest behavior, fixture/oracle/matcher/schema, runner/evaluator code, and holdout semantics remain unchanged. | Exact source diff; any wider edit stops for user decision. | verified for repair |
+| R-03 | outcome | Exactly the authorized corpus and adaptive holdout scope completes and produces sanitized Git-reachable evidence that makes `current.json` validly `certified`. | CLI receipts, ledger validation, evidence ancestry, exact cost and scope reconciliation. | blocked by `HC-REV-PRELAUNCH-1`; repaired authority consumed |
+| R-04 | preservation | The repair changes only the explicitly authorized evaluator-case prompt and focused structural test; Skill, manifest behavior, fixture/oracle/matcher/schema, runner/evaluator code, and holdout semantics remain unchanged. | Exact source diff; any wider edit stops for user decision. | prompt repair verified; proposed fixture repair not authorized |
 | R-05 | outcome | Release edits are limited to strict-semver 0.4 version/cachebuster and accurate change-note/install metadata. | Product diff inventory and official validators. | open |
 | R-06 | outcome | Full offline suite, official validators, Ruff, CLI/JSON/diff/package hygiene, and fresh exact-product review close with `GO` and no material blocker. | Exact receipts and complete review coverage. | open |
 | R-07 | outcome | A clean isolated public marketplace install/invocation reports the exact 0.4 version and release identity. | Fresh-home install plus invocation receipt; source/cache mismatch falsifies. | open |
@@ -441,19 +511,23 @@ review identity, public proof, rollback, and final GitHub delivery simultaneousl
 4. Closed on 2026-07-19: the user returned the exact repaired canonical line and every
    binding reproduced before persistence. Commit the authority-bearing source before
    the first model call; any later drift reopens this gate.
+5. Open: `review-admin-cycle` exposed a stale-positive fixture premise. No evaluator
+   fixture/test edit may begin until the user explicitly authorizes the minimum repair
+   above. After an offline-GREEN repair, freeze a fresh snapshot, impact, public
+   binding, and exact cost request; the consumed authority cannot be reused.
 
 ## Checkpoint
 
-- Milestone: the repaired source is offline GREEN and exact live authority is
-  validated in the source ledger. Commit this authority-bearing boundary, then run the
-  one authorized corpus attempt into external raw output.
-- Product writes: only this authority-bearing ledger/ExecPlan persistence is allowed
-  before live execution. Skill, cases, tests, oracle, runner/evaluator, manifest, and
-  release metadata remain frozen.
-- Owned paths until the authority commit: `evaluation/results/current.json` and this
-  ExecPlan only; worktree must then be clean.
-- Missing facts: all repaired corpus/holdout evidence and every remaining
-  review/install/activation/rollback/publication receipt.
+- Milestone: the second authorized corpus stopped at the confirmed
+  `HC-REV-PRELAUNCH-1` stale-positive fixture. The failure receipt is durable; user
+  authorization for the minimum fixture repair is the next gate.
+- Product writes: only this administrative ExecPlan receipt is allowed before that
+  decision. Skill, cases, tests, oracle, runner/evaluator, manifest, ledger, holdouts,
+  and release metadata remain frozen.
+- Owned path: this ExecPlan only; commit the receipt and restore a clean worktree.
+- Missing facts: repair authorization, repaired offline evidence, a new exact live-cost
+  authority, complete corpus/holdout evidence, and every remaining review/install/
+  activation/rollback/publication receipt.
 
 ## Retrospective
 
