@@ -3,8 +3,9 @@
 Protocol: `HappyCodex/0.3`
 Invocation: `$happycodex:happycodex`
 Writer: Root only
-State: the exact live-certified ledger is applied and independently verified on the
-release branch; the next open gate is the metadata-only 0.4 artifact transition
+State: the exact live-certified ledger and metadata-only 0.4 transition are committed;
+the zero-live source is frozen, but the exact release-product offline suite failed
+closed on release-state-coupled test fixtures and awaits a separate minimal amendment
 Resume: read this entire file, the completed 0.4 certification-engine and main-
 integration ExecPlans, then reconcile Goal, Git, tests, evidence, installations,
 remote refs, and agents before any write, review, live call, or completion claim.
@@ -1989,8 +1990,8 @@ review identity, public proof, rollback, and final GitHub delivery simultaneousl
 | R-02 | outcome | The exact current impact and historical-cost envelope are persisted, and no live helper runs without the canonical invocation-bound response. | Authority validation plus command audit; any early call falsifies. | verified; exact authority persisted at `649261d` before the sole GREEN live sequence |
 | R-03 | outcome | Exactly the authorized corpus and adaptive holdout scope completes and produces sanitized Git-reachable evidence that makes `current.json` validly `certified`. | CLI receipts, ledger validation, evidence ancestry, exact cost and scope reconciliation. | verified and applied at `e0248b0` |
 | R-04 | preservation | Repairs change only their explicit amendments: the earlier case/fixture and holdout-policy slices, the current anchored-blocker prompt, focused tests, mechanical source ledger, and this plan. Skill, manifests, oracle/matcher/schema, runners/evaluator, unaffected cases, and shipped product remain unchanged. | Exact source diff; any wider edit stops for user decision. | verified through `f8ef025`; fresh review GO |
-| R-05 | outcome | Release edits are limited to strict-semver 0.4 version/cachebuster and accurate change-note/install metadata. | Product diff inventory and official validators. | open |
-| R-06 | outcome | Full offline suite, official validators, Ruff, CLI/JSON/diff/package hygiene, and fresh exact-product review close with `GO` and no material blocker. | Exact receipts and complete review coverage. | bounded repair GREEN/GO; later certified and release-product gates open |
+| R-05 | outcome | Release edits are limited to strict-semver 0.4 version/cachebuster and accurate change-note/install metadata. | Product diff inventory and official validators. | exact three-path metadata slice committed at `59e2eda`; validators pending |
+| R-06 | outcome | Full offline suite, official validators, Ruff, CLI/JSON/diff/package hygiene, and fresh exact-product review close with `GO` and no material blocker. | Exact receipts and complete review coverage. | blocked: first release-product suite was 113/123; minimum test-only amendment requires user authority |
 | R-07 | outcome | A clean isolated public marketplace install/invocation reports the exact 0.4 version and release identity. | Fresh-home install plus invocation receipt; source/cache mismatch falsifies. | open |
 | R-08 | outcome | Active local plugin upgrades to exact 0.4 through the official cachebuster/reinstall flow, with the exact prior 0.3 cache retained and a tested rollback command. | Plugin list/cache/install/readback and rollback proof. | open |
 | R-09 | outcome | Release branch, integration ref, tag/release, and remote source identities are published without force or branch deletion and read back exactly. | Push/API/`ls-remote` receipts; mismatch blocks completion. | open |
@@ -2051,24 +2052,39 @@ review identity, public proof, rollback, and final GitHub delivery simultaneousl
     product finding; review B kept the candidate byte-identical, completed official
     verify, and returned `GO` with zero material blocker. Exact reviewed ledger bytes
     were committed at `e0248b0` and independently re-verified.
+16. Failed closed on 2026-07-20: release metadata commit
+    `59e2eda23b00f057d92c75626c92a2e24303b783` set
+    `0.4.0+codex.20260720074523`; source commit
+    `7471d2d1f84ad6b43c52074a257f55d5301385c9` persisted semantic identity
+    `c5030e99...c05`, artifact `ace7f39f...497e`, null authority, and exact zero-call
+    `isolated_install`/`review` impact. The first permitted unit discovery ran 123
+    tests in 5.948 seconds and returned 113 pass, four failures, and six errors. All
+    ten failures are in `tests/test_certification_engine.py`: its fixtures still
+    consume the active ledger as a full-live state, hard-code the certified 0.3
+    artifact, and assume copied evidence directories do not yet exist. No live or
+    model process ran. Stop before changing this test oracle/fixture.
 
 ## Checkpoint
 
 - Milestone: exact request `ce5c87d...7c35c` produced one 14/14 corpus and one
   terminal `better/equal/better` holdout with release-permitted cost gate; evidence
   commit `26ab45d` and verified synthetic certified candidate `1707e12` are durable.
-  The release branch still carries the authority ledger until review returns `GO`.
-- Product/support writes: closed at the reviewed three-path slice. Skill, manifests,
-  oracle/matcher/schema, runners/evaluator, holdout, and shipped-package bytes remain
-  unchanged. Later release metadata stays closed until live certification succeeds.
+  Exact reviewed certification was applied at `e0248b0`; the later zero-live source
+  at `7471d2d` now carries null authority and no certification receipt.
+- Product/support writes: the allowed three-path release metadata slice is committed
+  at `59e2eda`; Skill, marketplace manifest, oracle/matcher/schema, runners/evaluator,
+  holdout, and runtime bytes remain unchanged. The test tree also remains unchanged
+  pending explicit authority for the failed-closed fixture amendment.
 - Retain prior raw diagnostics unchanged. Fresh public archive
   `/tmp/happycodex-anchored-blocker-public-0.2.Up71TN` is the frozen holdout input;
   current raw output is retained externally at
   `/tmp/happycodex-0.4-live.jKHXDa`; no evaluator child remains.
-- Missing fact: exact metadata/cachebuster identities and the null-authority,
-  zero-live artifact-transition impact. The certified application now permits that
-  metadata-only 0.4 transition, then isolated installs, active upgrade,
-  PR/merge/tag/release, and readback.
+- Missing fact: authority for the minimum release-state-independent test fixture
+  repair. Its rerun scope is the ten affected tests, then all 123 tests and the
+  already frozen zero-live offline envelope; it requires zero corpus/holdout calls
+  and zero behavior/holdout tokens, but candidate change requires one fresh Native
+  exact-product review. Install, active upgrade, PR/merge/tag/release, and readback
+  remain closed until that envelope is GREEN.
 
 ## Retrospective
 
