@@ -3,8 +3,9 @@
 Protocol: `HappyCodex/0.3`
 Invocation: `$happycodex:happycodex`
 Writer: Root only
-State: the authorized corpus is GREEN and the adaptive holdout is materially better,
-but its exact +34.1873% combined-token tradeoff requires a user decision; stop here
+State: the authorized corpus is GREEN and the adaptive holdout is materially better;
+the user-requested advisory Fable cost-baseline review is frozen for launch, while
+the exact certification-policy decision remains blocked
 Resume: read this entire file, the completed 0.4 certification-engine and main-
 integration ExecPlans, then reconcile Goal, Git, tests, evidence, installations,
 remote refs, and agents before any write, review, live call, or completion claim.
@@ -705,6 +706,62 @@ the frozen envelope, followed by the already-pending fresh exact-product review.
 Do not alter the Skill, manifest, case, oracle, runner, evaluator, schema, evidence,
 version, installation, or refs until the user chooses. Do not rerun unchanged live
 inputs under either option.
+
+## User-requested advisory Fable cost-baseline review
+
+Source: `current-task/user/fable-cost-baseline-review-and-goal-question`. Verbatim
+UTF-8 text plus final LF has SHA-256
+`142fe2b24197afcc52ecc862577a43bb21f65057e22d61c6884088f469ea7910`:
+
+```text
+好的让fable5 也看看，goal目标需要改吗
+```
+
+This adds one advisory Fable look at the stopped design decision. Per the loaded
+Skill, “看看” is advisory-once rather than a release completion gate. It does not
+reopen the excluded exact-final Fable gate, authorize an implementation, waive the
+cost/certified-ledger stop, amend or replace the Goal, permit a live evaluator call,
+or change any product/evidence byte. If unavailable, record the exact receipt and do
+not retry or substitute; the underlying user decision remains open.
+
+The review packet is neutral and self-contained. It asks Fable to compare the
+minimal policy clean break, a general confirmation mechanism, deeper evidence
+scoping, an exact one-off release amendment, and any smaller coherent alternative;
+to decide whether `public-0.2` is a behavior control or a valid incremental
+`0.4`-versus-`0.3` cost baseline; and to state whether the existing Goal should be
+unchanged, minimally amended, or replaced. It discloses the frozen policy/code
+relationship, exact product identity, both terminal live summaries, invalidation
+rules, and current rerun envelope, but no Root recommendation or prior answer.
+
+Launch record persisted before invocation:
+
+- source candidate `2daabefdb8ef2e4d08871a2c964b3e90566fa01d`, tree
+  `74f5e7fe5a861677a29ab88add7500a1a1e94a05`, and 49-entry product projection
+  excluding this plan
+  `1f496d3af2f7b30a2af729d2495e06a2a3db9434d0607fcfe520d5717c9bc03f`;
+- corpus/holdout summary SHA-256 values `c797f4bc...69d5` and
+  `9ddb451b...b5e9`;
+- exact Claude Code `2.1.211` executable SHA-256
+  `1fff7e8f947c07b19d10b1fbf714b7e547e9536253b9b58230d8adbc4624f867`;
+- requested session `211e4aa1-0a4b-45ba-9cdd-7ec4bd4b342b`, exact
+  `claude-fable-5` at `max`, safe/plan mode, no tools, customizations, slash
+  commands, session persistence, fallback, MCP, browser, or subagent;
+- prompt/schema SHA-256 values
+  `1b3ed6e2e0ab6866634e5b7c870c1c74605c66b1634fb8816a8106c7330a4419` /
+  `593baf84056b13a615d03b6d8dc031db43509d7bd70ed871007fb901a3f10469`;
+- durable external directory
+  `/tmp/happycodex-0.4-cost-baseline-fable-20260720a`, with prompt/schema and
+  terminal `events.jsonl` / `stderr.txt` destinations.
+
+The exact command is:
+
+```text
+claude --print --model claude-fable-5 --effort max --safe-mode --permission-mode plan --tools "" --disable-slash-commands --no-session-persistence --session-id 211e4aa1-0a4b-45ba-9cdd-7ec4bd4b342b --output-format stream-json --verbose --json-schema "$(jq -c . schema.json)" < prompt.md > events.jsonl 2> stderr.txt
+```
+
+The response may advise the user and Root but cannot by itself change the Goal or
+the frozen release contract. Root must reproduce any decision-changing claim before
+proposing an amendment or write.
 
 ## Design saturation and frozen release sequence
 
