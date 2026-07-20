@@ -2713,6 +2713,49 @@ JSON remain external with SHA-256 values
 and `bb02868430fbfe5f094ce1dffeb8d59bb1fa9cfc91815b67f98baed6b8620cf7`.
 This public proof changes no repository evidence or product byte.
 
+## Active personal upgrade preflight and rollback freeze
+
+Pinned active readback still reports `happycodex@personal` installed and enabled at
+`0.3.0+codex.20260716113414`, sourced from
+`/home/caichenghang/plugins/happycodex`. The source and retained cache at
+`/home/caichenghang/.codex/plugins/cache/personal/happycodex/0.3.0+codex.20260716113414`
+both contain 54 files / 67 workspace entries and have exact workspace-manifest
+SHA-256 `38e006c9423b58bbc4d2f7746fd2806f30c6ec74214a64d5a47dc347835086b5`.
+Both reproduce semantic/artifact package `c5030e99...c05` / `0c83dbc6...934` and
+Skill `0f222349...6b71`. Thus rollback source and cache start byte/mode-identical.
+
+External rollback receipts are frozen under
+`/home/caichenghang/.codex/happycodex-rollbacks/personal-0.3-to-0.4-20260720`.
+Pre-upgrade plugin-list and marketplace-list JSON SHA-256 values are
+`a3d98977b883f10dec26ad213ed1b45d26bf9dc0ecab4d7940c6e823d236e3f8`
+and `9b6594fcb6643e8fe1380939a3c0616bb6420a6258e4d5908dd29765d9b04421`.
+
+Exact tracked `HEAD` archive staging at
+`/home/caichenghang/plugins/happycodex.staging-0.4.0+codex.20260720074523`
+contains 56 files / 75 workspace entries, workspace-manifest SHA-256
+`3c98e639b92ef8377a22a1677efe80fa3f1eb46cf3a824999485634b3971ecfe`,
+version `0.4.0+codex.20260720074523`, semantic/artifact package
+`c5030e99...c05` / `ace7f39f...497e`, and unchanged Skill
+`0f222349...6b71`. Both official validators pass on staging.
+
+The source and both frozen destinations are on the same filesystem. The only allowed
+upgrade mutation is an atomic two-rename swap:
+
+1. rename current source to
+   `/home/caichenghang/plugins/happycodex.rollback-0.3.0+codex.20260716113414`;
+2. rename the exact validated staging directory to the canonical source path;
+3. run pinned `codex plugin add happycodex@personal --json` once;
+4. verify active installed/enabled version, source/cache package and Skill equality,
+   retained old source/cache identities, marketplace state, and zero sessions.
+
+If any step after the first rename fails, stop model/release work and atomically move
+the 0.4 source aside to a uniquely named failed-source path, restore the exact 0.3
+rollback directory to the canonical path, run the same official plugin-add command,
+and require the original pre-upgrade plugin receipt and hashes before stopping. No
+cache deletion, plugin removal, force, manual state edit, or model invocation is
+permitted. On success, both the 0.3 source rollback directory and 0.3 cache remain
+untouched for later manual rollback.
+
 ## Checkpoint
 
 - Milestone: exact request `ce5c87d...7c35c` produced one 14/14 corpus and one
