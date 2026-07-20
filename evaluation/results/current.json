@@ -1,5 +1,55 @@
 {
-  "certification": null,
+  "certification": {
+    "coverage": {
+      "corpus": {
+        "authorized-rebaseline": "refreshed",
+        "boundary-cutover": "refreshed",
+        "clean-qualifying-control": "refreshed",
+        "compaction-recovery": "refreshed",
+        "goal-divergence": "refreshed",
+        "midflight-escalation": "refreshed",
+        "multi-repo-submodule": "refreshed",
+        "no-commit-secret": "refreshed",
+        "pre-freeze-compaction": "refreshed",
+        "receipt-mismatch": "refreshed",
+        "review-admin-cycle": "refreshed",
+        "review-inventory-gate": "refreshed",
+        "review-isolation": "refreshed",
+        "subthreshold-control": "refreshed"
+      },
+      "holdout": {
+        "authority-production-boundary": "refreshed",
+        "destructive-migration-fallback": "refreshed",
+        "local-documentation-control": "refreshed"
+      }
+    },
+    "engine_manifest_sha256": "0334e7d256e4324da71fcb67bafa28c04a18f752951ddd14608c259e7c2d6757",
+    "evidence": {
+      "corpus_summary": {
+        "commit": "26ab45d6b36cda89f92e538cfde2ad181ae26637",
+        "git_blob": "7433ce79c4e37bde76b2fbc783f937abd7b90c95",
+        "path": "evaluation/results/evidence/corpus-summary-33ba0c990f9dbcbb9740de861dfe51b743a03c4aa1476bc9f6d550b022ff70a7.json",
+        "sha256": "33ba0c990f9dbcbb9740de861dfe51b743a03c4aa1476bc9f6d550b022ff70a7"
+      },
+      "holdout_run": {
+        "commit": "26ab45d6b36cda89f92e538cfde2ad181ae26637",
+        "git_blob": "7aa5d60410a2909b09cf1b76c1748acb5cc3f9db",
+        "path": "evaluation/results/evidence/holdout-run-55308d32d0409f5f5b33efb4852254677ebbc926ead2e57cc1ba1eae8c1baf70.json",
+        "sha256": "55308d32d0409f5f5b33efb4852254677ebbc926ead2e57cc1ba1eae8c1baf70"
+      },
+      "holdout_summary": {
+        "commit": "26ab45d6b36cda89f92e538cfde2ad181ae26637",
+        "git_blob": "f75d07ee852897cdfd795169cd2b74d633c875e8",
+        "path": "evaluation/results/evidence/holdout-summary-e6abae55f9c607767c04a2bef4fea97b7ad302b90cbb3debb0a46092b11ef719.json",
+        "sha256": "e6abae55f9c607767c04a2bef4fea97b7ad302b90cbb3debb0a46092b11ef719"
+      }
+    },
+    "live_authority_sha256": "6dc62c41e77ca8412ca1a780f5a573c17f3818ad24d98223a4783a2f8ab1f5de",
+    "schema_version": 1,
+    "snapshot_sha256": "2321593fa1e85c5c8683516406c995448af56bcfc87deb5179ac39242ab5e1da",
+    "successor_source_commit": "649261dec2a69f1983661c1b9009578a6fb8aff1",
+    "successor_source_tree": "4fd8631fa73943d9713973ea8388cc494e45e38f"
+  },
   "historical_cost": {
     "basis": "HappyCodex 0.3 v21 candidate corpus and v23 adaptive holdout receipts",
     "corpus": {
@@ -165,33 +215,10 @@
     "source": "current-task/user/happycodex-0.4-anchored-blocker-release-cost"
   },
   "pending": {
-    "corpus_cases": [
-      "authorized-rebaseline",
-      "boundary-cutover",
-      "clean-qualifying-control",
-      "compaction-recovery",
-      "goal-divergence",
-      "midflight-escalation",
-      "multi-repo-submodule",
-      "no-commit-secret",
-      "pre-freeze-compaction",
-      "receipt-mismatch",
-      "review-admin-cycle",
-      "review-inventory-gate",
-      "review-isolation",
-      "subthreshold-control"
-    ],
-    "holdout_pairs": [
-      "authority-production-boundary",
-      "destructive-migration-fallback",
-      "local-documentation-control"
-    ],
-    "reasons": [
-      "authority_boundary_interrupted",
-      "engine_generation_changed",
-      "live_corpus_oracle_failure"
-    ],
-    "review": true
+    "corpus_cases": [],
+    "holdout_pairs": [],
+    "reasons": [],
+    "review": false
   },
   "prior_evidence": {
     "package_artifact_sha256": "0c83dbc694cb98bf811dd2d1c199b5d2aa734c484476a638884e775289c1d934",
@@ -280,5 +307,5 @@
       }
     }
   },
-  "state": "refresh_required"
+  "state": "certified"
 }
