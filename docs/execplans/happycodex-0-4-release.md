@@ -1178,6 +1178,71 @@ this candidate. This bounded Goal stops here: do not persist the new authority, 
 corpus/holdout, certify, version, install, push, or release until a later task receives
 that exact canonical response and independently reproduces every binding.
 
+## Authorized post-policy live release continuation
+
+On 2026-07-20 the later task received the exact canonical response above. Its
+verbatim UTF-8 bytes plus final LF have SHA-256
+`6e17a7e857254c720b2a4fb23c67fc0451f4a38d11ec923bc3a0b12c2e85cefa`:
+
+```text
+APPROVE HAPPYCODEX LIVE COST ca768290391f2e72f19cf1d550d912d4ceb14d5d4998e79207f5118e2764bec0
+```
+
+The user then explicitly reset the Goal to the complete 0.4 publication Outcome.
+The exact directive plus final LF has SHA-256
+`ad5a7539863a57024ee888fab51b6a3b5801d5d95873a22e43dc0a382512f339`:
+
+```text
+goal是不是要重新设置一下 目标是0.4的发布
+```
+
+Native Goal thread `019f780e-925e-7193-8bd2-0a04d6efe31e` is active with the
+complete release objective: exact authorized live certification, release-metadata-
+only transition, complete offline validation, fresh exact-product review, isolated
+public install/invocation, active 0.4 upgrade with retained 0.3 rollback, ordinary
+release-branch PR/merge, `v0.4.0` tag and GitHub Release, and terminal remote
+readback. The existing exclusions and every stop condition in this plan remain in
+force; the broader Goal does not expand the exact live authorization.
+
+Recovery independently read the complete loaded
+`happycodex:happycodex` Skill at version
+`0.3.0+codex.20260716113414`, this complete plan, both completed 0.4 ExecPlans, and
+repository policy. The clean source boundary is release branch
+`release/happycodex-0.4.0` at
+`d8d35b24ed7a8d16fd36eb33b4c59b26086fa9dc`, tree
+`7c4af095a6bc3bfb5792758abb03c9c7b82c0a34`. A fresh fetch and independent
+`ls-remote` both return `origin/main` at
+`48769821aaee0f9f3be210e96e3f633a214d2ef5`; it is the merge base, with zero
+main-only and 26 release-only commits. The worktree is clean, no evaluator child or
+reviewer is live, and the active installation remains enabled at
+`0.3.0+codex.20260716113414`.
+
+A fresh nine-file archive of frozen public commit
+`3b9c11fac1f97df75263e0bfc6421c575e04e8b2`, tree
+`4708ebc12f74d4482764796fdd00f1fa7194a13a`, at external path
+`/tmp/happycodex-cost-policy-public-0.2.GeVejD` reproduces public semantic/artifact
+`fb3cb419795a6edcb284695769b5487b1f23ae46286c5fceba8042fcb41f9ce4` /
+`77a0b2b8f7f6280d6ed32458fc61ca110f7138b5b6c17ad55d333a023dfa8c89`.
+The frozen Codex CLI `0.144.4` independently reproduces engine
+`1491caf14ec566d59e56ea0bedcd23269f8a235d9caa7abadbd3417da4528d3d`,
+canonical null-authority ledger
+`68700c4f3090391ef7d2a61bf2fd6c1c53023ee50f81180dd982a2e861e2d75c`,
+snapshot `1ac13f5a00eb8cc0faf658f4c4e3954b955e0f1871d47adb7913677800e27463`,
+impact token `b4194a09b37b934fa1b9c8d376fc71edcf972c105d26ab42315de725e28e9882`,
+candidate semantic/artifact `c5030e99...c05` / `0c83dbc6...934`, both exact
+invocation descriptors, request `ca768290...bec0`, response digest `6e17a7e8...cefa`,
+and the 20-to-22-call historical envelope. Source state remains
+`refresh_required` with null authority and certification.
+
+This administrative acceptance boundary grants no extra call and makes no product
+claim. The next write is the exact authority in `current.json`; that source must be
+validated and committed with the mandatory ExecPlan trailer before the first model
+call. While authority is non-null, unit discovery remains forbidden. Only the one
+bound complete corpus and one adaptive holdout may run, serially, through the
+official CLI into new external raw directories. Any binding drift, launch-shape
+failure, contract-defined terminal failure, or need for another live invocation
+stops without retry.
+
 ## Design saturation and frozen release sequence
 
 Fresh baseline-only challenger `/root/release_boundary_challenger_b` inspected only
