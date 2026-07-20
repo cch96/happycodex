@@ -3,9 +3,9 @@
 Protocol: `HappyCodex/0.3`
 Invocation: `$happycodex:happycodex`
 Writer: Root only
-State: public installation and active personal 0.4 upgrade are GREEN, with exact 0.3
-source/cache rollback retained and an isolated downgrade rehearsal passed; the next
-open gate is PR creation and merge preserving the complete release ancestry
+State: ready PR #2 is open, MERGEABLE/CLEAN, and carries the exact release ancestry;
+the next open gate is expected-head merge-commit integration to `main` with no
+squash, rebase, force, or branch deletion
 Resume: read this entire file, the completed 0.4 certification-engine and main-
 integration ExecPlans, then reconcile Goal, Git, tests, evidence, installations,
 remote refs, and agents before any write, review, live call, or completion claim.
@@ -2796,6 +2796,23 @@ receipt SHA-256 values are
 `83912802dfeb8c4ca8300f20de423fb8d6c7a8fc8562a4b9edf3fc053a11a459`,
 and `307af07f3232a54c013f4bb42f19be1e96f9e36830bbea2b2fe0175b9cd2e52a`.
 Thus both rollback artifacts and the official downgrade operation are proven.
+
+## Release PR ready for merge
+
+The GitHub connector created ready, non-draft PR #2,
+`https://github.com/cch96/happycodex/pull/2`, titled
+`release: HappyCodex 0.4.0`, from `release/happycodex-0.4.0` to `main`.
+Creation head is exact pushed commit
+`d30146efb83fd656f5058c1ea526ae8e2421086e`; GitHub reports `OPEN`,
+`MERGEABLE`, `CLEAN`, no review decision requirement, and an empty check rollup.
+The PR body records the certified behavior/evidence, offline and install validation,
+active rollback proof, exclusions, and the mandatory merge-commit method.
+
+One final plan-only fast-forward records this PR identity before merge. Root will
+then read back the resulting exact PR head and call merge with that SHA as the
+expected head and method `merge`. Any main drift, head drift, check failure, merge
+conflict, squash/rebase requirement, or ancestry loss stops integration. Neither the
+release branch nor any tag is deleted or overwritten.
 
 ## Checkpoint
 
