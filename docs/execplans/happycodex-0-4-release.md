@@ -3,9 +3,9 @@
 Protocol: `HappyCodex/0.3`
 Invocation: `$happycodex:happycodex`
 Writer: Root only
-State: the release-state-independent fixture repair is committed, fully offline
-GREEN, and fresh-review GO with zero blockers; the next open gate is the exact
-zero-live isolated marketplace installation
+State: the exact zero-live isolated installation and strictly post-source evidence
+are committed; the final certified-ledger candidate is fully offline GREEN and its
+fresh exact-product review is frozen but not yet started
 Resume: read this entire file, the completed 0.4 certification-engine and main-
 integration ExecPlans, then reconcile Goal, Git, tests, evidence, installations,
 remote refs, and agents before any write, review, live call, or completion claim.
@@ -1991,7 +1991,7 @@ review identity, public proof, rollback, and final GitHub delivery simultaneousl
 | R-03 | outcome | Exactly the authorized corpus and adaptive holdout scope completes and produces sanitized Git-reachable evidence that makes `current.json` validly `certified`. | CLI receipts, ledger validation, evidence ancestry, exact cost and scope reconciliation. | verified and applied at `e0248b0` |
 | R-04 | preservation | Repairs change only their explicit amendments: the earlier case/fixture and holdout-policy slices, the current anchored-blocker prompt, focused tests, mechanical source ledger, and this plan. Skill, manifests, oracle/matcher/schema, runners/evaluator, unaffected cases, and shipped product remain unchanged. | Exact source diff; any wider edit stops for user decision. | verified through `f8ef025`; fresh review GO |
 | R-05 | outcome | Release edits are limited to strict-semver 0.4 version/cachebuster and accurate change-note/install metadata. | Product diff inventory and official validators. | exact three-path metadata slice committed at `59e2eda`; validators pending |
-| R-06 | outcome | Full offline suite, official validators, Ruff, CLI/JSON/diff/package hygiene, and fresh exact-product review close with `GO` and no material blocker. | Exact receipts and complete review coverage. | fixture repair is 123/123 GREEN and fresh-review GO; final post-ledger exact-product review remains open |
+| R-06 | outcome | Full offline suite, official validators, Ruff, CLI/JSON/diff/package hygiene, and fresh exact-product review close with `GO` and no material blocker. | Exact receipts and complete review coverage. | exact final certified candidate is fully offline GREEN; final review is frozen and open |
 | R-07 | outcome | A clean isolated public marketplace install/invocation reports the exact 0.4 version and release identity. | Fresh-home install plus invocation receipt; source/cache mismatch falsifies. | open |
 | R-08 | outcome | Active local plugin upgrades to exact 0.4 through the official cachebuster/reinstall flow, with the exact prior 0.3 cache retained and a tested rollback command. | Plugin list/cache/install/readback and rollback proof. | open |
 | R-09 | outcome | Release branch, integration ref, tag/release, and remote source identities are published without force or branch deletion and read back exactly. | Push/API/`ls-remote` receipts; mismatch blocks completion. | open |
@@ -2546,6 +2546,83 @@ source-ledger SHA-256 `f609cd50...6befb`, snapshot `b579d5b1...3c0b`, engine
 manifest `0334e7d2...6757`, gate `isolated_install`, null receipt artifact, and the
 five installation digests above. No other evidence type or gate is added.
 
+## Final zero-live certification review prelaunch
+
+The exact offline summary is 19-line JSON at
+`evaluation/results/evidence/offline-summary-e057df5da25098cc63d0ad75c544eb1e2d37ef04a33067823b1df9c334efd5cd.json`.
+Its filename/content SHA-256 is `e057df5d...d5cd`; evidence commit
+`d319b5a57e1152446b9eb81a75e4bd6532e81dab`, tree
+`8a56b377f822b24f6166fed0e2f9ac50676c3bfd`, and Git blob
+`de034a5851176ba17ad6ba2562a52a955f82c5ee` strictly postdate source
+`7471d2d`. Direct schema validation accepts exactly `isolated_install`, rejects a
+receipt artifact, and binds all five installation digests. No live evidence, source
+ledger, package, engine, case, test, or product byte changed in the evidence commit.
+
+The 8,147-byte proposed final ledger is retained outside the worktree at
+`.git/happycodex-final-certification/current.json`, byte SHA-256
+`54aac8211e40366de7aaa0bef20cf2cdc95cacf7eed05576aa1f6e333f3e86df`.
+Existing production validation accepts it with canonical ledger SHA-256
+`82b69e4e27a4bbc7d8aed1e8755e05a5a56e5a49948a6d11999bb985c4751da8`.
+It binds source `7471d2d` / tree `ceef832c...3422`, evidence `d319b5a`, snapshot
+`b579d5b1...3c0b`, engine `0334e7d2...6757`, all 14 corpus cases and all three
+holdout pairs as `prior`, canonical-null authority
+`74234e98...b90b`, exact empty pending scope, and only the offline summary locator.
+
+Synthetic source candidate is
+`306c799fac0e85d390e413897823c3316505f72d`, tree
+`6eb2dd88aaf09b5ce4079aefd0875fb02bec04bc`, and ledger blob
+`09b10a51c061fb365ee5ab2bf4a580fbd17e2313`; it remains retained at
+`refs/happycodex/reviews/release-certified-0.4/source-candidate`. Neutral refs exclude
+only this ExecPlan:
+
+- baseline `8386ed9fc568a9dcc30c4e517955e66b744106a9`, tree
+  `a9e65a4ec48a518ed168e67aaa9ea4a587faac71`, parent exactly `d319b5a`, 55-entry
+  recursive-manifest SHA-256 `5b158dbe...a249`;
+- candidate `7d2c5f3e9f8f4b396f64995c3a4a8984740edbfe`, tree
+  `2bf4a50d2e0b2de533236357f5e914db628dd2ff`, parent exactly the neutral baseline,
+  55-entry recursive-manifest SHA-256 `17322c79...225e`.
+
+The source candidate's plan-excluded projection equals the neutral candidate. The
+complete no-renames neutral diff is only `evaluation/results/current.json`, 42
+insertions/6 deletions; name-status and raw binary-diff SHA-256 values are
+`39f982a0fd0e81df19cbd0578bb21f3ece55464a6ce38c5567ba52a00cba3215`
+and `4dac7f1fc4b88a9b0f1b71872a6491a6843513d8b28d7ea74ed46e84ee1b36c5`.
+
+Fresh standalone clone
+`/tmp/happycodex-0.4-final-certified-review.AHjKpjtm/repo` is detached and clean at
+the neutral candidate, has no alternates or remote, and exposes only its reachable
+lineage. On that exact candidate, Root obtained 123/123 tests in 8.424 seconds; both
+official validators; Ruff `0.15.12` check and 19-file format-check; certified/no-gate
+official verify and zero-live impact; both dry-runs; 25/25 JSON and 19/19 AST parses;
+and diff/worktree hygiene. Source/installed package semantics remain
+`c5030e99...c05` / `ace7f39f...497e`, and Skill remains `0f222349...6b71`.
+
+Fresh 7,376-byte review brief at
+`.git/happycodex-reviews/final-certified-0.4/brief.txt` has SHA-256
+`e904c97d8210a878ed60b0817f5593b8642939037660299f0303c8526a7ba85b`.
+Fresh 3,436-byte managed profile at
+`/home/caichenghang/.codex/happycodex-reviews/final-certified-0.4/runtime/codex/config.toml`
+has SHA-256
+`b52b1f548e4515bb34ca7946dbdc3fb55c964e4a0795c4056b1183f1dbb04829`.
+It denies the writer, credentials, plugins/memory, prior reviews, local install, raw
+live/public inputs, network, and candidate writes; it permits only candidate read and
+one scratch write. A separate read-only tool root contains Ruff and both validators
+with SHA-256 values `b93e9107...9bb`, `6cc9dc31...4f51`, and
+`ebda00d5...228`. Preflight proved source-write/writer/live denial, scratch-only
+writes, AF_INET denial, official verify GREEN, Ruff availability, both validators,
+clean candidate, and empty output/session/scratch roots after generated bwrap locks
+were removed. Pinned CLI SHA-256 remains `306498eb...21db5c`.
+
+Exact final review command, frozen before model dispatch:
+
+```bash
+env HOME=/home/caichenghang/.codex/happycodex-reviews/final-certified-0.4/runtime/home CODEX_HOME=/home/caichenghang/.codex/happycodex-reviews/final-certified-0.4/runtime/codex PATH=/home/caichenghang/.codex/packages/standalone/releases/0.144.4-aarch64-unknown-linux-musl/bin:/home/caichenghang/.codex/packages/standalone/releases/0.144.4-aarch64-unknown-linux-musl/codex-path:/home/caichenghang/.codex/tmp/arg0/codex-arg0DF1Vet:/usr/bin:/bin PYTHONDONTWRITEBYTECODE=1 codex exec --strict-config --ignore-rules -m gpt-5.6-sol -c 'model_reasoning_effort="max"' -c 'approval_policy="never"' -c 'project_doc_max_bytes=0' -c 'web_search="disabled"' -c 'tools.web_search=false' -c "developer_instructions=$(python3 -c 'import json,sys; print(json.dumps(open(sys.argv[1], encoding="utf-8").read()))' /home/caichenghang/projects/happycodex/.git/happycodex-reviews/final-certified-0.4/brief.txt)" --disable plugins --disable apps --disable hooks --disable multi_agent --disable browser_use --disable browser_use_external --disable computer_use --disable image_generation -C /tmp/happycodex-0.4-final-certified-review.AHjKpjtm/repo --json -o /home/caichenghang/.codex/happycodex-reviews/final-certified-0.4/output/last-message.txt review --commit 7d2c5f3e9f8f4b396f64995c3a4a8984740edbfe > /home/caichenghang/.codex/happycodex-reviews/final-certified-0.4/output/events.jsonl 2> /home/caichenghang/.codex/happycodex-reviews/final-certified-0.4/output/stderr.txt
+```
+
+All three outputs are absent. Any candidate/ref/clone, profile, brief, command,
+model/effort, scratch/session/output, or identity drift invalidates launch.
+`Final certified review status at prelaunch: not started`.
+
 ## Checkpoint
 
 - Milestone: exact request `ce5c87d...7c35c` produced one 14/14 corpus and one
@@ -2555,9 +2632,8 @@ five installation digests above. No other evidence type or gate is added.
   at `7471d2d` now carries null authority and no certification receipt.
 - Product/support writes: the allowed three-path release metadata slice is committed
   at `59e2eda`; Skill, marketplace manifest, oracle/matcher/schema, runners/evaluator,
-  holdout, and runtime bytes remain unchanged. The latest review closed the three
-  earlier P1s and found the helper's last active-ledger read; its sole-test-file
-  removal is offline GREEN and ready for its coherent commit.
+  holdout, and runtime bytes remain unchanged. The sole-test-file fixture repair is
+  committed, 123/123 GREEN, and independently reviewed GO with all four P1s closed.
 - Retain prior raw diagnostics unchanged. Fresh public archive
   `/tmp/happycodex-anchored-blocker-public-0.2.Up71TN` is the frozen holdout input;
   current raw output is retained externally at
@@ -2565,9 +2641,11 @@ five installation digests above. No other evidence type or gate is added.
 - Closed fact: fresh Native review is `GO` for the corrected committed fixture
   repair with zero blockers and no over-optimization. It consumed no corpus/holdout
   calls and no behavior/holdout tokens.
-- Next missing fact: an exact zero-live isolated marketplace installation receipt
-  for the committed 0.4 package. Active upgrade, PR/merge/tag/release, and readback
-  remain closed until their later gates pass.
+- Closed fact: exact local isolated installation and digest-bound offline evidence
+  are GREEN and committed at `d319b5a`; zero model sessions or live tokens were used.
+- Next missing fact: a fresh Native exact-product `GO` for final certified candidate
+  `7d2c5f3`. Ledger application, public install, active upgrade,
+  PR/merge/tag/release, and readback remain closed until their later gates pass.
 
 ## Retrospective
 
