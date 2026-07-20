@@ -3,9 +3,8 @@
 Protocol: `HappyCodex/0.3`
 Invocation: `$happycodex:happycodex`
 Writer: Root only
-State: the exact corpus/holdout and synthetic certified ledger are GREEN; review A's
-environment-only blocker is resolved and unchanged-candidate review B is `GO`; only
-byte-identical certified-ledger application remains before release metadata work
+State: the exact live-certified ledger is applied and independently verified on the
+release branch; the next open gate is the metadata-only 0.4 artifact transition
 Resume: read this entire file, the completed 0.4 certification-engine and main-
 integration ExecPlans, then reconcile Goal, Git, tests, evidence, installations,
 remote refs, and agents before any write, review, live call, or completion claim.
@@ -1699,6 +1698,23 @@ An isolated synthetic transition applies the proposed certified ledger at
 unchanged snapshot/engine, and persisted authority. The exact proposed
 `current.json` byte SHA-256 is
 `337feae7e9dd421015f59f9ccf65abc0b267a9e34241c05ef4d9cf3d8271a86f`.
+
+## Live certification applied
+
+Root applied only the reviewed `current.json` bytes. SHA-256 is exactly
+`337feae7e9dd421015f59f9ccf65abc0b267a9e34241c05ef4d9cf3d8271a86f`;
+Git blob `e82c2e9f4cb688174eaf7142a228b321be998c79` is byte-identical to both
+synthetic source candidate `1707e125...ed5ab` and neutral candidate
+`e4c0e6aa...b599`. No other path changed.
+
+Release-branch certification commit is
+`e0248b09a676d842dd59bffbc8ac99fb101ca8c3`, tree
+`70b711ef4bc8b35f2be827baef8a40df4ec46124`. Pinned official verify exits zero
+with state `certified`, no pending gates, canonical ledger `1393b723...ce042`,
+snapshot `2321593f...e1da`, engine `0334e7d2...d6757`, and persisted authority.
+The worktree is clean. Live certification is now closed; because authority remains
+non-null in this certified ledger, no unit discovery may run until the following
+artifact-only transition mechanically persists a null-authority source.
 This source candidate remains retained at
 `refs/happycodex/reviews/live-certified-0.4/source-candidate`.
 
@@ -1971,7 +1987,7 @@ review identity, public proof, rollback, and final GitHub delivery simultaneousl
 | --- | --- | --- | --- | --- |
 | R-01 | premise | Current remote `main`, local baseline, package, engine, snapshot, ledger, and public benchmark identities are independently reproduced before release work. | Fetch/readback plus offline identity commands; drift remains open. | verified |
 | R-02 | outcome | The exact current impact and historical-cost envelope are persisted, and no live helper runs without the canonical invocation-bound response. | Authority validation plus command audit; any early call falsifies. | verified; exact authority persisted at `649261d` before the sole GREEN live sequence |
-| R-03 | outcome | Exactly the authorized corpus and adaptive holdout scope completes and produces sanitized Git-reachable evidence that makes `current.json` validly `certified`. | CLI receipts, ledger validation, evidence ancestry, exact cost and scope reconciliation. | live corpus/holdout and synthetic certified ledger GREEN; unchanged-candidate review B `GO`; byte-identical branch application pending |
+| R-03 | outcome | Exactly the authorized corpus and adaptive holdout scope completes and produces sanitized Git-reachable evidence that makes `current.json` validly `certified`. | CLI receipts, ledger validation, evidence ancestry, exact cost and scope reconciliation. | verified and applied at `e0248b0` |
 | R-04 | preservation | Repairs change only their explicit amendments: the earlier case/fixture and holdout-policy slices, the current anchored-blocker prompt, focused tests, mechanical source ledger, and this plan. Skill, manifests, oracle/matcher/schema, runners/evaluator, unaffected cases, and shipped product remain unchanged. | Exact source diff; any wider edit stops for user decision. | verified through `f8ef025`; fresh review GO |
 | R-05 | outcome | Release edits are limited to strict-semver 0.4 version/cachebuster and accurate change-note/install metadata. | Product diff inventory and official validators. | open |
 | R-06 | outcome | Full offline suite, official validators, Ruff, CLI/JSON/diff/package hygiene, and fresh exact-product review close with `GO` and no material blocker. | Exact receipts and complete review coverage. | bounded repair GREEN/GO; later certified and release-product gates open |
@@ -2031,10 +2047,10 @@ review identity, public proof, rollback, and final GitHub delivery simultaneousl
     adaptive holdout, three sanitized evidence files, and synthetic certified ledger
     are committed or durably retained with every frozen identity. No test discovery,
     retry, or additional live invocation ran.
-15. Review portion closed: review A returned exactly one environment-only P1 and no
+15. Closed: review A returned exactly one environment-only P1 and no
     product finding; review B kept the candidate byte-identical, completed official
-    verify, and returned `GO` with zero material blocker. Apply and commit only the
-    exact reviewed ledger bytes on the release branch, then independently re-verify.
+    verify, and returned `GO` with zero material blocker. Exact reviewed ledger bytes
+    were committed at `e0248b0` and independently re-verified.
 
 ## Checkpoint
 
@@ -2049,9 +2065,9 @@ review identity, public proof, rollback, and final GitHub delivery simultaneousl
   `/tmp/happycodex-anchored-blocker-public-0.2.Up71TN` is the frozen holdout input;
   current raw output is retained externally at
   `/tmp/happycodex-0.4-live.jKHXDa`; no evaluator child remains.
-- Missing fact: branch application and independent verification of the reviewed
-  `337feae7...a86f` certified ledger bytes. That exact application permits the
-  metadata-only 0.4 transition, isolated installs, active upgrade,
+- Missing fact: exact metadata/cachebuster identities and the null-authority,
+  zero-live artifact-transition impact. The certified application now permits that
+  metadata-only 0.4 transition, then isolated installs, active upgrade,
   PR/merge/tag/release, and readback.
 
 ## Retrospective
