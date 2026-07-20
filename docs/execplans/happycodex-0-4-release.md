@@ -3,9 +3,9 @@
 Protocol: `HappyCodex/0.3`
 Invocation: `$happycodex:happycodex`
 Writer: Root only
-State: the reviewed final certified ledger is applied byte-identically and validates
-with no pending gate or authority; the next open gate is non-force release-branch
-push followed by a fresh public Git marketplace install proof
+State: the certified release branch is normally pushed and fresh public Git
+marketplace installation/discovery is GREEN at exact 0.4 identity; the next open
+gate is active personal-plugin upgrade with retained 0.3 rollback
 Resume: read this entire file, the completed 0.4 certification-engine and main-
 integration ExecPlans, then reconcile Goal, Git, tests, evidence, installations,
 remote refs, and agents before any write, review, live call, or completion claim.
@@ -1992,7 +1992,7 @@ review identity, public proof, rollback, and final GitHub delivery simultaneousl
 | R-04 | preservation | Repairs change only their explicit amendments: the earlier case/fixture and holdout-policy slices, the current anchored-blocker prompt, focused tests, mechanical source ledger, and this plan. Skill, manifests, oracle/matcher/schema, runners/evaluator, unaffected cases, and shipped product remain unchanged. | Exact source diff; any wider edit stops for user decision. | verified through `f8ef025`; fresh review GO |
 | R-05 | outcome | Release edits are limited to strict-semver 0.4 version/cachebuster and accurate change-note/install metadata. | Product diff inventory and official validators. | exact three-path metadata slice committed at `59e2eda`; validators pending |
 | R-06 | outcome | Full offline suite, official validators, Ruff, CLI/JSON/diff/package hygiene, and fresh exact-product review close with `GO` and no material blocker. | Exact receipts and complete review coverage. | verified: final candidate offline GREEN and fresh-review GO with P0/P1/P2/P3 all zero |
-| R-07 | outcome | A clean isolated public marketplace install/invocation reports the exact 0.4 version and release identity. | Fresh-home install plus invocation receipt; source/cache mismatch falsifies. | open |
+| R-07 | outcome | A clean isolated public marketplace install/invocation reports the exact 0.4 version and release identity. | Fresh-home install plus invocation receipt; source/cache mismatch falsifies. | verified at public branch `9271ede`; non-model namespaced discovery is enabled at exact package identity |
 | R-08 | outcome | Active local plugin upgrades to exact 0.4 through the official cachebuster/reinstall flow, with the exact prior 0.3 cache retained and a tested rollback command. | Plugin list/cache/install/readback and rollback proof. | open |
 | R-09 | outcome | Release branch, integration ref, tag/release, and remote source identities are published without force or branch deletion and read back exactly. | Push/API/`ls-remote` receipts; mismatch blocks completion. | open |
 | R-10 | preservation | Fable remains absent from release gates/product work except the exact user-requested advisory receipt above; all excluded 0.4+ architecture remains absent. | Command and final-diff inventory. | advisory complete; architecture still open |
@@ -2676,6 +2676,43 @@ application commit changed only `evaluation/results/current.json`; worktree and 
 are clean. No test or review rerun is needed because both file blob and complete
 plan-excluded product projection are identical to the reviewed candidate.
 
+## Release branch push and public marketplace proof GREEN
+
+After re-fetching `origin/main` and tags, the release branch was exactly 64 commits
+ahead and zero behind unchanged `origin/main` `48769821...ef5`; neither a remote
+release branch nor `v0.4.0` existed. Authenticated GitHub repository readback confirmed
+public `cch96/happycodex`, default branch `main`, and no existing release-branch PR.
+Root then used one ordinary tracking push with no force. Remote
+`refs/heads/release/happycodex-0.4.0` read back exactly as
+`9271edeb43191bc576a3e79192fa5892a61639d3`.
+
+One second fresh isolated home at
+`/home/caichenghang/.codex/happycodex-release-installs/public-xsZBGOfm` added public
+Git marketplace `cch96/happycodex` with exact ref `release/happycodex-0.4.0`, listed
+the package as available, installed `happycodex@happycodex` once, and listed the
+installed result. The marketplace checkout is clean on that branch at exact remote
+commit `9271ede`; installed plugin is enabled and reports
+`0.4.0+codex.20260720074523`.
+
+Marketplace source and installed cache both reproduce semantic/package-artifact
+SHA-256 `c5030e99...c05` / `ace7f39f...497e`; source and installed Skill both
+reproduce `0f222349...6b71`. The canonical plugin-add receipt SHA-256 is
+`6076a583c71725c0a19b03b3be81ed7c5586c90778e72430d6dcc258222fd6ec`.
+Marketplace name `happycodex`, plugin name `happycodex`, manifest Skill root
+`./skills/`, installed/enabled state, and the already GREEN public-surface contract
+tests mechanically establish namespaced discovery as `$happycodex:happycodex`.
+Because the user required zero-live continuation, no `codex exec` or model-backed
+semantic invocation ran; the isolated home contains no session file.
+
+Raw available, marketplace-add, marketplace-list, plugin-add, and installed-list
+JSON remain external with SHA-256 values
+`b2e9245e86046a45bf93d20eac39696140a71e4d37aabaa6be57fb8bae7f1528`,
+`42061fdeb8c26d1ea8867b0a07e3375290ea37aea73b8b497cef34775dbcb7e4`,
+`00011e8451e15b5bb09a0a382f257ae8733f5ae15d99672d2a1a41bd6fcb69f6`,
+`c9575cb2bdf70aa114f05ab35d29ee64da9dff1e2133bce02b99a2a98cece722`,
+and `bb02868430fbfe5f094ce1dffeb8d59bb1fa9cfc91815b67f98baed6b8620cf7`.
+This public proof changes no repository evidence or product byte.
+
 ## Checkpoint
 
 - Milestone: exact request `ce5c87d...7c35c` produced one 14/14 corpus and one
@@ -2700,9 +2737,11 @@ plan-excluded product projection are identical to the reviewed candidate.
   every obligation PASS, zero blockers, and no over-optimization.
 - Closed fact: reviewed ledger `54aac821...e86df` is byte-identically applied and
   committed at `855a1c0`; official state is certified with no pending gate.
-- Next missing fact: normal release-branch push and a fresh public Git marketplace
-  install/readback of exact 0.4. Active upgrade, PR/merge/tag/release, and final
-  readback remain closed until their later gates pass.
+- Closed fact: normal remote branch push and one fresh public Git marketplace
+  install/discovery are exact and GREEN at `9271ede`, with zero model session.
+- Next missing fact: active personal 0.4 upgrade with exact 0.3 source/cache rollback
+  retained and verified. PR/merge/tag/release and final readback remain closed until
+  their later gates pass.
 
 ## Retrospective
 
