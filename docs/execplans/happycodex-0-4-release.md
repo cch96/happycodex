@@ -958,6 +958,54 @@ Focused GREEN and complete offline receipt, 2026-07-20:
   `0c83dbc6...934` are unchanged. Runtime/test code contains no
   `user_confirmation_required`, no evaluator child remains, and no model call ran.
 
+## Holdout cost-policy Native review prelaunch
+
+The immutable semantic source candidate is
+`88759d6b571db29d179cd1a0dc8f110b2af94ab2`, tree
+`9031a6dcefdbc985b86a826a018aee797dc76dbd`, over amendment baseline
+`40aa1399ab1a9af227fb423a34da8651e4a78b54`. Its mandatory ExecPlan trailer is
+present. The 51-entry candidate product projection excluding only this plan is
+`4d388f1004ada8f0bc4f434c7fff436dae37c0f93e3d7f1cdff1552dd7358ed0`;
+the corresponding baseline projection remains `1f496d3a...c03f`. The complete
+three-unit `--no-renames` product diff names only compare, current ledger, and focused
+holdout test; its raw manifest SHA-256 is `a95c4859...dd24`.
+
+Neutral private review refs were created without changing the source branch:
+
+- `refs/happycodex/reviews/cost-policy-88759d6/baseline` ->
+  `bda8f232613f72203059f056e84b7b82fe3371bf`, tree
+  `a84ccdd7bea2491c9d1fe7b5668cd1b1513cde8c`;
+- `refs/happycodex/reviews/cost-policy-88759d6/candidate` ->
+  `cb5879ce95ac434235edfe787c11a750809ca84b`, tree
+  `164d20e94c500347a6846775b0f400749c7ffdb4`.
+
+Both trees use identical namespaces and exclude only this plan. Their recursive
+manifests reproduce the source product projections exactly; the candidate parent is
+the neutral baseline and its diff reproduces all three units. Clean detached clone
+`/tmp/happycodex-cost-policy-native-review.ciZEMb` is at the neutral candidate with
+zero status entries and no task ExecPlan.
+
+The neutral two-phase brief is durable at
+`/home/caichenghang/projects/happycodex/.git/happycodex-reviews/cost-policy-88759d6/brief.txt`,
+SHA-256 `92faae8e38dd69baa39a379cdf74dd5ff1f0bfcc6bbbf0b328a9a0647f1d18fb`.
+It supplies verbatim operative text, exclusions, accepted baseline anchors, and
+candidate-independent Phase-1 obligations before Phase-2 evidence; it supplies no
+writer finding, prior verdict, Fable answer, ExecPlan, conversation, or live evidence.
+Pinned Codex CLI `0.144.4` has executable SHA-256 `306498eb...db5c`. User config
+selects `gpt-5.6-sol`; this launch explicitly overrides configured low effort to
+`max` and sandbox to `read-only`. No `ultra`, network, write, ephemeral session,
+custom profile, or extra directory is requested.
+
+Exact command, frozen before launch:
+
+```bash
+PATH=/home/caichenghang/.codex/packages/standalone/releases/0.144.4-aarch64-unknown-linux-musl/bin:$PATH PYTHONDONTWRITEBYTECODE=1 codex exec -s read-only -m gpt-5.6-sol -c 'model_reasoning_effort="max"' -C /tmp/happycodex-cost-policy-native-review.ciZEMb --json -o /home/caichenghang/projects/happycodex/.git/happycodex-reviews/cost-policy-88759d6/last-message.txt review --commit cb5879ce95ac434235edfe787c11a750809ca84b - < /home/caichenghang/projects/happycodex/.git/happycodex-reviews/cost-policy-88759d6/brief.txt > /home/caichenghang/projects/happycodex/.git/happycodex-reviews/cost-policy-88759d6/events.jsonl
+```
+
+The JSONL event record and last-message receipt use those exact durable destinations.
+Both were absent at freeze time. `Review status: not started`. Any candidate/ref,
+brief, command, model/effort/profile, clone, or output-path drift invalidates launch.
+
 ## Design saturation and frozen release sequence
 
 Fresh baseline-only challenger `/root/release_boundary_challenger_b` inspected only
