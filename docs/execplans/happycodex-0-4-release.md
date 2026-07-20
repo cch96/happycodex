@@ -3,9 +3,9 @@
 Protocol: `HappyCodex/0.3`
 Invocation: `$happycodex:happycodex`
 Writer: Root only
-State: ready PR #2 is open, MERGEABLE/CLEAN, and carries the exact release ancestry;
-the next open gate is expected-head merge-commit integration to `main` with no
-squash, rebase, force, or branch deletion
+State: HappyCodex 0.4 is formally published and all product/release gates are closed;
+this is the plan-only post-release closure record and does not alter the tagged
+product, certified ledger, evidence, or installation identity
 Resume: read this entire file, the completed 0.4 certification-engine and main-
 integration ExecPlans, then reconcile Goal, Git, tests, evidence, installations,
 remote refs, and agents before any write, review, live call, or completion claim.
@@ -1990,12 +1990,12 @@ review identity, public proof, rollback, and final GitHub delivery simultaneousl
 | R-02 | outcome | The exact current impact and historical-cost envelope are persisted, and no live helper runs without the canonical invocation-bound response. | Authority validation plus command audit; any early call falsifies. | verified; exact authority persisted at `649261d` before the sole GREEN live sequence |
 | R-03 | outcome | Exactly the authorized corpus and adaptive holdout scope completes and produces sanitized Git-reachable evidence that makes `current.json` validly `certified`. | CLI receipts, ledger validation, evidence ancestry, exact cost and scope reconciliation. | verified and applied at `e0248b0` |
 | R-04 | preservation | Repairs change only their explicit amendments: the earlier case/fixture and holdout-policy slices, the current anchored-blocker prompt, focused tests, mechanical source ledger, and this plan. Skill, manifests, oracle/matcher/schema, runners/evaluator, unaffected cases, and shipped product remain unchanged. | Exact source diff; any wider edit stops for user decision. | verified through `f8ef025`; fresh review GO |
-| R-05 | outcome | Release edits are limited to strict-semver 0.4 version/cachebuster and accurate change-note/install metadata. | Product diff inventory and official validators. | exact three-path metadata slice committed at `59e2eda`; validators pending |
+| R-05 | outcome | Release edits are limited to strict-semver 0.4 version/cachebuster and accurate change-note/install metadata. | Product diff inventory and official validators. | verified: exact three-path slice at `59e2eda`, all final validators GREEN |
 | R-06 | outcome | Full offline suite, official validators, Ruff, CLI/JSON/diff/package hygiene, and fresh exact-product review close with `GO` and no material blocker. | Exact receipts and complete review coverage. | verified: final candidate offline GREEN and fresh-review GO with P0/P1/P2/P3 all zero |
 | R-07 | outcome | A clean isolated public marketplace install/invocation reports the exact 0.4 version and release identity. | Fresh-home install plus invocation receipt; source/cache mismatch falsifies. | verified at public branch `9271ede`; non-model namespaced discovery is enabled at exact package identity |
 | R-08 | outcome | Active local plugin upgrades to exact 0.4 through the official cachebuster/reinstall flow, with the exact prior 0.3 cache retained and a tested rollback command. | Plugin list/cache/install/readback and rollback proof. | verified: active 0.4 source/cache exact; 0.3 source/cache exact; isolated official downgrade rehearsal GREEN |
-| R-09 | outcome | Release branch, integration ref, tag/release, and remote source identities are published without force or branch deletion and read back exactly. | Push/API/`ls-remote` receipts; mismatch blocks completion. | open |
-| R-10 | preservation | Fable remains absent from release gates/product work except the exact user-requested advisory receipt above; all excluded 0.4+ architecture remains absent. | Command and final-diff inventory. | advisory complete; architecture still open |
+| R-09 | outcome | Release branch, integration ref, tag/release, and remote source identities are published without force or branch deletion and read back exactly. | Push/API/`ls-remote` receipts; mismatch blocks completion. | verified: PR #2 merge `4fd029b`, annotated `v0.4.0`, published GitHub Release, branch retained |
+| R-10 | preservation | Fable remains absent from release gates/product work except the exact user-requested advisory receipt above; all excluded 0.4+ architecture remains absent. | Command and final-diff inventory. | verified: advisory-only historical receipt; no excluded architecture in final product |
 
 ## Execution gates
 
@@ -2067,6 +2067,11 @@ review identity, public proof, rollback, and final GitHub delivery simultaneousl
     previously failing selectors are 10/10 GREEN, and the complete frozen offline
     envelope is 123/123 GREEN with every preservation identity below. The coherent
     test repair must be committed before the separately frozen fresh review launch.
+18. Closed: the self-contained fixture and final certified-product reviews are GO
+    with zero blocker; local/public installs, active upgrade, retained/tested 0.3
+    rollback, PR merge, annotated tag, GitHub Release, and fresh public-tag readback
+    are all exact and GREEN. No force, squash, rebase, branch deletion, extra live
+    evaluation, or excluded architecture occurred.
 
 ## Authorized release-state-independent test-fixture amendment
 
@@ -2814,6 +2819,39 @@ expected head and method `merge`. Any main drift, head drift, check failure, mer
 conflict, squash/rebase requirement, or ancestry loss stops integration. Neither the
 release branch nor any tag is deleted or overwritten.
 
+## Main integration, tag, Release, and final readback GREEN
+
+The plan-only premerge fast-forward produced exact PR head
+`055b2f0d262a369b1b9fc434dbfba99a00064078`. GitHub recalculated PR #2 as
+`MERGEABLE` / `CLEAN` with zero checks, while `origin/main` remained frozen at
+`48769821aaee0f9f3be210e96e3f633a214d2ef5`. The connector then merged with
+method `merge` and expected head `055b2f0`; no squash or rebase was used.
+
+PR #2 is `MERGED` at 2026-07-20T12:26:44Z. Product integration commit is
+`4fd029bad59792e8d709c9baa498b41d4caf60b9`, tree
+`a8bd129451555e91d6a4fac227dec019fa6f7967`, with exactly two parents in order:
+frozen main `48769821...ef5` and exact release head `055b2f0...078`. Git ancestry
+checks prove zero-live source `7471d2d`, offline evidence `d319b5a`, final certified
+ledger `855a1c0`, and the entire release head remain ancestors. The release branch is
+retained at `055b2f0`; no branch was deleted.
+
+Annotated tag `v0.4.0` was created once and pushed normally. Remote tag object is
+`7dbd2b0df21b65ba15e5171912db2c556e973d45` and peels exactly to product merge
+`4fd029b`. Published, non-draft, non-prerelease GitHub Release is named
+`HappyCodex 0.4.0`, created/published at 2026-07-20T12:27:25Z /
+2026-07-20T12:27:26Z, and is available at
+`https://github.com/cch96/happycodex/releases/tag/v0.4.0`.
+
+A fresh unaffiliated HTTPS clone from public tag `v0.4.0` at
+`/tmp/happycodex-v0.4.0-readback.QaOTwa44/repo` detached cleanly at exact
+`4fd029b`. Pinned official verify reports certified ledger
+`82b69e4e...1da8`, no pending gate, null authority, snapshot `b579d5b1...3c0b`, and
+engine `0334e7d2...6757`. Fresh tag content reports version
+`0.4.0+codex.20260720074523`, package semantic/artifact
+`c5030e99...c05` / `ace7f39f...497e`, and Skill `0f222349...6b71`.
+Remote main, retained release branch, tag object/peel, PR, and Release API readbacks
+all agree. Completion blocker: none.
+
 ## Checkpoint
 
 - Milestone: exact request `ce5c87d...7c35c` produced one 14/14 corpus and one
@@ -2842,10 +2880,30 @@ release branch nor any tag is deleted or overwritten.
   install/discovery are exact and GREEN at `9271ede`, with zero model session.
 - Closed fact: active personal 0.4 source/cache are exact and enabled; exact 0.3
   source/cache remain retained, and an isolated official downgrade rehearsal passed.
-- Next missing fact: PR creation and merge to `main` without squash/rebase so all
-  evidence ancestry remains reachable. Tag/release and final readback remain closed.
+- Closed fact: PR #2 merged by two-parent merge commit `4fd029b`; all source/evidence
+  ancestry remains reachable and the release branch is retained.
+- Closed fact: annotated `v0.4.0` peels to `4fd029b`, public GitHub Release is
+  published, and a fresh public-tag clone reproduces every final identity.
+- Completion blocker: none. This post-release plan-only closure changes no tagged
+  product byte and is the final administrative repository update.
 
 ## Retrospective
 
-Fill only after every release gate closes. Do not expose it to the reviewer or use it
-as evidence.
+The Outcome completed successfully. The most valuable control was preserving three
+separate identities throughout: live-certified behavior source, zero-live release
+artifact source, and final reviewed certified ledger. That kept the user-authorized
+live spend bounded while allowing release metadata and test-fixture corrections to
+close without replaying behavior or holdout work.
+
+The only late operational surprise was Codex's successful personal reinstall pruning
+the prior cache. Because source/cache byte-and-mode equality had been frozen before
+the swap, Root restored the old cache additively from the untouched source backup and
+then proved the official 0.4-to-0.3 downgrade path in a separate isolated home. This
+converted a potential rollback regression into a verified recovery asset without
+changing active 0.4.
+
+There was no over-optimization in the closing work: one authorized test file, one
+existing-schema offline evidence document, one byte-identical ledger transition, two
+required installation contexts, and plan-only administrative commits. Fable and all
+0.4-plus architecture stayed outside product/release gates. Future optimization can
+begin from 0.4 as a new Outcome; none is a completion blocker for this release.
