@@ -1991,7 +1991,7 @@ review identity, public proof, rollback, and final GitHub delivery simultaneousl
 | R-03 | outcome | Exactly the authorized corpus and adaptive holdout scope completes and produces sanitized Git-reachable evidence that makes `current.json` validly `certified`. | CLI receipts, ledger validation, evidence ancestry, exact cost and scope reconciliation. | verified and applied at `e0248b0` |
 | R-04 | preservation | Repairs change only their explicit amendments: the earlier case/fixture and holdout-policy slices, the current anchored-blocker prompt, focused tests, mechanical source ledger, and this plan. Skill, manifests, oracle/matcher/schema, runners/evaluator, unaffected cases, and shipped product remain unchanged. | Exact source diff; any wider edit stops for user decision. | verified through `f8ef025`; fresh review GO |
 | R-05 | outcome | Release edits are limited to strict-semver 0.4 version/cachebuster and accurate change-note/install metadata. | Product diff inventory and official validators. | exact three-path metadata slice committed at `59e2eda`; validators pending |
-| R-06 | outcome | Full offline suite, official validators, Ruff, CLI/JSON/diff/package hygiene, and fresh exact-product review close with `GO` and no material blocker. | Exact receipts and complete review coverage. | final review closed three prior P1s but found one active-ledger helper dependency; exact removal is offline GREEN and fresh review is open |
+| R-06 | outcome | Full offline suite, official validators, Ruff, CLI/JSON/diff/package hygiene, and fresh exact-product review close with `GO` and no material blocker. | Exact receipts and complete review coverage. | fixture repair is 123/123 GREEN and fresh-review GO; final post-ledger exact-product review remains open |
 | R-07 | outcome | A clean isolated public marketplace install/invocation reports the exact 0.4 version and release identity. | Fresh-home install plus invocation receipt; source/cache mismatch falsifies. | open |
 | R-08 | outcome | Active local plugin upgrades to exact 0.4 through the official cachebuster/reinstall flow, with the exact prior 0.3 cache retained and a tested rollback command. | Plugin list/cache/install/readback and rollback proof. | open |
 | R-09 | outcome | Release branch, integration ref, tag/release, and remote source identities are published without force or branch deletion and read back exactly. | Push/API/`ls-remote` receipts; mismatch blocks completion. | open |
@@ -2507,6 +2507,44 @@ merge, tag, or release. Reviewer-environment limitations were Ruff unavailable a
 one unchanged nested-sandbox test unavailable; Root's exact-candidate Ruff checks and
 123/123 full suite already close both limitations. No live, install, activation,
 push, or publication action ran during review.
+
+## Exact local isolated installation GREEN
+
+After committing the GO receipt at
+`8c584752a8534599c8ba10c355416098713603b1`, Root created one fresh isolated
+`HOME`/`CODEX_HOME` at
+`/home/caichenghang/.codex/happycodex-release-installs/local-wzjDL2n0` and used
+only pinned Codex CLI `0.144.4` plugin-management commands. It added the current
+repository as local marketplace `happycodex`, observed the candidate as available,
+installed `happycodex@happycodex` once, and listed the resulting marketplace and
+plugin. The installed entry is enabled and reports exact version
+`0.4.0+codex.20260720074523`. No `codex exec` ran and the isolated home contains no
+session file, so this gate consumed zero model calls and zero live tokens.
+
+The installed cache is
+`/home/caichenghang/.codex/happycodex-release-installs/local-wzjDL2n0/codex/plugins/cache/happycodex/happycodex/0.4.0+codex.20260720074523`.
+Source and installed package both reproduce semantic SHA-256
+`c5030e99dd7cd1681148c069775671c5720bb8dd366930ff90f61cbc54cdfc05`,
+artifact/package-manifest SHA-256
+`ace7f39fd61341e5d4b1bc3b268fd89a1562acaaacb80d7456c2bb97fb9c497e`,
+and Skill SHA-256
+`0f2223498e398325d1f9728f485b46282778f1199be4f0d80802073f191c6b71`.
+The package projection is byte-identical from zero-live source `7471d2d` through
+installation source `8c58475`; intervening commits touch only the release plan and
+tests. Canonical SHA-256 of the plugin-add JSON is
+`dda20175455774d5af10c62e0aef3c7b42853f7916ac45e456f0e5885ee4d381`.
+
+Raw marketplace-add, available-list, plugin-add, marketplace-list, and installed-list
+receipts remain outside the repository with SHA-256 values
+`aee678845598718fd034a28086fba021ecfc5ab0cfd381b3da0229292c289939`,
+`251f00724d572aafbe32225c25fc9fa36b26fad28b89e3e6d25b7ddacf886e23`,
+`38634f274a66fafe02c9b8f7211f0f3405b5817fcd6e09a45ee6594fd6d35b4a`,
+`06ac19a6b4f8205ce640ce2151f6b2137844d714daeea2b59fe80e7d4b58c191`,
+and `bca3fc41ce5f56004c2ed57c56fe5754bca18d3dd8bfd6535727c02ae4cd53b6`.
+The strictly post-source offline summary will bind successor source `7471d2d`, raw
+source-ledger SHA-256 `f609cd50...6befb`, snapshot `b579d5b1...3c0b`, engine
+manifest `0334e7d2...6757`, gate `isolated_install`, null receipt artifact, and the
+five installation digests above. No other evidence type or gate is added.
 
 ## Checkpoint
 
