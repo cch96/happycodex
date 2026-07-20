@@ -3,9 +3,8 @@
 Protocol: `HappyCodex/0.3`
 Invocation: `$happycodex:happycodex`
 Writer: Root only
-State: corpus is GREEN, holdout is materially better, and advisory Fable independently
-selects the minimal policy clean break with a Goal amendment; stop for the exact user
-amendment before any evaluator write or new cost request
+State: the user authorized the minimum holdout cost-policy clean break and rebuilt a
+bounded active Goal; freeze this amendment, then retire old authority before RED/GREEN
 Resume: read this entire file, the completed 0.4 certification-engine and main-
 integration ExecPlans, then reconcile Goal, Git, tests, evidence, installations,
 remote refs, and agents before any write, review, live call, or completion claim.
@@ -738,7 +737,7 @@ rules, and current rerun envelope, but no Root recommendation or prior answer.
 Launch record persisted before invocation:
 
 - source candidate `2daabefdb8ef2e4d08871a2c964b3e90566fa01d`, tree
-  `74f5e7fe5a861677a29ab88add7500a1a1e94a05`, and 49-entry product projection
+  `74f5e7fe5a861677a29ab88add7500a1a1e94a05`, and 51-entry product projection
   excluding this plan
   `1f496d3af2f7b30a2af729d2495e06a2a3db9434d0607fcfe520d5717c9bc03f`;
 - corpus/holdout summary SHA-256 values `c797f4bc...69d5` and
@@ -816,6 +815,107 @@ not forecast evidence.
 
 No Goal, evaluator, schema, ledger, product, installation, or remote ref changed.
 The exact proposed Goal amendment remains a user gate and Fable cannot grant it.
+
+## Authorized holdout cost-policy clean-break amendment
+
+Source: `current-task/user/minimum-holdout-cost-policy-clean-break`. Verbatim UTF-8
+text plus final LF has SHA-256
+`f6cf0932be631e863ab634e724d52bb70018cefde15d0367089f3b735760f5c6`:
+
+```text
+批准上述最小 Goal amendment；清理并重建 Goal，只实施 holdout cost-policy clean break；离线 GREEN 和 fresh review 后生成新的精确成本授权请求。
+```
+
+This explicitly supersedes evaluator-semantic preservation only for the decision
+branch in `evaluation/holdout/compare.py::cost_gate`. Public 0.2 remains the frozen
+behavior control. The 1.25 combined-token and wall thresholds block only aggregate
+quality `equal`; `materially_better` retains every ratio as non-blocking diagnostic
+evidence and returns `pass`; `regression` and `inconclusive` still return `reject`;
+the executable/test contract no longer produces `user_confirmation_required`.
+Historical ExecPlan receipts remain immutable prose.
+
+The only authorized product-support writes are that branch, one focused oracle in
+`tests/test_holdouts.py`, the mechanically rebuilt null-authority
+`evaluation/results/current.json`, and this ExecPlan. The holdout summary field set,
+ledger validator, runner, comparator outcome/adaptive policy, public package binding,
+cases, fixtures, oracles, Skill, plugin/marketplace manifest, shipped package, model,
+effort, timeout, and historical-cost envelope remain byte-semantically unchanged.
+No waiver or confirmation schema, compatibility reader, third arm, evidence-scope
+refactor, controller, retry protocol, reviewer protocol, version/install/ref action,
+or Fable rerun is authorized.
+
+The previous Goal was cleared rather than falsely completed. Native Goal thread
+`019f780e-925e-7193-8bd2-0a04d6efe31e` is active with a rebuilt bounded objective:
+complete only this policy repair, focused RED/GREEN, full offline envelope, and fresh
+exact-product review, then generate the new exact 20-to-22-call canonical cost request
+and stop. It forbids live corpus/holdout, version, install, push, and publication in
+this Goal. A later canonical cost response creates authority only for its exact new
+binding and does not follow from this amendment.
+
+Immutable amendment baseline is clean release head
+`40aa1399ab1a9af227fb423a34da8651e4a78b54`, tree
+`3b10c54278910da882fc365a04bccfd9193acc84`, with 51-entry product projection
+excluding this plan
+`1f496d3af2f7b30a2af729d2495e06a2a3db9434d0607fcfe520d5717c9bc03f`.
+The Fable prelaunch record originally rendered this exact manifest as 49 entries;
+direct `git ls-tree -r` recount proves 51 while reproducing the same frozen digest,
+so the count is corrected administratively without changing its reviewed content.
+Baseline source SHA-256 values are compare
+`8aa8441bac6d0f943cb7c0c61c4f9510fa969035ba64684accd6f72e8a729dd1`,
+focused tests
+`c04da3aed3c7daf75c1484ab5fc65070f628159be8b0ee3f5038ceebe9b6d6e9`,
+ledger implementation
+`8005661a62613a0db3f391861ab98f9947ff03f00662eb877831e9978a8a4b02`,
+ledger file
+`fcfbbc3969170f1d2abb62693ab46dc7aec184a87fe195c5b75e2ea57786c683`,
+Skill `0f222349...6b71`, plugin manifest `b1d4e9c0...c213`, holdout runner
+`5c791f19...583c`, and corpus runner `3dc5ae1d...5f24`.
+
+The semantic change retires engine manifest `731ee44a...54c`, snapshot
+`f59799b3...248f`, impact token `f6f6526b...f821`, authority
+`e8a5255e...eb8a1`, authority-bearing canonical ledger `164e837e...9460`, request
+`daa751b4...c8de`, corpus summary `c797f4bc...69d5`, holdout run/summary
+`1fda1970...f5d9` / `9ddb451b...b5e9`, both pair receipts, and the prior exact-product
+review for certification. These terminal live files remain immutable diagnostic
+history but are not reusable as new certification evidence. The candidate package
+semantic/artifact identities remain `c5030e99...c05` / `0c83dbc6...934`.
+
+Minimum execution sequence and gates:
+
+1. Commit this amendment freeze with the mandatory ExecPlan trailer.
+2. Before any test or semantic edit, set only `live_authority` to null and commit that
+   retirement boundary. Do not run unit discovery while authority is non-null.
+3. Change only the focused materially-better/expensive test and observe the exact RED
+   against the old branch. The test must also prove both blocking ratios remain
+   present and that the equal-quality threshold still blocks.
+4. Remove only the materially-better confirmation branch, rebuild the snapshot and
+   pending full 14-case/three-pair scope with null authority, and obtain focused GREEN.
+5. Run the frozen-CLI cumulative suite, official Skill/plugin validators, Ruff,
+   verify/impact and both dry-runs, JSON/AST/diff/package hygiene. Any new failure or
+   changed excluded byte stops before repair expansion.
+6. Commit the semantic candidate, freeze exact review command/candidate/destination,
+   and require one fresh isolated exact-product Native review `GO` with no unresolved
+   material blocker. Candidate change after review invalidates it.
+7. Reconstruct frozen public 0.2, generate the exact new impact/cost request, persist
+   its identities here, and stop. No live call is authorized by this Goal.
+
+If later approved, the minimum live refresh remains 16 corpus calls plus adaptive
+four-to-six holdout calls: 20 to 22 calls, historically estimated at 585,209 to
+637,027 combined tokens and 2,911.874 to 3,187.085 seconds, followed by the release
+task's required downstream evidence/review. A changed scope or estimate stops for a
+new user decision.
+
+Stable findings for this amendment are:
+
+- `HC04-COST-01` (`baseline-unchanged`): public 0.2 is the behavior control; exact
+  0.3 runtime bytes remain the upgrade baseline and do not attribute the observed
+  +34.1873% sample to a 0.4 source change.
+- `HC04-COST-02` (`resolved-target`): repository policy limits the 25% gate to equal
+  quality, while the executable branch adds an uncertifiable materially-better state.
+- `HC04-COST-03` (`baseline-unchanged`): the current terminal corpus/holdout is valid
+  diagnostic evidence but becomes invalid for certification after the semantic edit.
+- `HC04-COST-04` (`unknown`): the exact post-repair engine/snapshot/impact/request and
+  fresh-review verdict remain open until generated from the immutable candidate.
 
 ## Design saturation and frozen release sequence
 
@@ -903,7 +1003,7 @@ review identity, public proof, rollback, and final GitHub delivery simultaneousl
 | R-01 | premise | Current remote `main`, local baseline, package, engine, snapshot, ledger, and public benchmark identities are independently reproduced before release work. | Fetch/readback plus offline identity commands; drift remains open. | verified |
 | R-02 | outcome | The exact current impact and historical-cost envelope are persisted, and no live helper runs without the canonical invocation-bound response. | Authority validation plus command audit; any early call falsifies. | verified; exact 20-call grant consumed terminally |
 | R-03 | outcome | Exactly the authorized corpus and adaptive holdout scope completes and produces sanitized Git-reachable evidence that makes `current.json` validly `certified`. | CLI receipts, ledger validation, evidence ancestry, exact cost and scope reconciliation. | corpus GREEN; materially-better holdout blocked by exact cost gate and missing waiver representation |
-| R-04 | preservation | Repairs change only the explicitly authorized evaluator-case prompt or fixture, focused structural tests, and mechanically required source ledger; Skill, manifest behavior, oracle/matcher/schema, runner/evaluator code, and holdout semantics remain unchanged. | Exact source diff; any wider edit stops for user decision. | verified for both repairs |
+| R-04 | preservation | Repairs change only their explicit amendments: the earlier evaluator-case/fixture slices and the current holdout cost decision branch, focused tests, mechanical source ledger, and this plan. Skill, manifest, oracle/matcher/schema, runner, cases, and shipped product remain unchanged. | Exact source diff; any wider edit stops for user decision. | earlier repairs verified; cost-policy slice authorized |
 | R-05 | outcome | Release edits are limited to strict-semver 0.4 version/cachebuster and accurate change-note/install metadata. | Product diff inventory and official validators. | open |
 | R-06 | outcome | Full offline suite, official validators, Ruff, CLI/JSON/diff/package hygiene, and fresh exact-product review close with `GO` and no material blocker. | Exact receipts and complete review coverage. | open |
 | R-07 | outcome | A clean isolated public marketplace install/invocation reports the exact 0.4 version and release identity. | Fresh-home install plus invocation receipt; source/cache mismatch falsifies. | open |
@@ -948,6 +1048,9 @@ review identity, public proof, rollback, and final GitHub delivery simultaneousl
     a narrow Goal amendment. Open as an action gate: only explicit user authorization
     can supersede evaluator preservation, retire the current evidence, and permit the
     offline repair that precedes a new exact cost request.
+11. Closed on 2026-07-20: the user returned the exact amendment above, the old Goal is
+    cleared, and the bounded replacement Goal is active. Freeze this contract before
+    the authority-retirement or RED write; live execution and release remain closed.
 
 ## Checkpoint
 
@@ -959,8 +1062,8 @@ review identity, public proof, rollback, and final GitHub delivery simultaneousl
   raw outputs, evaluator, product, and ledger semantics unchanged.
 - Owned raw path: `/tmp/happycodex-0.4-retry-live.hLLmk0`. Retain it unchanged; no
   evaluator child is live and no unchanged live rerun is permitted.
-- Missing facts: explicit scoped Goal/Outcome amendment, then every newly invalidated
-  offline/live/review and remaining install/activation/rollback/publication receipt.
+- Missing facts: post-repair identities, offline RED/GREEN, fresh-review verdict, and
+  exact new cost request; all later live/release receipts remain outside this Goal.
 
 ## Retrospective
 
