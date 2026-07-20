@@ -2284,6 +2284,53 @@ install, activation, push, or publication action ran. This correction invalidate
 the NOT-YET candidate and requires one fresh isolated review; no old verdict is
 reused.
 
+## Corrected release-state fixture rereview prelaunch
+
+The corrected semantic source is
+`a08dafd3417a8a8510138b4ffea9fc6bf0ab9ef3`, tree
+`1944aa11f2b18617b6fc2f3e9616e8baae2bb45f`; its 54-entry product projection,
+excluding only this plan, has SHA-256
+`be2cdb18c3421fa3b2aebfbb7344de5374878a6ca846c8a0b8bbef049f03878e`.
+The unchanged amendment baseline projection is `73508008...e9417`.
+
+Fresh neutral refs are:
+
+- `refs/happycodex/reviews/release-state-fixture-a08dafd/baseline` ->
+  `bdd3a0f4200b8dc1b52bed58d18cfd2849464654`, tree
+  `d71407107f921fb518921a7548645c7bd74312e9`;
+- `refs/happycodex/reviews/release-state-fixture-a08dafd/candidate` ->
+  `3f4a1736aeb99665f8213a6a185ffb31afcc7c81`, tree
+  `be03b2bed92835709499100418a59e79b365c0c3`.
+
+Both neutral/source projections match byte-for-byte. The candidate has only the
+neutral baseline parent; its complete one-unit diff is the authorized test file and
+the name-status manifest remains `58708802...2362`. Standalone clone
+`/tmp/happycodex-0.4-release-fixture-rereview.OHdxQJ/repo` contains only these two
+reachable commits, no alternates, is detached, and is clean.
+
+The new 9,470-byte brief is
+`/home/caichenghang/projects/happycodex/.git/happycodex-reviews/release-state-fixture-a08dafd/brief.txt`,
+SHA-256 `e6f100054b58c94c65baeb3a68a0e8358aede0cf0894faaf17fe3a505194f574`.
+It discloses the prior NOT-YET summary to prevent verdict shopping, requires
+independent closure of both P1s, and forbids reading its output. The 3,116-byte fresh
+managed profile is
+`/home/caichenghang/.codex/happycodex-reviews/release-state-fixture-a08dafd/runtime/codex/config.toml`,
+SHA-256 `7c0adce8e281cb404b925fceaa28bb92787c042c2f720531cef4e4056701f555`.
+Preflight proved candidate read/source-write denial, writer/prior-review denial,
+one scratch write root, and network denial. The isolated focused module passed 36/36
+in 6.432 seconds. Candidate/source are clean; scratch, session, and output roots are
+empty after removing preflight canaries and bwrap lock artifacts.
+
+Exact corrected rereview command, frozen before any new model dispatch:
+
+```bash
+env HOME=/home/caichenghang/.codex/happycodex-reviews/release-state-fixture-a08dafd/runtime/home CODEX_HOME=/home/caichenghang/.codex/happycodex-reviews/release-state-fixture-a08dafd/runtime/codex PATH=/home/caichenghang/.codex/packages/standalone/releases/0.144.4-aarch64-unknown-linux-musl/bin:/home/caichenghang/.codex/packages/standalone/releases/0.144.4-aarch64-unknown-linux-musl/codex-path:/home/caichenghang/.codex/tmp/arg0/codex-arg0DF1Vet:/usr/bin:/bin PYTHONDONTWRITEBYTECODE=1 codex exec --strict-config --ignore-rules -m gpt-5.6-sol -c 'model_reasoning_effort="max"' -c 'approval_policy="never"' -c 'project_doc_max_bytes=0' -c 'web_search="disabled"' -c 'tools.web_search=false' -c "developer_instructions=$(python3 -c 'import json,sys; print(json.dumps(open(sys.argv[1], encoding="utf-8").read()))' /home/caichenghang/projects/happycodex/.git/happycodex-reviews/release-state-fixture-a08dafd/brief.txt)" --disable plugins --disable apps --disable hooks --disable multi_agent --disable browser_use --disable browser_use_external --disable computer_use --disable image_generation -C /tmp/happycodex-0.4-release-fixture-rereview.OHdxQJ/repo --json -o /home/caichenghang/projects/happycodex/.git/happycodex-reviews/release-state-fixture-a08dafd/output/last-message.txt review --commit 3f4a1736aeb99665f8213a6a185ffb31afcc7c81 > /home/caichenghang/projects/happycodex/.git/happycodex-reviews/release-state-fixture-a08dafd/output/events.jsonl 2> /home/caichenghang/projects/happycodex/.git/happycodex-reviews/release-state-fixture-a08dafd/output/stderr.txt
+```
+
+All three outputs are absent. Any candidate/ref/clone, profile, brief, command,
+model/effort, session/scratch, or output drift invalidates launch.
+`Corrected fixture rereview status: not started`.
+
 ## Checkpoint
 
 - Milestone: exact request `ce5c87d...7c35c` produced one 14/14 corpus and one
