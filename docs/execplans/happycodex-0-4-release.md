@@ -3,9 +3,9 @@
 Protocol: `HappyCodex/0.3`
 Invocation: `$happycodex:happycodex`
 Writer: Root only
-State: the exact live-certified ledger and metadata-only 0.4 transition are committed;
-the zero-live source is frozen, and the user has authorized only the minimum
-release-state-independent test-fixture repair before offline validation and review
+State: the zero-live 0.4 source and minimum release-state-independent test-fixture
+repair are frozen; focused and complete offline validation are GREEN, and the next
+gate is the separately frozen fresh exact-product review
 Resume: read this entire file, the completed 0.4 certification-engine and main-
 integration ExecPlans, then reconcile Goal, Git, tests, evidence, installations,
 remote refs, and agents before any write, review, live call, or completion claim.
@@ -1991,7 +1991,7 @@ review identity, public proof, rollback, and final GitHub delivery simultaneousl
 | R-03 | outcome | Exactly the authorized corpus and adaptive holdout scope completes and produces sanitized Git-reachable evidence that makes `current.json` validly `certified`. | CLI receipts, ledger validation, evidence ancestry, exact cost and scope reconciliation. | verified and applied at `e0248b0` |
 | R-04 | preservation | Repairs change only their explicit amendments: the earlier case/fixture and holdout-policy slices, the current anchored-blocker prompt, focused tests, mechanical source ledger, and this plan. Skill, manifests, oracle/matcher/schema, runners/evaluator, unaffected cases, and shipped product remain unchanged. | Exact source diff; any wider edit stops for user decision. | verified through `f8ef025`; fresh review GO |
 | R-05 | outcome | Release edits are limited to strict-semver 0.4 version/cachebuster and accurate change-note/install metadata. | Product diff inventory and official validators. | exact three-path metadata slice committed at `59e2eda`; validators pending |
-| R-06 | outcome | Full offline suite, official validators, Ruff, CLI/JSON/diff/package hygiene, and fresh exact-product review close with `GO` and no material blocker. | Exact receipts and complete review coverage. | first release-product suite was 113/123; minimum test-only amendment is authorized but not yet implemented |
+| R-06 | outcome | Full offline suite, official validators, Ruff, CLI/JSON/diff/package hygiene, and fresh exact-product review close with `GO` and no material blocker. | Exact receipts and complete review coverage. | test-only repair is offline GREEN; fresh release-product review open |
 | R-07 | outcome | A clean isolated public marketplace install/invocation reports the exact 0.4 version and release identity. | Fresh-home install plus invocation receipt; source/cache mismatch falsifies. | open |
 | R-08 | outcome | Active local plugin upgrades to exact 0.4 through the official cachebuster/reinstall flow, with the exact prior 0.3 cache retained and a tested rollback command. | Plugin list/cache/install/readback and rollback proof. | open |
 | R-09 | outcome | Release branch, integration ref, tag/release, and remote source identities are published without force or branch deletion and read back exactly. | Push/API/`ls-remote` receipts; mismatch blocks completion. | open |
@@ -2063,6 +2063,10 @@ review identity, public proof, rollback, and final GitHub delivery simultaneousl
     consume the active ledger as a full-live state, hard-code the certified 0.3
     artifact, and assume copied evidence directories do not yet exist. No live or
     model process ran. Stop before changing this test oracle/fixture.
+17. Closed: the user explicitly authorized the single-file amendment, its ten
+    previously failing selectors are 10/10 GREEN, and the complete frozen offline
+    envelope is 123/123 GREEN with every preservation identity below. The coherent
+    test repair must be committed before the separately frozen fresh review launch.
 
 ## Authorized release-state-independent test-fixture amendment
 
@@ -2099,6 +2103,52 @@ with the mandatory trailer and require a fresh isolated exact-product Native rev
 reopen it. A later strictly post-source `offline_summary` and certified-ledger write
 will require the release sequence's final exact-product review as already frozen.
 
+## Release-state-independent test-fixture repair GREEN
+
+Only `tests/test_certification_engine.py` changed. It adds one synthetic full-live
+fixture for tests that exercise exact authority and certification, permits the
+already-tracked evidence directory in copied repositories, updates the exact frozen
+0.4 package artifact assertion, and makes the CLI test distinguish current-source
+pending state from the prior-to-successor incremental certification impact. No test
+oracle is removed or weakened: the synthetic state retains every 14-case/three-pair
+scope, 20-to-22-call cost, invocation binding, authority rejection, evidence, and
+certification check.
+
+The first focused run passed 9/10 and exposed one assertion that incorrectly expected
+the active CLI to rehydrate the prior ledger's install gate. Read-only reconciliation
+proved the two intended layers: after the source snapshot is persisted, CLI impact
+has only persisted `review` pending and zero invocations; the certification validator
+loads the bound prior certified ledger and recomputes exact incremental gates
+`isolated_install` and `review`. The final ten-selector run passed 10/10 in 4.143
+seconds and now asserts both layers.
+
+The complete frozen-toolchain offline envelope is GREEN:
+
+- 123/123 unit tests passed in 7.665 seconds;
+- official Skill and plugin validators passed; Ruff check passed and all 19 Python
+  files passed format-check;
+- official verify, impact, corpus dry-run, and holdout dry-run exited zero with
+  stdout SHA-256 values `d52e1bf...2d73b`, `3713b6d...fc7d8`,
+  `e5d76b3...44a0a`, and `2f147cf...829692`;
+- verify reports snapshot `b579d5b1...3c0b`, engine `0334e7d2...6757`, null
+  authority, and current pending `review`; impact reports reason
+  `artifact-only-refresh`, zero calls/cost approval, and no proposed invocation;
+- direct prior-to-current recomputation reports semantic identity unchanged,
+  artifact `ace7f39f...497e`, exact zero calls, and only
+  `isolated_install`/`review`;
+- all 24 tracked JSON files parsed, all 19 tracked Python files parsed as AST, and
+  working-tree diff hygiene passed.
+
+The repaired test file SHA-256 is
+`a4a47d33382b6ab0d61796743e005f960ed1aeff753bb8761bab9dac8fcba3d7`;
+its binary diff from amendment freeze `c2d4d4c` has SHA-256
+`1f5376df3a0770c5e3df87d20784eb2658bf774b671f77681f1593a0ef757e1f`.
+Candidate package semantic/artifact remain exactly
+`c5030e99dd7cd1681148c069775671c5720bb8dd366930ff90f61cbc54cdfc05` /
+`ace7f39fd61341e5d4b1bc3b268fd89a1562acaaacb80d7456c2bb97fb9c497e`.
+Every non-test product/evaluator path is byte-identical to the amendment freeze. No
+corpus, holdout, model, install, review, activation, push, or publication action ran.
+
 ## Checkpoint
 
 - Milestone: exact request `ce5c87d...7c35c` produced one 14/14 corpus and one
@@ -2108,17 +2158,16 @@ will require the release sequence's final exact-product review as already frozen
   at `7471d2d` now carries null authority and no certification receipt.
 - Product/support writes: the allowed three-path release metadata slice is committed
   at `59e2eda`; Skill, marketplace manifest, oracle/matcher/schema, runners/evaluator,
-  holdout, and runtime bytes remain unchanged. The test tree is now open only for the
-  single-file amendment above.
+  holdout, and runtime bytes remain unchanged. The authorized single test file is
+  offline GREEN and ready for its coherent semantic commit.
 - Retain prior raw diagnostics unchanged. Fresh public archive
   `/tmp/happycodex-anchored-blocker-public-0.2.Up71TN` is the frozen holdout input;
   current raw output is retained externally at
   `/tmp/happycodex-0.4-live.jKHXDa`; no evaluator child remains.
-- Missing fact: whether the authorized single-file repair makes the ten affected
-  tests and complete frozen offline envelope GREEN, followed by a fresh Native
-  exact-product review `GO`. It requires zero corpus/holdout calls and zero behavior/
-  holdout tokens. Install, active upgrade, PR/merge/tag/release, and readback remain
-  closed until those gates pass.
+- Missing fact: the fresh Native exact-product review verdict for the committed
+  repair. It requires zero corpus/holdout calls and zero behavior/holdout tokens.
+  Install, active upgrade, PR/merge/tag/release, and readback remain closed until
+  that gate passes.
 
 ## Retrospective
 
