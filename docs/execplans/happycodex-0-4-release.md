@@ -3,8 +3,8 @@
 Protocol: `HappyCodex/0.3`
 Invocation: `$happycodex:happycodex`
 Writer: Root only
-State: the anchored-blocker repair is offline GREEN and fresh-review GO; the exact
-canonical response is accepted and the null-authority live prelaunch is frozen
+State: the exact corpus/holdout and synthetic certified ledger are GREEN; the fresh
+read-only review of the neutral certified product is frozen and not yet started
 Resume: read this entire file, the completed 0.4 certification-engine and main-
 integration ExecPlans, then reconcile Goal, Git, tests, evidence, installations,
 remote refs, and agents before any write, review, live call, or completion claim.
@@ -1652,6 +1652,94 @@ the sequence without retry. The current grant is then consumed; holdout does not
 after a corpus failure. Sanitization and Git-reachable evidence begin only after both
 authorized commands close GREEN.
 
+## Anchored-blocker live GREEN and certified review prelaunch
+
+The exact authority-bearing source is
+`649261dec2a69f1983661c1b9009578a6fb8aff1`, tree
+`4fd8631fa73943d9713973ea8388cc494e45e38f`. Its canonical authority ledger is
+`403a31aa1898fc61f4614dc94e7687e7f6d979b5d6a9b19f663745798a78500a`;
+official verify was GREEN and the source worktree was clean before the first model
+call. No unit discovery ran after authority persistence.
+
+The one frozen corpus command completed exit zero. Its production-sanitized summary
+is 14/14 all-pass with complete telemetry, exact impact/authority/model/effort/
+timeout/package bindings, 417,699 uncached input plus 69,865 output tokens, and
+2,032.747 aggregate seconds. Summary byte SHA-256 is
+`33ba0c990f9dbcbb9740de861dfe51b743a03c4aa1476bc9f6d550b022ff70a7`;
+CLI stderr is empty. Every case is exit zero and non-timeout.
+
+Only then the one frozen adaptive holdout completed exit zero after all three pairs.
+Its history is `better`, `equal`, `better` and terminal action is `stop`; every
+candidate arm passes. The two failed public controls are exit-zero, non-timeout
+oracle failures. Aggregate quality is `materially_better`; candidate/public combined
+tokens are 68,044 / 65,361 and wall seconds are 363.016 / 345.774. Blocking ratios
+are 1.041048943559615 combined tokens and 1.0498649406837992 wall against threshold
+1.25, so decision is `pass` and `release_permitted` is true. Run-receipt and summary
+byte SHA-256 values are respectively
+`55308d32d0409f5f5b33efb4852254677ebbc926ead2e57cc1ba1eae8c1baf70` and
+`e6abae55f9c607767c04a2bef4fea97b7ad302b90cbb3debb0a46092b11ef719`;
+CLI stderr is empty. No retry or extra live invocation ran.
+
+Only those three sanitizer outputs were copied byte-exactly into Git. Raw events,
+stderr, prompts, model prose, and mapping artifacts remain external at
+`/tmp/happycodex-0.4-live.jKHXDa`. Evidence commit
+`26ab45d6b36cda89f92e538cfde2ad181ae26637`, tree
+`e86fc80b77d217938247a9b5f76c43ea124b9437`, strictly postdates the authority
+source. Corpus, holdout-run, and holdout-summary Git blobs are respectively
+`7433ce79c4e37bde76b2fbc783f937abd7b90c95`,
+`7aa5d60410a2909b09cf1b76c1748acb5cc3f9db`, and
+`f75d07ee852897cdfd795169cd2b74d633c875e8`.
+
+An isolated synthetic transition applies the proposed certified ledger at
+`1707e1254a0aad9f1164b22f0ec0f14fb85ed5ab`, tree
+`403cf5fa6df13c3a6880e563dd1f53873bf7b472`. Official verify reports state
+`certified`, no pending gates, canonical ledger
+`1393b723f86d6805c9b6757ffba0c3b29d179efb8af63b70e7c5112cc10ce042`,
+unchanged snapshot/engine, and persisted authority. The exact proposed
+`current.json` byte SHA-256 is
+`337feae7e9dd421015f59f9ccf65abc0b267a9e34241c05ef4d9cf3d8271a86f`.
+This source candidate remains retained at
+`refs/happycodex/reviews/live-certified-0.4/source-candidate`.
+
+Neutral review refs exclude only this ExecPlan:
+
+- baseline `72e1f10c399bf1f9122a1e138cf15c52066c4d14`, tree
+  `288245eda4cf053e634431b3eb520cbbf77c5059`, recursive-manifest SHA-256
+  `d7296f1c191bc101f1541ff8395b5b6a92a83c18b9a12677ffab7cd82682c047`;
+- candidate `e4c0e6aa50c02c7ad20c5b0d388d5c08230b5999`, tree
+  `824b896c2108f870b8f2c12515f7550c65dc2eac`, recursive-manifest SHA-256
+  `ae057f09fd4b20b75aea1557cc1b401d563f5856c49e4a48657a95b05cc94d78`.
+
+The candidate has the neutral baseline as its only parent. The complete four-unit
+`--no-renames` diff is the certified ledger plus the three evidence files; raw
+diff-manifest SHA-256 is
+`788907dc1d8d6b1260a938bef66dc0f93edc5d97645a91dba7693aab8a132b8e`.
+The baseline's parent is intentionally the real evidence commit, allowing the
+original source/evidence locators to remain ancestors while the authoritative review
+diff remains candidate versus baseline.
+
+Fresh read-only checkout
+`/tmp/happycodex-0.4-certified-review.OkHdD6/repo` is detached and clean at the
+neutral candidate. Its 9,107-byte two-phase brief is durable at
+`/home/caichenghang/projects/happycodex/.git/happycodex-reviews/live-certified-0.4/brief.txt`
+with SHA-256
+`ce4d0454fcf824d121e6028a083c312dc911eac31049275e6e0f41db9a81d937`.
+It forbids test discovery, live evaluation, raw-output reads, network, writes,
+delegation, installation, external history, and every later release action.
+
+Pinned Codex CLI `0.144.4` has SHA-256
+`306498eb1e4ba092e1a03c6ebeaeba37964ad868a68b167d4fb775c96321db5c`.
+The launch selects `gpt-5.6-sol`, requests `max`, and enforces `read-only`. Exact
+command, frozen before launch:
+
+```bash
+brief_path=/home/caichenghang/projects/happycodex/.git/happycodex-reviews/live-certified-0.4/brief.txt; PATH=/home/caichenghang/.codex/packages/standalone/releases/0.144.4-aarch64-unknown-linux-musl/bin:$PATH PYTHONDONTWRITEBYTECODE=1 codex exec -s read-only -m gpt-5.6-sol -c 'model_reasoning_effort="max"' -c "developer_instructions=$(python3 -c 'import json,sys; print(json.dumps(open(sys.argv[1], encoding="utf-8").read()))' "$brief_path")" -C /tmp/happycodex-0.4-certified-review.OkHdD6/repo --json -o /home/caichenghang/projects/happycodex/.git/happycodex-reviews/live-certified-0.4/last-message.txt review --commit e4c0e6aa50c02c7ad20c5b0d388d5c08230b5999 > /home/caichenghang/projects/happycodex/.git/happycodex-reviews/live-certified-0.4/events.jsonl 2> /home/caichenghang/projects/happycodex/.git/happycodex-reviews/live-certified-0.4/stderr.txt
+```
+
+All three output destinations are absent at freeze. Candidate/ref/checkout/brief/
+command/model/effort/profile/output drift invalidates launch.
+`Certified review status: not started`.
+
 ## Design saturation and frozen release sequence
 
 Fresh baseline-only challenger `/root/release_boundary_challenger_b` inspected only
@@ -1736,8 +1824,8 @@ review identity, public proof, rollback, and final GitHub delivery simultaneousl
 | ID | Type | Claim | Closure / falsifier | State |
 | --- | --- | --- | --- | --- |
 | R-01 | premise | Current remote `main`, local baseline, package, engine, snapshot, ledger, and public benchmark identities are independently reproduced before release work. | Fetch/readback plus offline identity commands; drift remains open. | verified |
-| R-02 | outcome | The exact current impact and historical-cost envelope are persisted, and no live helper runs without the canonical invocation-bound response. | Authority validation plus command audit; any early call falsifies. | verified through exact response acceptance and prelaunch freeze; authority still null |
-| R-03 | outcome | Exactly the authorized corpus and adaptive holdout scope completes and produces sanitized Git-reachable evidence that makes `current.json` validly `certified`. | CLI receipts, ledger validation, evidence ancestry, exact cost and scope reconciliation. | prior attempts are diagnostics only; fresh 20-to-22-call scope awaits authority |
+| R-02 | outcome | The exact current impact and historical-cost envelope are persisted, and no live helper runs without the canonical invocation-bound response. | Authority validation plus command audit; any early call falsifies. | verified; exact authority persisted at `649261d` before the sole GREEN live sequence |
+| R-03 | outcome | Exactly the authorized corpus and adaptive holdout scope completes and produces sanitized Git-reachable evidence that makes `current.json` validly `certified`. | CLI receipts, ledger validation, evidence ancestry, exact cost and scope reconciliation. | live corpus/holdout and synthetic certified ledger GREEN; fresh exact-product review open |
 | R-04 | preservation | Repairs change only their explicit amendments: the earlier case/fixture and holdout-policy slices, the current anchored-blocker prompt, focused tests, mechanical source ledger, and this plan. Skill, manifests, oracle/matcher/schema, runners/evaluator, unaffected cases, and shipped product remain unchanged. | Exact source diff; any wider edit stops for user decision. | verified through `f8ef025`; fresh review GO |
 | R-05 | outcome | Release edits are limited to strict-semver 0.4 version/cachebuster and accurate change-note/install metadata. | Product diff inventory and official validators. | open |
 | R-06 | outcome | Full offline suite, official validators, Ruff, CLI/JSON/diff/package hygiene, and fresh exact-product review close with `GO` and no material blocker. | Exact receipts and complete review coverage. | bounded repair GREEN/GO; later certified and release-product gates open |
@@ -1793,25 +1881,30 @@ review identity, public proof, rollback, and final GitHub delivery simultaneousl
 13. Closed on 2026-07-20: exact request `ce5c87d...7c35c` was frozen after offline
     GREEN, fresh review `GO`, and fresh public-0.2 reconstruction; the user returned
     its sole canonical response and every binding reproduced before persistence.
-14. Open: commit this prelaunch, persist and verify the exact authority, and commit
-    the authority-bearing ledger before the first model call. Then execute only the
-    frozen corpus and conditional adaptive holdout commands, once each and without
-    test discovery or retry.
+14. Closed: the prelaunch, exact authority source, one 14/14 corpus, one terminal
+    adaptive holdout, three sanitized evidence files, and synthetic certified ledger
+    are committed or durably retained with every frozen identity. No test discovery,
+    retry, or additional live invocation ran.
+15. Open: exact live commands and sanitized evidence are GREEN, and the synthetic
+    certified ledger verifies. Commit this review prelaunch, run only its frozen
+    read-only native review, require `GO`, then apply and commit byte-identical ledger
+    bytes on the release branch.
 
 ## Checkpoint
 
-- Milestone: anchored-blocker semantic repair `f8ef025` is focused/cumulative offline
-  GREEN, fresh exact-product review is `GO`, and exact request
-  `ce5c87d...7c35c` has its canonical response plus frozen live prelaunch. Ledger
-  authority and certification remain null until the next separately committed step.
+- Milestone: exact request `ce5c87d...7c35c` produced one 14/14 corpus and one
+  terminal `better/equal/better` holdout with release-permitted cost gate; evidence
+  commit `26ab45d` and verified synthetic certified candidate `1707e12` are durable.
+  The release branch still carries the authority ledger until review returns `GO`.
 - Product/support writes: closed at the reviewed three-path slice. Skill, manifests,
   oracle/matcher/schema, runners/evaluator, holdout, and shipped-package bytes remain
   unchanged. Later release metadata stays closed until live certification succeeds.
 - Retain prior raw diagnostics unchanged. Fresh public archive
   `/tmp/happycodex-anchored-blocker-public-0.2.Up71TN` is the frozen holdout input;
-  no evaluator child is live and no live command has run under the current request.
-- Missing fact before authority persistence: none. The active Goal now continues
-  through the separately committed authority, exact live certification,
+  current raw output is retained externally at
+  `/tmp/happycodex-0.4-live.jKHXDa`; no evaluator child remains.
+- Missing fact: the fresh exact-product verdict for neutral certified candidate
+  `e4c0e6a...b599`. A `GO` permits only byte-identical ledger application before the
   metadata-only 0.4 transition, isolated installs, active upgrade,
   PR/merge/tag/release, and readback.
 
