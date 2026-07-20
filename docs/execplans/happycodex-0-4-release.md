@@ -1243,6 +1243,45 @@ official CLI into new external raw directories. Any binding drift, launch-shape
 failure, contract-defined terminal failure, or need for another live invocation
 stops without retry.
 
+## Post-policy live prelaunch
+
+The exact authority is committed before any model call at
+`20cd84fa1702ea3ca60dbb1db0469583ee098c58`, tree
+`bf5b2a12dc12d393926df94be5228d44971a8b1d`. Frozen-CLI production validation
+reports authority SHA-256
+`9bffd0d03e364f58c56bb7faf9808b34cb0d19feb23b17f7e821fd037c72af5e`,
+authority-bearing canonical ledger
+`21ea986254ba8951de5b7e04151c4ff9a42bc3fc9b5ca1163aa06cd0123a3ca1`,
+snapshot `1ac13f5a...7463`, impact `b4194a09...9882`, and exact ordered commands
+`corpus`, `holdout`. Official `verify` is GREEN with authority persisted. No unit
+discovery ran after persistence, the worktree was clean at commit, and no evaluator
+child existed.
+
+The sole external raw root for this grant is
+`/tmp/happycodex-0.4-post-policy-live.LY8axo`. It was newly created empty. Corpus and
+holdout subdirectories plus their stdout/stderr destinations were absent at freeze.
+The retained fresh public archive is
+`/tmp/happycodex-cost-policy-public-0.2.GeVejD`; its frozen commit and identities are
+recorded above. The exact corpus command is:
+
+```bash
+env PATH=/home/caichenghang/.codex/packages/standalone/releases/0.144.4-aarch64-unknown-linux-musl/bin:$PATH PYTHONDONTWRITEBYTECODE=1 python3 -m evaluation.cli corpus --plugin /home/caichenghang/projects/happycodex --model gpt-5.6-sol --effort high --timeout 300 --arm candidate --output /tmp/happycodex-0.4-post-policy-live.LY8axo/corpus --bind-impact b4194a09b37b934fa1b9c8d376fc71edcf972c105d26ab42315de725e28e9882 > /tmp/happycodex-0.4-post-policy-live.LY8axo/corpus.stdout.json 2> /tmp/happycodex-0.4-post-policy-live.LY8axo/corpus.stderr.txt
+```
+
+Absence of `--case` intentionally selects the complete ordered 14-case scope, whose
+native control contributes three calls for 16 total. Only if that command exits zero
+with 14/14 passing and all exact bindings still match may this one holdout command
+run:
+
+```bash
+env PATH=/home/caichenghang/.codex/packages/standalone/releases/0.144.4-aarch64-unknown-linux-musl/bin:$PATH PYTHONDONTWRITEBYTECODE=1 python3 -m evaluation.cli holdout --candidate /home/caichenghang/projects/happycodex --public /tmp/happycodex-cost-policy-public-0.2.GeVejD --model gpt-5.6-sol --effort high --timeout 300 --output /tmp/happycodex-0.4-post-policy-live.LY8axo/holdout --bind-impact b4194a09b37b934fa1b9c8d376fc71edcf972c105d26ab42315de725e28e9882 > /tmp/happycodex-0.4-post-policy-live.LY8axo/holdout.stdout.json 2> /tmp/happycodex-0.4-post-policy-live.LY8axo/holdout.stderr.txt
+```
+
+Both commands run serially from the exact clean source checkout. No retry, subset,
+second corpus, second holdout, or unchanged-input rerun is permitted. Raw output
+remains external; only production-sanitized, content-addressed evidence may later
+enter Git strictly after the authority source. `Live status: not started`.
+
 ## Design saturation and frozen release sequence
 
 Fresh baseline-only challenger `/root/release_boundary_challenger_b` inspected only
