@@ -2372,6 +2372,43 @@ and 112 insertions/24 deletions in the sole authorized path. No live, install,
 activation, push, or publication action ran. A fresh isolated exact-candidate review
 is required; neither prior NOT-YET is reused.
 
+## Final release-state fixture review prelaunch
+
+The final semantic source is `63c85e34bff5e00222ae4898ab1d662987fb37e5`,
+tree `eb0052e4dcd51f82036f6a33ed816295fb31ddfb`; its 54-entry product
+projection excluding only this plan has SHA-256
+`6cc023f02475637056a6042a51e7b90bf08436d036cb8d72ffcadd1482a59fcd`.
+Fresh neutral refs bind baseline
+`bdd3a0f4200b8dc1b52bed58d18cfd2849464654` / tree
+`d71407107f921fb518921a7548645c7bd74312e9` and candidate
+`49e54478edc88cba45018794fc76198a665fc0c8` / tree
+`66bdef28caa6027ecb21e7a7ab12d1e37900542b`. Both product manifests match
+their sources. Candidate parentage is exactly the neutral baseline and its complete
+diff is the sole test path with name-status SHA-256 `58708802...2362`.
+
+Standalone clone `/tmp/happycodex-0.4-release-fixture-final-review.9orlnv/repo`
+contains only the two reachable commits, no alternates, is detached and clean. The
+8,255-byte fresh brief at
+`.git/happycodex-reviews/release-state-fixture-63c85e3/brief.txt` has SHA-256
+`46db6ed8f928765043d3ff061cbce8529761a27db3b2e1153c680a63d3699eef`;
+it discloses all three prior P1 summaries only to prevent verdict shopping and
+requires independent closure without reading prior output. The 3,348-byte fresh
+managed profile has SHA-256
+`3f3ddd7c9b72eb5db2d9b1d46a46a77e1999a2a4c39c5e700b0b095084ad3cf6`.
+Preflight proved candidate read/source-write denial, writer/prior-review denial,
+single scratch write, and network denial; isolated focused tests are 36/36 GREEN in
+6.262 seconds. Candidate/source are clean and all scratch/session/output roots are
+empty after preflight cleanup.
+
+Exact final fixture review command, frozen before model dispatch:
+
+```bash
+env HOME=/home/caichenghang/.codex/happycodex-reviews/release-state-fixture-63c85e3/runtime/home CODEX_HOME=/home/caichenghang/.codex/happycodex-reviews/release-state-fixture-63c85e3/runtime/codex PATH=/home/caichenghang/.codex/packages/standalone/releases/0.144.4-aarch64-unknown-linux-musl/bin:/home/caichenghang/.codex/packages/standalone/releases/0.144.4-aarch64-unknown-linux-musl/codex-path:/home/caichenghang/.codex/tmp/arg0/codex-arg0DF1Vet:/usr/bin:/bin PYTHONDONTWRITEBYTECODE=1 codex exec --strict-config --ignore-rules -m gpt-5.6-sol -c 'model_reasoning_effort="max"' -c 'approval_policy="never"' -c 'project_doc_max_bytes=0' -c 'web_search="disabled"' -c 'tools.web_search=false' -c "developer_instructions=$(python3 -c 'import json,sys; print(json.dumps(open(sys.argv[1], encoding="utf-8").read()))' /home/caichenghang/projects/happycodex/.git/happycodex-reviews/release-state-fixture-63c85e3/brief.txt)" --disable plugins --disable apps --disable hooks --disable multi_agent --disable browser_use --disable browser_use_external --disable computer_use --disable image_generation -C /tmp/happycodex-0.4-release-fixture-final-review.9orlnv/repo --json -o /home/caichenghang/projects/happycodex/.git/happycodex-reviews/release-state-fixture-63c85e3/output/last-message.txt review --commit 49e54478edc88cba45018794fc76198a665fc0c8 > /home/caichenghang/projects/happycodex/.git/happycodex-reviews/release-state-fixture-63c85e3/output/events.jsonl 2> /home/caichenghang/projects/happycodex/.git/happycodex-reviews/release-state-fixture-63c85e3/output/stderr.txt
+```
+
+All outputs are absent. Any identity, command, profile, brief, candidate, or output
+drift invalidates launch. `Final fixture review status: not started`.
+
 ## Checkpoint
 
 - Milestone: exact request `ce5c87d...7c35c` produced one 14/14 corpus and one
