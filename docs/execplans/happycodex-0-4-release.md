@@ -3,9 +3,9 @@
 Protocol: `HappyCodex/0.3`
 Invocation: `$happycodex:happycodex`
 Writer: Root only
-State: the exact zero-live isolated installation and strictly post-source evidence
-are committed; the final certified-ledger candidate is fully offline GREEN and its
-fresh exact-product review is frozen but not yet started
+State: the exact zero-live isolated installation and evidence are committed, and the
+final certified-ledger candidate is fully offline GREEN plus fresh-review GO with
+zero blockers; only byte-identical ledger application remains before public delivery
 Resume: read this entire file, the completed 0.4 certification-engine and main-
 integration ExecPlans, then reconcile Goal, Git, tests, evidence, installations,
 remote refs, and agents before any write, review, live call, or completion claim.
@@ -1991,7 +1991,7 @@ review identity, public proof, rollback, and final GitHub delivery simultaneousl
 | R-03 | outcome | Exactly the authorized corpus and adaptive holdout scope completes and produces sanitized Git-reachable evidence that makes `current.json` validly `certified`. | CLI receipts, ledger validation, evidence ancestry, exact cost and scope reconciliation. | verified and applied at `e0248b0` |
 | R-04 | preservation | Repairs change only their explicit amendments: the earlier case/fixture and holdout-policy slices, the current anchored-blocker prompt, focused tests, mechanical source ledger, and this plan. Skill, manifests, oracle/matcher/schema, runners/evaluator, unaffected cases, and shipped product remain unchanged. | Exact source diff; any wider edit stops for user decision. | verified through `f8ef025`; fresh review GO |
 | R-05 | outcome | Release edits are limited to strict-semver 0.4 version/cachebuster and accurate change-note/install metadata. | Product diff inventory and official validators. | exact three-path metadata slice committed at `59e2eda`; validators pending |
-| R-06 | outcome | Full offline suite, official validators, Ruff, CLI/JSON/diff/package hygiene, and fresh exact-product review close with `GO` and no material blocker. | Exact receipts and complete review coverage. | exact final certified candidate is fully offline GREEN; final review is frozen and open |
+| R-06 | outcome | Full offline suite, official validators, Ruff, CLI/JSON/diff/package hygiene, and fresh exact-product review close with `GO` and no material blocker. | Exact receipts and complete review coverage. | verified: final candidate offline GREEN and fresh-review GO with P0/P1/P2/P3 all zero |
 | R-07 | outcome | A clean isolated public marketplace install/invocation reports the exact 0.4 version and release identity. | Fresh-home install plus invocation receipt; source/cache mismatch falsifies. | open |
 | R-08 | outcome | Active local plugin upgrades to exact 0.4 through the official cachebuster/reinstall flow, with the exact prior 0.3 cache retained and a tested rollback command. | Plugin list/cache/install/readback and rollback proof. | open |
 | R-09 | outcome | Release branch, integration ref, tag/release, and remote source identities are published without force or branch deletion and read back exactly. | Push/API/`ls-remote` receipts; mismatch blocks completion. | open |
@@ -2623,6 +2623,40 @@ All three outputs are absent. Any candidate/ref/clone, profile, brief, command,
 model/effort, scratch/session/output, or identity drift invalidates launch.
 `Final certified review status at prelaunch: not started`.
 
+## Final zero-live certification review GO
+
+The frozen command completed exit zero. CLI review thread is
+`019f7f64-688b-7ac1-8127-3386b6511819`; the accompanying runtime session is
+`019f7f64-68dd-7f70-88c7-31a0d4734c6b`. Events, terminal receipt, and empty stderr
+are 594,687 / 6,685 / 0 bytes with SHA-256 values
+`3f55658a667c0a1c15de23272d13c03bd37e0268fc6193d8d4f5e924ade5b687`,
+`1b4108be25ead6bd574f67c93e534133682a6c60801ff873cb1c4e1485f463d9`,
+and `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`.
+Candidate and release worktrees remained clean; no network, install, publication,
+activation, corpus/holdout, or other model invocation ran inside the review.
+
+The reviewer independently reproduced both neutral identities, 55-entry manifests,
+sole-parent chain, one-ledger-file diff and hashes; the exact source/prior/evidence
+ancestry; source/candidate byte and canonical ledger identities; snapshot, engine,
+package, and Skill identities; all 14/three prior coverage; canonical null authority;
+and the exact isolated-install evidence locator and receipt fields. It reproduced the
+official certified/no-gate verifier, empty zero-live impact, both dry-runs, both
+validators, Ruff and 19-file format-check, 25/25 JSON, 19/19 AST, diff hygiene, and a
+16/16 false-GREEN mutation matrix. Its local unit copy ran 122 passes; the sole
+unavailable native-permission-profile test was blocked before its probe by the nested
+managed sandbox's read-only bwrap lock. Root's exact-candidate 123/123 run closes this
+disclosed reviewer-environment limitation.
+
+Every O01-O16 disposition is PASS, with O12 explicitly carrying only that environment
+limitation. P0=0, P1=0, P2=0, P3=0; exact unresolved material blocker count is zero.
+Over-optimization is rejected: the neutral transition is ledger-only with evidence
+already in its baseline and adds no generalized machinery or compatibility path.
+Terminal decision is `GO`. Public marketplace access, active local upgrade/rollback,
+push, PR, merge, tag, and GitHub Release correctly remain later gates. The only
+permitted product write now is byte-identical application of proposed
+`current.json` SHA-256
+`54aac8211e40366de7aaa0bef20cf2cdc95cacf7eed05576aa1f6e333f3e86df`.
+
 ## Checkpoint
 
 - Milestone: exact request `ce5c87d...7c35c` produced one 14/14 corpus and one
@@ -2643,8 +2677,10 @@ model/effort, scratch/session/output, or identity drift invalidates launch.
   calls and no behavior/holdout tokens.
 - Closed fact: exact local isolated installation and digest-bound offline evidence
   are GREEN and committed at `d319b5a`; zero model sessions or live tokens were used.
-- Next missing fact: a fresh Native exact-product `GO` for final certified candidate
-  `7d2c5f3`. Ledger application, public install, active upgrade,
+- Closed fact: final certified candidate `7d2c5f3` is fresh Native review `GO`, with
+  every obligation PASS, zero blockers, and no over-optimization.
+- Next missing fact: byte-identical application and committed validation of reviewed
+  ledger `54aac821...e86df`. Public install, active upgrade,
   PR/merge/tag/release, and readback remain closed until their later gates pass.
 
 ## Retrospective
