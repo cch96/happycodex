@@ -2448,6 +2448,39 @@ and 115 insertions/24 deletions in the sole test path. No live, install, activat
 push, or publication action ran. One fresh exact-candidate review is required; the
 NOT-YET verdict is not reused.
 
+## Self-contained fixture fresh review prelaunch
+
+The self-contained semantic source is
+`ea5ef4e5019f519aabd67cf11d09bd2ceb0c97f1`, tree
+`3ef2835d799eb2bfd9983542af33cb28af1d3f22`; its product projection SHA-256
+is `e5d403cc28093a17db28ad25cbd9d138334d7d8462cc7c2e2046d1fd9fcf163a`.
+Fresh neutral baseline remains `bdd3a0f...4654` / `d7140710...2e9`; candidate is
+`7ca07978030c7ae0d6c8c1961ef0c862da159f7e` / tree
+`f42a684bbf33743d452fdc261b13f8122719f2cb`. The candidate's only parent is
+the neutral baseline; both 54-entry manifests match source projections, and the
+complete diff remains the sole test path. Standalone clone
+`/tmp/happycodex-0.4-release-fixture-go-review.5K3wHA/repo` contains only the two
+reachable commits, no alternates, and is detached/clean.
+
+Fresh brief `.git/happycodex-reviews/release-state-fixture-ea5ef4e/brief.txt` is
+6,406 bytes, SHA-256
+`797bde7f064ab6a3bb4963e7b65aaac782f4f204b03bae073b51d5faeb82e6f9`.
+Fresh managed profile is 3,276 bytes, SHA-256
+`b16c5dbaa455bfc8465b1ecbb1dd71063e8203d1de7e91f755e73b3182d81b84`.
+It denies writer and every prior review, exposes only candidate read plus one scratch
+write root, and disables network. Preflight proved the policy and isolated focused
+tests passed 36/36 in 6.343 seconds. Scratch/session/output roots are empty and both
+worktrees clean.
+
+Exact command frozen before dispatch:
+
+```bash
+env HOME=/home/caichenghang/.codex/happycodex-reviews/release-state-fixture-ea5ef4e/runtime/home CODEX_HOME=/home/caichenghang/.codex/happycodex-reviews/release-state-fixture-ea5ef4e/runtime/codex PATH=/home/caichenghang/.codex/packages/standalone/releases/0.144.4-aarch64-unknown-linux-musl/bin:/home/caichenghang/.codex/packages/standalone/releases/0.144.4-aarch64-unknown-linux-musl/codex-path:/home/caichenghang/.codex/tmp/arg0/codex-arg0DF1Vet:/usr/bin:/bin PYTHONDONTWRITEBYTECODE=1 codex exec --strict-config --ignore-rules -m gpt-5.6-sol -c 'model_reasoning_effort="max"' -c 'approval_policy="never"' -c 'project_doc_max_bytes=0' -c 'web_search="disabled"' -c 'tools.web_search=false' -c "developer_instructions=$(python3 -c 'import json,sys; print(json.dumps(open(sys.argv[1], encoding="utf-8").read()))' /home/caichenghang/projects/happycodex/.git/happycodex-reviews/release-state-fixture-ea5ef4e/brief.txt)" --disable plugins --disable apps --disable hooks --disable multi_agent --disable browser_use --disable browser_use_external --disable computer_use --disable image_generation -C /tmp/happycodex-0.4-release-fixture-go-review.5K3wHA/repo --json -o /home/caichenghang/projects/happycodex/.git/happycodex-reviews/release-state-fixture-ea5ef4e/output/last-message.txt review --commit 7ca07978030c7ae0d6c8c1961ef0c862da159f7e > /home/caichenghang/projects/happycodex/.git/happycodex-reviews/release-state-fixture-ea5ef4e/output/events.jsonl 2> /home/caichenghang/projects/happycodex/.git/happycodex-reviews/release-state-fixture-ea5ef4e/output/stderr.txt
+```
+
+All outputs are absent. Any identity or command drift invalidates launch.
+`Self-contained fixture review status: not started`.
+
 ## Checkpoint
 
 - Milestone: exact request `ce5c87d...7c35c` produced one 14/14 corpus and one
