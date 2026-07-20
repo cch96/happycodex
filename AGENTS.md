@@ -5,9 +5,9 @@ not Skill runtime and must never be linked from `skills/happycodex/SKILL.md`.
 
 - Keep runtime Markdown at or below 262 lines. Target at most 2,200 words; 2,400
   words is the hard ceiling.
-- Keep the public 0.3 release, active installation, and every shipped-package byte
-  unchanged during the 0.4 certification-engine phase. Product/version/release work
-  requires its own frozen gates and explicit authority. The operative 0.4 Outcome
+- The public 0.3 release, active installation, and every shipped-package byte remained
+  unchanged throughout the 0.4 certification-engine phase. The 0.4 release follows
+  its separately frozen gates and explicit authority. The operative 0.4 Outcome
   excludes Fable; future tasks follow their own exact frozen review requirements.
 - Use only `python3 -m evaluation.cli`. Every evaluator Python/schema input must be
   classified as semantic, harness, or artifact. Unknown inputs fail closed. The
