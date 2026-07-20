@@ -1282,6 +1282,73 @@ second corpus, second holdout, or unchanged-input rerun is permitted. Raw output
 remains external; only production-sanitized, content-addressed evidence may later
 enter Git strictly after the authority source. `Live status: not started`.
 
+## Post-policy corpus failure and closed stop
+
+The sole frozen corpus command started only after authority source `20cd84f` and
+prelaunch `7e3671b` were committed. It did not complete. Five ordinary cases reached
+terminal metadata: `authorized-rebaseline`, `boundary-cutover`,
+`clean-qualifying-control`, and `goal-divergence` passed; `compaction-recovery`
+returned exit zero without timeout after 175.807 seconds but failed one oracle field:
+
+```text
+missing anchored blocker: docs/execplans/jobs.md ['frozen_acceptance', 'production_condition']
+```
+
+The result correctly returned the separately required durable identities
+`fixture-17` as `baseline_failure/resolved` and `fixture-18` as
+`baseline_failure/candidate_new`. It also kept product writing, review, and
+completion closed; found the public read-mode, migration, rollback, lost-scout,
+dirty-source, unknown-ownership, and staged-review blockers; and selected
+`stop_for_user`. The failure is therefore a structured evaluator-case contract miss,
+not infrastructure failure or a safe strict pass.
+
+Root observed the failure after the sequential runner had completed
+`goal-divergence` and opened `midflight-escalation`, then immediately interrupted the
+exact corpus process tree. The incomplete directory is empty and has no terminal
+telemetry; conservatively, its invocation is treated as started and potentially
+billed. The five terminal calls used 100,282 uncached input plus 20,963 output
+tokens, 121,245 combined, over 482.193 aggregate seconds. Their metadata SHA-256
+values in execution order are `cfab167a...6729`, `1d27cf60...1cd0`,
+`81c1732d...27ac`, `b53871d6...03fa`, and `963c48ec...aa03`.
+`compaction-recovery` events/stderr SHA-256 values are `a077fef9...81d` /
+`2e491761...014`; the complete 17-file external manifest SHA-256 is
+`0f345b1968ade3daa784886b0499425aac86764214622e8deb1e23df73f608a9`.
+Interrupted CLI stdout is empty; stderr SHA-256 is `4ae48624...32a`. Raw output
+remains external at `/tmp/happycodex-0.4-post-policy-live.LY8axo`.
+
+No evaluator child remains. No holdout, certification, review, version, install,
+plugin mutation, push, PR, merge, tag, or release action started, and the source
+worktree remained clean. Request `ca768290...bec0` and authority
+`9bffd0d0...af5e` are consumed and cannot authorize continuation or rerun. The five
+terminal receipts and one interrupted invocation are immutable diagnostics only, not
+certification evidence.
+
+The current prompt explicitly clarifies replacement baseline-failure identities but
+does not state the separate durable plan-anchor/blocker-class relationship that the
+hidden oracle requires. An unchanged rerun would shop for a stochastic alternative
+and is forbidden. The smallest plausible repair is one generic
+`compaction-recovery` evaluator-case prompt clarification plus one focused structural
+test; oracle, matcher, schema, runner, evaluator, Skill, manifests, package, model,
+effort, timeout, and holdout inputs stay unchanged. This repair is not authorized by
+the current Goal's stop conditions and does not begin automatically.
+
+Any such semantic case edit invalidates the current engine/snapshot/impact, this
+authority and all partial terminals, and the existing exact-product review. Minimum
+refresh is focused RED/GREEN, the complete frozen offline envelope, one fresh exact-
+product review, then a new canonical cost request. After a new exact approval, the
+executable live scope remains the complete 16-call corpus plus adaptive four-to-six-
+call holdout: 20 to 22 new calls, historically estimated at 585,209 to 637,027
+combined tokens and 2,911.874 to 3,187.085 seconds, additional to the five terminal
+and one interrupted calls above.
+
+The source ledger is mechanically returned to null authority and adds sorted pending
+reason `live_corpus_oracle_failure`; no snapshot or product byte changes. Frozen-CLI
+validation reports canonical ledger
+`8d4b923bec7d5bde48445f8b7b29e794de7fa38032805b9160f669a4a101901f`,
+unchanged snapshot `1ac13f5a...7463`, and retired impact token
+`d73138fafa4adf748e17732718352a0f0c757981483c2cd9271c466b2e0470c1`.
+`Live status: failed closed; user repair decision required`.
+
 ## Design saturation and frozen release sequence
 
 Fresh baseline-only challenger `/root/release_boundary_challenger_b` inspected only
