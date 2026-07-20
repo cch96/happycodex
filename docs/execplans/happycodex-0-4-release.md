@@ -3,8 +3,8 @@
 Protocol: `HappyCodex/0.3`
 Invocation: `$happycodex:happycodex`
 Writer: Root only
-State: the user authorized the minimum holdout cost-policy clean break and rebuilt a
-bounded active Goal; freeze this amendment, then retire old authority before RED/GREEN
+State: the user authorized the minimum anchored-blocker evaluator-case clarification;
+freeze this amendment before focused RED/GREEN, offline validation, and fresh review
 Resume: read this entire file, the completed 0.4 certification-engine and main-
 integration ExecPlans, then reconcile Goal, Git, tests, evidence, installations,
 remote refs, and agents before any write, review, live call, or completion claim.
@@ -1349,6 +1349,51 @@ unchanged snapshot `1ac13f5a...7463`, and retired impact token
 `d73138fafa4adf748e17732718352a0f0c757981483c2cd9271c466b2e0470c1`.
 `Live status: failed closed; user repair decision required`.
 
+## Authorized anchored-blocker repair amendment
+
+Source: `current-task/user/anchored-blocker-prompt-clarification`. Verbatim UTF-8
+text plus final LF has SHA-256
+`ed9277bacbf0e0a5da28fa1a1fa2a1f8148c0dfefa5128c23095e5141e335f24`:
+
+```text
+批准修复
+```
+
+This approves only the minimum repair proposed immediately before that response:
+add one generic clarification to the `compaction-recovery` evaluator-case prompt so
+an unsupported post-freeze amendment or unmet production prerequisite recorded in a
+durable plan is represented by a blocker classified as `frozen_acceptance` or
+`production_condition`, with the corresponding finding anchored to that durable
+plan. The sentence must describe the relationship generically and must not disclose
+the fixture-specific plan path, finding identity, or hidden oracle values. The
+existing focused structural test may gain assertions for this exact prompt contract.
+
+The immutable repair baseline is commit
+`fae8dc232f9cd3d1a3993119eeb1c4cac8c570c5`, tree
+`a9abd0f1cfb1eb45cbc9dad7d4b9047be4d8aaf0`. The repair does not authorize changes
+to the fixture, oracle, matcher, schema, runner, evaluator, Skill, plugin or
+marketplace manifest, shipped product/support files, model, effort, timeout, holdout
+policy/input, controller, compatibility path, or release semantics. It authorizes no
+live model call and does not make the failed corpus output certification evidence.
+
+Changing this evaluator input invalidates engine/snapshot/ledger/impact identities,
+the consumed authority and partial corpus terminals, and the previous exact-product
+review. The current null-authority ledger must be rebuilt mechanically with the full
+14-case corpus, complete three-pair holdout, and review still pending. Candidate
+package semantic/artifact identities must remain
+`c5030e99dd7cd1681148c069775671c5720bb8dd366930ff90f61cbc54cdfc05` /
+`0c83dbc694cb98bf811dd2d1c199b5d2aa734c484476a638884e775289c1d934`.
+
+Execution is frozen in this order: commit this amendment alone; extend the existing
+focused structural test and observe RED against the old prompt; make the one prompt
+edit and mechanical null-authority ledger rebuild; observe focused GREEN and run the
+complete offline envelope; commit the coherent semantic repair; run one fresh
+isolated exact-product review; reconstruct frozen public 0.2 and generate a new exact
+cost request; then stop for its canonical user response. Any need to change an
+excluded surface stops first. The later executable refresh remains 16 corpus plus
+adaptive four-to-six holdout calls, 20 to 22 total, historically estimated at
+585,209 to 637,027 combined tokens and 2,911.874 to 3,187.085 seconds.
+
 ## Design saturation and frozen release sequence
 
 Fresh baseline-only challenger `/root/release_boundary_challenger_b` inspected only
@@ -1483,6 +1528,11 @@ review identity, public proof, rollback, and final GitHub delivery simultaneousl
 11. Closed on 2026-07-20: the user returned the exact amendment above, the old Goal is
     cleared, and the bounded replacement Goal is active. Freeze this contract before
     the authority-retirement or RED write; live execution and release remain closed.
+12. Closed on 2026-07-20: the user returned `批准修复`, whose exact LF-terminated
+    digest is frozen above, and authorized only the generic anchored-blocker prompt
+    clarification, one focused structural test, and a mechanical null-authority
+    ledger rebuild. Offline GREEN and fresh exact-product review must precede a new
+    20-to-22-call cost request; live execution remains closed.
 
 ## Checkpoint
 
