@@ -1,5 +1,43 @@
 {
-  "certification": null,
+  "certification": {
+    "coverage": {
+      "corpus": {
+        "authorized-rebaseline": "prior",
+        "boundary-cutover": "prior",
+        "clean-qualifying-control": "prior",
+        "compaction-recovery": "prior",
+        "goal-divergence": "prior",
+        "midflight-escalation": "prior",
+        "multi-repo-submodule": "prior",
+        "no-commit-secret": "prior",
+        "pre-freeze-compaction": "prior",
+        "receipt-mismatch": "prior",
+        "review-admin-cycle": "prior",
+        "review-inventory-gate": "prior",
+        "review-isolation": "prior",
+        "subthreshold-control": "prior"
+      },
+      "holdout": {
+        "authority-production-boundary": "prior",
+        "destructive-migration-fallback": "prior",
+        "local-documentation-control": "prior"
+      }
+    },
+    "engine_manifest_sha256": "0334e7d256e4324da71fcb67bafa28c04a18f752951ddd14608c259e7c2d6757",
+    "evidence": {
+      "offline_summary": {
+        "commit": "d319b5a57e1152446b9eb81a75e4bd6532e81dab",
+        "git_blob": "de034a5851176ba17ad6ba2562a52a955f82c5ee",
+        "path": "evaluation/results/evidence/offline-summary-e057df5da25098cc63d0ad75c544eb1e2d37ef04a33067823b1df9c334efd5cd.json",
+        "sha256": "e057df5da25098cc63d0ad75c544eb1e2d37ef04a33067823b1df9c334efd5cd"
+      }
+    },
+    "live_authority_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+    "schema_version": 1,
+    "snapshot_sha256": "b579d5b112527730ff15a04ae510166dc4f4af82bbafa83921e1132c40f13c0b",
+    "successor_source_commit": "7471d2d1f84ad6b43c52074a257f55d5301385c9",
+    "successor_source_tree": "ceef832cf46dccaced626d491dd9a47c73423422"
+  },
   "historical_cost": {
     "basis": "HappyCodex 0.3 v21 candidate corpus and v23 adaptive holdout receipts",
     "corpus": {
@@ -54,10 +92,8 @@
   "pending": {
     "corpus_cases": [],
     "holdout_pairs": [],
-    "reasons": [
-      "artifact-only-refresh"
-    ],
-    "review": true
+    "reasons": [],
+    "review": false
   },
   "prior_evidence": {
     "sha256": "337feae7e9dd421015f59f9ccf65abc0b267a9e34241c05ef4d9cf3d8271a86f",
@@ -142,5 +178,5 @@
       }
     }
   },
-  "state": "refresh_required"
+  "state": "certified"
 }
