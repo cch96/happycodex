@@ -1027,6 +1027,34 @@ brief_path=/home/caichenghang/projects/happycodex/.git/happycodex-reviews/cost-p
 
 `Review status: corrected launch not started`.
 
+The corrected Native review completed exit 0 in thread
+`019f7d09-864f-7441-be01-ee01d7ec7e06`. Its 64-event JSONL is 284,546 bytes at
+SHA-256 `479aae83...2ebe`; last-message SHA-256 is `0533298d...77f7`. The reviewer
+independently reproduced source/neutral identities and all three diff units, inspected
+every cost-gate caller/consumer, exhaustively enumerated quality/ratio boundaries,
+verified engine/snapshot/ledger identities, ran targeted holdout and certification
+tests plus official verify, and ended with a clean detached worktree. It used only
+read-only shell commands in the isolated clone and reported no material defect.
+
+Native review's default last-message renderer emitted only the 286-byte correctness
+summary, however. It omitted the required explicit verdict token, Phase-1 obligation
+inventory/mapping, model/effort/profile receipt, limitations, and over-optimization
+verdict. Root therefore does not treat it as `GO`. Per the Skill's one allowed
+same-session receipt-only correction, frozen correction text is at
+`.git/happycodex-reviews/cost-policy-88759d6/receipt-correction.txt`, SHA-256
+`9bdd46d56d05976c4c0e02ad5becd9417fbfa74cd29065fe7adf8b0ab2313f22`.
+It forbids tools, new evidence, rereads, writes, and correctness revision; missing
+facts must produce `NOT-YET`.
+
+Exact same-thread receipt-only command, frozen before resume:
+
+```bash
+PATH=/home/caichenghang/.codex/packages/standalone/releases/0.144.4-aarch64-unknown-linux-musl/bin:$PATH PYTHONDONTWRITEBYTECODE=1 codex exec -s read-only -m gpt-5.6-sol -c 'model_reasoning_effort="max"' -C /tmp/happycodex-cost-policy-native-review.ciZEMb --json -o /home/caichenghang/projects/happycodex/.git/happycodex-reviews/cost-policy-88759d6/last-message-receipt.txt resume 019f7d09-864f-7441-be01-ee01d7ec7e06 - < /home/caichenghang/projects/happycodex/.git/happycodex-reviews/cost-policy-88759d6/receipt-correction.txt > /home/caichenghang/projects/happycodex/.git/happycodex-reviews/cost-policy-88759d6/events-receipt.jsonl
+```
+
+Both corrected receipt destinations were absent at freeze. `Review status: receipt
+incomplete; same-session correction not started`.
+
 ## Design saturation and frozen release sequence
 
 Fresh baseline-only challenger `/root/release_boundary_challenger_b` inspected only
