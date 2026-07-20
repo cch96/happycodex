@@ -2010,6 +2010,9 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                 validate_ledger(wrong_prior, repo=repo)
 
     def test_verify_and_impact_commands_are_read_only_json(self) -> None:
+        ledger_path = ROOT / "evaluation" / "results" / "current.json"
+        ledger_bytes = ledger_path.read_bytes()
+        ledger, current, expected_impact = live.load_state()
         for command in ("verify", "impact"):
             completed = subprocess.run(
                 [sys.executable, "-m", "evaluation.cli", command],
@@ -2021,38 +2024,57 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
             self.assertEqual(completed.returncode, 0, completed.stderr)
             payload = json.loads(completed.stdout)
             self.assertEqual(payload["schema_version"], 1)
-            if command == "impact":
-                self.assertTrue(payload["live_authority_ready"])
-                self.assertFalse(payload["cost_approval_required"])
-                self.assertFalse(payload["live_authority_persisted"])
-                self.assertEqual(payload["gates"], ["review"])
-                self.assertEqual(payload["live_calls"], {"minimum": 0, "maximum": 0})
-                self.assertEqual(payload["proposed_invocations"], [])
-                self.assertRegex(payload["impact_token"], r"^[0-9a-f]{64}$")
-
-                ledger = load_ledger(ROOT / "evaluation" / "results" / "current.json")
-                prior_locator = ledger["prior_evidence"]
-                prior = json.loads(
-                    subprocess.run(
-                        [
-                            "git",
-                            "show",
-                            f"{prior_locator['source_commit']}:"
-                            f"{prior_locator['source_path']}",
-                        ],
-                        cwd=ROOT,
-                        text=True,
-                        capture_output=True,
-                        check=True,
-                    ).stdout
-                )
-                incremental = plan_impact(
-                    prior["snapshot"], build_snapshot(ROOT), pending=ledger["pending"]
-                )
-                self.assertEqual(incremental["gates"], ["isolated_install", "review"])
+            self.assertEqual(payload["ledger_state"], ledger["state"])
+            if command == "verify":
+                self.assertEqual(payload["pending_gates"], expected_impact["gates"])
                 self.assertEqual(
-                    incremental["live_calls"], {"minimum": 0, "maximum": 0}
+                    payload["live_authority_persisted"],
+                    ledger["live_authority"] is not None,
                 )
+                self.assertRegex(payload["ledger_sha256"], r"^[0-9a-f]{64}$")
+                continue
+
+            invocations = live.proposed_invocations(current, expected_impact)
+            holdout_ready = not expected_impact["holdout_pairs"] or any(
+                item["command"] == "holdout" for item in invocations
+            )
+            self.assertEqual(payload["gates"], expected_impact["gates"])
+            self.assertEqual(payload["live_calls"], expected_impact["live_calls"])
+            self.assertEqual(payload["proposed_invocations"], invocations)
+            self.assertEqual(
+                payload["cost_approval_required"],
+                bool(expected_impact["live_calls"]["maximum"]),
+            )
+            self.assertEqual(payload["live_authority_ready"], holdout_ready)
+            self.assertEqual(
+                payload["live_authority_persisted"],
+                ledger["live_authority"] is not None,
+            )
+            self.assertEqual(
+                payload["impact_token"],
+                live.impact_token(ledger, current, expected_impact),
+            )
+
+        self.assertEqual(ledger_path.read_bytes(), ledger_bytes)
+
+        prior = copy.deepcopy(current)
+        prior["package"]["artifact_sha256"] = (
+            "0" * 64 if current["package"]["artifact_sha256"] != "0" * 64 else "f" * 64
+        )
+        incremental = plan_impact(
+            prior,
+            current,
+            pending={
+                "reasons": ["test-artifact-only-refresh"],
+                "corpus_cases": [],
+                "holdout_pairs": [],
+                "review": True,
+            },
+        )
+        self.assertEqual(incremental["gates"], ["isolated_install", "review"])
+        self.assertEqual(incremental["live_calls"], {"minimum": 0, "maximum": 0})
+        self.assertEqual(incremental["corpus_cases"], [])
+        self.assertEqual(incremental["holdout_pairs"], [])
 
     def test_impact_token_cannot_self_authorize_a_live_command(self) -> None:
         ledger, current, impact = live.load_state()

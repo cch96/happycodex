@@ -3,9 +3,9 @@
 Protocol: `HappyCodex/0.3`
 Invocation: `$happycodex:happycodex`
 Writer: Root only
-State: the zero-live 0.4 source and minimum release-state-independent test-fixture
-repair are frozen; focused and complete offline validation are GREEN, and the next
-gate is the separately frozen fresh exact-product review
+State: the zero-live 0.4 source and final release-state-independent test-fixture
+repair are offline GREEN; the repair must be committed and then frozen into a fresh
+exact-product review prelaunch before any install or publication action
 Resume: read this entire file, the completed 0.4 certification-engine and main-
 integration ExecPlans, then reconcile Goal, Git, tests, evidence, installations,
 remote refs, and agents before any write, review, live call, or completion claim.
@@ -2139,15 +2139,41 @@ The complete frozen-toolchain offline envelope is GREEN:
 - all 24 tracked JSON files parsed, all 19 tracked Python files parsed as AST, and
   working-tree diff hygiene passed.
 
-The repaired test file SHA-256 is
+The initially repaired test file SHA-256 was
 `a4a47d33382b6ab0d61796743e005f960ed1aeff753bb8761bab9dac8fcba3d7`;
-its binary diff from amendment freeze `c2d4d4c` has SHA-256
+its binary diff from amendment freeze `c2d4d4c` had SHA-256
 `1f5376df3a0770c5e3df87d20784eb2658bf774b671f77681f1593a0ef757e1f`.
 Candidate package semantic/artifact remain exactly
 `c5030e99dd7cd1681148c069775671c5720bb8dd366930ff90f61cbc54cdfc05` /
 `ace7f39fd61341e5d4b1bc3b268fd89a1562acaaacb80d7456c2bb97fb9c497e`.
 Every non-test product/evaluator path is byte-identical to the amendment freeze. No
 corpus, holdout, model, install, review, activation, push, or publication action ran.
+
+Before any reviewer/model dispatch, a clean two-commit review projection exposed one
+remaining release-state dependency in that initial repair. The CLI test hard-coded
+the temporary active state as `review` pending and loaded the prior ledger through a
+historical Git object. It therefore passed at `dfa7e2d` but would fail again after the
+valid final transition to `certified`, contradicting the authorized amendment. The
+review preflight was discarded before model launch; its failure was local test
+evidence, not an external verdict.
+
+The minimum same-file correction now derives every CLI field from `live.load_state()`
+and independently constructs an artifact-only prior snapshot to retain the exact
+`isolated_install`/`review`, zero-call oracle. It also proves the command leaves the
+ledger bytes unchanged. Thus current refresh-required and later valid certified
+states exercise the same assertions without weakening gate, cost, authority,
+invocation, or impact-token checks. No history object is required by the changed
+test.
+
+This final candidate passed all 36 certification-engine tests in 6.249 seconds and
+the complete 123/123 suite in 7.708 seconds. Both official validators, Ruff check,
+19-file format-check, production verify/impact and both dry-runs, 24 JSON parses, 19
+Python AST parses, and diff hygiene are GREEN. The final test file SHA-256 is
+`a630c465fa52e5931c767ba6888d76372f1c0ee9e84c6ac37c0aac03610f299c`;
+its complete binary diff from amendment freeze `c2d4d4c` has SHA-256
+`0325d6f6546e822afca659c6c56683326a166d64a7131e93aa190808e5a5f9dd`
+and contains 88 insertions/19 deletions in the sole authorized test path. No live,
+model, install, activation, push, or publication action ran.
 
 ## Checkpoint
 
@@ -2158,8 +2184,9 @@ corpus, holdout, model, install, review, activation, push, or publication action
   at `7471d2d` now carries null authority and no certification receipt.
 - Product/support writes: the allowed three-path release metadata slice is committed
   at `59e2eda`; Skill, marketplace manifest, oracle/matcher/schema, runners/evaluator,
-  holdout, and runtime bytes remain unchanged. The authorized single test file is
-  offline GREEN and ready for its coherent semantic commit.
+  holdout, and runtime bytes remain unchanged. Initial test commit `dfa7e2d` was
+  corrected before review; the final authorized single test file is offline GREEN
+  and ready for its coherent follow-up commit.
 - Retain prior raw diagnostics unchanged. Fresh public archive
   `/tmp/happycodex-anchored-blocker-public-0.2.Up71TN` is the frozen holdout input;
   current raw output is retained externally at
