@@ -3,9 +3,9 @@
 Protocol: `HappyCodex/0.3`
 Invocation: `$happycodex:happycodex`
 Writer: Root only
-State: the final fixture review closed the first three P1s but returned NOT-YET on
-the helper's last active-ledger read; its same-file removal is offline GREEN and must
-be committed and freshly reviewed before any install or publication action
+State: the release-state-independent fixture repair is committed, fully offline
+GREEN, and fresh-review GO with zero blockers; the next open gate is the exact
+zero-live isolated marketplace installation
 Resume: read this entire file, the completed 0.4 certification-engine and main-
 integration ExecPlans, then reconcile Goal, Git, tests, evidence, installations,
 remote refs, and agents before any write, review, live call, or completion claim.
@@ -2481,6 +2481,33 @@ env HOME=/home/caichenghang/.codex/happycodex-reviews/release-state-fixture-ea5e
 All outputs are absent. Any identity or command drift invalidates launch.
 `Self-contained fixture review status: not started`.
 
+## Self-contained fixture fresh review GO
+
+The frozen command completed exit zero in a fresh independent Native review. Its
+events, terminal receipt, and empty stderr are 448,610 / 12,374 / 0 bytes with
+SHA-256 values
+`9dcef45e26b5f3b66717e6658a628c9bab1c04d57b05728507c84a1064397404`,
+`0b4ddb016a7d1151747da5418b83787bf6a9b79cb5f56b357c43f974c8fd7f23`,
+and `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`.
+The 30 frozen obligations have canonical SHA-256
+`2683985a7a3f05e61f6e2151dd5ac4e11a3412f31aac6c861d3bfd6f07d98aec`.
+
+The reviewer independently reconciled neutral parentage, both 54-entry product
+projections, every one of the 19 hunks, the sole authorized test path, package
+semantic/artifact identities, and all four earlier P1 closures. It reproduced the
+36/36 focused GREEN, traced the helper and assertions through the unchanged
+production engine, and verified that the synthetic full-live state has no active
+ledger or Git-history dependency. It found no hidden assertion weakening, new
+release-state coupling, production failure, or excessive abstraction.
+
+Material blocker count is zero: P0=0, P1=0, P2=0, P3=0. The exact decision is
+`GO for this single-file fixture repair only`; it intentionally does not certify
+installation, offline evidence, ledger application, activation, publication, push,
+merge, tag, or release. Reviewer-environment limitations were Ruff unavailable and
+one unchanged nested-sandbox test unavailable; Root's exact-candidate Ruff checks and
+123/123 full suite already close both limitations. No live, install, activation,
+push, or publication action ran during review.
+
 ## Checkpoint
 
 - Milestone: exact request `ce5c87d...7c35c` produced one 14/14 corpus and one
@@ -2497,11 +2524,12 @@ All outputs are absent. Any identity or command drift invalidates launch.
   `/tmp/happycodex-anchored-blocker-public-0.2.Up71TN` is the frozen holdout input;
   current raw output is retained externally at
   `/tmp/happycodex-0.4-live.jKHXDa`; no evaluator child remains.
-- Missing fact: a fresh Native exact-product re-review `GO` for the corrected
-  committed repair. It requires zero corpus/holdout calls and zero behavior/holdout
-  tokens.
-  Install, active upgrade, PR/merge/tag/release, and readback remain closed until
-  that gate passes.
+- Closed fact: fresh Native review is `GO` for the corrected committed fixture
+  repair with zero blockers and no over-optimization. It consumed no corpus/holdout
+  calls and no behavior/holdout tokens.
+- Next missing fact: an exact zero-live isolated marketplace installation receipt
+  for the committed 0.4 package. Active upgrade, PR/merge/tag/release, and readback
+  remain closed until their later gates pass.
 
 ## Retrospective
 
