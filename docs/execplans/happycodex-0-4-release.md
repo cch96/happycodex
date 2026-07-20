@@ -4,8 +4,8 @@ Protocol: `HappyCodex/0.3`
 Invocation: `$happycodex:happycodex`
 Writer: Root only
 State: the exact live-certified ledger and metadata-only 0.4 transition are committed;
-the zero-live source is frozen, but the exact release-product offline suite failed
-closed on release-state-coupled test fixtures and awaits a separate minimal amendment
+the zero-live source is frozen, and the user has authorized only the minimum
+release-state-independent test-fixture repair before offline validation and review
 Resume: read this entire file, the completed 0.4 certification-engine and main-
 integration ExecPlans, then reconcile Goal, Git, tests, evidence, installations,
 remote refs, and agents before any write, review, live call, or completion claim.
@@ -1991,7 +1991,7 @@ review identity, public proof, rollback, and final GitHub delivery simultaneousl
 | R-03 | outcome | Exactly the authorized corpus and adaptive holdout scope completes and produces sanitized Git-reachable evidence that makes `current.json` validly `certified`. | CLI receipts, ledger validation, evidence ancestry, exact cost and scope reconciliation. | verified and applied at `e0248b0` |
 | R-04 | preservation | Repairs change only their explicit amendments: the earlier case/fixture and holdout-policy slices, the current anchored-blocker prompt, focused tests, mechanical source ledger, and this plan. Skill, manifests, oracle/matcher/schema, runners/evaluator, unaffected cases, and shipped product remain unchanged. | Exact source diff; any wider edit stops for user decision. | verified through `f8ef025`; fresh review GO |
 | R-05 | outcome | Release edits are limited to strict-semver 0.4 version/cachebuster and accurate change-note/install metadata. | Product diff inventory and official validators. | exact three-path metadata slice committed at `59e2eda`; validators pending |
-| R-06 | outcome | Full offline suite, official validators, Ruff, CLI/JSON/diff/package hygiene, and fresh exact-product review close with `GO` and no material blocker. | Exact receipts and complete review coverage. | blocked: first release-product suite was 113/123; minimum test-only amendment requires user authority |
+| R-06 | outcome | Full offline suite, official validators, Ruff, CLI/JSON/diff/package hygiene, and fresh exact-product review close with `GO` and no material blocker. | Exact receipts and complete review coverage. | first release-product suite was 113/123; minimum test-only amendment is authorized but not yet implemented |
 | R-07 | outcome | A clean isolated public marketplace install/invocation reports the exact 0.4 version and release identity. | Fresh-home install plus invocation receipt; source/cache mismatch falsifies. | open |
 | R-08 | outcome | Active local plugin upgrades to exact 0.4 through the official cachebuster/reinstall flow, with the exact prior 0.3 cache retained and a tested rollback command. | Plugin list/cache/install/readback and rollback proof. | open |
 | R-09 | outcome | Release branch, integration ref, tag/release, and remote source identities are published without force or branch deletion and read back exactly. | Push/API/`ls-remote` receipts; mismatch blocks completion. | open |
@@ -2064,6 +2064,41 @@ review identity, public proof, rollback, and final GitHub delivery simultaneousl
     artifact, and assume copied evidence directories do not yet exist. No live or
     model process ran. Stop before changing this test oracle/fixture.
 
+## Authorized release-state-independent test-fixture amendment
+
+Source: `current-task/user/release-state-independent-test-fixture-repair`. Verbatim
+UTF-8 text plus final LF is 180 bytes with SHA-256
+`9757957de0872b366f911d0df56c192fbf811cb5883c4183b8ced3fc541974be`:
+
+```text
+批准最小 release-state-independent test fixture 修复；只修改 tests/test_certification_engine.py，离线 GREEN 和 fresh review 后继续零-live 安装与 0.4 发布。
+```
+
+This authorizes changes only in `tests/test_certification_engine.py`. The minimum
+repair must keep every production path byte-identical while making state-machine
+tests self-contained: copied repositories tolerate the already-present
+content-addressed evidence directory; exact package inventory expects the frozen
+0.4 artifact; tests of nonzero live authority/certification construct their own full
+14-case/three-pair pending fixture instead of consuming the active zero-live release
+ledger; and CLI assertions prove the active zero-call impact has no proposed live
+invocation or cost approval. The synthetic fixture must preserve, not weaken, exact
+authority, invocation, evidence, and certification rejection coverage.
+
+The amendment does not authorize a Skill, manifest, marketplace, evaluator, runner,
+oracle, case, holdout, engine, ledger, schema, Runtime, or release-metadata change.
+It authorizes no corpus/holdout call and no new live-cost envelope. The existing
+zero-live source `7471d2d` and its snapshot remain valid because tests are outside
+the engine and package identities. The changed exact-product test tree retires every
+earlier final-product review for release completion.
+
+Use the ten failures recorded in gate 16 as RED. Run those ten selectors after the
+single-file repair, then the complete 123-test suite and the frozen official
+validator/Ruff/CLI/JSON/AST/diff/package envelope. Commit the coherent test repair
+with the mandatory trailer and require a fresh isolated exact-product Native review
+`GO` before local marketplace installation. Candidate changes after that review
+reopen it. A later strictly post-source `offline_summary` and certified-ledger write
+will require the release sequence's final exact-product review as already frozen.
+
 ## Checkpoint
 
 - Milestone: exact request `ce5c87d...7c35c` produced one 14/14 corpus and one
@@ -2073,18 +2108,17 @@ review identity, public proof, rollback, and final GitHub delivery simultaneousl
   at `7471d2d` now carries null authority and no certification receipt.
 - Product/support writes: the allowed three-path release metadata slice is committed
   at `59e2eda`; Skill, marketplace manifest, oracle/matcher/schema, runners/evaluator,
-  holdout, and runtime bytes remain unchanged. The test tree also remains unchanged
-  pending explicit authority for the failed-closed fixture amendment.
+  holdout, and runtime bytes remain unchanged. The test tree is now open only for the
+  single-file amendment above.
 - Retain prior raw diagnostics unchanged. Fresh public archive
   `/tmp/happycodex-anchored-blocker-public-0.2.Up71TN` is the frozen holdout input;
   current raw output is retained externally at
   `/tmp/happycodex-0.4-live.jKHXDa`; no evaluator child remains.
-- Missing fact: authority for the minimum release-state-independent test fixture
-  repair. Its rerun scope is the ten affected tests, then all 123 tests and the
-  already frozen zero-live offline envelope; it requires zero corpus/holdout calls
-  and zero behavior/holdout tokens, but candidate change requires one fresh Native
-  exact-product review. Install, active upgrade, PR/merge/tag/release, and readback
-  remain closed until that envelope is GREEN.
+- Missing fact: whether the authorized single-file repair makes the ten affected
+  tests and complete frozen offline envelope GREEN, followed by a fresh Native
+  exact-product review `GO`. It requires zero corpus/holdout calls and zero behavior/
+  holdout tokens. Install, active upgrade, PR/merge/tag/release, and readback remain
+  closed until those gates pass.
 
 ## Retrospective
 
