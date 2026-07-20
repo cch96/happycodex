@@ -1442,6 +1442,57 @@ Skill, plugin/marketplace manifests, README, corpus contract/runner, holdout
 runner/comparator, and shipped package bytes are unchanged. No model, live corpus,
 holdout, review, install, Fable, push, or release action ran.
 
+## Anchored-blocker fresh review prelaunch
+
+The immutable semantic repair is
+`f8ef025455f2b53e88c6e24b85c3abe48486d4de`, tree
+`e5fa1da02eedc8676113b3dd7ddbaa08f7be25df`, over amendment freeze
+`4b8283efa96e332a459f55aeb368648565924c7d`. Its 51-entry product projection,
+excluding only this ExecPlan, is
+`c5bfb4db51ad71234371965fde633ac6b15d91b6af640cb5f475d7e962b3a996`;
+the baseline projection is
+`df9ca8c63a9febeb2e950cb03738ef7ee8e1ceab8ed6b9941fed1bb2bba9d417`.
+
+Neutral private review refs preserve the identical namespaces without this plan:
+
+- `refs/happycodex/reviews/anchored-blocker-f8ef025/baseline` ->
+  `a81b287c1a518681bb5ab47a5f1285b238b87267`, tree
+  `3ba9d6a8a5e77b0222829070515c68fa3795e601`;
+- `refs/happycodex/reviews/anchored-blocker-f8ef025/candidate` ->
+  `4189dbe817280dd7ad994dae4dea3dcbdb85427b`, tree
+  `79006ec59adf84d170a5a899eb53ba312967da07`.
+
+Both neutral manifests exactly reproduce their source projections. The candidate has
+the neutral baseline as its only parent; its complete three-unit `--no-renames` diff
+names only the case, current ledger, and focused test, with raw diff-manifest SHA-256
+`69499e569fe4a0b7c9589554bf5499ffa4bade16ee1762903a5f0a03402ddcbf`.
+Fresh isolated checkout `/tmp/happycodex-anchored-blocker-review.sg2WH9` contains only
+those two reachable commits, is detached at the neutral candidate, and is clean.
+
+The neutral two-phase brief is durable at
+`/home/caichenghang/projects/happycodex/.git/happycodex-reviews/anchored-blocker-f8ef025/brief.txt`,
+6,897 bytes with SHA-256
+`89cb77f6db83d52eb4d8d6b51b20a449cddcc74ebadf8ac294b6f0478098ba68`.
+It supplies verbatim user text, exact bounded scope/exclusions, accepted-baseline
+state, and baseline facts before instructing an obligation freeze; only then does it
+disclose candidate identities and objective claims to reproduce. It supplies no
+ExecPlan, conversation, writer finding, prior verdict, or live evidence.
+
+Pinned Codex CLI `0.144.4` has SHA-256
+`306498eb1e4ba092e1a03c6ebeaeba37964ad868a68b167d4fb775c96321db5c`.
+The launch selects `gpt-5.6-sol`, requests `max`, and enforces `read-only`. The brief
+permits only the reviewer's own runtime metadata read for effective-profile proof and
+forbids every other external session/history read. Exact command, frozen before
+launch:
+
+```bash
+brief_path=/home/caichenghang/projects/happycodex/.git/happycodex-reviews/anchored-blocker-f8ef025/brief.txt; PATH=/home/caichenghang/.codex/packages/standalone/releases/0.144.4-aarch64-unknown-linux-musl/bin:$PATH PYTHONDONTWRITEBYTECODE=1 codex exec -s read-only -m gpt-5.6-sol -c 'model_reasoning_effort="max"' -c "developer_instructions=$(python3 -c 'import json,sys; print(json.dumps(open(sys.argv[1], encoding="utf-8").read()))' "$brief_path")" -C /tmp/happycodex-anchored-blocker-review.sg2WH9 --json -o /home/caichenghang/projects/happycodex/.git/happycodex-reviews/anchored-blocker-f8ef025/last-message.txt review --commit 4189dbe817280dd7ad994dae4dea3dcbdb85427b > /home/caichenghang/projects/happycodex/.git/happycodex-reviews/anchored-blocker-f8ef025/events.jsonl 2> /home/caichenghang/projects/happycodex/.git/happycodex-reviews/anchored-blocker-f8ef025/stderr.txt
+```
+
+All three output destinations were absent at freeze. Any candidate/ref, clone,
+brief, command, model/effort/profile, or output-path drift invalidates launch.
+`Review status: not started`.
+
 ## Design saturation and frozen release sequence
 
 Fresh baseline-only challenger `/root/release_boundary_challenger_b` inspected only
