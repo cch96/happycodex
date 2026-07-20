@@ -1773,9 +1773,9 @@ It reopens only the pinned 0.144.4 tool directory, the current helper alias, the
 self-contained candidate clone, exactly one current-review session directory for
 effective-profile proof, and exactly one writable scratch. Network is disabled.
 This preserves the host `/lib` symlink canonicalization without granting a source
-write. The final 2,672-byte profile is
+write. The final corrected 2,763-byte profile is
 `/home/caichenghang/.codex/happycodex-reviews/live-certified-0.4/review-b/runtime/codex/config.toml`,
-SHA-256 `8dc11a0e66101e87ec2975021b340cebc9a325048e7a38a17f3ddfeca2d121e0`.
+SHA-256 `bbfc2df5147b5e04ccb6443cc35c2623911cbffec662f83ef76cddaf80612230`.
 
 Final profile preflight used pinned `codex sandbox -P native-review-scratch` and
 proved all of the following in one clean environment:
@@ -1813,9 +1813,32 @@ Exact review B command, frozen before launch:
 base_brief=/home/caichenghang/projects/happycodex/.git/happycodex-reviews/live-certified-0.4/brief.txt; scratch_brief=/home/caichenghang/projects/happycodex/.git/happycodex-reviews/live-certified-0.4/review-b/brief-scratch-supplement.txt; env HOME=/home/caichenghang/.codex/happycodex-reviews/live-certified-0.4/review-b/runtime/home CODEX_HOME=/home/caichenghang/.codex/happycodex-reviews/live-certified-0.4/review-b/runtime/codex PATH=/home/caichenghang/.codex/packages/standalone/releases/0.144.4-aarch64-unknown-linux-musl/bin:/home/caichenghang/.codex/packages/standalone/releases/0.144.4-aarch64-unknown-linux-musl/codex-path:/home/caichenghang/.codex/tmp/arg0/codex-arg0DF1Vet:/usr/bin:/bin PYTHONDONTWRITEBYTECODE=1 codex exec --strict-config --ignore-rules -m gpt-5.6-sol -c 'model_reasoning_effort="max"' -c 'approval_policy="never"' -c 'project_doc_max_bytes=0' -c 'web_search="disabled"' -c 'tools.web_search=false' -c 'projects."/tmp/happycodex-0.4-certified-review-b.TkXxow/repo".trust_level="untrusted"' -c "developer_instructions=$(python3 -c 'import json,sys; print(json.dumps("".join(open(path, encoding="utf-8").read() for path in sys.argv[1:])))' "$base_brief" "$scratch_brief")" --disable plugins --disable apps --disable hooks --disable multi_agent --disable browser_use --disable browser_use_external --disable computer_use --disable image_generation -C /tmp/happycodex-0.4-certified-review-b.TkXxow/repo --json -o /home/caichenghang/projects/happycodex/.git/happycodex-reviews/live-certified-0.4/review-b/output/last-message.txt review --commit e4c0e6aa50c02c7ad20c5b0d388d5c08230b5999 > /home/caichenghang/projects/happycodex/.git/happycodex-reviews/live-certified-0.4/review-b/output/events.jsonl 2> /home/caichenghang/projects/happycodex/.git/happycodex-reviews/live-certified-0.4/review-b/output/stderr.txt
 ```
 
-All three review B output files are absent at freeze. Profile, config, brief, command,
-candidate/ref/clone, scratch/session roots, model, effort, or output drift invalidates
-launch. `Certified review B status: not started`.
+All three review B output files were absent at the first freeze. That frozen command
+returned exit 1 in 0.1 seconds before session/thread creation or model dispatch:
+events is empty with SHA-256 `e3b0c442...b855`, no last-message file exists, and the
+130-byte stderr has SHA-256
+`090844c6942001d279230bf17380da7ca8f47ba2acf0139a710a01f1e671aa54`.
+Strict config rejected the command-line dotted-path override because the literal
+checkout component `0.4` was parsed as another dotted key:
+`unknown configuration field projects.\"/tmp/happycodex-0.4-certified-review-b`.
+Candidate/source remained clean, scratch and sessions remained empty, and this is a
+launch-shape failure rather than a review or model call.
+
+The correction moves that same untrusted-project declaration into the native TOML
+`[projects."/tmp/happycodex-0.4-certified-review-b.TkXxow/repo"]` table and removes
+only the invalid CLI override. The permission profile and supplement are otherwise
+unchanged. The corrected profile repeated every isolation preflight and the official
+verifier GREEN result above. Corrected outputs use a new empty `output-v2` directory.
+Exact corrected command, frozen before dispatch:
+
+```bash
+base_brief=/home/caichenghang/projects/happycodex/.git/happycodex-reviews/live-certified-0.4/brief.txt; scratch_brief=/home/caichenghang/projects/happycodex/.git/happycodex-reviews/live-certified-0.4/review-b/brief-scratch-supplement.txt; env HOME=/home/caichenghang/.codex/happycodex-reviews/live-certified-0.4/review-b/runtime/home CODEX_HOME=/home/caichenghang/.codex/happycodex-reviews/live-certified-0.4/review-b/runtime/codex PATH=/home/caichenghang/.codex/packages/standalone/releases/0.144.4-aarch64-unknown-linux-musl/bin:/home/caichenghang/.codex/packages/standalone/releases/0.144.4-aarch64-unknown-linux-musl/codex-path:/home/caichenghang/.codex/tmp/arg0/codex-arg0DF1Vet:/usr/bin:/bin PYTHONDONTWRITEBYTECODE=1 codex exec --strict-config --ignore-rules -m gpt-5.6-sol -c 'model_reasoning_effort="max"' -c 'approval_policy="never"' -c 'project_doc_max_bytes=0' -c 'web_search="disabled"' -c 'tools.web_search=false' -c "developer_instructions=$(python3 -c 'import json,sys; print(json.dumps("".join(open(path, encoding="utf-8").read() for path in sys.argv[1:])))' "$base_brief" "$scratch_brief")" --disable plugins --disable apps --disable hooks --disable multi_agent --disable browser_use --disable browser_use_external --disable computer_use --disable image_generation -C /tmp/happycodex-0.4-certified-review-b.TkXxow/repo --json -o /home/caichenghang/projects/happycodex/.git/happycodex-reviews/live-certified-0.4/review-b/output-v2/last-message.txt review --commit e4c0e6aa50c02c7ad20c5b0d388d5c08230b5999 > /home/caichenghang/projects/happycodex/.git/happycodex-reviews/live-certified-0.4/review-b/output-v2/events.jsonl 2> /home/caichenghang/projects/happycodex/.git/happycodex-reviews/live-certified-0.4/review-b/output-v2/stderr.txt
+```
+
+All corrected output files are absent; scratch and sessions are empty. Profile,
+config, brief, command, candidate/ref/clone, scratch/session roots, model, effort, or
+output drift invalidates launch. `Certified review B status: corrected launch frozen,
+not started`.
 
 ## Design saturation and frozen release sequence
 
