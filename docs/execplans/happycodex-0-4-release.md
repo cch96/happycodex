@@ -914,8 +914,49 @@ Stable findings for this amendment are:
   quality, while the executable branch adds an uncertifiable materially-better state.
 - `HC04-COST-03` (`baseline-unchanged`): the current terminal corpus/holdout is valid
   diagnostic evidence but becomes invalid for certification after the semantic edit.
-- `HC04-COST-04` (`unknown`): the exact post-repair engine/snapshot/impact/request and
-  fresh-review verdict remain open until generated from the immutable candidate.
+- `HC04-COST-04` (`verified-partial`): the exact post-repair engine, snapshot, and
+  null-authority impact are reproduced below; the immutable candidate, exact
+  public-bound request, and fresh-review verdict remain open until their later gates.
+
+Focused RED receipt, 2026-07-20:
+
+- authority-retirement commit `6e02b9d4dc8332beacec019216c467f6ae252431`
+  changed only `evaluation/results/current.json::live_authority` to null; its tree is
+  `7882891c80afe81c9f5acdf9ef6d6d5a0aca4254` and the retired ledger SHA-256 is
+  `bbbf548c524515e3fc97034d3af2a6c708bdc588f60885d2791aa2dc2faa2238`;
+- the focused test-only worktree SHA-256 is
+  `e7fe47830e877e040ede4499d2b25c774f7ce29ed926ff763b58bfbc2ca18365`;
+  production compare remained the frozen baseline
+  `8aa8441bac6d0f943cb7c0c61c4f9510fa969035ba64684accd6f72e8a729dd1`;
+- pinned Codex CLI `0.144.4` ran only
+  `test_better_but_expensive_passes_with_cost_diagnostics` and
+  `test_cost_gate_uses_combined_tokens_and_wall_as_only_ratios`: two tests ran,
+  the equal-quality threshold test passed, and the new materially-better contract
+  failed exactly because actual `user_confirmation_required` differed from expected
+  `pass`. Exit was 1, as required. No model process or live evidence was started.
+
+Focused GREEN and complete offline receipt, 2026-07-20:
+
+- removing only the two-line materially-better confirmation branch made both focused
+  tests pass; the first cumulative format-check requested only Ruff's one-line
+  rendering of the new assertion, after which the complete frozen rerun was GREEN;
+- 123/123 unit tests passed in 7.394 seconds, both official Skill/plugin validators
+  passed, Ruff check passed, and all 19 Python files passed format-check;
+- official verify, impact, corpus dry-run, and holdout dry-run emitted valid JSON
+  with output SHA-256 values `a2da378f...22a3`, `6daadbeb...580d`,
+  `e5d76b34...4a0a`, and `2f147cff...692`; all 21 tracked JSON documents
+  parsed, all 19 tracked Python files parsed as AST, and `git diff --check` passed;
+- the rebuilt null-authority ledger has file SHA-256 `81efe7a3...2d5b` and canonical
+  ledger `68700c4f...d75c`; engine manifest is `1491caf1...8d3d`, snapshot is
+  `1ac13f5a...463`, and null-authority impact token is `b4194a09...9882` with exact
+  14-case/three-pair, 20-to-22-call scope;
+- compare/test SHA-256 values are `3fe24790...8471` / `b3c0afe6...4ec8`.
+  The three-path binary diff from amendment baseline is `ad2b1022...4c9d`;
+- Skill `0f222349...6b71`, plugin manifest `b1d4e9c0...c213`, corpus runner
+  `3dc5ae1d...5f24`, holdout runner `5c791f19...583c`, corpus contract
+  `57039c16...da93`, and package semantic/artifact `c5030e99...c05` /
+  `0c83dbc6...934` are unchanged. Runtime/test code contains no
+  `user_confirmation_required`, no evaluator child remains, and no model call ran.
 
 ## Design saturation and frozen release sequence
 

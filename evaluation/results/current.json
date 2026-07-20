@@ -114,11 +114,11 @@
         "harness": "3cf0bc56cfe589946746ba284d0a3e54c20f49dba35238f9077e2c9ec123aff1",
         "semantic": "8f73619db63d7d64b934a9e70c627756bda8ea39978dbb7a9d42d37f65e29477"
       },
-      "manifest_sha256": "731ee44a274573bdf6731bdbe75a068ea750b0994a120764e21d6cdfa3ff254c",
+      "manifest_sha256": "1491caf14ec566d59e56ea0bedcd23269f8a235d9caa7abadbd3417da4528d3d",
       "scopes": {
         "corpus_harness": "cec27631f4a43f77911ae729dbd0269b6925a2bf51f31dabb1d30820f43216a2",
         "holdout_harness": "c365e77fb8fb356e49307819e3657d438cdda7fccb62380d78ca0eb7b9b310a4",
-        "holdout_semantic": "0da4c74d2f524d4511f39331b3754301638f5e23d0f097b38b61b94d102dae58"
+        "holdout_semantic": "425a7ddf3e3d46943bf7ee57131a0502fdf0ba43e237249e5b5a53f1879d5c54"
       }
     },
     "holdout": {
