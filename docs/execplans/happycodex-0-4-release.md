@@ -3,8 +3,9 @@
 Protocol: `HappyCodex/0.3`
 Invocation: `$happycodex:happycodex`
 Writer: Root only
-State: the exact corpus/holdout and synthetic certified ledger are GREEN; the fresh
-read-only review of the neutral certified product is frozen and not yet started
+State: the exact corpus/holdout and synthetic certified ledger are GREEN; review A
+returned one environment-only blocker, and unchanged-candidate review B is frozen
+with a source-read-only, scratch-write-only, network-disabled profile but not started
 Resume: read this entire file, the completed 0.4 certification-engine and main-
 integration ExecPlans, then reconcile Goal, Git, tests, evidence, installations,
 remote refs, and agents before any write, review, live call, or completion claim.
@@ -1740,6 +1741,82 @@ All three output destinations are absent at freeze. Candidate/ref/checkout/brief
 command/model/effort/profile/output drift invalidates launch.
 `Certified review status: not started`.
 
+## Certified review A environment-only NOT-YET and review B prelaunch
+
+Review A completed exit zero in fresh thread
+`019f7e31-fe2b-7b71-bcf0-3e6a2c4e4416`. Its events, last message, and empty stderr
+are 817,571 / 906 / 0 bytes with SHA-256 values
+`4ac2c8e04aa3b2d9586f0c7e614ee614314179b0fd2fa8e8819ebe3408218827`,
+`36fdfabac1cdff22ee6bc9a799e114fb6c456218f59405758a369f32b7d287fc`, and
+`e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`.
+The reviewer reproduced the exact candidate/diff/evidence/package/engine/live/cost
+identities, passed D2-D4 and every static preservation/privacy/chronology check, ran
+no tests, live evaluation, network, install, or write, and reported no P0, P2, or P3.
+Its sole P1 and terminal `NOT-YET` were environmental: the required official verifier
+reached `tempfile.TemporaryDirectory` under the fully read-only profile and failed
+before JSON with `FileNotFoundError: No usable temporary directory`. Candidate and
+source worktrees remained clean. The result is retained and is not waived.
+
+No product, Skill, manifest, runner, evaluator, oracle, case, ledger, evidence, or
+neutral ref changed. A prelaunch-only permission-profile exploration first proved
+source-read/scratch-write/network-deny, then exposed that a `:minimal` Linux bwrap
+mount canonicalizes the same 47 Python libraries under `/lib` instead of `/usr/lib`.
+Although all bytes matched, that changed only the path-bearing shared-library digest
+from certified `ba93e5f1...bb4323d1` to sandbox-only
+`88c6535b...896e87`, correctly making the snapshot stale. No review/model call was
+launched under that exploratory profile.
+
+Review B therefore uses Codex's custom managed profile over a read-only root view,
+then denies writer projects, Hub/Documents/user configuration and credentials,
+memory/session/prior-review/plugin surfaces, and both retained live/public inputs.
+It reopens only the pinned 0.144.4 tool directory, the current helper alias, the
+self-contained candidate clone, exactly one current-review session directory for
+effective-profile proof, and exactly one writable scratch. Network is disabled.
+This preserves the host `/lib` symlink canonicalization without granting a source
+write. The final 2,672-byte profile is
+`/home/caichenghang/.codex/happycodex-reviews/live-certified-0.4/review-b/runtime/codex/config.toml`,
+SHA-256 `8dc11a0e66101e87ec2975021b340cebc9a325048e7a38a17f3ddfeca2d121e0`.
+
+Final profile preflight used pinned `codex sandbox -P native-review-scratch` and
+proved all of the following in one clean environment:
+
+- cwd and read access are exactly the self-contained candidate clone;
+- candidate-file creation is rejected read-only, while only
+  `/tmp/happycodex-0.4-review-scratch.9yxyf2` can create/read/remove a canary;
+- writer `.git`, runtime config/auth, retained raw live output, and the old review
+  checkout are unreadable;
+- AF_INET socket creation is rejected and network is restricted;
+- `/lib/aarch64-linux-gnu/libc.so.6` resolves to the certified
+  `/usr/lib/aarch64-linux-gnu/libc.so.6` identity;
+- the pinned official `python3 -m evaluation.cli verify` exits zero and reports
+  `certified`, no pending gates, ledger `1393b723...ce042`, snapshot
+  `2321593f...e1da`, engine `0334e7d2...d6757`, and persisted authority.
+
+All disposable preflight canaries and bwrap lock artifacts were removed; scratch and
+the new session directory are empty at freeze. Fresh standalone clone
+`/tmp/happycodex-0.4-certified-review-b.TkXxow/repo` has no alternates, is detached
+and clean at unchanged commit `e4c0e6aa50c02c7ad20c5b0d388d5c08230b5999`, tree
+`824b896c2108f870b8f2c12515f7550c65dc2eac`, recursive-manifest SHA-256
+`ae057f09fd4b20b75aea1557cc1b401d563f5856c49e4a48657a95b05cc94d78`.
+
+The 2,555-byte scratch supplement is durable at
+`.git/happycodex-reviews/live-certified-0.4/review-b/brief-scratch-supplement.txt`,
+SHA-256 `e6826d249646a5ea64368e5140bd222df1e3435da1bec4c3c5004ad2bf05b952`.
+It records review A, forbids verdict shopping, permits only verifier scratch writes,
+and otherwise preserves every base-brief exclusion. Base plus supplement are 11,662
+bytes with SHA-256
+`9b13eb3cb9651c84aa82bba794990cd591b8febfc410b570ce11e414b70fcfbe`.
+
+Exact review B command, frozen before launch:
+
+```bash
+base_brief=/home/caichenghang/projects/happycodex/.git/happycodex-reviews/live-certified-0.4/brief.txt; scratch_brief=/home/caichenghang/projects/happycodex/.git/happycodex-reviews/live-certified-0.4/review-b/brief-scratch-supplement.txt; env HOME=/home/caichenghang/.codex/happycodex-reviews/live-certified-0.4/review-b/runtime/home CODEX_HOME=/home/caichenghang/.codex/happycodex-reviews/live-certified-0.4/review-b/runtime/codex PATH=/home/caichenghang/.codex/packages/standalone/releases/0.144.4-aarch64-unknown-linux-musl/bin:/home/caichenghang/.codex/packages/standalone/releases/0.144.4-aarch64-unknown-linux-musl/codex-path:/home/caichenghang/.codex/tmp/arg0/codex-arg0DF1Vet:/usr/bin:/bin PYTHONDONTWRITEBYTECODE=1 codex exec --strict-config --ignore-rules -m gpt-5.6-sol -c 'model_reasoning_effort="max"' -c 'approval_policy="never"' -c 'project_doc_max_bytes=0' -c 'web_search="disabled"' -c 'tools.web_search=false' -c 'projects."/tmp/happycodex-0.4-certified-review-b.TkXxow/repo".trust_level="untrusted"' -c "developer_instructions=$(python3 -c 'import json,sys; print(json.dumps("".join(open(path, encoding="utf-8").read() for path in sys.argv[1:])))' "$base_brief" "$scratch_brief")" --disable plugins --disable apps --disable hooks --disable multi_agent --disable browser_use --disable browser_use_external --disable computer_use --disable image_generation -C /tmp/happycodex-0.4-certified-review-b.TkXxow/repo --json -o /home/caichenghang/projects/happycodex/.git/happycodex-reviews/live-certified-0.4/review-b/output/last-message.txt review --commit e4c0e6aa50c02c7ad20c5b0d388d5c08230b5999 > /home/caichenghang/projects/happycodex/.git/happycodex-reviews/live-certified-0.4/review-b/output/events.jsonl 2> /home/caichenghang/projects/happycodex/.git/happycodex-reviews/live-certified-0.4/review-b/output/stderr.txt
+```
+
+All three review B output files are absent at freeze. Profile, config, brief, command,
+candidate/ref/clone, scratch/session roots, model, effort, or output drift invalidates
+launch. `Certified review B status: not started`.
+
 ## Design saturation and frozen release sequence
 
 Fresh baseline-only challenger `/root/release_boundary_challenger_b` inspected only
@@ -1825,7 +1902,7 @@ review identity, public proof, rollback, and final GitHub delivery simultaneousl
 | --- | --- | --- | --- | --- |
 | R-01 | premise | Current remote `main`, local baseline, package, engine, snapshot, ledger, and public benchmark identities are independently reproduced before release work. | Fetch/readback plus offline identity commands; drift remains open. | verified |
 | R-02 | outcome | The exact current impact and historical-cost envelope are persisted, and no live helper runs without the canonical invocation-bound response. | Authority validation plus command audit; any early call falsifies. | verified; exact authority persisted at `649261d` before the sole GREEN live sequence |
-| R-03 | outcome | Exactly the authorized corpus and adaptive holdout scope completes and produces sanitized Git-reachable evidence that makes `current.json` validly `certified`. | CLI receipts, ledger validation, evidence ancestry, exact cost and scope reconciliation. | live corpus/holdout and synthetic certified ledger GREEN; fresh exact-product review open |
+| R-03 | outcome | Exactly the authorized corpus and adaptive holdout scope completes and produces sanitized Git-reachable evidence that makes `current.json` validly `certified`. | CLI receipts, ledger validation, evidence ancestry, exact cost and scope reconciliation. | live corpus/holdout and synthetic certified ledger GREEN; review A environment-only NOT-YET; unchanged-candidate review B frozen |
 | R-04 | preservation | Repairs change only their explicit amendments: the earlier case/fixture and holdout-policy slices, the current anchored-blocker prompt, focused tests, mechanical source ledger, and this plan. Skill, manifests, oracle/matcher/schema, runners/evaluator, unaffected cases, and shipped product remain unchanged. | Exact source diff; any wider edit stops for user decision. | verified through `f8ef025`; fresh review GO |
 | R-05 | outcome | Release edits are limited to strict-semver 0.4 version/cachebuster and accurate change-note/install metadata. | Product diff inventory and official validators. | open |
 | R-06 | outcome | Full offline suite, official validators, Ruff, CLI/JSON/diff/package hygiene, and fresh exact-product review close with `GO` and no material blocker. | Exact receipts and complete review coverage. | bounded repair GREEN/GO; later certified and release-product gates open |
@@ -1886,9 +1963,11 @@ review identity, public proof, rollback, and final GitHub delivery simultaneousl
     are committed or durably retained with every frozen identity. No test discovery,
     retry, or additional live invocation ran.
 15. Open: exact live commands and sanitized evidence are GREEN, and the synthetic
-    certified ledger verifies. Commit this review prelaunch, run only its frozen
-    read-only native review, require `GO`, then apply and commit byte-identical ledger
-    bytes on the release branch.
+    certified ledger verifies. Review A returned exactly one environment-only P1 and
+    made no product finding. Review B keeps the candidate byte-identical and changes
+    only the external permission profile to source-read-only plus one verifier
+    scratch. Commit this prelaunch, run only the exact frozen Native review B, require
+    `GO`, then apply and commit byte-identical ledger bytes on the release branch.
 
 ## Checkpoint
 
@@ -1903,8 +1982,8 @@ review identity, public proof, rollback, and final GitHub delivery simultaneousl
   `/tmp/happycodex-anchored-blocker-public-0.2.Up71TN` is the frozen holdout input;
   current raw output is retained externally at
   `/tmp/happycodex-0.4-live.jKHXDa`; no evaluator child remains.
-- Missing fact: the fresh exact-product verdict for neutral certified candidate
-  `e4c0e6a...b599`. A `GO` permits only byte-identical ledger application before the
+- Missing fact: the fresh review B exact-product verdict for unchanged neutral
+  certified candidate `e4c0e6a...b599`. A `GO` permits only byte-identical ledger application before the
   metadata-only 0.4 transition, isolated installs, active upgrade,
   PR/merge/tag/release, and readback.
 
