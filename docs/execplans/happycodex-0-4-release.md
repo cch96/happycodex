@@ -2175,6 +2175,68 @@ its complete binary diff from amendment freeze `c2d4d4c` has SHA-256
 and contains 88 insertions/19 deletions in the sole authorized test path. No live,
 model, install, activation, push, or publication action ran.
 
+## Release-state fixture fresh review prelaunch
+
+The final semantic test repair is
+`1f2c5b68656bf533574e9c4dd84907f8dd08a7ca`, tree
+`0776a2997368c0c4301bd0c5140631712ce285c4`, over the amendment freeze
+`c2d4d4c990fbdd0915e94223328e7274e1cdaacb`, tree
+`46eb64ccec20f1dabe4f07d3ff529af5352be616`. Their complete 54-entry product
+projections exclude only this ExecPlan and have SHA-256 values
+`c725772f1cbbdc917fd751ac3a9cb8fd7818e0fd2f56c5a96f5acd7ade7bdbd2` and
+`7350800809777e37c305646a48c7be41ca7c6cb63c2f85cfcfa75b01974e9417`.
+
+Neutral private refs preserve those namespaces without this plan:
+
+- `refs/happycodex/reviews/release-state-fixture-1f2c5b6/baseline` ->
+  `bdd3a0f4200b8dc1b52bed58d18cfd2849464654`, tree
+  `d71407107f921fb518921a7548645c7bd74312e9`;
+- `refs/happycodex/reviews/release-state-fixture-1f2c5b6/candidate` ->
+  `666e4dce82baec145e4ae20df41e0d0ec5f3d06d`, tree
+  `2bb8610f7160c496f39058336cd5ac1b8eec5c03`.
+
+Both neutral manifests exactly reproduce their source projections. The candidate has
+the neutral baseline as its only parent; its complete `--no-renames` diff is the sole
+authorized `tests/test_certification_engine.py`, with raw name-status manifest
+SHA-256 `587088025439a63a6da361eb2e91c9c1308ad7bb74a2c367844b736bf2db2362`.
+Standalone checkout
+`/tmp/happycodex-0.4-release-fixture-review-final.roQ8MT/repo` contains only the two
+reachable commits, has no alternates, is detached at the neutral candidate, and is
+clean.
+
+The neutral two-phase brief is durable at
+`/home/caichenghang/projects/happycodex/.git/happycodex-reviews/release-state-fixture-1f2c5b6/brief.txt`,
+8,639 bytes with SHA-256
+`f1a7875804becf9a7caa739e94c0862559b9dcc8bd64f70a20947fd5ca70117e`.
+It supplies the verbatim authorization, exact scope/exclusions and baseline facts
+before requiring the obligation freeze, then supplies candidate identities and
+claims to reproduce. It supplies no ExecPlan, writer conclusion, prior verdict, or
+live evidence.
+
+The 2,893-byte managed review profile at
+`/home/caichenghang/.codex/happycodex-reviews/release-state-fixture-1f2c5b6/runtime/codex/config.toml`
+has SHA-256 `fe0fe85cf4d0e24504709cc04ab6c45d6c93375d173dd53c16ed0c0c8cb045bb`.
+Its preflight proved candidate read/source-write denial, writer and abandoned-review
+denial, exactly one scratch write root, and network denial. The isolated focused
+module then passed 36/36 tests in 6.227 seconds. Candidate/source remained clean;
+all preflight canaries and bwrap lock artifacts were removed, and scratch, session,
+and output roots are empty.
+
+Pinned Codex CLI `0.144.4` has SHA-256
+`306498eb1e4ba092e1a03c6ebeaeba37964ad868a68b167d4fb775c96321db5c`.
+The launch selects `gpt-5.6-sol` / `max`, approval never, the managed strongest
+authorized read-only/scratch-only profile, disabled network/plugins/apps/hooks/
+delegation/browser/computer/image features, and the exact neutral candidate. Exact
+command frozen before model dispatch:
+
+```bash
+env HOME=/home/caichenghang/.codex/happycodex-reviews/release-state-fixture-1f2c5b6/runtime/home CODEX_HOME=/home/caichenghang/.codex/happycodex-reviews/release-state-fixture-1f2c5b6/runtime/codex PATH=/home/caichenghang/.codex/packages/standalone/releases/0.144.4-aarch64-unknown-linux-musl/bin:/home/caichenghang/.codex/packages/standalone/releases/0.144.4-aarch64-unknown-linux-musl/codex-path:/home/caichenghang/.codex/tmp/arg0/codex-arg0DF1Vet:/usr/bin:/bin PYTHONDONTWRITEBYTECODE=1 codex exec --strict-config --ignore-rules -m gpt-5.6-sol -c 'model_reasoning_effort="max"' -c 'approval_policy="never"' -c 'project_doc_max_bytes=0' -c 'web_search="disabled"' -c 'tools.web_search=false' -c "developer_instructions=$(python3 -c 'import json,sys; print(json.dumps(open(sys.argv[1], encoding="utf-8").read()))' /home/caichenghang/projects/happycodex/.git/happycodex-reviews/release-state-fixture-1f2c5b6/brief.txt)" --disable plugins --disable apps --disable hooks --disable multi_agent --disable browser_use --disable browser_use_external --disable computer_use --disable image_generation -C /tmp/happycodex-0.4-release-fixture-review-final.roQ8MT/repo --json -o /home/caichenghang/projects/happycodex/.git/happycodex-reviews/release-state-fixture-1f2c5b6/output/last-message.txt review --commit 666e4dce82baec145e4ae20df41e0d0ec5f3d06d > /home/caichenghang/projects/happycodex/.git/happycodex-reviews/release-state-fixture-1f2c5b6/output/events.jsonl 2> /home/caichenghang/projects/happycodex/.git/happycodex-reviews/release-state-fixture-1f2c5b6/output/stderr.txt
+```
+
+All three output files are absent. Any command, candidate/ref/clone, profile, brief,
+model/effort, scratch/session root, or output-path drift invalidates launch.
+`Release-state fixture review status: not started`.
+
 ## Checkpoint
 
 - Milestone: exact request `ce5c87d...7c35c` produced one 14/14 corpus and one
