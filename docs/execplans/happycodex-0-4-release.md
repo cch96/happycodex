@@ -1493,6 +1493,63 @@ All three output destinations were absent at freeze. Any candidate/ref, clone,
 brief, command, model/effort/profile, or output-path drift invalidates launch.
 `Review status: not started`.
 
+## Anchored-blocker fresh review GO
+
+The exact frozen command completed exit zero. Its 100-event, 456,833-byte JSONL has
+SHA-256 `cbc2de4622d77ed90088a55f277caa122f74723a6a75195577730caf20a26e23`;
+the 13,143-byte terminal receipt has SHA-256
+`f29f005307bb8dd3d0cb2e55606f3c55a247f34f94f3709565b7821944a82d77`;
+stderr is empty. The transport event thread is
+`019f7dd1-01b6-77e1-a511-713f4fec21a3`; runtime-issued review session
+`019f7dd1-0377-7fa2-9431-b195e02814ae` is the identity recorded by its own
+`session_meta` and first `turn_context`.
+
+Before candidate inspection the reviewer froze 12 candidate-independent obligations
+`P1-01` through `P1-12`. Root reproduced the stated canonical compact sorted-key JSON
+serialization over the exact ordered ID/text objects; SHA-256 is
+`eac1e237cdaeaf0837ce52854ab412b6536782a1ec14d65eb8acc5a009b1969e`.
+They cover exact bounded scope/exclusions, both generic durable-plan relationships,
+nonleakage and end-to-end schema/matcher reachability, focused RED/GREEN, complete
+neutral scope, package preservation, mechanical null-authority ledger state, offline
+checks/identities, later-release exclusion, and zero-blocker completion.
+
+The reviewer independently reproduced both 51-entry neutral projection hashes, both
+neutral trees and parentage, and all three raw diff units at manifest
+`69499e56...dcbf`. It traced the prompt through the finding-anchor/output-schema and
+identity-linked blocker matcher; a complete positive result matched, while removing
+the plan anchor or permitted class failed exactly as required. It confirmed the
+sentence is generic, not over-strict, and leaks no configured forbidden fixture term;
+fixture/oracle bytes are unchanged. The focused repaired test is 1/1 GREEN and the
+same assertion set against the parent prompt is RED.
+
+Snapshot `2321593f...e1da`, ledger `055b3e16...f8ed`, engine
+`0334e7d2...6757`, impact token `78836258...a952`, package identities, null
+authority/certification, exact historical cost, complete 14-case/three-pair/review
+pending state, and 20-to-22-call scope all reproduced. Official validators,
+verify/impact, both dry-runs, Ruff with cache disabled, 19-file format-check, 21 JSON
+parses, and 19 AST parses passed. The reviewer discovered all 123 tests: 74 passed,
+zero assertion failures, and 49 write-dependent cases could not execute under the
+enforced read-only filesystem. Root's exact-candidate frozen-toolchain run remains
+123/123 GREEN and closes that disclosed environment limitation.
+
+The runtime receipt proves configured/effective `gpt-5.6-sol` at `max`, Codex CLI
+`0.144.4`, provider OpenAI, approval `never`, read-only filesystem, network disabled,
+and no reroute. One initial non-authoritative verify inherited desktop Codex `0.144.6`
+and was discarded; every authoritative identity command explicitly pinned `0.144.4`.
+The reviewer inspected all 51 available product paths, only its own first runtime
+records externally, and no ExecPlan, writer repository, memory, prior review, raw/live
+evidence, response item, or other session. Both source and review worktrees remained
+clean.
+
+Terminal finding counts are P0=0, P1=0, P2=0, and P3=0; unresolved material blockers
+are zero. Over-optimization verdict: none. Final verdict: `GO` for exact neutral
+candidate `4189dbe817280dd7ad994dae4dea3dcbdb85427b` and semantic source
+`f8ef025455f2b53e88c6e24b85c3abe48486d4de` as this bounded pre-live-cost repair.
+Prelaunch administrative commit `03738259dcd76af83f906a48e9e8898d24793403`
+changes only this plan, and Root reproduced that the current 51-entry product
+projection is still the reviewed `c5bfb4db...a996`. The complete 0.4 release remains
+open. `Review status: GO`.
+
 ## Design saturation and frozen release sequence
 
 Fresh baseline-only challenger `/root/release_boundary_challenger_b` inspected only
