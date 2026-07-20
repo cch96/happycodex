@@ -1122,6 +1122,62 @@ memory, external Skill, or model/live evidence. Both isolated clones stayed clea
 The immutable reviewed product projection remains `4d388f10...8ed0` at semantic
 candidate `88759d6b...4ab2`. `Review status: GO`.
 
+## Post-cost-policy exact live-cost request
+
+The clean reviewed request-computation boundary is
+`b967fab265d3a76e9f3562a9eac77e9cb38eb9fd`, tree
+`ebffc9cdc8f470a5ab66a2ab5ca13fe6c05adb7b`. Its product projection remains the
+reviewed `4d388f1004ada8f0bc4f434c7fff436dae37c0f93e3d7f1cdff1552dd7358ed0`.
+A fresh nine-file archive of frozen public commit
+`3b9c11fac1f97df75263e0bfc6421c575e04e8b2`, tree
+`4708ebc12f74d4482764796fdd00f1fa7194a13a`, at isolated path
+`/tmp/happycodex-cost-policy-public-0.2.npYe8m` reproduced public semantic/artifact
+`fb3cb419795a6edcb284695769b5487b1f23ae46286c5fceba8042fcb41f9ce4` /
+`77a0b2b8f7f6280d6ed32458fc61ca110f7138b5b6c17ad55d333a023dfa8c89`.
+The commit and identities, not the temporary path, are authoritative.
+
+Under explicitly frozen Codex CLI 0.144.4, two independent constructions reproduced:
+
+- engine manifest
+  `1491caf14ec566d59e56ea0bedcd23269f8a235d9caa7abadbd3417da4528d3d`;
+- canonical null-authority ledger
+  `68700c4f3090391ef7d2a61bf2fd6c1c53023ee50f81180dd982a2e861e2d75c`;
+- snapshot `1ac13f5a00eb8cc0faf658f4c4e3954b955e0f1871d47adb7913677800e27463`;
+- impact token `b4194a09b37b934fa1b9c8d376fc71edcf972c105d26ab42315de725e28e9882`;
+- public-bound impact stdout SHA-256
+  `1dcab3a62b9482d072c209173b98fa5b52b80b36c0de352b5f90747da1ecf316`;
+- unchanged candidate semantic/artifact `c5030e99...c05` / `0c83dbc6...934`;
+- state `refresh_required`, certification null, live authority null, and public-bound
+  authority readiness true only as a descriptor, never as permission.
+
+The canonical request object is schema 1 plus that snapshot, exact impact, impact
+token, and two ordered invocations. Corpus names all ordered 14 cases, candidate arm,
+`gpt-5.6-sol`, high, 300 seconds, and 16 model calls. Holdout names all ordered three
+pairs, both candidate/public identities above, the same model/effort/timeout, and the
+adaptive four-to-six-call policy. Total exposure is therefore 20 to 22 calls,
+585,209 to 637,027 estimated combined tokens, and 2,911.874 to 3,187.085 estimated
+seconds. Historical cost provenance and pending reasons
+`authority_boundary_interrupted` / `engine_generation_changed` remain unchanged.
+
+The new exact approval-request SHA-256 is:
+
+`ca768290391f2e72f19cf1d550d912d4ceb14d5d4998e79207f5118e2764bec0`
+
+Canonical response bytes including final LF have SHA-256
+`6e17a7e857254c720b2a4fb23c67fc0451f4a38d11ec923bc3a0b12c2e85cefa`.
+Their future authority source will be
+`current-task/user/happycodex-0.4-cost-policy-clean-break-cost`. The only valid grant,
+with no surrounding prose, is:
+
+```text
+APPROVE HAPPYCODEX LIVE COST ca768290391f2e72f19cf1d550d912d4ceb14d5d4998e79207f5118e2764bec0
+```
+
+Every earlier approval binds a retired engine/snapshot/request and grants nothing for
+this candidate. This bounded Goal stops here: do not persist the new authority, run
+corpus/holdout, certify, version, install, push, or release until a later task receives
+that exact canonical response and independently reproduces every binding.
+
 ## Design saturation and frozen release sequence
 
 Fresh baseline-only challenger `/root/release_boundary_challenger_b` inspected only
