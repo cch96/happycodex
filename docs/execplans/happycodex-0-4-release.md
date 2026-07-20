@@ -3,8 +3,8 @@
 Protocol: `HappyCodex/0.3`
 Invocation: `$happycodex:happycodex`
 Writer: Root only
-State: the user authorized the minimum anchored-blocker evaluator-case clarification;
-freeze this amendment before focused RED/GREEN, offline validation, and fresh review
+State: the anchored-blocker repair is offline GREEN and fresh-review GO; the new
+exact live-cost request is frozen with null authority, awaiting its canonical response
 Resume: read this entire file, the completed 0.4 certification-engine and main-
 integration ExecPlans, then reconcile Goal, Git, tests, evidence, installations,
 remote refs, and agents before any write, review, live call, or completion claim.
@@ -1550,6 +1550,57 @@ changes only this plan, and Root reproduced that the current 51-entry product
 projection is still the reviewed `c5bfb4db...a996`. The complete 0.4 release remains
 open. `Review status: GO`.
 
+## Post-anchored-blocker exact live-cost request
+
+The clean request-computation boundary is
+`87ca387bc72b898aa867148904b403446e58efe2`, tree
+`3acf8187e10f810b2afbc4a23a95808e4d772173`; its product projection remains the
+reviewed `c5bfb4db51ad71234371965fde633ac6b15d91b6af640cb5f475d7e962b3a996`.
+A fresh nine-file archive of frozen public commit
+`3b9c11fac1f97df75263e0bfc6421c575e04e8b2`, tree
+`4708ebc12f74d4482764796fdd00f1fa7194a13a`, at
+`/tmp/happycodex-anchored-blocker-public-0.2.Up71TN` reproduces public
+semantic/artifact identities
+`fb3cb419795a6edcb284695769b5487b1f23ae46286c5fceba8042fcb41f9ce4` /
+`77a0b2b8f7f6280d6ed32458fc61ca110f7138b5b6c17ad55d333a023dfa8c89`.
+The archive is retained unchanged for a later authorized holdout command.
+
+Under the pinned `0.144.4` toolchain, official public-bound impact and an independent
+direct module construction emitted byte-equivalent canonical request content and the
+same SHA-256
+`ce5c87dcea3cfa76c36d5e9781e3eb5a40c9fbc5dbb16f2866125c6a2767c35c`.
+The 3,122-byte canonical request binds:
+
+- snapshot `2321593fa1e85c5c8683516406c995448af56bcfc87deb5179ac39242ab5e1da`,
+  engine `0334e7d256e4324da71fcb67bafa28c04a18f752951ddd14608c259e7c2d6757`,
+  ledger `055b3e16296eac423b0e495110aeb738e33af9cb4ad3eb549a1eb4fed5c0f8ed`,
+  and impact token
+  `78836258a5b61baf1da4145edf488b6e5325cba36aeffb7afadfc6c13b7da952`;
+- one corpus invocation over all 14 ordered cases, candidate arm,
+  `gpt-5.6-sol` / `high` / 300 seconds, and unchanged candidate package identities;
+- one adaptive holdout invocation over all three ordered pairs with the same
+  model/effort/timeout and the exact candidate/public package identities above;
+- 20 to 22 calls, 585,209 to 637,027 combined tokens, and 2,911.874 to
+  3,187.085 seconds from the exact persisted historical-cost provenance.
+
+Official impact reports `live_authority_ready: true`; the ledger remains
+`refresh_required` with null authority and certification. The planned authority
+source after an exact response is
+`current-task/user/happycodex-0.4-anchored-blocker-release-cost`. The canonical
+response including final LF has SHA-256
+`73883279c2808efa7c4ed93045d0c7aa7c8f6a114c16795ccc5b3d13a2757c89`.
+The only valid grant, with no surrounding prose, is:
+
+```text
+APPROVE HAPPYCODEX LIVE COST ce5c87dcea3cfa76c36d5e9781e3eb5a40c9fbc5dbb16f2866125c6a2767c35c
+```
+
+This request authorizes at most one complete fresh corpus plus adaptive holdout
+attempt after the exact authority is persisted and committed. It is additional to
+all earlier terminal/interrupted calls; no previous response, impact token, Goal
+continuation, or paraphrase grants this request. No live command ran while generating
+it. `Cost request status: awaiting exact canonical user response`.
+
 ## Design saturation and frozen release sequence
 
 Fresh baseline-only challenger `/root/release_boundary_challenger_b` inspected only
@@ -1634,11 +1685,11 @@ review identity, public proof, rollback, and final GitHub delivery simultaneousl
 | ID | Type | Claim | Closure / falsifier | State |
 | --- | --- | --- | --- | --- |
 | R-01 | premise | Current remote `main`, local baseline, package, engine, snapshot, ledger, and public benchmark identities are independently reproduced before release work. | Fetch/readback plus offline identity commands; drift remains open. | verified |
-| R-02 | outcome | The exact current impact and historical-cost envelope are persisted, and no live helper runs without the canonical invocation-bound response. | Authority validation plus command audit; any early call falsifies. | verified; exact 20-call grant consumed terminally |
-| R-03 | outcome | Exactly the authorized corpus and adaptive holdout scope completes and produces sanitized Git-reachable evidence that makes `current.json` validly `certified`. | CLI receipts, ledger validation, evidence ancestry, exact cost and scope reconciliation. | corpus GREEN; materially-better holdout blocked by exact cost gate and missing waiver representation |
-| R-04 | preservation | Repairs change only their explicit amendments: the earlier evaluator-case/fixture slices and the current holdout cost decision branch, focused tests, mechanical source ledger, and this plan. Skill, manifest, oracle/matcher/schema, runner, cases, and shipped product remain unchanged. | Exact source diff; any wider edit stops for user decision. | earlier repairs verified; cost-policy slice authorized |
+| R-02 | outcome | The exact current impact and historical-cost envelope are persisted, and no live helper runs without the canonical invocation-bound response. | Authority validation plus command audit; any early call falsifies. | verified; current request `ce5c87d...7c35c` frozen, authority null |
+| R-03 | outcome | Exactly the authorized corpus and adaptive holdout scope completes and produces sanitized Git-reachable evidence that makes `current.json` validly `certified`. | CLI receipts, ledger validation, evidence ancestry, exact cost and scope reconciliation. | prior attempts are diagnostics only; fresh 20-to-22-call scope awaits authority |
+| R-04 | preservation | Repairs change only their explicit amendments: the earlier case/fixture and holdout-policy slices, the current anchored-blocker prompt, focused tests, mechanical source ledger, and this plan. Skill, manifests, oracle/matcher/schema, runners/evaluator, unaffected cases, and shipped product remain unchanged. | Exact source diff; any wider edit stops for user decision. | verified through `f8ef025`; fresh review GO |
 | R-05 | outcome | Release edits are limited to strict-semver 0.4 version/cachebuster and accurate change-note/install metadata. | Product diff inventory and official validators. | open |
-| R-06 | outcome | Full offline suite, official validators, Ruff, CLI/JSON/diff/package hygiene, and fresh exact-product review close with `GO` and no material blocker. | Exact receipts and complete review coverage. | open |
+| R-06 | outcome | Full offline suite, official validators, Ruff, CLI/JSON/diff/package hygiene, and fresh exact-product review close with `GO` and no material blocker. | Exact receipts and complete review coverage. | bounded repair GREEN/GO; later certified and release-product gates open |
 | R-07 | outcome | A clean isolated public marketplace install/invocation reports the exact 0.4 version and release identity. | Fresh-home install plus invocation receipt; source/cache mismatch falsifies. | open |
 | R-08 | outcome | Active local plugin upgrades to exact 0.4 through the official cachebuster/reinstall flow, with the exact prior 0.3 cache retained and a tested rollback command. | Plugin list/cache/install/readback and rollback proof. | open |
 | R-09 | outcome | Release branch, integration ref, tag/release, and remote source identities are published without force or branch deletion and read back exactly. | Push/API/`ls-remote` receipts; mismatch blocks completion. | open |
@@ -1673,14 +1724,13 @@ review identity, public proof, rollback, and final GitHub delivery simultaneousl
    the user returned the exact canonical line for `daa751b4...c8de`, and frozen
    toolchain/source/public bindings reproduced exactly. Commit this persisted
    authority before the first model call; any later drift invalidates it.
-9. Open: the sole retry corpus is 14/14 GREEN and the adaptive holdout is terminal
+9. Closed historically: the sole retry corpus was 14/14 GREEN and the adaptive holdout was terminal
    `better,better`, but combined tokens are 1.341873x public and the engine returns
-   `user_confirmation_required`. Stop for the exact user choice above; do not infer
-   a cost waiver, weaken certification, change the evaluator, or rerun live inputs.
-10. Closed as advisory only: exact Fable 5 selected the minimum policy clean break and
-    a narrow Goal amendment. Open as an action gate: only explicit user authorization
-    can supersede evaluator preservation, retire the current evidence, and permit the
-    offline repair that precedes a new exact cost request.
+   `user_confirmation_required`. The later explicit policy amendment retired that
+   branch and its live evidence; it grants nothing to the current request.
+10. Closed: exact Fable 5 selected the minimum policy clean break and a narrow Goal
+    amendment, and the user explicitly authorized that amendment. Fable remains
+    advisory only and is not a release gate.
 11. Closed on 2026-07-20: the user returned the exact amendment above, the old Goal is
     cleared, and the bounded replacement Goal is active. Freeze this contract before
     the authority-retirement or RED write; live execution and release remain closed.
@@ -1689,19 +1739,25 @@ review identity, public proof, rollback, and final GitHub delivery simultaneousl
     clarification, one focused structural test, and a mechanical null-authority
     ledger rebuild. Offline GREEN and fresh exact-product review must precede a new
     20-to-22-call cost request; live execution remains closed.
+13. Open: exact request `ce5c87d...7c35c` is frozen after offline GREEN, fresh
+    review `GO`, and fresh public-0.2 reconstruction. Only the exact canonical line
+    above may authorize persistence; commit the authority-bearing ledger before any
+    model call. Until then corpus, holdout, certification, and release remain closed.
 
 ## Checkpoint
 
-- Milestone: exact 20-call live scope is terminal, and the exact advisory Fable review
-  is terminal `GO_WITH_AMENDMENT`. Corpus is strict GREEN; holdout is materially
-  better; Root and Fable both identify the blocking branch as policy divergence, not
-  a 0.4-versus-0.3 product regression.
-- Product writes: none. Persist only this administrative checkpoint; leave authority,
-  raw outputs, evaluator, product, and ledger semantics unchanged.
-- Owned raw path: `/tmp/happycodex-0.4-retry-live.hLLmk0`. Retain it unchanged; no
-  evaluator child is live and no unchanged live rerun is permitted.
-- Missing facts: post-repair identities, offline RED/GREEN, fresh-review verdict, and
-  exact new cost request; all later live/release receipts remain outside this Goal.
+- Milestone: anchored-blocker semantic repair `f8ef025` is focused/cumulative offline
+  GREEN, fresh exact-product review is `GO`, and exact request
+  `ce5c87d...7c35c` is frozen. Ledger authority and certification remain null.
+- Product/support writes: closed at the reviewed three-path slice. Skill, manifests,
+  oracle/matcher/schema, runners/evaluator, holdout, and shipped-package bytes remain
+  unchanged. Later release metadata stays closed until live certification succeeds.
+- Retain prior raw diagnostics unchanged. Fresh public archive
+  `/tmp/happycodex-anchored-blocker-public-0.2.Up71TN` is the frozen holdout input;
+  no evaluator child is live and no live command has run under the current request.
+- Missing fact: the exact canonical user response for request `ce5c87d...7c35c`.
+  After it, the active Goal continues through live certification, metadata-only 0.4
+  transition, isolated installs, active upgrade, PR/merge/tag/release, and readback.
 
 ## Retrospective
 
