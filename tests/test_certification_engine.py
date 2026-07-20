@@ -28,7 +28,7 @@ from evaluation.core.impact import (
     historical_cost_receipt,
     plan_impact,
 )
-from evaluation.core.ledger import load_ledger, validate_ledger
+from evaluation.core.ledger import ledger_sha256, load_ledger, validate_ledger
 from evaluation.core.receipt import sanitized_case_receipt
 from evaluation.corpus import engine as corpus_engine
 from evaluation.corpus.contract import (
@@ -513,7 +513,7 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
         self.assertFalse(hasattr(ledger_engine, "_validate_review_receipt"))
 
     def test_refresh_required_cannot_carry_a_certification(self) -> None:
-        ledger = load_ledger(ROOT / "evaluation" / "results" / "current.json")
+        ledger, _current, _impact = full_live_test_state()
         self.assertEqual(ledger["state"], "refresh_required")
         self.assertIsNone(ledger["certification"])
         self.assertIsNone(ledger["live_authority"])
@@ -2023,36 +2023,43 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
             )
             self.assertEqual(completed.returncode, 0, completed.stderr)
             payload = json.loads(completed.stdout)
-            self.assertEqual(payload["schema_version"], 1)
-            self.assertEqual(payload["ledger_state"], ledger["state"])
             if command == "verify":
-                self.assertEqual(payload["pending_gates"], expected_impact["gates"])
                 self.assertEqual(
-                    payload["live_authority_persisted"],
-                    ledger["live_authority"] is not None,
+                    payload,
+                    {
+                        "schema_version": 1,
+                        "status": "ok",
+                        "ledger_state": ledger["state"],
+                        "ledger_sha256": ledger_sha256(ledger, repo=ROOT),
+                        "snapshot_sha256": canonical_sha256(current),
+                        "engine_manifest_sha256": engine_inventory(ROOT)[
+                            "manifest_sha256"
+                        ],
+                        "pending_gates": expected_impact["gates"],
+                        "live_authority_persisted": ledger["live_authority"]
+                        is not None,
+                    },
                 )
-                self.assertRegex(payload["ledger_sha256"], r"^[0-9a-f]{64}$")
                 continue
 
             invocations = live.proposed_invocations(current, expected_impact)
             holdout_ready = not expected_impact["holdout_pairs"] or any(
                 item["command"] == "holdout" for item in invocations
             )
-            self.assertEqual(payload["gates"], expected_impact["gates"])
-            self.assertEqual(payload["live_calls"], expected_impact["live_calls"])
-            self.assertEqual(payload["proposed_invocations"], invocations)
             self.assertEqual(
-                payload["cost_approval_required"],
-                bool(expected_impact["live_calls"]["maximum"]),
-            )
-            self.assertEqual(payload["live_authority_ready"], holdout_ready)
-            self.assertEqual(
-                payload["live_authority_persisted"],
-                ledger["live_authority"] is not None,
-            )
-            self.assertEqual(
-                payload["impact_token"],
-                live.impact_token(ledger, current, expected_impact),
+                payload,
+                {
+                    **expected_impact,
+                    "ledger_state": ledger["state"],
+                    "snapshot_sha256": canonical_sha256(current),
+                    "cost_approval_required": bool(
+                        expected_impact["live_calls"]["maximum"]
+                    ),
+                    "live_authority_persisted": ledger["live_authority"] is not None,
+                    "live_authority_ready": holdout_ready,
+                    "proposed_invocations": invocations,
+                    "impact_token": live.impact_token(ledger, current, expected_impact),
+                },
             )
 
         self.assertEqual(ledger_path.read_bytes(), ledger_bytes)
