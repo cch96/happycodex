@@ -3,9 +3,9 @@
 Protocol: `HappyCodex/0.3`
 Invocation: `$happycodex:happycodex`
 Writer: Root only
-State: the exact zero-live isolated installation and evidence are committed, and the
-final certified-ledger candidate is fully offline GREEN plus fresh-review GO with
-zero blockers; only byte-identical ledger application remains before public delivery
+State: the reviewed final certified ledger is applied byte-identically and validates
+with no pending gate or authority; the next open gate is non-force release-branch
+push followed by a fresh public Git marketplace install proof
 Resume: read this entire file, the completed 0.4 certification-engine and main-
 integration ExecPlans, then reconcile Goal, Git, tests, evidence, installations,
 remote refs, and agents before any write, review, live call, or completion claim.
@@ -2657,6 +2657,25 @@ permitted product write now is byte-identical application of proposed
 `current.json` SHA-256
 `54aac8211e40366de7aaa0bef20cf2cdc95cacf7eed05576aa1f6e333f3e86df`.
 
+## Final certification applied byte-identically
+
+Root applied only the reviewed ledger bytes and confirmed `cmp` equality with the
+retained candidate before commit. Release commit is
+`855a1c0c771dd63d3845e7785578d12c70cbc317`, tree
+`9cbba0c3618c3cc7c21e2c5a46e68791455c890d`, and ledger Git blob
+`09b10a51c061fb365ee5ab2bf4a580fbd17e2313`. Byte SHA-256 remains exactly
+`54aac8211e40366de7aaa0bef20cf2cdc95cacf7eed05576aa1f6e333f3e86df`.
+The 55-entry plan-excluded release projection is exactly the reviewed neutral
+candidate manifest `17322c7913...225e`.
+
+Pinned official verify reports `certified`, no pending gates, null authority,
+canonical ledger `82b69e4e...1da8`, snapshot `b579d5b1...3c0b`, and engine
+`0334e7d2...6757`. Official impact is empty with zero calls, zero token/time cost,
+no reason/gate/case/pair/invocation, and impact token `e6dc29f4...f0a1`. The
+application commit changed only `evaluation/results/current.json`; worktree and index
+are clean. No test or review rerun is needed because both file blob and complete
+plan-excluded product projection are identical to the reviewed candidate.
+
 ## Checkpoint
 
 - Milestone: exact request `ce5c87d...7c35c` produced one 14/14 corpus and one
@@ -2679,9 +2698,11 @@ permitted product write now is byte-identical application of proposed
   are GREEN and committed at `d319b5a`; zero model sessions or live tokens were used.
 - Closed fact: final certified candidate `7d2c5f3` is fresh Native review `GO`, with
   every obligation PASS, zero blockers, and no over-optimization.
-- Next missing fact: byte-identical application and committed validation of reviewed
-  ledger `54aac821...e86df`. Public install, active upgrade,
-  PR/merge/tag/release, and readback remain closed until their later gates pass.
+- Closed fact: reviewed ledger `54aac821...e86df` is byte-identically applied and
+  committed at `855a1c0`; official state is certified with no pending gate.
+- Next missing fact: normal release-branch push and a fresh public Git marketplace
+  install/readback of exact 0.4. Active upgrade, PR/merge/tag/release, and final
+  readback remain closed until their later gates pass.
 
 ## Retrospective
 
