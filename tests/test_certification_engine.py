@@ -28,7 +28,7 @@ from evaluation.core.impact import (
     historical_cost_receipt,
     plan_impact,
 )
-from evaluation.core.ledger import ledger_sha256, load_ledger, validate_ledger
+from evaluation.core.ledger import ledger_sha256, validate_ledger
 from evaluation.core.receipt import sanitized_case_receipt
 from evaluation.corpus import engine as corpus_engine
 from evaluation.corpus.contract import (
@@ -127,7 +127,6 @@ def refreshed_coverage(snapshot: dict[str, object]) -> dict[str, object]:
 def full_live_test_state() -> tuple[
     dict[str, object], dict[str, object], dict[str, object]
 ]:
-    active = load_ledger(ROOT / "evaluation" / "results" / "current.json")
     current = build_snapshot(ROOT)
     pending = {
         "reasons": ["test-full-live-refresh"],
@@ -139,7 +138,11 @@ def full_live_test_state() -> tuple[
         "schema_version": 1,
         "state": "refresh_required",
         "snapshot": current,
-        "prior_evidence": copy.deepcopy(active["prior_evidence"]),
+        "prior_evidence": {
+            "source_commit": "0" * 40,
+            "source_path": "evaluation/results/current.json",
+            "sha256": "0" * 64,
+        },
         "pending": pending,
         "historical_cost": historical_cost_receipt(),
         "live_authority": None,
