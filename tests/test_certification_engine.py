@@ -2084,10 +2084,20 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
         self.assertEqual(incremental["holdout_pairs"], [])
 
     def test_impact_token_cannot_self_authorize_a_live_command(self) -> None:
-        ledger, current, impact = live.load_state()
+        ledger, current, impact = full_live_test_state()
         token = live.impact_token(ledger, current, impact)
         with tempfile.TemporaryDirectory() as raw:
-            with mock.patch.object(live.corpus_engine, "run_command") as runner:
+            with (
+                mock.patch.object(
+                    live, "load_state", return_value=(ledger, current, impact)
+                ),
+                mock.patch.object(
+                    live,
+                    "require_authorized_invocation",
+                    wraps=live.require_authorized_invocation,
+                ) as authority_gate,
+                mock.patch.object(live.corpus_engine, "run_authorized") as runner,
+            ):
                 with self.assertRaisesRegex(SystemExit, "2"):
                     cli.main(
                         [
@@ -2098,6 +2108,8 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                             token,
                         ]
                     )
+        authority_gate.assert_called_once()
+        self.assertIsNone(authority_gate.call_args.args[0])
         runner.assert_not_called()
 
 
