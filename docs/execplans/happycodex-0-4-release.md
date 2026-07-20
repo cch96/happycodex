@@ -3,9 +3,9 @@
 Protocol: `HappyCodex/0.3`
 Invocation: `$happycodex:happycodex`
 Writer: Root only
-State: the certified release branch is normally pushed and fresh public Git
-marketplace installation/discovery is GREEN at exact 0.4 identity; the next open
-gate is active personal-plugin upgrade with retained 0.3 rollback
+State: public installation and active personal 0.4 upgrade are GREEN, with exact 0.3
+source/cache rollback retained and an isolated downgrade rehearsal passed; the next
+open gate is PR creation and merge preserving the complete release ancestry
 Resume: read this entire file, the completed 0.4 certification-engine and main-
 integration ExecPlans, then reconcile Goal, Git, tests, evidence, installations,
 remote refs, and agents before any write, review, live call, or completion claim.
@@ -1993,7 +1993,7 @@ review identity, public proof, rollback, and final GitHub delivery simultaneousl
 | R-05 | outcome | Release edits are limited to strict-semver 0.4 version/cachebuster and accurate change-note/install metadata. | Product diff inventory and official validators. | exact three-path metadata slice committed at `59e2eda`; validators pending |
 | R-06 | outcome | Full offline suite, official validators, Ruff, CLI/JSON/diff/package hygiene, and fresh exact-product review close with `GO` and no material blocker. | Exact receipts and complete review coverage. | verified: final candidate offline GREEN and fresh-review GO with P0/P1/P2/P3 all zero |
 | R-07 | outcome | A clean isolated public marketplace install/invocation reports the exact 0.4 version and release identity. | Fresh-home install plus invocation receipt; source/cache mismatch falsifies. | verified at public branch `9271ede`; non-model namespaced discovery is enabled at exact package identity |
-| R-08 | outcome | Active local plugin upgrades to exact 0.4 through the official cachebuster/reinstall flow, with the exact prior 0.3 cache retained and a tested rollback command. | Plugin list/cache/install/readback and rollback proof. | open |
+| R-08 | outcome | Active local plugin upgrades to exact 0.4 through the official cachebuster/reinstall flow, with the exact prior 0.3 cache retained and a tested rollback command. | Plugin list/cache/install/readback and rollback proof. | verified: active 0.4 source/cache exact; 0.3 source/cache exact; isolated official downgrade rehearsal GREEN |
 | R-09 | outcome | Release branch, integration ref, tag/release, and remote source identities are published without force or branch deletion and read back exactly. | Push/API/`ls-remote` receipts; mismatch blocks completion. | open |
 | R-10 | preservation | Fable remains absent from release gates/product work except the exact user-requested advisory receipt above; all excluded 0.4+ architecture remains absent. | Command and final-diff inventory. | advisory complete; architecture still open |
 
@@ -2756,6 +2756,47 @@ cache deletion, plugin removal, force, manual state edit, or model invocation is
 permitted. On success, both the 0.3 source rollback directory and 0.3 cache remain
 untouched for later manual rollback.
 
+## Active personal upgrade and rollback rehearsal GREEN
+
+The frozen same-filesystem swap and one official pinned
+`codex plugin add happycodex@personal --json` completed successfully. Active plugin
+is installed, enabled, and reports exact version
+`0.4.0+codex.20260720074523` from canonical source
+`/home/caichenghang/plugins/happycodex`; active source and new personal cache both
+have 56 files / 75 workspace entries, exact workspace manifest
+`3c98e639b92ef8377a22a1677efe80fa3f1eb46cf3a824999485634b3971ecfe`,
+package `c5030e99...c05` / `ace7f39f...497e`, and Skill
+`0f222349...6b71`. Canonical plugin-add receipt SHA-256 is
+`dca6db709ac30185e9313164ca1cceaebafd6ff98a44e9b9679e8f1aeb32b1ee`;
+raw plugin-add, active list, and unchanged marketplace-list receipt SHA-256 values are
+`483e420f2dc15543bffe526d4d3346a3a29a31ea999468784f43258817e1bf94`,
+`9914d3b1846fd1bae93a8a085246048d23b991fa0615fa3f595c2847be5a5e6e`,
+and `9b6594fcb6643e8fe1380939a3c0616bb6420a6258e4d5908dd29765d9b04421`.
+
+The official reinstall pruned its old cache despite successful activation. Because
+the preflight had already proved the moved 0.3 source and old cache byte/mode
+identical, Root restored that cache additively from the untouched rollback source.
+Both retained 0.3 directories now again contain 54 files / 67 workspace entries with
+exact workspace manifest `38e006c9...86b5`, version
+`0.3.0+codex.20260716113414`, package `c5030e99...c05` / `0c83dbc6...934`, and
+Skill `0f222349...6b71`. The personal cache root now contains both exact 0.3 and 0.4
+version directories. Active 0.4 state was not changed while restoring old cache.
+
+The rollback command was then exercised, without touching active state, in fresh
+isolated home
+`/home/caichenghang/.codex/happycodex-rollback-tests/personal-PaRAc5zo`.
+It installed exact 0.4 from an isolated personal source, atomically replaced that
+source with the retained exact 0.3 package, reran the same official plugin-add
+command, and read back exact 0.3 installed/enabled. No model session was created.
+Raw install-0.4, list-0.4, rollback-install-0.3, rollback-list-0.3, and marketplace
+receipt SHA-256 values are
+`1d9338ad0f0ab5928c295f5e5b3bc0cf56a2922a86d0a91c0eb3adc59715da96`,
+`55b626fa028ae8eb6191d41328095e40e347774e6b76705fa3001f74b6de7a7e`,
+`09dc39460c4955351635d6e926e3e865e541561f9dbae0b2f89e2f439b83c241`,
+`83912802dfeb8c4ca8300f20de423fb8d6c7a8fc8562a4b9edf3fc053a11a459`,
+and `307af07f3232a54c013f4bb42f19be1e96f9e36830bbea2b2fe0175b9cd2e52a`.
+Thus both rollback artifacts and the official downgrade operation are proven.
+
 ## Checkpoint
 
 - Milestone: exact request `ce5c87d...7c35c` produced one 14/14 corpus and one
@@ -2782,9 +2823,10 @@ untouched for later manual rollback.
   committed at `855a1c0`; official state is certified with no pending gate.
 - Closed fact: normal remote branch push and one fresh public Git marketplace
   install/discovery are exact and GREEN at `9271ede`, with zero model session.
-- Next missing fact: active personal 0.4 upgrade with exact 0.3 source/cache rollback
-  retained and verified. PR/merge/tag/release and final readback remain closed until
-  their later gates pass.
+- Closed fact: active personal 0.4 source/cache are exact and enabled; exact 0.3
+  source/cache remain retained, and an isolated official downgrade rehearsal passed.
+- Next missing fact: PR creation and merge to `main` without squash/rebase so all
+  evidence ancestry remains reachable. Tag/release and final readback remain closed.
 
 ## Retrospective
 
