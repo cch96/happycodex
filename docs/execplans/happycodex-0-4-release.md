@@ -1055,6 +1055,46 @@ PATH=/home/caichenghang/.codex/packages/standalone/releases/0.144.4-aarch64-unkn
 Both corrected receipt destinations were absent at freeze. `Review status: receipt
 incomplete; same-session correction not started`.
 
+The permitted correction completed in the same thread without any tool call. Its
+four-event JSONL/terminal SHA-256 values are `8e115632...5c99` /
+`c2efe886...e75b`; terminal usage was 1,894,805 input, 1,680,384 cached input,
+31,120 output, and 14,763 reasoning-output tokens. It froze 18 obligations, mapped
+all three diff units both ways, reported 30 read-only queries, 36/36 standard cost
+edges, 16/16 zero-denominator cases, 10/10 invalid inputs, 12/12 holdout tests,
+5/5 certification tests, CLI verify GREEN, every preservation identity, no P0-P3
+finding, and over-optimization absent. It nevertheless returned `NOT-YET` because
+effective reviewer model/effort were not established inside its permitted evidence.
+
+Root then read only the Native rollout's own `session_meta` and first `turn_context`.
+The canonical selected-field projection is `416e42f4...fb5e` and proves CLI 0.144.4,
+Native review source, effective `gpt-5.6-sol` / `max`, read-only restricted profile,
+restricted network, approval `never`, and no reroute. This independently resolves the
+fact but cannot retroactively replace the reviewer's explicit terminal verdict or use
+a second same-session correction. Review A remains `NOT-YET`; product correctness has
+no finding.
+
+Fresh review B keeps the identical neutral refs/candidate and uses clean detached
+clone `/tmp/happycodex-cost-policy-native-review-b.4w3TZe`, exact candidate/tree
+`cb5879ce...84b` / `164d20e9...fb4`, zero status entries, and no task ExecPlan. It
+uses the original brief plus only
+`.git/happycodex-reviews/cost-policy-88759d6/brief-b-supplement.txt`, SHA-256
+`dd2a14b6...e153`. The supplement narrowly permits the reviewer to parse only its
+own current `session_meta` and `turn_context`, after correctness checks, to establish
+the effective runtime receipt; it forbids response items and every other rollout.
+Combined developer-instruction SHA-256 is
+`8f9afb07dae3dadefc1bfe6df5b55614de6125b9ace0a6003b17ce5f2d79b37c`.
+Pinned `debug prompt-input` reproduced exactly one combined instruction at that hash
+without a model call.
+
+Fresh review B exact command, frozen before launch:
+
+```bash
+brief_base=/home/caichenghang/projects/happycodex/.git/happycodex-reviews/cost-policy-88759d6/brief.txt; brief_supp=/home/caichenghang/projects/happycodex/.git/happycodex-reviews/cost-policy-88759d6/brief-b-supplement.txt; PATH=/home/caichenghang/.codex/packages/standalone/releases/0.144.4-aarch64-unknown-linux-musl/bin:$PATH PYTHONDONTWRITEBYTECODE=1 codex exec -s read-only -m gpt-5.6-sol -c 'model_reasoning_effort="max"' -c "developer_instructions=$(python3 -c 'import json,sys; print(json.dumps("".join(open(p, encoding="utf-8").read() for p in sys.argv[1:])))' "$brief_base" "$brief_supp")" -C /tmp/happycodex-cost-policy-native-review-b.4w3TZe --json -o /home/caichenghang/projects/happycodex/.git/happycodex-reviews/cost-policy-88759d6/review-b/last-message.txt review --commit cb5879ce95ac434235edfe787c11a750809ca84b > /home/caichenghang/projects/happycodex/.git/happycodex-reviews/cost-policy-88759d6/review-b/events.jsonl
+```
+
+Both B output destinations were absent at freeze. No prior conclusion or receipt is
+included in its prompt. `Review status: fresh B not started`.
+
 ## Design saturation and frozen release sequence
 
 Fresh baseline-only challenger `/root/release_boundary_challenger_b` inspected only
