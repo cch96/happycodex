@@ -3,9 +3,9 @@
 Protocol: `HappyCodex/0.3`
 Invocation: `$happycodex:happycodex`
 Writer: Root only
-State: the authorized corpus is GREEN and the adaptive holdout is materially better;
-the user-requested advisory Fable cost-baseline review is frozen for launch, while
-the exact certification-policy decision remains blocked
+State: corpus is GREEN, holdout is materially better, and advisory Fable independently
+selects the minimal policy clean break with a Goal amendment; stop for the exact user
+amendment before any evaluator write or new cost request
 Resume: read this entire file, the completed 0.4 certification-engine and main-
 integration ExecPlans, then reconcile Goal, Git, tests, evidence, installations,
 remote refs, and agents before any write, review, live call, or completion claim.
@@ -39,10 +39,12 @@ identities are read back exactly.
 Preserve Skill behavior, cases, oracles, runner/evaluator semantics, product support
 files, and every non-release product byte. If certification requires changing any of
 those, stop before the edit and report invalidated evidence, minimum reruns, and exact
-cost. Fable is excluded. No controller, hook, daemon, scheduler, MCP/app Runtime,
-Task State JSON, reviewer protocol, schema expansion, compatibility layer, or other
-0.4 optimization is in scope. No force-push, direct main overwrite, branch deletion,
-or unapproved model call is allowed.
+cost. Fable remains excluded from release gates and product work; the later
+user-requested advisory cost-baseline review recorded below is the sole exception and
+cannot close a gate. No controller, hook, daemon, scheduler, MCP/app Runtime, Task
+State JSON, reviewer protocol, schema expansion, compatibility layer, or other 0.4
+optimization is in scope. No force-push, direct main overwrite, branch deletion, or
+unapproved model call is allowed.
 
 ## Immutable starting snapshot
 
@@ -763,6 +765,58 @@ The response may advise the user and Root but cannot by itself change the Goal o
 the frozen release contract. Root must reproduce any decision-changing claim before
 proposing an amendment or write.
 
+### Advisory terminal receipt and Root disposition
+
+The sole invocation exited zero after 300.208 seconds with `success`, two turns, no
+permission denial, empty stderr, and reported cost `$1.436865`. Events/stderr SHA-256
+values are
+`338ed203f5fa65397a7463cbffe4b764d691ab498c323b948569a39099fdb969` /
+`e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`;
+canonical structured-output SHA-256 is
+`486eeb7b2bfcc96c78c658581249762b32a4ddc49741cbe5b369007f7088c2aa`.
+The session and prompt/schema digests match the prelaunch record exactly.
+
+Runtime init reports actual `claude-fable-5`, plan permission, no MCP server, skill,
+or slash command, and only the schema-required `StructuredOutput` tool. Every
+assistant event names `claude-fable-5`; its usage is 8,836 cache-creation input plus
+2 input and 25,150 output tokens at `$1.434240`. The result also reports one auxiliary
+`claude-haiku-4-5-20251001` usage of 2,515 input/22 output tokens at `$0.002625`, but
+no Haiku assistant event, fallback, tool access, or authored conclusion. Safe-mode
+init enumerates six installed plugin records despite exposing no plugin skill,
+command, or tool; this is disclosed metadata, not treated as strict absence. The CLI
+does not expose effective effort, so `max` is the exact requested setting but not an
+independently attested effective value.
+
+Fable verdict is `GO_WITH_AMENDMENT`. It selects the minimal policy clean break as
+high benefit and not over-optimization:
+
+1. keep public 0.2 as the frozen behavior control and retain cost ratios as
+   diagnostics;
+2. apply the 25% blocking threshold only at equal aggregate quality, as the existing
+   repository policy states; materially-better quality passes, while regression and
+   inconclusive still reject;
+3. remove `user_confirmation_required` rather than add a generic confirmation schema;
+4. reject the one-off certified-ledger waiver and defer deeper evidence scoping to a
+   later non-release task;
+5. minimally amend rather than replace the Goal, limited to this cost-policy semantic
+   exception, then retire the current live evidence and require fresh exact review,
+   exact cost authorization, 16-call corpus, and adaptive four-to-six-call holdout.
+
+Root independently reproduced the decision-changing facts in the current repository:
+`AGENTS.md` applies the 25% threshold only at equal quality;
+`evaluation/holdout/compare.py` adds the contradictory materially-better confirmation
+branch; `HOLDOUT_SUMMARY_FIELDS` has no confirmation receipt; ledger certification
+recomputes the gate and requires `release_permitted=true`; and the four shipped paths
+remain byte-identical to the public 0.3 release boundary. Root accepts Fable findings
+F1 through F5 and F7. F6 is retained as an advisory sampling limitation. The phrase
+“0.4-versus-0.3 regression is mechanically impossible” is narrowed to the supported
+claim that no source-attributable runtime regression exists while the exact runtime
+bytes are identical; stochastic model cost still varies and the new live result is
+not forecast evidence.
+
+No Goal, evaluator, schema, ledger, product, installation, or remote ref changed.
+The exact proposed Goal amendment remains a user gate and Fable cannot grant it.
+
 ## Design saturation and frozen release sequence
 
 Fresh baseline-only challenger `/root/release_boundary_challenger_b` inspected only
@@ -855,7 +909,7 @@ review identity, public proof, rollback, and final GitHub delivery simultaneousl
 | R-07 | outcome | A clean isolated public marketplace install/invocation reports the exact 0.4 version and release identity. | Fresh-home install plus invocation receipt; source/cache mismatch falsifies. | open |
 | R-08 | outcome | Active local plugin upgrades to exact 0.4 through the official cachebuster/reinstall flow, with the exact prior 0.3 cache retained and a tested rollback command. | Plugin list/cache/install/readback and rollback proof. | open |
 | R-09 | outcome | Release branch, integration ref, tag/release, and remote source identities are published without force or branch deletion and read back exactly. | Push/API/`ls-remote` receipts; mismatch blocks completion. | open |
-| R-10 | preservation | Fable and all excluded 0.4+ architecture work remain absent. | Command and final-diff inventory. | open |
+| R-10 | preservation | Fable remains absent from release gates/product work except the exact user-requested advisory receipt above; all excluded 0.4+ architecture remains absent. | Command and final-diff inventory. | advisory complete; architecture still open |
 
 ## Execution gates
 
@@ -890,18 +944,23 @@ review identity, public proof, rollback, and final GitHub delivery simultaneousl
    `better,better`, but combined tokens are 1.341873x public and the engine returns
    `user_confirmation_required`. Stop for the exact user choice above; do not infer
    a cost waiver, weaken certification, change the evaluator, or rerun live inputs.
+10. Closed as advisory only: exact Fable 5 selected the minimum policy clean break and
+    a narrow Goal amendment. Open as an action gate: only explicit user authorization
+    can supersede evaluator preservation, retire the current evidence, and permit the
+    offline repair that precedes a new exact cost request.
 
 ## Checkpoint
 
-- Milestone: exact 20-call live scope is terminal. Corpus is strict GREEN and holdout
-  quality is materially better, but the measured +34.1873% combined-token gate and
-  absent ledger waiver representation require an explicit user decision.
+- Milestone: exact 20-call live scope is terminal, and the exact advisory Fable review
+  is terminal `GO_WITH_AMENDMENT`. Corpus is strict GREEN; holdout is materially
+  better; Root and Fable both identify the blocking branch as policy divergence, not
+  a 0.4-versus-0.3 product regression.
 - Product writes: none. Persist only this administrative checkpoint; leave authority,
   raw outputs, evaluator, product, and ledger semantics unchanged.
 - Owned raw path: `/tmp/happycodex-0.4-retry-live.hLLmk0`. Retain it unchanged; no
   evaluator child is live and no unchanged live rerun is permitted.
-- Missing facts: exact cost/certification disposition and every remaining sanitized-
-  evidence/review/install/activation/rollback/publication receipt.
+- Missing facts: explicit scoped Goal/Outcome amendment, then every newly invalidated
+  offline/live/review and remaining install/activation/rollback/publication receipt.
 
 ## Retrospective
 
