@@ -1006,6 +1006,27 @@ The JSONL event record and last-message receipt use those exact durable destinat
 Both were absent at freeze time. `Review status: not started`. Any candidate/ref,
 brief, command, model/effort/profile, clone, or output-path drift invalidates launch.
 
+The frozen first command failed locally before session creation or model dispatch:
+Codex CLI exited 2 because native `review --commit` rejects a positional custom
+prompt, including `-`. Its JSONL destination exists at zero bytes, no last-message
+file exists, the clone/ref/candidate remain exact, and no reviewer or other model call
+started. This is a launch-shape failure, not a review result.
+
+Pinned CLI `debug prompt-input` then proved, without a model call, that supported
+`developer_instructions` config injection contains exactly one copy of the frozen
+brief at the same full SHA-256 `92faae8e...18fb`; the probe user item was also present.
+This preserves native `review --commit` selection without replacing base instructions
+or altering the candidate. Corrected output destinations end in `events-v2.jsonl` and
+`last-message-v2.txt` and were absent at this second freeze.
+
+Corrected exact command, frozen before the only reviewer dispatch:
+
+```bash
+brief_path=/home/caichenghang/projects/happycodex/.git/happycodex-reviews/cost-policy-88759d6/brief.txt; PATH=/home/caichenghang/.codex/packages/standalone/releases/0.144.4-aarch64-unknown-linux-musl/bin:$PATH PYTHONDONTWRITEBYTECODE=1 codex exec -s read-only -m gpt-5.6-sol -c 'model_reasoning_effort="max"' -c "developer_instructions=$(python3 -c 'import json,sys; print(json.dumps(open(sys.argv[1], encoding="utf-8").read()))' "$brief_path")" -C /tmp/happycodex-cost-policy-native-review.ciZEMb --json -o /home/caichenghang/projects/happycodex/.git/happycodex-reviews/cost-policy-88759d6/last-message-v2.txt review --commit cb5879ce95ac434235edfe787c11a750809ca84b > /home/caichenghang/projects/happycodex/.git/happycodex-reviews/cost-policy-88759d6/events-v2.jsonl
+```
+
+`Review status: corrected launch not started`.
+
 ## Design saturation and frozen release sequence
 
 Fresh baseline-only challenger `/root/release_boundary_challenger_b` inspected only
