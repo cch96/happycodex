@@ -1,0 +1,268 @@
+{
+  "case_sha256": {
+    "authority-production-boundary": "c2410c1637062b456ca994ce6e8c197d9ca83b0cd1f5d2e1db590aae630f815f",
+    "destructive-migration-fallback": "920dda0082ca5fc703460e0943ea4d87c901e8255ccaa24e1d4ef7423d070c5e",
+    "local-documentation-control": "1bdfa393863f3769f1a8537dca71b7168761035e3c0c58b5df256cc976eb9db8"
+  },
+  "effort": "high",
+  "engine_generation": "0.4",
+  "identities": {
+    "engine": {
+      "categories": {
+        "artifact": "8542b02d73e07d4f7ccfa58775969c22097eca157e151365632d71e92e6a07ea",
+        "harness": "3cf0bc56cfe589946746ba284d0a3e54c20f49dba35238f9077e2c9ec123aff1",
+        "semantic": "02fcb2b36a3a81439ba3993c0c5362bda1942f994f2226f78f4a6d4025273f56"
+      },
+      "entries": [
+        {
+          "bytes": 168,
+          "category": "harness",
+          "path": "evaluation/__init__.py",
+          "sha256": "8a466211c0d62ac1dee58929540d2d07ba30ecab62d8d61e1a817ce4fec005d8"
+        },
+        {
+          "bytes": 3432,
+          "category": "semantic",
+          "path": "evaluation/cases/authorized-rebaseline.json",
+          "sha256": "136c29a2fc40ca6b50097e3d2ef35389b905eb735d9d6433b858ddae5fbea8fb"
+        },
+        {
+          "bytes": 4081,
+          "category": "semantic",
+          "path": "evaluation/cases/boundary-cutover.json",
+          "sha256": "8e719bc13b9647a0736b06d2fc0b1f6d8b658e68b76df87827a7afa7e3300df6"
+        },
+        {
+          "bytes": 3185,
+          "category": "semantic",
+          "path": "evaluation/cases/clean-qualifying-control.json",
+          "sha256": "cc3b5b748acf76d72ad640d5d9fb06c118e1e53d16dca03bf2ef73f0515ee323"
+        },
+        {
+          "bytes": 5167,
+          "category": "semantic",
+          "path": "evaluation/cases/compaction-recovery.json",
+          "sha256": "30d23c6feaaba623077c0b17034311471c1bb95cbb3a8b54e07a4460274ae08d"
+        },
+        {
+          "bytes": 1435,
+          "category": "semantic",
+          "path": "evaluation/cases/goal-divergence.json",
+          "sha256": "2d402b4634b7b2b6f72fd60c139204ad796f84b0ef72da8887edc25a85e35a93"
+        },
+        {
+          "bytes": 1201,
+          "category": "semantic",
+          "path": "evaluation/cases/midflight-escalation.json",
+          "sha256": "4b7b79ed05effa710776523019607777629a88c683a422a9ace6267a90aea1e3"
+        },
+        {
+          "bytes": 2188,
+          "category": "semantic",
+          "path": "evaluation/cases/multi-repo-submodule.json",
+          "sha256": "c13b0aed2c33a0fed58b93b14eb2492b101b19d35084716dc32fbd9b452b7372"
+        },
+        {
+          "bytes": 2630,
+          "category": "semantic",
+          "path": "evaluation/cases/no-commit-secret.json",
+          "sha256": "fc398ef49de515c6d5dd361c07d35d14f27093efe3092d91b09415a278b219ee"
+        },
+        {
+          "bytes": 5171,
+          "category": "semantic",
+          "path": "evaluation/cases/pre-freeze-compaction.json",
+          "sha256": "a667415e6c33a616dab1c6aa09c7476f5a71301ff9856f6fe659ad8869c880d7"
+        },
+        {
+          "bytes": 7408,
+          "category": "semantic",
+          "path": "evaluation/cases/receipt-mismatch.json",
+          "sha256": "5ed72c3089d7777f069ad40dec3bf37c7627d80156ef0db4433d62800fafcd22"
+        },
+        {
+          "bytes": 12998,
+          "category": "semantic",
+          "path": "evaluation/cases/review-admin-cycle.json",
+          "sha256": "5deb20b30a8c2276673c66cc9c8ed0f3984ef137874a5da21a372fb9cc75d126"
+        },
+        {
+          "bytes": 7648,
+          "category": "semantic",
+          "path": "evaluation/cases/review-inventory-gate.json",
+          "sha256": "31a46a23f3329bc8bc842ca17cdee0fc21006274d5da9ebd989bd84373f6cb4d"
+        },
+        {
+          "bytes": 5920,
+          "category": "semantic",
+          "path": "evaluation/cases/review-isolation.json",
+          "sha256": "6b9c6bd628ad93154c7209e2d86684ccb97ab7735d92ba0417f448ff33ce6b92"
+        },
+        {
+          "bytes": 1105,
+          "category": "semantic",
+          "path": "evaluation/cases/subthreshold-control.json",
+          "sha256": "0c8435a5bec57fe72fa3bba3f442e2c09937f12780f19a4c165b1bd38ca11d6b"
+        },
+        {
+          "bytes": 4339,
+          "category": "harness",
+          "path": "evaluation/cli.py",
+          "sha256": "9dbf7371b02260cc097d2965eb015d25d5dd04193be72e7a22f9c40a1f187d87"
+        },
+        {
+          "bytes": 108,
+          "category": "harness",
+          "path": "evaluation/core/__init__.py",
+          "sha256": "508dec30f92a84ce1a0a5b55d7671e6ea9e78fdd7c3d6a2ce8fbb753bba3d15b"
+        },
+        {
+          "bytes": 13263,
+          "category": "harness",
+          "path": "evaluation/core/identity.py",
+          "sha256": "42dfd435d625df48cf0f023e5d90ff8e9f30e912d56cedc045a0777ea5f8bb98"
+        },
+        {
+          "bytes": 24584,
+          "category": "harness",
+          "path": "evaluation/core/impact.py",
+          "sha256": "72d74dff02c74dffbc42c09620788564df3547e90c7729ec58035463f126e826"
+        },
+        {
+          "bytes": 82653,
+          "category": "harness",
+          "path": "evaluation/core/ledger.py",
+          "sha256": "8005661a62613a0db3f391861ab98f9947ff03f00662eb877831e9978a8a4b02"
+        },
+        {
+          "bytes": 10714,
+          "category": "artifact",
+          "path": "evaluation/core/receipt.py",
+          "sha256": "3f74865ccb068fa89cf134e44116c6443669e13146eba2a3be375a8b0970d4fc"
+        },
+        {
+          "bytes": 78,
+          "category": "harness",
+          "path": "evaluation/corpus/__init__.py",
+          "sha256": "08f3054eacef5be2faf78bc247e589ee154c9e8f1ad66dd1518d8ce3af851fe7"
+        },
+        {
+          "bytes": 13794,
+          "category": "semantic",
+          "path": "evaluation/corpus/contract.py",
+          "sha256": "57039c1670b8664be3812d5131bc36ff6115ea36be62c9bb4e5d1af5ca60da93"
+        },
+        {
+          "bytes": 86199,
+          "category": "harness",
+          "path": "evaluation/corpus/engine.py",
+          "sha256": "3dc5ae1dc796fb14c670032916441b89064b23b9c1fdbc2846ebcca875ed5f24"
+        },
+        {
+          "bytes": 87,
+          "category": "harness",
+          "path": "evaluation/holdout/__init__.py",
+          "sha256": "4c65f25d62763dc2b178af16bba54a3fc4347e0623e6fe791df41d42163040f3"
+        },
+        {
+          "bytes": 7255,
+          "category": "harness",
+          "path": "evaluation/holdout/blind.py",
+          "sha256": "ec2322a4b6e75e9a14713e8abd7250168c7925d00acc44543a1b12998ffeb043"
+        },
+        {
+          "bytes": 5522,
+          "category": "semantic",
+          "path": "evaluation/holdout/compare.py",
+          "sha256": "3fe24790c986643ac1618c232532d6b427e76ecf107d3ba2d6a2828cef188471"
+        },
+        {
+          "bytes": 15664,
+          "category": "harness",
+          "path": "evaluation/holdout/engine.py",
+          "sha256": "5c791f19453601ca643bf2d7f3281c7f1ad934af5d5c2b948868574e903b583c"
+        },
+        {
+          "bytes": 3696,
+          "category": "semantic",
+          "path": "evaluation/holdouts/cases/authority-production-boundary.json",
+          "sha256": "c2410c1637062b456ca994ce6e8c197d9ca83b0cd1f5d2e1db590aae630f815f"
+        },
+        {
+          "bytes": 3172,
+          "category": "semantic",
+          "path": "evaluation/holdouts/cases/destructive-migration-fallback.json",
+          "sha256": "920dda0082ca5fc703460e0943ea4d87c901e8255ccaa24e1d4ef7423d070c5e"
+        },
+        {
+          "bytes": 1239,
+          "category": "semantic",
+          "path": "evaluation/holdouts/cases/local-documentation-control.json",
+          "sha256": "1bdfa393863f3769f1a8537dca71b7168761035e3c0c58b5df256cc976eb9db8"
+        },
+        {
+          "bytes": 678,
+          "category": "semantic",
+          "path": "evaluation/holdouts/manifest.json",
+          "sha256": "d1cd5236714dcd9c7d28c83ace2a988539e519cc28edb05793ebbe28c77164da"
+        },
+        {
+          "bytes": 7368,
+          "category": "harness",
+          "path": "evaluation/live.py",
+          "sha256": "7f49a35594457da5465d1b202b431dd6847520d0b045068fa85ce3d90bdd3cd6"
+        }
+      ],
+      "manifest_sha256": "0334e7d256e4324da71fcb67bafa28c04a18f752951ddd14608c259e7c2d6757",
+      "schema_version": 1
+    },
+    "packages": {
+      "candidate": {
+        "artifact_sha256": "0c83dbc694cb98bf811dd2d1c199b5d2aa734c484476a638884e775289c1d934",
+        "semantic_sha256": "c5030e99dd7cd1681148c069775671c5720bb8dd366930ff90f61cbc54cdfc05"
+      },
+      "public-0.2": {
+        "artifact_sha256": "77a0b2b8f7f6280d6ed32458fc61ca110f7138b5b6c17ad55d333a023dfa8c89",
+        "semantic_sha256": "fb3cb419795a6edcb284695769b5487b1f23ae46286c5fceba8042fcb41f9ce4"
+      }
+    },
+    "toolchain": {
+      "codex": {
+        "path": "/home/caichenghang/.codex/packages/standalone/releases/0.144.4-aarch64-unknown-linux-musl/bin/codex",
+        "sha256": "306498eb1e4ba092e1a03c6ebeaeba37964ad868a68b167d4fb775c96321db5c",
+        "version": "codex-cli 0.144.4"
+      },
+      "git": {
+        "path": "/usr/bin/git",
+        "sha256": "ddaa0175db5eff3cd34b7e796fccdd3430e09a39edf9f82c5949ea98665d5d13",
+        "version": "git version 2.34.1"
+      },
+      "python": {
+        "path": "/usr/bin/python3.10",
+        "sha256": "2a07e4b31eebc00649ee310a4a289bb55e213c25f523f41b4c471bee6284ba97",
+        "shared_libraries_sha256": "ba93e5f16a1c91403ea37627af0c087cc586a152ee0e95e507e35534bb4323d1",
+        "shared_library_count": 47,
+        "shared_library_resolver_sha256": "236431e509066e30abd8696f289ddf246c56386bd451e3f50de3175a75480708",
+        "stdlib_file_count": 735,
+        "stdlib_sha256": "6cc498f1e8135d99b81b739d2425757c4f78d7e8914da895318ae8c49048d9ba",
+        "version": "Python 3.10.12"
+      },
+      "rg": {
+        "path": "/home/caichenghang/.codex/packages/standalone/releases/0.144.4-aarch64-unknown-linux-musl/codex-path/rg",
+        "sha256": "968cabe8efed72fd8fd482cb76b6084fcb695fc5293af7fb62296b02f487fb69",
+        "version": "ripgrep 15.1.0 (rev af60c2de9d)"
+      }
+    }
+  },
+  "impact_token": "78836258a5b61baf1da4145edf488b6e5325cba36aeffb7afadfc6c13b7da952",
+  "live_authority_sha256": "6dc62c41e77ca8412ca1a780f5a573c17f3818ad24d98223a4783a2f8ab1f5de",
+  "manifest_sha256": "d1cd5236714dcd9c7d28c83ace2a988539e519cc28edb05793ebbe28c77164da",
+  "model": "gpt-5.6-sol",
+  "pair_ids": [
+    "authority-production-boundary",
+    "local-documentation-control",
+    "destructive-migration-fallback"
+  ],
+  "schema_version": 1,
+  "timeout_seconds": 300
+}

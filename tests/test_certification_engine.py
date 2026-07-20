@@ -28,7 +28,7 @@ from evaluation.core.impact import (
     historical_cost_receipt,
     plan_impact,
 )
-from evaluation.core.ledger import load_ledger, validate_ledger
+from evaluation.core.ledger import ledger_sha256, validate_ledger
 from evaluation.core.receipt import sanitized_case_receipt
 from evaluation.corpus import engine as corpus_engine
 from evaluation.corpus.contract import (
@@ -124,6 +124,35 @@ def refreshed_coverage(snapshot: dict[str, object]) -> dict[str, object]:
     }
 
 
+def full_live_test_state() -> tuple[
+    dict[str, object], dict[str, object], dict[str, object]
+]:
+    current = build_snapshot(ROOT)
+    pending = {
+        "reasons": ["test-full-live-refresh"],
+        "corpus_cases": sorted(current["corpus"]["cases"]),
+        "holdout_pairs": sorted(current["holdout"]["pairs"]),
+        "review": True,
+    }
+    ledger = {
+        "schema_version": 1,
+        "state": "refresh_required",
+        "snapshot": current,
+        "prior_evidence": {
+            "source_commit": "0" * 40,
+            "source_path": "evaluation/results/current.json",
+            "sha256": "0" * 64,
+        },
+        "pending": pending,
+        "historical_cost": historical_cost_receipt(),
+        "live_authority": None,
+        "certification": None,
+    }
+    impact = plan_impact(current, current, pending=pending)
+    validate_ledger(ledger, repo=ROOT)
+    return ledger, current, impact
+
+
 class CertificationIdentityTests(unittest.TestCase):
     def test_inventory_classifies_every_engine_module_and_schema(self) -> None:
         first = engine_inventory(ROOT)
@@ -187,7 +216,7 @@ class CertificationIdentityTests(unittest.TestCase):
             shutil.copytree(ROOT / "evaluation", clone / "evaluation")
             baseline = engine_inventory(clone)
             evidence = clone / "evaluation" / "results" / "evidence"
-            evidence.mkdir()
+            evidence.mkdir(exist_ok=True)
             for name in (
                 "corpus_summary",
                 "holdout_run",
@@ -249,7 +278,7 @@ class CertificationImpactTests(unittest.TestCase):
         self.assertEqual(len(snapshot["holdout"]["pairs"]), 3)
         self.assertEqual(
             snapshot["package"]["artifact_sha256"],
-            "0c83dbc694cb98bf811dd2d1c199b5d2aa734c484476a638884e775289c1d934",
+            "ace7f39fd61341e5d4b1bc3b268fd89a1562acaaacb80d7456c2bb97fb9c497e",
         )
         self.assertEqual(
             set(snapshot["settings"]["toolchain"]), {"python", "codex", "git", "rg"}
@@ -463,10 +492,8 @@ class CertificationImpactTests(unittest.TestCase):
             plan_impact(self.snapshot, changed)
 
     def test_refresh_ledger_forces_full_exact_pending_scope_and_cost(self) -> None:
-        ledger = load_ledger(ROOT / "evaluation" / "results" / "current.json")
-        impact = plan_impact(
-            ledger["snapshot"], self.snapshot, pending=ledger["pending"]
-        )
+        ledger, current, impact = full_live_test_state()
+        self.assertEqual(current, self.snapshot)
         self.assertEqual(len(impact["corpus_cases"]), 14)
         self.assertEqual(len(impact["holdout_pairs"]), 3)
         self.assertEqual(impact["live_calls"], {"minimum": 20, "maximum": 22})
@@ -489,7 +516,7 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
         self.assertFalse(hasattr(ledger_engine, "_validate_review_receipt"))
 
     def test_refresh_required_cannot_carry_a_certification(self) -> None:
-        ledger = load_ledger(ROOT / "evaluation" / "results" / "current.json")
+        ledger, _current, _impact = full_live_test_state()
         self.assertEqual(ledger["state"], "refresh_required")
         self.assertIsNone(ledger["certification"])
         self.assertIsNone(ledger["live_authority"])
@@ -508,7 +535,7 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
             validate_ledger(invalid)
 
     def test_user_authority_is_exact_and_invocation_bound(self) -> None:
-        ledger, current, impact = live.load_state()
+        ledger, current, impact = full_live_test_state()
         authority = complete_live_authority(ledger, current, impact)
         invocation = authority["invocations"][0]
         ledger_engine.validate_live_authority(authority, snapshot=current)
@@ -553,7 +580,7 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
             ledger_engine.validate_live_authority(rejecting, snapshot=current)
 
     def test_persisting_authority_does_not_create_a_token_cycle(self) -> None:
-        ledger, current, impact = live.load_state()
+        ledger, current, impact = full_live_test_state()
         token = live.impact_token(ledger, current, impact)
         authorized = copy.deepcopy(ledger)
         authorized["live_authority"] = complete_live_authority(ledger, current, impact)
@@ -561,7 +588,7 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
         self.assertEqual(live.impact_token(authorized, current, impact), token)
 
     def test_live_dispatch_binds_authority_digest_into_runner_args(self) -> None:
-        ledger, current, impact = live.load_state()
+        ledger, current, impact = full_live_test_state()
         ledger["live_authority"] = complete_live_authority(ledger, current, impact)
         parser = cli.build_parser()
         args = parser.parse_args(
@@ -705,7 +732,7 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                     corpus_engine.run_command(corpus_args)
             evaluator.assert_not_called()
 
-            ledger, current, impact = live.load_state()
+            ledger, current, impact = full_live_test_state()
             authority = complete_live_authority(ledger, current, impact)
             corpus_invocation = next(
                 item for item in authority["invocations"] if item["command"] == "corpus"
@@ -816,9 +843,7 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
         validate.assert_called_once()
 
     def test_certified_state_requires_a_digest_bound_successor_receipt(self) -> None:
-        ledger = load_ledger(ROOT / "evaluation" / "results" / "current.json")
-        current = build_snapshot(ROOT)
-        impact = plan_impact(ledger["snapshot"], current, pending=ledger["pending"])
+        ledger, current, impact = full_live_test_state()
         authority = complete_live_authority(ledger, current, impact)
         certified = copy.deepcopy(ledger)
         certified["state"] = "certified"
@@ -1462,7 +1487,7 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                     },
                 )
             evidence_root = repo / "evaluation" / "results" / "evidence"
-            evidence_root.mkdir(parents=True)
+            evidence_root.mkdir(parents=True, exist_ok=True)
 
             def write_evidence(name: str, value: object) -> str:
                 path = evidence_root / f"{name}.json"
@@ -1988,6 +2013,9 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                 validate_ledger(wrong_prior, repo=repo)
 
     def test_verify_and_impact_commands_are_read_only_json(self) -> None:
+        ledger_path = ROOT / "evaluation" / "results" / "current.json"
+        ledger_bytes = ledger_path.read_bytes()
+        ledger, current, expected_impact = live.load_state()
         for command in ("verify", "impact"):
             completed = subprocess.run(
                 [sys.executable, "-m", "evaluation.cli", command],
@@ -1998,20 +2026,81 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
             )
             self.assertEqual(completed.returncode, 0, completed.stderr)
             payload = json.loads(completed.stdout)
-            self.assertEqual(payload["schema_version"], 1)
-            if command == "impact":
-                self.assertFalse(payload["live_authority_ready"])
+            if command == "verify":
                 self.assertEqual(
-                    [item["command"] for item in payload["proposed_invocations"]],
-                    ["corpus"],
+                    payload,
+                    {
+                        "schema_version": 1,
+                        "status": "ok",
+                        "ledger_state": ledger["state"],
+                        "ledger_sha256": ledger_sha256(ledger, repo=ROOT),
+                        "snapshot_sha256": canonical_sha256(current),
+                        "engine_manifest_sha256": engine_inventory(ROOT)[
+                            "manifest_sha256"
+                        ],
+                        "pending_gates": expected_impact["gates"],
+                        "live_authority_persisted": ledger["live_authority"]
+                        is not None,
+                    },
                 )
-                self.assertRegex(payload["impact_token"], r"^[0-9a-f]{64}$")
+                continue
+
+            invocations = live.proposed_invocations(current, expected_impact)
+            holdout_ready = not expected_impact["holdout_pairs"] or any(
+                item["command"] == "holdout" for item in invocations
+            )
+            self.assertEqual(
+                payload,
+                {
+                    **expected_impact,
+                    "ledger_state": ledger["state"],
+                    "snapshot_sha256": canonical_sha256(current),
+                    "cost_approval_required": bool(
+                        expected_impact["live_calls"]["maximum"]
+                    ),
+                    "live_authority_persisted": ledger["live_authority"] is not None,
+                    "live_authority_ready": holdout_ready,
+                    "proposed_invocations": invocations,
+                    "impact_token": live.impact_token(ledger, current, expected_impact),
+                },
+            )
+
+        self.assertEqual(ledger_path.read_bytes(), ledger_bytes)
+
+        prior = copy.deepcopy(current)
+        prior["package"]["artifact_sha256"] = (
+            "0" * 64 if current["package"]["artifact_sha256"] != "0" * 64 else "f" * 64
+        )
+        incremental = plan_impact(
+            prior,
+            current,
+            pending={
+                "reasons": ["test-artifact-only-refresh"],
+                "corpus_cases": [],
+                "holdout_pairs": [],
+                "review": True,
+            },
+        )
+        self.assertEqual(incremental["gates"], ["isolated_install", "review"])
+        self.assertEqual(incremental["live_calls"], {"minimum": 0, "maximum": 0})
+        self.assertEqual(incremental["corpus_cases"], [])
+        self.assertEqual(incremental["holdout_pairs"], [])
 
     def test_impact_token_cannot_self_authorize_a_live_command(self) -> None:
-        ledger, current, impact = live.load_state()
+        ledger, current, impact = full_live_test_state()
         token = live.impact_token(ledger, current, impact)
         with tempfile.TemporaryDirectory() as raw:
-            with mock.patch.object(live.corpus_engine, "run_command") as runner:
+            with (
+                mock.patch.object(
+                    live, "load_state", return_value=(ledger, current, impact)
+                ),
+                mock.patch.object(
+                    live,
+                    "require_authorized_invocation",
+                    wraps=live.require_authorized_invocation,
+                ) as authority_gate,
+                mock.patch.object(live.corpus_engine, "run_authorized") as runner,
+            ):
                 with self.assertRaisesRegex(SystemExit, "2"):
                     cli.main(
                         [
@@ -2022,6 +2111,8 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                             token,
                         ]
                     )
+        authority_gate.assert_called_once()
+        self.assertIsNone(authority_gate.call_args.args[0])
         runner.assert_not_called()
 
 

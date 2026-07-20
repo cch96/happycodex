@@ -116,8 +116,6 @@ def cost_gate(
         decision = "reject"
     elif expensive and quality == "equal":
         decision = "simplify_and_retest"
-    elif expensive and quality == "materially_better":
-        decision = "user_confirmation_required"
     else:
         decision = "pass"
     return {

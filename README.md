@@ -64,6 +64,13 @@ The plugin adds no hook, controller, scheduler, daemon, app, MCP server, custom
 persistence, or Task State JSON. Its runtime is one Skill, one ExecPlan reference,
 and UI metadata.
 
+## What's new in 0.4
+
+Version 0.4 preserves the certified HappyCodex runtime behavior and public invocation.
+It adds an auditable source-release boundary backed by content-addressed corpus and
+holdout certification, strict authority/evidence chronology, and a zero-live
+artifact/install transition.
+
 ## What's new in 0.3
 
 Version 0.3 is a clean-room replacement of the internal 0.2 workflow. It freezes a

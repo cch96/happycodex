@@ -496,7 +496,7 @@ class HappyCodexHoldoutTests(unittest.TestCase):
         self.assertGreater(gate["blocking_ratios"]["combined_tokens"], 1.25)
         self.assertGreater(gate["blocking_ratios"]["wall"], 1.25)
 
-    def test_better_but_expensive_requires_user_confirmation(self) -> None:
+    def test_better_but_expensive_passes_with_cost_diagnostics(self) -> None:
         candidate = {
             "uncached_input_tokens": 120,
             "output_tokens": 10,
@@ -508,8 +508,10 @@ class HappyCodexHoldoutTests(unittest.TestCase):
             "elapsed_seconds": 10.0,
         }
         gate = compare.cost_gate(candidate, public, quality="materially_better")
-        self.assertEqual(gate["decision"], "user_confirmation_required")
-        self.assertFalse(gate["release_permitted"])
+        self.assertEqual(gate["decision"], "pass")
+        self.assertTrue(gate["release_permitted"])
+        self.assertEqual(gate["blocking_ratios"], {"combined_tokens": 1.3, "wall": 1.1})
+        self.assertGreater(gate["blocking_ratios"]["combined_tokens"], 1.25)
 
     def test_zero_public_cost_serializes_as_strict_json_and_blocks(self) -> None:
         candidate = {

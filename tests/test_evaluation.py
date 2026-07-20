@@ -818,6 +818,11 @@ class HappyCodexEvaluationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as raw:
             repo = Path(raw) / "repo"
             facts = runner.build_fixture(self.cases["review-admin-cycle"], repo)
+            fixture_commits = self.cases["review-admin-cycle"]["fixture"]["commits"]
+            self.assertEqual(len(fixture_commits), 6)
+            self.assertNotIn("review_projection", fixture_commits[4])
+            self.assertIn("review_projection", fixture_commits[5])
+            self.assertEqual(len(facts["commits"]), 6)
             self.assertIn(
                 "public api contract",
                 (repo / "PUBLIC_CONTRACT.md").read_text().casefold(),
@@ -840,10 +845,49 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             self.assertEqual(projection["challenger_blob"], challenger["blob"])
             skeleton = git(repo, "show", f"{facts['commits'][1]}:{excluded}")
             contract = git(repo, "show", f"{facts['commits'][2]}:{excluded}")
+            prelaunch = git(repo, "show", f"{facts['commits'][4]}:{excluded}")
             self.assertIn("State: skeleton", skeleton)
             self.assertIn("boundary-challenger-9: pending", skeleton)
             self.assertIn("State: frozen", contract)
             self.assertIn("boundary-challenger-9: terminal complete", contract)
+            self.assertEqual(
+                git(
+                    repo,
+                    "diff",
+                    "--name-only",
+                    facts["commits"][3],
+                    facts["commits"][4],
+                ),
+                excluded,
+            )
+            self.assertEqual(
+                product_entries(repo, facts["commits"][3], excluded),
+                product_entries(repo, facts["commits"][4], excluded),
+            )
+            self.assertIn("State: review-prelaunch", prelaunch)
+            self.assertIn("Review status: not started", prelaunch)
+            self.assertIn(
+                "Exact review command: codex exec review --commit "
+                "refs/happycodex-eval/admin-cycle/candidate -m gpt-5.6-sol "
+                '-c model_reasoning_effort="max" --ignore-user-config '
+                "--ignore-rules --output-last-message "
+                "/tmp/happycodex-eval/admin-cycle/review-task-9.final.json "
+                "--json -",
+                prelaunch,
+            )
+            self.assertIn(
+                f"Authoritative source candidate: {facts['commits'][3]}", prelaunch
+            )
+            self.assertIn(f"tree {facts['trees'][3]}", prelaunch)
+            self.assertIn(facts["product_manifest_sha256"][3], prelaunch)
+            self.assertIn("refs/happycodex-eval/admin-cycle/baseline", prelaunch)
+            self.assertIn("refs/happycodex-eval/admin-cycle/candidate", prelaunch)
+            self.assertIn(
+                "/tmp/happycodex-eval/admin-cycle/review-task-9.final.json",
+                prelaunch,
+            )
+            self.assertIn("refs/happycodex-eval/admin-cycle/output", prelaunch)
+            self.assertIn(f"Prelaunch revision {facts['commits'][4]}", plan)
             self.assertIn(projection["baseline_commit"], plan)
             self.assertIn(projection["candidate_commit"], plan)
             self.assertIn(projection["output_sha256"], plan)
@@ -1766,9 +1810,8 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             runner.validate_case(case, Path("ambiguous.json"))
 
     def test_baseline_failure_case_requires_structured_identities(self) -> None:
-        required = self.cases["compaction-recovery"]["oracle"][
-            "required_classifications"
-        ]
+        case = self.cases["compaction-recovery"]
+        required = case["oracle"]["required_classifications"]
         self.assertIn(
             {
                 "identity": "fixture-17",
@@ -1777,6 +1820,17 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             },
             required,
         )
+        prompt = case["prompt"]
+        self.assertIn("separate finding_classifications for both identities", prompt)
+        self.assertIn("recorded identity as resolved", prompt)
+        self.assertIn("replacement identity as candidate_new", prompt)
+        self.assertIn("do not collapse them under the shared test name", prompt)
+        self.assertIn("unsupported post-freeze amendment", prompt)
+        self.assertIn("unmet production prerequisite", prompt)
+        self.assertIn("blocker_classifications", prompt)
+        self.assertIn("frozen_acceptance", prompt)
+        self.assertIn("production_condition", prompt)
+        self.assertIn("corresponding finding anchors that durable plan", prompt)
         self.assertIn(
             {
                 "identity": "fixture-18",
