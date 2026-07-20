@@ -1394,6 +1394,54 @@ excluded surface stops first. The later executable refresh remains 16 corpus plu
 adaptive four-to-six holdout calls, 20 to 22 total, historically estimated at
 585,209 to 637,027 combined tokens and 2,911.874 to 3,187.085 seconds.
 
+## Anchored-blocker repair RED/GREEN
+
+The amendment-only freeze is
+`4b8283efa96e332a459f55aeb368648565924c7d`, tree
+`973102090be68d04f2325be13a54fdd9bc23a468`. Against that exact old prompt, the
+existing focused test was extended with the six generic relationship assertions and
+failed at its first new assertion: `unsupported post-freeze amendment` was absent.
+The command ran one test in 0.002 seconds and exited 1 with one failure. No production
+input had changed, so this is the required focused RED.
+
+The sole case edit adds one generic sentence: an unsupported post-freeze amendment or
+unmet production prerequisite recorded in a durable plan requires a
+`blocker_classifications` entry in `frozen_acceptance` or `production_condition`, and
+its corresponding finding must anchor that plan. It names no fixture-specific path,
+identity, or hidden value. The same focused test then passed at 1/1 in 0.002 seconds.
+Within the case JSON, only the prompt changed; fixture and oracle canonical SHA-256
+remain `1c65b1f25d54a938902bc6e17238d647aa314fcea8b5683d5497ec5ce4261df6`
+and `2d5091a163b15a9680f689b49518532cd151c40437581fe4a73b63dfe970266c`.
+
+The source ledger remains `refresh_required` with null certification and live
+authority. Mechanical rebuild changed only its `compaction-recovery` case identity
+to `c9d3ae85f2c78742c8791f1102ad12c1e6d8ef0a3d975bad9c35b5c862e8c469`
+and engine manifest to
+`0334e7d256e4324da71fcb67bafa28c04a18f752951ddd14608c259e7c2d6757`.
+The ledger snapshot exactly equals the freshly built snapshot. Current snapshot,
+ledger, and impact-token identities are respectively
+`2321593fa1e85c5c8683516406c995448af56bcfc87deb5179ac39242ab5e1da`,
+`055b3e16296eac423b0e495110aeb738e33af9cb4ad3eb549a1eb4fed5c0f8ed`,
+and `78836258a5b61baf1da4145edf488b6e5325cba36aeffb7afadfc6c13b7da952`.
+Pending reasons remain exactly `authority_boundary_interrupted`,
+`engine_generation_changed`, and `live_corpus_oracle_failure`; gates remain complete
+corpus, holdout, and review at 20 to 22 calls.
+
+The frozen-CLI offline envelope is GREEN: 123/123 tests in 7.448 seconds; official
+Skill and plugin validators; Ruff check and 19-file format-check; production verify,
+impact, corpus dry-run, and holdout dry-run; AST parse of 19 Python files; parse of all
+21 tracked JSON documents; and diff hygiene. Candidate package semantic/artifact
+remain `c5030e99dd7cd1681148c069775671c5720bb8dd366930ff90f61cbc54cdfc05` /
+`0c83dbc694cb98bf811dd2d1c199b5d2aa734c484476a638884e775289c1d934`.
+
+Before this receipt, the exact non-ExecPlan diff from the amendment freeze contained
+only `evaluation/cases/compaction-recovery.json`,
+`evaluation/results/current.json`, and `tests/test_evaluation.py`; binary diff
+SHA-256 was `979264dc70a19697aba3bc7d599dc0105202240b71ec586f748151235c808dfc`.
+Skill, plugin/marketplace manifests, README, corpus contract/runner, holdout
+runner/comparator, and shipped package bytes are unchanged. No model, live corpus,
+holdout, review, install, Fable, push, or release action ran.
+
 ## Design saturation and frozen release sequence
 
 Fresh baseline-only challenger `/root/release_boundary_challenger_b` inspected only

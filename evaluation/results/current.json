@@ -96,7 +96,7 @@
         "authorized-rebaseline": "8923237ac1b60cdea619000d5766f3c73aa2c911921902156934c2374c593ab3",
         "boundary-cutover": "b97b0dd5dc28baf476f9414280932d6f51284e031f28825ec2df9ae5afe7c938",
         "clean-qualifying-control": "5d14c6a4d8bd2134381d7cfd07e1a3ad7dccd1687d305a913c9a8a11618af8cd",
-        "compaction-recovery": "7851ce7738528cab83380e00bf53a82fc6409d2d1da033ab58645caf3e12e8bf",
+        "compaction-recovery": "c9d3ae85f2c78742c8791f1102ad12c1e6d8ef0a3d975bad9c35b5c862e8c469",
         "goal-divergence": "6114e6754ef8f062d5beb506f1788ef8519f6b847f6e2a012389160e3cca39cd",
         "midflight-escalation": "8bde143e19848276acac5e7e3fd5b1d4e641ab01e73f40709fe6bdcb47a47170",
         "multi-repo-submodule": "44ce4fe364d71e392e2d7a810cc0033ba0950344610bb20da5cb088104cb2793",
@@ -115,7 +115,7 @@
         "harness": "3cf0bc56cfe589946746ba284d0a3e54c20f49dba35238f9077e2c9ec123aff1",
         "semantic": "8f73619db63d7d64b934a9e70c627756bda8ea39978dbb7a9d42d37f65e29477"
       },
-      "manifest_sha256": "1491caf14ec566d59e56ea0bedcd23269f8a235d9caa7abadbd3417da4528d3d",
+      "manifest_sha256": "0334e7d256e4324da71fcb67bafa28c04a18f752951ddd14608c259e7c2d6757",
       "scopes": {
         "corpus_harness": "cec27631f4a43f77911ae729dbd0269b6925a2bf51f31dabb1d30820f43216a2",
         "holdout_harness": "c365e77fb8fb356e49307819e3657d438cdda7fccb62380d78ca0eb7b9b310a4",

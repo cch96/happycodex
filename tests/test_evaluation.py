@@ -1825,6 +1825,12 @@ class HappyCodexEvaluationTests(unittest.TestCase):
         self.assertIn("recorded identity as resolved", prompt)
         self.assertIn("replacement identity as candidate_new", prompt)
         self.assertIn("do not collapse them under the shared test name", prompt)
+        self.assertIn("unsupported post-freeze amendment", prompt)
+        self.assertIn("unmet production prerequisite", prompt)
+        self.assertIn("blocker_classifications", prompt)
+        self.assertIn("frozen_acceptance", prompt)
+        self.assertIn("production_condition", prompt)
+        self.assertIn("corresponding finding anchors that durable plan", prompt)
         self.assertIn(
             {
                 "identity": "fixture-18",
