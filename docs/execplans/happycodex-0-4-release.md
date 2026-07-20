@@ -3,9 +3,9 @@
 Protocol: `HappyCodex/0.3`
 Invocation: `$happycodex:happycodex`
 Writer: Root only
-State: the exact corpus/holdout and synthetic certified ledger are GREEN; review A
-returned one environment-only blocker, and unchanged-candidate review B is frozen
-with a source-read-only, scratch-write-only, network-disabled profile but not started
+State: the exact corpus/holdout and synthetic certified ledger are GREEN; review A's
+environment-only blocker is resolved and unchanged-candidate review B is `GO`; only
+byte-identical certified-ledger application remains before release metadata work
 Resume: read this entire file, the completed 0.4 certification-engine and main-
 integration ExecPlans, then reconcile Goal, Git, tests, evidence, installations,
 remote refs, and agents before any write, review, live call, or completion claim.
@@ -1840,6 +1840,52 @@ config, brief, command, candidate/ref/clone, scratch/session roots, model, effor
 output drift invalidates launch. `Certified review B status: corrected launch frozen,
 not started`.
 
+## Certified review B GO
+
+The exact corrected command completed exit zero. Outer thread is
+`019f7e69-1f29-7c52-a44b-5b2c065f19ea`; the Native reviewer session/turn are
+`019f7e69-1f81-7ab2-bdad-f02301cb3f2b` /
+`019f7e69-1faa-71d1-a0e2-d0c09ad8d8cb`. Configured/effective model and effort are
+`gpt-5.6-sol` / `max`; delegation is none. Effective permissions show candidate
+read-only, exactly one scratch write root, restricted network, and explicit denies
+for writer source, credentials, raw live/public inputs, prior review, plugins,
+memory, and unrelated sessions. No degradation or reroute occurred.
+
+Events, last message, and empty stderr are 1,145,580 / 281 / 0 bytes with SHA-256
+values
+`59abbcd728cc46806a02a771593c44c8fe61e768e13e1d5d37d6baef2a421fef`,
+`1ceffe6db2be091a67dc83335444f6610eec53d585919141bec8b8742eabcd07`,
+and `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`.
+The 18,460-byte terminal receipt has SHA-256
+`3fe9c39c35ce8c82ff95919fd12603b3837a0f4c9fc8f8ec6173850c33e8f4a6`.
+Its 11 candidate-independent obligations have canonical SHA-256
+`33ad14e32936d04629d9a57dd55fdfb8b5b7c7186f048c6ce89172c196b9702b`.
+
+The reviewer independently reproduced both commits/trees/manifests, exact four-unit
+diff and blobs, source-before-evidence ancestry, authority/request/response/impact,
+candidate/public packages, 14/14 corpus, ordered `better/equal/better` holdout,
+privacy vocabulary, sanitizer schemas, all cost/quality ratios, and the complete
+producer/consumer chain. Its sole official verifier invocation exited zero with
+state `certified`, no pending gates, ledger `1393b723...ce042`, snapshot
+`2321593f...e1da`, engine `0334e7d2...d6757`, and persisted authority.
+
+One read-only administrative query counted both outer and inner current-run rollouts
+and exited 2 before reading either; the next same-session query selected the latest
+inner rollout and read exactly its one `session_meta` and current `turn_context`.
+This left the frozen obligations, candidate, and evidence unchanged. All other audit
+commands exited zero. No tests, test discovery, live evaluator/model call, network,
+install, activation, publication action, raw/public input read, or candidate/source
+write occurred. Post-verifier HEAD/tree/manifests and all 54 filesystem/index paths
+were exact and clean. Transient bwrap synthetic-mount entries were the only scratch
+objects and were removed after review.
+
+Every O-01..O-11 and D-01..D-04 disposition is `PASS`; accepted baseline failures,
+P0/P1/P2/P3 findings, and unresolved material blockers are all zero.
+`Over-optimization: NO`. `TERMINAL: GO`. Candidate changes invalidate this verdict;
+the only permitted next product write is byte-identical application of reviewed
+`current.json` SHA-256
+`337feae7e9dd421015f59f9ccf65abc0b267a9e34241c05ef4d9cf3d8271a86f`.
+
 ## Design saturation and frozen release sequence
 
 Fresh baseline-only challenger `/root/release_boundary_challenger_b` inspected only
@@ -1925,7 +1971,7 @@ review identity, public proof, rollback, and final GitHub delivery simultaneousl
 | --- | --- | --- | --- | --- |
 | R-01 | premise | Current remote `main`, local baseline, package, engine, snapshot, ledger, and public benchmark identities are independently reproduced before release work. | Fetch/readback plus offline identity commands; drift remains open. | verified |
 | R-02 | outcome | The exact current impact and historical-cost envelope are persisted, and no live helper runs without the canonical invocation-bound response. | Authority validation plus command audit; any early call falsifies. | verified; exact authority persisted at `649261d` before the sole GREEN live sequence |
-| R-03 | outcome | Exactly the authorized corpus and adaptive holdout scope completes and produces sanitized Git-reachable evidence that makes `current.json` validly `certified`. | CLI receipts, ledger validation, evidence ancestry, exact cost and scope reconciliation. | live corpus/holdout and synthetic certified ledger GREEN; review A environment-only NOT-YET; unchanged-candidate review B frozen |
+| R-03 | outcome | Exactly the authorized corpus and adaptive holdout scope completes and produces sanitized Git-reachable evidence that makes `current.json` validly `certified`. | CLI receipts, ledger validation, evidence ancestry, exact cost and scope reconciliation. | live corpus/holdout and synthetic certified ledger GREEN; unchanged-candidate review B `GO`; byte-identical branch application pending |
 | R-04 | preservation | Repairs change only their explicit amendments: the earlier case/fixture and holdout-policy slices, the current anchored-blocker prompt, focused tests, mechanical source ledger, and this plan. Skill, manifests, oracle/matcher/schema, runners/evaluator, unaffected cases, and shipped product remain unchanged. | Exact source diff; any wider edit stops for user decision. | verified through `f8ef025`; fresh review GO |
 | R-05 | outcome | Release edits are limited to strict-semver 0.4 version/cachebuster and accurate change-note/install metadata. | Product diff inventory and official validators. | open |
 | R-06 | outcome | Full offline suite, official validators, Ruff, CLI/JSON/diff/package hygiene, and fresh exact-product review close with `GO` and no material blocker. | Exact receipts and complete review coverage. | bounded repair GREEN/GO; later certified and release-product gates open |
@@ -1985,12 +2031,10 @@ review identity, public proof, rollback, and final GitHub delivery simultaneousl
     adaptive holdout, three sanitized evidence files, and synthetic certified ledger
     are committed or durably retained with every frozen identity. No test discovery,
     retry, or additional live invocation ran.
-15. Open: exact live commands and sanitized evidence are GREEN, and the synthetic
-    certified ledger verifies. Review A returned exactly one environment-only P1 and
-    made no product finding. Review B keeps the candidate byte-identical and changes
-    only the external permission profile to source-read-only plus one verifier
-    scratch. Commit this prelaunch, run only the exact frozen Native review B, require
-    `GO`, then apply and commit byte-identical ledger bytes on the release branch.
+15. Review portion closed: review A returned exactly one environment-only P1 and no
+    product finding; review B kept the candidate byte-identical, completed official
+    verify, and returned `GO` with zero material blocker. Apply and commit only the
+    exact reviewed ledger bytes on the release branch, then independently re-verify.
 
 ## Checkpoint
 
@@ -2005,8 +2049,8 @@ review identity, public proof, rollback, and final GitHub delivery simultaneousl
   `/tmp/happycodex-anchored-blocker-public-0.2.Up71TN` is the frozen holdout input;
   current raw output is retained externally at
   `/tmp/happycodex-0.4-live.jKHXDa`; no evaluator child remains.
-- Missing fact: the fresh review B exact-product verdict for unchanged neutral
-  certified candidate `e4c0e6a...b599`. A `GO` permits only byte-identical ledger application before the
+- Missing fact: branch application and independent verification of the reviewed
+  `337feae7...a86f` certified ledger bytes. That exact application permits the
   metadata-only 0.4 transition, isolated installs, active upgrade,
   PR/merge/tag/release, and readback.
 
