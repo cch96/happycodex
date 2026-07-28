@@ -159,9 +159,9 @@ class HappyCodexContractTests(unittest.TestCase):
         ):
             self.assertIn(phrase, policy)
 
-    def test_manifest_uses_041_development_identity(self) -> None:
+    def test_manifest_uses_final_041_identity(self) -> None:
         manifest = json.loads(read(MANIFEST))
-        self.assertEqual(manifest["version"], "0.4.1+codex.dev")
+        self.assertEqual(manifest["version"], "0.4.1+codex.20260728205019")
 
     def test_runtime_defines_convergence_lifecycle_and_resource_ownership(self) -> None:
         runtime = folded(SKILL) + " " + folded(EXECPLAN)

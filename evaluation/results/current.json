@@ -130,7 +130,7 @@
       }
     },
     "package": {
-      "artifact_sha256": "67072b57cfce4f9272965057fd51b3ef12ae94efe62d942c999f81b55c3d9fa6",
+      "artifact_sha256": "e8424dbdc56e576d9e31aaca4d548b8e792497ed298c56762a606ac3ccd0ac89",
       "semantic_sha256": "65f293e8f432ad7643bdf40ba7fb96edef73f2e7f5c10aa062ef22aa122f4c6a"
     },
     "schema_version": 1,
