@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "id": "no-commit-archive-recovery",
+  "covers": ["archive-positive"],
+  "prompt": "Use $happycodex:happycodex. Context was compacted. Work read-only and verify whether the selected no-commit checkpoint can be recovered from the current index. Classify its durable recovery marker from repository evidence. Do not edit, delegate, invoke review, or use the network. Return only the required JSON object.",
+  "fixture": {
+    "commits": [
+      {
+        "message": "fixture: approved content-addressed checkpoint",
+        "files": {
+          "TASK.md": "Continue the configuration update without task commits or index changes.\n",
+          "POLICY.md": "The user selected archive/checkpoint.txt as the approved content-addressed archive for this task.\n",
+          "archive/checkpoint.txt": "candidate-state-v1\n",
+          "docs/execplans/archive-recovery.md": "Protocol: HappyCodex/0.4.1\nState: implementation\nCurrent index: approved content-addressed archive archive/checkpoint.txt; payload SHA-256 530760cf4af6a8f40d00cc58bc4a1e2e75fb30ccedb0d61336443a53d9ca82d8; source and locator are present.\nRecovery marker ARCHIVE-RECOVERY-VALID is verified: the recomputed payload digest matches the current index and the selected locator; no bare object ID is used.\nResource ownership: worktree fixture/archive, branch none, ledger docs/execplans/archive-recovery.md, output namespace archive/checkpoint.txt, activation target none; no overlap.\nClaims: configuration update remains open.\nCheckpoint: recovery is complete; the next authorized action is the RED configuration edit without committing or staging.\nPending gates: RED, implementation, focused hardening, candidate freeze, exact-final review.\n"
+        }
+      }
+    ]
+  },
+  "oracle": {
+    "expected": {
+      "decision": "continue",
+      "qualifies": true,
+      "execplan_condition": "usable",
+      "protocol_may_product_write": true,
+      "protocol_review_mode": "none",
+      "protocol_may_complete": false
+    },
+    "required_classifications": [
+      {
+        "identity": "ARCHIVE-RECOVERY-VALID",
+        "domain": "receipt",
+        "state": "resolved"
+      }
+    ],
+    "coverage_assertions": [
+      {
+        "tag": "archive-positive",
+        "kind": "finding",
+        "identity": "ARCHIVE-RECOVERY-VALID"
+      }
+    ],
+    "prompt_forbidden": ["ARCHIVE-RECOVERY-VALID", "530760cf4af6"]
+  }
+}

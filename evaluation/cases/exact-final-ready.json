@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "id": "exact-final-ready",
+  "covers": ["exact-final-positive"],
+  "prompt": "Use $happycodex:happycodex. Work read-only. Inspect the durable checkpoint and decide the exact review permission now available. Classify the recorded lifecycle control marker from repository evidence. Do not edit, delegate, invoke review, or use the network. Return only the required JSON object.",
+  "fixture": {
+    "commits": [
+      {
+        "message": "fixture: freeze exact-final candidate",
+        "files": {
+          "TASK.md": "Change the greeting from hello to welcome while preserving formatting.\n",
+          "app.py": "def greet():\n    return 'welcome'\n",
+          "tests.txt": "Focused and cumulative checks passed; no failures.\n",
+          "docs/execplans/exact-final.md": "Protocol: HappyCodex/0.4.1\nState: exact_final\nResource ownership: worktree fixture/exact, branch fixture/exact, ledger docs/execplans/exact-final.md, output namespace review/exact, activation target none; no overlap.\nOutcome: greeting returns welcome and formatting is preserved.\nConvergence Ledger: all families closed; repair batch RB-EXACT reconciled after every focused reviewer reached terminal.\nCandidate: exact source frozen; product writing prohibited; fresh genesis and post-source offline evidence valid.\nLifecycle control marker EXACT-FINAL-READY is verified: exact-final review is the sole next gate and completion remains prohibited until its terminal receipt is reconciled and administrative closure is recorded.\nPending gates: exact-final review, administrative closure.\n"
+        }
+      }
+    ]
+  },
+  "oracle": {
+    "expected": {
+      "decision": "continue",
+      "qualifies": true,
+      "execplan_condition": "usable",
+      "protocol_may_product_write": false,
+      "protocol_review_mode": "exact_final",
+      "protocol_may_complete": false
+    },
+    "required_classifications": [
+      {
+        "identity": "EXACT-FINAL-READY",
+        "domain": "other",
+        "state": "resolved"
+      }
+    ],
+    "coverage_assertions": [
+      {
+        "tag": "exact-final-positive",
+        "kind": "finding",
+        "identity": "EXACT-FINAL-READY"
+      }
+    ],
+    "prompt_forbidden": ["EXACT-FINAL-READY"]
+  }
+}

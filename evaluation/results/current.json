@@ -1,11 +1,11 @@
 {
   "certification": null,
   "historical_cost": {
-    "basis": "HappyCodex 0.3 v21 candidate corpus and v23 adaptive holdout receipts",
+    "basis": "HappyCodex 0.3 v21 candidate corpus and v23 adaptive holdout receipts; new 0.4.1 single-call controls conservatively use the prior maximum single-call token and wall envelopes",
     "corpus": {
-      "combined_tokens": 498708,
-      "live_calls": 16,
-      "wall_seconds": 2429.409
+      "combined_tokens": 587936,
+      "live_calls": 18,
+      "wall_seconds": 2992.845
     },
     "holdout": {
       "combined_tokens": {
@@ -37,16 +37,16 @@
     },
     "total": {
       "combined_tokens": {
-        "maximum": 637027,
-        "minimum": 585209
+        "maximum": 726255,
+        "minimum": 674437
       },
       "live_calls": {
-        "maximum": 22,
-        "minimum": 20
+        "maximum": 24,
+        "minimum": 22
       },
       "wall_seconds": {
-        "maximum": 3187.085,
-        "minimum": 2911.874
+        "maximum": 3750.521,
+        "minimum": 3475.31
       }
     }
   },
@@ -57,9 +57,11 @@
       "boundary-cutover",
       "clean-qualifying-control",
       "compaction-recovery",
+      "exact-final-ready",
       "goal-divergence",
       "midflight-escalation",
       "multi-repo-submodule",
+      "no-commit-archive-recovery",
       "no-commit-secret",
       "pre-freeze-compaction",
       "receipt-mismatch",
@@ -87,45 +89,47 @@
   "snapshot": {
     "corpus": {
       "cases": {
-        "authorized-rebaseline": "48117a76db461800b42592c14b0761ff8f7fd35269ca1dd982341e8611e95ec9",
-        "boundary-cutover": "5b10dd460a243c5d4643810bded2eb6abd11c3de99685cd8c95302353f5d6a29",
-        "clean-qualifying-control": "c403017d711617c48dd4517d23aa94844bd0936d96199b3b9df454e81bc22725",
-        "compaction-recovery": "76a995dc37f67395b43c49a043e4efa7b6c53f62a12310d63b5011e6940bcd0e",
-        "goal-divergence": "fe6206bae3b7e5679abf9bc43242be4bdb7b1683b3f3d0f46e5e6670bd6e3912",
-        "midflight-escalation": "773d54bc7a74300c4ca7b40b5a26ee91e6894bde15f945560122940b2321d823",
-        "multi-repo-submodule": "d8348832f58356c9c9aac4615e3e02d7ce8f7afc17c10dcd9fc3c8a68a08ae39",
-        "no-commit-secret": "64fc4123695521e579997b1246845bc750283c509c3b33ce19099fda947c0782",
-        "pre-freeze-compaction": "a439939d978f5c8d20422ce66420ec475035b4bcde09be2c83e721912daa0fb7",
-        "receipt-mismatch": "c9de4d29311b1f093132cb0c4dd20c3a960ea4665433696c39e28bdbe639257d",
-        "review-admin-cycle": "1c77a284088df3a8d20d5d40241df6909a2fc234100cb106b76c435064bb7471",
-        "review-inventory-gate": "d437841e8689cb486bf750bb5e36a39b840f359d12976936687cd578e2c52632",
-        "review-isolation": "d55dd2bed204a83cc6ac2f63a83d53a2caa8bc02de418bc5ea0878919b564d1b",
-        "subthreshold-control": "34f84d50686b57bc7d437d2ae912b35ff87a7d15ed1e125b1a566935ad9bcadd"
+        "authorized-rebaseline": "ed45334295661a705005d2874b5ef1c61e303dc42fef7ab99c59f3ed1c94c32a",
+        "boundary-cutover": "16f3f3e7d75e670e1e2c1e3f526dab96d0a6a0da4f9db828e6b1e48c5e075f23",
+        "clean-qualifying-control": "1be3dbeab4a6c7d0b734a9216ef57bedab5cc6ff67bc0d030780f9d92d04a3f6",
+        "compaction-recovery": "0e4596671e22a309d9c507d53124652b0a1e22b8942876f1d3dbd7516db6ad3b",
+        "exact-final-ready": "f3d546096db7aa6760ad673dd0807fc4430ecc96b60e90c84b17e0a11a5dd0e0",
+        "goal-divergence": "575116ea49d6011c167a768c14aaac26a1c96a74191844e160373c29dd66a8d7",
+        "midflight-escalation": "05dc961b1c908461d98de71bb66bf666bf66d2ec135e8089c7e0cbecdfdf941e",
+        "multi-repo-submodule": "f8e932e00e1e7cf77cadc69fd48d0a774b0f0967316632056a21d00561963ba5",
+        "no-commit-archive-recovery": "2d7dc31c6703c39962d622fe4fc744f2b18052a8ef4ad608aa3bd470bcae2c2b",
+        "no-commit-secret": "ae38e3892a057d1c093c36a793db0a65d8930f102150e6690e284f90ddcc6c9b",
+        "pre-freeze-compaction": "3aaef4878c5bd5a2e2f233ff8003914b0b487e127e966fe266eec57cb99725d8",
+        "receipt-mismatch": "f06324fc152452833eaaafdddfa69371cc1a86c6664c4f980f6ba82ee492c875",
+        "review-admin-cycle": "b72774845b9a5cfb13f74cf7bfd5b2b5b5157412dbdb8fa42c79e3e4a4b7436c",
+        "review-inventory-gate": "ba3102c1030e3285792179896258b2655386277bdc43b0e14b62dd6d53688a17",
+        "review-isolation": "c7a2b733202e2cccb119ad796c0880f65299c848dfb88ac0b5feed8cd8822cc0",
+        "subthreshold-control": "de94f0f58f9caec3ef2f845bce4c61c66294fb084806439d0b294c2a0158da26"
       }
     },
     "engine": {
       "categories": {
         "artifact": "8542b02d73e07d4f7ccfa58775969c22097eca157e151365632d71e92e6a07ea",
-        "harness": "940d27b98dceab4fcdf48daf9b391c1a01633fb1497cdd482bda2c8c856f83be",
-        "semantic": "d78a0bfa3deb917b1c5bead9f950d73de3d3b7735b916ce1cf1416b19336ad3a"
+        "harness": "458a0addb7f22d0dc2669f656ca3cf5b3ce96d28c9e5b700af78e36c6f1ba1ff",
+        "semantic": "c89f40db9c94b264d944b88ac5472ebeda6ad67070e8ca7c450f7f48550b4867"
       },
-      "manifest_sha256": "d69b5c8e51cc9fa4c230c5ffd2f446446a7f8363f3b42fa4bf488db1810d4544",
+      "manifest_sha256": "bdf90f8c94b0bf2f3a81c4516d393eeba4b3b84811a7417192e992da5b56ee44",
       "scopes": {
-        "corpus_harness": "f6f6c9bae9175546b1d7b5f7cef026876c807c9b08ba86ccc62d5721e954fa1a",
+        "corpus_harness": "8e622a5db8bc8f16d12a46c2dad82b79fbc873479bbbdd38822d655871791ca9",
         "holdout_harness": "c365e77fb8fb356e49307819e3657d438cdda7fccb62380d78ca0eb7b9b310a4",
         "holdout_semantic": "425a7ddf3e3d46943bf7ee57131a0502fdf0ba43e237249e5b5a53f1879d5c54"
       }
     },
     "holdout": {
       "pairs": {
-        "authority-production-boundary": "dc1f723021728bf338068d53feb1f2d1c9d879fc1b123e200548df606c0bd746",
-        "destructive-migration-fallback": "8b6b01a2ce2957e3944098f00c9b40e1bbed4a27b610d5e65c2549f8bc096947",
-        "local-documentation-control": "e1a7977cfdd0a90e06d7613cc05d56c4a0b6981fc8e0190b9e8c691d8684ef97"
+        "authority-production-boundary": "2117ec788c4a9b67dae0b5059658797e32d2080fc7e6b9640992b0734cdf0a53",
+        "destructive-migration-fallback": "56a49d5a325b9109219a4d6de0b8452819f88c69060935c2e092507298baadd7",
+        "local-documentation-control": "170047295cdbfc20554d9adb1d4d0db95072bd122bd6ed8a6a891468212dfc19"
       }
     },
     "package": {
-      "artifact_sha256": "b9eaa52331d259cdd22aa5270e84e640c6fda023caa389f7ebb49e621e643e24",
-      "semantic_sha256": "99d7e451ddff22f297a1a3d8504fc72c893dcc056746c7cd406e9710c205aaf4"
+      "artifact_sha256": "67072b57cfce4f9272965057fd51b3ef12ae94efe62d942c999f81b55c3d9fa6",
+      "semantic_sha256": "65f293e8f432ad7643bdf40ba7fb96edef73f2e7f5c10aa062ef22aa122f4c6a"
     },
     "schema_version": 1,
     "settings": {

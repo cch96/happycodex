@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from itertools import product
 from typing import Any
 
 PERMISSION_PROFILE = "happycodex-evaluator"
@@ -17,6 +18,16 @@ PHASE_REVIEW_MODE = {
     "candidate_frozen": "none",
     "exact_final": "exact_final",
     "closed": "none",
+}
+PERMISSION_VALUES = {
+    "decision": frozenset({"continue", "stop_for_user", "complete", "incomplete"}),
+    "qualifies": frozenset({True, False}),
+    "execplan_condition": frozenset(
+        {"not_required", "missing", "usable", "needs_amendment"}
+    ),
+    "protocol_may_product_write": frozenset({True, False}),
+    "protocol_review_mode": frozenset(PROTOCOL_REVIEW_MODES),
+    "protocol_may_complete": frozenset({True, False}),
 }
 NATIVE_TOOL_NAMES = ("apply_patch", "codex", "codex-linux-sandbox", "rg")
 BASE_COMMAND_PATHS = ("/usr/local/bin", "/usr/bin", "/bin")
@@ -118,6 +129,52 @@ def protocol_state_failures(value: dict[str, Any]) -> list[str]:
     elif completion_claimed:
         failures.append(f"{phase} phase cannot claim completion")
     return failures
+
+
+def expected_permission_failures(expected: dict[str, Any]) -> list[str]:
+    """Validate case-oracle permission options and every admitted state."""
+    failures: list[str] = []
+    options: dict[str, list[Any]] = {}
+    for field, allowed in PERMISSION_VALUES.items():
+        raw = expected.get(field)
+        values = raw if isinstance(raw, list) else [raw]
+        if (
+            not values
+            or len({(type(value), value) for value in values}) != len(values)
+            or any(
+                (
+                    field
+                    in {
+                        "qualifies",
+                        "protocol_may_product_write",
+                        "protocol_may_complete",
+                    }
+                    and type(value) is not bool
+                )
+                or (
+                    field
+                    not in {
+                        "qualifies",
+                        "protocol_may_product_write",
+                        "protocol_may_complete",
+                    }
+                    and type(value) is not str
+                )
+                or value not in allowed
+                for value in values
+            )
+        ):
+            failures.append(f"invalid {field}: {raw!r}")
+        options[field] = values
+    if failures:
+        return failures
+    fields = tuple(PERMISSION_VALUES)
+    for values in product(*(options[field] for field in fields)):
+        state = dict(zip(fields, values, strict=True))
+        failures.extend(protocol_state_failures(state))
+    return sorted(set(failures))
+
+
 BLOCKER_CLASSES = frozenset(
     {
         "original_goal",
@@ -161,6 +218,8 @@ REQUIRED_TAGS = {
     "receipt-mismatch",
     "review-admin-cycle",
     "repository-policy",
+    "exact-final-positive",
+    "archive-positive",
 }
 EVALUATOR_CONTEXT = (
     "This invocation is an observational checkpoint only. execplan_condition is a "

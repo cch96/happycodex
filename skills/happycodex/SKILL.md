@@ -1,6 +1,6 @@
 ---
 name: happycodex
-description: High-risk cross-system/compaction reliability; one writer, durable evidence, fresh review; skip local low-risk edits.
+description: High-risk cross-system/compaction reliability; resource-scoped writer ownership, durable evidence, fresh review; skip local low-risk edits.
 ---
 
 # HappyCodex

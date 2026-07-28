@@ -274,11 +274,11 @@ class CertificationImpactTests(unittest.TestCase):
     def test_snapshot_has_exact_corpus_holdout_and_package_inventory(self) -> None:
         snapshot = self.snapshot
         self.assertEqual(snapshot["schema_version"], 1)
-        self.assertEqual(len(snapshot["corpus"]["cases"]), 14)
+        self.assertEqual(len(snapshot["corpus"]["cases"]), 16)
         self.assertEqual(len(snapshot["holdout"]["pairs"]), 3)
         self.assertEqual(
             snapshot["package"]["artifact_sha256"],
-            "b9eaa52331d259cdd22aa5270e84e640c6fda023caa389f7ebb49e621e643e24",
+            "67072b57cfce4f9272965057fd51b3ef12ae94efe62d942c999f81b55c3d9fa6",
         )
         self.assertEqual(
             set(snapshot["settings"]["toolchain"]), {"python", "codex", "git", "rg"}
@@ -354,10 +354,10 @@ class CertificationImpactTests(unittest.TestCase):
                 if category == "harness":
                     changed["engine"]["scopes"]["corpus_harness"] = "d" * 64
                 impact = plan_impact(self.snapshot, changed)
-                self.assertEqual(len(impact["corpus_cases"]), 14)
+                self.assertEqual(len(impact["corpus_cases"]), 16)
                 self.assertEqual(len(impact["holdout_pairs"]), 3)
                 self.assertEqual(impact["gates"], ["corpus", "holdout"])
-                self.assertEqual(impact["live_calls"], {"minimum": 20, "maximum": 22})
+                self.assertEqual(impact["live_calls"], {"minimum": 22, "maximum": 24})
 
     def test_holdout_only_harness_change_does_not_rerun_corpus(self) -> None:
         changed = copy.deepcopy(self.snapshot)
@@ -408,9 +408,9 @@ class CertificationImpactTests(unittest.TestCase):
 
     def test_real_control_mutations_fail_closed_but_sanitizer_is_artifact(self) -> None:
         for relative, expected_calls in (
-            ("evaluation/cli.py", {"minimum": 20, "maximum": 22}),
-            ("evaluation/core/impact.py", {"minimum": 20, "maximum": 22}),
-            ("evaluation/core/ledger.py", {"minimum": 20, "maximum": 22}),
+            ("evaluation/cli.py", {"minimum": 22, "maximum": 24}),
+            ("evaluation/core/impact.py", {"minimum": 22, "maximum": 24}),
+            ("evaluation/core/ledger.py", {"minimum": 22, "maximum": 24}),
             ("evaluation/core/receipt.py", {"minimum": 0, "maximum": 0}),
         ):
             with self.subTest(relative=relative), tempfile.TemporaryDirectory() as raw:
@@ -494,11 +494,11 @@ class CertificationImpactTests(unittest.TestCase):
     def test_refresh_ledger_forces_full_exact_pending_scope_and_cost(self) -> None:
         ledger, current, impact = full_live_test_state()
         self.assertEqual(current, self.snapshot)
-        self.assertEqual(len(impact["corpus_cases"]), 14)
+        self.assertEqual(len(impact["corpus_cases"]), 16)
         self.assertEqual(len(impact["holdout_pairs"]), 3)
-        self.assertEqual(impact["live_calls"], {"minimum": 20, "maximum": 22})
-        self.assertEqual(impact["cost"]["combined_tokens"]["maximum"], 637027)
-        self.assertEqual(impact["cost"]["wall_seconds"]["maximum"], 3187.085)
+        self.assertEqual(impact["live_calls"], {"minimum": 22, "maximum": 24})
+        self.assertEqual(impact["cost"]["combined_tokens"]["maximum"], 726255)
+        self.assertEqual(impact["cost"]["wall_seconds"]["maximum"], 3750.521)
         self.assertEqual(
             impact["cost"]["provenance"]["holdout_summary_sha256"],
             "f301f23d0d841deaef538cf07d9fba36705ebb175a3a1e4f099bb68cfc91ea3d",

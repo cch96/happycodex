@@ -622,6 +622,9 @@ class HappyCodexContractTests(unittest.TestCase):
             "one Root writer",
             manifest["interface"]["longDescription"],
         )
+        skill_frontmatter = read(SKILL).split("---", 2)[1].casefold()
+        self.assertIn("resource-scoped writer", skill_frontmatter)
+        self.assertNotIn("one writer", skill_frontmatter)
         self.assertIn(
             "declining keeps native plan active", " ".join(public.casefold().split())
         )

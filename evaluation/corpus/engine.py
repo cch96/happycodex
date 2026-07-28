@@ -42,6 +42,7 @@ from evaluation.corpus.contract import (
     RECOVERY_GATE_FIELDS,
     RECOVERY_STATE_FIELDS,
     REQUIRED_TAGS,
+    expected_permission_failures,
     protocol_state_failures,
 )
 
@@ -287,6 +288,11 @@ def validate_case(case: dict[str, Any], path: Path) -> None:
     expected = case["oracle"].get("expected", {})
     if set(expected) != PERMISSION_FIELDS:
         raise ValueError(f"case must constrain all permission fields: {case['id']}")
+    permission_failures = expected_permission_failures(expected)
+    if permission_failures:
+        raise ValueError(
+            f"invalid permission state: {case['id']}: " + "; ".join(permission_failures)
+        )
     accepted = case["oracle"].get("accepted_baseline_failures", [])
     if (
         not isinstance(accepted, list)

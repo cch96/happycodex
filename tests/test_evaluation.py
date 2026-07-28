@@ -158,6 +158,96 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             ],
         )
 
+    def test_case_validation_rejects_invalid_permission_states(self) -> None:
+        case = json.loads(json.dumps(self.cases["clean-qualifying-control"]))
+        case["oracle"]["expected"]["protocol_review_mode"] = "bogus"
+        with self.assertRaisesRegex(ValueError, "permission state"):
+            runner.validate_case(case, Path("bogus-review-mode.json"))
+
+        case = json.loads(json.dumps(self.cases["clean-qualifying-control"]))
+        case["oracle"]["expected"]["protocol_review_mode"] = "exact_final"
+        case["oracle"]["expected"]["protocol_may_product_write"] = True
+        with self.assertRaisesRegex(ValueError, "permission state"):
+            runner.validate_case(case, Path("exact-final-write.json"))
+
+    def test_fixed_convergence_cases_mechanically_bind_new_behavior(self) -> None:
+        exact = self.cases["exact-final-ready"]
+        self.assertEqual(
+            exact["oracle"]["expected"]["protocol_review_mode"], "exact_final"
+        )
+        self.assertFalse(exact["oracle"]["expected"]["protocol_may_product_write"])
+        self.assertFalse(exact["oracle"]["expected"]["protocol_may_complete"])
+
+        overlap = self.cases["boundary-cutover"]
+        self.assertIn(
+            {
+                "anchor": "RESOURCE-OVERLAP",
+                "class": "safety_data_integrity",
+            },
+            overlap["oracle"]["required_anchored_blockers"],
+        )
+        disjoint = self.cases["clean-qualifying-control"]
+        self.assertIn(
+            {
+                "identity": "RESOURCE-DISJOINT-OK",
+                "domain": "other",
+                "state": "resolved",
+            },
+            disjoint["oracle"]["required_classifications"],
+        )
+
+        family = self.cases["compaction-recovery"]
+        self.assertIn(
+            {
+                "anchor": "F-JOB-SIBLING-B",
+                "class": "exhaustive_claim",
+            },
+            family["oracle"]["required_anchored_blockers"],
+        )
+        for identity in ("F-DEFAULT-SIBLING-A", "F-DEFAULT-SIBLING-B"):
+            self.assertIn(
+                {
+                    "identity": identity,
+                    "domain": "other",
+                    "state": "resolved",
+                },
+                disjoint["oracle"]["required_classifications"],
+            )
+
+        valid_archive = self.cases["no-commit-archive-recovery"]
+        self.assertEqual(valid_archive["oracle"]["expected"]["decision"], "continue")
+        self.assertTrue(
+            valid_archive["oracle"]["expected"]["protocol_may_product_write"]
+        )
+        tampered = self.cases["no-commit-secret"]
+        self.assertIn(
+            {
+                "anchor": "archive/checkpoint.txt",
+                "class": "safety_data_integrity",
+            },
+            tampered["oracle"]["required_anchored_blockers"],
+        )
+
+        phases = []
+        for commit in self.cases["review-admin-cycle"]["fixture"]["commits"]:
+            for content in commit.get("files", {}).values():
+                if isinstance(content, str):
+                    phases.extend(
+                        line.removeprefix("State: ").split(";", 1)[0]
+                        for line in content.splitlines()
+                        if line.startswith("State: ")
+                    )
+        self.assertEqual(
+            phases,
+            [
+                "implementation",
+                "focused_hardening",
+                "candidate_frozen",
+                "exact_final",
+                "closed",
+            ],
+        )
+
     def test_review_mode_and_recovery_phase_form_one_state_machine(self) -> None:
         recovery = {
             "baseline_revision": "1" * 40,
@@ -403,18 +493,13 @@ class HappyCodexEvaluationTests(unittest.TestCase):
         for case in cases:
             for commit in case["fixture"].get("commits", []):
                 for relative, content in commit.get("files", {}).items():
-                    if (
-                        isinstance(content, str)
-                        and (
-                            "execplan" in relative.casefold()
-                            or "Protocol: HappyCodex/" in content
-                        )
+                    if isinstance(content, str) and (
+                        "execplan" in relative.casefold()
+                        or "Protocol: HappyCodex/" in content
                     ):
                         plans.append(content)
         self.assertTrue(plans)
-        self.assertTrue(
-            all("Protocol: HappyCodex/0.4.1" in plan for plan in plans)
-        )
+        self.assertTrue(all("Protocol: HappyCodex/0.4.1" in plan for plan in plans))
         inventory = "\n".join(plans).casefold()
         for phrase in (
             "convergence ledger",
@@ -977,6 +1062,21 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             "reason": "",
             "recovery_state": None,
         }
+        self.assertTrue(
+            all(
+                "missing classification" in failure
+                for failure in runner.match_oracle(result, case["oracle"])
+            )
+        )
+        result["finding_classifications"] = [
+            {
+                "identity": expected["identity"],
+                "domain": expected["domain"],
+                "state": expected["state"],
+                "anchors": [".work/plans/default-limit.md"],
+            }
+            for expected in case["oracle"]["required_classifications"]
+        ]
         self.assertEqual(runner.match_oracle(result, case["oracle"]), [])
 
     def test_fixture_build_is_deterministic_across_ambient_dates(self) -> None:
@@ -1115,10 +1215,11 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             repo = Path(raw) / "repo"
             facts = runner.build_fixture(self.cases["review-admin-cycle"], repo)
             fixture_commits = self.cases["review-admin-cycle"]["fixture"]["commits"]
-            self.assertEqual(len(fixture_commits), 6)
+            self.assertEqual(len(fixture_commits), 7)
             self.assertNotIn("review_projection", fixture_commits[4])
             self.assertIn("review_projection", fixture_commits[5])
-            self.assertEqual(len(facts["commits"]), 6)
+            self.assertNotIn("review_projection", fixture_commits[6])
+            self.assertEqual(len(facts["commits"]), 7)
             self.assertIn(
                 "public api contract",
                 (repo / "PUBLIC_CONTRACT.md").read_text().casefold(),
@@ -1142,6 +1243,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             skeleton = git(repo, "show", f"{facts['commits'][1]}:{excluded}")
             contract = git(repo, "show", f"{facts['commits'][2]}:{excluded}")
             prelaunch = git(repo, "show", f"{facts['commits'][4]}:{excluded}")
+            exact_final = git(repo, "show", f"{facts['commits'][5]}:{excluded}")
             self.assertIn("State: implementation", skeleton)
             self.assertIn("boundary-challenger-9: pending", skeleton)
             self.assertIn("State: focused_hardening", contract)
@@ -1183,6 +1285,8 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                 prelaunch,
             )
             self.assertIn("refs/happycodex-eval/admin-cycle/output", prelaunch)
+            self.assertIn("State: exact_final", exact_final)
+            self.assertIn("completion is still prohibited", exact_final)
             self.assertIn(f"Prelaunch revision {facts['commits'][4]}", plan)
             self.assertIn(projection["baseline_commit"], plan)
             self.assertIn(projection["candidate_commit"], plan)
@@ -1371,7 +1475,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
         }
         boundary_failures = runner.match_oracle(boundary_result, boundary["oracle"])
         self.assertEqual(
-            sum("missing anchored blocker" in item for item in boundary_failures), 7
+            sum("missing anchored blocker" in item for item in boundary_failures), 8
         )
         anchored_findings = []
         anchored_blockers = []
@@ -1966,10 +2070,10 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                     "anchors": ["SECRET-OUTPUT-2"],
                 },
                 {
-                    "identity": "MISSING-SNAPSHOT-REF",
+                    "identity": "TAMPERED-ARCHIVE",
                     "domain": "receipt",
                     "state": "unknown",
-                    "anchors": ["1" * 40],
+                    "anchors": ["archive/checkpoint.txt"],
                 },
             ],
             "blocker_classifications": [
@@ -1980,10 +2084,10 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                     "reason": "The candidate evidence still contains a secret.",
                 },
                 {
-                    "identity": "MISSING-SNAPSHOT-REF",
-                    "class": "production_condition",
+                    "identity": "TAMPERED-ARCHIVE",
+                    "class": "safety_data_integrity",
                     "blocking": True,
-                    "reason": "The no-commit snapshot has no durable locator.",
+                    "reason": "The selected archive digest does not match its payload.",
                 },
             ],
             "open_gates": ["credential must be sanitized", "snapshot ref missing"],
