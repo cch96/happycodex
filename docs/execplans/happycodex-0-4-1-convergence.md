@@ -208,14 +208,52 @@ all consumers. No live call or exact-final review runs in this batch.
 - Finalization: plugin-creator cachebuster helper set `0.4.1+codex.20260728205019`; that version remains unless `RB-005` changes package bytes, in which case final cachebusting and all exact evidence repeat after focused confirmation.
 - Exact-source isolated install: external root `/home/caichenghang/.codex/happycodex-release-installs/happycodex-041-source-b3ed5b3-bvLRjM` contains a fresh isolated Codex home installed only from `b3ed5b3…0522`. Source and installed cache both have package semantic SHA-256 `65f293e8…f4c6a`, artifact SHA-256 `e8424dbd…ac89`, and Skill SHA-256 `fd33e911…8d6c`; the canonical plugin receipt is `f3772302…2730`. The first marketplace attempt safely stopped before installation because the isolated `PATH` lacked `codex`; adding the evaluator's native binary directory made the same clean destination succeed without touching the active install.
 - Post-source evidence: content-addressed `evaluation/results/evidence/offline-summary-18c452ac5a95c4d6a60d66ccf7ff4769ec54b1722843dd375836e0cd912bcdd0.json` has the same file SHA-256, validates for `isolated_install`, binds the exact source, genesis ledger `b1a55610…8d97`, snapshot `b6a29d4c…1c96`, engine `7358b775…b5f0`, package identities, Skill bytes, and plugin receipt, and is reachable strictly after source at evidence commit `62972cf7c2b24ba92e7483b3f0330a36e70b8d3b`. It is not substituted for pending corpus, holdout, or exact-final evidence.
-- Owned dirty paths: this current-index administrative update only; exact product candidate `b3ed5b3…0522` and evidence commit `62972cf…8d3b` are preserved.
+- Owned mutable path: this current-index plan only; exact product candidate `b3ed5b3…0522` and evidence commit `62972cf…8d3b` are preserved.
 - Goal: none.
 - Agents/reviewers: all focused reviewers are terminal and reconciled; no reviewer is active.
-- Pending gates: persist an exact live-cost approval request, obtain its canonical
-  gate-scoped user authority, create the authority-bearing source checkpoint and repeat
-  any source-bound evidence, execute the bounded live behavior comparison, then run
-  three fresh exact-final reviews. Public release, personal upgrade, rollback, and
-  downstream successor task creation remain later gates.
+- Pending gates: obtain the persisted request's canonical gate-scoped user authority,
+  create the authority-bearing source checkpoint and repeat any source-bound evidence,
+  execute the bounded live behavior comparison, then run three fresh exact-final
+  reviews. Public release, personal upgrade, rollback, and downstream successor task
+  creation remain later gates.
+
+## Exact live-cost request
+
+Pinned Codex `0.144.4` and its bundled `rg` 15.1 recomputed the frozen genesis without
+writing source or evidence. Snapshot SHA-256 is `b6a29d4c8944c7aa35aa1665ae8ef5a0a57efad3aad7c75ce82b2232e5ee1c96`;
+impact token is `3a3ed677d388fdfc5f547147c0f1787aa1943e328efaac03800a16edb6613a6f`;
+the canonical request SHA-256 is
+`67704584d312e4df04f4d8ce1d03064511cf551967a5f4d0e74160ca10b3ca67`;
+and the canonical-response SHA-256 is
+`5ddce9bbc895e06613c5eaed0279e58fefb790e8d8f0ebe385b3de62fe0bd8c5`.
+The future authority source is
+`current-task/user/happycodex-0.4.1-live-cost`. No authority is yet persisted.
+
+The request binds candidate semantic/artifact identities `65f293e8…f4c6a` /
+`e8424dbd…ac89`, model `gpt-5.6-sol`, effort `high`, timeout 300 seconds, candidate
+arm, and all 17 ordered corpus cases:
+`authorized-rebaseline`, `boundary-cutover`, `clean-qualifying-control`,
+`compaction-recovery`, `exact-final-ready`, `goal-divergence`,
+`midflight-escalation`, `multi-repo-submodule`, `no-commit-archive-recovery`,
+`no-commit-secret`, `no-commit-unselected`, `pre-freeze-compaction`,
+`receipt-mismatch`, `review-admin-cycle`, `review-inventory-gate`,
+`review-isolation`, and `subthreshold-control`. It separately binds the same candidate,
+public 0.4.0 semantic/artifact identities `c5030e99…c05` / `ace7f39f…497e`, the same
+settings, and all three ordered adaptive holdout pairs:
+`authority-production-boundary`, `destructive-migration-fallback`, and
+`local-documentation-control`.
+
+Raw outputs, if authorized, stay outside Git under the task-owned namespace
+`/home/caichenghang/.codex/happycodex-0.4.1-live/67704584d312e4df/`, with distinct
+`corpus/` and `holdout/` destinations. The candidate path is this worktree; the exact
+public path is
+`/home/caichenghang/.codex/happycodex-release-installs/public-xsZBGOfm/codex/plugins/cache/happycodex/happycodex/0.4.0+codex.20260720074523`.
+The bounded exposure is 23–25 calls, 719,051–770,869 combined tokens, and
+3,757.028–4,032.239 seconds. The only valid grant, with no surrounding prose, is:
+
+```text
+APPROVE HAPPYCODEX LIVE COST 67704584d312e4df04f4d8ce1d03064511cf551967a5f4d0e74160ca10b3ca67
+```
 
 ## Retrospective
 
