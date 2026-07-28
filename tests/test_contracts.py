@@ -171,8 +171,15 @@ class HappyCodexContractTests(unittest.TestCase):
         )
         self.assertNotIn("PUBLIC_02", active_evaluator)
         self.assertNotIn("public-0.2", active_evaluator)
+        self.assertNotIn("public_0_2", active_evaluator)
         self.assertIn("PUBLIC_040_PACKAGE_ARTIFACT_SHA256", active_evaluator)
+        self.assertIn("PUBLIC_040_PACKAGE_SEMANTIC_SHA256", active_evaluator)
         self.assertIn("public-0.4.0", active_evaluator)
+        self.assertIn("public_0_4_0", active_evaluator)
+        self.assertIn(
+            "c5030e99dd7cd1681148c069775671c5720bb8dd366930ff90f61cbc54cdfc05",
+            active_evaluator,
+        )
         self.assertIn(
             "ace7f39fd61341e5d4b1bc3b268fd89a1562acaaacb80d7456c2bb97fb9c497e",
             active_evaluator,

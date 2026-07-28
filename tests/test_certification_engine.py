@@ -599,6 +599,34 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "affirmative|approval response"):
             ledger_engine.validate_live_authority(rejecting, snapshot=current)
 
+        wrong_public_semantic = copy.deepcopy(authority)
+        holdout = next(
+            item
+            for item in wrong_public_semantic["invocations"]
+            if item["command"] == "holdout"
+        )
+        holdout["public_semantic_sha256"] = (
+            "fb3cb41922dc0c5c75f97a5eefc7af72fa60ca1d9c13d1907a3902912e5f9ce4"
+        )
+        request = {
+            "schema_version": wrong_public_semantic["schema_version"],
+            "snapshot_sha256": wrong_public_semantic["snapshot_sha256"],
+            "impact": wrong_public_semantic["impact"],
+            "impact_token": wrong_public_semantic["impact_token"],
+            "invocations": wrong_public_semantic["invocations"],
+        }
+        request_sha256 = canonical_sha256(request)
+        response = ledger_engine.affirmative_approval_response(request_sha256)
+        wrong_public_semantic["approval_request_sha256"] = request_sha256
+        wrong_public_semantic["approval_response"] = response
+        wrong_public_semantic["approval_response_sha256"] = sha256_bytes(
+            response.encode()
+        )
+        with self.assertRaisesRegex(ValueError, "frozen public-0.4.0"):
+            ledger_engine.validate_live_authority(
+                wrong_public_semantic, snapshot=current
+            )
+
     def test_persisting_authority_does_not_create_a_token_cycle(self) -> None:
         ledger, current, impact = full_live_test_state()
         token = live.impact_token(ledger, current, impact)

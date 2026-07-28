@@ -483,6 +483,8 @@ class HappyCodexHoldoutTests(unittest.TestCase):
         gate = compare.cost_gate(
             equal_total_different_components, public, quality="equal"
         )
+        self.assertIn("public_0_4_0", gate)
+        self.assertNotIn("public_0_2", gate)
         self.assertEqual(gate["decision"], "pass")
         self.assertEqual(gate["blocking_ratios"], {"combined_tokens": 1.0, "wall": 1.0})
         self.assertEqual(gate["diagnostic_ratios"]["output_tokens"], 2.0)
