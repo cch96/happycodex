@@ -3,7 +3,7 @@
 Protocol: `HappyCodex/0.3` (active 0.4.0 maintainer runtime)
 Invocation: `$happycodex:happycodex`
 Writer: Root only for the mutable resources listed below
-State: candidate_frozen
+State: focused_hardening
 Resume: restore this file and reconcile Git, tests, Goal, worktree, agents, and gates before any write, review, or completion.
 
 ## Outcome and baseline
@@ -125,6 +125,7 @@ task conversion enlarge the state space without helping convergence.
 | `F-CONV-003` | Current-index recovery is bounded, complete, content-addressed, and fail closed. | checkpoint chain, no-commit ref/archive, compaction, multi-repo identity, `F-CONV-003-S01`, valid/tampered/unselected archive matrix | source/identity=checkpoint/ref/digest/selection; type/cardinality=one selected locator; order/terminal=select then persist then recover; alias/mutability/TOCTOU=tamper and bare object fail; serialization/replay=exact five-phase enum including `closed`; consumers/failure propagation=Runtime/template/ledger/cases | closed by focused confirmation | `RB-004` | missing-case RED then dedicated bare-object blocker and three-way matrix GREEN; focused GO | 0 |
 | `F-CONV-004` | The fresh 0.4.1 evidence inventory behaviorally exercises the new convergence protocol rather than relabeling 0.3 oracles. | protocol identity, family/repair batch, resource collision, current index, lifecycle transitions, sibling grouping | source/identity=0.4.1 corpus and holdout fixtures; type/cardinality=one owner and stable families; order/terminal=all five phases; alias/mutability/TOCTOU=collision and drift; serialization/replay=current index; consumers/failure propagation=fixed case/oracle inventory and genesis | closed by focused confirmation | `RB-004` | 17-case RED then inventory, coverage, dry-run, fresh genesis, and focused GO | 0 |
 | `F-CONV-005` | Live cost authority distinguishes observed receipts from conservative proxy estimates and binds the complete current inventory. | historical receipt provenance, proxy case envelopes, impact cost basis, impact token, approval digest | source/identity=0.3 receipt hashes plus named 0.4.1 proxies; type/cardinality=one envelope per case; order/terminal=impact before authority; alias/mutability/TOCTOU=source/tool drift invalidates; serialization/replay=historical-cost and impact receipts; consumers/failure propagation=impact/ledger/live authority/tests | closed by focused confirmation | `RB-004` | mislabeled-basis RED then exact basis, 23–25 calls, approval-bound impact, and focused GO | 0 |
+| `F-CONV-006` | The 0.4.1 behavior comparison and exact authority use public `v0.4.0`, never the inherited public 0.2 identity. | public artifact/semantic identity, arm names, blind mapping, receipts, CLI help, capability binding, cost comparison | source/identity=exact public 0.4.0 package; type/cardinality=one clean-break public arm; order/terminal=impact and authority precede dispatch; alias/mutability/TOCTOU=sealed mapping remains blinded; serialization/replay=authority/run/summary receipts; consumers/failure propagation=contract/corpus/live/holdout/ledger/CLI/tests | open; wrong public-0.2 baseline reproduced before authority | `RB-005` | RED pending | 0 |
 
 ## Implementation and verification boundary
 
@@ -170,9 +171,17 @@ dedicated recovery negative, enforces one shared bidirectional completion constr
 binds the amended cost basis into impact/authority, and refreshes genesis once. No
 exact-final review runs inside this batch.
 
+`RB-005` is frozen after the candidate-frozen authorization inspection reproduced an
+inherited public-0.2 baseline despite the 0.4.1 contract requiring public `v0.4.0`.
+It may cleanly replace that public arm and exact package identities across the shared
+contract, corpus/live/holdout/ledger/CLI consumers and tests, then create one fresh
+genesis. Historical 0.4 evidence files remain immutable and no compatibility alias is
+added. RED must first reject the old artifact, old arm, old sealed mapping, and any
+authority or receipt carrying them. No live call or exact-final review runs in this batch.
+
 ## Checkpoint
 
-- Milestone: exact 0.4.1 source is frozen at revision `a56f0b41c78466d180709223d414e776310b8846`, tree `be4a632c3fb40eff2907ebf46bc49e802a258a38`, product-manifest SHA-256 `981f8412f64d44af8d246255531371dd8f1478af0b45f08c873a16fc3fd608c8` excluding only this ExecPlan. All five families are closed, no repair batch or reviewer remains active, and product writes are prohibited.
+- Milestone: candidate `a56f0b41c78466d180709223d414e776310b8846` was invalidated before live authority because its evaluator still bound public 0.2 instead of required public `v0.4.0`; `RB-005` is open and product writes are restricted to that frozen batch.
 - Last green: after final-version metadata, 133/133 tests passed in 8.280s; Ruff check/format, diff/JSON checks, official Skill/plugin validators, and corpus/holdout list/dry-run passed. Runtime/template remain 308 lines/2,686 words: below 340/3,000 hard limits and 8/86 above the optimization target.
 - Fresh genesis: stored/current snapshots are exact for `0.4.1+codex.20260728205019`; `verify` reports `refresh_required`, engine `d9b73df6…7b20`, snapshot `f900e138…966c`, ledger `b3df9259…5d27`; full 17-case/three-pair impact is 23–25 calls, 719,051–770,869 combined tokens, and 3,757.028–4,032.239 seconds, with no authority. Its basis explicitly distinguishes 0.3 observed receipts from the three new 0.4.1 conservative single-call proxies. Impact token is `9f546507…2b28`. Origin remains `730c6a5:docs/execplans/happycodex-0-4-release.md`, never old `current.json`.
 - Isolated install: `/var/tmp/happycodex-041-rb003.oyKhro` installed `0.4.1+codex.dev`; source/cache Skill SHA-256 both `fd33e911…8d6c`, source/cache manifest SHA-256 both `430f9f11…77e`, byte comparisons equal.
@@ -185,12 +194,13 @@ exact-final review runs inside this batch.
 - RB-004 RED: targeted five-test run produced eight failures and one error: all three contradictory permission states were accepted, shared receipts accepted the contradictions, the unselected recovery case was absent, and the fixed snapshot/impact still contained 16 cases.
 - Fourth focused-review prelaunch: exact repair range `b88300a…ceda..00a48e3…6271`; candidate tree `11f33b63…bd0f`; product-manifest SHA-256 excluding this plan `3d982fad…2b57`; 1,079-byte/116-word brief with final LF, SHA-256 `1c2aa420…eae`; output `/home/caichenghang/.codex/happycodex-0.4.1-reviews/focused-00a48e3.txt`. Exact command: `printf '%s\n' '<brief>' | codex review -c 'model="gpt-5.6-sol"' -c 'model_reasoning_effort="max"' -c 'sandbox_mode="read-only"' - | tee /home/caichenghang/.codex/happycodex-0.4.1-reviews/focused-00a48e3.txt`. It is history-aware, non-neutral, read-only/no-network, and cannot satisfy exact-final.
 - Fourth focused-review terminal receipt: native session `019faa76-dcce-77f1-95f8-c5c5b53be02a`, effective `gpt-5.6-sol/max`, approval `never`, read-only sandbox, output 225 bytes/30 words, SHA-256 `7db1188b…7899`. It independently exercised the three recovery outcomes, all three shared permission consumers, the 17-case impact, and the approval-bound mixed cost basis; verdict `GO`.
-- Finalization: plugin-creator cachebuster helper changed only the manifest version from `0.4.1+codex.dev` to `0.4.1+codex.20260728205019`; README already carries the synchronized 0.4.1 change note. Fresh genesis and cumulative checks bind the frozen source above.
-- Owned dirty paths: this administrative candidate-frozen checkpoint only. Product source is clean and frozen; old evidence files remain untouched.
+- Invalidated evidence: exact isolated install at `/home/caichenghang/.codex/happycodex-release-installs/happycodex-041-local-VBBds2` proved source/cache package equality; content-addressed offline summary `48ebee1c…82fb` is reachable at evidence commit `0b14c9a…8faf`. Both bind the invalidated source and remain historical facts only.
+- Finalization: plugin-creator cachebuster helper set `0.4.1+codex.20260728205019`; that version remains unless `RB-005` changes package bytes, in which case final cachebusting and all exact evidence repeat after focused confirmation.
+- Owned dirty paths: this administrative hardening rollback only; `RB-005` product paths become writable after this checkpoint commit. Historical evidence files remain untouched.
 - Goal: none.
 - Agents/reviewers: all three focused reviewers terminal and reconciled; no reviewer active.
-- Pending gates: fresh post-source evidence and exact isolated install, exact-final
-  reviews, any separately
+- Pending gates: `RB-005` RED/GREEN and focused confirmation, new exact-source freeze,
+  fresh post-source evidence and exact isolated install, exact-final reviews, any separately
   authorized live behavior evaluation, public release, personal upgrade, rollback, and
   downstream successor task creation.
 
