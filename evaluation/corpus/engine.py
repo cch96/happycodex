@@ -515,7 +515,7 @@ def validate_case(case: dict[str, Any], path: Path) -> None:
             if kind == "recovery" and not (
                 expected.get("execplan_condition") == "needs_amendment"
                 and expected.get("protocol_may_product_write") is False
-                and expected.get("protocol_may_review") is False
+                and expected.get("protocol_review_mode") == "none"
                 and expected.get("protocol_may_complete") is False
             ):
                 raise ValueError(f"invalid recovery coverage assertion: {case['id']}")

@@ -5,7 +5,9 @@ description: High-risk cross-system/compaction reliability; one writer, durable 
 
 # HappyCodex
 
-Root is the only writer. Native Plan/approved Goal, Git/tests, and agents/review execute;
+There is one owner per shared mutable resource. Each task records worktree, branch/ref, ledger,
+output namespace, and activation target; disjoint resources may run concurrently, but overlap rejects a second writer.
+Native Plan/approved Goal, Git/tests, and agents/review execute;
 HappyCodex adds only a durable contract—no controller or Task State JSON.
 Authorization permits actions; ExecPlan defines completion; evidence binds a candidate;
 Goal controls automatic continuation. Never infer one from another.
@@ -73,6 +75,12 @@ A plan or writer summary that an agent completed is not a receipt. Resolve pre-e
 to a reachable matching terminal record, new evidence, and remaining uncertainty. Root reproduces
 the union, not a vote; missing/mismatched stays open.
 
+Root groups stable finding IDs sharing an invariant and boundary into `family_id`; models
+never generate it. Each Convergence Ledger family covers the six scan surfaces:
+source/identity, type/cardinality, order/terminal, alias/mutability/TOCTOU,
+serialization/replay, and consumers/failure propagation. Each has a counterexample,
+positive case, evidenced `N/A`, or stays open.
+
 After reproducing the union, freeze before production edits in a distinct contract-freeze revision
 carrying `HappyCodex-ExecPlan: <path>`, or selected no-commit location. That revision freezes the user
 contract: operative sources, normalized Outcome, exclusions, allowed breaks, and baseline. Root may
@@ -82,6 +90,13 @@ or narrowing a claim, widening a break, using `N/A`, or changing Outcome/baselin
 authorization. Advance a baseline only with verbatim authorization; version, rerun, reopen.
 
 ## Implement and recover
+
+Use `implementation → focused_hardening → candidate_frozen → exact_final → closed`.
+After cumulative checks turn GREEN, all reviewers reach terminal before Root unions and groups
+findings. Freeze one `repair_batch`; sibling findings
+join it with RED coverage and expanded authorization. Do not run exact-final review mid-batch.
+Close every family and obtain a focused review with no new material family before freezing the
+candidate. Open families, active writes, or incomplete reconciliation prohibit `exact_final`.
 
 For each vertical behavior slice:
 
@@ -93,14 +108,21 @@ For each vertical behavior slice:
    above or retain a snapshot below.
 
 At each risk-bearing milestone run a bounded correctness gate; do not run a full reviewer after every
-revision. Run the full final-candidate review only after cumulative checks.
+revision. Focused reviewers may see history,
+family ledgers, counterexamples, and repair story; this non-neutral evidence never substitutes for
+final review. Run full final-candidate review only after cumulative checks and source freeze.
 
 If commits are forbidden, require a user-selected durable location; without that selection, stop.
 Leave the index untouched; retain skeleton, freeze, every green slice, and closure in a reachable
 private Git ref or approved content-addressed archive. Record revisions/owned dirty paths; a
 garbage-collectable object ID is insufficient. Unclassified final-diff input stays open.
 
-After compaction/resume, find the plan by guard, semantic commit trailer, or unique task-owned 0.3
+The ExecPlan is a current index: target 8,000 words, hard limit 12,000 words. Keep frozen contract,
+open claims/families, grant, candidate, valid evidence/invalidation, and gates. Compress
+closed detail to checkpoint, reachable Git revision or approved content-addressed archive,
+receipt digest, and invalidation relation. Missing or tampered summaries fail closed.
+
+After compaction/resume, find the plan by guard, semantic commit trailer, or unique task-owned 0.4.1
 ExecPlan; read it fully before writing. Reconstruct baseline, writer ownership, current milestone,
 pending gates, test status, and worktree; reconcile Goal, Git, checks, review receipts, and live-agent
 state. Facts win; uncertain Outcome, modified paths, missing agent, or gates stay open. Ask the user
@@ -120,10 +142,14 @@ snapshots; exclude only the sole ExecPlan; prove manifest equality and a complet
 The source range is authoritative. Namespace repositories identically; include changed submodules or
 keep the gate open.
 
-Before reviewer launch persist its command, candidate identity, and durable output destination. A
+Any product-source change returns to focused_hardening and invalidates candidate evidence and
+all exact-final reviews. Before reviewer launch persist its command, candidate identity, review
+mode, and durable output destination. A
 foreground buffer is not a receipt; after interruption, resolve its durable terminal record before rerun.
 
-Run dedicated native `codex review` in the same fresh reviewer session. It inherits the configured
+Exact-final reviewers must not see the Convergence Ledger, historical findings, counterexamples,
+repair story, or preferred verdict. Run dedicated native `codex review` in the same fresh reviewer
+session. It inherits the configured
 model; if unset, prefer `gpt-5.6-sol`. Request `max` and the strongest user/environment-authorized
 read-only profile; `ultra` requires explicit authorization. Keep selector flags separate from the
 stdin brief; disclose downgrades/reroutes. Phase 1 gets verbatim user text, scope, accepted baseline
@@ -161,14 +187,18 @@ behavior/review/holdout receipts, expected rerun cost, and any required user dec
 Repair defects, refresh only required evidence, and start a fresh neutral full-scope review. There is
 no fixed review-count quota; never rerun an unchanged candidate or shop for a verdict.
 
+If a closed family recurs in final review, replace or strengthen its frozen abstraction boundary
+and delete old bypasses instead of stacking another local patch. A second recurrence after that
+boundary replacement stops for user choice: expand the refactor, change the contract, or abandon.
+
 An explicitly requested external reviewer independently gets the same synthetic scope and neutral
 brief. Selection is task-scoped and asked once. “Look” is advisory-once unless user/scoped policy
 requires an exact-final gate; candidate change retires advisory GO; required exact-final review
-reruns on convergence without new permission. Evidence
-requires the runtime-issued command/session/effective-model receipt; an agent or task name never
-proves reviewer identity. Exact selections win; otherwise Fable 5 defaults to `max`. Unavailable: a
-required review stops; `when available` continues with one disclosed skip. Union findings without
-voting; Root reproduces them. Never downgrade, substitute, install, enable, or search for it.
+reruns on convergence without new permission. Evidence requires the runtime-issued
+command/session/effective-model receipt; an agent or task name never proves reviewer identity.
+Exact selections win; otherwise Fable 5 defaults to `max`. Unavailable: a required review stops;
+`when available` continues with one disclosed skip. Union findings without voting; Root reproduces
+them. Never downgrade, substitute, install, enable, or search for it.
 
 ## Complete honestly
 

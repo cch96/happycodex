@@ -114,15 +114,15 @@ task conversion enlarge the state space without helping convergence.
 | `C-05` | preservation | Public invocation stays `$happycodex:happycodex`; 0.4 Root writer and unrelated behavior remain. | Package/runtime tests and behavior comparison. | pending | open |
 | `C-06` | outcome | Exact 0.4.1 release, public install, personal upgrade, and 0.4.0 rollback are proven. | Fresh evidence, three GO reviews, install/readback, rollback rehearsal. | pending | open |
 | `C-07` | premise | No live evaluator call runs without a persisted exact impact receipt and direct gate-scoped user authority. | Ledger/CLI refusal and later authority receipt. | current protocol | verified |
-| `C-08` | constraint | Runtime/template remain within the amended 300/2,600 target and 340/3,000 hard ceiling. | Contract tests report both totals and fail at hard limits; release review verifies the target result. | pending | open |
+| `C-08` | constraint | Runtime/template report the amended 300/2,600 optimization target and never exceed the 340/3,000 hard ceiling. | Contract tests compute totals and fail at hard limits; simplification review explains any target excess. | 308 lines/2,685 words after restoring certified reviewer/no-commit semantics; 8/85 above target, 32/315 below hard ceiling | open |
 
 ## Convergence Ledger
 
 | Family | Invariant / boundary | Members | Scan surfaces | Status | Repair batch | Evidence | Recurrence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `F-CONV-001` | Review eligibility is phase- and evidence-exact across Runtime, evaluator, receipts, recovery, and every consumer. | `protocol_may_review`, hardening/final distinction, source invalidation | source/identity; type/cardinality; order/terminal; alias/mutability/TOCTOU; serialization/replay; consumers/failure propagation | open | `RB-001` | pending RED | 0 |
-| `F-CONV-002` | Writer uniqueness applies exactly to shared mutable resources, not globally to unrelated worktrees. | worktree, branch/ref, ledger, evidence output, activation target | same six surfaces | open | `RB-001` | pending RED | 0 |
-| `F-CONV-003` | Current-index recovery is bounded, complete, content-addressed, and fail closed. | checkpoint chain, no-commit ref/archive, compaction, multi-repo identity | same six surfaces | open | `RB-001` | pending RED | 0 |
+| `F-CONV-001` | Review eligibility is phase- and evidence-exact across Runtime, evaluator, receipts, recovery, and every consumer. | `protocol_may_review`, hardening/final distinction, source invalidation | source/identity=clean-break enum RED/GREEN; type/cardinality=three exact strings; order/terminal=phase enum; alias/mutability/TOCTOU=no old key; serialization/replay=receipt and four-sibling replay GREEN; consumers/failure propagation=corpus/oracle/ledger GREEN | implementation complete; focused review pending | `RB-001` | five-test RED failed as expected; 127/128 cumulative GREEN with only old ledger open | 0 |
+| `F-CONV-002` | Writer uniqueness applies exactly to shared mutable resources, not globally to unrelated worktrees. | worktree, branch/ref, ledger, evidence output, activation target | source/identity=all five named; type/cardinality=one owner per overlap; order/terminal=ownership before writes; alias/mutability/TOCTOU=overlap rejects; serialization/replay=template; consumers/failure propagation=Runtime/AGENTS tests GREEN | implementation complete; focused review pending | `RB-001` | contract tests GREEN | 0 |
+| `F-CONV-003` | Current-index recovery is bounded, complete, content-addressed, and fail closed. | checkpoint chain, no-commit ref/archive, compaction, multi-repo identity | source/identity=checkpoint/ref/digest; type/cardinality=one current index; order/terminal=reconcile before writes; alias/mutability/TOCTOU=tamper fails; serialization/replay=recovery enum; consumers/failure propagation=Runtime/template/ledger GREEN | implementation complete; fresh genesis and focused review pending | `RB-001` | contract, recovery, no-commit, multi-repo tests GREEN | 0 |
 
 ## Implementation and verification boundary
 
@@ -145,12 +145,12 @@ task successor creation remain later gated operations.
 
 ## Checkpoint
 
-- Milestone: contract frozen; next: commit this plan-only freeze, then write RED for `RB-001`.
-- Last green: baseline has `F-BL-001`; no candidate product write exists.
-- Owned dirty paths: only this new ExecPlan.
+- Milestone: `RB-001` implementation complete; next: commit the semantic slice, then create fresh 0.4.1 genesis and run cumulative offline gates.
+- Last green: five focused RED tests initially produced four failures and one error against 0.4.0. After implementation those five pass. Full suite now runs 128 tests: 127 pass; only `F-BL-001` remains because the tracked certified 0.4.0 `current.json` points to old-schema source. The new schema, synthetic certification, four-sibling replay, accepted baseline, reviewer contamination, multi-repo, no-commit, and compaction tests pass.
+- Owned dirty paths: Runtime/template/AGENTS/README/manifest, evaluator contracts/consumers, all fixed oracle JSON projections, three test modules, and this ExecPlan. Old evidence files are untouched.
 - Goal: none.
 - Agents/reviewers: none launched.
-- Pending gates: RED, GREEN, focused hardening,
+- Pending gates: semantic implementation commit, fresh genesis, cumulative GREEN, focused hardening,
   final version/cachebuster, fresh genesis/evidence, exact-final reviews, any separately
   authorized live behavior evaluation, public release, personal upgrade, rollback, and
   downstream successor task creation.

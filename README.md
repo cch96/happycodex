@@ -71,6 +71,13 @@ It adds an auditable source-release boundary backed by content-addressed corpus 
 holdout certification, strict authority/evidence chronology, and a zero-live
 artifact/install transition.
 
+## What's new in 0.4.1
+
+Version 0.4.1 separates focused family hardening from neutral exact-final review.
+It scopes the single writer to shared mutable resources, batches sibling findings by
+invariant, makes review mode explicit in evaluator receipts, and keeps ExecPlans as
+bounded current indexes with fail-closed recovery.
+
 ## What's new in 0.3
 
 Version 0.3 is a clean-room replacement of the internal 0.2 workflow. It freezes a

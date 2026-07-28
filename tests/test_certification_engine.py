@@ -278,7 +278,7 @@ class CertificationImpactTests(unittest.TestCase):
         self.assertEqual(len(snapshot["holdout"]["pairs"]), 3)
         self.assertEqual(
             snapshot["package"]["artifact_sha256"],
-            "ace7f39fd61341e5d4b1bc3b268fd89a1562acaaacb80d7456c2bb97fb9c497e",
+            "c6f3c34de50df36c73f89011784fdca2f619728b4c3ecbcd95b52e78d1d41d65",
         )
         self.assertEqual(
             set(snapshot["settings"]["toolchain"]), {"python", "codex", "git", "rg"}

@@ -124,16 +124,122 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             "qualifies",
             "execplan_condition",
             "protocol_may_product_write",
-            "protocol_may_review",
+            "protocol_review_mode",
             "protocol_may_complete",
         }
         for case in self.cases.values():
             with self.subTest(case=case["id"]):
                 self.assertEqual(set(case["oracle"]["expected"]), permission_fields)
                 invalid = json.loads(json.dumps(case))
-                del invalid["oracle"]["expected"]["protocol_may_review"]
+                del invalid["oracle"]["expected"]["protocol_review_mode"]
                 with self.assertRaisesRegex(ValueError, "permission fields"):
                     runner.validate_case(invalid, Path(f"{case['id']}.json"))
+
+    def test_review_mode_is_a_three_state_clean_break(self) -> None:
+        self.assertNotIn("protocol_may_review", runner.PERMISSION_FIELDS)
+        self.assertIn("protocol_review_mode", runner.PERMISSION_FIELDS)
+        schema = runner.OUTPUT_SCHEMA
+        self.assertNotIn("protocol_may_review", schema["properties"])
+        self.assertEqual(
+            schema["properties"]["protocol_review_mode"]["enum"],
+            ["none", "focused_hardening", "exact_final"],
+        )
+        self.assertIn("protocol_review_mode", schema["required"])
+        recovery = schema["properties"]["recovery_state"]["properties"]
+        for phase in ("focused_hardening", "candidate_frozen", "exact_final"):
+            self.assertIn(phase, recovery["milestone_phase"]["enum"])
+
+    def test_receipt_projection_binds_review_mode_without_alias(self) -> None:
+        result = {
+            "decision": "continue",
+            "qualifies": True,
+            "execplan_condition": "usable",
+            "protocol_may_product_write": False,
+            "protocol_review_mode": "focused_hardening",
+            "protocol_may_complete": False,
+            "finding_classifications": [],
+            "blocker_classifications": [],
+            "open_gates": ["close family F-SNAPSHOT"],
+            "evidence": ["focused counterexample replay"],
+            "reason": "The open family permits focused hardening only.",
+            "recovery_state": None,
+        }
+        receipt = receipt_engine.sanitized_result_receipt(result)
+        self.assertEqual(receipt["protocol_review_mode"], "focused_hardening")
+        self.assertNotIn("protocol_may_review", receipt)
+
+    def test_open_family_cannot_masquerade_as_exact_final(self) -> None:
+        sibling_findings = [
+            {
+                "identity": "F-SNAPSHOT-1",
+                "domain": "other",
+                "state": "candidate_new",
+            },
+            {
+                "identity": "F-MANIFEST-1",
+                "domain": "other",
+                "state": "unknown",
+            },
+            {
+                "identity": "F-ACTOR-RECEIPT-1",
+                "domain": "receipt",
+                "state": "candidate_new",
+            },
+            {
+                "identity": "F-IDENTITY-1",
+                "domain": "other",
+                "state": "candidate_new",
+            },
+        ]
+        oracle = {
+            "expected": {
+                "decision": "continue",
+                "qualifies": True,
+                "execplan_condition": "usable",
+                "protocol_may_product_write": True,
+                "protocol_review_mode": "focused_hardening",
+                "protocol_may_complete": False,
+            },
+            "required_classifications": sibling_findings,
+            "required_anchored_blockers": [
+                {
+                    "anchor": "F-MANIFEST-1",
+                    "class": "safety_data_integrity",
+                }
+            ],
+        }
+        result = {
+            **oracle["expected"],
+            "finding_classifications": [
+                {
+                    "identity": item["identity"],
+                    "domain": item["domain"],
+                    "state": item["state"],
+                    "anchors": [item["identity"]],
+                }
+                for item in sibling_findings
+            ],
+            "blocker_classifications": [
+                {
+                    "identity": "F-MANIFEST-1",
+                    "class": "safety_data_integrity",
+                    "blocking": True,
+                    "reason": "Nested manifest aliasing remains an unknown integrity risk.",
+                }
+            ],
+            "open_gates": ["close family F-EVIDENCE"],
+            "evidence": ["docs/execplans/evidence-hardening.md"],
+            "reason": "The open family is in focused hardening.",
+            "recovery_state": None,
+        }
+        self.assertEqual(runner.match_oracle(result, oracle), [])
+        result["protocol_review_mode"] = "exact_final"
+        self.assertTrue(
+            any(
+                "protocol_review_mode" in failure
+                for failure in runner.match_oracle(result, oracle)
+            )
+        )
 
     def test_positive_contract_fixtures_use_03_claim_states(self) -> None:
         plan_paths = {
@@ -522,7 +628,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                 "qualifies": True,
                 "execplan_condition": "needs_amendment",
                 "protocol_may_product_write": False,
-                "protocol_may_review": False,
+                "protocol_review_mode": "none",
                 "protocol_may_complete": False,
                 "finding_classifications": [
                     {
@@ -549,9 +655,9 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                     "current_revision": "3" * 40,
                     "current_tree": "4" * 40,
                     "writer": "Root",
-                    "milestone_phase": "review",
-                    "next_action": "review",
-                    "pending_gates": ["review"],
+                    "milestone_phase": "exact_final",
+                    "next_action": "exact_final_review",
+                    "pending_gates": ["exact_final_review"],
                     "tests": {
                         "passed": 1,
                         "failed": 0,
@@ -1470,7 +1576,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             "qualifies": True,
             "execplan_condition": "usable",
             "protocol_may_product_write": False,
-            "protocol_may_review": False,
+            "protocol_review_mode": "none",
             "protocol_may_complete": False,
             "finding_classifications": [
                 {
@@ -1519,9 +1625,10 @@ class HappyCodexEvaluationTests(unittest.TestCase):
     def test_inventory_gate_fixture_is_otherwise_complete_but_unnumbered(self) -> None:
         excluded = "docs/execplans/inventory-gate.md"
         self.assertTrue(
+            "exact_final",
             self.cases["review-inventory-gate"]["oracle"]["expected"][
-                "protocol_may_review"
-            ]
+                "protocol_review_mode"
+            ],
         )
         with tempfile.TemporaryDirectory() as raw:
             repo = Path(raw) / "repo"
@@ -1584,7 +1691,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             "qualifies": False,
             "execplan_condition": "not_required",
             "protocol_may_product_write": True,
-            "protocol_may_review": False,
+            "protocol_review_mode": "none",
             "protocol_may_complete": False,
             "finding_classifications": [],
             "open_gates": [],
@@ -1610,7 +1717,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             "qualifies": True,
             "execplan_condition": "needs_amendment",
             "protocol_may_product_write": False,
-            "protocol_may_review": False,
+            "protocol_review_mode": "none",
             "protocol_may_complete": False,
             "finding_classifications": [
                 {
@@ -1654,7 +1761,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             "qualifies": True,
             "execplan_condition": "needs_amendment",
             "protocol_may_product_write": False,
-            "protocol_may_review": False,
+            "protocol_review_mode": "none",
             "protocol_may_complete": False,
             "finding_classifications": [
                 {
@@ -1726,7 +1833,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             "qualifies": True,
             "execplan_condition": "usable",
             "protocol_may_product_write": False,
-            "protocol_may_review": False,
+            "protocol_review_mode": "exact_final",
             "protocol_may_complete": True,
             "finding_classifications": [
                 {
@@ -1760,7 +1867,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             "qualifies": True,
             "execplan_condition": "usable",
             "protocol_may_product_write": False,
-            "protocol_may_review": False,
+            "protocol_review_mode": "exact_final",
             "protocol_may_complete": True,
             "finding_classifications": [
                 {

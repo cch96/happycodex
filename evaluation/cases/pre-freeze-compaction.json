@@ -60,7 +60,7 @@
       "qualifies": true,
       "execplan_condition": ["usable", "needs_amendment"],
       "protocol_may_product_write": false,
-      "protocol_may_review": false,
+      "protocol_review_mode": "none",
       "protocol_may_complete": false
     },
     "prompt_forbidden": ["RECOVERY-PLAN-47B2", "RECOVERY-TEST-19C4", "RECOVERY-GIT-6D91", "BC-4", "legacy retry bypass", "contract-freeze revision", "queue-migration.md"]

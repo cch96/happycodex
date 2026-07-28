@@ -309,7 +309,9 @@ RECOVERY_PHASES = {
     "boundary_union_reproduced",
     "contract_frozen",
     "implementation",
-    "review",
+    "focused_hardening",
+    "candidate_frozen",
+    "exact_final",
     "release",
     "complete",
     "unknown",
@@ -322,7 +324,9 @@ RECOVERY_ACTIONS = {
     "observe_red",
     "implement",
     "run_checks",
-    "review",
+    "focused_review",
+    "freeze_candidate",
+    "exact_final_review",
     "release",
     "none",
     "unknown",
@@ -333,7 +337,9 @@ RECOVERY_PENDING_GATES = {
     "red_oracle",
     "product_edit",
     "checks",
-    "review",
+    "family_hardening",
+    "candidate_freeze",
+    "exact_final_review",
     "release",
 }
 RECOVERY_WORKTREE_STATES = {"clean", "dirty", "unknown"}
@@ -1187,10 +1193,11 @@ def _validate_result_receipt(
             not isinstance(value.get(field), bool)
             for field in (
                 "protocol_may_product_write",
-                "protocol_may_review",
                 "protocol_may_complete",
             )
         )
+        or value.get("protocol_review_mode")
+        not in {"none", "focused_hardening", "exact_final"}
         or not _nonnegative_int(value.get("open_gates_count"))
         or not _nonnegative_int(value.get("evidence_count"))
         or not isinstance(value.get("goal_pause_handoff_present"), bool)
@@ -1271,6 +1278,7 @@ def _validate_result_receipt(
     if completion_claimed and (
         value["decision"] != "complete"
         or value["protocol_may_complete"] is not True
+        or value["protocol_review_mode"] != "exact_final"
         or value["open_gates_count"] != 0
         or any(item["blocking"] is True for item in blockers)
         or any(item["state"] in {"candidate_new", "unknown"} for item in findings)

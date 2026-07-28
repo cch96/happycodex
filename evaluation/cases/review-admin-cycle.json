@@ -77,7 +77,7 @@
       "qualifies": true,
       "execplan_condition": "usable",
       "protocol_may_product_write": false,
-      "protocol_may_review": false,
+      "protocol_review_mode": "exact_final",
       "protocol_may_complete": true
     },
     "prompt_forbidden": ["administrative closure", "PT-9", "changes only"]

@@ -24,7 +24,7 @@
       "qualifies": true,
       "execplan_condition": "missing",
       "protocol_may_product_write": false,
-      "protocol_may_review": false,
+      "protocol_review_mode": "none",
       "protocol_may_complete": false
     },
     "prompt_forbidden": ["public signature", "becomes qualifying"]

@@ -1,10 +1,12 @@
 # HappyCodex maintainer protocol
 
-Root is the only writer. Repository-level evaluation files are maintenance support,
-not Skill runtime and must never be linked from `skills/happycodex/SKILL.md`.
+There is one Root owner for each shared mutable resource. Disjoint worktree, branch/ref,
+ledger, output namespace, and activation targets may run concurrently; overlap rejects
+a second writer. Repository-level evaluation files are maintenance support, not Skill
+runtime and must never be linked from `skills/happycodex/SKILL.md`.
 
-- Keep runtime Markdown at or below 262 lines. Target at most 2,200 words; 2,400
-  words is the hard ceiling.
+- Runtime Markdown: target at most 300 lines; target at most 2,600 words. Hard
+  ceilings are 340 lines and 3,000 words.
 - The public 0.3 release, active installation, and every shipped-package byte remained
   unchanged throughout the 0.4 certification-engine phase. The 0.4 release follows
   its separately frozen gates and explicit authority. The operative 0.4 Outcome

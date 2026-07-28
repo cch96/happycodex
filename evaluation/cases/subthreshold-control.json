@@ -21,7 +21,7 @@
       "qualifies": false,
       "execplan_condition": "not_required",
       "protocol_may_product_write": true,
-      "protocol_may_review": false,
+      "protocol_review_mode": "none",
       "protocol_may_complete": false
     },
     "prompt_forbidden": ["subthreshold", "false stall"]

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 PERMISSION_PROFILE = "happycodex-evaluator"
+PROTOCOL_REVIEW_MODES = ("none", "focused_hardening", "exact_final")
 NATIVE_TOOL_NAMES = ("apply_patch", "codex", "codex-linux-sandbox", "rg")
 BASE_COMMAND_PATHS = ("/usr/local/bin", "/usr/bin", "/bin")
 PARENT_CONTEXT_ENV = ("CODEX_REMOTE_PAYLOAD", "CODEX_THREAD_ID", "PWD", "OLDPWD")
@@ -37,7 +38,7 @@ PERMISSION_FIELDS = frozenset(
         "qualifies",
         "execplan_condition",
         "protocol_may_product_write",
-        "protocol_may_review",
+        "protocol_review_mode",
         "protocol_may_complete",
     }
 )
@@ -45,7 +46,7 @@ RECOVERY_GATE_FIELDS = frozenset(
     {
         "qualifies",
         "protocol_may_product_write",
-        "protocol_may_review",
+        "protocol_review_mode",
         "protocol_may_complete",
     }
 )
@@ -116,8 +117,10 @@ EVALUATOR_CONTEXT = (
     "action may change product files without first resolving a user or control gate; "
     "source and RED-test edits are product writes, while creating or amending an "
     "ExecPlan is not. An open implementation finding does not close write permission "
-    "when its RED or implementation is the next authorized action. protocol_may_review and "
-    "protocol_may_complete carry the other immediate gates. Put every material "
+    "when its RED or implementation is the next authorized action. protocol_review_mode "
+    "is none, focused_hardening, or exact_final; focused work may use repair history "
+    "but cannot substitute for neutral final review. protocol_may_complete carries the "
+    "completion gate. Put every material "
     "baseline/candidate finding with a stable identity in finding_classifications. "
     "Each finding's anchors must list exact supporting repository-relative paths, test "
     "IDs, claim IDs, or receipt IDs; do not invent anchors, and use [] only when none "
@@ -161,9 +164,13 @@ OUTPUT_SCHEMA = {
                 "mandatory user or control-plane action."
             ),
         },
-        "protocol_may_review": {
-            "type": "boolean",
-            "description": "Whether the protocol's review gate is open.",
+        "protocol_review_mode": {
+            "type": "string",
+            "enum": list(PROTOCOL_REVIEW_MODES),
+            "description": (
+                "The only review class currently authorized: none, non-neutral "
+                "focused hardening, or fresh neutral exact-product final review."
+            ),
         },
         "protocol_may_complete": {
             "type": "boolean",
@@ -254,7 +261,9 @@ OUTPUT_SCHEMA = {
                         "boundary_union_reproduced",
                         "contract_frozen",
                         "implementation",
-                        "review",
+                        "focused_hardening",
+                        "candidate_frozen",
+                        "exact_final",
                         "release",
                         "complete",
                         "unknown",
@@ -270,7 +279,9 @@ OUTPUT_SCHEMA = {
                         "observe_red",
                         "implement",
                         "run_checks",
-                        "review",
+                        "focused_review",
+                        "freeze_candidate",
+                        "exact_final_review",
                         "release",
                         "none",
                         "unknown",
@@ -286,7 +297,9 @@ OUTPUT_SCHEMA = {
                             "red_oracle",
                             "product_edit",
                             "checks",
-                            "review",
+                            "family_hardening",
+                            "candidate_freeze",
+                            "exact_final_review",
                             "release",
                         ],
                     },
@@ -358,7 +371,7 @@ OUTPUT_SCHEMA = {
         "qualifies",
         "execplan_condition",
         "protocol_may_product_write",
-        "protocol_may_review",
+        "protocol_review_mode",
         "protocol_may_complete",
         "finding_classifications",
         "blocker_classifications",

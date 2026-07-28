@@ -17,6 +17,7 @@ OPENAI_YAML = SKILL_ROOT / "agents" / "openai.yaml"
 MANIFEST = ROOT / ".codex-plugin" / "plugin.json"
 MARKETPLACE = ROOT / ".agents" / "plugins" / "marketplace.json"
 README = ROOT / "README.md"
+AGENTS = ROOT / "AGENTS.md"
 
 EXPECTED_RUNTIME_FILES = {
     "skills/happycodex/SKILL.md",
@@ -147,8 +148,44 @@ class HappyCodexContractTests(unittest.TestCase):
 
     def test_runtime_markdown_meets_clean_room_budget(self) -> None:
         lines, words = runtime_markdown_budget()
-        self.assertLessEqual(lines, 262)
-        self.assertLessEqual(words, 2_400)
+        self.assertLessEqual(lines, 340)
+        self.assertLessEqual(words, 3_000)
+        policy = folded(AGENTS)
+        for phrase in (
+            "target at most 300 lines",
+            "340 lines",
+            "target at most 2,600 words",
+            "3,000 words",
+        ):
+            self.assertIn(phrase, policy)
+
+    def test_manifest_uses_041_development_identity(self) -> None:
+        manifest = json.loads(read(MANIFEST))
+        self.assertEqual(manifest["version"], "0.4.1+codex.dev")
+
+    def test_runtime_defines_convergence_lifecycle_and_resource_ownership(self) -> None:
+        runtime = folded(SKILL) + " " + folded(EXECPLAN)
+        for phrase in (
+            "implementation → focused_hardening → candidate_frozen → exact_final → closed",
+            "one owner per shared mutable resource",
+            "disjoint resources may run concurrently",
+            "convergence ledger",
+            "family_id",
+            "repair_batch",
+            "six scan surfaces",
+            "all reviewers reach terminal",
+            "focused reviewers may see",
+            "exact-final reviewers must not see",
+            "product-source change",
+            "returns to focused_hardening",
+            "second recurrence",
+            "current index",
+            "8,000 words",
+            "12,000 words",
+            "fail closed",
+        ):
+            self.assertIn(phrase, runtime)
+        self.assertIn("no controller or task state json", runtime)
 
     def test_skill_frontmatter_and_reference_graph_are_closed(self) -> None:
         text = read(SKILL)
@@ -171,11 +208,12 @@ class HappyCodexContractTests(unittest.TestCase):
         self.assertEqual(
             headings(EXECPLAN),
             [
-                "# HappyCodex 0.3 ExecPlan",
+                "# HappyCodex 0.4.1 ExecPlan",
                 "## When to create it",
                 "## Template",
                 "### Outcome and baseline",
                 "### Claims Ledger",
+                "### Convergence Ledger",
                 "### Checkpoint",
                 "### Retrospective",
                 "## Neutral review brief",
@@ -204,7 +242,7 @@ class HappyCodexContractTests(unittest.TestCase):
 
     def test_native_state_roles_and_goal_are_nonoverlapping(self) -> None:
         text = folded(SKILL)
-        self.assertIn("root is the only writer", text)
+        self.assertIn("one owner per shared mutable resource", text)
         self.assertIn("native plan is only the current cursor", text)
         self.assertIn("goal is only an objective pointer", text)
         for phrase in (
@@ -339,8 +377,8 @@ class HappyCodexContractTests(unittest.TestCase):
         self,
     ) -> None:
         text = folded(SKILL) + " " + folded(EXECPLAN)
-        for source in (folded(SKILL), folded(EXECPLAN)):
-            self.assertIn("revision freezes the user contract", source)
+        self.assertIn("revision freezes the user contract", folded(SKILL))
+        self.assertIn("revision freezes the user contract", folded(EXECPLAN))
         self.assertNotIn("before symmetric freeze", text)
         for phrase in (
             "operative sources",
@@ -369,7 +407,7 @@ class HappyCodexContractTests(unittest.TestCase):
         text = folded(SKILL)
         for phrase in (
             "semantic commit trailer",
-            "unique task-owned 0.3 execplan",
+            "unique task-owned 0.4.1 execplan",
             "reachable private git ref",
             "approved content-addressed archive",
             "user-selected durable location",
