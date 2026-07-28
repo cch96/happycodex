@@ -3,7 +3,7 @@
 Protocol: `HappyCodex/0.3` (active 0.4.0 maintainer runtime)
 Invocation: `$happycodex:happycodex`
 Writer: Root only for the mutable resources listed below
-State: contract frozen; implementation not started
+State: focused_hardening
 Resume: restore this file and reconcile Git, tests, Goal, worktree, agents, and gates before any write, review, or completion.
 
 ## Outcome and baseline
@@ -86,10 +86,10 @@ the installed 0.4.0 bytes are preserved.
 
 **Baseline check.** `python3 -m unittest discover -s tests -p 'test_*.py'` ran 123
 tests in 7.656 seconds: 122 passed and one errored at
-`test_verify_and_impact_commands_are_read_only_json` because the certified ledger is
-stale against current inputs. Finding `F-BL-001` is unaccepted and open; determine
-whether current toolchain drift or repository bytes caused it, then resolve through
-the authorized fresh 0.4.1 genesis rather than a compatibility path.
+`test_verify_and_impact_commands_are_read_only_json` because the certified ledger was
+stale against current inputs. Finding `F-BL-001` is resolved by the fresh 0.4.1
+`refresh_required` genesis at the exact 0.4.1 snapshot; no compatibility path reads
+the old ledger.
 
 **Independent design advice.** Fable 5 session
 `40eddcce-9b0a-4f27-bf87-637ea44c867e` used `claude-fable-5/max`, no tools or
@@ -109,7 +109,7 @@ task conversion enlarge the state space without helping convergence.
 | --- | --- | --- | --- | --- | --- |
 | `C-01` | outcome | Single-writer ownership is scoped to overlapping mutable resources; disjoint worktrees may run concurrently. | Protocol text plus positive and collision counterexamples. | pending | open |
 | `C-02` | outcome | Family hardening and frozen repair batches precede exact-final certification. | Open-family, reviewer-union, recurrence, and source-drift tests. | pending | open |
-| `C-03` | outcome | `protocol_may_review` is removed and receipts bind `none`, `focused_hardening`, or `exact_final`. | Shared schema, oracle, receipt, and ledger tests; no alias. | pending | open |
+| `C-03` | outcome | `protocol_may_review` is removed and receipts bind `none`, `focused_hardening`, or `exact_final`. | Shared schema, oracle, receipt, and ledger tests; no alias. | full tests and fresh ledger verify GREEN; only negative assertions mention the old key outside historical evidence | verified |
 | `C-04` | outcome | ExecPlan is a bounded current index with fail-closed Git/archive recovery. | Size, tamper, no-commit, multi-repo, and compaction tests. | pending | open |
 | `C-05` | preservation | Public invocation stays `$happycodex:happycodex`; 0.4 Root writer and unrelated behavior remain. | Package/runtime tests and behavior comparison. | pending | open |
 | `C-06` | outcome | Exact 0.4.1 release, public install, personal upgrade, and 0.4.0 rollback are proven. | Fresh evidence, three GO reviews, install/readback, rollback rehearsal. | pending | open |
@@ -120,9 +120,9 @@ task conversion enlarge the state space without helping convergence.
 
 | Family | Invariant / boundary | Members | Scan surfaces | Status | Repair batch | Evidence | Recurrence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `F-CONV-001` | Review eligibility is phase- and evidence-exact across Runtime, evaluator, receipts, recovery, and every consumer. | `protocol_may_review`, hardening/final distinction, source invalidation | source/identity=clean-break enum RED/GREEN; type/cardinality=three exact strings; order/terminal=phase enum; alias/mutability/TOCTOU=no old key; serialization/replay=receipt and four-sibling replay GREEN; consumers/failure propagation=corpus/oracle/ledger GREEN | implementation complete; focused review pending | `RB-001` | five-test RED failed as expected; 127/128 cumulative GREEN with only old ledger open | 0 |
+| `F-CONV-001` | Review eligibility is phase- and evidence-exact across Runtime, evaluator, receipts, recovery, and every consumer. | `protocol_may_review`, hardening/final distinction, source invalidation | source/identity=clean-break enum RED/GREEN; type/cardinality=three exact strings; order/terminal=phase enum; alias/mutability/TOCTOU=no old key; serialization/replay=receipt and four-sibling replay GREEN; consumers/failure propagation=corpus/oracle/ledger GREEN | implementation complete; focused review pending | `RB-001` | five-test RED failed as expected; 128/128 cumulative GREEN; fresh genesis verifies | 0 |
 | `F-CONV-002` | Writer uniqueness applies exactly to shared mutable resources, not globally to unrelated worktrees. | worktree, branch/ref, ledger, evidence output, activation target | source/identity=all five named; type/cardinality=one owner per overlap; order/terminal=ownership before writes; alias/mutability/TOCTOU=overlap rejects; serialization/replay=template; consumers/failure propagation=Runtime/AGENTS tests GREEN | implementation complete; focused review pending | `RB-001` | contract tests GREEN | 0 |
-| `F-CONV-003` | Current-index recovery is bounded, complete, content-addressed, and fail closed. | checkpoint chain, no-commit ref/archive, compaction, multi-repo identity | source/identity=checkpoint/ref/digest; type/cardinality=one current index; order/terminal=reconcile before writes; alias/mutability/TOCTOU=tamper fails; serialization/replay=recovery enum; consumers/failure propagation=Runtime/template/ledger GREEN | implementation complete; fresh genesis and focused review pending | `RB-001` | contract, recovery, no-commit, multi-repo tests GREEN | 0 |
+| `F-CONV-003` | Current-index recovery is bounded, complete, content-addressed, and fail closed. | checkpoint chain, no-commit ref/archive, compaction, multi-repo identity | source/identity=checkpoint/ref/digest; type/cardinality=one current index; order/terminal=reconcile before writes; alias/mutability/TOCTOU=tamper fails; serialization/replay=recovery enum; consumers/failure propagation=Runtime/template/ledger GREEN | implementation complete; focused review pending | `RB-001` | contract, recovery, no-commit, multi-repo tests and genesis verify GREEN | 0 |
 
 ## Implementation and verification boundary
 
@@ -145,12 +145,12 @@ task successor creation remain later gated operations.
 
 ## Checkpoint
 
-- Milestone: `RB-001` implementation complete; next: commit the semantic slice, then create fresh 0.4.1 genesis and run cumulative offline gates.
-- Last green: five focused RED tests initially produced four failures and one error against 0.4.0. After implementation those five pass. Full suite now runs 128 tests: 127 pass; only `F-BL-001` remains because the tracked certified 0.4.0 `current.json` points to old-schema source. The new schema, synthetic certification, four-sibling replay, accepted baseline, reviewer contamination, multi-repo, no-commit, and compaction tests pass.
-- Owned dirty paths: Runtime/template/AGENTS/README/manifest, evaluator contracts/consumers, all fixed oracle JSON projections, three test modules, and this ExecPlan. Old evidence files are untouched.
+- Milestone: `RB-001` implementation commit `2b62229`; fresh 0.4.1 genesis built and verified; next: commit genesis, run official validators/isolated checks, then focused review.
+- Last green: `python3 -m evaluation.cli verify` reports `ok`, ledger `refresh_required`, engine `3bd19bb7…5431`, snapshot `3ca0c1c3…7c03`, ledger `6848ab03…ecda`; `python3 -m evaluation.cli impact` reports all 14 corpus cases, three holdout pairs, 20–22 live calls, impact token `5754e3ee…f8dd`, and no authority. Full suite: 128/128 passed in 8.142s. Ruff and diff checks passed.
+- Owned dirty paths: fresh `evaluation/results/current.json` and this ExecPlan only. Old evidence files remain untouched.
 - Goal: none.
 - Agents/reviewers: none launched.
-- Pending gates: semantic implementation commit, fresh genesis, cumulative GREEN, focused hardening,
+- Pending gates: genesis commit, official validators/isolated checks, focused hardening,
   final version/cachebuster, fresh genesis/evidence, exact-final reviews, any separately
   authorized live behavior evaluation, public release, personal upgrade, rollback, and
   downstream successor task creation.
