@@ -1,0 +1,19 @@
+{
+  "engine_generation": "0.4",
+  "engine_manifest_sha256": "d9b73df60b515f792503a06ae70c44fb2fa0f056f9376312cb541dacab4b7b20",
+  "gates": [
+    "isolated_install"
+  ],
+  "isolated_installation": {
+    "installed_package_manifest_sha256": "e8424dbdc56e576d9e31aaca4d548b8e792497ed298c56762a606ac3ccd0ac89",
+    "installed_skill_sha256": "fd33e911652e358adc40267487912abf09069d5f925d058d25d0b3d8d6598d6c",
+    "plugin_sha256": "bc57ae58127bbf4e80df7cf923fa7ac206fcda786819fbdadb7b697d8c03afb8",
+    "source_package_manifest_sha256": "e8424dbdc56e576d9e31aaca4d548b8e792497ed298c56762a606ac3ccd0ac89",
+    "source_skill_sha256": "fd33e911652e358adc40267487912abf09069d5f925d058d25d0b3d8d6598d6c"
+  },
+  "receipt_artifact_sha256": null,
+  "schema_version": 1,
+  "snapshot_sha256": "f900e138b93a1b8f02de1f003b2548824ac4495ec346bb425070d2646111966c",
+  "source_commit": "a56f0b41c78466d180709223d414e776310b8846",
+  "source_ledger_sha256": "e3864e2ad4250317f883026c60ac8707a2756869c78a4ab344173d4f1a4486b0"
+}
