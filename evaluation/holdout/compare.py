@@ -122,7 +122,7 @@ def cost_gate(
         "quality": quality,
         "threshold": 1.25,
         "candidate": {**candidate, "combined_tokens": candidate_combined},
-        "public_0_2": {**public, "combined_tokens": public_combined},
+        "public_0_4_0": {**public, "combined_tokens": public_combined},
         "blocking_ratios": blocking,
         "diagnostic_ratios": diagnostics,
         "decision": decision,

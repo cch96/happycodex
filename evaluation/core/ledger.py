@@ -34,6 +34,7 @@ from evaluation.corpus.contract import (
     FILESYSTEM_ISOLATION_POLICY,
     PERMISSION_FIELDS,
     PUBLIC_040_PACKAGE_ARTIFACT_SHA256,
+    PUBLIC_040_PACKAGE_SEMANTIC_SHA256,
     RECOVERY_GATE_FIELDS,
     protocol_state_failures,
 )
@@ -381,7 +382,13 @@ def _validate_invocation(invocation: Any) -> None:
             "public_artifact_sha256",
         )
         _validate_ordered_names(invocation["pairs"], label="holdout pairs")
-        if invocation["public_artifact_sha256"] != PUBLIC_040_PACKAGE_ARTIFACT_SHA256:
+        if (
+            invocation["public_semantic_sha256"],
+            invocation["public_artifact_sha256"],
+        ) != (
+            PUBLIC_040_PACKAGE_SEMANTIC_SHA256,
+            PUBLIC_040_PACKAGE_ARTIFACT_SHA256,
+        ):
             raise ValueError("authorized holdout does not use frozen public-0.4.0")
     for field in digest_fields:
         _require_digest(invocation[field], length=64, label=field)
@@ -1754,6 +1761,7 @@ def _validate_holdout_run(
     elif (
         not isinstance(public, dict)
         or set(public) != {"semantic_sha256", "artifact_sha256"}
+        or public.get("semantic_sha256") != PUBLIC_040_PACKAGE_SEMANTIC_SHA256
         or public.get("artifact_sha256") != PUBLIC_040_PACKAGE_ARTIFACT_SHA256
     ):
         raise ValueError("invalid holdout public evidence")

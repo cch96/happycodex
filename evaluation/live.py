@@ -12,6 +12,10 @@ from evaluation.core.impact import (
 )
 from evaluation.core.ledger import load_ledger, require_authorized_invocation
 from evaluation.corpus import engine as corpus_engine
+from evaluation.corpus.contract import (
+    PUBLIC_040_PACKAGE_ARTIFACT_SHA256,
+    PUBLIC_040_PACKAGE_SEMANTIC_SHA256,
+)
 from evaluation.holdout import engine as holdout_engine
 
 
@@ -79,11 +83,11 @@ def proposed_invocations(
         )
     if impact["holdout_pairs"] and public is not None:
         public_identity = package_identities(public.expanduser().resolve())
-        if (
-            public_identity["artifact_sha256"]
-            != corpus_engine.EXPECTED_PUBLIC_040_PACKAGE_MANIFEST_SHA256
-        ):
-            raise ValueError("public-0.4.0 package manifest mismatch")
+        if public_identity != {
+            "semantic_sha256": PUBLIC_040_PACKAGE_SEMANTIC_SHA256,
+            "artifact_sha256": PUBLIC_040_PACKAGE_ARTIFACT_SHA256,
+        }:
+            raise ValueError("public-0.4.0 package identity mismatch")
         invocations.append(
             {
                 "command": "holdout",
