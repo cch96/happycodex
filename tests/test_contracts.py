@@ -163,6 +163,21 @@ class HappyCodexContractTests(unittest.TestCase):
         manifest = json.loads(read(MANIFEST))
         self.assertEqual(manifest["version"], "0.4.1+codex.20260728205019")
 
+    def test_evaluator_cleanly_targets_public_040_baseline(self) -> None:
+        active_evaluator = "\n".join(
+            read(path)
+            for path in sorted((ROOT / "evaluation").rglob("*.py"))
+            if "__pycache__" not in path.parts
+        )
+        self.assertNotIn("PUBLIC_02", active_evaluator)
+        self.assertNotIn("public-0.2", active_evaluator)
+        self.assertIn("PUBLIC_040_PACKAGE_ARTIFACT_SHA256", active_evaluator)
+        self.assertIn("public-0.4.0", active_evaluator)
+        self.assertIn(
+            "ace7f39fd61341e5d4b1bc3b268fd89a1562acaaacb80d7456c2bb97fb9c497e",
+            active_evaluator,
+        )
+
     def test_runtime_defines_convergence_lifecycle_and_resource_ownership(self) -> None:
         runtime = folded(SKILL) + " " + folded(EXECPLAN)
         for phrase in (

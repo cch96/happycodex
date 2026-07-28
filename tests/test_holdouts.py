@@ -138,6 +138,8 @@ class HappyCodexHoldoutTests(unittest.TestCase):
         )
         blind.validate_reveal(reveal, decision)
         self.assertEqual(reveal["mapping"]["candidate"], "arm-b")
+        self.assertEqual(reveal["mapping"]["public-0.4.0"], "arm-a")
+        self.assertNotIn("public-0.2", reveal["mapping"])
         self.assertEqual(compare.compare_pair(decision, reveal), "better")
         tampered = copy.deepcopy(reveal)
         tampered["mapping"]["candidate"] = "arm-a"
