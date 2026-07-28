@@ -3,7 +3,7 @@
 Protocol: `HappyCodex/0.3` (active 0.4.0 maintainer runtime)
 Invocation: `$happycodex:happycodex`
 Writer: Root only for the mutable resources listed below
-State: focused_hardening
+State: candidate_frozen
 Resume: restore this file and reconcile Git, tests, Goal, worktree, agents, and gates before any write, review, or completion.
 
 ## Outcome and baseline
@@ -172,7 +172,7 @@ exact-final review runs inside this batch.
 
 ## Checkpoint
 
-- Milestone: `RB-004` focused confirmation is `GO`; planned final-version metadata is being applied before exact source freeze.
+- Milestone: exact 0.4.1 source is frozen at revision `a56f0b41c78466d180709223d414e776310b8846`, tree `be4a632c3fb40eff2907ebf46bc49e802a258a38`, product-manifest SHA-256 `981f8412f64d44af8d246255531371dd8f1478af0b45f08c873a16fc3fd608c8` excluding only this ExecPlan. All five families are closed, no repair batch or reviewer remains active, and product writes are prohibited.
 - Last green: after final-version metadata, 133/133 tests passed in 8.280s; Ruff check/format, diff/JSON checks, official Skill/plugin validators, and corpus/holdout list/dry-run passed. Runtime/template remain 308 lines/2,686 words: below 340/3,000 hard limits and 8/86 above the optimization target.
 - Fresh genesis: stored/current snapshots are exact for `0.4.1+codex.20260728205019`; `verify` reports `refresh_required`, engine `d9b73df6…7b20`, snapshot `f900e138…966c`, ledger `b3df9259…5d27`; full 17-case/three-pair impact is 23–25 calls, 719,051–770,869 combined tokens, and 3,757.028–4,032.239 seconds, with no authority. Its basis explicitly distinguishes 0.3 observed receipts from the three new 0.4.1 conservative single-call proxies. Impact token is `9f546507…2b28`. Origin remains `730c6a5:docs/execplans/happycodex-0-4-release.md`, never old `current.json`.
 - Isolated install: `/var/tmp/happycodex-041-rb003.oyKhro` installed `0.4.1+codex.dev`; source/cache Skill SHA-256 both `fd33e911…8d6c`, source/cache manifest SHA-256 both `430f9f11…77e`, byte comparisons equal.
@@ -185,12 +185,12 @@ exact-final review runs inside this batch.
 - RB-004 RED: targeted five-test run produced eight failures and one error: all three contradictory permission states were accepted, shared receipts accepted the contradictions, the unselected recovery case was absent, and the fixed snapshot/impact still contained 16 cases.
 - Fourth focused-review prelaunch: exact repair range `b88300a…ceda..00a48e3…6271`; candidate tree `11f33b63…bd0f`; product-manifest SHA-256 excluding this plan `3d982fad…2b57`; 1,079-byte/116-word brief with final LF, SHA-256 `1c2aa420…eae`; output `/home/caichenghang/.codex/happycodex-0.4.1-reviews/focused-00a48e3.txt`. Exact command: `printf '%s\n' '<brief>' | codex review -c 'model="gpt-5.6-sol"' -c 'model_reasoning_effort="max"' -c 'sandbox_mode="read-only"' - | tee /home/caichenghang/.codex/happycodex-0.4.1-reviews/focused-00a48e3.txt`. It is history-aware, non-neutral, read-only/no-network, and cannot satisfy exact-final.
 - Fourth focused-review terminal receipt: native session `019faa76-dcce-77f1-95f8-c5c5b53be02a`, effective `gpt-5.6-sol/max`, approval `never`, read-only sandbox, output 225 bytes/30 words, SHA-256 `7db1188b…7899`. It independently exercised the three recovery outcomes, all three shared permission consumers, the 17-case impact, and the approval-bound mixed cost basis; verdict `GO`.
-- Finalization: plugin-creator cachebuster helper changed only the manifest version from `0.4.1+codex.dev` to `0.4.1+codex.20260728205019`; README already carries the synchronized 0.4.1 change note. This planned product-identity change retires the focused candidate identity and requires fresh genesis/checks/install before exact source freeze.
-- Owned dirty paths: final manifest identity, its exact tests/genesis, and this current index. These are ready for the exact-source freeze commit; old evidence files remain untouched.
+- Finalization: plugin-creator cachebuster helper changed only the manifest version from `0.4.1+codex.dev` to `0.4.1+codex.20260728205019`; README already carries the synchronized 0.4.1 change note. Fresh genesis and cumulative checks bind the frozen source above.
+- Owned dirty paths: this administrative candidate-frozen checkpoint only. Product source is clean and frozen; old evidence files remain untouched.
 - Goal: none.
 - Agents/reviewers: all three focused reviewers terminal and reconciled; no reviewer active.
-- Pending gates: exact-source freeze, fresh post-source evidence and isolated install,
-  exact-final reviews, any separately
+- Pending gates: fresh post-source evidence and exact isolated install, exact-final
+  reviews, any separately
   authorized live behavior evaluation, public release, personal upgrade, rollback, and
   downstream successor task creation.
 
