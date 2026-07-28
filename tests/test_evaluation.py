@@ -9,6 +9,7 @@ import tempfile
 import unittest
 from unittest import mock
 
+from evaluation.core import ledger as ledger_engine
 from evaluation.core import receipt as receipt_engine
 from evaluation.corpus import engine as runner
 
@@ -146,8 +147,91 @@ class HappyCodexEvaluationTests(unittest.TestCase):
         )
         self.assertIn("protocol_review_mode", schema["required"])
         recovery = schema["properties"]["recovery_state"]["properties"]
-        for phase in ("focused_hardening", "candidate_frozen", "exact_final"):
-            self.assertIn(phase, recovery["milestone_phase"]["enum"])
+        self.assertEqual(
+            recovery["milestone_phase"]["enum"],
+            [
+                "implementation",
+                "focused_hardening",
+                "candidate_frozen",
+                "exact_final",
+                "closed",
+            ],
+        )
+
+    def test_review_mode_and_recovery_phase_form_one_state_machine(self) -> None:
+        recovery = {
+            "baseline_revision": "1" * 40,
+            "baseline_tree": "2" * 40,
+            "current_revision": "3" * 40,
+            "current_tree": "4" * 40,
+            "writer": "Root",
+            "milestone_phase": "closed",
+            "next_action": "none",
+            "pending_gates": [],
+            "tests": {
+                "passed": 1,
+                "failed": 0,
+                "accepted_failures": 0,
+                "marker_ids": [],
+            },
+            "worktree": "clean",
+            "live_agents": [],
+            "marker_ids": [],
+        }
+        closed = {
+            "decision": "complete",
+            "qualifies": True,
+            "execplan_condition": "usable",
+            "protocol_may_product_write": False,
+            "protocol_review_mode": "none",
+            "protocol_may_complete": True,
+            "finding_classifications": [],
+            "blocker_classifications": [],
+            "open_gates": [],
+            "evidence": ["exact-final review and administrative closure"],
+            "reason": "The task is closed.",
+            "recovery_state": recovery,
+        }
+        closed_receipt = receipt_engine.sanitized_result_receipt(closed)
+        ledger_engine._validate_result_receipt(
+            closed_receipt,
+            label="closed",
+            required=True,
+            recovery_required=True,
+        )
+
+        contradictory = {
+            **closed,
+            "decision": "continue",
+            "protocol_may_product_write": True,
+            "protocol_review_mode": "exact_final",
+            "protocol_may_complete": False,
+            "open_gates": ["product_edit"],
+            "recovery_state": {
+                **recovery,
+                "milestone_phase": "implementation",
+                "next_action": "implement",
+                "pending_gates": ["product_edit"],
+            },
+        }
+        oracle = {
+            "expected": {
+                field: contradictory[field] for field in runner.PERMISSION_FIELDS
+            }
+        }
+        self.assertTrue(
+            any(
+                "exact_final" in failure
+                for failure in runner.match_oracle(contradictory, oracle)
+            )
+        )
+        with self.assertRaisesRegex(ValueError, "review mode state"):
+            ledger_engine._validate_result_receipt(
+                receipt_engine.sanitized_result_receipt(contradictory),
+                label="contradictory",
+                required=True,
+                recovery_required=True,
+            )
 
     def test_receipt_projection_binds_review_mode_without_alias(self) -> None:
         result = {
@@ -241,7 +325,37 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             )
         )
 
-    def test_positive_contract_fixtures_use_03_claim_states(self) -> None:
+    def test_fixed_behavior_inventory_exercises_041_convergence(self) -> None:
+        plans: list[str] = []
+        for case in self.cases.values():
+            for commit in case["fixture"].get("commits", []):
+                for relative, content in commit.get("files", {}).items():
+                    if (
+                        isinstance(content, str)
+                        and "execplan" in relative.casefold()
+                    ):
+                        plans.append(content)
+        self.assertTrue(plans)
+        self.assertTrue(
+            all("Protocol: HappyCodex/0.4.1" in plan for plan in plans)
+        )
+        inventory = "\n".join(plans).casefold()
+        for phrase in (
+            "convergence ledger",
+            "family_id",
+            "repair_batch",
+            "focused_hardening",
+            "candidate_frozen",
+            "exact_final",
+            "closed",
+            "shared mutable resource",
+            "output namespace",
+            "current index",
+            "content-addressed archive",
+        ):
+            self.assertIn(phrase, inventory)
+
+    def test_positive_contract_fixtures_use_current_claim_states(self) -> None:
         plan_paths = {
             "authorized-rebaseline": "docs/execplans/schema.md",
             "clean-qualifying-control": ".work/plans/default-limit.md",
@@ -1624,7 +1738,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
 
     def test_inventory_gate_fixture_is_otherwise_complete_but_unnumbered(self) -> None:
         excluded = "docs/execplans/inventory-gate.md"
-        self.assertTrue(
+        self.assertIn(
             "exact_final",
             self.cases["review-inventory-gate"]["oracle"]["expected"][
                 "protocol_review_mode"

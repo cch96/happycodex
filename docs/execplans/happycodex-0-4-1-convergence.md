@@ -109,7 +109,7 @@ task conversion enlarge the state space without helping convergence.
 | --- | --- | --- | --- | --- | --- |
 | `C-01` | outcome | Single-writer ownership is scoped to overlapping mutable resources; disjoint worktrees may run concurrently. | Protocol text plus positive and collision counterexamples. | pending | open |
 | `C-02` | outcome | Family hardening and frozen repair batches precede exact-final certification. | Open-family, reviewer-union, recurrence, and source-drift tests. | pending | open |
-| `C-03` | outcome | `protocol_may_review` is removed and receipts bind `none`, `focused_hardening`, or `exact_final`. | Shared schema, oracle, receipt, and ledger tests; no alias. | full tests and fresh ledger verify GREEN; only negative assertions mention the old key outside historical evidence | verified |
+| `C-03` | outcome | `protocol_may_review` is removed and receipts bind `none`, `focused_hardening`, or `exact_final`. | Shared schema, oracle, receipt, and ledger tests; no alias. | focused review found inconsistent phase/mode transitions; `RB-002` open | open |
 | `C-04` | outcome | ExecPlan is a bounded current index with fail-closed Git/archive recovery. | Size, tamper, no-commit, multi-repo, and compaction tests. | pending | open |
 | `C-05` | preservation | Public invocation stays `$happycodex:happycodex`; 0.4 Root writer and unrelated behavior remain. | Package/runtime tests and behavior comparison. | pending | open |
 | `C-06` | outcome | Exact 0.4.1 release, public install, personal upgrade, and 0.4.0 rollback are proven. | Fresh evidence, three GO reviews, install/readback, rollback rehearsal. | pending | open |
@@ -120,9 +120,10 @@ task conversion enlarge the state space without helping convergence.
 
 | Family | Invariant / boundary | Members | Scan surfaces | Status | Repair batch | Evidence | Recurrence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `F-CONV-001` | Review eligibility is phase- and evidence-exact across Runtime, evaluator, receipts, recovery, and every consumer. | `protocol_may_review`, hardening/final distinction, source invalidation | source/identity=clean-break enum RED/GREEN; type/cardinality=three exact strings; order/terminal=phase enum; alias/mutability/TOCTOU=no old key; serialization/replay=receipt and four-sibling replay GREEN; consumers/failure propagation=corpus/oracle/ledger GREEN | implementation complete; focused review pending | `RB-001` | five-test RED failed as expected; 128/128 cumulative GREEN; fresh genesis verifies | 0 |
-| `F-CONV-002` | Writer uniqueness applies exactly to shared mutable resources, not globally to unrelated worktrees. | worktree, branch/ref, ledger, evidence output, activation target | source/identity=all five named; type/cardinality=one owner per overlap; order/terminal=ownership before writes; alias/mutability/TOCTOU=overlap rejects; serialization/replay=template; consumers/failure propagation=Runtime/AGENTS tests GREEN | implementation complete; focused review pending | `RB-001` | contract tests GREEN | 0 |
-| `F-CONV-003` | Current-index recovery is bounded, complete, content-addressed, and fail closed. | checkpoint chain, no-commit ref/archive, compaction, multi-repo identity | source/identity=checkpoint/ref/digest; type/cardinality=one current index; order/terminal=reconcile before writes; alias/mutability/TOCTOU=tamper fails; serialization/replay=recovery enum; consumers/failure propagation=Runtime/template/ledger GREEN | implementation complete; focused review pending | `RB-001` | contract, recovery, no-commit, multi-repo tests and genesis verify GREEN | 0 |
+| `F-CONV-001` | Review eligibility is phase- and evidence-exact across Runtime, evaluator, receipts, recovery, and every consumer. | `protocol_may_review`, hardening/final distinction, source invalidation, `F-CONV-001-S01`, `F-CONV-001-S02` | source/identity=clean-break enum; type/cardinality=three exact strings; order/terminal=one lifecycle transition table; alias/mutability/TOCTOU=no old key or stale review authority; serialization/replay=receipt and recovery; consumers/failure propagation=schema/oracle/ledger/cases | reopened: contradictory transitions and ineffective membership assertion reproduced | `RB-002` | focused reviewer executable counterexamples; RED pending | 0 |
+| `F-CONV-002` | Writer uniqueness applies exactly to shared mutable resources, not globally to unrelated worktrees. | worktree, branch/ref, ledger, evidence output, activation target | source/identity=all five named; type/cardinality=one owner per overlap; order/terminal=ownership before writes; alias/mutability/TOCTOU=overlap rejects; serialization/replay=template; consumers/failure propagation=Runtime/AGENTS plus behavioral fixture | behavior replay missing | `RB-002` | focused finding `F-CONV-004`; RED pending | 0 |
+| `F-CONV-003` | Current-index recovery is bounded, complete, content-addressed, and fail closed. | checkpoint chain, no-commit ref/archive, compaction, multi-repo identity, `F-CONV-003-S01` | source/identity=checkpoint/ref/digest; type/cardinality=one current index; order/terminal=reconcile before writes; alias/mutability/TOCTOU=tamper fails; serialization/replay=exact five-phase enum including `closed`; consumers/failure propagation=Runtime/template/ledger/cases | reopened: schema retains `complete` and rejects `closed`; behavioral replay missing | `RB-002` | focused reviewer executable counterexample; RED pending | 0 |
+| `F-CONV-004` | The fresh 0.4.1 evidence inventory behaviorally exercises the new convergence protocol rather than relabeling 0.3 oracles. | protocol identity, family/repair batch, resource collision, current index, lifecycle transitions | source/identity=0.4.1 fixtures; type/cardinality=one owner and stable families; order/terminal=all five phases; alias/mutability/TOCTOU=collision and drift; serialization/replay=current index; consumers/failure propagation=fixed case/oracle inventory and genesis | new material family from focused review | `RB-002` | all plan-bearing fixtures still contain 0.3 and no new lifecycle concepts | 0 |
 
 ## Implementation and verification boundary
 
@@ -143,16 +144,24 @@ Runtime budgets, isolated install/invocation, and compaction recovery equivalenc
 Model-reaching evaluator, live corpus/holdout, public release, active installation, and
 task successor creation remain later gated operations.
 
+`RB-002` is frozen from the complete focused-review union. It may modify the same
+product boundary as `RB-001` and must first add executable RED for the lifecycle
+transition table, `closed` serialization, exact-final membership assertion, and fixed
+0.4.1 behavioral fixtures. It then replaces the scattered phase checks with one shared
+constraint, updates the fixed case inventory without adding a compatibility reader,
+and creates a new fresh genesis. No exact-final review may run inside this batch.
+
 ## Checkpoint
 
-- Milestone: `RB-001` implementation commit `2b62229`; genesis commit `943c47c`; offline hardening checks complete; focused-review prelaunch recorded below.
-- Last green: `python3 -m evaluation.cli verify` reports `ok`, ledger `refresh_required`, engine `3bd19bb7…5431`, snapshot `3ca0c1c3…7c03`, ledger `6848ab03…ecda`; `python3 -m evaluation.cli impact` reports all 14 corpus cases, three holdout pairs, 20–22 live calls, impact token `5754e3ee…f8dd`, and no authority. Full suite: 128/128 passed in 8.142s. Ruff and diff checks passed.
+- Milestone: focused reviewer terminal `NOT YET`; `RB-002` frozen and RED is next.
+- Last green: the `RB-001` suite was 128/128, but its genesis is invalidated by the focused findings and by toolchain drift from ripgrep 15.1.0 to 15.2.0. Current read-only verify remains fail-closed at `refresh_required`; no live evaluator ran.
 - Validators/dry-run/install: official Skill and plugin validators passed; corpus and holdout list/dry-run passed. Isolated home `/tmp/happycodex-041-install.hGHnlL` installed `0.4.1+codex.dev`; source/cache Skill SHA-256 both `944d3f50…6aca`, source/cache manifest SHA-256 both `71958403…6ae`.
 - Focused review prelaunch: candidate `943c47c6b8971723c0f59bcc2c0fa6d69b6e13aa`, tree `901601e47d8d0712ad8c904aaa22e01b99d597fb`, base `8099aeb05bdb5ae0aab3a9d39a3ca77c64d89b30`, product-manifest SHA-256 excluding this plan `e53f38a7…24f7`; 29 diff units listed by `git diff --name-only`. Brief is the 901-byte focused-hardening text with final LF, SHA-256 `474873b0…051e`. The first predeclared `codex review --base … -` command exited before launch because this CLI forbids a selector plus custom prompt; it produced no reviewer result. Corrected exact command: `printf '%s\n' '<brief>' | codex review -c 'model="gpt-5.6-sol"' -c 'model_reasoning_effort="max"' -c 'sandbox_mode="read-only"' - | tee /home/caichenghang/.codex/happycodex-0.4.1-reviews/focused-943c47c.txt`; the brief itself binds the exact range. It is non-neutral, read-only, no-network, and cannot satisfy exact-final.
+- Focused review terminal receipt: native session `019faa2a-f31e-7ce1-824e-b2803c55bde3`, effective `gpt-5.6-sol/max`, approval `never`, read-only sandbox, output SHA-256 `bc541ae0…c7bc`. Verdict `NOT YET`: `F-CONV-001-S01`, `F-CONV-004`, `F-CONV-003-S01`, and `F-CONV-001-S02`. Root reproduced completion/mode disagreement, accepted `exact_final` plus active writes, rejected `closed`, absent 0.4.1 fixtures, and the constant-truth assertion.
 - Owned dirty paths: this ExecPlan only. Old evidence files remain untouched.
 - Goal: none.
-- Agents/reviewers: none launched.
-- Pending gates: focused hardening,
+- Agents/reviewers: focused reviewer terminal and fully reconciled; no live reviewer.
+- Pending gates: `RB-002` RED/GREEN and focused hardening,
   final version/cachebuster, fresh genesis/evidence, exact-final reviews, any separately
   authorized live behavior evaluation, public release, personal upgrade, rollback, and
   downstream successor task creation.
