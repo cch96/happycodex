@@ -51,7 +51,7 @@ runtime and must never be linked from `skills/happycodex/SKILL.md`.
 - Reject on the candidate's first completion-blocking holdout regression. After a
   first success run a second distinct pair; use a third only for a split or uncertain
   result. At equal quality, uncached input plus output tokens and wall time must each
-  stay within 25% of public 0.2.
+  stay within 25% of public 0.4.0.
 - Before release, use the plugin-creator cachebuster helper rather than hand-editing
   marketplace state. Re-run exact final product-scope review after version/change-note
   edits, prove a fresh isolated install/invocation of that exact release, then update

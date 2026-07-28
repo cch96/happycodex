@@ -38,7 +38,7 @@ from evaluation.corpus.contract import (
     PARENT_CONTEXT_ENV,
     PERMISSION_FIELDS,
     PERMISSION_PROFILE,
-    PUBLIC_02_PACKAGE_ARTIFACT_SHA256,
+    PUBLIC_040_PACKAGE_ARTIFACT_SHA256,
     RECOVERY_GATE_FIELDS,
     RECOVERY_STATE_FIELDS,
     REQUIRED_TAGS,
@@ -57,20 +57,19 @@ EXPECTED_CANDIDATE_SKILL_ENTRIES = frozenset(
         "references/execplan.md",
     }
 )
-EXPECTED_PUBLIC_02_SKILL_ENTRIES = frozenset(
+EXPECTED_PUBLIC_040_SKILL_ENTRIES = frozenset(
     {
         "SKILL.md",
         "agents",
         "agents/openai.yaml",
         "references",
-        "references/external-review.md",
-        "references/task-packets.md",
+        "references/execplan.md",
     }
 )
-EXPECTED_PUBLIC_02_PACKAGE_MANIFEST_SHA256 = PUBLIC_02_PACKAGE_ARTIFACT_SHA256
+EXPECTED_PUBLIC_040_PACKAGE_MANIFEST_SHA256 = PUBLIC_040_PACKAGE_ARTIFACT_SHA256
 EXPECTED_SKILL_ENTRIES_BY_ARM = {
     "candidate": EXPECTED_CANDIDATE_SKILL_ENTRIES,
-    "public-0.2": EXPECTED_PUBLIC_02_SKILL_ENTRIES,
+    "public-0.4.0": EXPECTED_PUBLIC_040_SKILL_ENTRIES,
 }
 EXPECTED_COMMON_PACKAGE_ENTRIES = frozenset(
     {
@@ -1647,7 +1646,7 @@ def _validate_case_capability(
                 "semantic_sha256": descriptor.get("candidate_semantic_sha256"),
                 "artifact_sha256": descriptor.get("candidate_artifact_sha256"),
             }
-        elif arm == "public-0.2":
+        elif arm == "public-0.4.0":
             expected_package = {
                 "semantic_sha256": descriptor.get("public_semantic_sha256"),
                 "artifact_sha256": descriptor.get("public_artifact_sha256"),

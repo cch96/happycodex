@@ -33,7 +33,7 @@ from evaluation.corpus.contract import (
     CONVERGENCE_PHASES,
     FILESYSTEM_ISOLATION_POLICY,
     PERMISSION_FIELDS,
-    PUBLIC_02_PACKAGE_ARTIFACT_SHA256,
+    PUBLIC_040_PACKAGE_ARTIFACT_SHA256,
     RECOVERY_GATE_FIELDS,
     protocol_state_failures,
 )
@@ -381,8 +381,8 @@ def _validate_invocation(invocation: Any) -> None:
             "public_artifact_sha256",
         )
         _validate_ordered_names(invocation["pairs"], label="holdout pairs")
-        if invocation["public_artifact_sha256"] != PUBLIC_02_PACKAGE_ARTIFACT_SHA256:
-            raise ValueError("authorized holdout does not use frozen public-0.2")
+        if invocation["public_artifact_sha256"] != PUBLIC_040_PACKAGE_ARTIFACT_SHA256:
+            raise ValueError("authorized holdout does not use frozen public-0.4.0")
     for field in digest_fields:
         _require_digest(invocation[field], length=64, label=field)
 
@@ -1728,7 +1728,7 @@ def _validate_holdout_run(
         or payload.get("timeout_seconds") != settings["timeout_seconds"]
         or engine != source["engine"]
         or not isinstance(packages, dict)
-        or set(packages) != {"candidate", "public-0.2"}
+        or set(packages) != {"candidate", "public-0.4.0"}
         or packages.get("candidate") != snapshot["package"]
         or not isinstance(pair_ids, list)
         or pair_ids != source["holdout_pair_order"]
@@ -1744,7 +1744,7 @@ def _validate_holdout_run(
         (item for item in authority["invocations"] if item["command"] == "holdout"),
         None,
     )
-    public = packages.get("public-0.2")
+    public = packages.get("public-0.4.0")
     if holdout_invocation is not None:
         if not isinstance(public, dict) or public != {
             "semantic_sha256": holdout_invocation["public_semantic_sha256"],
@@ -1754,7 +1754,7 @@ def _validate_holdout_run(
     elif (
         not isinstance(public, dict)
         or set(public) != {"semantic_sha256", "artifact_sha256"}
-        or public.get("artifact_sha256") != PUBLIC_02_PACKAGE_ARTIFACT_SHA256
+        or public.get("artifact_sha256") != PUBLIC_040_PACKAGE_ARTIFACT_SHA256
     ):
         raise ValueError("invalid holdout public evidence")
     return pair_ids, public
@@ -1855,7 +1855,7 @@ def _validate_holdout_summary(
                 receipt.get(field), length=64, label=f"holdout pair {field}"
             )
         arms = receipt.get("arms") if isinstance(receipt, dict) else None
-        if not isinstance(arms, dict) or set(arms) != {"candidate", "public-0.2"}:
+        if not isinstance(arms, dict) or set(arms) != {"candidate", "public-0.4.0"}:
             raise ValueError("invalid holdout arm evidence")
         candidate_passed = (
             arms["candidate"].get("passed")
@@ -1863,8 +1863,8 @@ def _validate_holdout_summary(
             else None
         )
         public_passed = (
-            arms["public-0.2"].get("passed")
-            if isinstance(arms["public-0.2"], dict)
+            arms["public-0.4.0"].get("passed")
+            if isinstance(arms["public-0.4.0"], dict)
             else None
         )
         if not isinstance(candidate_passed, bool) or not isinstance(
@@ -1890,9 +1890,9 @@ def _validate_holdout_summary(
             source=source,
         )
         _validate_arm_identity(
-            arms["public-0.2"],
+            arms["public-0.4.0"],
             snapshot,
-            arm="public-0.2",
+            arm="public-0.4.0",
             expected_passed=public_passed,
             descriptor=descriptor,
             package=public_package,
@@ -1904,17 +1904,17 @@ def _validate_holdout_summary(
                 "output_tokens": arms[arm]["usage"]["output_tokens"],
                 "elapsed_seconds": arms[arm]["elapsed_seconds"],
             }
-            for arm in ("candidate", "public-0.2")
+            for arm in ("candidate", "public-0.4.0")
         }
         if receipt.get("metrics") != expected_metrics:
             raise ValueError("holdout arm metrics mismatch")
     quality = aggregate_quality(outcomes)
     aggregate = {
         arm: sum_metrics([receipt["metrics"][arm] for receipt in receipts])
-        for arm in ("candidate", "public-0.2")
+        for arm in ("candidate", "public-0.4.0")
     }
     expected_gate = cost_gate(
-        aggregate["candidate"], aggregate["public-0.2"], quality=quality
+        aggregate["candidate"], aggregate["public-0.4.0"], quality=quality
     )
     if (
         payload.get("cost_gate") != expected_gate

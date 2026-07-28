@@ -63,7 +63,7 @@ def build_parser() -> argparse.ArgumentParser:
     impact.add_argument(
         "--public",
         type=Path,
-        help="bind the pinned public-0.2 package into the proposed holdout invocation",
+        help="bind the pinned public-0.4.0 package into the proposed holdout invocation",
     )
 
     corpus = commands.add_parser("corpus", help="inspect or run behavior cases")
@@ -75,7 +75,7 @@ def build_parser() -> argparse.ArgumentParser:
     corpus.add_argument("--effort", default=DEFAULT_EFFORT)
     corpus.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT)
     corpus.add_argument(
-        "--arm", choices=("candidate", "public-0.2"), default="candidate"
+        "--arm", choices=("candidate", "public-0.4.0"), default="candidate"
     )
     corpus.add_argument("--output", type=Path)
     corpus.add_argument("--bind-impact")

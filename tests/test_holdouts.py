@@ -312,7 +312,7 @@ class HappyCodexHoldoutTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)
             candidate = root / "candidate"
-            public = root / "not-public-0.2"
+            public = root / "not-public-0.4.0"
             output = root / "results"
             candidate.mkdir()
             public.mkdir()
@@ -347,7 +347,7 @@ class HappyCodexHoldoutTests(unittest.TestCase):
                 ) as run_pair,
             ):
                 with self.assertRaisesRegex(
-                    ValueError, "public-0.2 package manifest mismatch"
+                    ValueError, "public-0.4.0 package manifest mismatch"
                 ):
                     holdout_engine.run_holdouts(
                         candidate=candidate,

@@ -187,7 +187,7 @@ def run_pair(
     commitment_sha = write_new_json(
         pair_output / "01-mapping-commitment.json", sealed.public_receipt()
     )
-    plugins = {"candidate": candidate, "public-0.2": public}
+    plugins = {"candidate": candidate, "public-0.4.0": public}
     inverse = {alias: arm for arm, alias in sealed._mapping.items()}
     raw: dict[str, dict[str, Any]] = {}
     for alias in ALIASES:
@@ -286,26 +286,26 @@ def run_holdouts(
         raise ValueError("holdout execution does not match the validated capability")
     candidate_manifest = package_manifest_sha256(candidate)
     public_manifest = package_manifest_sha256(public)
-    if public_manifest != corpus_engine.EXPECTED_PUBLIC_02_PACKAGE_MANIFEST_SHA256:
+    if public_manifest != corpus_engine.EXPECTED_PUBLIC_040_PACKAGE_MANIFEST_SHA256:
         raise ValueError(
-            "public-0.2 package manifest mismatch: "
+            "public-0.4.0 package manifest mismatch: "
             f"got {public_manifest}, expected "
-            f"{corpus_engine.EXPECTED_PUBLIC_02_PACKAGE_MANIFEST_SHA256}"
+            f"{corpus_engine.EXPECTED_PUBLIC_040_PACKAGE_MANIFEST_SHA256}"
         )
     package_manifests = {
         "candidate": candidate_manifest,
-        "public-0.2": public_manifest,
+        "public-0.4.0": public_manifest,
     }
     package_identity = {
         "candidate": package_identities(candidate),
-        "public-0.2": package_identities(public),
+        "public-0.4.0": package_identities(public),
     }
     if package_identity != {
         "candidate": {
             "semantic_sha256": descriptor.get("candidate_semantic_sha256"),
             "artifact_sha256": descriptor.get("candidate_artifact_sha256"),
         },
-        "public-0.2": {
+        "public-0.4.0": {
             "semantic_sha256": descriptor.get("public_semantic_sha256"),
             "artifact_sha256": descriptor.get("public_artifact_sha256"),
         },
@@ -350,7 +350,7 @@ def run_holdouts(
         outcomes.append(receipt["outcome"])
     if {
         arm: package_manifest_sha256(path)
-        for arm, path in (("candidate", candidate), ("public-0.2", public))
+        for arm, path in (("candidate", candidate), ("public-0.4.0", public))
     } != package_manifests:
         raise RuntimeError("evaluated package changed during holdouts")
     quality = aggregate_quality(outcomes)
@@ -358,7 +358,7 @@ def run_holdouts(
         arm: sum_metrics([receipt["metrics"][arm] for receipt in receipts])
         for arm in ACTUAL_ARMS
     }
-    gate = cost_gate(aggregate["candidate"], aggregate["public-0.2"], quality=quality)
+    gate = cost_gate(aggregate["candidate"], aggregate["public-0.4.0"], quality=quality)
     summary = {
         "schema_version": 1,
         "engine_generation": "0.4",

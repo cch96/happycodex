@@ -93,8 +93,8 @@ python3 -m evaluation.cli holdout --dry-run
 ```
 
 The same persisted authority must separately name the exact adaptive holdout
-invocation. Compare an immutable public checkout with raw output outside both source
-trees:
+invocation. Compare the immutable public `v0.4.0` package with raw output outside
+both source trees:
 
 ```bash
 python3 -m evaluation.cli holdout \

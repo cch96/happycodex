@@ -18,7 +18,7 @@ def compare_pair(decision: dict[str, Any], reveal: dict[str, Any]) -> str:
     if set(rows) != set(ALIASES):
         raise ValueError("decision aliases do not match reveal")
     candidate = rows[reveal["mapping"]["candidate"]]["quality"]
-    public = rows[reveal["mapping"]["public-0.2"]]["quality"]
+    public = rows[reveal["mapping"]["public-0.4.0"]]["quality"]
     if candidate == "fail":
         return "regression"
     return "better" if public == "fail" else "equal"

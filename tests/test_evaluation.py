@@ -877,21 +877,24 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             root = Path(raw)
             public_source = root / "public-source"
             runner.copy_plugin_package(ROOT, public_source)
-            references = public_source / "skills/happycodex/references"
-            (references / "execplan.md").unlink()
-            (references / "external-review.md").write_text("public review\n")
-            (references / "task-packets.md").write_text("public tasks\n")
-
             public_package = root / "public-package"
-            runner.copy_plugin_package(public_source, public_package, arm="public-0.2")
+            runner.copy_plugin_package(
+                public_source, public_package, arm="public-0.4.0"
+            )
+
+            legacy_source = root / "legacy-public-source"
+            runner.copy_plugin_package(ROOT, legacy_source)
+            legacy_references = legacy_source / "skills/happycodex/references"
+            (legacy_references / "execplan.md").unlink()
+            (legacy_references / "external-review.md").write_text("legacy review\n")
+            (legacy_references / "task-packets.md").write_text("legacy tasks\n")
             with self.assertRaisesRegex(RuntimeError, "runtime surface"):
                 runner.copy_plugin_package(
-                    public_source, root / "candidate-rejects-public"
+                    legacy_source,
+                    root / "public-rejects-legacy-surface",
+                    arm="public-0.4.0",
                 )
-            with self.assertRaisesRegex(RuntimeError, "runtime surface"):
-                runner.copy_plugin_package(
-                    ROOT, root / "public-rejects-candidate", arm="public-0.2"
-                )
+            references = public_source / "skills/happycodex/references"
             hidden = references / "__pycache__/hidden.pyc"
             hidden.parent.mkdir()
             hidden.write_bytes(b"untracked public runtime input")
@@ -899,7 +902,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                 runner.copy_plugin_package(
                     public_source,
                     root / "public-rejects-hidden",
-                    arm="public-0.2",
+                    arm="public-0.4.0",
                 )
 
             manifest = runner.package_identities(public_package)["semantic_sha256"]
@@ -915,7 +918,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                     case, **common, arm="candidate"
                 ),
                 runner.semantic_input_sha256_from_package(
-                    case, **common, arm="public-0.2"
+                    case, **common, arm="public-0.4.0"
                 ),
             )
 
@@ -1182,7 +1185,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             self.assertEqual(
                 runner.resolve_output_path(expected, plugin=ROOT), expected
             )
-            alternate_plugin = Path(raw) / "public-0.2"
+            alternate_plugin = Path(raw) / "public-0.4.0"
             alternate_plugin.mkdir()
             with self.assertRaisesRegex(ValueError, "evaluated plugin"):
                 runner.resolve_output_path(

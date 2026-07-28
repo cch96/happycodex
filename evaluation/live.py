@@ -81,9 +81,9 @@ def proposed_invocations(
         public_identity = package_identities(public.expanduser().resolve())
         if (
             public_identity["artifact_sha256"]
-            != corpus_engine.EXPECTED_PUBLIC_02_PACKAGE_MANIFEST_SHA256
+            != corpus_engine.EXPECTED_PUBLIC_040_PACKAGE_MANIFEST_SHA256
         ):
-            raise ValueError("public-0.2 package manifest mismatch")
+            raise ValueError("public-0.4.0 package manifest mismatch")
         invocations.append(
             {
                 "command": "holdout",

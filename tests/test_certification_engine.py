@@ -1445,7 +1445,7 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                     "engine": engine_identity,
                     "packages": {
                         "candidate": snapshot["package"],
-                        "public-0.2": public_identity,
+                        "public-0.4.0": public_identity,
                     },
                     "toolchain": settings["toolchain"],
                 },
@@ -1481,7 +1481,7 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                     )
                     for arm, package in (
                         ("candidate", snapshot["package"]),
-                        ("public-0.2", public_identity),
+                        ("public-0.4.0", public_identity),
                     )
                 }
                 pair_receipts.append(
@@ -1501,7 +1501,7 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                         "outcome": "equal",
                         "metrics": {
                             "candidate": metrics,
-                            "public-0.2": metrics,
+                            "public-0.4.0": metrics,
                         },
                         "arms": arm_receipts,
                     },
@@ -1547,7 +1547,7 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
             authentic_better["adaptive_history"] = ["better", "better"]
             for pair_receipt in authentic_better["pair_receipts"]:
                 pair_receipt["outcome"] = "better"
-                public_receipt = pair_receipt["arms"]["public-0.2"]
+                public_receipt = pair_receipt["arms"]["public-0.4.0"]
                 public_receipt["passed"] = False
                 public_receipt["oracle_failures"] = {
                     "count": 1,
@@ -1591,19 +1591,19 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
 
             malformed_nested = copy.deepcopy(authentic_better)
             malformed_public = malformed_nested["pair_receipts"][0]["arms"][
-                "public-0.2"
+                "public-0.4.0"
             ]
             malformed_public["usage_phases"] = [None]
             malformed_public["result"] = "runner-impossible"
             malformed_public["native_compaction"] = "runner-impossible"
 
             timed_out_zero_exit = copy.deepcopy(authentic_better)
-            timed_out_zero_exit["pair_receipts"][0]["arms"]["public-0.2"][
+            timed_out_zero_exit["pair_receipts"][0]["arms"]["public-0.4.0"][
                 "timed_out"
             ] = True
 
             null_result_with_usage = copy.deepcopy(authentic_better)
-            null_result_with_usage["pair_receipts"][0]["arms"]["public-0.2"][
+            null_result_with_usage["pair_receipts"][0]["arms"]["public-0.4.0"][
                 "result"
             ] = None
 
