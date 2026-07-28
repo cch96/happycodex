@@ -145,12 +145,14 @@ task successor creation remain later gated operations.
 
 ## Checkpoint
 
-- Milestone: `RB-001` implementation commit `2b62229`; fresh 0.4.1 genesis built and verified; next: commit genesis, run official validators/isolated checks, then focused review.
+- Milestone: `RB-001` implementation commit `2b62229`; genesis commit `943c47c`; offline hardening checks complete; focused-review prelaunch recorded below.
 - Last green: `python3 -m evaluation.cli verify` reports `ok`, ledger `refresh_required`, engine `3bd19bb7…5431`, snapshot `3ca0c1c3…7c03`, ledger `6848ab03…ecda`; `python3 -m evaluation.cli impact` reports all 14 corpus cases, three holdout pairs, 20–22 live calls, impact token `5754e3ee…f8dd`, and no authority. Full suite: 128/128 passed in 8.142s. Ruff and diff checks passed.
-- Owned dirty paths: fresh `evaluation/results/current.json` and this ExecPlan only. Old evidence files remain untouched.
+- Validators/dry-run/install: official Skill and plugin validators passed; corpus and holdout list/dry-run passed. Isolated home `/tmp/happycodex-041-install.hGHnlL` installed `0.4.1+codex.dev`; source/cache Skill SHA-256 both `944d3f50…6aca`, source/cache manifest SHA-256 both `71958403…6ae`.
+- Focused review prelaunch: candidate `943c47c6b8971723c0f59bcc2c0fa6d69b6e13aa`, tree `901601e47d8d0712ad8c904aaa22e01b99d597fb`, base `8099aeb05bdb5ae0aab3a9d39a3ca77c64d89b30`, product-manifest SHA-256 excluding this plan `e53f38a7…24f7`; 29 diff units listed by `git diff --name-only`. Brief is the 901-byte focused-hardening text with final LF, SHA-256 `474873b0…051e`. Exact command: `printf '%s\n' '<brief>' | codex review --base 8099aeb05bdb5ae0aab3a9d39a3ca77c64d89b30 -c 'model="gpt-5.6-sol"' -c 'model_reasoning_effort="max"' -c 'sandbox_mode="read-only"' - | tee /home/caichenghang/.codex/happycodex-0.4.1-reviews/focused-943c47c.txt`. It is explicitly non-neutral, read-only, no-network, and cannot satisfy exact-final.
+- Owned dirty paths: this ExecPlan only. Old evidence files remain untouched.
 - Goal: none.
 - Agents/reviewers: none launched.
-- Pending gates: genesis commit, official validators/isolated checks, focused hardening,
+- Pending gates: focused hardening,
   final version/cachebuster, fresh genesis/evidence, exact-final reviews, any separately
   authorized live behavior evaluation, public release, personal upgrade, rollback, and
   downstream successor task creation.
