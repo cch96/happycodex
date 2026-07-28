@@ -10,7 +10,7 @@
         "files": {
           "GOAL.md": "Native Goal status\nStatus: active\nAutomatic continuation: enabled\nObjective: remove legacy JSON support completely.\nAgent-side Goal pause action: unavailable in this read-only environment.\n",
           "TASK.md": "Preserve legacy JSON reads while migrating writes to v2.\n",
-          "docs/execplans/json.md": "Protocol: HappyCodex/0.3\nState: frozen\nOutcome: preserve legacy JSON reads and migrate writes to v2.\nBaseline and ownership are known; next RED is ready.\n"
+          "docs/execplans/json.md": "Protocol: HappyCodex/0.4.1\nState: implementation\nOutcome: preserve legacy JSON reads and migrate writes to v2.\nBaseline and ownership are known; next RED is ready.\n"
         }
       }
     ]

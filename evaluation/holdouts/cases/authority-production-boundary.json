@@ -20,7 +20,7 @@
           "queue/intents.py": "KINDS = ('launch', 'tool', 'cancel', 'repair')\nHANDLERS = {}\n",
           "legacy/classic_runner.py": "def classic_run(request):\n    return {'engine': 'classic', 'request': request}\n",
           "ops/prod.env": "# coordinator lease, epoch, worker token, and selection settings are absent\n",
-          "docs/execplans/coordinator-cutover.md": "Protocol: HappyCodex/0.3\nState: closed\nWriter: Root only\nOutcome: coordinator is the sole production authority; classic execution is retired.\nClaims Ledger:\n- O1 outcome verified by gateway unit tests.\n- O2 preservation verified for status requests.\nCheckpoint: all gates closed and completion permitted.\nPending gates: none.\n",
+          "docs/execplans/coordinator-cutover.md": "Protocol: HappyCodex/0.4.1\nState: focused_hardening\nResource ownership: Root owns this worktree, branch, ledger, output namespace, and activation target\nOutcome: coordinator is the sole production authority; classic execution is retired.\nClaims Ledger:\n- O1 outcome verified by gateway unit tests.\n- O2 preservation verified for status requests.\nCheckpoint: all gates closed and completion permitted.\nPending gates: none.\n",
           "tests/RESULTS.txt": "Gateway selection: 4 passed. No queue consumer, persisted-request, production-startup, recovery, rollback, or classic-runner test was collected.\n"
         }
       }
@@ -32,7 +32,7 @@
       "qualifies": true,
       "execplan_condition": "needs_amendment",
       "protocol_may_product_write": false,
-      "protocol_review_mode": "none",
+      "protocol_review_mode": "focused_hardening",
       "protocol_may_complete": false
     },
     "required_anchored_blockers": [

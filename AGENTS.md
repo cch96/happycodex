@@ -7,10 +7,9 @@ runtime and must never be linked from `skills/happycodex/SKILL.md`.
 
 - Runtime Markdown: target at most 300 lines; target at most 2,600 words. Hard
   ceilings are 340 lines and 3,000 words.
-- The public 0.3 release, active installation, and every shipped-package byte remained
-  unchanged throughout the 0.4 certification-engine phase. The 0.4 release follows
-  its separately frozen gates and explicit authority. The operative 0.4 Outcome
-  excludes Fable; future tasks follow their own exact frozen review requirements.
+- The public and active 0.4.0 bytes remain unchanged until the separately authorized
+  0.4.1 cutover. The operative 0.4.1 Outcome excludes Fable as product evidence;
+  future tasks follow their own exact frozen review requirements.
 - Use only `python3 -m evaluation.cli`. Every evaluator Python/schema input must be
   classified as semantic, harness, or artifact. Unknown inputs fail closed. The
   read-only impact receipt and exact historical cost must be persisted before any
@@ -23,17 +22,17 @@ runtime and must never be linked from `skills/happycodex/SKILL.md`.
   envelope must equal the source-derived receipt exactly. The validator mints one
   immutable process-local capability, and every model-reaching corpus/holdout helper
   must require and rebind that capability before fixture, mapping, or subprocess work.
-- `evaluation/results/current.json` is the sole active evidence ledger. Never promote
-  `refresh_required` to `certified` from offline checks, and do not add historical
-  result readers, aliases, migrations, or dual writes. Certification additionally
+- `evaluation/results/current.json` is the sole active evidence ledger. 0.4.1 starts
+  from a fresh full-refresh genesis: never promote `refresh_required` to `certified`
+  from offline checks, and do not reuse 0.4 coverage or add historical-result
+  compatibility readers, aliases, migrations, or dual writes. Certification additionally
   requires a Git-reachable successor source whose normalized Git package artifact and
   engine manifest match the snapshot and whose `current.json` already persists the
   exact authority and pending-derived impact. Every evidence commit must strictly
-  postdate that source. A coverage manifest names every current case and pair as
-  refreshed or prior; prior coverage is valid only through a strictly older,
-  digest-bound, fully validated 0.4 certified ledger whose snapshot-to-successor
-  impact recomputes exactly. Corpus and holdout input schema validation must be shared
-  by impact planning and execution. A zero-live `receipt` or `isolated_install` gate
+  postdate that source. The 0.4.1 coverage manifest marks every case and pair refreshed;
+  old 0.4 evidence is historical context only. Corpus and holdout input schema validation
+  must be shared by impact planning and execution. A zero-live `receipt` or
+  `isolated_install` gate
   still requires strictly post-source, content-addressed `offline_summary` evidence:
   receipt evidence binds the current artifact identity, and install evidence binds
   the existing exact source/installed package receipt. Fresh Native review is an

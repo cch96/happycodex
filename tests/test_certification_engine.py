@@ -278,7 +278,7 @@ class CertificationImpactTests(unittest.TestCase):
         self.assertEqual(len(snapshot["holdout"]["pairs"]), 3)
         self.assertEqual(
             snapshot["package"]["artifact_sha256"],
-            "c6f3c34de50df36c73f89011784fdca2f619728b4c3ecbcd95b52e78d1d41d65",
+            "b9eaa52331d259cdd22aa5270e84e640c6fda023caa389f7ebb49e621e643e24",
         )
         self.assertEqual(
             set(snapshot["settings"]["toolchain"]), {"python", "codex", "git", "rg"}
@@ -508,6 +508,22 @@ class CertificationImpactTests(unittest.TestCase):
         invalid["historical_cost"] = {}
         with self.assertRaisesRegex(ValueError, "historical cost"):
             validate_ledger(invalid, repo=ROOT)
+
+        active = json.loads(
+            (ROOT / "evaluation" / "results" / "current.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertNotEqual(
+            active["prior_evidence"]["source_path"],
+            "evaluation/results/current.json",
+        )
+        self.assertEqual(
+            active["pending"]["corpus_cases"], sorted(current["corpus"]["cases"])
+        )
+        self.assertEqual(
+            active["pending"]["holdout_pairs"], sorted(current["holdout"]["pairs"])
+        )
 
 
 class CertificationReceiptAndCliTests(unittest.TestCase):

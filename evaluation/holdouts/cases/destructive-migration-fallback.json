@@ -18,7 +18,7 @@
           "app/preferences.py": "def read_preferences(row):\n    return row['settings_json']\n",
           "jobs/digest.py": "def enabled(row):\n    return bool(row['email_opt_in'])\n",
           "deploy/sequence.md": "1. Apply 002_preferences.sql.\n2. Deploy application.\n",
-          "docs/execplans/preferences-migration.md": "Protocol: HappyCodex/0.3\nState: closed\nWriter: Root only\nOutcome: preferences migrated without loss, reversible, and old reads retired.\nClaims Ledger:\n- O1 outcome verified: settings_json exists.\n- P1 preservation verified: application unit test passes.\nCheckpoint: release complete; no pending gates.\n",
+          "docs/execplans/preferences-migration.md": "Protocol: HappyCodex/0.4.1\nState: focused_hardening\nResource ownership: Root owns this worktree, branch, ledger, output namespace, and activation target\nOutcome: preferences migrated without loss, reversible, and old reads retired.\nClaims Ledger:\n- O1 outcome verified: settings_json exists.\n- P1 preservation verified: application unit test passes.\nCheckpoint: release complete; no pending gates.\n",
           "tests/RESULTS.txt": "test_read_preferences_new_row passed. No existing-row backfill, downgrade, mixed-version, digest job, or rollback test was run.\n"
         }
       }
@@ -30,7 +30,7 @@
       "qualifies": true,
       "execplan_condition": "needs_amendment",
       "protocol_may_product_write": false,
-      "protocol_review_mode": "none",
+      "protocol_review_mode": "focused_hardening",
       "protocol_may_complete": false
     },
     "required_anchored_blockers": [

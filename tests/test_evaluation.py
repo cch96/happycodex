@@ -200,6 +200,72 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             recovery_required=True,
         )
 
+        nonterminal = {
+            "implementation": ("none", True, "implement", ["product_edit"]),
+            "focused_hardening": (
+                "focused_hardening",
+                True,
+                "focused_review",
+                ["family_hardening"],
+            ),
+            "candidate_frozen": (
+                "none",
+                False,
+                "exact_final_review",
+                ["exact_final_review"],
+            ),
+            "exact_final": (
+                "exact_final",
+                False,
+                "exact_final_review",
+                ["exact_final_review"],
+            ),
+        }
+        for phase, (mode, may_write, next_action, pending) in nonterminal.items():
+            with self.subTest(phase=phase):
+                result = {
+                    **closed,
+                    "decision": "continue",
+                    "protocol_may_product_write": may_write,
+                    "protocol_review_mode": mode,
+                    "protocol_may_complete": False,
+                    "open_gates": pending,
+                    "recovery_state": {
+                        **recovery,
+                        "milestone_phase": phase,
+                        "next_action": next_action,
+                        "pending_gates": pending,
+                    },
+                }
+                oracle = {
+                    "expected": {
+                        field: result[field] for field in runner.PERMISSION_FIELDS
+                    }
+                }
+                self.assertEqual(runner.match_oracle(result, oracle), [])
+                ledger_engine._validate_result_receipt(
+                    receipt_engine.sanitized_result_receipt(result),
+                    label=phase,
+                    required=True,
+                    recovery_required=True,
+                )
+                result["protocol_review_mode"] = (
+                    "focused_hardening" if mode == "none" else "none"
+                )
+                self.assertTrue(
+                    any(
+                        "phase requires" in failure
+                        for failure in runner.match_oracle(result, oracle)
+                    )
+                )
+                with self.assertRaisesRegex(ValueError, "review mode state"):
+                    ledger_engine._validate_result_receipt(
+                        receipt_engine.sanitized_result_receipt(result),
+                        label=f"{phase}-mismatch",
+                        required=True,
+                        recovery_required=True,
+                    )
+
         contradictory = {
             **closed,
             "decision": "continue",
@@ -327,12 +393,22 @@ class HappyCodexEvaluationTests(unittest.TestCase):
 
     def test_fixed_behavior_inventory_exercises_041_convergence(self) -> None:
         plans: list[str] = []
-        for case in self.cases.values():
+        cases = list(self.cases.values())
+        cases.extend(
+            json.loads(path.read_text(encoding="utf-8"))
+            for path in sorted(
+                (ROOT / "evaluation" / "holdouts" / "cases").glob("*.json")
+            )
+        )
+        for case in cases:
             for commit in case["fixture"].get("commits", []):
                 for relative, content in commit.get("files", {}).items():
                     if (
                         isinstance(content, str)
-                        and "execplan" in relative.casefold()
+                        and (
+                            "execplan" in relative.casefold()
+                            or "Protocol: HappyCodex/" in content
+                        )
                     ):
                         plans.append(content)
         self.assertTrue(plans)
@@ -443,7 +519,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             facts = runner.build_fixture(case, repo)
             plan = (repo / "docs/execplans/queue-migration.md").read_text()
             self.assertEqual(len(facts["commits"]), 2)
-            self.assertIn("State: skeleton", plan)
+            self.assertIn("State: implementation", plan)
             self.assertIn(facts["commits"][0], plan)
             self.assertIn(facts["trees"][0], plan)
             self.assertIn("Boundary inventory: open", plan)
@@ -742,7 +818,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                 "qualifies": True,
                 "execplan_condition": "needs_amendment",
                 "protocol_may_product_write": False,
-                "protocol_review_mode": "none",
+                "protocol_review_mode": "exact_final",
                 "protocol_may_complete": False,
                 "finding_classifications": [
                     {
@@ -1066,9 +1142,9 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             skeleton = git(repo, "show", f"{facts['commits'][1]}:{excluded}")
             contract = git(repo, "show", f"{facts['commits'][2]}:{excluded}")
             prelaunch = git(repo, "show", f"{facts['commits'][4]}:{excluded}")
-            self.assertIn("State: skeleton", skeleton)
+            self.assertIn("State: implementation", skeleton)
             self.assertIn("boundary-challenger-9: pending", skeleton)
-            self.assertIn("State: frozen", contract)
+            self.assertIn("State: focused_hardening", contract)
             self.assertIn("boundary-challenger-9: terminal complete", contract)
             self.assertEqual(
                 git(
@@ -1084,7 +1160,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                 product_entries(repo, facts["commits"][3], excluded),
                 product_entries(repo, facts["commits"][4], excluded),
             )
-            self.assertIn("State: review-prelaunch", prelaunch)
+            self.assertIn("State: candidate_frozen", prelaunch)
             self.assertIn("Review status: not started", prelaunch)
             self.assertIn(
                 "Exact review command: codex exec review --commit "
@@ -1690,7 +1766,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             "qualifies": True,
             "execplan_condition": "usable",
             "protocol_may_product_write": False,
-            "protocol_review_mode": "none",
+            "protocol_review_mode": "focused_hardening",
             "protocol_may_complete": False,
             "finding_classifications": [
                 {
@@ -1738,8 +1814,8 @@ class HappyCodexEvaluationTests(unittest.TestCase):
 
     def test_inventory_gate_fixture_is_otherwise_complete_but_unnumbered(self) -> None:
         excluded = "docs/execplans/inventory-gate.md"
-        self.assertIn(
-            "exact_final",
+        self.assertEqual(
+            "focused_hardening",
             self.cases["review-inventory-gate"]["oracle"]["expected"][
                 "protocol_review_mode"
             ],
@@ -1947,7 +2023,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             "qualifies": True,
             "execplan_condition": "usable",
             "protocol_may_product_write": False,
-            "protocol_review_mode": "exact_final",
+            "protocol_review_mode": "none",
             "protocol_may_complete": True,
             "finding_classifications": [
                 {
@@ -1981,7 +2057,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             "qualifies": True,
             "execplan_condition": "usable",
             "protocol_may_product_write": False,
-            "protocol_review_mode": "exact_final",
+            "protocol_review_mode": "none",
             "protocol_may_complete": True,
             "finding_classifications": [
                 {

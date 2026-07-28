@@ -1,7 +1,23 @@
 from __future__ import annotations
 
+from typing import Any
+
 PERMISSION_PROFILE = "happycodex-evaluator"
 PROTOCOL_REVIEW_MODES = ("none", "focused_hardening", "exact_final")
+CONVERGENCE_PHASES = (
+    "implementation",
+    "focused_hardening",
+    "candidate_frozen",
+    "exact_final",
+    "closed",
+)
+PHASE_REVIEW_MODE = {
+    "implementation": "none",
+    "focused_hardening": "focused_hardening",
+    "candidate_frozen": "none",
+    "exact_final": "exact_final",
+    "closed": "none",
+}
 NATIVE_TOOL_NAMES = ("apply_patch", "codex", "codex-linux-sandbox", "rg")
 BASE_COMMAND_PATHS = ("/usr/local/bin", "/usr/bin", "/bin")
 PARENT_CONTEXT_ENV = ("CODEX_REMOTE_PAYLOAD", "CODEX_THREAD_ID", "PWD", "OLDPWD")
@@ -66,6 +82,42 @@ RECOVERY_STATE_FIELDS = frozenset(
         "marker_ids",
     }
 )
+
+
+def protocol_state_failures(value: dict[str, Any]) -> list[str]:
+    """Return phase/review/write/completion contradictions for raw or projected results."""
+    failures: list[str] = []
+    decision = value.get("decision")
+    may_write = value.get("protocol_may_product_write")
+    review_mode = value.get("protocol_review_mode")
+    may_complete = value.get("protocol_may_complete")
+    completion_claimed = decision == "complete" or may_complete is True
+
+    if review_mode == "exact_final" and may_write is True:
+        failures.append("exact_final review mode permits active product writes")
+    if completion_claimed and review_mode != "none":
+        failures.append("completion must clear review mode to none")
+
+    recovery = value.get("recovery_state")
+    if not isinstance(recovery, dict):
+        return failures
+    phase = recovery.get("milestone_phase")
+    expected_mode = PHASE_REVIEW_MODE.get(phase)
+    if expected_mode is None:
+        failures.append(f"unknown convergence phase: {phase!r}")
+        return failures
+    if review_mode != expected_mode:
+        failures.append(
+            f"{phase} phase requires {expected_mode} review mode, got {review_mode!r}"
+        )
+    if phase in {"candidate_frozen", "exact_final", "closed"} and may_write is True:
+        failures.append(f"{phase} phase permits active product writes")
+    if phase == "closed":
+        if not completion_claimed:
+            failures.append("closed phase requires completion")
+    elif completion_claimed:
+        failures.append(f"{phase} phase cannot claim completion")
+    return failures
 BLOCKER_CLASSES = frozenset(
     {
         "original_goal",
@@ -255,19 +307,7 @@ OUTPUT_SCHEMA = {
                 "writer": {"type": "string", "enum": ["Root", "unknown"]},
                 "milestone_phase": {
                     "type": "string",
-                    "enum": [
-                        "bootstrap",
-                        "boundary_investigation",
-                        "boundary_union_reproduced",
-                        "contract_frozen",
-                        "implementation",
-                        "focused_hardening",
-                        "candidate_frozen",
-                        "exact_final",
-                        "release",
-                        "complete",
-                        "unknown",
-                    ],
+                    "enum": list(CONVERGENCE_PHASES),
                 },
                 "next_action": {
                     "type": "string",

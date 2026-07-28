@@ -30,10 +30,12 @@ from evaluation.core.impact import (
 )
 from evaluation.corpus.contract import (
     BLOCKER_CLASSES,
+    CONVERGENCE_PHASES,
     FILESYSTEM_ISOLATION_POLICY,
     PERMISSION_FIELDS,
     PUBLIC_02_PACKAGE_ARTIFACT_SHA256,
     RECOVERY_GATE_FIELDS,
+    protocol_state_failures,
 )
 from evaluation.holdout.blind import completed_quality
 from evaluation.holdout.compare import (
@@ -303,19 +305,7 @@ FRESH_CONTROL_FIELDS = {
     "allowed_label_differences_sha256",
 }
 RECOVERY_WRITERS = {"Root", "unknown"}
-RECOVERY_PHASES = {
-    "bootstrap",
-    "boundary_investigation",
-    "boundary_union_reproduced",
-    "contract_frozen",
-    "implementation",
-    "focused_hardening",
-    "candidate_frozen",
-    "exact_final",
-    "release",
-    "complete",
-    "unknown",
-}
+RECOVERY_PHASES = set(CONVERGENCE_PHASES)
 RECOVERY_ACTIONS = {
     "ask_user",
     "create_execplan",
@@ -1272,13 +1262,18 @@ def _validate_result_receipt(
             allowed = allowed if isinstance(allowed, list) else [allowed]
             if value.get(field) not in allowed:
                 raise ValueError(f"invalid {label} oracle permission receipt")
+    state_failures = protocol_state_failures(value)
+    if state_failures:
+        raise ValueError(
+            f"invalid {label} review mode state: {'; '.join(state_failures)}"
+        )
     completion_claimed = (
         value["decision"] == "complete" or value["protocol_may_complete"] is True
     )
     if completion_claimed and (
         value["decision"] != "complete"
         or value["protocol_may_complete"] is not True
-        or value["protocol_review_mode"] != "exact_final"
+        or value["protocol_review_mode"] != "none"
         or value["open_gates_count"] != 0
         or any(item["blocking"] is True for item in blockers)
         or any(item["state"] in {"candidate_new", "unknown"} for item in findings)

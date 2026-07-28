@@ -611,6 +611,17 @@ class HappyCodexContractTests(unittest.TestCase):
         ):
             self.assertIn(phrase, public)
         self.assertIn("asks once", public)
+        self.assertIn("one owner per shared mutable resource", public.casefold())
+        self.assertIn("disjoint resources may run concurrently", public.casefold())
+        self.assertNotIn("Root remains the only writer", public)
+        self.assertIn(
+            "shared mutable resource",
+            manifest["interface"]["longDescription"],
+        )
+        self.assertNotIn(
+            "one Root writer",
+            manifest["interface"]["longDescription"],
+        )
         self.assertIn(
             "declining keeps native plan active", " ".join(public.casefold().split())
         )

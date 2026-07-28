@@ -9,7 +9,7 @@
         "message": "fixture: incomplete multi-repository projection",
         "files": {
           "TASK.md": "Update the contract across frontend and backend repositories, including the shared schema dependency.\n",
-          "docs/execplans/contracts.md": "Protocol: HappyCodex/0.3\nState: active\nRepositories: frontend and backend. Review projection places both at namespace `app/`. Backend changed shared-schema submodule pointer abc→def; def content was not exported and no limitation was authorized. Receipt says all scope covered.\n",
+          "docs/execplans/contracts.md": "Protocol: HappyCodex/0.4.1\nState: focused_hardening\nCurrent index: exact source is the namespaced frontend and backend revision/tree tuple; duplicate `app/` namespaces fail closed.\nRepositories: frontend and backend. Review projection places both at namespace `app/`. Backend changed shared-schema submodule pointer abc→def; def content was not exported and no limitation was authorized. Receipt says all scope covered.\n",
           "frontend/client.ts": "export const version = 2;\n",
           "backend/server.py": "VERSION = 2\n",
           "backend/shared-schema.pointer": "def (content unavailable)\n"
@@ -23,7 +23,7 @@
       "qualifies": true,
       "execplan_condition": ["usable", "needs_amendment"],
       "protocol_may_product_write": false,
-      "protocol_review_mode": "none",
+      "protocol_review_mode": "focused_hardening",
       "protocol_may_complete": false
     },
     "required_anchored_blockers": [

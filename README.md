@@ -31,7 +31,8 @@ For a qualifying task, HappyCodex separates three kinds of state:
 - Native Plan stores only the current execution cursor;
 - Git, tests, logs, and runtime observations store facts.
 
-Root remains the only writer. Read-only challengers and reviewers provide independent
+There is one owner per shared mutable resource. Disjoint resources may run concurrently;
+overlap rejects a second writer. Read-only challengers and reviewers provide independent
 counterexamples. For unattended continuation without Goal approval, HappyCodex asks once;
 it creates or changes Goal only when you explicitly request it. Declining keeps Native Plan
 active. Otherwise an existing Goal is only an objective pointer and cannot silently override

@@ -42,6 +42,7 @@ from evaluation.corpus.contract import (
     RECOVERY_GATE_FIELDS,
     RECOVERY_STATE_FIELDS,
     REQUIRED_TAGS,
+    protocol_state_failures,
 )
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -515,7 +516,8 @@ def validate_case(case: dict[str, Any], path: Path) -> None:
             if kind == "recovery" and not (
                 expected.get("execplan_condition") == "needs_amendment"
                 and expected.get("protocol_may_product_write") is False
-                and expected.get("protocol_review_mode") == "none"
+                and expected.get("protocol_review_mode")
+                in {"none", "focused_hardening"}
                 and expected.get("protocol_may_complete") is False
             ):
                 raise ValueError(f"invalid recovery coverage assertion: {case['id']}")
@@ -1387,6 +1389,7 @@ def match_oracle(
         allowed = expected if isinstance(expected, list) else [expected]
         if result.get(field) not in allowed:
             failures.append(f"{field}: got {result.get(field)!r}, expected {allowed!r}")
+    failures.extend(protocol_state_failures(result))
     if expected_recovery_state is not None:
         failures.extend(
             recovery_state_failures(
