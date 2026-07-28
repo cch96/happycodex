@@ -78,6 +78,7 @@ CORPUS_COST = {
     "multi-repo-submodule": (42105, 149.799),
     "no-commit-secret": (23875, 90.357),
     "no-commit-archive-recovery": (44614, 281.718),
+    "no-commit-unselected": (44614, 281.718),
     "pre-freeze-compaction": (104203, 622.99),
     "receipt-mismatch": (44614, 276.224),
     "review-admin-cycle": (31325, 71.457),
@@ -442,7 +443,7 @@ def _cost(corpus_cases: set[str], holdout: bool) -> dict[str, Any]:
     minimum_wall = corpus_wall + sum(HOLDOUT_COST[pair][1] for pair in minimum_pairs)
     maximum_wall = corpus_wall + sum(HOLDOUT_COST[pair][1] for pair in maximum_pairs)
     return {
-        "basis": "0.3 v21 corpus and v23 holdout observed combined-token/wall receipts",
+        "basis": HISTORICAL_COST_BASIS,
         "provenance": historical_cost_provenance(),
         "combined_tokens": {
             "minimum": minimum_tokens,

@@ -104,6 +104,10 @@ def protocol_state_failures(value: dict[str, Any]) -> list[str]:
     may_complete = value.get("protocol_may_complete")
     completion_claimed = decision == "complete" or may_complete is True
 
+    if (decision == "complete") != (may_complete is True):
+        failures.append("completion decision and permission disagree")
+    if completion_claimed and may_write is True:
+        failures.append("completion permits active product writes")
     if review_mode == "exact_final" and may_write is True:
         failures.append("exact_final review mode permits active product writes")
     if completion_claimed and review_mode != "none":
@@ -220,6 +224,7 @@ REQUIRED_TAGS = {
     "repository-policy",
     "exact-final-positive",
     "archive-positive",
+    "no-commit-unselected",
 }
 EVALUATOR_CONTEXT = (
     "This invocation is an observational checkpoint only. execplan_condition is a "

@@ -170,6 +170,59 @@ class HappyCodexEvaluationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "permission state"):
             runner.validate_case(case, Path("exact-final-write.json"))
 
+        contradictions = (
+            ("complete-without-permission", "complete", False, False),
+            ("permission-without-complete", "continue", True, False),
+            ("complete-with-active-write", "complete", True, True),
+        )
+        for name, decision, may_complete, may_write in contradictions:
+            with self.subTest(state=name):
+                case = json.loads(json.dumps(self.cases["clean-qualifying-control"]))
+                case["oracle"]["expected"].update(
+                    {
+                        "decision": decision,
+                        "protocol_may_complete": may_complete,
+                        "protocol_may_product_write": may_write,
+                    }
+                )
+                with self.assertRaisesRegex(ValueError, "permission state"):
+                    runner.validate_case(case, Path(f"{name}.json"))
+
+    def test_shared_constraint_rejects_contradictory_completion_receipts(self) -> None:
+        base = self.cases["clean-qualifying-control"]["oracle"]["expected"]
+        contradictions = (
+            ("complete", False, False),
+            ("continue", True, False),
+            ("complete", True, True),
+        )
+        for decision, may_complete, may_write in contradictions:
+            with self.subTest(
+                decision=decision,
+                may_complete=may_complete,
+                may_write=may_write,
+            ):
+                result = {
+                    **base,
+                    "decision": decision,
+                    "protocol_may_complete": may_complete,
+                    "protocol_may_product_write": may_write,
+                    "finding_classifications": [],
+                    "blocker_classifications": [],
+                    "open_gates": [],
+                    "evidence": [],
+                    "reason": "",
+                    "recovery_state": None,
+                }
+                self.assertTrue(runner.protocol_state_failures(result))
+                receipt = receipt_engine.sanitized_result_receipt(result)
+                with self.assertRaisesRegex(ValueError, "review mode state"):
+                    ledger_engine._validate_result_receipt(
+                        receipt,
+                        label="contradiction",
+                        required=True,
+                        recovery_required=False,
+                    )
+
     def test_fixed_convergence_cases_mechanically_bind_new_behavior(self) -> None:
         exact = self.cases["exact-final-ready"]
         self.assertEqual(
@@ -226,6 +279,14 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                 "class": "safety_data_integrity",
             },
             tampered["oracle"]["required_anchored_blockers"],
+        )
+        unselected = self.cases["no-commit-unselected"]
+        self.assertIn(
+            {
+                "anchor": "1111111111111111111111111111111111111111",
+                "class": "production_condition",
+            },
+            unselected["oracle"]["required_anchored_blockers"],
         )
 
         phases = []
