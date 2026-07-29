@@ -3,9 +3,9 @@
 Protocol: `HappyCodex/0.3` (the active 0.4.0 maintainer runtime)
 Invocation: `$happycodex:happycodex`
 State: `focused_hardening`
-Review mode: `none` during final reconciliation; it becomes `focused_hardening`
-only after the predeclared claim-release receipt below exists and matches.
-Writer: Root only until that receipt releases the claimed mutable resources
+Review mode: `focused_hardening`
+Writer: none for product source; Root owns only the prelaunch administrative write
+until its predeclared claim-release receipt exists and matches
 Resume: read this complete current index and reconcile its one selected checkpoint, Git,
 claims, tests, agents, and gates before any write, review, or completion.
 
@@ -239,6 +239,29 @@ their exact bytes remain reachable in Git history. No active evidence references
 The current version remains `0.4.1+codex.20260728205019`; no marketplace or cachebuster
 write occurs before the later final-byte gate.
 
+Focused choke-point review is predeclared against exact product source
+`e4ad487c54b1620a6b1df69f0e2c2c65c3316e7e` and the identities above. History-aware
+brief
+`/home/caichenghang/.codex/happycodex-0.4.1-rb008/focused-e4ad487.brief.txt`
+is 1,589 bytes, 169 words, nine lines, SHA-256
+`c42b3aae6c704b9da063e2d7bf0905f297a9a783cabd8106791fdd29432340af`.
+Durable output is
+`/home/caichenghang/.codex/happycodex-0.4.1-rb008/focused-e4ad487.txt`.
+Exact command, from this clean worktree after administrative claims release:
+
+```text
+set -o pipefail; env PATH=/home/caichenghang/.codex/packages/standalone/releases/0.146.0-aarch64-unknown-linux-musl/bin:/home/caichenghang/.codex/packages/standalone/releases/0.146.0-aarch64-unknown-linux-musl/codex-path:/usr/bin:/bin /home/caichenghang/.codex/packages/standalone/releases/0.146.0-aarch64-unknown-linux-musl/bin/codex review -c 'model="gpt-5.6-sol"' -c 'model_reasoning_effort="max"' -c 'sandbox_mode="read-only"' - < /home/caichenghang/.codex/happycodex-0.4.1-rb008/focused-e4ad487.brief.txt | tee /home/caichenghang/.codex/happycodex-0.4.1-rb008/focused-e4ad487.txt
+```
+
+It is read-only/no-network, history-aware, the sole valid boundary bypass
+falsification, and cannot satisfy exact-final. Status is not started. Prelaunch claim
+receipt is
+`/home/caichenghang/.codex/happycodex-0.4.1-rb008/focused-prelaunch-claim.json`;
+its accepted release receipt is
+`/home/caichenghang/.codex/happycodex-0.4.1-rb008/focused-prelaunch-release.json`,
+SHA-256
+`11454a5a487584a6a12852b1f53577220a2601f1c344a6b57f5d4425cadbff88`.
+
 ## Invalidation and historical checkpoint index
 
 Full pre-compression history is recoverable at
@@ -266,10 +289,9 @@ selected checkpoint.
 
 ## Pending gates
 
-1. Commit this administrative current-index update, produce the exact predeclared
-   release receipt, and require the worktree to be clean with no live claim.
-2. With product writes prohibited and mode `focused_hardening`, run exactly one
-   history-aware focused choke-point bypass review. A material same-family result is
+1. Commit this focused prelaunch record, produce its exact claim-release receipt, and
+   require the worktree to be clean with no live claim.
+2. Run the exact focused command once. A material same-family result is
    the second recurrence and enters the user gate; otherwise GO closes
    `F-CONV-001..004`.
 3. Freeze a new candidate, generate fresh genesis/post-source offline evidence, and run
