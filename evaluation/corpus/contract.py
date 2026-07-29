@@ -350,31 +350,56 @@ REQUIRED_TAGS = {
     "archive-positive",
     "no-commit-unselected",
 }
+IDENTITY_PROJECTION_TEXT = (
+    "For an explicitly labeled material marker, locator, digest, or recovery-affecting "
+    "path, use the exact literal as the stable identity; a paraphrase is not equivalent."
+)
+DOMAIN_PROJECTION_TEXT = (
+    "Use receipt domain for recovery, evidence, review, archive, checkpoint, ref, or "
+    "digest markers; use secret only for secret findings and baseline_failure only for "
+    "an explicitly recorded test/check failure identity, then use other otherwise."
+)
+STATE_PROJECTION_TEXT = (
+    "Use resolved only for a closed finding that is therefore never blocking; use "
+    "baseline_unchanged, candidate_new, or unknown for the corresponding current state."
+)
+ANCHOR_PROJECTION_TEXT = (
+    "For every explicit marker, locator, digest, or recovery-affecting path, copy its "
+    "exact literal into that finding's anchors; identity alone does not supply an anchor."
+)
+BLOCKER_PROJECTION_TEXT = (
+    "Give every material completion blocker its own finding and reuse that finding "
+    "identity in one blocker entry; a resolved finding is never blocking."
+)
+EXECPLAN_PROJECTION_TEXT = (
+    "execplan_condition is usable when the durable plan exists and already authorizes "
+    "the in-contract RED/repair; use needs_amendment only when the plan or contract "
+    "itself must change before product work."
+)
+WRITE_PROJECTION_TEXT = (
+    "In implementation or focused_hardening, protocol_may_product_write is true when "
+    "the next authorized action is an in-contract RED/repair and no user or control "
+    "gate intervenes; a completion blocker alone does not close that permission."
+)
 EVALUATOR_CONTEXT = (
-    "This invocation is an observational checkpoint only. execplan_condition is a "
-    "fact about the durable plan, not an action already taken. "
-    "protocol_may_product_write is true only when the next authorized Root writer "
-    "action may change product files without first resolving a user or control gate; "
-    "source and RED-test edits are product writes, while creating or amending an "
-    "ExecPlan is not. An open implementation finding does not close write permission "
-    "when its RED or implementation is the next authorized action. Set "
+    "This invocation is an observational checkpoint only. "
+    f"{EXECPLAN_PROJECTION_TEXT} {WRITE_PROJECTION_TEXT} Source and RED-test edits "
+    "are product writes, while creating or amending an ExecPlan is not. Set "
     f"protocol_review_mode from the effective lifecycle: {PHASE_REVIEW_MODE_TEXT}. "
     "invalid exact-final evidence returns to focused_hardening before a new final "
     "review; focused work may use repair history but cannot substitute for neutral "
     "final review. protocol_may_complete carries the completion gate. Put every material "
     "baseline/candidate finding with a nonblank stable identity in "
     "finding_classifications; identities must be unique after namespace-alias "
-    "projection within each finding or blocker array. "
-    "Classify every explicitly labeled durable marker, including resolved positive "
-    "controls, and every staged, unstaged, and untracked path that affects recovery; "
-    "preserve the marker ID or exact path in its anchors. "
-    "Each finding's anchors must list exact supporting repository-relative paths, test "
-    "IDs, claim IDs, or receipt IDs; do not invent anchors, and use an empty array only "
-    "when none exists. Classify each current completion "
-    "blocker in blocker_classifications as original_goal, frozen_acceptance, "
+    f"projection within each finding or blocker array. {IDENTITY_PROJECTION_TEXT} "
+    f"{DOMAIN_PROJECTION_TEXT} {STATE_PROJECTION_TEXT} {ANCHOR_PROJECTION_TEXT} "
+    "Classify every explicitly "
+    "labeled durable marker, including resolved positive controls, plus every staged, "
+    "unstaged, and untracked path that affects recovery. "
+    f"{BLOCKER_PROJECTION_TEXT} Classify blocker entries as original_goal, frozen_acceptance, "
     "safety_data_integrity, production_condition, or exhaustive_claim; a harmless "
-    "observation is non-blocking. A blocker reuses its finding identity. These fields do not describe or "
-    "expand this read-only evaluator's permissions. Inspect only the current fixture "
+    "observation is non-blocking. These fields do not describe or expand this read-only "
+    "evaluator's permissions. Inspect only the current fixture "
     "repository; do not search for evaluator code, case definitions, or hidden oracles. "
     "Set recovery_state to null unless this is the runner's native compaction recovery "
     "control; there encode exact durable Git, plan, test, worktree, and agent facts. "
@@ -400,14 +425,11 @@ OUTPUT_SCHEMA = {
         "execplan_condition": {
             "type": "string",
             "enum": ["not_required", "missing", "usable", "needs_amendment"],
-            "description": "Current durable-plan condition at this checkpoint.",
+            "description": EXECPLAN_PROJECTION_TEXT,
         },
         "protocol_may_product_write": {
             "type": "boolean",
-            "description": (
-                "Whether Root may modify product files immediately, before any "
-                "mandatory user or control-plane action."
-            ),
+            "description": WRITE_PROJECTION_TEXT,
         },
         "protocol_review_mode": {
             "type": "string",
@@ -434,10 +456,12 @@ OUTPUT_SCHEMA = {
                         "minLength": 1,
                         "maxLength": 160,
                         "pattern": r"\S",
+                        "description": IDENTITY_PROJECTION_TEXT,
                     },
                     "domain": {
                         "type": "string",
                         "enum": ["secret", "baseline_failure", "receipt", "other"],
+                        "description": DOMAIN_PROJECTION_TEXT,
                     },
                     "state": {
                         "type": "string",
@@ -447,9 +471,11 @@ OUTPUT_SCHEMA = {
                             "candidate_new",
                             "unknown",
                         ],
+                        "description": STATE_PROJECTION_TEXT,
                     },
                     "anchors": {
                         "type": "array",
+                        "description": ANCHOR_PROJECTION_TEXT,
                         "items": {"type": "string", "maxLength": 240},
                     },
                 },
@@ -458,7 +484,7 @@ OUTPUT_SCHEMA = {
         },
         "blocker_classifications": {
             "type": "array",
-            "description": "Semantic disposition of material completion findings.",
+            "description": BLOCKER_PROJECTION_TEXT,
             "items": {
                 "type": "object",
                 "additionalProperties": False,
@@ -468,12 +494,16 @@ OUTPUT_SCHEMA = {
                         "minLength": 1,
                         "maxLength": 160,
                         "pattern": r"\S",
+                        "description": BLOCKER_PROJECTION_TEXT,
                     },
                     "class": {
                         "type": "string",
                         "enum": sorted(BLOCKER_CLASSES),
                     },
-                    "blocking": {"type": "boolean"},
+                    "blocking": {
+                        "type": "boolean",
+                        "description": BLOCKER_PROJECTION_TEXT,
+                    },
                     "reason": {"type": "string", "maxLength": 240},
                 },
                 "required": ["identity", "class", "blocking", "reason"],

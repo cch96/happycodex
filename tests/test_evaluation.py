@@ -184,21 +184,26 @@ class HappyCodexEvaluationTests(unittest.TestCase):
     ) -> None:
         properties = runner.OUTPUT_SCHEMA["properties"]
         finding = properties["finding_classifications"]["items"]["properties"]
+        blocker = properties["blocker_classifications"]["items"]["properties"]
         descriptions = {
             "identity": finding["identity"].get("description", ""),
             "domain": finding["domain"].get("description", ""),
+            "state": finding["state"].get("description", ""),
             "anchors": finding["anchors"].get("description", ""),
             "blockers": properties["blocker_classifications"].get("description", ""),
+            "blocker_identity": blocker["identity"].get("description", ""),
+            "blocking": blocker["blocking"].get("description", ""),
             "execplan": properties["execplan_condition"].get("description", ""),
-            "write": properties["protocol_may_product_write"].get(
-                "description", ""
-            ),
+            "write": properties["protocol_may_product_write"].get("description", ""),
         }
         required_phrases = {
             "identity": ("exact literal", "paraphrase"),
             "domain": ("receipt", "recovery", "archive"),
+            "state": ("resolved", "never blocking", "unknown"),
             "anchors": ("exact literal", "identity alone"),
             "blockers": ("own finding", "resolved", "never blocking"),
+            "blocker_identity": ("reuse", "own finding"),
+            "blocking": ("resolved", "never blocking"),
             "execplan": ("usable", "in-contract", "needs_amendment"),
             "write": ("focused_hardening", "RED/repair", "completion blocker"),
         }
