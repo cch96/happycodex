@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 import json
 from pathlib import Path
 import re
@@ -39,6 +40,7 @@ from evaluation.holdout.compare import (
 ROOT = Path(__file__).resolve().parents[2]
 HOLDOUT_ROOT = ROOT / "evaluation" / "holdouts"
 MANIFEST_PATH = HOLDOUT_ROOT / "manifest.json"
+HOLDOUT_ARM_WORKERS = 2
 
 
 def file_sha256(path: Path) -> str:
@@ -160,6 +162,14 @@ def _validate_pair_capability(
         raise ValueError("holdout pair does not match the validated capability")
 
 
+def _evaluate_pair_arms(
+    evaluate_alias: Callable[[str], dict[str, Any]],
+) -> dict[str, dict[str, Any]]:
+    with ThreadPoolExecutor(max_workers=HOLDOUT_ARM_WORKERS) as executor:
+        results = executor.map(evaluate_alias, ALIASES)
+        return dict(zip(ALIASES, results, strict=True))
+
+
 def run_pair(
     pair: dict[str, Any],
     *,
@@ -189,10 +199,10 @@ def run_pair(
     )
     plugins = {"candidate": candidate, "public-0.4.0": public}
     inverse = {alias: arm for arm, alias in sealed._mapping.items()}
-    raw: dict[str, dict[str, Any]] = {}
-    for alias in ALIASES:
+
+    def evaluate_alias(alias: str) -> dict[str, Any]:
         arm = inverse[alias]
-        raw[alias] = evaluator(
+        return evaluator(
             pair["case"],
             plugin=plugins[arm],
             output=pair_output / "raw" / alias,
@@ -203,6 +213,8 @@ def run_pair(
             authorization=authorization,
             authorization_unit=pair["id"],
         )
+
+    raw = _evaluate_pair_arms(evaluate_alias)
     views = {alias: blind_view(raw[alias]) for alias in ALIASES}
     decision = freeze_blind_decision(views)
     decision_sha = write_new_json(pair_output / "02-pre-reveal-decision.json", decision)

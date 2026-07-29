@@ -12,8 +12,9 @@ python3 -m evaluation.cli holdout --dry-run
 
 `verify` validates the complete classified engine inventory and the tracked evidence
 ledger. `impact` is read-only: it reports exact invalidated cases/pairs, downstream
-gates, live-call range, and historical combined-token/wall estimates. A live run is
-not authorized by either command.
+gates, live-call range, and historical combined-token/aggregate-call-wall estimates.
+The wall estimate is summed exposure, not elapsed runtime under bounded concurrency.
+A live run is not authorized by either command.
 
 ## Identities and evidence
 

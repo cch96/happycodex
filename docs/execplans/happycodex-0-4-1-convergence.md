@@ -317,6 +317,48 @@ selected checkpoint.
 Completion must explicitly disclose that final corpus and holdout were user-waived and
 not run.
 
+## Validation-speed side amendment
+
+The user request `好的你改一下` (SHA-256
+`ebdfcd55dce6ef0a6b8d714335738600b7f6988abb44dac70be3c5c1e464b8d2`) authorizes
+only a non-activating validation-speed patch derived from clean checkpoint
+`6583631a9f6d9d94e6c1424c75c84f1a6321a3ad`. Root owns the isolated worktree
+`/home/caichenghang/projects/happycodex-worktrees/happycodex-0.4.1-validation-speed`,
+branch `codex/happycodex-0.4.1-validation-speed`, its index and this branch-local
+ExecPlan, plus the evaluator, Runtime, template, and test paths changed below. It owns
+no live-output namespace or activation target. The active convergence worktree,
+candidate, reviewer, ledgers, public bytes, installation, and external outputs remain
+untouched.
+
+The frozen outcome has three parts: evaluate independent corpus cases with at most four
+workers while preserving selected-case result order and per-case isolated output;
+evaluate the two blinded arms of one holdout pair concurrently while preserving mapping,
+blind-decision, reveal, pair ordering, and adaptive-stop semantics; and make `high` the
+default focused-hardening review effort, escalating focused review to `max` only for a
+recurring family or unresolved material uncertainty while exact-final remains `max`.
+No case or pair may be removed, no fixture/oracle/adaptive rule may change, and no live
+model call, authority reuse, release, install, or activation is in scope.
+
+Verification must prove bounded corpus overlap with deterministic order, two-arm overlap
+with deterministic alias order, and the focused/default/escalation/final effort
+distinction. It includes targeted and cumulative offline tests, Ruff, both validators,
+JSON/AST checks, and Runtime/template budgets. Any evaluator-source change invalidates
+inherited candidate evidence; this side branch will refresh only its non-authoritative
+offline ledger identity and will not claim certification.
+
+Implementation checkpoint: corpus uses a fixed four-thread bound and ordered result
+projection; a holdout pair uses two threads only across its already-isolated blinded
+arms, with pairs still serialized by the unchanged adaptive loop. Runtime and template
+bind focused `high`, limited focused `max` escalation, and exact-final `max`. The
+deterministic concurrency tests plus the cumulative suite pass 148/148 in 8.203 seconds;
+Ruff check/format, both official validators, 15 AST and 29 JSON parses, diff check,
+17-case/3-pair list and dry-run, and pinned `verify` are GREEN. Runtime/template remain
+308 lines and 2,721 words, below the 340/3,000 hard limits. The fresh side ledger is
+`refresh_required` with no authority; snapshot `b6fa8494…090a`, engine
+`f2aefadc…3a1f`, and ledger `5a9fbec6…0e5`. No live call ran. The impact report's
+3,757.028–4,032.239 seconds remains conservative aggregate call-wall exposure, not
+elapsed time after bounded concurrency.
+
 ## Retrospective
 
 Fill only after closure; never expose it as review evidence.

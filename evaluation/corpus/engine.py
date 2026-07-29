@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 import json
 import os
@@ -10,7 +11,7 @@ import shutil
 import subprocess
 import tempfile
 import time
-from typing import Any
+from typing import Any, Callable
 
 from evaluation.core.identity import (
     PACKAGE_PATHS,
@@ -54,6 +55,7 @@ from evaluation.corpus.contract import (
 
 ROOT = Path(__file__).resolve().parents[2]
 CASES = ROOT / "evaluation" / "cases"
+CORPUS_MAX_WORKERS = 4
 EXPECTED_CANDIDATE_SKILL_ENTRIES = frozenset(
     {
         "SKILL.md",
@@ -2327,6 +2329,18 @@ def run_command(args: Any) -> int:
     raise SystemExit("live corpus execution is available only through evaluation.cli")
 
 
+def _evaluate_cases_bounded(
+    case_ids: list[str],
+    evaluate: Callable[[str], dict[str, Any]],
+) -> list[dict[str, Any]]:
+    if not case_ids:
+        return []
+    with ThreadPoolExecutor(
+        max_workers=min(CORPUS_MAX_WORKERS, len(case_ids))
+    ) as executor:
+        return list(executor.map(evaluate, case_ids))
+
+
 def run_authorized(args: Any, authorization: Any) -> int:
     from evaluation.core.ledger import AuthorizedInvocation
 
@@ -2360,8 +2374,9 @@ def run_authorized(args: Any, authorization: Any) -> int:
     except ValueError as exc:
         raise SystemExit(str(exc)) from exc
     output.mkdir(parents=True, exist_ok=True)
-    results = [
-        evaluate_case(
+    results = _evaluate_cases_bounded(
+        selected,
+        lambda case_id: evaluate_case(
             cases[case_id],
             plugin=plugin,
             output=output,
@@ -2371,9 +2386,8 @@ def run_authorized(args: Any, authorization: Any) -> int:
             arm=args.arm,
             authorization=authorization,
             authorization_unit=case_id,
-        )
-        for case_id in selected
-    ]
+        ),
+    )
     summary = {
         "schema_version": 1,
         "engine_generation": "0.4",

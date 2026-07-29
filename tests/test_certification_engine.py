@@ -8,6 +8,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 import unittest
 from unittest import mock
 
@@ -599,6 +600,32 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                         impact=empty_impact,
                         corpus_holdout_waived=True,
                     )
+
+    def test_corpus_cases_run_with_a_four_worker_bound_and_stable_order(self) -> None:
+        case_ids = [f"case-{index}" for index in range(8)]
+        barrier = threading.Barrier(corpus_engine.CORPUS_MAX_WORKERS)
+        lock = threading.Lock()
+        active = 0
+        maximum_active = 0
+
+        def evaluate(case_id: str) -> dict[str, object]:
+            nonlocal active, maximum_active
+            with lock:
+                active += 1
+                maximum_active = max(maximum_active, active)
+            barrier.wait(timeout=2)
+            with lock:
+                active -= 1
+            return {"case": case_id}
+
+        results = corpus_engine._evaluate_cases_bounded(case_ids, evaluate)
+
+        self.assertEqual(
+            [result["case"] for result in results],
+            case_ids,
+        )
+        self.assertEqual(maximum_active, corpus_engine.CORPUS_MAX_WORKERS)
+        self.assertEqual(corpus_engine.CORPUS_MAX_WORKERS, 4)
 
     def test_native_review_remains_an_external_completion_gate(self) -> None:
         self.assertNotIn("review", ledger_engine.COVERAGE_FIELDS)

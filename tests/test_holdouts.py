@@ -4,6 +4,7 @@ import copy
 import json
 from pathlib import Path
 import tempfile
+import threading
 import unittest
 from unittest import mock
 
@@ -44,6 +45,32 @@ class TestAuthorization:
 
 
 class HappyCodexHoldoutTests(unittest.TestCase):
+    def test_pair_arms_run_concurrently_with_stable_alias_order(self) -> None:
+        barrier = threading.Barrier(holdout_engine.HOLDOUT_ARM_WORKERS)
+        lock = threading.Lock()
+        active = 0
+        maximum_active = 0
+
+        def evaluate(alias: str) -> dict[str, str]:
+            nonlocal active, maximum_active
+            with lock:
+                active += 1
+                maximum_active = max(maximum_active, active)
+            barrier.wait(timeout=2)
+            with lock:
+                active -= 1
+            return {"alias": alias}
+
+        results = holdout_engine._evaluate_pair_arms(evaluate)
+
+        self.assertEqual(list(results), list(holdout_engine.ALIASES))
+        self.assertEqual(
+            [result["alias"] for result in results.values()],
+            list(holdout_engine.ALIASES),
+        )
+        self.assertEqual(maximum_active, holdout_engine.HOLDOUT_ARM_WORKERS)
+        self.assertEqual(holdout_engine.HOLDOUT_ARM_WORKERS, 2)
+
     def test_manifest_has_distinct_hidden_pairs_and_required_coverage(self) -> None:
         manifest = holdout_engine.load_manifest()
         pairs = manifest["pairs"]

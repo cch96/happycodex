@@ -112,7 +112,9 @@ real-path/state-transition oracles—a mock cannot prove its seam; map tests and
 counterexamples to affected obligations/gates; run focused/cumulative checks, inspect preservation,
 persist evidence, and retain a semantic revision/snapshot. At each risk-bearing milestone run a
 bounded correctness gate; do not run a full reviewer after every revision. Focused reviewers may see
-history, ledgers, counterexamples, and repair story but never replace final review. Run full
+history, ledgers, counterexamples, and repair story but never replace final review. Focused
+hardening defaults to `high`; use `max` only for a recurring family or unresolved material
+uncertainty. Exact-final remains `max`. Run full
 final-candidate review only after cumulative checks and source freeze.
 
 Before product writes, `scripts/resource_claim.py` acquires sorted keys: Git uses common-dir CAS;
