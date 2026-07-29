@@ -36,6 +36,11 @@
       {"identity": "F-DEFAULT-SIBLING-A", "domain": "other", "state": "resolved"},
       {"identity": "F-DEFAULT-SIBLING-B", "domain": "other", "state": "resolved"}
     ],
+    "required_anchored_classifications": [
+      {"anchor": "RESOURCE-DISJOINT-OK", "domain": "other", "state": "resolved"},
+      {"anchor": "F-DEFAULT-SIBLING-A", "domain": "other", "state": "resolved"},
+      {"anchor": "F-DEFAULT-SIBLING-B", "domain": "other", "state": "resolved"}
+    ],
     "prompt_forbidden": ["clean control", "unnecessary stop"]
   }
 }

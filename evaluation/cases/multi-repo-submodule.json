@@ -19,9 +19,9 @@
   },
   "oracle": {
     "expected": {
-      "decision": ["incomplete", "continue", "stop_for_user"],
+      "decision": ["incomplete", "continue"],
       "qualifies": true,
-      "execplan_condition": ["usable", "needs_amendment"],
+      "execplan_condition": "usable",
       "protocol_may_product_write": true,
       "protocol_review_mode": "focused_hardening",
       "protocol_may_complete": false

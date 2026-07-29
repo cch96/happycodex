@@ -269,7 +269,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                 label="user-gated-write",
                 required=True,
                 recovery_required=False,
-                expected_permissions=case["oracle"]["expected"],
+                expected_permissions=None,
             )
 
     def test_required_anchor_members_and_items_are_distinct(self) -> None:
@@ -301,7 +301,18 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             "blocker_classifications": [],
         }
         failures = runner.match_oracle(collapsed, oracle)
-        self.assertTrue(any("distinct anchored classification" in item for item in failures))
+        self.assertTrue(
+            any("distinct anchored classification" in item for item in failures)
+        )
+        receipt = receipt_engine.sanitized_result_receipt(collapsed)
+        with self.assertRaisesRegex(
+            ValueError, "distinct anchored classification receipt"
+        ):
+            ledger_engine._validate_case_oracle_receipt(
+                receipt,
+                case={"fixture": {}, "oracle": oracle},
+                label="collapsed-anchors",
+            )
 
     def test_resolved_finding_cannot_remain_blocking(self) -> None:
         result = {
@@ -333,7 +344,9 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             "recovery_state": None,
         }
         failures = runner.protocol_state_failures(result)
-        self.assertTrue(any("resolved finding is blocking" in item for item in failures))
+        self.assertTrue(
+            any("resolved finding is blocking" in item for item in failures)
+        )
 
         receipt = receipt_engine.sanitized_result_receipt(result)
         with self.assertRaisesRegex(ValueError, "review mode state"):
@@ -1316,18 +1329,19 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             "reason": "",
             "recovery_state": None,
         }
+        failures = runner.match_oracle(result, case["oracle"])
         self.assertTrue(
-            all(
-                "missing classification" in failure
-                for failure in runner.match_oracle(result, case["oracle"])
-            )
+            any("missing classification" in failure for failure in failures)
+        )
+        self.assertTrue(
+            any("missing anchored classification" in failure for failure in failures)
         )
         result["finding_classifications"] = [
             {
                 "identity": expected["identity"],
                 "domain": expected["domain"],
                 "state": expected["state"],
-                "anchors": [".work/plans/default-limit.md"],
+                "anchors": [expected["identity"], ".work/plans/default-limit.md"],
             }
             for expected in case["oracle"]["required_classifications"]
         ]

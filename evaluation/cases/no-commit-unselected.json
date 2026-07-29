@@ -31,6 +31,13 @@
         "state": ["baseline_unchanged", "unknown"]
       }
     ],
+    "required_anchored_classifications": [
+      {
+        "anchor": "BARE-OBJECT-CHECKPOINT",
+        "domain": "receipt",
+        "state": ["baseline_unchanged", "unknown"]
+      }
+    ],
     "required_anchored_blockers": [
       {
         "anchor": "1111111111111111111111111111111111111111",

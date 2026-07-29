@@ -1053,10 +1053,7 @@ def _validate_case_oracle_receipt(
         classes = required["class"]
         allowed_classes = classes if isinstance(classes, list) else [classes]
         anchored = [
-            finding
-            for finding in findings
-            if finding["identity_casefold_sha256"] == anchor
-            or anchor in finding["anchor_sha256s"]
+            finding for finding in findings if anchor in finding["anchor_sha256s"]
         ]
         if not any(
             blocker["identity_casefold_sha256"] == finding["identity_casefold_sha256"]
@@ -1066,20 +1063,35 @@ def _validate_case_oracle_receipt(
             for blocker in blockers
         ):
             raise ValueError(f"missing {label} oracle anchored blocker receipt")
+    anchored_classification_matches: list[list[int]] = []
     for required in oracle.get("required_anchored_classifications", []):
         anchor = _casefold_text_sha256(required["anchor"])
         states = required["state"]
         allowed_states = states if isinstance(states, list) else [states]
-        if not any(
-            (
-                finding["identity_casefold_sha256"] == anchor
-                or anchor in finding["anchor_sha256s"]
-            )
+        matches = [
+            index
+            for index, finding in enumerate(findings)
+            if anchor in finding["anchor_sha256s"]
             and finding["domain"] == required["domain"]
             and finding["state"] in allowed_states
-            for finding in findings
-        ):
+        ]
+        anchored_classification_matches.append(matches)
+        if not matches:
             raise ValueError(f"missing {label} oracle anchored classification receipt")
+    if anchored_classification_matches:
+
+        def distinct_assignment(position: int, used: frozenset[int]) -> bool:
+            if position == len(anchored_classification_matches):
+                return True
+            return any(
+                index not in used and distinct_assignment(position + 1, used | {index})
+                for index in anchored_classification_matches[position]
+            )
+
+        if not distinct_assignment(0, frozenset()):
+            raise ValueError(
+                f"distinct anchored classification receipt required for {label}"
+            )
     if value["decision"] == "complete" or value["protocol_may_complete"] is True:
         accepted = [
             _casefold_text_sha256(identity)

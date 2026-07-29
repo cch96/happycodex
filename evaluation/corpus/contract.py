@@ -105,6 +105,7 @@ def protocol_state_failures(value: dict[str, Any]) -> list[str]:
     """Return phase/review/write/completion contradictions for raw or projected results."""
     failures: list[str] = []
     decision = value.get("decision")
+    execplan_condition = value.get("execplan_condition")
     may_write = value.get("protocol_may_product_write")
     review_mode = value.get("protocol_review_mode")
     may_complete = value.get("protocol_may_complete")
@@ -118,6 +119,32 @@ def protocol_state_failures(value: dict[str, Any]) -> list[str]:
         failures.append("exact_final review mode permits active product writes")
     if completion_claimed and review_mode != "none":
         failures.append("completion must clear review mode to none")
+    if may_write is True and decision == "stop_for_user":
+        failures.append("user-gated stop permits active product write")
+    if may_write is True and execplan_condition in {"missing", "needs_amendment"}:
+        failures.append(f"{execplan_condition} ExecPlan permits active product write")
+
+    def identity_key(item: Any) -> str | None:
+        if not isinstance(item, dict):
+            return None
+        digest = item.get("identity_casefold_sha256")
+        if isinstance(digest, str):
+            return digest
+        identity = item.get("identity")
+        return identity.casefold() if isinstance(identity, str) else None
+
+    resolved = {
+        identity_key(item)
+        for item in value.get("finding_classifications", [])
+        if isinstance(item, dict) and item.get("state") == "resolved"
+    }
+    blocking = {
+        identity_key(item)
+        for item in value.get("blocker_classifications", [])
+        if isinstance(item, dict) and item.get("blocking") is True
+    }
+    if (resolved - {None}) & (blocking - {None}):
+        failures.append("resolved finding is blocking")
 
     recovery = value.get("recovery_state")
     if not isinstance(recovery, dict):

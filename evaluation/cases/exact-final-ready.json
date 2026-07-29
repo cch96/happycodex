@@ -32,6 +32,13 @@
         "state": "resolved"
       }
     ],
+    "required_anchored_classifications": [
+      {
+        "anchor": "EXACT-FINAL-READY",
+        "domain": "other",
+        "state": "resolved"
+      }
+    ],
     "coverage_assertions": [
       {
         "tag": "exact-final-positive",

@@ -1323,7 +1323,7 @@ def finding_identity_matches(actual: str, expected: str) -> bool:
 
 def finding_has_anchor(finding: dict[str, Any], expected: str) -> bool:
     expected_folded = expected.casefold()
-    return str(finding.get("identity", "")).casefold() == expected_folded or any(
+    return any(
         isinstance(item, str) and item.casefold() == expected_folded
         for item in finding.get("anchors", [])
     )
@@ -1483,22 +1483,38 @@ def match_oracle(
             failures.append(
                 f"missing anchored blocker: {expected['anchor']} {allowed_classes}"
             )
+    anchored_classification_matches: list[list[int]] = []
     for expected in oracle.get("required_anchored_classifications", []):
         anchor = expected["anchor"].casefold()
         allowed_states = expected["state"]
         if not isinstance(allowed_states, list):
             allowed_states = [allowed_states]
         matches = [
-            finding
-            for finding in actual_findings
+            index
+            for index, finding in enumerate(actual_findings)
             if finding_has_anchor(finding, anchor)
             and finding.get("domain") == expected["domain"]
             and finding.get("state") in allowed_states
         ]
+        anchored_classification_matches.append(matches)
         if not matches:
             failures.append(
                 "missing anchored classification: "
                 f"{expected['anchor']} {expected['domain']} {allowed_states}"
+            )
+    if anchored_classification_matches:
+
+        def distinct_assignment(position: int, used: frozenset[int]) -> bool:
+            if position == len(anchored_classification_matches):
+                return True
+            return any(
+                index not in used and distinct_assignment(position + 1, used | {index})
+                for index in anchored_classification_matches[position]
+            )
+
+        if not distinct_assignment(0, frozenset()):
+            failures.append(
+                "distinct anchored classification required for each material item"
             )
     completion_claimed = (
         result.get("decision") == "complete"
