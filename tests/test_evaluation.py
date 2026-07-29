@@ -179,6 +179,35 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             runner.EVALUATOR_CONTEXT,
         )
 
+    def test_live_projection_instructions_make_saturated_semantics_field_local(
+        self,
+    ) -> None:
+        properties = runner.OUTPUT_SCHEMA["properties"]
+        finding = properties["finding_classifications"]["items"]["properties"]
+        descriptions = {
+            "identity": finding["identity"].get("description", ""),
+            "domain": finding["domain"].get("description", ""),
+            "anchors": finding["anchors"].get("description", ""),
+            "blockers": properties["blocker_classifications"].get("description", ""),
+            "execplan": properties["execplan_condition"].get("description", ""),
+            "write": properties["protocol_may_product_write"].get(
+                "description", ""
+            ),
+        }
+        required_phrases = {
+            "identity": ("exact literal", "paraphrase"),
+            "domain": ("receipt", "recovery", "archive"),
+            "anchors": ("exact literal", "identity alone"),
+            "blockers": ("own finding", "resolved", "never blocking"),
+            "execplan": ("usable", "in-contract", "needs_amendment"),
+            "write": ("focused_hardening", "RED/repair", "completion blocker"),
+        }
+        for field, phrases in required_phrases.items():
+            with self.subTest(field=field):
+                for phrase in phrases:
+                    self.assertIn(phrase, descriptions[field])
+                self.assertIn(descriptions[field], runner.EVALUATOR_CONTEXT)
+
     def test_live_oracles_follow_permission_and_classification_contracts(self) -> None:
         multi_repo = self.cases["multi-repo-submodule"]["oracle"]
         self.assertTrue(multi_repo["expected"]["protocol_may_product_write"])
