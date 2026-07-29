@@ -31,7 +31,8 @@ For a qualifying task, HappyCodex separates three kinds of state:
 - Native Plan stores only the current execution cursor;
 - Git, tests, logs, and runtime observations store facts.
 
-Root remains the only writer. Read-only challengers and reviewers provide independent
+There is one owner per shared mutable resource. Disjoint resources may run concurrently;
+overlap rejects a second writer. Read-only challengers and reviewers provide independent
 counterexamples. For unattended continuation without Goal approval, HappyCodex asks once;
 it creates or changes Goal only when you explicitly request it. Declining keeps Native Plan
 active. Otherwise an existing Goal is only an objective pointer and cannot silently override
@@ -70,6 +71,13 @@ Version 0.4 preserves the certified HappyCodex runtime behavior and public invoc
 It adds an auditable source-release boundary backed by content-addressed corpus and
 holdout certification, strict authority/evidence chronology, and a zero-live
 artifact/install transition.
+
+## What's new in 0.4.1
+
+Version 0.4.1 separates focused family hardening from neutral exact-final review.
+It scopes the single writer to shared mutable resources, batches sibling findings by
+invariant, makes review mode explicit in evaluator receipts, and keeps ExecPlans as
+bounded current indexes with fail-closed recovery.
 
 ## What's new in 0.3
 

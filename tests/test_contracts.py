@@ -17,11 +17,13 @@ OPENAI_YAML = SKILL_ROOT / "agents" / "openai.yaml"
 MANIFEST = ROOT / ".codex-plugin" / "plugin.json"
 MARKETPLACE = ROOT / ".agents" / "plugins" / "marketplace.json"
 README = ROOT / "README.md"
+AGENTS = ROOT / "AGENTS.md"
 
 EXPECTED_RUNTIME_FILES = {
     "skills/happycodex/SKILL.md",
     "skills/happycodex/agents/openai.yaml",
     "skills/happycodex/references/execplan.md",
+    "skills/happycodex/scripts/resource_claim.py",
 }
 FORBIDDEN_PLUGIN_SURFACES = (
     ".app.json",
@@ -32,7 +34,6 @@ FORBIDDEN_PLUGIN_SURFACES = (
     "mcp",
     "scripts",
     "skills/happycodex/hooks",
-    "skills/happycodex/scripts",
 )
 
 
@@ -134,6 +135,7 @@ class HappyCodexContractTests(unittest.TestCase):
         allowed = set(sys.stdlib_module_names) | {"__future__", "evaluation"}
         for path in (
             *sorted((ROOT / "evaluation").rglob("*.py")),
+            *sorted((SKILL_ROOT / "scripts").rglob("*.py")),
             *ROOT.glob("tests/*.py"),
         ):
             imported: set[str] = set()
@@ -147,8 +149,105 @@ class HappyCodexContractTests(unittest.TestCase):
 
     def test_runtime_markdown_meets_clean_room_budget(self) -> None:
         lines, words = runtime_markdown_budget()
-        self.assertLessEqual(lines, 262)
-        self.assertLessEqual(words, 2_400)
+        self.assertLessEqual(lines, 340)
+        self.assertLessEqual(words, 3_000)
+        policy = folded(AGENTS)
+        for phrase in (
+            "target at most 300 lines",
+            "340 lines",
+            "target at most 2,600 words",
+            "3,000 words",
+        ):
+            self.assertIn(phrase, policy)
+
+    def test_manifest_uses_final_041_identity(self) -> None:
+        manifest = json.loads(read(MANIFEST))
+        self.assertEqual(manifest["version"], "0.4.1+codex.20260729085734")
+
+    def test_evaluator_cleanly_targets_public_040_baseline(self) -> None:
+        active_evaluator = "\n".join(
+            read(path)
+            for path in sorted((ROOT / "evaluation").rglob("*.py"))
+            if "__pycache__" not in path.parts
+        )
+        self.assertNotIn("PUBLIC_02", active_evaluator)
+        self.assertNotIn("public-0.2", active_evaluator)
+        self.assertNotIn("public_0_2", active_evaluator)
+        self.assertIn("PUBLIC_040_PACKAGE_ARTIFACT_SHA256", active_evaluator)
+        self.assertIn("PUBLIC_040_PACKAGE_SEMANTIC_SHA256", active_evaluator)
+        self.assertIn("public-0.4.0", active_evaluator)
+        self.assertIn("public_0_4_0", active_evaluator)
+        self.assertIn(
+            "c5030e99dd7cd1681148c069775671c5720bb8dd366930ff90f61cbc54cdfc05",
+            active_evaluator,
+        )
+        self.assertIn(
+            "ace7f39fd61341e5d4b1bc3b268fd89a1562acaaacb80d7456c2bb97fb9c497e",
+            active_evaluator,
+        )
+
+    def test_runtime_defines_convergence_lifecycle_and_resource_ownership(self) -> None:
+        runtime = folded(SKILL) + " " + folded(EXECPLAN)
+        for phrase in (
+            "implementation → focused_hardening → candidate_frozen → exact_final → closed",
+            "one owner per shared mutable resource",
+            "disjoint resources may run concurrently",
+            "convergence ledger",
+            "family_id",
+            "repair_batch",
+            "six scan surfaces",
+            "all reviewers reach terminal",
+            "focused reviewers may see",
+            "exact-final reviewers must not see",
+            "product-source change",
+            "returns to focused_hardening",
+            "second recurrence",
+            "current index",
+            "8,000 words",
+            "12,000 words",
+            "fail closed",
+            "terminal green repair wave",
+            "status: open | boundary_required | closed",
+            "repair batch: <id>/instance | <id>/boundary",
+            "unique authoritative choke point",
+            "whether or not the family was closed",
+            "before terminal green",
+            "new independent family",
+            "exactly one authoritative checkpoint",
+            "resource_claim.py",
+        ):
+            self.assertIn(phrase, runtime)
+        self.assertIn("no controller or task state json", runtime)
+        self.assertIn(
+            "a second recurrence after boundary repair",
+            runtime,
+        )
+        self.assertIn(
+            "review mode is none",
+            runtime,
+        )
+        self.assertIn(
+            "review mode is focused_hardening",
+            runtime,
+        )
+
+    def test_runtime_claim_helper_is_packaged_but_not_a_controller(self) -> None:
+        helper = SKILL_ROOT / "scripts" / "resource_claim.py"
+        self.assertTrue(helper.is_file())
+        text = read(helper)
+        self.assertIn("def acquire", text)
+        self.assertIn("def verify", text)
+        self.assertIn("def release", text)
+        self.assertNotIn("daemon", text.casefold())
+        self.assertNotIn("timeout", text.casefold())
+
+    def test_execplan_recovery_is_bounded_to_current_index_and_one_checkpoint(
+        self,
+    ) -> None:
+        text = folded(EXECPLAN)
+        self.assertIn("current index", text)
+        self.assertIn("exactly one authoritative checkpoint", text)
+        self.assertNotIn("recover along the chain", text)
 
     def test_skill_frontmatter_and_reference_graph_are_closed(self) -> None:
         text = read(SKILL)
@@ -171,11 +270,12 @@ class HappyCodexContractTests(unittest.TestCase):
         self.assertEqual(
             headings(EXECPLAN),
             [
-                "# HappyCodex 0.3 ExecPlan",
+                "# HappyCodex 0.4.1 ExecPlan",
                 "## When to create it",
                 "## Template",
                 "### Outcome and baseline",
                 "### Claims Ledger",
+                "### Convergence Ledger",
                 "### Checkpoint",
                 "### Retrospective",
                 "## Neutral review brief",
@@ -204,7 +304,7 @@ class HappyCodexContractTests(unittest.TestCase):
 
     def test_native_state_roles_and_goal_are_nonoverlapping(self) -> None:
         text = folded(SKILL)
-        self.assertIn("root is the only writer", text)
+        self.assertIn("one owner per shared mutable resource", text)
         self.assertIn("native plan is only the current cursor", text)
         self.assertIn("goal is only an objective pointer", text)
         for phrase in (
@@ -339,8 +439,8 @@ class HappyCodexContractTests(unittest.TestCase):
         self,
     ) -> None:
         text = folded(SKILL) + " " + folded(EXECPLAN)
-        for source in (folded(SKILL), folded(EXECPLAN)):
-            self.assertIn("revision freezes the user contract", source)
+        self.assertIn("revision freezes the user contract", folded(SKILL))
+        self.assertIn("revision freezes the user contract", folded(EXECPLAN))
         self.assertNotIn("before symmetric freeze", text)
         for phrase in (
             "operative sources",
@@ -369,7 +469,7 @@ class HappyCodexContractTests(unittest.TestCase):
         text = folded(SKILL)
         for phrase in (
             "semantic commit trailer",
-            "unique task-owned 0.3 execplan",
+            "unique task-owned 0.4.1 execplan",
             "reachable private git ref",
             "approved content-addressed archive",
             "user-selected durable location",
@@ -573,6 +673,20 @@ class HappyCodexContractTests(unittest.TestCase):
         ):
             self.assertIn(phrase, public)
         self.assertIn("asks once", public)
+        self.assertIn("one owner per shared mutable resource", public.casefold())
+        self.assertIn("disjoint resources may run concurrently", public.casefold())
+        self.assertNotIn("Root remains the only writer", public)
+        self.assertIn(
+            "shared mutable resource",
+            manifest["interface"]["longDescription"],
+        )
+        self.assertNotIn(
+            "one Root writer",
+            manifest["interface"]["longDescription"],
+        )
+        skill_frontmatter = read(SKILL).split("---", 2)[1].casefold()
+        self.assertIn("resource-scoped writer", skill_frontmatter)
+        self.assertNotIn("one writer", skill_frontmatter)
         self.assertIn(
             "declining keeps native plan active", " ".join(public.casefold().split())
         )

@@ -39,17 +39,14 @@ before that successor commit; zero-live artifact transitions require no authorit
 do require strictly post-source, content-addressed `offline_summary` evidence. That
 summary binds the source ledger bytes and current artifact identity for a `receipt`
 gate, and binds the exact source/installed package receipt for `isolated_install`.
-The coverage manifest marks every current case and pair as refreshed or prior. Prior
-coverage requires a strictly older digest-bound 0.4 certified ledger; validators
-revalidate that chain and recompute its snapshot-to-successor impact, so pending scope
-cannot authorize reuse by itself. Corpus and holdout run receipts bind the impact
-token and authority digest; validators also bind the exact source engine, cases,
-package/toolchain identities, adaptive policy, and cost gate. Impact and execution
-share the same complete corpus/holdout schema validation. Fresh Native review remains
-an external HappyCodex/ExecPlan completion gate over the exact product diff; the
-evaluator deliberately defines no reviewer protocol or review receipt. Historical
-v1-v21 ledgers remain reachable in Git and have no active-tree reader, alias,
-migration, or compatibility path.
+The coverage manifest marks every current case and pair either refreshed or, under one
+explicit exact corpus/holdout waiver, waived. Mixed, partial, and prior dispositions
+fail closed; 0.4 evidence remains Git history with no active reader, alias, migration,
+or compatibility path. Corpus and holdout receipts bind the impact token, authority,
+source engine, cases, package/toolchain, adaptive policy, and cost gate. Impact and
+execution share complete input validation. Fresh Native review remains an external
+HappyCodex/ExecPlan gate over the exact product diff; the evaluator defines no review
+receipt.
 
 ## Offline and live commands
 
@@ -93,8 +90,8 @@ python3 -m evaluation.cli holdout --dry-run
 ```
 
 The same persisted authority must separately name the exact adaptive holdout
-invocation. Compare an immutable public checkout with raw output outside both source
-trees:
+invocation. Compare the immutable public `v0.4.0` package with raw output outside
+both source trees:
 
 ```bash
 python3 -m evaluation.cli holdout \

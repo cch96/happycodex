@@ -30,6 +30,7 @@ from evaluation.core.receipt import sanitized_case_receipt, write_new_json
 from evaluation.corpus.contract import (
     BASE_COMMAND_PATHS,
     BLOCKER_CLASSES,
+    CONVERGENCE_PHASES,
     DISABLED_FEATURES,
     EVALUATOR_CONTEXT,
     FILESYSTEM_ISOLATION_POLICY,
@@ -38,10 +39,17 @@ from evaluation.corpus.contract import (
     PARENT_CONTEXT_ENV,
     PERMISSION_FIELDS,
     PERMISSION_PROFILE,
-    PUBLIC_02_PACKAGE_ARTIFACT_SHA256,
+    PUBLIC_040_PACKAGE_ARTIFACT_SHA256,
     RECOVERY_GATE_FIELDS,
+    RECOVERY_MANIFEST_PATTERN,
     RECOVERY_STATE_FIELDS,
     REQUIRED_TAGS,
+    classifications_share_identity,
+    expected_permission_failures,
+    has_distinct_identity_assignment,
+    identity_match_values,
+    is_nonblank_identity,
+    protocol_state_failures,
 )
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -53,22 +61,23 @@ EXPECTED_CANDIDATE_SKILL_ENTRIES = frozenset(
         "agents/openai.yaml",
         "references",
         "references/execplan.md",
+        "scripts",
+        "scripts/resource_claim.py",
     }
 )
-EXPECTED_PUBLIC_02_SKILL_ENTRIES = frozenset(
+EXPECTED_PUBLIC_040_SKILL_ENTRIES = frozenset(
     {
         "SKILL.md",
         "agents",
         "agents/openai.yaml",
         "references",
-        "references/external-review.md",
-        "references/task-packets.md",
+        "references/execplan.md",
     }
 )
-EXPECTED_PUBLIC_02_PACKAGE_MANIFEST_SHA256 = PUBLIC_02_PACKAGE_ARTIFACT_SHA256
+EXPECTED_PUBLIC_040_PACKAGE_MANIFEST_SHA256 = PUBLIC_040_PACKAGE_ARTIFACT_SHA256
 EXPECTED_SKILL_ENTRIES_BY_ARM = {
     "candidate": EXPECTED_CANDIDATE_SKILL_ENTRIES,
-    "public-0.2": EXPECTED_PUBLIC_02_SKILL_ENTRIES,
+    "public-0.4.0": EXPECTED_PUBLIC_040_SKILL_ENTRIES,
 }
 EXPECTED_COMMON_PACKAGE_ENTRIES = frozenset(
     {
@@ -256,6 +265,204 @@ def deterministic_git_env() -> dict[str, str]:
     return env
 
 
+def validate_recovery_manifest(native: dict[str, Any], *, case_id: str) -> None:
+    """Bind the recovery marker to one complete canonical manifest artifact."""
+    oracle = native["recovery_oracle"]
+    markers = oracle.get("marker_ids", [])
+    manifest_markers = [
+        marker
+        for marker in markers
+        if isinstance(marker, str) and RECOVERY_MANIFEST_PATTERN.fullmatch(marker)
+    ]
+    if len(manifest_markers) != 1:
+        raise ValueError(f"invalid Recovery Manifest marker: {case_id}")
+    digest = RECOVERY_MANIFEST_PATTERN.fullmatch(manifest_markers[0]).group(1)
+    transition_files = native["post_compaction_transition"]["files"]
+    matches = [
+        (relative, content)
+        for relative, content in transition_files.items()
+        if relative.endswith("recovery-manifest.json")
+        and isinstance(content, str)
+        and sha256_bytes(content.encode()) == digest
+    ]
+    if len(matches) != 1:
+        raise ValueError(f"Recovery Manifest digest mismatch: {case_id}")
+    try:
+        manifest = json.loads(matches[0][1])
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"invalid Recovery Manifest JSON: {case_id}") from exc
+    required = {
+        "schema_version",
+        "repositories",
+        "resource_claim",
+        "selected_checkpoint",
+        "convergence",
+        "writer",
+        "tests",
+        "agents",
+        "gates",
+    }
+    if not isinstance(manifest, dict) or set(manifest) != required:
+        raise ValueError(f"invalid Recovery Manifest envelope: {case_id}")
+    repositories = manifest["repositories"]
+    if (
+        not isinstance(repositories, list)
+        or not repositories
+        or any(
+            not isinstance(repository, dict)
+            or set(repository) != {"namespace", "revision", "tree"}
+            or not isinstance(repository["namespace"], str)
+            or not repository["namespace"]
+            or re.fullmatch(r"[0-9a-f]{40}", repository["revision"]) is None
+            or re.fullmatch(r"[0-9a-f]{40}", repository["tree"]) is None
+            for repository in repositories
+        )
+        or len({repository["namespace"] for repository in repositories})
+        != len(repositories)
+    ):
+        raise ValueError(f"invalid Recovery Manifest repositories: {case_id}")
+    claim = manifest["resource_claim"]
+    resources = claim.get("resources") if isinstance(claim, dict) else None
+    if (
+        not isinstance(claim, dict)
+        or set(claim) != {"owner", "owner_token_sha256", "resources"}
+        or claim["owner"] != "Root"
+        or re.fullmatch(r"[0-9a-f]{64}", claim["owner_token_sha256"]) is None
+        or not isinstance(resources, list)
+        or len(resources) != 5
+        or any(
+            not isinstance(resource, str)
+            or re.fullmatch(
+                r"(?:worktree|ref|ledger|output|activation):.+",
+                resource,
+            )
+            is None
+            for resource in resources
+        )
+        or len(resources) != len(set(resources))
+        or {resource.split(":", 1)[0] for resource in resources}
+        != {"worktree", "ref", "ledger", "output", "activation"}
+    ):
+        raise ValueError(f"invalid Recovery Manifest resource claim: {case_id}")
+    selected = manifest["selected_checkpoint"]
+    if (
+        not isinstance(selected, dict)
+        or set(selected) != {"ref", "archive"}
+        or (
+            (
+                not isinstance(selected["ref"], str)
+                or re.fullmatch(
+                    r"refs/(?!.*(?:\.\.|//|@\{|\\))[A-Za-z0-9._/-]*"
+                    r"[A-Za-z0-9_-]",
+                    selected["ref"],
+                )
+                is None
+            )
+            if selected["archive"] is None
+            else (
+                selected["ref"] is not None
+                or not isinstance(selected["archive"], str)
+                or re.fullmatch(r"sha256:[0-9a-f]{64}", selected["archive"]) is None
+            )
+        )
+    ):
+        raise ValueError(f"invalid Recovery Manifest checkpoint: {case_id}")
+    convergence = manifest["convergence"]
+    families = convergence.get("families") if isinstance(convergence, dict) else None
+    family_ids = (
+        [
+            family.get("family_id")
+            for family in families
+            if isinstance(family, dict) and isinstance(family.get("family_id"), str)
+        ]
+        if isinstance(families, list)
+        else []
+    )
+    if (
+        not isinstance(convergence, dict)
+        or set(convergence) != {"phase", "families"}
+        or convergence["phase"] not in CONVERGENCE_PHASES
+        or not isinstance(families, list)
+        or not families
+        or len(family_ids) != len(families)
+        or len(set(family_ids)) != len(family_ids)
+        or any(
+            not isinstance(family, dict)
+            or set(family) != {"family_id", "status", "repair_batch", "recurrence"}
+            or not isinstance(family["family_id"], str)
+            or not family["family_id"].strip()
+            or family["status"] not in {"open", "boundary_required", "closed"}
+            or re.fullmatch(r".+/(?:instance|boundary)", family["repair_batch"]) is None
+            or type(family["recurrence"]) is not int
+            or family["recurrence"] < 0
+            for family in families
+        )
+    ):
+        raise ValueError(f"invalid Recovery Manifest convergence state: {case_id}")
+    manifest_gates = manifest["gates"] if isinstance(manifest["gates"], list) else []
+    for family in families:
+        batch_kind = family["repair_batch"].rsplit("/", 1)[1]
+        recurrence = family["recurrence"]
+        status = family["status"]
+        if (
+            (recurrence == 0 and batch_kind != "instance")
+            or (recurrence > 0 and batch_kind != "boundary")
+            or (status == "boundary_required" and recurrence != 1)
+            or (
+                recurrence >= 2
+                and (
+                    status != "open"
+                    or convergence["phase"] != "focused_hardening"
+                    or "user_selection" not in manifest_gates
+                )
+            )
+        ):
+            raise ValueError(
+                f"invalid Recovery Manifest convergence transition: {case_id}"
+            )
+    agents = manifest["agents"]
+    agent_ids = (
+        [
+            agent.get("id")
+            for agent in agents
+            if isinstance(agent, dict) and isinstance(agent.get("id"), str)
+        ]
+        if isinstance(agents, list)
+        else []
+    )
+    if (
+        not isinstance(agents, list)
+        or len(agent_ids) != len(agents)
+        or len(set(agent_ids)) != len(agent_ids)
+        or any(
+            not isinstance(agent, dict)
+            or set(agent) != {"id", "status", "receipt_reproduced"}
+            or not isinstance(agent["id"], str)
+            or not agent["id"].strip()
+            or agent["status"] != "terminal"
+            or agent["receipt_reproduced"] is not True
+            for agent in agents
+        )
+    ):
+        raise ValueError(f"invalid Recovery Manifest agents: {case_id}")
+    tests = manifest["tests"]
+    if (
+        not isinstance(tests, dict)
+        or set(tests) != {"passed", "failed", "accepted_failures"}
+        or any(type(tests[field]) is not int or tests[field] < 0 for field in tests)
+        or tests["accepted_failures"] > tests["failed"]
+        or manifest["schema_version"] != 1
+        or manifest["writer"] != "Root"
+        or not isinstance(manifest["gates"], list)
+        or not manifest["gates"]
+        or any(
+            not isinstance(gate, str) or not gate.strip() for gate in manifest["gates"]
+        )
+        or len(manifest["gates"]) != len(set(manifest["gates"]))
+    ):
+        raise ValueError(f"invalid Recovery Manifest state: {case_id}")
+
+
 def load_cases(cases_root: Path | None = None) -> dict[str, dict[str, Any]]:
     cases_root = CASES if cases_root is None else cases_root.resolve()
     loaded: dict[str, dict[str, Any]] = {}
@@ -286,10 +493,15 @@ def validate_case(case: dict[str, Any], path: Path) -> None:
     expected = case["oracle"].get("expected", {})
     if set(expected) != PERMISSION_FIELDS:
         raise ValueError(f"case must constrain all permission fields: {case['id']}")
+    permission_failures = expected_permission_failures(expected)
+    if permission_failures:
+        raise ValueError(
+            f"invalid permission state: {case['id']}: " + "; ".join(permission_failures)
+        )
     accepted = case["oracle"].get("accepted_baseline_failures", [])
     if (
         not isinstance(accepted, list)
-        or any(not isinstance(identity, str) or not identity for identity in accepted)
+        or any(not is_nonblank_identity(identity) for identity in accepted)
         or len({identity.casefold() for identity in accepted}) != len(accepted)
     ):
         raise ValueError(f"invalid accepted baseline failures: {case['id']}")
@@ -331,6 +543,15 @@ def validate_case(case: dict[str, Any], path: Path) -> None:
             }
         ):
             raise ValueError(f"invalid native compaction values: {case['id']}")
+        validate_recovery_manifest(native, case_id=case["id"])
+        recovery_permission_failures = expected_permission_failures(
+            expected, recovery_state=native["recovery_oracle"]
+        )
+        if recovery_permission_failures:
+            raise ValueError(
+                f"invalid recovery permission state: {case['id']}: "
+                + "; ".join(recovery_permission_failures)
+            )
         prompts.extend((native["prepare_prompt"], native["fresh_recovery_prompt"]))
     for entry in fixture["commits"]:
         generated = generated_fixture_files(entry.get("generated_files"))
@@ -357,8 +578,7 @@ def validate_case(case: dict[str, Any], path: Path) -> None:
         states = states if isinstance(states, list) else [states]
         if (
             set(finding) != {"identity", "domain", "state"}
-            or not isinstance(finding["identity"], str)
-            or not finding["identity"]
+            or not is_nonblank_identity(finding["identity"])
             or finding["domain"]
             not in {"secret", "baseline_failure", "receipt", "other"}
             or not states
@@ -394,8 +614,7 @@ def validate_case(case: dict[str, Any], path: Path) -> None:
             raise ValueError(f"invalid required blocker: {case['id']}")
         if (
             set(blocker) != {"identity", "class"}
-            or not isinstance(blocker["identity"], str)
-            or not blocker["identity"]
+            or not is_nonblank_identity(blocker["identity"])
             or blocker["class"] not in BLOCKER_CLASSES
         ):
             raise ValueError(f"invalid required blocker: {case['id']}")
@@ -515,7 +734,8 @@ def validate_case(case: dict[str, Any], path: Path) -> None:
             if kind == "recovery" and not (
                 expected.get("execplan_condition") == "needs_amendment"
                 and expected.get("protocol_may_product_write") is False
-                and expected.get("protocol_may_review") is False
+                and expected.get("protocol_review_mode")
+                in {"none", "focused_hardening"}
                 and expected.get("protocol_may_complete") is False
             ):
                 raise ValueError(f"invalid recovery coverage assertion: {case['id']}")
@@ -1306,17 +1526,12 @@ def disabled_feature_args() -> list[str]:
 
 
 def finding_identity_matches(actual: str, expected: str) -> bool:
-    actual_folded = actual.casefold()
-    expected_folded = expected.casefold()
-    return actual_folded == expected_folded or any(
-        actual_folded.endswith(f"{delimiter}{expected_folded}")
-        for delimiter in (":", "/")
-    )
+    return bool(identity_match_values(actual) & identity_match_values(expected))
 
 
 def finding_has_anchor(finding: dict[str, Any], expected: str) -> bool:
     expected_folded = expected.casefold()
-    return str(finding.get("identity", "")).casefold() == expected_folded or any(
+    return any(
         isinstance(item, str) and item.casefold() == expected_folded
         for item in finding.get("anchors", [])
     )
@@ -1387,6 +1602,7 @@ def match_oracle(
         allowed = expected if isinstance(expected, list) else [expected]
         if result.get(field) not in allowed:
             failures.append(f"{field}: got {result.get(field)!r}, expected {allowed!r}")
+    failures.extend(protocol_state_failures(result))
     if expected_recovery_state is not None:
         failures.extend(
             recovery_state_failures(
@@ -1397,13 +1613,6 @@ def match_oracle(
         )
     actual_findings = result.get("finding_classifications", [])
     actual_blockers = result.get("blocker_classifications", [])
-    seen_blocker_identities: set[str] = set()
-    for blocker in actual_blockers:
-        identity = str(blocker.get("identity", ""))
-        identity_key = identity.casefold()
-        if identity_key in seen_blocker_identities:
-            failures.append(f"multiple blocker classifications: {identity}")
-        seen_blocker_identities.add(identity_key)
     if (
         fixture is not None
         and fixture_requires_goal_pause_handoff(fixture)
@@ -1452,6 +1661,7 @@ def match_oracle(
             failures.append(
                 f"missing blocking identity: {expected['identity']} {expected['class']}"
             )
+    anchored_blocker_matches: list[list[frozenset[str]]] = []
     for expected in oracle.get("required_anchored_blockers", []):
         anchor = expected["anchor"].casefold()
         allowed_classes = expected["class"]
@@ -1463,35 +1673,47 @@ def match_oracle(
             if finding_has_anchor(finding, anchor)
         ]
         matches = [
-            (finding, blocker)
+            identity_match_values(finding.get("identity", ""))
             for finding in anchored_findings
             for blocker in actual_blockers
-            if str(blocker.get("identity", "")).casefold()
-            == str(finding.get("identity", "")).casefold()
+            if classifications_share_identity(finding, blocker)
             and blocker.get("class") in allowed_classes
             and blocker.get("blocking") is True
         ]
+        anchored_blocker_matches.append(matches)
         if not matches:
             failures.append(
                 f"missing anchored blocker: {expected['anchor']} {allowed_classes}"
             )
+    if anchored_blocker_matches and not has_distinct_identity_assignment(
+        anchored_blocker_matches
+    ):
+        failures.append("distinct anchored blocker required for each material item")
+    anchored_classification_matches: list[list[frozenset[str]]] = []
     for expected in oracle.get("required_anchored_classifications", []):
         anchor = expected["anchor"].casefold()
         allowed_states = expected["state"]
         if not isinstance(allowed_states, list):
             allowed_states = [allowed_states]
         matches = [
-            finding
+            identity_match_values(finding.get("identity", ""))
             for finding in actual_findings
             if finding_has_anchor(finding, anchor)
             and finding.get("domain") == expected["domain"]
             and finding.get("state") in allowed_states
         ]
+        anchored_classification_matches.append(matches)
         if not matches:
             failures.append(
                 "missing anchored classification: "
                 f"{expected['anchor']} {expected['domain']} {allowed_states}"
             )
+    if anchored_classification_matches and not has_distinct_identity_assignment(
+        anchored_classification_matches
+    ):
+        failures.append(
+            "distinct anchored classification required for each material item"
+        )
     completion_claimed = (
         result.get("decision") == "complete"
         or result.get("protocol_may_complete") is True
@@ -1638,7 +1860,7 @@ def _validate_case_capability(
                 "semantic_sha256": descriptor.get("candidate_semantic_sha256"),
                 "artifact_sha256": descriptor.get("candidate_artifact_sha256"),
             }
-        elif arm == "public-0.2":
+        elif arm == "public-0.4.0":
             expected_package = {
                 "semantic_sha256": descriptor.get("public_semantic_sha256"),
                 "artifact_sha256": descriptor.get("public_artifact_sha256"),

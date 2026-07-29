@@ -7,7 +7,13 @@ import re
 from typing import Any
 
 from evaluation.core.identity import canonical_sha256, sha256_bytes
-from evaluation.corpus.contract import PERMISSION_FIELDS
+from evaluation.corpus.contract import (
+    PERMISSION_FIELDS,
+    gate_projection,
+    identity_match_values,
+    recovery_manifest_projection,
+    recovery_summary_consistent,
+)
 
 
 def text_sha256(value: Any) -> str:
@@ -19,14 +25,9 @@ def casefold_text_sha256(value: Any) -> str:
 
 
 def identity_match_sha256s(value: Any) -> list[str]:
-    folded = str(value).casefold()
-    candidates = {folded}
-    candidates.update(
-        folded[index + 1 :]
-        for index, character in enumerate(folded)
-        if character in {":", "/"} and folded[index + 1 :]
+    return sorted(
+        casefold_text_sha256(candidate) for candidate in identity_match_values(value)
     )
-    return sorted(casefold_text_sha256(candidate) for candidate in candidates)
 
 
 def member_sha256s(value: Any) -> list[str]:
@@ -84,6 +85,8 @@ def sanitized_recovery_receipt(value: Any) -> dict[str, Any] | None:
     marker_ids = value.get("marker_ids", [])
     receipt["marker_ids_count"] = len(marker_ids) if isinstance(marker_ids, list) else 0
     receipt["marker_ids_sha256"] = canonical_sha256(marker_ids)
+    receipt.update(recovery_manifest_projection(value))
+    receipt["summary_consistent"] = recovery_summary_consistent(value)
     return receipt
 
 
@@ -105,6 +108,9 @@ def sanitized_result_receipt(value: Any) -> dict[str, Any] | None:
                 ),
                 "identity_match_sha256s": identity_match_sha256s(
                     item.get("identity", "")
+                ),
+                "identity_nonblank": bool(
+                    isinstance(item.get("identity"), str) and item["identity"].strip()
                 ),
                 "domain": item.get("domain"),
                 "state": item.get("state"),
@@ -131,6 +137,9 @@ def sanitized_result_receipt(value: Any) -> dict[str, Any] | None:
                 "identity_match_sha256s": identity_match_sha256s(
                     item.get("identity", "")
                 ),
+                "identity_nonblank": bool(
+                    isinstance(item.get("identity"), str) and item["identity"].strip()
+                ),
                 "class": item.get("class"),
                 "blocking": item.get("blocking"),
                 "reason_sha256": text_sha256(item.get("reason", "")),
@@ -146,6 +155,7 @@ def sanitized_result_receipt(value: Any) -> dict[str, Any] | None:
         receipt[f"{field}_count"] = len(items) if isinstance(items, list) else 0
         receipt[f"{field}_sha256"] = canonical_sha256(items)
     open_gates = value.get("open_gates", [])
+    receipt.update(gate_projection(open_gates))
     receipt["goal_pause_handoff_present"] = isinstance(open_gates, list) and any(
         isinstance(gate, str) and "/goal pause" in gate for gate in open_gates
     )

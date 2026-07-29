@@ -1,49 +1,11 @@
 {
-  "certification": {
-    "coverage": {
-      "corpus": {
-        "authorized-rebaseline": "prior",
-        "boundary-cutover": "prior",
-        "clean-qualifying-control": "prior",
-        "compaction-recovery": "prior",
-        "goal-divergence": "prior",
-        "midflight-escalation": "prior",
-        "multi-repo-submodule": "prior",
-        "no-commit-secret": "prior",
-        "pre-freeze-compaction": "prior",
-        "receipt-mismatch": "prior",
-        "review-admin-cycle": "prior",
-        "review-inventory-gate": "prior",
-        "review-isolation": "prior",
-        "subthreshold-control": "prior"
-      },
-      "holdout": {
-        "authority-production-boundary": "prior",
-        "destructive-migration-fallback": "prior",
-        "local-documentation-control": "prior"
-      }
-    },
-    "engine_manifest_sha256": "0334e7d256e4324da71fcb67bafa28c04a18f752951ddd14608c259e7c2d6757",
-    "evidence": {
-      "offline_summary": {
-        "commit": "d319b5a57e1152446b9eb81a75e4bd6532e81dab",
-        "git_blob": "de034a5851176ba17ad6ba2562a52a955f82c5ee",
-        "path": "evaluation/results/evidence/offline-summary-e057df5da25098cc63d0ad75c544eb1e2d37ef04a33067823b1df9c334efd5cd.json",
-        "sha256": "e057df5da25098cc63d0ad75c544eb1e2d37ef04a33067823b1df9c334efd5cd"
-      }
-    },
-    "live_authority_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
-    "schema_version": 1,
-    "snapshot_sha256": "b579d5b112527730ff15a04ae510166dc4f4af82bbafa83921e1132c40f13c0b",
-    "successor_source_commit": "7471d2d1f84ad6b43c52074a257f55d5301385c9",
-    "successor_source_tree": "ceef832cf46dccaced626d491dd9a47c73423422"
-  },
+  "certification": null,
   "historical_cost": {
-    "basis": "HappyCodex 0.3 v21 candidate corpus and v23 adaptive holdout receipts",
+    "basis": "HappyCodex 0.3 v21 candidate corpus and v23 adaptive holdout receipts; new 0.4.1 single-call controls conservatively use the prior maximum single-call token and wall envelopes",
     "corpus": {
-      "combined_tokens": 498708,
-      "live_calls": 16,
-      "wall_seconds": 2429.409
+      "combined_tokens": 632550,
+      "live_calls": 19,
+      "wall_seconds": 3274.563
     },
     "holdout": {
       "combined_tokens": {
@@ -75,16 +37,16 @@
     },
     "total": {
       "combined_tokens": {
-        "maximum": 637027,
-        "minimum": 585209
+        "maximum": 770869,
+        "minimum": 719051
       },
       "live_calls": {
-        "maximum": 22,
-        "minimum": 20
+        "maximum": 25,
+        "minimum": 23
       },
       "wall_seconds": {
-        "maximum": 3187.085,
-        "minimum": 2911.874
+        "maximum": 4032.239,
+        "minimum": 3757.028
       }
     }
   },
@@ -92,57 +54,58 @@
   "pending": {
     "corpus_cases": [],
     "holdout_pairs": [],
-    "reasons": [],
-    "review": false
-  },
-  "prior_evidence": {
-    "sha256": "337feae7e9dd421015f59f9ccf65abc0b267a9e34241c05ef4d9cf3d8271a86f",
-    "source_commit": "e0248b09a676d842dd59bffbc8ac99fb101ca8c3",
-    "source_path": "evaluation/results/current.json"
+    "reasons": [
+      "protocol_0_4_1_clean_break",
+      "user_waived_corpus_holdout_2026_07_29"
+    ],
+    "review": true
   },
   "schema_version": 1,
   "snapshot": {
     "corpus": {
       "cases": {
-        "authorized-rebaseline": "8923237ac1b60cdea619000d5766f3c73aa2c911921902156934c2374c593ab3",
-        "boundary-cutover": "b97b0dd5dc28baf476f9414280932d6f51284e031f28825ec2df9ae5afe7c938",
-        "clean-qualifying-control": "5d14c6a4d8bd2134381d7cfd07e1a3ad7dccd1687d305a913c9a8a11618af8cd",
-        "compaction-recovery": "c9d3ae85f2c78742c8791f1102ad12c1e6d8ef0a3d975bad9c35b5c862e8c469",
-        "goal-divergence": "6114e6754ef8f062d5beb506f1788ef8519f6b847f6e2a012389160e3cca39cd",
-        "midflight-escalation": "8bde143e19848276acac5e7e3fd5b1d4e641ab01e73f40709fe6bdcb47a47170",
-        "multi-repo-submodule": "44ce4fe364d71e392e2d7a810cc0033ba0950344610bb20da5cb088104cb2793",
-        "no-commit-secret": "f51913be76b4c31fd9195dfa7756e37da3760528808a7d4ddad253cfcc3eb29b",
-        "pre-freeze-compaction": "4d49932f47aa0b3a4bb2aa4ee4c6e1f9c6b0e98ddbfacc5832560f35d375dc37",
-        "receipt-mismatch": "6aeb36d845217c06a8051a60edc301c9cb60005966b321588a15ed74aa5a0892",
-        "review-admin-cycle": "46de334b40c8fa21560e56b45ff62ff4192ee475721bcbab280992b8e3c8ae88",
-        "review-inventory-gate": "e073188cba0e424a704ab54101d527c09b49471ef59e214b402d4caa286fce4d",
-        "review-isolation": "ca35838cc71d7661df82a5fe3a0fa96e4d77c7155ec0f7e0b00d0fbb7e39abb4",
-        "subthreshold-control": "f7fb2150e47a423f34546160a0e6344edfc33767e91223a55532c2d8836f9bc5"
+        "authorized-rebaseline": "cfebab61cf5c7b46853c5ddac622ee147669bff114fa7a3d416d201070341f44",
+        "boundary-cutover": "a02e3582e81f80f72efb2e12d890e8d6a419289a3b2cca9a5f8fa048b6f56868",
+        "clean-qualifying-control": "4a48fde4d37708ca159ae0bd4e319f2497bee8ae547b9c56b3b7c129b11dc64b",
+        "compaction-recovery": "b8be27b40d54321273ed2f8397b73a8bbd90b5eddfa20f4e40a0532f065cd7f9",
+        "exact-final-ready": "5b35b27e0ad14db5db23fc53d164b0449de44087c52246abe3bd86a7074a36ab",
+        "goal-divergence": "312e3dde7e0dfc00d590d56424f484485868c0106f2ad9f4bbc6453ed0868b18",
+        "midflight-escalation": "0f20998020d72b290b442a86d3f9e459150668be4ca97758d7c3c5bfc3019e4b",
+        "multi-repo-submodule": "d60c8c5fd78bae1ffe2b72e9573b7c248acd4ffc021fc11444aeb066feb3f65d",
+        "no-commit-archive-recovery": "ab6bbf85231230763bd719e9ace7e61d3e428de3bf7a0035237150c2a6903a50",
+        "no-commit-secret": "599d8ca285ac62f9287403f7391b887020d1da91bb8351ef8eed5c7527f12efa",
+        "no-commit-unselected": "72d8794be6b6ed0ec81de6be97c5bae0b92590ed5c52e0a2406ad7eb3821a222",
+        "pre-freeze-compaction": "1965900822e0a92b066de8e396da1c3e39757a38f196f095b06d28f8b57e1ad1",
+        "receipt-mismatch": "75464ae1743696847710533c7fbee902081b15d7df972929e431ea4b373bbcdc",
+        "review-admin-cycle": "596aea39164d4e5cce63404052cc5015c6e387188bc5bd2c422de7fa82bfc21b",
+        "review-inventory-gate": "8599ffd3b31a3b6a69dec31edbc2af69e2e36d75d0c4ce5c5de190644d08e811",
+        "review-isolation": "e9af117e39ddce5edb0ec1877f6a8cbc905a402dbf77ddcacd464cf90b80ce7c",
+        "subthreshold-control": "f1261023cf5be18fb8282de3adebf2c65825bf56369856d8af35ad105aa041fb"
       }
     },
     "engine": {
       "categories": {
-        "artifact": "8542b02d73e07d4f7ccfa58775969c22097eca157e151365632d71e92e6a07ea",
-        "harness": "3cf0bc56cfe589946746ba284d0a3e54c20f49dba35238f9077e2c9ec123aff1",
-        "semantic": "8f73619db63d7d64b934a9e70c627756bda8ea39978dbb7a9d42d37f65e29477"
+        "artifact": "2064bed385712e0587b28e6ed04afdf8994685c011549603c1eed589eb1cd6f0",
+        "harness": "0032e3fff5a9ef7278f138b90848eb473313c6f2ff73a91edb7e75d83e52a927",
+        "semantic": "f72692cacf67f38413bb29fdbcb9da48a9f20e256b56fd0350b3d37e9e5a1b5e"
       },
-      "manifest_sha256": "0334e7d256e4324da71fcb67bafa28c04a18f752951ddd14608c259e7c2d6757",
+      "manifest_sha256": "ad0a4e83323f0f981ed0b342c82c7a84b6087e9a0bebe2cc32491fda878b3a9b",
       "scopes": {
-        "corpus_harness": "cec27631f4a43f77911ae729dbd0269b6925a2bf51f31dabb1d30820f43216a2",
-        "holdout_harness": "c365e77fb8fb356e49307819e3657d438cdda7fccb62380d78ca0eb7b9b310a4",
-        "holdout_semantic": "425a7ddf3e3d46943bf7ee57131a0502fdf0ba43e237249e5b5a53f1879d5c54"
+        "corpus_harness": "63e71fa354997be372a4fcd03b00810fdfe44eabfda283b5ca18baa7e52cea47",
+        "holdout_harness": "f2912e576cb08cda345c60e94b7aaf425e85b6d73eacd14e114f3e2076043ada",
+        "holdout_semantic": "f4947543ea227ca66ab9f9a0d23fc2383c2d7bb64cd2b2100fae1dedc22ed548"
       }
     },
     "holdout": {
       "pairs": {
-        "authority-production-boundary": "3e34db8da45b2c75808824330b9a885de10c879bfab352375892de07fc918532",
-        "destructive-migration-fallback": "60ad2b377b693fed46b6fa99cc6382d071b0a58aff77e436eb6db715562a2296",
-        "local-documentation-control": "4fb68bb37455e38909c2d75de7bcb57ff8c7f61712015498b31fb51859bff084"
+        "authority-production-boundary": "629d5bdf5854a6ad11d82319a69d305f29e814ff0ed0c3cd3c2ba2fbb1577369",
+        "destructive-migration-fallback": "297d49ee5cf3e1645f4f4d3d3a1a75c3fccdf27248959cfeece0abe50298feee",
+        "local-documentation-control": "1b18c905ae23a6c0ff38a14ea16965ddc759b3b764127bb4ed2c1ac71920f343"
       }
     },
     "package": {
-      "artifact_sha256": "ace7f39fd61341e5d4b1bc3b268fd89a1562acaaacb80d7456c2bb97fb9c497e",
-      "semantic_sha256": "c5030e99dd7cd1681148c069775671c5720bb8dd366930ff90f61cbc54cdfc05"
+      "artifact_sha256": "af541d4ea57becdd7c15f194222567862478adcff9b61a38e1aeaeea6b32887b",
+      "semantic_sha256": "b8db5a56384cd5341efd4cc61a3601e950d00a4ee0e8e8bce464a5a37282c795"
     },
     "schema_version": 1,
     "settings": {
@@ -151,9 +114,9 @@
       "timeout_seconds": 300,
       "toolchain": {
         "codex": {
-          "path": "/home/caichenghang/.codex/packages/standalone/releases/0.144.4-aarch64-unknown-linux-musl/bin/codex",
-          "sha256": "306498eb1e4ba092e1a03c6ebeaeba37964ad868a68b167d4fb775c96321db5c",
-          "version": "codex-cli 0.144.4"
+          "path": "/home/caichenghang/.codex/packages/standalone/releases/0.146.0-aarch64-unknown-linux-musl/bin/codex",
+          "sha256": "cb5e8cb8a333a408ce6adbe0d4fad1845c69772c2216af7c1f88c98a11460dc6",
+          "version": "codex-cli 0.146.0"
         },
         "git": {
           "path": "/usr/bin/git",
@@ -171,12 +134,12 @@
           "version": "Python 3.10.12"
         },
         "rg": {
-          "path": "/home/caichenghang/.codex/packages/standalone/releases/0.144.4-aarch64-unknown-linux-musl/codex-path/rg",
-          "sha256": "968cabe8efed72fd8fd482cb76b6084fcb695fc5293af7fb62296b02f487fb69",
-          "version": "ripgrep 15.1.0 (rev af60c2de9d)"
+          "path": "/home/caichenghang/.codex/packages/standalone/releases/0.146.0-aarch64-unknown-linux-musl/codex-path/rg",
+          "sha256": "e36d0eb52e70696bdf1781392722e05a21bb91d3b7b762ef5ec20e5df2ec687b",
+          "version": "ripgrep 15.2.0 (rev e89fff89ac)"
         }
       }
     }
   },
-  "state": "certified"
+  "state": "refresh_required"
 }

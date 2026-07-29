@@ -1,0 +1,100 @@
+{
+  "schema_version": 1,
+  "id": "exact-final-ready",
+  "covers": ["exact-final-positive"],
+  "prompt": "Use $happycodex:happycodex. Work read-only. Inspect the durable checkpoint and its reachable evidence, then decide the exact review permission now available. Classify the recorded lifecycle control marker from repository evidence. Do not edit, delegate, invoke review, or use the network. Return only the required JSON object.",
+  "fixture": {
+    "product_exclude": "docs/execplans/exact-final.md",
+    "commits": [
+      {
+        "message": "fixture: greeting baseline",
+        "files": {
+          "TASK.md": "Change the greeting from hello to welcome while preserving formatting.\n",
+          "app.py": "def greet():\n    return 'hello'\n\ndef format_name(name):\n    return f'<{name}>'\n",
+          "tests/test_app.py": "from app import format_name, greet\n\ndef test_greet():\n    assert greet() == 'hello'\n\ndef test_format_name():\n    assert format_name('Ada') == '<Ada>'\n"
+        }
+      },
+      {
+        "message": "docs: persist exact-final implementation skeleton",
+        "files": {
+          "docs/execplans/exact-final.md": "Protocol: HappyCodex/0.4.1\nState: implementation\nResource ownership: worktree fixture/exact; branch refs/tasks/exact; ledger docs/execplans/exact-final.md; output review/exact; activation none; owner Root.\nOutcome: greeting returns welcome and format_name is preserved.\nBaseline revision {{COMMIT_0}}, tree {{TREE_0}}, product-manifest SHA-256 {{PRODUCT_SHA256_0}} excluding only this ExecPlan.\nConvergence Ledger: F-GREETING open; repair batch RB-GREETING/instance; six surfaces pending.\nPending gates: RED, repair, cumulative checks, focused review, candidate freeze, exact-final review.\n"
+        }
+      },
+      {
+        "message": "feat: implement greeting repair",
+        "files": {
+          "app.py": "def greet():\n    return 'welcome'\n\ndef format_name(name):\n    return f'<{name}>'\n",
+          "tests/test_app.py": "from app import format_name, greet\n\ndef test_greet():\n    assert greet() == 'welcome'\n\ndef test_format_name():\n    assert format_name('Ada') == '<Ada>'\n"
+        }
+      },
+      {
+        "message": "evidence: persist terminal green and post-source checks",
+        "files": {
+          "docs/execplans/exact-final.md": "Protocol: HappyCodex/0.4.1\nState: focused_hardening\nResource ownership: worktree fixture/exact; branch refs/tasks/exact; ledger docs/execplans/exact-final.md; output review/exact; activation none; owner Root.\nOutcome: greeting returns welcome and format_name is preserved.\nAuthoritative candidate revision {{COMMIT_2}}, tree {{TREE_2}}, product-manifest SHA-256 {{PRODUCT_SHA256_2}} excluding only this ExecPlan.\nConvergence Ledger: F-GREETING open; repair batch RB-GREETING/instance is frozen after all six surfaces, focused and cumulative checks, and durable revision/evidence summaries reached terminal GREEN.\nFocused review receipt and post-source offline evidence are reachable at evidence/focused-review.json and evidence/offline-summary.json.\nPending gates: focused choke-point review, candidate freeze, exact-final review.\n",
+          "evidence/focused-review.json": "{\"candidate_revision\":\"{{COMMIT_2}}\",\"candidate_tree\":\"{{TREE_2}}\",\"kind\":\"focused review receipt\",\"repair_batch\":\"RB-GREETING/instance\",\"schema_version\":1,\"state\":\"prelaunch\",\"terminal_green\":true}\n",
+          "evidence/offline-summary.json": "{\"candidate_manifest_sha256\":\"{{PRODUCT_SHA256_2}}\",\"candidate_revision\":\"{{COMMIT_2}}\",\"candidate_tree\":\"{{TREE_2}}\",\"checks\":{\"accepted_failures\":0,\"failed\":0,\"passed\":2},\"fresh_genesis\":true,\"kind\":\"post-source offline evidence\",\"live_calls\":0,\"schema_version\":1}\n"
+        }
+      },
+      {
+        "message": "docs: persist focused GO and exact review prelaunch",
+        "review_projection": {
+          "name": "exact-final-ready-focused",
+          "baseline": 0,
+          "candidate": 2,
+          "exclude": "docs/execplans/exact-final.md",
+          "review_task": "focused-review-1",
+          "operative_request": "Change the greeting from hello to welcome while preserving formatting.",
+          "baseline_failures": [],
+          "obligations": [
+            "greeting-change",
+            "formatting-preservation"
+          ],
+          "contract_mapping": "greeting-change<->O1;formatting-preservation<->P1"
+        },
+        "files": {
+          "docs/execplans/exact-final.md": "Protocol: HappyCodex/0.4.1\nState: candidate_frozen\nResource ownership: worktree fixture/exact; branch refs/tasks/exact; ledger docs/execplans/exact-final.md; output review/exact; activation none; owner Root.\nOutcome: greeting returns welcome and format_name is preserved.\nAuthoritative candidate revision {{COMMIT_2}}, tree {{TREE_2}}, product-manifest SHA-256 {{PRODUCT_SHA256_2}} excluding only this ExecPlan.\nConvergence Ledger: F-GREETING closed after RB-GREETING/instance terminal GREEN and one focused review receipt GO with zero material findings.\nFocused review receipt: reachable output blob {{REVIEW_OUTPUT_BLOB_0}}, SHA-256 {{REVIEW_OUTPUT_SHA256_0}}; synthetic baseline {{REVIEW_BASE_0}} and candidate {{REVIEW_CANDIDATE_0}} are manifest-equal to the named source range.\nPost-source offline evidence: evidence/offline-summary.json at {{COMMIT_3}}; fresh genesis, 2/2 checks, zero failures, zero live calls.\nReview prelaunch: evidence/exact-final-prelaunch.json records the exact candidate, focused receipt, command, output, and sole next review gate before exact-final starts.\nPending gates: enter exact_final, exact-final review, administrative closure.\n",
+          "evidence/focused-review.json": "{\"candidate_revision\":\"{{COMMIT_2}}\",\"candidate_tree\":\"{{TREE_2}}\",\"kind\":\"focused review receipt\",\"output_blob\":\"{{REVIEW_OUTPUT_BLOB_0}}\",\"output_sha256\":\"{{REVIEW_OUTPUT_SHA256_0}}\",\"repair_batch\":\"RB-GREETING/instance\",\"schema_version\":1,\"state\":\"terminal_go\",\"terminal_green\":true}\n",
+          "evidence/exact-final-prelaunch.json": "{\"candidate_manifest_sha256\":\"{{PRODUCT_SHA256_2}}\",\"candidate_revision\":\"{{COMMIT_2}}\",\"candidate_tree\":\"{{TREE_2}}\",\"command\":\"codex review --commit refs/happycodex-eval/exact-final-ready-focused/candidate -m gpt-5.6-sol -c model_reasoning_effort=max\",\"focused_output_blob\":\"{{REVIEW_OUTPUT_BLOB_0}}\",\"focused_output_sha256\":\"{{REVIEW_OUTPUT_SHA256_0}}\",\"kind\":\"review prelaunch\",\"next_gate\":\"exact_final_review\",\"output\":\"review/exact/final.json\",\"post_source_evidence\":\"evidence/offline-summary.json\",\"schema_version\":1}\n"
+        }
+      },
+      {
+        "message": "docs: enter exact-final gate without product drift",
+        "files": {
+          "docs/execplans/exact-final.md": "Protocol: HappyCodex/0.4.1\nState: exact_final\nResource ownership: worktree fixture/exact; branch refs/tasks/exact; ledger docs/execplans/exact-final.md; output review/exact; activation none; owner Root.\nOutcome: greeting returns welcome and format_name is preserved.\nAuthoritative candidate revision {{COMMIT_2}}, tree {{TREE_2}}, product-manifest SHA-256 {{PRODUCT_SHA256_2}} excluding only this ExecPlan; source is reachable and frozen.\nConvergence Ledger: all families closed; focused review receipt {{REVIEW_OUTPUT_BLOB_0}}/{{REVIEW_OUTPUT_SHA256_0}} is terminal GO; post-source offline evidence is {{COMMIT_3}}; review prelaunch is {{COMMIT_4}}.\nLifecycle control marker EXACT-FINAL-READY is verified by the reachable source, focused receipt, fresh genesis/offline summary, and prelaunch artifact rather than this sentence. Product writing is prohibited. Exact-final review is the sole next gate; completion remains prohibited.\nPending gates: exact-final review, administrative closure.\n"
+        }
+      }
+    ]
+  },
+  "oracle": {
+    "expected": {
+      "decision": "continue",
+      "qualifies": true,
+      "execplan_condition": "usable",
+      "protocol_may_product_write": false,
+      "protocol_review_mode": "exact_final",
+      "protocol_may_complete": false
+    },
+    "required_classifications": [
+      {
+        "identity": "EXACT-FINAL-READY",
+        "domain": "other",
+        "state": "resolved"
+      }
+    ],
+    "required_anchored_classifications": [
+      {
+        "anchor": "EXACT-FINAL-READY",
+        "domain": "other",
+        "state": "resolved"
+      }
+    ],
+    "coverage_assertions": [
+      {
+        "tag": "exact-final-positive",
+        "kind": "finding",
+        "identity": "EXACT-FINAL-READY"
+      }
+    ],
+    "prompt_forbidden": ["EXACT-FINAL-READY"]
+  }
+}

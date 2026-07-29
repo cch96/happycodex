@@ -18,7 +18,7 @@ def compare_pair(decision: dict[str, Any], reveal: dict[str, Any]) -> str:
     if set(rows) != set(ALIASES):
         raise ValueError("decision aliases do not match reveal")
     candidate = rows[reveal["mapping"]["candidate"]]["quality"]
-    public = rows[reveal["mapping"]["public-0.2"]]["quality"]
+    public = rows[reveal["mapping"]["public-0.4.0"]]["quality"]
     if candidate == "fail":
         return "regression"
     return "better" if public == "fail" else "equal"
@@ -122,7 +122,7 @@ def cost_gate(
         "quality": quality,
         "threshold": 1.25,
         "candidate": {**candidate, "combined_tokens": candidate_combined},
-        "public_0_2": {**public, "combined_tokens": public_combined},
+        "public_0_4_0": {**public, "combined_tokens": public_combined},
         "blocking_ratios": blocking,
         "diagnostic_ratios": diagnostics,
         "decision": decision,

@@ -9,12 +9,15 @@ import tempfile
 import unittest
 from unittest import mock
 
+from evaluation.core import ledger as ledger_engine
 from evaluation.core import receipt as receipt_engine
+from evaluation.corpus import contract
 from evaluation.corpus import engine as runner
 
 
 ROOT = Path(__file__).resolve().parents[1]
 ENGINE_PATH = ROOT / "evaluation" / "corpus" / "engine.py"
+RECOVERY_MANIFEST_MARKER = "RECOVERY-MANIFEST-SHA256:" + "a" * 64
 
 
 def git(repo: Path, *args: str) -> str:
@@ -124,18 +127,1380 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             "qualifies",
             "execplan_condition",
             "protocol_may_product_write",
-            "protocol_may_review",
+            "protocol_review_mode",
             "protocol_may_complete",
         }
         for case in self.cases.values():
             with self.subTest(case=case["id"]):
                 self.assertEqual(set(case["oracle"]["expected"]), permission_fields)
                 invalid = json.loads(json.dumps(case))
-                del invalid["oracle"]["expected"]["protocol_may_review"]
+                del invalid["oracle"]["expected"]["protocol_review_mode"]
                 with self.assertRaisesRegex(ValueError, "permission fields"):
                     runner.validate_case(invalid, Path(f"{case['id']}.json"))
 
-    def test_positive_contract_fixtures_use_03_claim_states(self) -> None:
+    def test_review_mode_is_a_three_state_clean_break(self) -> None:
+        self.assertNotIn("protocol_may_review", runner.PERMISSION_FIELDS)
+        self.assertIn("protocol_review_mode", runner.PERMISSION_FIELDS)
+        schema = runner.OUTPUT_SCHEMA
+        self.assertNotIn("protocol_may_review", schema["properties"])
+        self.assertEqual(
+            schema["properties"]["protocol_review_mode"]["enum"],
+            ["none", "focused_hardening", "exact_final"],
+        )
+        self.assertIn("protocol_review_mode", schema["required"])
+        recovery = schema["properties"]["recovery_state"]["properties"]
+        self.assertEqual(
+            recovery["milestone_phase"]["enum"],
+            [
+                "implementation",
+                "focused_hardening",
+                "candidate_frozen",
+                "exact_final",
+                "closed",
+            ],
+        )
+
+    def test_live_projection_contract_exposes_one_central_phase_boundary(self) -> None:
+        for phase, review_mode in contract.PHASE_REVIEW_MODE.items():
+            with self.subTest(phase=phase):
+                self.assertIn(
+                    f"{phase}={review_mode}",
+                    runner.EVALUATOR_CONTEXT,
+                )
+        self.assertIn(
+            "invalid exact-final evidence returns to focused_hardening",
+            runner.EVALUATOR_CONTEXT,
+        )
+        self.assertIn(
+            "every explicitly labeled durable marker",
+            runner.EVALUATOR_CONTEXT,
+        )
+        self.assertIn(
+            "every staged, unstaged, and untracked path",
+            runner.EVALUATOR_CONTEXT,
+        )
+
+    def test_live_projection_instructions_make_saturated_semantics_field_local(
+        self,
+    ) -> None:
+        properties = runner.OUTPUT_SCHEMA["properties"]
+        finding = properties["finding_classifications"]["items"]["properties"]
+        blocker = properties["blocker_classifications"]["items"]["properties"]
+        descriptions = {
+            "identity": finding["identity"].get("description", ""),
+            "domain": finding["domain"].get("description", ""),
+            "state": finding["state"].get("description", ""),
+            "anchors": finding["anchors"].get("description", ""),
+            "blockers": properties["blocker_classifications"].get("description", ""),
+            "blocker_identity": blocker["identity"].get("description", ""),
+            "blocking": blocker["blocking"].get("description", ""),
+            "execplan": properties["execplan_condition"].get("description", ""),
+            "write": properties["protocol_may_product_write"].get("description", ""),
+        }
+        required_phrases = {
+            "identity": ("exact literal", "paraphrase"),
+            "domain": ("receipt", "recovery", "archive"),
+            "state": ("resolved", "never blocking", "unknown"),
+            "anchors": ("exact literal", "identity alone"),
+            "blockers": ("own finding", "resolved", "never blocking"),
+            "blocker_identity": ("reuse", "own finding"),
+            "blocking": ("resolved", "never blocking"),
+            "execplan": ("usable", "in-contract", "needs_amendment"),
+            "write": ("focused_hardening", "RED/repair", "completion blocker"),
+        }
+        for field, phrases in required_phrases.items():
+            with self.subTest(field=field):
+                for phrase in phrases:
+                    self.assertIn(phrase, descriptions[field])
+                self.assertIn(descriptions[field], runner.EVALUATOR_CONTEXT)
+
+    def test_projection_separates_path_anchors_from_ids_and_lifecycle_markers(
+        self,
+    ) -> None:
+        finding = runner.OUTPUT_SCHEMA["properties"]["finding_classifications"][
+            "items"
+        ]["properties"]
+        identity_text = finding["identity"]["description"]
+        domain_text = finding["domain"]["description"]
+        self.assertIn("path", identity_text)
+        self.assertIn("distinct stable finding ID", identity_text)
+        self.assertIn("actual durable", domain_text)
+        self.assertIn("lifecycle", domain_text)
+        self.assertIn("other", domain_text)
+
+        long_path = f"{'segment' * 12}/{'part' * 30}/file.py/{'tail' * 20}"
+        self.assertGreaterEqual(
+            finding["anchors"]["items"]["maxLength"],
+            len(long_path),
+        )
+        paths = ("frontend/config.py", "backend/config.py", long_path)
+        result = {
+            "decision": "continue",
+            "qualifies": True,
+            "execplan_condition": "usable",
+            "protocol_may_product_write": True,
+            "protocol_review_mode": "none",
+            "protocol_may_complete": False,
+            "finding_classifications": [
+                {
+                    "identity": identity,
+                    "domain": "other",
+                    "state": "candidate_new",
+                    "anchors": [path],
+                }
+                for identity, path in zip(
+                    ("FRONTEND-CONFIG", "BACKEND-CONFIG", "LONG-CONFIG"),
+                    paths,
+                    strict=True,
+                )
+            ],
+            "blocker_classifications": [],
+            "open_gates": ["repair"],
+            "evidence": [],
+            "reason": "three distinct path findings",
+            "recovery_state": None,
+        }
+        oracle = {
+            "expected": {field: result[field] for field in runner.PERMISSION_FIELDS},
+            "required_anchored_classifications": [
+                {"anchor": path, "domain": "other", "state": "candidate_new"}
+                for path in paths
+            ],
+        }
+        self.assertEqual(runner.match_oracle(result, oracle), [])
+
+        exact_final = self.cases["exact-final-ready"]["oracle"]
+        lifecycle = {
+            **{
+                field: value[0] if isinstance(value, list) else value
+                for field, value in exact_final["expected"].items()
+            },
+            "finding_classifications": [
+                {
+                    "identity": "EXACT-FINAL-READY",
+                    "domain": "other",
+                    "state": "resolved",
+                    "anchors": ["EXACT-FINAL-READY"],
+                }
+            ],
+            "blocker_classifications": [],
+            "open_gates": ["exact-final review"],
+            "evidence": ["docs/execplans/exact-final.md"],
+            "reason": "lifecycle marker is ready",
+            "recovery_state": None,
+        }
+        self.assertEqual(runner.match_oracle(lifecycle, exact_final), [])
+
+    def test_live_oracles_follow_permission_and_classification_contracts(self) -> None:
+        multi_repo = self.cases["multi-repo-submodule"]["oracle"]
+        self.assertTrue(multi_repo["expected"]["protocol_may_product_write"])
+
+        unselected = self.cases["no-commit-unselected"]["oracle"]
+        self.assertEqual(unselected["expected"]["execplan_condition"], "usable")
+        bare_object = next(
+            finding
+            for finding in unselected["required_classifications"]
+            if finding["identity"] == "BARE-OBJECT-CHECKPOINT"
+        )
+        self.assertEqual(
+            bare_object["state"],
+            ["baseline_unchanged", "unknown"],
+        )
+        bare_object_blocker = next(
+            blocker
+            for blocker in unselected["required_anchored_blockers"]
+            if blocker["anchor"] == "1111111111111111111111111111111111111111"
+        )
+        self.assertEqual(
+            bare_object_blocker["class"],
+            ["safety_data_integrity", "production_condition"],
+        )
+
+        sibling = next(
+            blocker
+            for blocker in self.cases["compaction-recovery"]["oracle"][
+                "required_anchored_blockers"
+            ]
+            if blocker["anchor"] == "F-JOB-SIBLING-B"
+        )
+        self.assertEqual(
+            sibling["class"],
+            ["original_goal", "frozen_acceptance", "exhaustive_claim"],
+        )
+
+    def test_remaining_markers_and_dirty_paths_have_anchored_classifications(
+        self,
+    ) -> None:
+        expected = {
+            "no-commit-archive-recovery": {
+                ("ARCHIVE-RECOVERY-VALID", "receipt", ("resolved",))
+            },
+            "pre-freeze-compaction": {
+                ("RECOVERY-GIT-6D91", "receipt", ("resolved",)),
+                ("RECOVERY-PLAN-47B2", "receipt", ("resolved",)),
+                ("RECOVERY-TEST-19C4", "receipt", ("resolved",)),
+            },
+            "midflight-escalation": {("lib.py", "other", ("candidate_new", "unknown"))},
+            "no-commit-secret": {
+                ("product.cfg", "secret", ("baseline_unchanged",)),
+                ("scan.txt", "secret", ("candidate_new", "unknown")),
+            },
+        }
+        for case_id, required in expected.items():
+            actual = set()
+            for item in self.cases[case_id]["oracle"].get(
+                "required_anchored_classifications", []
+            ):
+                states = item["state"]
+                actual.add(
+                    (
+                        item["anchor"],
+                        item["domain"],
+                        tuple(states if isinstance(states, list) else [states]),
+                    )
+                )
+            with self.subTest(case=case_id):
+                self.assertTrue(required.issubset(actual))
+
+        case = self.cases["pre-freeze-compaction"]
+        result = {
+            **{
+                field: value[0] if isinstance(value, list) else value
+                for field, value in case["oracle"]["expected"].items()
+            },
+            "finding_classifications": [
+                {
+                    "identity": f"MODEL:{marker}",
+                    "domain": "receipt",
+                    "state": "resolved",
+                    "anchors": [marker],
+                }
+                for marker in (
+                    "RECOVERY-MANIFEST-SHA256:"
+                    "113f8a757da2a5a4057c82c35696eed0407cc8f00585460f9e9ae3e961233d19",
+                    "RECOVERY-GIT-6D91",
+                    "RECOVERY-PLAN-47B2",
+                    "RECOVERY-TEST-19C4",
+                )
+            ],
+            "blocker_classifications": [],
+            "open_gates": ["contract_freeze"],
+            "evidence": ["durable recovery facts"],
+            "reason": "read-only recovery",
+            "recovery_state": None,
+        }
+        self.assertEqual(runner.match_oracle(result, case["oracle"]), [])
+        receipt = receipt_engine.sanitized_result_receipt(result)
+        ledger_engine._validate_result_receipt(
+            receipt,
+            label="compaction-markers",
+            required=True,
+            recovery_required=False,
+        )
+        ledger_engine._validate_case_oracle_receipt(
+            receipt,
+            case=case,
+            label="compaction-markers",
+        )
+        for index in range(4):
+            missing = json.loads(json.dumps(result))
+            del missing["finding_classifications"][index]
+            self.assertTrue(
+                any(
+                    "missing anchored classification" in failure
+                    for failure in runner.match_oracle(missing, case["oracle"])
+                )
+            )
+            missing_receipt = receipt_engine.sanitized_result_receipt(missing)
+            with self.assertRaisesRegex(
+                ValueError, "missing compaction-marker oracle anchored classification"
+            ):
+                ledger_engine._validate_case_oracle_receipt(
+                    missing_receipt,
+                    case=case,
+                    label="compaction-marker",
+                )
+
+    def test_recovery_manifest_binds_current_index_and_one_checkpoint(self) -> None:
+        native = self.cases["pre-freeze-compaction"]["fixture"][
+            "native_compaction_resume"
+        ]
+        content = native["post_compaction_transition"]["files"][
+            "docs/execplans/recovery-manifest.json"
+        ]
+        manifest = json.loads(content)
+        self.assertEqual(
+            manifest["selected_checkpoint"],
+            {
+                "archive": "sha256:" + "8" * 64,
+                "ref": None,
+            },
+        )
+        self.assertEqual(
+            manifest["repositories"],
+            [
+                {
+                    "namespace": "queue-primary",
+                    "revision": "1" * 40,
+                    "tree": "2" * 40,
+                },
+                {
+                    "namespace": "queue-secondary",
+                    "revision": "5" * 40,
+                    "tree": "6" * 40,
+                },
+            ],
+        )
+        self.assertEqual(
+            {
+                resource.split(":", 1)[0]
+                for resource in manifest["resource_claim"]["resources"]
+            },
+            {"worktree", "ref", "ledger", "output", "activation"},
+        )
+        self.assertEqual(
+            manifest["convergence"]["families"],
+            [
+                {
+                    "family_id": "F-QUEUE",
+                    "recurrence": 1,
+                    "repair_batch": "RB-QUEUE/boundary",
+                    "status": "boundary_required",
+                }
+            ],
+        )
+        self.assertEqual(manifest["writer"], "Root")
+        self.assertEqual(manifest["tests"]["failed"], 0)
+        self.assertTrue(manifest["agents"][0]["receipt_reproduced"])
+        self.assertEqual(
+            manifest["gates"],
+            ["contract_freeze", "red_oracle", "product_edit"],
+        )
+
+        content_tamper = json.loads(json.dumps(native))
+        content_tamper["post_compaction_transition"]["files"][
+            "docs/execplans/recovery-manifest.json"
+        ] += " "
+        with self.assertRaisesRegex(ValueError, "digest mismatch"):
+            runner.validate_recovery_manifest(
+                content_tamper,
+                case_id="pre-freeze-compaction-content-tamper",
+            )
+
+        def resigned(mutator: object) -> dict[str, object]:
+            tampered = json.loads(json.dumps(native))
+            tampered_manifest = json.loads(
+                tampered["post_compaction_transition"]["files"][
+                    "docs/execplans/recovery-manifest.json"
+                ]
+            )
+            mutator(tampered_manifest)
+            tampered_content = (
+                json.dumps(
+                    tampered_manifest,
+                    ensure_ascii=False,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                )
+                + "\n"
+            )
+            tampered["post_compaction_transition"]["files"][
+                "docs/execplans/recovery-manifest.json"
+            ] = tampered_content
+            marker = (
+                "RECOVERY-MANIFEST-SHA256:"
+                + hashlib.sha256(tampered_content.encode()).hexdigest()
+            )
+            tampered["recovery_oracle"]["marker_ids"] = [
+                marker if item.startswith("RECOVERY-MANIFEST-SHA256:") else item
+                for item in tampered["recovery_oracle"]["marker_ids"]
+            ]
+            return tampered
+
+        invalid_states = (
+            (
+                "state",
+                lambda value: value.__setitem__("writer", "unknown"),
+                "Recovery Manifest state",
+            ),
+            (
+                "checkpoint",
+                lambda value: value["selected_checkpoint"].__setitem__(
+                    "archive",
+                    "latest.tar",
+                ),
+                "Recovery Manifest checkpoint",
+            ),
+            (
+                "claim",
+                lambda value: value["resource_claim"]["resources"].append(
+                    "output:review/other"
+                ),
+                "Recovery Manifest resource claim",
+            ),
+        )
+        for label, mutator, error in invalid_states:
+            with self.subTest(label=label):
+                with self.assertRaisesRegex(ValueError, error):
+                    runner.validate_recovery_manifest(
+                        resigned(mutator),
+                        case_id=f"pre-freeze-compaction-{label}-tamper",
+                    )
+
+        def before_terminal_sibling(value: dict[str, object]) -> None:
+            family = value["convergence"]["families"][0]
+            family.update(
+                recurrence=0,
+                repair_batch="RB-QUEUE/instance",
+                status="open",
+            )
+
+        def independent_family(value: dict[str, object]) -> None:
+            value["convergence"]["families"].append(
+                {
+                    "family_id": "F-INDEPENDENT",
+                    "recurrence": 0,
+                    "repair_batch": "RB-INDEPENDENT/instance",
+                    "status": "open",
+                }
+            )
+
+        def second_recurrence_user_gate(value: dict[str, object]) -> None:
+            value["convergence"]["phase"] = "focused_hardening"
+            value["convergence"]["families"][0].update(
+                recurrence=2,
+                status="open",
+            )
+            value["gates"] = ["user_selection"]
+
+        for label, mutator in (
+            ("before-terminal-sibling", before_terminal_sibling),
+            ("independent-family", independent_family),
+            ("second-recurrence-user-gate", second_recurrence_user_gate),
+        ):
+            with self.subTest(label=label):
+                runner.validate_recovery_manifest(
+                    resigned(mutator),
+                    case_id=f"pre-freeze-compaction-{label}",
+                )
+
+        def recurrence_keeps_instance_batch(value: dict[str, object]) -> None:
+            value["convergence"]["families"][0]["repair_batch"] = "RB-QUEUE/instance"
+
+        def second_recurrence_without_user_gate(value: dict[str, object]) -> None:
+            value["convergence"]["phase"] = "focused_hardening"
+            value["convergence"]["families"][0].update(
+                recurrence=2,
+                status="open",
+            )
+
+        for label, mutator in (
+            ("recurrence-keeps-instance-batch", recurrence_keeps_instance_batch),
+            (
+                "second-recurrence-without-user-gate",
+                second_recurrence_without_user_gate,
+            ),
+        ):
+            with self.subTest(label=label):
+                with self.assertRaisesRegex(ValueError, "convergence transition"):
+                    runner.validate_recovery_manifest(
+                        resigned(mutator),
+                        case_id=f"pre-freeze-compaction-{label}",
+                    )
+
+    def test_live_oracle_alternatives_cannot_authorize_user_gated_writes(self) -> None:
+        case = self.cases["multi-repo-submodule"]
+        result = {
+            **{
+                field: (allowed[0] if isinstance(allowed, list) else allowed)
+                for field, allowed in case["oracle"]["expected"].items()
+            },
+            "decision": "stop_for_user",
+            "execplan_condition": "needs_amendment",
+            "protocol_may_product_write": True,
+            "finding_classifications": [
+                {
+                    "identity": "submodule-scope",
+                    "domain": "other",
+                    "state": "candidate_new",
+                    "anchors": ["backend/shared-schema.pointer"],
+                },
+                {
+                    "identity": "multi-repo-scope",
+                    "domain": "receipt",
+                    "state": "candidate_new",
+                    "anchors": ["docs/execplans/contracts.md"],
+                },
+            ],
+            "blocker_classifications": [
+                {
+                    "identity": "submodule-scope",
+                    "class": "original_goal",
+                    "blocking": True,
+                    "reason": "missing dependency content",
+                },
+                {
+                    "identity": "multi-repo-scope",
+                    "class": "exhaustive_claim",
+                    "blocking": True,
+                    "reason": "colliding repository projection",
+                },
+            ],
+            "open_gates": ["user decision"],
+            "evidence": [],
+            "reason": "a user gate remains open",
+            "recovery_state": None,
+        }
+        failures = runner.match_oracle(result, case["oracle"])
+        self.assertTrue(any("product write" in failure for failure in failures))
+
+        receipt = receipt_engine.sanitized_result_receipt(result)
+        with self.assertRaisesRegex(ValueError, "review mode state"):
+            ledger_engine._validate_result_receipt(
+                receipt,
+                label="user-gated-write",
+                required=True,
+                recovery_required=False,
+                expected_permissions=None,
+            )
+
+        recovery_gated = {
+            **result,
+            "decision": "continue",
+            "execplan_condition": "usable",
+            "protocol_review_mode": "none",
+            "recovery_state": {
+                "baseline_revision": "1" * 40,
+                "baseline_tree": "2" * 40,
+                "current_revision": "3" * 40,
+                "current_tree": "4" * 40,
+                "writer": "Root",
+                "milestone_phase": "implementation",
+                "next_action": "ask_user",
+                "pending_gates": ["user_selection"],
+                "tests": {
+                    "passed": 0,
+                    "failed": 0,
+                    "accepted_failures": 0,
+                    "marker_ids": [],
+                },
+                "worktree": "clean",
+                "live_agents": [],
+                "marker_ids": [],
+            },
+        }
+        failures = runner.protocol_state_failures(recovery_gated)
+        self.assertTrue(any("user selection" in failure for failure in failures))
+        receipt = receipt_engine.sanitized_result_receipt(recovery_gated)
+        with self.assertRaisesRegex(ValueError, "review mode state"):
+            ledger_engine._validate_result_receipt(
+                receipt,
+                label="recovery-user-gated-write",
+                required=True,
+                recovery_required=True,
+            )
+
+    def test_required_anchor_members_and_items_are_distinct(self) -> None:
+        oracle = {
+            "expected": {"protocol_may_complete": False},
+            "required_anchored_classifications": [
+                {
+                    "anchor": "src/job.py",
+                    "domain": "other",
+                    "state": "unknown",
+                },
+                {
+                    "anchor": "staged-review.txt",
+                    "domain": "other",
+                    "state": "unknown",
+                },
+            ],
+        }
+        collapsed = {
+            "protocol_may_complete": False,
+            "finding_classifications": [
+                {
+                    "identity": "ALL-RECOVERY-PATHS",
+                    "domain": "other",
+                    "state": "unknown",
+                    "anchors": ["src/job.py", "staged-review.txt"],
+                }
+            ],
+            "blocker_classifications": [],
+        }
+        failures = runner.match_oracle(collapsed, oracle)
+        self.assertTrue(
+            any("distinct anchored classification" in item for item in failures)
+        )
+        receipt = receipt_engine.sanitized_result_receipt(collapsed)
+        with self.assertRaisesRegex(
+            ValueError, "distinct anchored classification receipt"
+        ):
+            ledger_engine._validate_case_oracle_receipt(
+                receipt,
+                case={"fixture": {}, "oracle": oracle},
+                label="collapsed-anchors",
+            )
+
+        duplicated = json.loads(json.dumps(collapsed))
+        duplicated["finding_classifications"].append(
+            json.loads(json.dumps(duplicated["finding_classifications"][0]))
+        )
+        failures = runner.match_oracle(duplicated, oracle)
+        self.assertTrue(
+            any("distinct anchored classification" in item for item in failures)
+        )
+        receipt = receipt_engine.sanitized_result_receipt(duplicated)
+        with self.assertRaisesRegex(
+            ValueError, "distinct anchored classification receipt"
+        ):
+            ledger_engine._validate_case_oracle_receipt(
+                receipt,
+                case={"fixture": {}, "oracle": oracle},
+                label="duplicate-stable-identity",
+            )
+
+    def test_resolved_finding_cannot_remain_blocking(self) -> None:
+        result = {
+            "decision": "continue",
+            "qualifies": True,
+            "execplan_condition": "usable",
+            "protocol_may_product_write": True,
+            "protocol_review_mode": "none",
+            "protocol_may_complete": False,
+            "finding_classifications": [
+                {
+                    "identity": "multi-repo-scope",
+                    "domain": "receipt",
+                    "state": "resolved",
+                    "anchors": ["docs/execplans/contracts.md"],
+                }
+            ],
+            "blocker_classifications": [
+                {
+                    "identity": "multi-repo-scope",
+                    "class": "exhaustive_claim",
+                    "blocking": True,
+                    "reason": "contradictory resolved blocker",
+                }
+            ],
+            "open_gates": ["repair scope"],
+            "evidence": [],
+            "reason": "false green",
+            "recovery_state": None,
+        }
+        failures = runner.protocol_state_failures(result)
+        self.assertTrue(
+            any("resolved finding is blocking" in item for item in failures)
+        )
+
+        receipt = receipt_engine.sanitized_result_receipt(result)
+        with self.assertRaisesRegex(ValueError, "review mode state"):
+            ledger_engine._validate_result_receipt(
+                receipt,
+                label="resolved-blocker",
+                required=True,
+                recovery_required=False,
+            )
+
+        aliased = json.loads(json.dumps(result))
+        aliased["finding_classifications"][0]["identity"] = "MODEL:multi-repo-scope"
+        failures = runner.protocol_state_failures(aliased)
+        self.assertTrue(
+            any("resolved finding is blocking" in item for item in failures)
+        )
+        receipt = receipt_engine.sanitized_result_receipt(aliased)
+        with self.assertRaisesRegex(ValueError, "review mode state"):
+            ledger_engine._validate_result_receipt(
+                receipt,
+                label="aliased-resolved-blocker",
+                required=True,
+                recovery_required=False,
+            )
+
+    def test_case_validation_rejects_invalid_permission_states(self) -> None:
+        case = json.loads(json.dumps(self.cases["clean-qualifying-control"]))
+        case["oracle"]["expected"]["protocol_review_mode"] = "bogus"
+        with self.assertRaisesRegex(ValueError, "permission state"):
+            runner.validate_case(case, Path("bogus-review-mode.json"))
+
+        case = json.loads(json.dumps(self.cases["clean-qualifying-control"]))
+        case["oracle"]["expected"]["protocol_review_mode"] = "exact_final"
+        case["oracle"]["expected"]["protocol_may_product_write"] = True
+        with self.assertRaisesRegex(ValueError, "permission state"):
+            runner.validate_case(case, Path("exact-final-write.json"))
+
+        contradictions = (
+            ("complete-without-permission", "complete", False, False),
+            ("permission-without-complete", "continue", True, False),
+            ("complete-with-active-write", "complete", True, True),
+        )
+        for name, decision, may_complete, may_write in contradictions:
+            with self.subTest(state=name):
+                case = json.loads(json.dumps(self.cases["clean-qualifying-control"]))
+                case["oracle"]["expected"].update(
+                    {
+                        "decision": decision,
+                        "protocol_may_complete": may_complete,
+                        "protocol_may_product_write": may_write,
+                    }
+                )
+                with self.assertRaisesRegex(ValueError, "permission state"):
+                    runner.validate_case(case, Path(f"{name}.json"))
+
+    def test_case_validation_rejects_blank_expected_identities(self) -> None:
+        invalid_oracles = (
+            {"accepted_baseline_failures": [" \t "]},
+            {
+                "required_classifications": [
+                    {"identity": " \t ", "domain": "other", "state": "resolved"}
+                ]
+            },
+            {
+                "required_blocker_classifications": [
+                    {"identity": " \t ", "class": "original_goal"}
+                ]
+            },
+        )
+        for index, invalid_oracle in enumerate(invalid_oracles):
+            with self.subTest(oracle=next(iter(invalid_oracle))):
+                case = json.loads(json.dumps(self.cases["clean-qualifying-control"]))
+                case["oracle"].update(invalid_oracle)
+                with self.assertRaisesRegex(ValueError, "invalid"):
+                    runner.validate_case(case, Path(f"blank-identity-{index}.json"))
+
+    def test_shared_constraint_rejects_contradictory_completion_receipts(self) -> None:
+        base = self.cases["clean-qualifying-control"]["oracle"]["expected"]
+        contradictions = (
+            ("complete", False, False),
+            ("continue", True, False),
+            ("complete", True, True),
+        )
+        for decision, may_complete, may_write in contradictions:
+            with self.subTest(
+                decision=decision,
+                may_complete=may_complete,
+                may_write=may_write,
+            ):
+                result = {
+                    **base,
+                    "decision": decision,
+                    "protocol_may_complete": may_complete,
+                    "protocol_may_product_write": may_write,
+                    "finding_classifications": [],
+                    "blocker_classifications": [],
+                    "open_gates": [],
+                    "evidence": [],
+                    "reason": "",
+                    "recovery_state": None,
+                }
+                self.assertTrue(runner.protocol_state_failures(result))
+                receipt = receipt_engine.sanitized_result_receipt(result)
+                with self.assertRaisesRegex(ValueError, "review mode state"):
+                    ledger_engine._validate_result_receipt(
+                        receipt,
+                        label="contradiction",
+                        required=True,
+                        recovery_required=False,
+                    )
+
+    def test_fixed_convergence_cases_mechanically_bind_new_behavior(self) -> None:
+        exact = self.cases["exact-final-ready"]
+        self.assertEqual(
+            exact["oracle"]["expected"]["protocol_review_mode"], "exact_final"
+        )
+        self.assertFalse(exact["oracle"]["expected"]["protocol_may_product_write"])
+        self.assertFalse(exact["oracle"]["expected"]["protocol_may_complete"])
+
+        overlap = self.cases["boundary-cutover"]
+        self.assertIn(
+            {
+                "anchor": "RESOURCE-OVERLAP",
+                "class": "safety_data_integrity",
+            },
+            overlap["oracle"]["required_anchored_blockers"],
+        )
+        disjoint = self.cases["clean-qualifying-control"]
+        self.assertIn(
+            {
+                "identity": "RESOURCE-DISJOINT-OK",
+                "domain": "other",
+                "state": "resolved",
+            },
+            disjoint["oracle"]["required_classifications"],
+        )
+
+        family = self.cases["compaction-recovery"]
+        self.assertIn(
+            {
+                "anchor": "F-JOB-SIBLING-B",
+                "class": [
+                    "original_goal",
+                    "frozen_acceptance",
+                    "exhaustive_claim",
+                ],
+            },
+            family["oracle"]["required_anchored_blockers"],
+        )
+        for identity in ("F-DEFAULT-SIBLING-A", "F-DEFAULT-SIBLING-B"):
+            self.assertIn(
+                {
+                    "identity": identity,
+                    "domain": "other",
+                    "state": "resolved",
+                },
+                disjoint["oracle"]["required_classifications"],
+            )
+
+        valid_archive = self.cases["no-commit-archive-recovery"]
+        self.assertEqual(valid_archive["oracle"]["expected"]["decision"], "continue")
+        self.assertTrue(
+            valid_archive["oracle"]["expected"]["protocol_may_product_write"]
+        )
+        tampered = self.cases["no-commit-secret"]
+        self.assertIn(
+            {
+                "anchor": "archive/checkpoint.txt",
+                "class": "safety_data_integrity",
+            },
+            tampered["oracle"]["required_anchored_blockers"],
+        )
+        unselected = self.cases["no-commit-unselected"]
+        self.assertIn(
+            {
+                "anchor": "1111111111111111111111111111111111111111",
+                "class": ["safety_data_integrity", "production_condition"],
+            },
+            unselected["oracle"]["required_anchored_blockers"],
+        )
+
+        phases = []
+        for commit in self.cases["review-admin-cycle"]["fixture"]["commits"]:
+            for content in commit.get("files", {}).values():
+                if isinstance(content, str):
+                    phases.extend(
+                        line.removeprefix("State: ").split(";", 1)[0]
+                        for line in content.splitlines()
+                        if line.startswith("State: ")
+                    )
+        self.assertEqual(
+            phases,
+            [
+                "implementation",
+                "implementation",
+                "focused_hardening",
+                "candidate_frozen",
+                "exact_final",
+                "closed",
+            ],
+        )
+
+    def test_review_mode_and_recovery_phase_form_one_state_machine(self) -> None:
+        recovery = {
+            "baseline_revision": "1" * 40,
+            "baseline_tree": "2" * 40,
+            "current_revision": "3" * 40,
+            "current_tree": "4" * 40,
+            "writer": "Root",
+            "milestone_phase": "closed",
+            "next_action": "none",
+            "pending_gates": [],
+            "tests": {
+                "passed": 1,
+                "failed": 0,
+                "accepted_failures": 0,
+                "marker_ids": [],
+            },
+            "worktree": "clean",
+            "live_agents": [],
+            "marker_ids": [RECOVERY_MANIFEST_MARKER],
+        }
+        closed = {
+            "decision": "complete",
+            "qualifies": True,
+            "execplan_condition": "usable",
+            "protocol_may_product_write": False,
+            "protocol_review_mode": "none",
+            "protocol_may_complete": True,
+            "finding_classifications": [],
+            "blocker_classifications": [],
+            "open_gates": [],
+            "evidence": ["exact-final review and administrative closure"],
+            "reason": "The task is closed.",
+            "recovery_state": recovery,
+        }
+        closed_receipt = receipt_engine.sanitized_result_receipt(closed)
+        ledger_engine._validate_result_receipt(
+            closed_receipt,
+            label="closed",
+            required=True,
+            recovery_required=True,
+        )
+
+        nonterminal = (
+            (
+                "implementation",
+                "implementation",
+                "none",
+                True,
+                "implement",
+                ["product_edit"],
+            ),
+            (
+                "focused-repair",
+                "focused_hardening",
+                "none",
+                True,
+                "repair",
+                ["product_edit"],
+            ),
+            (
+                "focused-review",
+                "focused_hardening",
+                "focused_hardening",
+                False,
+                "focused_review",
+                ["focused_review"],
+            ),
+            (
+                "candidate-frozen",
+                "candidate_frozen",
+                "none",
+                False,
+                "exact_final_review",
+                ["exact_final_review"],
+            ),
+            (
+                "exact-final",
+                "exact_final",
+                "exact_final",
+                False,
+                "exact_final_review",
+                ["exact_final_review"],
+            ),
+        )
+        for label, phase, mode, may_write, next_action, pending in nonterminal:
+            with self.subTest(state=label):
+                result = {
+                    **closed,
+                    "decision": "continue",
+                    "protocol_may_product_write": may_write,
+                    "protocol_review_mode": mode,
+                    "protocol_may_complete": False,
+                    "open_gates": pending,
+                    "recovery_state": {
+                        **recovery,
+                        "milestone_phase": phase,
+                        "next_action": next_action,
+                        "pending_gates": pending,
+                    },
+                }
+                oracle = {
+                    "expected": {
+                        field: result[field] for field in runner.PERMISSION_FIELDS
+                    }
+                }
+                self.assertEqual(runner.match_oracle(result, oracle), [])
+                ledger_engine._validate_result_receipt(
+                    receipt_engine.sanitized_result_receipt(result),
+                    label=label,
+                    required=True,
+                    recovery_required=True,
+                )
+                result["protocol_review_mode"] = (
+                    "focused_hardening" if mode == "none" else "none"
+                )
+                self.assertTrue(runner.match_oracle(result, oracle))
+                with self.assertRaisesRegex(ValueError, "review mode state"):
+                    ledger_engine._validate_result_receipt(
+                        receipt_engine.sanitized_result_receipt(result),
+                        label=f"{label}-mismatch",
+                        required=True,
+                        recovery_required=True,
+                    )
+
+        contradictory = {
+            **closed,
+            "decision": "continue",
+            "protocol_may_product_write": True,
+            "protocol_review_mode": "exact_final",
+            "protocol_may_complete": False,
+            "open_gates": ["product_edit"],
+            "recovery_state": {
+                **recovery,
+                "milestone_phase": "implementation",
+                "next_action": "implement",
+                "pending_gates": ["product_edit"],
+            },
+        }
+        oracle = {
+            "expected": {
+                field: contradictory[field] for field in runner.PERMISSION_FIELDS
+            }
+        }
+        self.assertTrue(
+            any(
+                "exact_final" in failure
+                for failure in runner.match_oracle(contradictory, oracle)
+            )
+        )
+        with self.assertRaisesRegex(ValueError, "review mode state"):
+            ledger_engine._validate_result_receipt(
+                receipt_engine.sanitized_result_receipt(contradictory),
+                label="contradictory",
+                required=True,
+                recovery_required=True,
+            )
+
+    def test_receipt_projection_binds_review_mode_without_alias(self) -> None:
+        result = {
+            "decision": "continue",
+            "qualifies": True,
+            "execplan_condition": "usable",
+            "protocol_may_product_write": False,
+            "protocol_review_mode": "focused_hardening",
+            "protocol_may_complete": False,
+            "finding_classifications": [],
+            "blocker_classifications": [],
+            "open_gates": ["focused choke-point review"],
+            "evidence": ["focused counterexample replay"],
+            "reason": "The terminal GREEN wave permits one focused review.",
+            "recovery_state": None,
+        }
+        receipt = receipt_engine.sanitized_result_receipt(result)
+        self.assertEqual(receipt["protocol_review_mode"], "focused_hardening")
+        self.assertNotIn("protocol_may_review", receipt)
+
+    def test_open_family_cannot_masquerade_as_exact_final(self) -> None:
+        sibling_findings = [
+            {
+                "identity": "F-SNAPSHOT-1",
+                "domain": "other",
+                "state": "candidate_new",
+            },
+            {
+                "identity": "F-MANIFEST-1",
+                "domain": "other",
+                "state": "unknown",
+            },
+            {
+                "identity": "F-ACTOR-RECEIPT-1",
+                "domain": "receipt",
+                "state": "candidate_new",
+            },
+            {
+                "identity": "F-IDENTITY-1",
+                "domain": "other",
+                "state": "candidate_new",
+            },
+        ]
+        oracle = {
+            "expected": {
+                "decision": "continue",
+                "qualifies": True,
+                "execplan_condition": "usable",
+                "protocol_may_product_write": True,
+                "protocol_review_mode": "none",
+                "protocol_may_complete": False,
+            },
+            "required_classifications": sibling_findings,
+            "required_anchored_blockers": [
+                {
+                    "anchor": "F-MANIFEST-1",
+                    "class": "safety_data_integrity",
+                }
+            ],
+        }
+        result = {
+            **oracle["expected"],
+            "finding_classifications": [
+                {
+                    "identity": item["identity"],
+                    "domain": item["domain"],
+                    "state": item["state"],
+                    "anchors": [item["identity"]],
+                }
+                for item in sibling_findings
+            ],
+            "blocker_classifications": [
+                {
+                    "identity": "F-MANIFEST-1",
+                    "class": "safety_data_integrity",
+                    "blocking": True,
+                    "reason": "Nested manifest aliasing remains an unknown integrity risk.",
+                }
+            ],
+            "open_gates": ["close family F-EVIDENCE"],
+            "evidence": ["docs/execplans/evidence-hardening.md"],
+            "reason": "The open family is in focused hardening.",
+            "recovery_state": None,
+        }
+        self.assertEqual(runner.match_oracle(result, oracle), [])
+        result["protocol_review_mode"] = "exact_final"
+        self.assertTrue(
+            any(
+                "protocol_review_mode" in failure or "exact_final" in failure
+                for failure in runner.match_oracle(result, oracle)
+            )
+        )
+
+    def test_review_write_and_stop_for_user_are_mechanically_exclusive(self) -> None:
+        base = {
+            "decision": "continue",
+            "qualifies": True,
+            "execplan_condition": "usable",
+            "protocol_may_product_write": False,
+            "protocol_review_mode": "focused_hardening",
+            "protocol_may_complete": False,
+            "finding_classifications": [],
+            "blocker_classifications": [],
+            "open_gates": ["focused choke-point review"],
+            "evidence": ["terminal GREEN repair-wave receipt"],
+            "reason": "Focused review is the only next gate.",
+            "recovery_state": None,
+        }
+        self.assertEqual(runner.protocol_state_failures(base), [])
+
+        review_and_write = {**base, "protocol_may_product_write": True}
+        self.assertTrue(
+            any(
+                "review" in failure and "write" in failure
+                for failure in runner.protocol_state_failures(review_and_write)
+            )
+        )
+
+        stopped = {
+            **base,
+            "decision": "stop_for_user",
+            "protocol_review_mode": "focused_hardening",
+        }
+        self.assertTrue(
+            any(
+                "stop" in failure and "review" in failure
+                for failure in runner.protocol_state_failures(stopped)
+            )
+        )
+
+    def test_unusable_execplan_cannot_review_or_complete_without_recovery(self) -> None:
+        base = {
+            "decision": "continue",
+            "qualifies": True,
+            "execplan_condition": "missing",
+            "protocol_may_product_write": False,
+            "protocol_review_mode": "focused_hardening",
+            "protocol_may_complete": False,
+            "finding_classifications": [],
+            "blocker_classifications": [],
+            "open_gates": ["focused choke-point review"],
+            "evidence": [],
+            "reason": "The plan is absent.",
+            "recovery_state": None,
+        }
+        self.assertTrue(
+            any(
+                "missing ExecPlan" in failure and "review" in failure
+                for failure in runner.protocol_state_failures(base)
+            )
+        )
+        completing = {
+            **base,
+            "decision": "complete",
+            "protocol_review_mode": "none",
+            "protocol_may_complete": True,
+        }
+        self.assertTrue(
+            any(
+                "missing ExecPlan" in failure and "completion" in failure
+                for failure in runner.protocol_state_failures(completing)
+            )
+        )
+
+    def test_exact_final_rejects_open_findings_blockers_and_repair_gates(self) -> None:
+        active = {
+            "identity": "F-CONV-OPEN",
+            "domain": "other",
+            "state": "unknown",
+            "anchors": ["F-CONV-OPEN"],
+        }
+        result = {
+            "decision": "continue",
+            "qualifies": True,
+            "execplan_condition": "usable",
+            "protocol_may_product_write": False,
+            "protocol_review_mode": "exact_final",
+            "protocol_may_complete": False,
+            "finding_classifications": [active],
+            "blocker_classifications": [
+                {
+                    "identity": "F-CONV-OPEN",
+                    "class": "safety_data_integrity",
+                    "blocking": True,
+                    "reason": "The recovery boundary is still unknown.",
+                }
+            ],
+            "open_gates": ["repair RB-008", "exact-final review"],
+            "evidence": [],
+            "reason": "Invalid exact-final launch.",
+            "recovery_state": None,
+        }
+        failures = runner.protocol_state_failures(result)
+        self.assertTrue(any("open finding" in failure for failure in failures))
+        self.assertTrue(any("blocking blocker" in failure for failure in failures))
+        self.assertTrue(any("repair gate" in failure for failure in failures))
+
+    def test_every_blocker_must_match_exactly_one_finding(self) -> None:
+        result = {
+            "decision": "continue",
+            "qualifies": True,
+            "execplan_condition": "usable",
+            "protocol_may_product_write": True,
+            "protocol_review_mode": "none",
+            "protocol_may_complete": False,
+            "finding_classifications": [],
+            "blocker_classifications": [
+                {
+                    "identity": "ORPHAN-BLOCKER",
+                    "class": "original_goal",
+                    "blocking": True,
+                    "reason": "No finding owns this blocker.",
+                }
+            ],
+            "open_gates": ["repair"],
+            "evidence": [],
+            "reason": "Invalid classification graph.",
+            "recovery_state": None,
+        }
+        self.assertTrue(
+            any(
+                "exactly one finding" in failure
+                for failure in runner.protocol_state_failures(result)
+            )
+        )
+
+    def test_recovery_facts_and_content_addressed_manifest_fail_closed(self) -> None:
+        recovery = {
+            "baseline_revision": "1" * 40,
+            "baseline_tree": "2" * 40,
+            "current_revision": "3" * 40,
+            "current_tree": "4" * 40,
+            "writer": "Root",
+            "milestone_phase": "implementation",
+            "next_action": "repair",
+            "pending_gates": ["product_edit"],
+            "tests": {
+                "passed": 4,
+                "failed": 0,
+                "accepted_failures": 0,
+                "marker_ids": [],
+            },
+            "worktree": "clean",
+            "live_agents": [],
+            "marker_ids": [RECOVERY_MANIFEST_MARKER],
+        }
+        result = {
+            "decision": "continue",
+            "qualifies": True,
+            "execplan_condition": "usable",
+            "protocol_may_product_write": True,
+            "protocol_review_mode": "none",
+            "protocol_may_complete": False,
+            "finding_classifications": [],
+            "blocker_classifications": [],
+            "open_gates": ["product edit"],
+            "evidence": ["Recovery Manifest"],
+            "reason": "Resume the bounded repair.",
+            "recovery_state": recovery,
+        }
+        self.assertEqual(runner.protocol_state_failures(result), [])
+        receipt = receipt_engine.sanitized_result_receipt(result)
+        self.assertEqual(
+            receipt["recovery_state"]["recovery_manifest_sha256"],
+            "a" * 64,
+        )
+
+        mutations = {
+            "unknown writer": lambda state: state.update(writer="unknown"),
+            "unknown worktree": lambda state: state.update(worktree="unknown"),
+            "missing agent": lambda state: state.update(
+                live_agents=[
+                    {
+                        "id": "review-1",
+                        "status": "missing",
+                        "receipt_reproduced": False,
+                    }
+                ]
+            ),
+            "unaccepted failure": lambda state: state["tests"].update(
+                failed=1, accepted_failures=0
+            ),
+            "missing Recovery Manifest": lambda state: state.update(marker_ids=[]),
+            "duplicate Recovery Manifest": lambda state: state.update(
+                marker_ids=[RECOVERY_MANIFEST_MARKER, RECOVERY_MANIFEST_MARKER]
+            ),
+        }
+        for expected, mutate in mutations.items():
+            with self.subTest(expected=expected):
+                invalid = json.loads(json.dumps(result))
+                mutate(invalid["recovery_state"])
+                self.assertTrue(
+                    any(
+                        expected.casefold() in failure.casefold()
+                        for failure in runner.protocol_state_failures(invalid)
+                    )
+                )
+
+    def test_exact_final_fixture_is_reachable_evidence_not_plan_prose(self) -> None:
+        case = self.cases["exact-final-ready"]
+        commits = case["fixture"]["commits"]
+        self.assertGreaterEqual(len(commits), 5)
+        rendered = json.dumps(case, sort_keys=True)
+        for marker in (
+            "{{COMMIT_",
+            "{{TREE_",
+            "{{PRODUCT_SHA256_",
+            "focused review receipt",
+            "review_projection",
+            "post-source offline evidence",
+            "review prelaunch",
+        ):
+            self.assertIn(marker, rendered)
+
+    def test_fixed_behavior_inventory_exercises_041_convergence(self) -> None:
+        plans: list[str] = []
+        cases = list(self.cases.values())
+        cases.extend(
+            json.loads(path.read_text(encoding="utf-8"))
+            for path in sorted(
+                (ROOT / "evaluation" / "holdouts" / "cases").glob("*.json")
+            )
+        )
+        for case in cases:
+            for commit in case["fixture"].get("commits", []):
+                for relative, content in commit.get("files", {}).items():
+                    if isinstance(content, str) and (
+                        "execplan" in relative.casefold()
+                        or "Protocol: HappyCodex/" in content
+                    ):
+                        plans.append(content)
+        self.assertTrue(plans)
+        self.assertTrue(all("Protocol: HappyCodex/0.4.1" in plan for plan in plans))
+        inventory = "\n".join(plans).casefold()
+        for phrase in (
+            "convergence ledger",
+            "family_id",
+            "repair_batch",
+            "focused_hardening",
+            "candidate_frozen",
+            "exact_final",
+            "closed",
+            "shared mutable resource",
+            "output namespace",
+            "current index",
+            "content-addressed archive",
+        ):
+            self.assertIn(phrase, inventory)
+
+    def test_positive_contract_fixtures_use_current_claim_states(self) -> None:
         plan_paths = {
             "authorized-rebaseline": "docs/execplans/schema.md",
             "clean-qualifying-control": ".work/plans/default-limit.md",
@@ -223,7 +1588,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             facts = runner.build_fixture(case, repo)
             plan = (repo / "docs/execplans/queue-migration.md").read_text()
             self.assertEqual(len(facts["commits"]), 2)
-            self.assertIn("State: skeleton", plan)
+            self.assertIn("State: implementation", plan)
             self.assertIn(facts["commits"][0], plan)
             self.assertIn(facts["trees"][0], plan)
             self.assertIn("Boundary inventory: open", plan)
@@ -435,21 +1800,33 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             root = Path(raw)
             public_source = root / "public-source"
             runner.copy_plugin_package(ROOT, public_source)
-            references = public_source / "skills/happycodex/references"
-            (references / "execplan.md").unlink()
-            (references / "external-review.md").write_text("public review\n")
-            (references / "task-packets.md").write_text("public tasks\n")
-
+            with self.assertRaisesRegex(RuntimeError, "runtime surface"):
+                runner.copy_plugin_package(
+                    public_source,
+                    root / "public-rejects-candidate-script",
+                    arm="public-0.4.0",
+                )
+            helper = public_source / "skills/happycodex/scripts/resource_claim.py"
+            helper.unlink()
+            helper.parent.rmdir()
             public_package = root / "public-package"
-            runner.copy_plugin_package(public_source, public_package, arm="public-0.2")
+            runner.copy_plugin_package(
+                public_source, public_package, arm="public-0.4.0"
+            )
+
+            legacy_source = root / "legacy-public-source"
+            runner.copy_plugin_package(ROOT, legacy_source)
+            legacy_references = legacy_source / "skills/happycodex/references"
+            (legacy_references / "execplan.md").unlink()
+            (legacy_references / "external-review.md").write_text("legacy review\n")
+            (legacy_references / "task-packets.md").write_text("legacy tasks\n")
             with self.assertRaisesRegex(RuntimeError, "runtime surface"):
                 runner.copy_plugin_package(
-                    public_source, root / "candidate-rejects-public"
+                    legacy_source,
+                    root / "public-rejects-legacy-surface",
+                    arm="public-0.4.0",
                 )
-            with self.assertRaisesRegex(RuntimeError, "runtime surface"):
-                runner.copy_plugin_package(
-                    ROOT, root / "public-rejects-candidate", arm="public-0.2"
-                )
+            references = public_source / "skills/happycodex/references"
             hidden = references / "__pycache__/hidden.pyc"
             hidden.parent.mkdir()
             hidden.write_bytes(b"untracked public runtime input")
@@ -457,7 +1834,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                 runner.copy_plugin_package(
                     public_source,
                     root / "public-rejects-hidden",
-                    arm="public-0.2",
+                    arm="public-0.4.0",
                 )
 
             manifest = runner.package_identities(public_package)["semantic_sha256"]
@@ -473,7 +1850,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                     case, **common, arm="candidate"
                 ),
                 runner.semantic_input_sha256_from_package(
-                    case, **common, arm="public-0.2"
+                    case, **common, arm="public-0.4.0"
                 ),
             )
 
@@ -522,7 +1899,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                 "qualifies": True,
                 "execplan_condition": "needs_amendment",
                 "protocol_may_product_write": False,
-                "protocol_may_review": False,
+                "protocol_review_mode": "exact_final",
                 "protocol_may_complete": False,
                 "finding_classifications": [
                     {
@@ -549,9 +1926,9 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                     "current_revision": "3" * 40,
                     "current_tree": "4" * 40,
                     "writer": "Root",
-                    "milestone_phase": "review",
-                    "next_action": "review",
-                    "pending_gates": ["review"],
+                    "milestone_phase": "exact_final",
+                    "next_action": "exact_final_review",
+                    "pending_gates": ["exact_final_review"],
                     "tests": {
                         "passed": 1,
                         "failed": 0,
@@ -681,6 +2058,22 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             "reason": "",
             "recovery_state": None,
         }
+        failures = runner.match_oracle(result, case["oracle"])
+        self.assertTrue(
+            any("missing classification" in failure for failure in failures)
+        )
+        self.assertTrue(
+            any("missing anchored classification" in failure for failure in failures)
+        )
+        result["finding_classifications"] = [
+            {
+                "identity": expected["identity"],
+                "domain": expected["domain"],
+                "state": expected["state"],
+                "anchors": [expected["identity"], ".work/plans/default-limit.md"],
+            }
+            for expected in case["oracle"]["required_classifications"]
+        ]
         self.assertEqual(runner.match_oracle(result, case["oracle"]), [])
 
     def test_fixture_build_is_deterministic_across_ambient_dates(self) -> None:
@@ -725,7 +2118,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             self.assertEqual(
                 runner.resolve_output_path(expected, plugin=ROOT), expected
             )
-            alternate_plugin = Path(raw) / "public-0.2"
+            alternate_plugin = Path(raw) / "public-0.4.0"
             alternate_plugin.mkdir()
             with self.assertRaisesRegex(ValueError, "evaluated plugin"):
                 runner.resolve_output_path(
@@ -819,10 +2212,11 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             repo = Path(raw) / "repo"
             facts = runner.build_fixture(self.cases["review-admin-cycle"], repo)
             fixture_commits = self.cases["review-admin-cycle"]["fixture"]["commits"]
-            self.assertEqual(len(fixture_commits), 6)
-            self.assertNotIn("review_projection", fixture_commits[4])
-            self.assertIn("review_projection", fixture_commits[5])
-            self.assertEqual(len(facts["commits"]), 6)
+            self.assertEqual(len(fixture_commits), 8)
+            self.assertNotIn("review_projection", fixture_commits[5])
+            self.assertIn("review_projection", fixture_commits[6])
+            self.assertNotIn("review_projection", fixture_commits[7])
+            self.assertEqual(len(facts["commits"]), 8)
             self.assertIn(
                 "public api contract",
                 (repo / "PUBLIC_CONTRACT.md").read_text().casefold(),
@@ -845,26 +2239,30 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             self.assertEqual(projection["challenger_blob"], challenger["blob"])
             skeleton = git(repo, "show", f"{facts['commits'][1]}:{excluded}")
             contract = git(repo, "show", f"{facts['commits'][2]}:{excluded}")
-            prelaunch = git(repo, "show", f"{facts['commits'][4]}:{excluded}")
-            self.assertIn("State: skeleton", skeleton)
+            focused = git(repo, "show", f"{facts['commits'][4]}:{excluded}")
+            prelaunch = git(repo, "show", f"{facts['commits'][5]}:{excluded}")
+            exact_final = git(repo, "show", f"{facts['commits'][6]}:{excluded}")
+            self.assertIn("State: implementation", skeleton)
             self.assertIn("boundary-challenger-9: pending", skeleton)
-            self.assertIn("State: frozen", contract)
+            self.assertIn("State: implementation", contract)
             self.assertIn("boundary-challenger-9: terminal complete", contract)
+            self.assertIn("State: focused_hardening", focused)
+            self.assertIn("Repair wave: terminal GREEN", focused)
             self.assertEqual(
                 git(
                     repo,
                     "diff",
                     "--name-only",
                     facts["commits"][3],
-                    facts["commits"][4],
+                    facts["commits"][5],
                 ),
                 excluded,
             )
             self.assertEqual(
                 product_entries(repo, facts["commits"][3], excluded),
-                product_entries(repo, facts["commits"][4], excluded),
+                product_entries(repo, facts["commits"][5], excluded),
             )
-            self.assertIn("State: review-prelaunch", prelaunch)
+            self.assertIn("State: candidate_frozen", prelaunch)
             self.assertIn("Review status: not started", prelaunch)
             self.assertIn(
                 "Exact review command: codex exec review --commit "
@@ -887,7 +2285,9 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                 prelaunch,
             )
             self.assertIn("refs/happycodex-eval/admin-cycle/output", prelaunch)
-            self.assertIn(f"Prelaunch revision {facts['commits'][4]}", plan)
+            self.assertIn("State: exact_final", exact_final)
+            self.assertIn("completion is still prohibited", exact_final)
+            self.assertIn(f"Prelaunch revision {facts['commits'][5]}", plan)
             self.assertIn(projection["baseline_commit"], plan)
             self.assertIn(projection["candidate_commit"], plan)
             self.assertIn(projection["output_sha256"], plan)
@@ -1075,7 +2475,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
         }
         boundary_failures = runner.match_oracle(boundary_result, boundary["oracle"])
         self.assertEqual(
-            sum("missing anchored blocker" in item for item in boundary_failures), 7
+            sum("missing anchored blocker" in item for item in boundary_failures), 8
         )
         anchored_findings = []
         anchored_blockers = []
@@ -1190,6 +2590,36 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                             "anchors": [finding["identity"]],
                         }
                     )
+                used_anchored_findings: set[int] = set()
+                for anchored in oracle.get("required_anchored_classifications", []):
+                    states = anchored["state"]
+                    allowed_states = states if isinstance(states, list) else [states]
+                    match = next(
+                        (
+                            index
+                            for index, finding in enumerate(
+                                result["finding_classifications"]
+                            )
+                            if index not in used_anchored_findings
+                            and finding["domain"] == anchored["domain"]
+                            and finding["state"] in allowed_states
+                        ),
+                        None,
+                    )
+                    if match is None:
+                        match = len(result["finding_classifications"])
+                        result["finding_classifications"].append(
+                            {
+                                "identity": f"ANCHORED-{case_id}-{match}",
+                                "domain": anchored["domain"],
+                                "state": allowed_states[0],
+                                "anchors": [],
+                            }
+                        )
+                    used_anchored_findings.add(match)
+                    result["finding_classifications"][match]["anchors"].append(
+                        anchored["anchor"]
+                    )
 
                 nonproving = json.loads(json.dumps(result))
                 self.assertTrue(runner.match_oracle(nonproving, oracle))
@@ -1225,9 +2655,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                     self.assertTrue(runner.match_oracle(missing, oracle))
 
         isolation = self.cases["review-isolation"]
-        anchors = [
-            item["anchor"] for item in isolation["oracle"]["required_anchored_blockers"]
-        ]
+        required = isolation["oracle"]["required_anchored_blockers"]
         collapsed = {
             **{
                 field: value[0] if isinstance(value, list) else value
@@ -1235,28 +2663,48 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             },
             "finding_classifications": [
                 {
-                    "identity": "ONE-GENERIC-REVIEW-FINDING",
+                    "identity": "ONE-FROZEN-REVIEW-FINDING",
                     "domain": "receipt",
                     "state": "unknown",
-                    "anchors": anchors,
-                }
+                    "anchors": [item["anchor"] for item in required[:4]],
+                },
+                {
+                    "identity": "ONE-EXHAUSTIVE-REVIEW-FINDING",
+                    "domain": "receipt",
+                    "state": "unknown",
+                    "anchors": [item["anchor"] for item in required[4:]],
+                },
             ],
             "blocker_classifications": [
                 {
-                    "identity": "ONE-GENERIC-REVIEW-FINDING",
+                    "identity": "ONE-FROZEN-REVIEW-FINDING",
                     "class": "frozen_acceptance",
                     "blocking": True,
                     "reason": "generic review concern",
-                }
+                },
+                {
+                    "identity": "ONE-EXHAUSTIVE-REVIEW-FINDING",
+                    "class": "exhaustive_claim",
+                    "blocking": True,
+                    "reason": "generic review concern",
+                },
             ],
             "open_gates": ["review remains open"],
             "evidence": ["generic evidence"],
             "reason": "completion remains blocked",
             "recovery_state": None,
         }
-        self.assertTrue(runner.match_oracle(collapsed, isolation["oracle"]))
+        failures = runner.match_oracle(collapsed, isolation["oracle"])
+        self.assertTrue(any("distinct anchored blocker" in item for item in failures))
+        receipt = receipt_engine.sanitized_result_receipt(collapsed)
+        with self.assertRaisesRegex(ValueError, "distinct anchored blocker receipt"):
+            ledger_engine._validate_case_oracle_receipt(
+                receipt,
+                case=isolation,
+                label="collapsed-review-blockers",
+            )
 
-    def test_exact_finding_identity_can_supply_the_same_evidence_anchor(self) -> None:
+    def test_exact_finding_identity_cannot_replace_an_anchor_member(self) -> None:
         oracle = {
             "expected": {"protocol_may_complete": False},
             "required_anchored_classifications": [
@@ -1279,7 +2727,10 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             ],
             "blocker_classifications": [],
         }
-        self.assertEqual(runner.match_oracle(result, oracle), [])
+        failures = runner.match_oracle(result, oracle)
+        self.assertTrue(
+            any("missing anchored classification" in item for item in failures)
+        )
 
         qualified = json.loads(json.dumps(result))
         qualified["finding_classifications"][0]["identity"] = "MODEL:test_read_mode"
@@ -1327,6 +2778,262 @@ class HappyCodexEvaluationTests(unittest.TestCase):
         self.assertTrue(
             any("multiple blocker classifications" in item for item in failures)
         )
+
+    def test_result_identities_are_nonblank_and_globally_unique(self) -> None:
+        archive = self.cases["no-commit-archive-recovery"]
+        result = {
+            **{
+                field: value[0] if isinstance(value, list) else value
+                for field, value in archive["oracle"]["expected"].items()
+            },
+            "finding_classifications": [
+                {
+                    "identity": "ARCHIVE-RECOVERY-VALID",
+                    "domain": "receipt",
+                    "state": "resolved",
+                    "anchors": ["ARCHIVE-RECOVERY-VALID"],
+                },
+                {
+                    "identity": "MODEL:ARCHIVE-RECOVERY-VALID",
+                    "domain": "receipt",
+                    "state": "unknown",
+                    "anchors": ["ARCHIVE-RECOVERY-VALID"],
+                },
+            ],
+            "blocker_classifications": [],
+            "open_gates": ["implementation"],
+            "evidence": [],
+            "reason": "duplicate identity probe",
+            "recovery_state": None,
+        }
+        self.assertTrue(
+            any(
+                "duplicate finding" in item
+                for item in runner.match_oracle(result, archive["oracle"])
+            )
+        )
+        receipt = receipt_engine.sanitized_result_receipt(result)
+        with self.assertRaisesRegex(ValueError, "duplicate finding"):
+            ledger_engine._validate_result_receipt(
+                receipt,
+                label="duplicate-finding",
+                required=True,
+                recovery_required=False,
+            )
+
+        midflight = self.cases["midflight-escalation"]
+        result = {
+            **{
+                field: value[0] if isinstance(value, list) else value
+                for field, value in midflight["oracle"]["expected"].items()
+            },
+            "finding_classifications": [
+                {
+                    "identity": "MODEL:X",
+                    "domain": "other",
+                    "state": "unknown",
+                    "anchors": ["lib.py"],
+                }
+            ],
+            "blocker_classifications": [
+                {
+                    "identity": "MODEL:X",
+                    "class": "original_goal",
+                    "blocking": True,
+                    "reason": "first",
+                },
+                {
+                    "identity": "X",
+                    "class": "production_condition",
+                    "blocking": True,
+                    "reason": "alias duplicate",
+                },
+            ],
+            "open_gates": ["user decision"],
+            "evidence": [],
+            "reason": "duplicate blocker probe",
+            "recovery_state": None,
+        }
+        self.assertTrue(
+            any(
+                "duplicate blocker" in item
+                for item in runner.match_oracle(result, midflight["oracle"])
+            )
+        )
+        receipt = receipt_engine.sanitized_result_receipt(result)
+        with self.assertRaisesRegex(ValueError, "duplicate blocker"):
+            ledger_engine._validate_result_receipt(
+                receipt,
+                label="duplicate-blocker",
+                required=True,
+                recovery_required=False,
+            )
+
+        result["finding_classifications"][0]["identity"] = " \t"
+        result["blocker_classifications"] = []
+        self.assertTrue(
+            any(
+                "blank finding" in item
+                for item in runner.match_oracle(result, midflight["oracle"])
+            )
+        )
+        receipt = receipt_engine.sanitized_result_receipt(result)
+        with self.assertRaisesRegex(ValueError, "blank finding"):
+            ledger_engine._validate_result_receipt(
+                receipt,
+                label="blank-finding",
+                required=True,
+                recovery_required=False,
+            )
+        result["finding_classifications"][0]["identity"] = "MODEL:X"
+        result["blocker_classifications"] = [
+            {
+                "identity": "\n",
+                "class": "original_goal",
+                "blocking": True,
+                "reason": "blank blocker",
+            }
+        ]
+        self.assertTrue(
+            any(
+                "blank blocker" in item
+                for item in runner.match_oracle(result, midflight["oracle"])
+            )
+        )
+        receipt = receipt_engine.sanitized_result_receipt(result)
+        with self.assertRaisesRegex(ValueError, "blank blocker"):
+            ledger_engine._validate_result_receipt(
+                receipt,
+                label="blank-blocker",
+                required=True,
+                recovery_required=False,
+            )
+        identity_schema = runner.OUTPUT_SCHEMA["properties"]["finding_classifications"][
+            "items"
+        ]["properties"]["identity"]
+        blocker_identity_schema = runner.OUTPUT_SCHEMA["properties"][
+            "blocker_classifications"
+        ]["items"]["properties"]["identity"]
+        self.assertEqual(identity_schema["minLength"], 1)
+        self.assertEqual(blocker_identity_schema["minLength"], 1)
+        self.assertEqual(identity_schema["pattern"], r"\S")
+        self.assertEqual(blocker_identity_schema["pattern"], r"\S")
+
+    def test_raw_and_receipt_alias_matching_are_symmetric(self) -> None:
+        base = self.cases["midflight-escalation"]
+        result = {
+            **{
+                field: value[0] if isinstance(value, list) else value
+                for field, value in base["oracle"]["expected"].items()
+            },
+            "finding_classifications": [
+                {
+                    "identity": "X",
+                    "domain": "other",
+                    "state": "unknown",
+                    "anchors": ["lib.py"],
+                },
+                {
+                    "identity": "Y",
+                    "domain": "other",
+                    "state": "unknown",
+                    "anchors": ["other.py"],
+                },
+            ],
+            "blocker_classifications": [
+                {
+                    "identity": "Y",
+                    "class": "original_goal",
+                    "blocking": True,
+                    "reason": "required blocker",
+                }
+            ],
+            "open_gates": ["implementation"],
+            "evidence": [],
+            "reason": "alias projection probe",
+            "recovery_state": None,
+        }
+        case = {
+            "fixture": {},
+            "oracle": {
+                "expected": base["oracle"]["expected"],
+                "required_classifications": [
+                    {"identity": "MODEL:X", "domain": "other", "state": "unknown"}
+                ],
+                "required_blocker_classifications": [
+                    {"identity": "MODEL:Y", "class": "original_goal"}
+                ],
+            },
+        }
+        self.assertEqual(runner.match_oracle(result, case["oracle"]), [])
+        receipt = receipt_engine.sanitized_result_receipt(result)
+        ledger_engine._validate_result_receipt(
+            receipt,
+            label="alias-projection",
+            required=True,
+            recovery_required=False,
+        )
+        ledger_engine._validate_case_oracle_receipt(
+            receipt,
+            case=case,
+            label="alias-projection",
+        )
+
+        completed = {
+            "decision": "complete",
+            "qualifies": True,
+            "execplan_condition": "usable",
+            "protocol_may_product_write": False,
+            "protocol_review_mode": "none",
+            "protocol_may_complete": True,
+            "finding_classifications": [
+                {
+                    "identity": "fixture-17",
+                    "domain": "baseline_failure",
+                    "state": "baseline_unchanged",
+                    "anchors": ["tests.txt"],
+                }
+            ],
+            "blocker_classifications": [],
+            "open_gates": [],
+            "evidence": ["unchanged baseline"],
+            "reason": "complete",
+            "recovery_state": None,
+        }
+        completed_case = {
+            "fixture": {},
+            "oracle": {
+                "expected": {
+                    field: completed[field] for field in runner.PERMISSION_FIELDS
+                },
+                "accepted_baseline_failures": ["MODEL:fixture-17"],
+            },
+        }
+        self.assertEqual(runner.match_oracle(completed, completed_case["oracle"]), [])
+        completed_receipt = receipt_engine.sanitized_result_receipt(completed)
+        ledger_engine._validate_result_receipt(
+            completed_receipt,
+            label="accepted-alias",
+            required=True,
+            recovery_required=False,
+        )
+        ledger_engine._validate_case_oracle_receipt(
+            completed_receipt,
+            case=completed_case,
+            label="accepted-alias",
+        )
+
+    def test_case_validation_correlates_recovery_oracle_permissions(self) -> None:
+        case = json.loads(json.dumps(self.cases["pre-freeze-compaction"]))
+        case["oracle"]["expected"]["protocol_may_product_write"] = True
+        case["oracle"]["expected"]["execplan_condition"] = "usable"
+        recovery = case["fixture"]["native_compaction_resume"]["recovery_oracle"]
+        recovery["next_action"] = "ask_user"
+        recovery["pending_gates"] = ["user_selection"]
+        with self.assertRaisesRegex(
+            ValueError, "pending recovery user selection permits active product write"
+        ):
+            runner.validate_case(case, Path("recovery-permission.json"))
 
     def test_read_mode_oracle_requires_semantic_blocker_not_domain_label(self) -> None:
         oracle = self.cases["compaction-recovery"]["oracle"]
@@ -1469,8 +3176,8 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             "decision": "continue",
             "qualifies": True,
             "execplan_condition": "usable",
-            "protocol_may_product_write": False,
-            "protocol_may_review": False,
+            "protocol_may_product_write": True,
+            "protocol_review_mode": "none",
             "protocol_may_complete": False,
             "finding_classifications": [
                 {
@@ -1518,10 +3225,11 @@ class HappyCodexEvaluationTests(unittest.TestCase):
 
     def test_inventory_gate_fixture_is_otherwise_complete_but_unnumbered(self) -> None:
         excluded = "docs/execplans/inventory-gate.md"
-        self.assertTrue(
+        self.assertEqual(
+            "none",
             self.cases["review-inventory-gate"]["oracle"]["expected"][
-                "protocol_may_review"
-            ]
+                "protocol_review_mode"
+            ],
         )
         with tempfile.TemporaryDirectory() as raw:
             repo = Path(raw) / "repo"
@@ -1584,7 +3292,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             "qualifies": False,
             "execplan_condition": "not_required",
             "protocol_may_product_write": True,
-            "protocol_may_review": False,
+            "protocol_review_mode": "none",
             "protocol_may_complete": False,
             "finding_classifications": [],
             "open_gates": [],
@@ -1610,11 +3318,11 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             "qualifies": True,
             "execplan_condition": "needs_amendment",
             "protocol_may_product_write": False,
-            "protocol_may_review": False,
+            "protocol_review_mode": "none",
             "protocol_may_complete": False,
             "finding_classifications": [
                 {
-                    "identity": "REVIEW-SEARCH-TRUNCATED",
+                    "identity": "R-TRUNCATED-COVERAGE",
                     "domain": "receipt",
                     "state": "unknown",
                 }
@@ -1654,25 +3362,26 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             "qualifies": True,
             "execplan_condition": "needs_amendment",
             "protocol_may_product_write": False,
-            "protocol_may_review": False,
+            "protocol_review_mode": "none",
             "protocol_may_complete": False,
             "finding_classifications": [
                 {
                     "identity": "SECRET-BASE-1",
                     "domain": "secret",
                     "state": "baseline_unchanged",
+                    "anchors": ["product.cfg"],
                 },
                 {
                     "identity": "SECRET-OUTPUT-2",
                     "domain": "secret",
                     "state": "unknown",
-                    "anchors": ["SECRET-OUTPUT-2"],
+                    "anchors": ["SECRET-OUTPUT-2", "scan.txt"],
                 },
                 {
-                    "identity": "MISSING-SNAPSHOT-REF",
+                    "identity": "TAMPERED-ARCHIVE",
                     "domain": "receipt",
                     "state": "unknown",
-                    "anchors": ["1" * 40],
+                    "anchors": ["archive/checkpoint.txt"],
                 },
             ],
             "blocker_classifications": [
@@ -1683,10 +3392,10 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                     "reason": "The candidate evidence still contains a secret.",
                 },
                 {
-                    "identity": "MISSING-SNAPSHOT-REF",
-                    "class": "production_condition",
+                    "identity": "TAMPERED-ARCHIVE",
+                    "class": "safety_data_integrity",
                     "blocking": True,
-                    "reason": "The no-commit snapshot has no durable locator.",
+                    "reason": "The selected archive digest does not match its payload.",
                 },
             ],
             "open_gates": ["credential must be sanitized", "snapshot ref missing"],
@@ -1726,7 +3435,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             "qualifies": True,
             "execplan_condition": "usable",
             "protocol_may_product_write": False,
-            "protocol_may_review": False,
+            "protocol_review_mode": "none",
             "protocol_may_complete": True,
             "finding_classifications": [
                 {
@@ -1760,7 +3469,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             "qualifies": True,
             "execplan_condition": "usable",
             "protocol_may_product_write": False,
-            "protocol_may_review": False,
+            "protocol_review_mode": "none",
             "protocol_may_complete": True,
             "finding_classifications": [
                 {

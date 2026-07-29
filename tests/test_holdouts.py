@@ -138,6 +138,8 @@ class HappyCodexHoldoutTests(unittest.TestCase):
         )
         blind.validate_reveal(reveal, decision)
         self.assertEqual(reveal["mapping"]["candidate"], "arm-b")
+        self.assertEqual(reveal["mapping"]["public-0.4.0"], "arm-a")
+        self.assertNotIn("public-0.2", reveal["mapping"])
         self.assertEqual(compare.compare_pair(decision, reveal), "better")
         tampered = copy.deepcopy(reveal)
         tampered["mapping"]["candidate"] = "arm-a"
@@ -310,7 +312,7 @@ class HappyCodexHoldoutTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)
             candidate = root / "candidate"
-            public = root / "not-public-0.2"
+            public = root / "not-public-0.4.0"
             output = root / "results"
             candidate.mkdir()
             public.mkdir()
@@ -345,7 +347,7 @@ class HappyCodexHoldoutTests(unittest.TestCase):
                 ) as run_pair,
             ):
                 with self.assertRaisesRegex(
-                    ValueError, "public-0.2 package manifest mismatch"
+                    ValueError, "public-0.4.0 package manifest mismatch"
                 ):
                     holdout_engine.run_holdouts(
                         candidate=candidate,
@@ -481,6 +483,8 @@ class HappyCodexHoldoutTests(unittest.TestCase):
         gate = compare.cost_gate(
             equal_total_different_components, public, quality="equal"
         )
+        self.assertIn("public_0_4_0", gate)
+        self.assertNotIn("public_0_2", gate)
         self.assertEqual(gate["decision"], "pass")
         self.assertEqual(gate["blocking_ratios"], {"combined_tokens": 1.0, "wall": 1.0})
         self.assertEqual(gate["diagnostic_ratios"]["output_tokens"], 2.0)

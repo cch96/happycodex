@@ -85,8 +85,8 @@ def complete_live_authority(
                 "command": "holdout",
                 "candidate_semantic_sha256": package["semantic_sha256"],
                 "candidate_artifact_sha256": package["artifact_sha256"],
-                "public_semantic_sha256": "fb3cb419795a6edcb284695769b5487b1f23ae46286c5fceba8042fcb41f9ce4",
-                "public_artifact_sha256": "77a0b2b8f7f6280d6ed32458fc61ca110f7138b5b6c17ad55d333a023dfa8c89",
+                "public_semantic_sha256": "c5030e99dd7cd1681148c069775671c5720bb8dd366930ff90f61cbc54cdfc05",
+                "public_artifact_sha256": "ace7f39fd61341e5d4b1bc3b268fd89a1562acaaacb80d7456c2bb97fb9c497e",
                 "model": settings["model"],
                 "effort": settings["effort"],
                 "timeout_seconds": settings["timeout_seconds"],
@@ -124,6 +124,13 @@ def refreshed_coverage(snapshot: dict[str, object]) -> dict[str, object]:
     }
 
 
+def waived_coverage(snapshot: dict[str, object]) -> dict[str, object]:
+    return {
+        "corpus": {case_id: "waived" for case_id in snapshot["corpus"]["cases"]},
+        "holdout": {pair_id: "waived" for pair_id in snapshot["holdout"]["pairs"]},
+    }
+
+
 def full_live_test_state() -> tuple[
     dict[str, object], dict[str, object], dict[str, object]
 ]:
@@ -138,11 +145,6 @@ def full_live_test_state() -> tuple[
         "schema_version": 1,
         "state": "refresh_required",
         "snapshot": current,
-        "prior_evidence": {
-            "source_commit": "0" * 40,
-            "source_path": "evaluation/results/current.json",
-            "sha256": "0" * 64,
-        },
         "pending": pending,
         "historical_cost": historical_cost_receipt(),
         "live_authority": None,
@@ -274,11 +276,11 @@ class CertificationImpactTests(unittest.TestCase):
     def test_snapshot_has_exact_corpus_holdout_and_package_inventory(self) -> None:
         snapshot = self.snapshot
         self.assertEqual(snapshot["schema_version"], 1)
-        self.assertEqual(len(snapshot["corpus"]["cases"]), 14)
+        self.assertEqual(len(snapshot["corpus"]["cases"]), 17)
         self.assertEqual(len(snapshot["holdout"]["pairs"]), 3)
         self.assertEqual(
             snapshot["package"]["artifact_sha256"],
-            "ace7f39fd61341e5d4b1bc3b268fd89a1562acaaacb80d7456c2bb97fb9c497e",
+            "af541d4ea57becdd7c15f194222567862478adcff9b61a38e1aeaeea6b32887b",
         )
         self.assertEqual(
             set(snapshot["settings"]["toolchain"]), {"python", "codex", "git", "rg"}
@@ -354,10 +356,10 @@ class CertificationImpactTests(unittest.TestCase):
                 if category == "harness":
                     changed["engine"]["scopes"]["corpus_harness"] = "d" * 64
                 impact = plan_impact(self.snapshot, changed)
-                self.assertEqual(len(impact["corpus_cases"]), 14)
+                self.assertEqual(len(impact["corpus_cases"]), 17)
                 self.assertEqual(len(impact["holdout_pairs"]), 3)
                 self.assertEqual(impact["gates"], ["corpus", "holdout"])
-                self.assertEqual(impact["live_calls"], {"minimum": 20, "maximum": 22})
+                self.assertEqual(impact["live_calls"], {"minimum": 23, "maximum": 25})
 
     def test_holdout_only_harness_change_does_not_rerun_corpus(self) -> None:
         changed = copy.deepcopy(self.snapshot)
@@ -408,9 +410,9 @@ class CertificationImpactTests(unittest.TestCase):
 
     def test_real_control_mutations_fail_closed_but_sanitizer_is_artifact(self) -> None:
         for relative, expected_calls in (
-            ("evaluation/cli.py", {"minimum": 20, "maximum": 22}),
-            ("evaluation/core/impact.py", {"minimum": 20, "maximum": 22}),
-            ("evaluation/core/ledger.py", {"minimum": 20, "maximum": 22}),
+            ("evaluation/cli.py", {"minimum": 23, "maximum": 25}),
+            ("evaluation/core/impact.py", {"minimum": 23, "maximum": 25}),
+            ("evaluation/core/ledger.py", {"minimum": 23, "maximum": 25}),
             ("evaluation/core/receipt.py", {"minimum": 0, "maximum": 0}),
         ):
             with self.subTest(relative=relative), tempfile.TemporaryDirectory() as raw:
@@ -491,14 +493,18 @@ class CertificationImpactTests(unittest.TestCase):
         with self.assertRaisesRegex(IdentityError, "unknown snapshot field"):
             plan_impact(self.snapshot, changed)
 
-    def test_refresh_ledger_forces_full_exact_pending_scope_and_cost(self) -> None:
+    def test_refresh_ledger_cost_and_active_waiver_scope_are_exact(self) -> None:
         ledger, current, impact = full_live_test_state()
         self.assertEqual(current, self.snapshot)
-        self.assertEqual(len(impact["corpus_cases"]), 14)
+        self.assertEqual(len(impact["corpus_cases"]), 17)
         self.assertEqual(len(impact["holdout_pairs"]), 3)
-        self.assertEqual(impact["live_calls"], {"minimum": 20, "maximum": 22})
-        self.assertEqual(impact["cost"]["combined_tokens"]["maximum"], 637027)
-        self.assertEqual(impact["cost"]["wall_seconds"]["maximum"], 3187.085)
+        self.assertEqual(impact["live_calls"], {"minimum": 23, "maximum": 25})
+        self.assertEqual(impact["cost"]["combined_tokens"]["maximum"], 770869)
+        self.assertEqual(impact["cost"]["wall_seconds"]["maximum"], 4032.239)
+        self.assertIn(
+            "new 0.4.1 single-call controls conservatively use",
+            impact["cost"]["basis"],
+        )
         self.assertEqual(
             impact["cost"]["provenance"]["holdout_summary_sha256"],
             "f301f23d0d841deaef538cf07d9fba36705ebb175a3a1e4f099bb68cfc91ea3d",
@@ -509,8 +515,91 @@ class CertificationImpactTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "historical cost"):
             validate_ledger(invalid, repo=ROOT)
 
+        active = json.loads(
+            (ROOT / "evaluation" / "results" / "current.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertNotIn("prior_evidence", active)
+        self.assertEqual(active["pending"]["corpus_cases"], [])
+        self.assertEqual(active["pending"]["holdout_pairs"], [])
+        self.assertEqual(
+            active["pending"]["reasons"],
+            [
+                "protocol_0_4_1_clean_break",
+                "user_waived_corpus_holdout_2026_07_29",
+            ],
+        )
+        self.assertTrue(active["pending"]["review"])
+        waived = plan_impact(
+            active["snapshot"],
+            active["snapshot"],
+            pending=active["pending"],
+        )
+        self.assertEqual(waived["gates"], ["review"])
+        self.assertEqual(waived["live_calls"], {"minimum": 0, "maximum": 0})
+        self.assertEqual(
+            waived["cost"]["combined_tokens"], {"minimum": 0, "maximum": 0}
+        )
+
 
 class CertificationReceiptAndCliTests(unittest.TestCase):
+    def test_041_is_fresh_only_with_no_prior_evidence_surface(self) -> None:
+        current = json.loads(
+            (ROOT / "evaluation" / "results" / "current.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        source = (ROOT / "evaluation" / "core" / "ledger.py").read_text(
+            encoding="utf-8"
+        )
+        self.assertNotIn("prior_evidence", ledger_engine.LEDGER_FIELDS)
+        self.assertNotIn("prior_evidence", current)
+        self.assertNotIn("_load_prior_certified_ledger", source)
+        self.assertNotIn('disposition == "prior"', source)
+        self.assertNotIn('"prior"', source)
+
+    def test_coverage_accepts_only_complete_refresh_or_complete_waiver(self) -> None:
+        snapshot = build_snapshot(ROOT)
+        full_impact = {
+            "corpus_cases": sorted(snapshot["corpus"]["cases"]),
+            "holdout_pairs": sorted(snapshot["holdout"]["pairs"]),
+        }
+        self.assertEqual(
+            ledger_engine._validate_coverage(
+                refreshed_coverage(snapshot),
+                snapshot=snapshot,
+                impact=full_impact,
+                corpus_holdout_waived=False,
+            ),
+            {"corpus_summary", "holdout_run", "holdout_summary"},
+        )
+        empty_impact = {"corpus_cases": [], "holdout_pairs": []}
+        self.assertEqual(
+            ledger_engine._validate_coverage(
+                waived_coverage(snapshot),
+                snapshot=snapshot,
+                impact=empty_impact,
+                corpus_holdout_waived=True,
+            ),
+            set(),
+        )
+        for disposition in ("prior", "refreshed"):
+            invalid = waived_coverage(snapshot)
+            first_case = next(iter(invalid["corpus"]))
+            invalid["corpus"][first_case] = disposition
+            with self.subTest(disposition=disposition):
+                with self.assertRaisesRegex(
+                    ValueError,
+                    "invalid certification corpus coverage",
+                ):
+                    ledger_engine._validate_coverage(
+                        invalid,
+                        snapshot=snapshot,
+                        impact=empty_impact,
+                        corpus_holdout_waived=True,
+                    )
+
     def test_native_review_remains_an_external_completion_gate(self) -> None:
         self.assertNotIn("review", ledger_engine.COVERAGE_FIELDS)
         self.assertFalse(hasattr(ledger_engine, "_validate_review_receipt"))
@@ -578,6 +667,34 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
         )
         with self.assertRaisesRegex(ValueError, "affirmative|approval response"):
             ledger_engine.validate_live_authority(rejecting, snapshot=current)
+
+        wrong_public_semantic = copy.deepcopy(authority)
+        holdout = next(
+            item
+            for item in wrong_public_semantic["invocations"]
+            if item["command"] == "holdout"
+        )
+        holdout["public_semantic_sha256"] = (
+            "fb3cb41922dc0c5c75f97a5eefc7af72fa60ca1d9c13d1907a3902912e5f9ce4"
+        )
+        request = {
+            "schema_version": wrong_public_semantic["schema_version"],
+            "snapshot_sha256": wrong_public_semantic["snapshot_sha256"],
+            "impact": wrong_public_semantic["impact"],
+            "impact_token": wrong_public_semantic["impact_token"],
+            "invocations": wrong_public_semantic["invocations"],
+        }
+        request_sha256 = canonical_sha256(request)
+        response = ledger_engine.affirmative_approval_response(request_sha256)
+        wrong_public_semantic["approval_request_sha256"] = request_sha256
+        wrong_public_semantic["approval_response"] = response
+        wrong_public_semantic["approval_response_sha256"] = sha256_bytes(
+            response.encode()
+        )
+        with self.assertRaisesRegex(ValueError, "frozen public-0.4.0"):
+            ledger_engine.validate_live_authority(
+                wrong_public_semantic, snapshot=current
+            )
 
     def test_persisting_authority_does_not_create_a_token_cycle(self) -> None:
         ledger, current, impact = full_live_test_state()
@@ -924,11 +1041,6 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                 "schema_version": 1,
                 "state": "refresh_required",
                 "snapshot": snapshot,
-                "prior_evidence": {
-                    "source_commit": unauthorized_source_commit,
-                    "source_path": "evaluation/results/behavior-v21.json",
-                    "sha256": "0" * 64,
-                },
                 "pending": pending,
                 "historical_cost": historical_cost_receipt(),
                 "live_authority": None,
@@ -1061,14 +1173,17 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                             "reason": "required by the case oracle",
                         }
                     )
-                open_gates = (
-                    ["Run /goal pause before ending at the user gate."]
-                    if corpus_engine.fixture_requires_goal_pause_handoff(
-                        case["fixture"]
-                    )
+                if expected["protocol_review_mode"] == "exact_final":
+                    open_gates = ["exact-final review"]
+                elif expected["protocol_review_mode"] == "focused_hardening":
+                    open_gates = ["focused choke-point review"]
+                elif (
+                    corpus_engine.fixture_requires_goal_pause_handoff(case["fixture"])
                     and expected["decision"] == "stop_for_user"
-                    else []
-                )
+                ):
+                    open_gates = ["Run /goal pause before ending at the user gate."]
+                else:
+                    open_gates = []
                 result = {
                     **expected,
                     "finding_classifications": findings,
@@ -1360,7 +1475,7 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                 (
                     "missing-required-classifications",
                     missing_required_classifications,
-                    "classification|oracle",
+                    "classification|blocker|oracle",
                 ),
                 (
                     "missing-required-anchors",
@@ -1425,7 +1540,7 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                     "engine": engine_identity,
                     "packages": {
                         "candidate": snapshot["package"],
-                        "public-0.2": public_identity,
+                        "public-0.4.0": public_identity,
                     },
                     "toolchain": settings["toolchain"],
                 },
@@ -1461,7 +1576,7 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                     )
                     for arm, package in (
                         ("candidate", snapshot["package"]),
-                        ("public-0.2", public_identity),
+                        ("public-0.4.0", public_identity),
                     )
                 }
                 pair_receipts.append(
@@ -1481,7 +1596,7 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                         "outcome": "equal",
                         "metrics": {
                             "candidate": metrics,
-                            "public-0.2": metrics,
+                            "public-0.4.0": metrics,
                         },
                         "arms": arm_receipts,
                     },
@@ -1527,7 +1642,7 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
             authentic_better["adaptive_history"] = ["better", "better"]
             for pair_receipt in authentic_better["pair_receipts"]:
                 pair_receipt["outcome"] = "better"
-                public_receipt = pair_receipt["arms"]["public-0.2"]
+                public_receipt = pair_receipt["arms"]["public-0.4.0"]
                 public_receipt["passed"] = False
                 public_receipt["oracle_failures"] = {
                     "count": 1,
@@ -1571,19 +1686,19 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
 
             malformed_nested = copy.deepcopy(authentic_better)
             malformed_public = malformed_nested["pair_receipts"][0]["arms"][
-                "public-0.2"
+                "public-0.4.0"
             ]
             malformed_public["usage_phases"] = [None]
             malformed_public["result"] = "runner-impossible"
             malformed_public["native_compaction"] = "runner-impossible"
 
             timed_out_zero_exit = copy.deepcopy(authentic_better)
-            timed_out_zero_exit["pair_receipts"][0]["arms"]["public-0.2"][
+            timed_out_zero_exit["pair_receipts"][0]["arms"]["public-0.4.0"][
                 "timed_out"
             ] = True
 
             null_result_with_usage = copy.deepcopy(authentic_better)
-            null_result_with_usage["pair_receipts"][0]["arms"]["public-0.2"][
+            null_result_with_usage["pair_receipts"][0]["arms"]["public-0.4.0"][
                 "result"
             ] = None
 
@@ -1714,304 +1829,6 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "source package"):
                 validate_ledger(wrong_artifact, repo=repo)
 
-            prior_path = repo / "evaluation" / "results" / "current.json"
-            prior_encoded = (
-                json.dumps(certified, ensure_ascii=False, sort_keys=True, indent=2)
-                + "\n"
-            ).encode()
-            prior_path.write_bytes(prior_encoded)
-            git("add", "evaluation/results/current.json")
-            git("commit", "-qm", "persist first certified ledger")
-            prior_commit = git("rev-parse", "HEAD")
-
-            changed_case_path = (
-                repo
-                / "evaluation"
-                / "cases"
-                / (sorted(snapshot["corpus"]["cases"])[0] + ".json")
-            )
-            changed_case = json.loads(changed_case_path.read_text(encoding="utf-8"))
-            changed_case["prompt"] += "\nReconfirm the exact bounded outcome."
-            changed_case_path.write_text(
-                json.dumps(changed_case, ensure_ascii=False, indent=2) + "\n",
-                encoding="utf-8",
-            )
-            next_snapshot = build_snapshot(repo)
-            planned = plan_impact(snapshot, next_snapshot)
-            next_pending = {
-                "reasons": planned["reasons"],
-                "corpus_cases": planned["corpus_cases"],
-                "holdout_pairs": planned["holdout_pairs"],
-                "review": True,
-            }
-            next_impact = plan_impact(
-                snapshot,
-                next_snapshot,
-                pending=next_pending,
-            )
-            self.assertEqual(len(next_impact["corpus_cases"]), 1)
-            self.assertEqual(next_impact["holdout_pairs"], [])
-            next_ledger = {
-                "schema_version": 1,
-                "state": "refresh_required",
-                "snapshot": next_snapshot,
-                "prior_evidence": {
-                    "source_commit": prior_commit,
-                    "source_path": "evaluation/results/current.json",
-                    "sha256": sha256_bytes(prior_encoded),
-                },
-                "pending": next_pending,
-                "historical_cost": historical_cost_receipt(),
-                "live_authority": None,
-                "certification": None,
-            }
-            next_authority = complete_live_authority(
-                next_ledger,
-                next_snapshot,
-                next_impact,
-            )
-            next_source_ledger = copy.deepcopy(next_ledger)
-            next_source_ledger["live_authority"] = next_authority
-            prior_path.write_text(
-                json.dumps(
-                    next_source_ledger,
-                    ensure_ascii=False,
-                    sort_keys=True,
-                    indent=2,
-                )
-                + "\n",
-                encoding="utf-8",
-            )
-            git("add", "evaluation/cases", "evaluation/results/current.json")
-            git("commit", "-qm", "persist incremental authority")
-            next_source_commit = git("rev-parse", "HEAD")
-            next_source_tree = git("rev-parse", "HEAD^{tree}")
-
-            engine_identity = engine_inventory(repo)
-            changed_case_id = next_impact["corpus_cases"][0]
-            partial_cases = [
-                case_receipt(
-                    changed_case_id,
-                    next_snapshot["corpus"]["cases"][changed_case_id],
-                    next_snapshot["package"],
-                )
-            ]
-            partial_summary = {
-                "schema_version": 1,
-                "engine_generation": "0.4",
-                "impact_token": next_authority["impact_token"],
-                "live_authority_sha256": canonical_sha256(next_authority),
-                "arm": "candidate",
-                "model": settings["model"],
-                "effort": settings["effort"],
-                "timeout_seconds": settings["timeout_seconds"],
-                "passed": 1,
-                "total": 1,
-                "uncached_input_tokens": 2,
-                "telemetry_complete": True,
-                "output_tokens": 1,
-                "elapsed_seconds": 1.0,
-                "cases": partial_cases,
-            }
-            next_evidence_sha = {
-                "corpus_summary": write_evidence("corpus_summary", partial_summary),
-                "offline_summary": write_evidence(
-                    "offline_summary",
-                    {
-                        "schema_version": 1,
-                        "engine_generation": "0.4",
-                        "source_commit": next_source_commit,
-                        "source_ledger_sha256": sha256_bytes(prior_path.read_bytes()),
-                        "snapshot_sha256": canonical_sha256(next_snapshot),
-                        "engine_manifest_sha256": next_snapshot["engine"][
-                            "manifest_sha256"
-                        ],
-                        "gates": ["receipt"],
-                        "receipt_artifact_sha256": next_snapshot["engine"][
-                            "categories"
-                        ]["artifact"],
-                        "isolated_installation": None,
-                    },
-                ),
-            }
-            git("add", "evaluation/results/evidence")
-            git("commit", "-qm", "incremental evidence")
-            next_evidence_commit = git("rev-parse", "HEAD")
-            next_locators = {
-                name: {
-                    "commit": next_evidence_commit,
-                    "path": f"evaluation/results/evidence/{name}.json",
-                    "git_blob": git(
-                        "rev-parse",
-                        f"{next_evidence_commit}:evaluation/results/evidence/{name}.json",
-                    ),
-                    "sha256": digest,
-                }
-                for name, digest in next_evidence_sha.items()
-            }
-            next_coverage = {
-                "corpus": {
-                    case_id: ("refreshed" if case_id == changed_case_id else "prior")
-                    for case_id in next_snapshot["corpus"]["cases"]
-                },
-                "holdout": {
-                    pair_id: "prior" for pair_id in next_snapshot["holdout"]["pairs"]
-                },
-            }
-            next_certified = copy.deepcopy(next_ledger)
-            next_certified["state"] = "certified"
-            next_certified["pending"] = {
-                "reasons": [],
-                "corpus_cases": [],
-                "holdout_pairs": [],
-                "review": False,
-            }
-            next_certified["live_authority"] = next_authority
-            next_certified["certification"] = {
-                "schema_version": 1,
-                "successor_source_commit": next_source_commit,
-                "successor_source_tree": next_source_tree,
-                "snapshot_sha256": canonical_sha256(next_snapshot),
-                "engine_manifest_sha256": next_snapshot["engine"]["manifest_sha256"],
-                "coverage": next_coverage,
-                "evidence": next_locators,
-                "live_authority_sha256": canonical_sha256(next_authority),
-            }
-            validate_ledger(next_certified, repo=repo)
-
-            next_certified_encoded = (
-                json.dumps(
-                    next_certified,
-                    ensure_ascii=False,
-                    sort_keys=True,
-                    indent=2,
-                )
-                + "\n"
-            ).encode()
-            prior_path.write_bytes(next_certified_encoded)
-            git("add", "evaluation/results/current.json")
-            git("commit", "-qm", "persist incremental certification")
-            artifact_prior_commit = git("rev-parse", "HEAD")
-
-            artifact_module = repo / "evaluation" / "core" / "receipt.py"
-            artifact_module.write_text(
-                artifact_module.read_text(encoding="utf-8")
-                + "\n# artifact-only serializer revision\n",
-                encoding="utf-8",
-            )
-            artifact_snapshot = build_snapshot(repo)
-            artifact_pending = {
-                "reasons": ["artifact-only-refresh"],
-                "corpus_cases": [],
-                "holdout_pairs": [],
-                "review": True,
-            }
-            artifact_impact = plan_impact(
-                next_snapshot,
-                artifact_snapshot,
-                pending=artifact_pending,
-            )
-            self.assertEqual(
-                artifact_impact["live_calls"], {"minimum": 0, "maximum": 0}
-            )
-            artifact_source_ledger = {
-                "schema_version": 1,
-                "state": "refresh_required",
-                "snapshot": artifact_snapshot,
-                "prior_evidence": {
-                    "source_commit": artifact_prior_commit,
-                    "source_path": "evaluation/results/current.json",
-                    "sha256": sha256_bytes(next_certified_encoded),
-                },
-                "pending": artifact_pending,
-                "historical_cost": historical_cost_receipt(),
-                "live_authority": None,
-                "certification": None,
-            }
-            prior_path.write_text(
-                json.dumps(
-                    artifact_source_ledger,
-                    ensure_ascii=False,
-                    sort_keys=True,
-                    indent=2,
-                )
-                + "\n",
-                encoding="utf-8",
-            )
-            git("add", "evaluation/core/receipt.py", "evaluation/results/current.json")
-            git("commit", "-qm", "persist zero-live refresh source")
-            artifact_source_commit = git("rev-parse", "HEAD")
-            artifact_source_tree = git("rev-parse", "HEAD^{tree}")
-
-            artifact_certified = copy.deepcopy(artifact_source_ledger)
-            artifact_certified["state"] = "certified"
-            artifact_certified["pending"] = {
-                "reasons": [],
-                "corpus_cases": [],
-                "holdout_pairs": [],
-                "review": False,
-            }
-            artifact_certified["certification"] = {
-                "schema_version": 1,
-                "successor_source_commit": artifact_source_commit,
-                "successor_source_tree": artifact_source_tree,
-                "snapshot_sha256": canonical_sha256(artifact_snapshot),
-                "engine_manifest_sha256": artifact_snapshot["engine"][
-                    "manifest_sha256"
-                ],
-                "coverage": {
-                    "corpus": {
-                        case_id: "prior"
-                        for case_id in artifact_snapshot["corpus"]["cases"]
-                    },
-                    "holdout": {
-                        pair_id: "prior"
-                        for pair_id in artifact_snapshot["holdout"]["pairs"]
-                    },
-                },
-                "evidence": {},
-                "live_authority_sha256": canonical_sha256(None),
-            }
-            with self.assertRaisesRegex(ValueError, "offline"):
-                validate_ledger(artifact_certified, repo=repo)
-
-            offline_summary = {
-                "schema_version": 1,
-                "engine_generation": "0.4",
-                "source_commit": artifact_source_commit,
-                "source_ledger_sha256": sha256_bytes(prior_path.read_bytes()),
-                "snapshot_sha256": canonical_sha256(artifact_snapshot),
-                "engine_manifest_sha256": artifact_snapshot["engine"][
-                    "manifest_sha256"
-                ],
-                "gates": ["receipt"],
-                "receipt_artifact_sha256": artifact_snapshot["engine"]["categories"][
-                    "artifact"
-                ],
-                "isolated_installation": None,
-            }
-            offline_sha = write_evidence("offline_summary", offline_summary)
-            git("add", "evaluation/results/evidence/offline_summary.json")
-            git("commit", "-qm", "offline artifact evidence")
-            offline_commit = git("rev-parse", "HEAD")
-            artifact_certified["certification"]["evidence"] = {
-                "offline_summary": {
-                    "commit": offline_commit,
-                    "path": "evaluation/results/evidence/offline_summary.json",
-                    "git_blob": git(
-                        "rev-parse",
-                        f"{offline_commit}:evaluation/results/evidence/offline_summary.json",
-                    ),
-                    "sha256": offline_sha,
-                }
-            }
-            validate_ledger(artifact_certified, repo=repo)
-
-            wrong_prior = copy.deepcopy(next_certified)
-            wrong_prior["prior_evidence"]["sha256"] = "f" * 64
-            with self.assertRaisesRegex(ValueError, "prior certified ledger digest"):
-                validate_ledger(wrong_prior, repo=repo)
-
     def test_verify_and_impact_commands_are_read_only_json(self) -> None:
         ledger_path = ROOT / "evaluation" / "results" / "current.json"
         ledger_bytes = ledger_path.read_bytes()
@@ -2071,7 +1888,7 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
         prior["package"]["artifact_sha256"] = (
             "0" * 64 if current["package"]["artifact_sha256"] != "0" * 64 else "f" * 64
         )
-        incremental = plan_impact(
+        artifact_impact = plan_impact(
             prior,
             current,
             pending={
@@ -2081,10 +1898,10 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                 "review": True,
             },
         )
-        self.assertEqual(incremental["gates"], ["isolated_install", "review"])
-        self.assertEqual(incremental["live_calls"], {"minimum": 0, "maximum": 0})
-        self.assertEqual(incremental["corpus_cases"], [])
-        self.assertEqual(incremental["holdout_pairs"], [])
+        self.assertEqual(artifact_impact["gates"], ["isolated_install", "review"])
+        self.assertEqual(artifact_impact["live_calls"], {"minimum": 0, "maximum": 0})
+        self.assertEqual(artifact_impact["corpus_cases"], [])
+        self.assertEqual(artifact_impact["holdout_pairs"], [])
 
     def test_impact_token_cannot_self_authorize_a_live_command(self) -> None:
         ledger, current, impact = full_live_test_state()

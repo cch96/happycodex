@@ -10,7 +10,7 @@ from evaluation.core.identity import canonical_sha256
 
 
 ALIASES = ("arm-a", "arm-b")
-ACTUAL_ARMS = ("candidate", "public-0.2")
+ACTUAL_ARMS = ("candidate", "public-0.4.0")
 BLIND_FIELDS = frozenset(
     {
         "passed",
@@ -150,7 +150,7 @@ def seal_mapping(
     nonce = nonce or secrets.token_hex(32)
     if not isinstance(nonce, str) or len(nonce) < 16:
         raise ValueError("mapping nonce is too short")
-    mapping = {"candidate": candidate_alias, "public-0.2": public_alias}
+    mapping = {"candidate": candidate_alias, "public-0.4.0": public_alias}
     payload = {
         "schema_version": 1,
         "pair_id": pair_id,
