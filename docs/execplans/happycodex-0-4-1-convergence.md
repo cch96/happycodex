@@ -17,6 +17,14 @@ SHA-256 `653f3936eaf713b623af0018622509b65de17c776da7d9662b42c3c885b65ed7`;
 and direct continuation/amendment turn `019faa15-4a99-7283-9aee-06148df64285`,
 item `item-107`, SHA-256
 `3c0077c9863e135c710592c17be11511b5b335651d358b3c71e76ec015de4189`.
+The direct implementation amendment received at `2026-07-29T07:13:41.888Z`
+in the same task is the 4,187-byte user message beginning
+`PLEASE IMPLEMENT THIS PLAN: # HappyCodex 0.4.1 RB-008 有界收敛重构`;
+its exact UTF-8 SHA-256 is
+`54d9bc3107decb4395002fd6d7167adae9e82aaa4fb593aa95dee211a66588ea`.
+It resolves the persistent `F-CONV-001` choice by selecting the expanded boundary
+refactor, defines terminal repair-wave recurrence and review/write exclusion, and
+authorizes the bounded `RB-008` product surface below without authorizing live gates.
 The direct gate waiver `corpus/holdout 不用了`, received 2026-07-29 in the current
 task, has exact-text SHA-256
 `3c9083ac67b403ae56f4622124b6291d97d46950553ee941dac50eff3c50a0c2`.
@@ -55,10 +63,20 @@ alias, Evidence DAG, automatic old-task evidence conversion, or unapproved live 
   story; their receipts are non-neutral hardening evidence only. Exact-final reviewers
   receive exact frozen product bytes and neutral instructions without that material or
   a preferred verdict.
-- A closed family recurring in final review requires replacement or strengthening of
-  its frozen abstraction boundary and removal of old bypasses. A second recurrence
-  after boundary replacement stops automatic repair and requires user choice to expand
-  the refactor, change the contract, or abandon.
+- A repair wave becomes terminal only after its batch and six surfaces are frozen,
+  focused and cumulative checks are GREEN, and the revision plus evidence digest are
+  durable. A Root-confirmed material sibling, or trusted safety/data-integrity unknown,
+  found after terminal GREEN increments recurrence whether or not the family was closed;
+  pre-terminal siblings remain in the same wave. First recurrence requires one
+  authoritative choke point and removal of bypasses. After boundary GREEN, one valid
+  focused bypass falsification may close the family; a later same-family material
+  finding stops automatic repair for user choice. Rejected/nonmaterial findings and
+  independent new families do not increment the old family.
+- Convergence status is `open | boundary_required | closed`; each repair batch is
+  `instance | boundary`. RED, repair, or reconciliation permits only authorized writes
+  with review mode `none`. A terminal stable wave permits no writes and enables
+  `focused_hardening` only when review is the sole next gate. `exact_final` and
+  `stop_for_user` prohibit writes; the latter always has review mode `none`.
 - One owner exists per shared mutable resource. Every task names worktree, branch/ref,
   ledger, external-output namespace, and activation target. Disjoint resources may run
   concurrently; any overlap rejects the second writer.
@@ -114,8 +132,8 @@ task conversion enlarge the state space without helping convergence.
 | ID | Type | Claim | Closure / falsifier | Evidence | State |
 | --- | --- | --- | --- | --- | --- |
 | `C-01` | outcome | Single-writer ownership is scoped to overlapping mutable resources; disjoint worktrees may run concurrently. | Protocol text plus positive and collision counterexamples. | Runtime/template, public surfaces, and fixed collision replay GREEN | verified |
-| `C-02` | outcome | Family hardening and frozen repair batches precede exact-final certification. | Open-family, reviewer-union, recurrence, and source-drift tests. | protocol and cumulative offline tests GREEN | verified |
-| `C-03` | outcome | `protocol_may_review` is removed and receipts bind `none`, `focused_hardening`, or `exact_final`. | Shared schema, oracle, receipt, and ledger tests; no alias. | five-phase transition matrix and contradiction tests GREEN | verified |
+| `C-02` | outcome | Terminal waves make same-family recurrence bounded: instance repair, boundary repair, one bypass falsification, then close or user gate. | Pre/post-terminal sibling, first recurrence, second recurrence, and independent-family tests. | `RB-008` RED/GREEN pending | open |
+| `C-03` | outcome | Review and writing are mechanically exclusive while receipts retain `none`, `focused_hardening`, or `exact_final`. | Shared raw/oracle/receipt/recovery validator and transition matrix. | `RB-008` RED/GREEN pending | open |
 | `C-04` | outcome | ExecPlan is a bounded current index with fail-closed Git/archive recovery. | Size, tamper, no-commit, multi-repo, and compaction tests. | current-index, no-commit, multi-repo, tamper, and compaction tests GREEN | verified |
 | `C-05` | preservation | Public invocation stays `$happycodex:happycodex`; resource-scoped Root ownership and unrelated behavior remain. | Package/runtime tests, exact-final review, and user-waived live comparison. | install/offline tests GREEN; corpus/holdout explicitly waived after diagnostic corpus; first exact-final union is `NOT YET` and returned to hardening | open |
 | `C-06` | outcome | Exact 0.4.1 release, public install, personal upgrade, and 0.4.0 rollback are proven. | Waiver-bound zero-live ledger, three GO reviews, install/readback, rollback rehearsal. | pending | open |
@@ -126,10 +144,10 @@ task conversion enlarge the state space without helping convergence.
 
 | Family | Invariant / boundary | Members | Scan surfaces | Status | Repair batch | Evidence | Recurrence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `F-CONV-001` | Review eligibility is phase- and evidence-exact across Runtime, evaluator, receipts, recovery, and every consumer. | prior members plus usable-plan prerequisite without recovery, active exact-final blockers/open findings, orphan blockers, first-implementation phase, and receipt-backed exact-final positive | source/identity=clean-break enum plus exact evidence identities; type/cardinality=three modes and exactly one finding per blocker; order/terminal=implementation precedes hardening and blocked final returns; alias/mutability/TOCTOU=no prose-only readiness; serialization/replay=raw and sanitized receipt; consumers/failure propagation=schema/oracle/ledger/cases | reopened; second post-strengthening recurrence requires persistent user decision | `RB-008` frozen, product repair not authorized | all three exact-final reviewers independently found members; Root reproduced the early return, orphan, blocked-final, phase-skip, and prose-only positive paths | 2 |
-| `F-CONV-002` | Writer uniqueness applies exactly to shared mutable resources, not globally to unrelated worktrees. | prior members plus shared authoritative claim, atomic acquisition, and pre-write revalidation | source/identity=all five named; type/cardinality=one owner per overlap; order/terminal=claim before writes and recheck immediately before mutation; alias/mutability/TOCTOU=concurrent overlap race rejects; serialization/replay=shared claim receipt; consumers/failure propagation=Runtime/template/paired behavior fixtures | reopened by exact-final recurrence | `RB-008` frozen | release and QA independently reproduced the two-private-ExecPlan race | 1 |
-| `F-CONV-003` | Current-index recovery is bounded, complete, content-addressed, and fail closed. | prior members plus namespaced repository/resource tuples, selected ref/archive locator, unresolved writer/worktree/agent/test coherence, and fixed recovery stop | source/identity=checkpoint/ref/digest/selection/resources; type/cardinality=complete namespaced tuple; order/terminal=select then persist then bounded recover; alias/mutability/TOCTOU=unknown or missing facts block; serialization/replay=raw and sanitized native receipt; consumers/failure propagation=Runtime/template/ledger/cases | reopened by exact-final recurrence | `RB-008` frozen | QA reproduced schema omission and unsafe unknown states; release reproduced the unbounded chain wording | 1 |
-| `F-CONV-004` | The fresh 0.4.1 evidence inventory behaviorally exercises the new convergence protocol and has no historical-coverage reader. | prior members plus removal of `prior` coverage/incremental certification, current toolchain-bound waiver projection, reachable exact-final receipts, and dead-summary cleanup | source/identity=fresh 0.4.1 genesis and current toolchain; type/cardinality=all coverage refreshed or explicitly waived; order/terminal=post-source evidence only; alias/mutability/TOCTOU=no prior-reader bypass or stale tool resolution; serialization/replay=ledger/coverage/evidence locators; consumers/failure propagation=impact/validator/tests | reopened by exact-final recurrence | `RB-008` frozen | QA/simplification reproduced 0.146/rg15.2 drift and prose-only exact-final evidence; simplification traced the reachable prior branch | 1 |
+| `F-CONV-001` | Review eligibility is phase- and evidence-exact across Runtime, evaluator, receipts, recovery, and every consumer. | prior members plus terminal-wave recurrence, usable-plan prerequisite without recovery, active exact-final blockers/open findings, orphan blockers, first-implementation phase, and receipt-backed exact-final positive | source/identity=clean-break enum plus exact evidence identities; type/cardinality=three modes and exactly one finding per blocker; order/terminal=implementation, terminal wave, boundary, focused falsification; alias/mutability/TOCTOU=no prose-only readiness; serialization/replay=raw and sanitized receipt; consumers/failure propagation=schema/oracle/ledger/cases | boundary_required; expanded refactor selected | `RB-008/boundary` | exact-final union reproduced; user amendment `54d9bc31…8ea` resolves the recurrence gate | 2 |
+| `F-CONV-002` | Writer uniqueness applies exactly to shared mutable resources, not globally to unrelated worktrees. | prior members plus shared authoritative claim, atomic acquisition, rollback, and pre-write revalidation | source/identity=all five canonical keys; type/cardinality=one owner per overlap; order/terminal=sorted acquire before writes; alias/mutability/TOCTOU=concurrent overlap race rejects; serialization/replay=claim receipt and Recovery Manifest; consumers/failure propagation=Runtime/helper/template/paired fixtures | boundary_required | `RB-008/boundary` | release and QA independently reproduced the two-private-ExecPlan race | 1 |
+| `F-CONV-003` | Current-index recovery is bounded, complete, content-addressed, and fail closed. | prior members plus Recovery Manifest digest, namespaced repository/resource/archive identities, unresolved writer/worktree/agent/test coherence, and one authoritative checkpoint | source/identity=current index/manifest/digest/selection/resources; type/cardinality=one manifest and checkpoint; order/terminal=persist then bounded recover; alias/mutability/TOCTOU=unknown or missing facts block; serialization/replay=marker IDs plus sanitized receipt; consumers/failure propagation=Runtime/template/ledger/cases | boundary_required | `RB-008/boundary` | QA reproduced omitted identities and unsafe unknown states; release reproduced unbounded traversal | 1 |
+| `F-CONV-004` | The fresh 0.4.1 evidence inventory has no historical-coverage reader and binds the exact final toolchain/evidence. | prior members plus removal of `prior_evidence`/`prior`, current-toolchain waiver projection, reachable exact-final receipts, and dead-summary cleanup | source/identity=fresh genesis and pinned toolchain; type/cardinality=refreshed or explicitly waived only; order/terminal=post-source evidence; alias/mutability/TOCTOU=no prior-reader or ambient-tool bypass; serialization/replay=ledger/coverage/evidence locators; consumers/failure propagation=impact/validator/tests | boundary_required | `RB-008/boundary` | QA/simplification reproduced tool drift and prose-only evidence; simplification traced prior reader | 1 |
 | `F-CONV-005` | Live cost authority distinguishes observed receipts from conservative proxy estimates and binds the complete current inventory. | historical receipt provenance, proxy case envelopes, impact cost basis, impact token, approval digest | source/identity=0.3 receipt hashes plus named 0.4.1 proxies; type/cardinality=one envelope per case; order/terminal=impact before authority; alias/mutability/TOCTOU=source/tool drift invalidates; serialization/replay=historical-cost and impact receipts; consumers/failure propagation=impact/ledger/live authority/tests | closed by focused confirmation | `RB-004` | mislabeled-basis RED then exact basis, 23–25 calls, approval-bound impact, and focused GO | 0 |
 | `F-CONV-006` | The 0.4.1 behavior comparison and exact authority use public `v0.4.0`, never the inherited public 0.2 identity. | public artifact/semantic identity, arm names, blind mapping, receipts, CLI help, capability binding, cost comparison | source/identity=exact public 0.4.0 package; type/cardinality=one clean-break public arm; order/terminal=impact and authority precede dispatch; alias/mutability/TOCTOU=sealed mapping remains blinded; serialization/replay=authority/run/summary receipts; consumers/failure propagation=contract/corpus/live/holdout/ledger/CLI/tests | closed by focused confirmation | `RB-005` | second RED proved both focused findings; exact dual identity and `public_0_4_0` receipt shape, cumulative checks, and sixth focused GO | 0 |
 | `F-CONV-007` | Structured results classify every explicit durable marker and every staged, unstaged, or untracked recovery path without leaking hidden-oracle names. | positive disjoint/exact-final markers, sibling family member, dirty/index/untracked paths, bare-object/archive/compaction markers, nonblank globally unique stable identities | source/identity=repository labels, exact paths, and alias-equivalent stable finding identities; type/cardinality=one stable finding per material item and anchored blocker; order/terminal=inspect then classify; alias/mutability/TOCTOU=no blank, paraphrase, duplicate identity, or list-index substitution; serialization/replay=schema result and recovery receipt; consumers/failure propagation=matcher and corpus cases | closed after saturated boundary repair and focused confirmation | `RB-006` | shared raw/receipt/oracle-input predicate rejects blank and alias duplicates; all three pre-freeze markers have distinct anchored raw/receipt coverage; 144-test GREEN; eleventh focused GO | 0 |
@@ -260,18 +278,18 @@ simplification members. The batch may replace the shared lifecycle/receipt valid
 recovery projection, resource-claim boundary, clean-break coverage validator, affected
 fixtures/tests, fresh genesis, Runtime/template, and this index; it may not add a
 controller, compatibility path, second task state, corpus/holdout run, active install,
-or release mutation. `F-CONV-001` has recurred after its prior boundary strengthening,
-so product repair is stopped at the persistent user-decision gate: explicitly choose
-expanded boundary refactor, contract change, or abandonment. No focused or exact-final
-review may run before that choice and the complete RED matrix.
+or release mutation. Amendment `54d9bc31…8ea` selects the expanded boundary refactor
+and enlarges this batch to the terminal-wave recurrence and stateless CAS claim helper
+specified above. Product repair begins only after an executable RED matrix proves the
+old false greens. No focused or exact-final review may run inside the batch.
 
 ## Checkpoint
 
-- Milestone: the first exact-final union is terminal `NOT YET`; candidate status is
-  revoked and the task is back in `focused_hardening`. Product bytes remain frozen at
-  `2ebb6cc…ba4d` / manifest `8c33c24…89ec`; `RB-008` is frozen but product repair is
-  stopped at the `F-CONV-001` persistent user-decision gate. No live authority exists,
-  and corpus/holdout remain explicitly waived.
+- Milestone: amendment `54d9bc31…8ea` resolves the persistent user choice in favor of
+  expanded `RB-008/boundary`. The task remains in write-enabled hardening with review
+  mode `none`; next action is the complete RED matrix, then the bounded product repair.
+  Invalidated source `2ebb6cc…ba4d` / manifest `8c33c24…89ec` remains historical.
+  No live authority exists, and corpus/holdout remain explicitly waived.
 - Last green: expanded RB-007 has 146/146 tests passed in 8.428s; Ruff check/format, diff/31-JSON/19-AST checks, official Skill/plugin validators, and corpus/holdout list/dry-run passed. Runtime/template remain 308 lines/2,686 words: below 340/3,000 hard limits and 8/86 above the optimization target.
 - Fresh genesis: stored/current snapshots are exact for expanded RB-007 and `0.4.1+codex.20260728205019`; pinned `0.145.0` verify reports `refresh_required`, engine `b6f98f53…b19e`, snapshot `30ac7904…baf`, ledger `14eb840b…440`, and no authority. Full 17-case/three-pair impact remains 23–25 calls, 719,051–770,869 combined tokens, and 3,757.028–4,032.239 seconds; impact token is `9ea685a6…c6e5`. The proposed holdout binds public artifact `ace7f39f…497e` and semantic identity `c5030e99…c05`; origin remains `730c6a5:docs/execplans/happycodex-0-4-release.md`, never old `current.json`.
 - Isolated install: `/var/tmp/happycodex-041-rb003.oyKhro` installed `0.4.1+codex.dev`; source/cache Skill SHA-256 both `fd33e911…8d6c`, source/cache manifest SHA-256 both `430f9f11…77e`, byte comparisons equal.
@@ -396,14 +414,16 @@ review may run before that choice and the complete RED matrix.
   temporary-directory errors are limitations, not product failures; independent
   writable 146/146 remains the last cumulative GREEN. The exact-final receipts are
   diagnostic hardening evidence only and cannot authorize release.
-- Owned mutable path: only this current-index ExecPlan. Product source, evaluator,
-  runtime/package bytes, external raw outputs, and active/public 0.4.0 are frozen.
+- Owned mutable paths after this amendment checkpoint: Runtime/template and the
+  stateless claim helper; evaluator semantic contracts, receipts, ledger and direct
+  consumers; fixed cases/oracles and focused tests; fresh genesis; change notes and
+  this current index. External raw outputs, marketplace/active/public 0.4.0, release
+  refs, other worktrees, and other task ledgers remain frozen.
 - Goal: none.
 - Agents/reviewers: all focused and exact-final reviewers are terminal and reconciled;
   no reviewer is active.
-- Pending gates: persistent user choice for `F-CONV-001` second recurrence; if expanded
-  refactor is chosen, complete `RB-008` RED/GREEN, one focused confirmation, new
-  candidate freeze, and three fresh neutral exact-final reviews; then public release,
+- Pending gates: complete `RB-008` RED/GREEN, one focused choke-point confirmation,
+  new candidate freeze, and three fresh neutral exact-final reviews; then public release,
   fresh public install/readback, atomic personal upgrade, rollback rehearsal, and
   downstream successor task creation. Completion must disclose that corpus and holdout
   were explicitly waived and not run for the final candidate.
