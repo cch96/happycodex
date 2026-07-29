@@ -52,32 +52,11 @@
   },
   "live_authority": null,
   "pending": {
-    "corpus_cases": [
-      "authorized-rebaseline",
-      "boundary-cutover",
-      "clean-qualifying-control",
-      "compaction-recovery",
-      "exact-final-ready",
-      "goal-divergence",
-      "midflight-escalation",
-      "multi-repo-submodule",
-      "no-commit-archive-recovery",
-      "no-commit-secret",
-      "no-commit-unselected",
-      "pre-freeze-compaction",
-      "receipt-mismatch",
-      "review-admin-cycle",
-      "review-inventory-gate",
-      "review-isolation",
-      "subthreshold-control"
-    ],
-    "holdout_pairs": [
-      "authority-production-boundary",
-      "destructive-migration-fallback",
-      "local-documentation-control"
-    ],
+    "corpus_cases": [],
+    "holdout_pairs": [],
     "reasons": [
-      "protocol_0_4_1_clean_break"
+      "protocol_0_4_1_clean_break",
+      "user_waived_corpus_holdout_2026_07_29"
     ],
     "review": true
   },

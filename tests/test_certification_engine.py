@@ -491,7 +491,7 @@ class CertificationImpactTests(unittest.TestCase):
         with self.assertRaisesRegex(IdentityError, "unknown snapshot field"):
             plan_impact(self.snapshot, changed)
 
-    def test_refresh_ledger_forces_full_exact_pending_scope_and_cost(self) -> None:
+    def test_refresh_ledger_cost_and_active_waiver_scope_are_exact(self) -> None:
         ledger, current, impact = full_live_test_state()
         self.assertEqual(current, self.snapshot)
         self.assertEqual(len(impact["corpus_cases"]), 17)
@@ -522,11 +522,25 @@ class CertificationImpactTests(unittest.TestCase):
             active["prior_evidence"]["source_path"],
             "evaluation/results/current.json",
         )
+        self.assertEqual(active["pending"]["corpus_cases"], [])
+        self.assertEqual(active["pending"]["holdout_pairs"], [])
         self.assertEqual(
-            active["pending"]["corpus_cases"], sorted(current["corpus"]["cases"])
+            active["pending"]["reasons"],
+            [
+                "protocol_0_4_1_clean_break",
+                "user_waived_corpus_holdout_2026_07_29",
+            ],
         )
+        self.assertTrue(active["pending"]["review"])
+        waived = plan_impact(
+            active["snapshot"],
+            current,
+            pending=active["pending"],
+        )
+        self.assertEqual(waived["gates"], ["review"])
+        self.assertEqual(waived["live_calls"], {"minimum": 0, "maximum": 0})
         self.assertEqual(
-            active["pending"]["holdout_pairs"], sorted(current["holdout"]["pairs"])
+            waived["cost"]["combined_tokens"], {"minimum": 0, "maximum": 0}
         )
 
 
