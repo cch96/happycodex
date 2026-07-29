@@ -563,9 +563,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
         )
         for index, invalid_oracle in enumerate(invalid_oracles):
             with self.subTest(oracle=next(iter(invalid_oracle))):
-                case = json.loads(
-                    json.dumps(self.cases["clean-qualifying-control"])
-                )
+                case = json.loads(json.dumps(self.cases["clean-qualifying-control"]))
                 case["oracle"].update(invalid_oracle)
                 with self.assertRaisesRegex(ValueError, "invalid"):
                     runner.validate_case(case, Path(f"blank-identity-{index}.json"))

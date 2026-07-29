@@ -46,6 +46,7 @@ from evaluation.corpus.contract import (
     expected_permission_failures,
     has_distinct_identity_assignment,
     identity_match_values,
+    is_nonblank_identity,
     protocol_state_failures,
 )
 
@@ -298,7 +299,7 @@ def validate_case(case: dict[str, Any], path: Path) -> None:
     accepted = case["oracle"].get("accepted_baseline_failures", [])
     if (
         not isinstance(accepted, list)
-        or any(not isinstance(identity, str) or not identity for identity in accepted)
+        or any(not is_nonblank_identity(identity) for identity in accepted)
         or len({identity.casefold() for identity in accepted}) != len(accepted)
     ):
         raise ValueError(f"invalid accepted baseline failures: {case['id']}")
@@ -374,8 +375,7 @@ def validate_case(case: dict[str, Any], path: Path) -> None:
         states = states if isinstance(states, list) else [states]
         if (
             set(finding) != {"identity", "domain", "state"}
-            or not isinstance(finding["identity"], str)
-            or not finding["identity"]
+            or not is_nonblank_identity(finding["identity"])
             or finding["domain"]
             not in {"secret", "baseline_failure", "receipt", "other"}
             or not states
@@ -411,8 +411,7 @@ def validate_case(case: dict[str, Any], path: Path) -> None:
             raise ValueError(f"invalid required blocker: {case['id']}")
         if (
             set(blocker) != {"identity", "class"}
-            or not isinstance(blocker["identity"], str)
-            or not blocker["identity"]
+            or not is_nonblank_identity(blocker["identity"])
             or blocker["class"] not in BLOCKER_CLASSES
         ):
             raise ValueError(f"invalid required blocker: {case['id']}")

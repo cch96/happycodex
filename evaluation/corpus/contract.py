@@ -115,6 +115,11 @@ def identity_match_values(value: Any) -> frozenset[str]:
     return frozenset(candidates)
 
 
+def is_nonblank_identity(value: Any) -> bool:
+    """Return whether a raw identity can participate in protocol matching."""
+    return isinstance(value, str) and bool(identity_match_values(value))
+
+
 def classification_identity_keys(item: Any) -> frozenset[str]:
     """Project a raw classification or sanitized receipt to comparable identity keys."""
     if not isinstance(item, dict):
@@ -143,7 +148,7 @@ def classification_identity_failures(items: Any, *, label: str) -> list[str]:
     for item in items:
         keys = classification_identity_keys(item)
         nonblank = isinstance(item, dict) and (
-            (isinstance(item.get("identity"), str) and bool(item["identity"].strip()))
+            is_nonblank_identity(item.get("identity"))
             or item.get("identity_nonblank") is True
         )
         if not nonblank or not keys:
