@@ -325,6 +325,45 @@ must also advance past already completed work before another focused confirmatio
   `RB-007` family scan closed, but its old product manifest cannot satisfy final
   certification because the waiver projection changed the ledger and its contract
   test. All exact-final reviewers must use the new exact product checkpoint above.
+- Exact-final prelaunch: authoritative product source is
+  `2ebb6cc5a8cd05478763381fe7861038517ba4d6`, tree
+  `eb9d9cd9285dccecc385ba6bdfcb1c9119841aa9`, filtered manifest
+  `8c33c24fa5f365e9e5f93100ef858b3db93eae93c6eda5d53815836d7bf589ec`.
+  Root will materialize one synthetic commit at
+  `refs/happycodex-review/0.4.1/exact-candidate` whose parent is baseline
+  `730c6a59d4f15eab9b40895e7ea9e0f4ee3522f5` and whose tree is the
+  authoritative tree with only this ExecPlan removed, then attach the read-only
+  checkout `/home/caichenghang/.codex/happycodex-0.4.1-exact-final/checkout`.
+  Release, QA, and simplification reviewers may share this immutable checkout
+  because their only mutable resources are distinct output files.
+- Neutral briefs contain the objective, preservation boundary, waiver fact, and
+  budget only; they contain no family ledger, repair story, prior finding, writer
+  conclusion, preferred verdict, or this ExecPlan. Release brief
+  `exact-release-2ebb6cc.brief.txt` is 1,344 bytes/172 words, SHA-256
+  `79200cf82ad04e10279f8db43512cc2723c999e4fb7d4106ebd66cbc00d7ab5b`;
+  QA brief `exact-qa-2ebb6cc.brief.txt` is 1,533 bytes/193 words, SHA-256
+  `7d59d6111ff9c328291af2b3e59952e29d6b0d26d83179db7df179a6fa9a934b`;
+  simplification brief `exact-simplification-2ebb6cc.brief.txt` is 1,406
+  bytes/177 words, SHA-256
+  `e3f941d3be36ff92916deeb57b0a641a4fbd4997427e80eee0ee99c9de7059f2`.
+  Inputs and outputs are under
+  `/home/caichenghang/.codex/happycodex-0.4.1-reviews/`; outputs are respectively
+  `exact-release-2ebb6cc.txt`, `exact-qa-2ebb6cc.txt`, and
+  `exact-simplification-2ebb6cc.txt`.
+- Each reviewer runs from the synthetic checkout with pinned Codex `0.145.0`,
+  `model="gpt-5.6-sol"`, reasoning effort `max`, and read-only sandbox. The exact
+  commands are:
+
+  ```text
+  set -o pipefail; /home/caichenghang/.codex/packages/standalone/releases/0.145.0-aarch64-unknown-linux-musl/bin/codex review -c 'model="gpt-5.6-sol"' -c 'model_reasoning_effort="max"' -c 'sandbox_mode="read-only"' - < /home/caichenghang/.codex/happycodex-0.4.1-reviews/exact-release-2ebb6cc.brief.txt | tee /home/caichenghang/.codex/happycodex-0.4.1-reviews/exact-release-2ebb6cc.txt
+  set -o pipefail; /home/caichenghang/.codex/packages/standalone/releases/0.145.0-aarch64-unknown-linux-musl/bin/codex review -c 'model="gpt-5.6-sol"' -c 'model_reasoning_effort="max"' -c 'sandbox_mode="read-only"' - < /home/caichenghang/.codex/happycodex-0.4.1-reviews/exact-qa-2ebb6cc.brief.txt | tee /home/caichenghang/.codex/happycodex-0.4.1-reviews/exact-qa-2ebb6cc.txt
+  set -o pipefail; /home/caichenghang/.codex/packages/standalone/releases/0.145.0-aarch64-unknown-linux-musl/bin/codex review -c 'model="gpt-5.6-sol"' -c 'model_reasoning_effort="max"' -c 'sandbox_mode="read-only"' - < /home/caichenghang/.codex/happycodex-0.4.1-reviews/exact-simplification-2ebb6cc.brief.txt | tee /home/caichenghang/.codex/happycodex-0.4.1-reviews/exact-simplification-2ebb6cc.txt
+  ```
+
+  All three start from status not-started; Root will wait for every terminal state
+  before unioning results. A product change invalidates all three; one
+  polluted/failed role may be replaced alone only while the candidate remains
+  byte-identical.
 - Owned mutable path: only this current-index ExecPlan. Product source, evaluator,
   runtime/package bytes, external raw outputs, and active/public 0.4.0 are frozen.
 - Goal: none.
