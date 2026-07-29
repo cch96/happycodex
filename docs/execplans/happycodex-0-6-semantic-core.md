@@ -2,7 +2,8 @@
 
 Protocol: `HappyCodex/0.5`
 
-Current index: contract frozen; implementation and every external gate remain open.
+Current index: contract frozen with the accepted monotonic G-003 semantic-identity
+correction; implementation and every external gate remain open.
 
 Restore guard: restore this ExecPlan, then reconcile Git, the fixed Executor,
 resource claims, active grant, receipts, checks, agents, and any Goal before any
@@ -15,6 +16,12 @@ implementation-frozen: changing the Outcome/baseline, removing or narrowing a
 claim, widening a break, using `N/A`, changing a central type/invariant, or changing
 the frozen caller/deletion/RED inventory requires explicit user authority and
 reopens dependent evidence.
+
+G-003 is a source-derived correction to the exact `StateProjection`, finding
+identity, attempt identity, and terminal grammar already entailed by the frozen
+Outcome. It changes no Outcome, baseline, provider, allowed break, implementation
+batch, or completion gate. G-002 remains the accepted contract-freeze source; the
+correction adds no implementation evidence.
 
 ## Operative request and normalized Outcome
 
@@ -73,15 +80,28 @@ adapter, Runtime feature, or completion gate.
 
 The audit found two material design defects:
 
-- `MF-06-001`: the plan fingerprint had six fields while Runtime/tests used seven,
-  with required action as the seventh;
-- `MF-06-002`: a phrase-only stagnation oracle could pass after cosmetic
-  rewording.
+- `MF-06-001`, `ClaimId=CL-06-STRUCTURAL-DECISION-TARGET`,
+  `FalsifierId=FL-06-SIX-FIELD-OMISSION`: the plan fingerprint had six fields
+  while Runtime/tests used seven, with required action as the seventh;
+- `MF-06-002`, `ClaimId=CL-06-PHRASE-INDEPENDENT-PROGRESS`,
+  `FalsifierId=FL-06-COSMETIC-REWORD-PASS`: a phrase-only stagnation oracle
+  could pass after cosmetic rewording.
 
 Both are resolved at the contract level by the typed `StateKey`, `Decision`, and
 `AttemptKey` definitions below. Required decision/action inputs are structural
 tagged fields, never prose or phrase presence. Implementation evidence remains
 open under `O-06-01` and `O-06-02`.
+
+G-003 adds the monotonic derived finding `MF-06-003`,
+`ClaimId=CL-06-STABLE-STATE-PROJECTION`,
+`FalsifierId=FL-06-ADMINISTRATIVE-SELF-INVALIDATION`: the G-002 draft included
+authority/receipt administration in `MachineFacts` while hashing the entire
+envelope plus duplicated candidate/evidence inputs, so recording authority,
+receipt, or attempt consumption could change its own precondition and permit
+phrase/admin-driven divergence. Root derived this finding from the accepted
+Outcome and G-002 contract; no new user request, baseline, or break was introduced.
+It is `RESOLVED` at contract level by the exact projection and independent registry
+rules below, while all implementation evidence remains open.
 
 ## Review union and contract-freeze authority
 
@@ -158,7 +178,7 @@ Codex / Git / filesystem adapters
   -> strict parse
   -> immutable provider-neutral semantic package
   -> pure reduce
-  -> CanonicalReport + recomputed StateKey + Decision
+  -> CanonicalReport + derived StateProjection/StateKey + Decision
   -> pure projection / replay
   -> canonical receipt / impact / holdout / certification consumers
 ```
@@ -212,11 +232,12 @@ Claude/Fable observations above remain reference-only design input.
 
 ## Frozen semantic types
 
-All identifiers are validated tagged scalars, not bare interchangeable strings.
+All identifiers, including `FindingId`, `ClaimId`, `FalsifierId`, and
+`EvidenceSourceId`, are validated tagged scalars, not bare interchangeable strings.
 Digests are lowercase 64-hex SHA-256; Git commits/trees are lowercase 40-hex;
 sequences are nonnegative integers; enum spellings below are exact.
 
-`MachineFacts` has exactly these semantic fields:
+`MachineFacts` is the strictly parsed fact envelope. Its validated domain fields are:
 
 - `schema_generation = 6`;
 - `source`: commit, tree, package semantic/artifact, engine manifest, and config
@@ -229,42 +250,69 @@ sequences are nonnegative integers; enum spellings below are exact.
 - `claimed_resources`: sorted exact canonical resource claims and owner-token
   digest;
 - `goal`: typed Goal lifecycle, objective digest, and exact Outcome-match result;
-- `gates`: sorted `GateId`/gate-state facts;
+- `claims`: sorted typed claim identity, type, state, anchors, and exact evidence
+  references; display claim prose is not state-bearing;
+- `gates`: sorted typed gate work/evidence state, including `GateId`, `GateState`,
+  pending work identity, and exact semantic evidence references; authority
+  availability/approval lifecycle is checked separately and never projected into
+  gate state;
 - `checks`: sorted check identity, command digest, result state, candidate identity,
   and receipt;
-- `accepted_evidence`: sorted exact `EvidenceRef` values;
+- `accepted_evidence`: sorted exact semantic `EvidenceRef` values; gate-scoped
+  authority and approval receipts are administrative references, never accepted
+  semantic evidence;
 - `invocation_profile`: absent or the strictly observed effective invocation
   profile, including provider/binary/model/effort/timeout/tool/network/MCP/hook/
   session settings;
-- `authorities`: zero or one record for each exact `AuthorityScope`;
 - `infrastructure_transitions`: ordered typed start/fail/replace/recover events
-  with prior/new envelope and authority identities; and
-- `receipt_head`: absent or exact sequence and previous-link hash.
+  with prior/new exact infrastructure envelopes and evidence references.
+
+The same envelope also carries independently validated enforcement and
+administrative facts: zero or one gate-scoped authority record for each exact
+`AuthorityScope`; exact grant/intent/receipt lifecycle; the consumed-attempt
+registry; receipt-chain sequence/link/cursor/location; and event timestamps and
+transport identities. They are not state-bearing and are excluded from
+`StateProjection`. An infrastructure transition contributes to
+`StateProjection` only through its normalized exact `REPLACED` fact; transient
+start/fail/recover administration is validated but excluded.
 
 No field is inferred from model prose. Source/candidate/Executor/resource/Goal/check/
-authority/profile/infrastructure facts come only from strict adapters and persisted
-receipts.
+authority/profile/infrastructure facts come only from strict adapters, machine
+evidence, exact user authority, and persisted receipts. Parse validates the whole
+envelope; `reduce.py` alone selects its state-bearing projection.
 
 `ModelObservation` contains only:
 
 - `observations`: bounded sanitized observations; and
-- `proposed_findings`: proposed typed findings.
+- `proposed_findings`: proposed typed findings whose `FindingId`, `ClaimId`, and
+  `FalsifierId` are new and valid inside the predeclared catalog/namespace and whose
+  status is only `OPEN` or `UNKNOWN`.
 
 It has no authority, permission, decision, gate-state, next-action, retry,
 completion, writer, resource, Goal, invocation, or lifecycle fields. Any such key
-in model output is unknown input and fails strict parse.
+in model output is unknown input and fails strict parse. A model proposal cannot
+reuse or change an existing semantic ID, resolve or baseline-accept a finding,
+change a finding status, or clear a blocker. `RESOLVED` and `BASELINE_ACCEPTED`
+arise only from reducer inputs backed respectively by exact machine evidence or
+exact user authority bound to the baseline and finding identity.
 
 `Finding` has exactly:
 
 - `finding_id: FindingId`, globally exact and nonblank;
+- `claim_id: ClaimId`, exact catalog/namespace identity;
+- `falsifier_id: FalsifierId`, exact catalog/namespace identity;
 - `status: OPEN | UNKNOWN | RESOLVED | BASELINE_ACCEPTED`;
 - `anchors`: a nonempty sorted tuple of the tagged union below;
-- `claim`: bounded sanitized text;
-- `falsifier`: bounded sanitized text; and
+- `claim_text: SafeText`, bounded display-only prose;
+- `falsifier_text: SafeText`, bounded display-only prose; and
 - `evidence`: sorted exact `EvidenceRef` values.
 
 `RESOLVED` can never block. `BASELINE_ACCEPTED` requires exact user authority and
-baseline identity. The anchor union is:
+baseline identity. Finding semantic identity is the domain-separated hash of
+`finding_id`, `claim_id`, `falsifier_id`, `status`, canonical anchors, and exact
+evidence references. `claim_text` and `falsifier_text` are excluded from that hash,
+`StateProjection`, `StateKey`, equality, and attempt identity; cosmetic rewording
+changes display bytes only. The anchor union is:
 
 - `RepoPath(repository_id, path)`: repository-qualified, root-relative,
   case-sensitive POSIX path; no basename, suffix, casefold, glob, or normalization
@@ -324,12 +372,14 @@ capability must also validate. Projection rules are:
 | `REFUSE` | terminal fail-closed, no effect |
 
 `CanonicalReport` is sanitized and persistable by construction. It contains the
-validated `MachineFacts`, accepted typed findings, derived blockers, the single
-`Decision`, exact evidence references, and receipt head. Sanitized text uses a
+validated `MachineFacts`, exact derived `StateProjection` and `StateKey`, accepted
+typed findings, derived blockers, the single `Decision`, exact evidence references,
+and separately validated receipt/authority/attempt metadata. Sanitized text uses a
 bounded `SafeText` constructor; raw events, hidden prompts/oracles, secrets, and
-unvalidated dictionaries cannot inhabit the type. The same semantic object is
-consumed by receipt, replay, ledger, impact, holdout, and certification; consumers
-may project fields but cannot add semantic meaning.
+unvalidated dictionaries cannot inhabit the type. The same report is consumed by
+receipt, replay, ledger, impact, holdout, and certification; consumers may project
+fields but cannot add semantic meaning or promote administrative metadata into
+state.
 
 ## Canonical state, attempts, ordering, and capacity
 
@@ -339,35 +389,67 @@ declared as sets are sorted by exact typed canonical identity; semantically orde
 sequences retain order. Permutation search, permutation caps, basename/suffix/
 casefold matching, fuzzy identity, and unordered digest alternatives are deleted.
 
-`StateKey` is:
+`StateProjection` is an exact derived value, never an editable or independently
+authoritative persisted object. Its sole nonrecursive definition is:
+
+```text
+StateProjection := {
+  schema_generation,
+  source,
+  candidate,
+  executor and exact invocation-profile identity,
+  claimed_resources,
+  typed claims,
+  Goal,
+  typed gate work/evidence state,
+  checks,
+  accepted semantic EvidenceRefs excluding authority/approval receipts,
+  normalized REPLACED infrastructure transitions,
+  Finding semantic identities/status/anchors/evidence,
+  semantic ControlBlockers,
+  required Decision target inputs
+}
+```
+
+It excludes receipt head/sequence/previous hash, cursor/location/completeness,
+gate-scoped authority and approval receipts, grant/intent/receipt administrative
+lifecycle, consumed-attempt storage, timestamps, turn/random/transport IDs, and all
+display prose. Those facts validate alongside the projection and can fail the
+operation without changing the semantic state.
+
+`StateKey` has one formula:
 
 ```text
 SHA256("happycodex/0.6/state-key\0" +
-       canonical(MachineFacts, typed findings, ControlBlockers,
-                 candidate identity, accepted evidence,
-                 required Decision inputs))
+       canonical(StateProjection))
 ```
 
 Required decision inputs include the typed required action/target. This structurally
 resolves the prior six-versus-seven fingerprint mismatch. Load and replay always
 recompute `StateKey`; no independently editable persisted state/fingerprint digest
 is authoritative. A serialized derived key, if emitted in a receipt, must equal the
-recomputed key or fail.
+recomputed key or fail. Persisting or appending authority, approval, grant, intent,
+receipt, attempt-consumption, or receipt-chain administration does not change
+`StateProjection` and cannot self-invalidate authority or create a retry. Only a new
+semantic claim/finding/evidence/check, candidate identity, semantic blocker/required
+Decision target, or normalized infrastructure replacement can alter the projection.
 
 `AttemptKey` is:
 
 ```text
 SHA256("happycodex/0.6/attempt-key\0" +
        canonical(StateKey, Decision variant, exact target/scope,
-                 falsifier identity, evidence-source identity))
+                 FalsifierId, EvidenceSourceId))
 ```
 
 It is atomically consumed with `O_EXCL` before fixture creation, mapping, output
 claim, workspace mutation, or subprocess work. Random attempt IDs, rewording,
 turn/time changes, and a new process cannot bypass consumption. Retry is legal only
-after an explicit `REPLACED` infrastructure transition changes `MachineFacts` and
-binds a new envelope plus new exact authority; ordinary semantic failure consumes
-the attempt permanently.
+after an explicit `REPLACED` infrastructure transition changes
+`StateProjection` and binds a new envelope plus new exact authority; ordinary
+semantic failure consumes the attempt permanently. The consumed-attempt registry is
+checked independently against the recomputed key. Recording consumption never
+changes `StateKey`, reopens availability, or manufactures a different attempt.
 
 Receipt links contain exact `sequence`, `previous_hash`, `report_hash`,
 `AttemptKey`, and `EvidenceKind`. Sequence starts at zero and increments by one;
@@ -525,10 +607,12 @@ Three authorities are separately persisted and separately consumed:
 | `HOLDOUT` | one exact candidate/public/profile/pair-set/output invocation and one `AttemptKey` |
 
 There is never one authority containing multiple invocations or scopes. Each
-authority binds the exact current `StateKey`, impact token, package/config/tool
-identities, model, effort, timeout, arm, output, complete command, approval-request
-digest, and canonical affirmative user response. Persisting identity grants no
-permission. This contract carries no live authority.
+authority binds the exact pre-effect `StateKey`, impact token, exact invocation,
+package/config/tool identities, model, effort, timeout, arm, output, complete
+command, approval-request digest, and canonical affirmative user response. The
+authority record and approval receipt validate independently of `StateProjection`:
+persisting either does not change `StateKey` or self-invalidate the authority.
+Persisting identity grants no permission. This contract carries no live authority.
 
 Two Codex profiles are exact and non-interchangeable:
 
@@ -555,14 +639,20 @@ ref, exact output namespace, and ledger. The grant resolves every absolute path 
 ref; no implicit temporary/default location is allowed. Review consumes only that
 detached snapshot.
 
-Codex terminal grammar permits exactly one schema-generation-6 terminal object
-bound by adapter facts to the exact provider/session/thread/turn and `AttemptKey`.
-It contains one legal `ModelObservation` and exactly one `CompletionTag`:
-`COMPLETE`, `BLOCKED`, or `REFUSED`. Missing, malformed,
-duplicate, contradictory, unbound, or late semantic output fails; any bytes after
-the terminal are raw-stream protocol failure. Raw stream and its byte/hash receipt
-stay external. Hooks and events are adapter inputs only, never semantic authority or
-a second state machine.
+Codex terminal grammar has exactly two events in this order: first, one
+schema-generation-6 terminal agent-result event bound by adapter facts to the exact
+provider/session/thread/turn and `AttemptKey`, containing one legal
+`ModelObservation` and exactly one `CompletionTag` (`COMPLETE`, `BLOCKED`, or
+`REFUSED`); second, exactly one matching nonsemantic completion event carrying
+usage only. The completion event binds the same provider/session/thread/turn,
+`AttemptKey`, and terminal-result digest but carries no finding, Decision, authority,
+gate, blocker, or other semantic fact. No additional agent or semantic event may
+follow the terminal result, and no byte or event may follow the completion event.
+Missing, malformed, duplicate, contradictory, unbound, or late terminal results;
+missing, duplicate, mismatched, semantic, or extra completion events; and any
+trailing bytes/events fail closed. Raw stream and its byte/hash receipt stay
+external. Hooks and nonterminal events are adapter inputs only, never semantic
+authority or a second state machine.
 
 There are no agent teams, Claude adapter, plugin-evaluation certification,
 publish-report, ultrareview, ordinary-task event queue, scheduler, controller,
@@ -620,8 +710,9 @@ invalidates it.
 
 No editable five-phase state, review-mode field, `protocol_may_*` flag, or separate
 permission ledger exists. The typed `Decision` is authoritative. Ordinary Runtime
-reconciles canonical durable facts, blockers, and consumed `AttemptKey` values; it
-adds no event queue, timer-derived progress, or evaluator process.
+reconciles canonical durable facts and blockers, then checks consumed `AttemptKey`
+values in the independent attempt registry; consumption is not semantic progress.
+It adds no event queue, timer-derived progress, or evaluator process.
 
 The ordinary-session payoff is fewer repeated handoffs, reviews, checks, and
 checkpoints under unchanged facts. The evaluator-only maintainer/release payoff is
@@ -756,9 +847,9 @@ in this section ran during G-002.
 | Surface | Required RED seed / counterexample | Closure oracle | Focused command |
 | --- | --- | --- | --- |
 | writer/session | Root, unknown, replacement, fork, concurrent resume, copied handle, or wrong config is accepted as recovery | only exact fixed Executor provider/session/thread/owner/config/scope recovers; same-session positive passes | `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest tests.test_semantic_core.WriterSessionTests -v` |
-| authority/attempt | bundled authority, random attempt ID, repeated/reworded attempt, or pre-consumption side effect passes | three disjoint authorities; canonical `AttemptKey` consumed before every side effect; only typed replacement transition permits retry | `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest tests.test_semantic_core.AuthorityAttemptTests -v` |
-| typed state | six-field fingerprint, prose required action, persisted phase/permission flag, alias identity, permutation cap, or silent overflow passes | seven-equivalent structural decision inputs are inside `StateKey`; exact enums/unions and derived permissions; overflow reconciles | `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest tests.test_semantic_core.TypedStateTests -v` |
-| terminal/events | malformed/multiple/late/unbound terminal or hook/event authority passes | exactly one session/thread/turn-bound terminal; events are adapter facts only; post-terminal semantic bytes fail | `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest tests.test_semantic_core.TerminalEventTests -v` |
+| authority/attempt | bundled authority, random attempt ID, prose-derived falsifier/evidence identity, repeated/reworded attempt, authority persistence self-invalidates, consumption changes state, or pre-consumption side effect passes | three disjoint authorities bind pre-effect `StateKey`; canonical `AttemptKey` uses exact `FalsifierId`/`EvidenceSourceId` and is consumed before every side effect; authority/consumption administration leaves `StateKey` unchanged; only typed replacement transition permits retry | `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest tests.test_semantic_core.AuthorityAttemptTests -v` |
+| typed state | six-field fingerprint, recursive/duplicated candidate or evidence input, receipt/authority/attempt/admin metadata changes `StateKey`, cosmetic finding prose changes identity, prose required action, persisted phase/permission flag, alias identity, permutation cap, or silent overflow passes | one exact nonrecursive derived `StateProjection`; phrase-independent `ClaimId`/`FalsifierId` finding identity; structural Decision targets, exact enums/unions and derived permissions; administrative facts validate independently; overflow reconciles | `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest tests.test_semantic_core.TypedStateTests -v` |
+| terminal/events | missing/malformed/duplicate/contradictory/late/unbound terminal result, missing/duplicate/mismatched/semantic/extra completion, additional agent/semantic event after terminal, hook/event authority, or bytes/events after completion passes | exactly one bound terminal agent result followed by exactly one matching usage-only nonsemantic completion and EOF; all other events are adapter facts only | `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest tests.test_semantic_core.TerminalEventTests -v` |
 | impact/invalidation | planning and execution accept different schema, unknown input is ignored, or semantic change under-invalidates | shared strict loaders/parser; exact semantic/harness/artifact inventory; unknown/missing input fails; affected gates are deterministic | `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest tests.test_semantic_core.ImpactInvalidationTests tests.test_certification_engine.CertificationImpactTests -v` |
 | fresh genesis/evidence | old generation/current baseline/evidence is readable, offline evidence certifies, or pre-source evidence passes | generation-6 empty-authority/evidence genesis; old inputs unreachable; strictly post-source evidence; offline remains `refresh_required` | `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest tests.test_semantic_core.FreshGenesisEvidenceTests tests.test_certification_engine.CertificationReceiptAndCliTests -v` |
 | holdout | public-0.4/old evidence, unreplayable reveal, early reveal, first regression, skipped second pair, unnecessary third, or >25% equal-quality cost passes | exact public-0.2 identity; decision/preimage replay; frozen adaptive sequence and independent token/wall gates | `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest tests.test_semantic_core.HoldoutReplayTests tests.test_holdouts.HappyCodexHoldoutTests -v` |
@@ -791,16 +882,20 @@ generated artifact, and Runtime at or below both hard ceilings.
 
 | Family | Invariant / boundary | Members | Six surfaces | Status | Repair batch | Evidence | Recurrence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `F-06-SEMANTIC-CORE` | one immutable typed semantic meaning and one Decision govern identity, authority, attempts, gates, replay, and cadence; adapters alone perform effects | `MF-06-001`, `MF-06-002`, all 12 RED surfaces | source/identity, type/cardinality, order/terminal, alias/mutability/TOCTOU, serialization/replay, and consumers/failure propagation are frozen in the matrix; implementation open | `open` | `RB-06-001/instance` | Challenger `GO-WITH-CONDITIONS`, Root union, Fable design input, G-002 contract | `0` |
+| `F-06-SEMANTIC-CORE` | one immutable typed semantic meaning and one Decision govern identity, authority, attempts, gates, replay, and cadence; adapters alone perform effects | `MF-06-001`, `MF-06-002`, `MF-06-003`, all 12 RED surfaces | source/identity, type/cardinality, order/terminal, alias/mutability/TOCTOU, serialization/replay, and consumers/failure propagation are frozen in the matrix; implementation open | `open` | `RB-06-001/instance` | Challenger `GO-WITH-CONDITIONS`, Root union, Fable design input, accepted G-002 contract, G-003 derived correction | `0` |
 
 ## Claims and future gates
 
-| ID | Type | Claim | Closure | Falsifier / oracle | Evidence | State |
+Here each `ID` is the exact `ClaimId`; every falsifier cell begins with its exact
+`FalsifierId`. Remaining claim/oracle prose is display-only `SafeText` and cannot
+affect finding identity, `StateProjection`, `StateKey`, or `AttemptKey`.
+
+| ID | Type | Claim | Closure | FalsifierId / display oracle | Evidence | State |
 | --- | --- | --- | --- | --- | --- | --- |
-| `O-06-01` | outcome | 0.6 simplifies Runtime cadence without weakening semantic-progress or convergence safety | Frozen matrix, Runtime real-path controls, budget, cumulative GREEN, exact-final | Less prose/state permits equivalent consumed attempt, authority drift, repeated unchanged work, or evaluator latency in ordinary cadence | G-002 freezes typed Decision/StateKey/AttemptKey, cadence wave, payoff split, and Runtime RED; implementation open | `open` |
-| `O-06-02` | outcome | One typed stateless semantic core governs every evaluator semantic consumer | Complete migrated inventory, strict shared parse, canonical report/replay, deletion proof, cumulative GREEN, exact-final | A caller retains divergent parsing, hidden mutable semantics, independent permission/phase, or bypass | G-002 freezes module graph, central types, call direction, consumers, deletions, and RED matrix; implementation open | `open` |
-| `P-06-01` | preservation | Authority, capability, attempt, claim, cost, corpus, and holdout safety remain strict | Fresh 0.6 controls, three authority gates, provider/isolation/replay proofs, exact-product review | Any gate is bundled, inferred, retried, reused, aliased, or reached without capability/claim | G-002 freezes preserved infrastructure and exact negative oracles; implementation open and no live authority | `open` |
-| `A-06-01` | allowed-break | 0.6 has no compatibility path to 0.5 evaluator evidence or tasks | Exact deletion/source search, fresh genesis, old-generation rejection, classified inventory | Reader, migration, alias, dual write, fallback, prior evidence/coverage, or active old baseline remains | G-002 freezes generation boundary, deletions, active-evidence boundary, and old-input RED; implementation open | `open` |
+| `O-06-01` | outcome | 0.6 simplifies Runtime cadence without weakening semantic-progress or convergence safety | Frozen matrix, Runtime real-path controls, budget, cumulative GREEN, exact-final | `FL-O06-01-EQUIVALENT-CADENCE`: less prose/state permits equivalent consumed attempt, authority drift, repeated unchanged work, or evaluator latency in ordinary cadence | G-002 freezes typed Decision/StateKey/AttemptKey, cadence wave, payoff split, and Runtime RED; implementation open | `open` |
+| `O-06-02` | outcome | One typed stateless semantic core governs every evaluator semantic consumer | Complete migrated inventory, strict shared parse, canonical report/replay, deletion proof, cumulative GREEN, exact-final | `FL-O06-02-DIVERGENT-CALLER`: a caller retains divergent parsing, hidden mutable semantics, independent permission/phase, or bypass | G-002 freezes module graph, central types, call direction, consumers, deletions, and RED matrix; implementation open | `open` |
+| `P-06-01` | preservation | Authority, capability, attempt, claim, cost, corpus, and holdout safety remain strict | Fresh 0.6 controls, three authority gates, provider/isolation/replay proofs, exact-product review | `FL-P06-01-GATE-BYPASS`: any gate is bundled, inferred, retried, reused, aliased, or reached without capability/claim | G-002 freezes preserved infrastructure and exact negative oracles; implementation open and no live authority | `open` |
+| `A-06-01` | allowed-break | 0.6 has no compatibility path to 0.5 evaluator evidence or tasks | Exact deletion/source search, fresh genesis, old-generation rejection, classified inventory | `FL-A06-01-COMPATIBILITY-READER`: reader, migration, alias, dual write, fallback, prior evidence/coverage, or active old baseline remains | G-002 freezes generation boundary, deletions, active-evidence boundary, and old-input RED; implementation open | `open` |
 
 Separate future gates remain open and confer no present authority:
 
@@ -822,7 +917,7 @@ The Challenger and auxiliary Fable audit are already consumed design inputs and
 must not be rerun. No implementation, model, live, release, or external authority
 is inferred from contract freeze or future-grant enumeration.
 
-## Contract-freeze verification plan
+## G-002 contract-freeze verification record
 
 - prove branch/worktree HEAD/tree and sole status entry equal the accepted G-001
   prestate before the edit and after the external interruption;
@@ -844,6 +939,24 @@ is inferred from contract freeze or future-grant enumeration.
 
 No focused/cumulative/evaluator/model command in the frozen implementation matrix
 runs during G-002.
+
+## G-003 monotonic correction grant
+
+Grant `HC06-G-003-statekey-correction`, sequence 3, is limited to this plan and
+external durable intent/receipt records. Exact prestate is accepted G-002 commit
+`5c2d04354741a2531fec29242c22ecce3a1f039e`, tree
+`9302b7a7d670807947f1d626471350407d52c305`, with the same branch/worktree,
+fixed Executor, verified three-resource claim, and sole adjacent untracked claim
+directory. Its durable intent was persisted before repository/index mutation.
+
+This grant permits one plan-only commit carrying
+`HappyCodex-ExecPlan: docs/execplans/happycodex-0-6-semantic-core.md`, followed by
+read-only verification and one external terminal receipt. It authorizes no module,
+Runtime, evaluator, result, schema, manifest, plugin, test, model, live, release,
+install, or activation action. Verification is limited to exact pre/post Git and
+claim identity, full contradiction search, plan-only staged/committed path, trailer,
+`git diff --check`, size, and terminal receipt readback. No focused/cumulative/
+evaluator/model command runs during G-003.
 
 ## Progress and decision log
 
@@ -871,6 +984,14 @@ runs during G-002.
   same active verified claim. Continued the same grant and intent without retry.
 - `2026-07-29`: Rejected cross-thread `是不是可以执行了` as non-authority; no
   contract or grant field changed.
+- `2026-07-29`: Root independently verified and accepted G-002 at commit
+  `5c2d04354741a2531fec29242c22ecce3a1f039e`, tree
+  `9302b7a7d670807947f1d626471350407d52c305`; G-002 is `CLOSED`.
+- `2026-07-29`: Persisted `HC06-G-003-statekey-correction` durable intent at the
+  exact accepted G-002 prestate before repository or index mutation.
+- `2026-07-29`: Derived `MF-06-003` monotonically from the accepted Outcome/G-002
+  source and reopened only the plan-level semantic-identity wording; no
+  implementation evidence existed or was invalidated, promoted, or accepted.
 - Decision `D-06-001`: use released public 0.5 as a generation boundary, not the
   separate 0.5.1 development worktree or abandoned convergence branches.
 - Decision `D-06-002`: freeze one provider-neutral semantic package and one Codex
@@ -880,22 +1001,30 @@ runs during G-002.
   inputs, `StateKey`, and pre-side-effect `AttemptKey`, never prose.
 - Decision `D-06-004`: use public 0.2 only as comparator configuration; reuse no
   evidence.
+- Decision `D-06-005`: define one nonrecursive derived `StateProjection`, keep
+  authority/receipt/attempt administration outside it, use phrase-independent
+  `ClaimId`/`FalsifierId` identities, and require terminal-result then usage-only
+  completion then EOF. Provenance is `MF-06-003` plus Root's exact G-003 grant;
+  Outcome, baseline, provider, allowed break, batches, and implementation gates are
+  unchanged.
 
 ## Checkpoint
 
-- Milestone: contract freeze; the revision carrying this update is the frozen
-  contract, with terminal commit/tree in the G-002 receipt.
-- Last accepted revision: G-001 commit
-  `5f6c508503563ab62444b33d64efeac9cbb34826`, tree
-  `61b2cc9a36e268bf1aa2b530eec140a666fc9a42`; immutable released baseline remains
+- Milestone: accepted contract freeze plus monotonic semantic-identity correction;
+  the revision carrying this update is the G-003 correction candidate, while G-002
+  commit/tree are closed in its accepted receipt.
+- Last accepted revision: G-002 commit
+  `5c2d04354741a2531fec29242c22ecce3a1f039e`, tree
+  `9302b7a7d670807947f1d626471350407d52c305`; immutable released baseline remains
   `1ea888ddeac94ebbb9f92e5dc80b1de289e6aec0` /
   `ab42724288e3e588c30bd0f4a941436f4a8f35f5`.
 - Controlled domain: the exact branch, worktree, ledger, private claim receipt,
-  and external G-001/G-002 intent/receipt records; no product/evaluator/Runtime/
-  manifest/active-plugin/external release state changed in G-002.
-- Active grant: `HC06-G-002-contract-freeze`, sequence 2, `INTENT_RECORDED`;
-  terminal receipt and Root acceptance pending. G-001 is `CLOSED`.
-- Next Decision after G-002 acceptance: `IMPLEMENT_BATCH` for `I-01` only if Root
+  and external G-001/G-002/G-003 intent/receipt records; no product/evaluator/
+  Runtime/manifest/active-plugin/external release state changed in G-002 or G-003.
+- Active grant: `HC06-G-003-statekey-correction`, sequence 3,
+  `INTENT_RECORDED`; terminal receipt and Root acceptance pending. G-001 and G-002
+  are `CLOSED`.
+- Next Decision after G-003 acceptance: `IMPLEMENT_BATCH` for `I-01` only if Root
   issues a new exact grant to the same Executor; otherwise `ASK_USER`/stop.
 - Family: `F-06-SEMANTIC-CORE`, `RB-06-001/instance`, status `open`,
   recurrence 0; all four claims remain open for implementation evidence.
@@ -905,7 +1034,7 @@ runs during G-002.
 - Agents/review: fixed Executor remains the writer; Challenger and Fable inputs
   are terminal read-only design inputs, not candidate evidence; no exact-final
   exists.
-- Dirty ownership: only this plan during G-002 plus the pre-existing adjacent
+- Dirty ownership: only this plan during G-003 plus the pre-existing adjacent
   untracked claim directory; no staged path before final staging.
 - Goal: none created or inferred.
 
