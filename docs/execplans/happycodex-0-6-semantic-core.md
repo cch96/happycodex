@@ -785,7 +785,26 @@ stage, one commit with the mandatory trailer, and verification. Durable intent:
 SHA-256
 `cad04bff8aa853f3d342e12e9ec8c7f51f92c367cd5dd857162df4622eb050f9`.
 The revision carrying this text freezes the contract. Its terminal commit/tree and
-receipt are recorded externally after the commit; Root acceptance is pending.
+receipt are recorded externally after the commit. Root accepted G-002; it is
+`CLOSED` and non-renewable.
+
+State-key correction grant `HC06-G-003-statekey-correction`, sequence 3, binds
+accepted G-002 prestate `5c2d04354741a2531fec29242c22ecce3a1f039e` /
+`9302b7a7d670807947f1d626471350407d52c305`. Root accepted its exact one-path
+revision `8758b87c932531ecb5417ea35d1bd882b4f0b1f3`, tree
+`da185d3cb3704ca8b6931259fbaf05c4bc7649af`, and external terminal receipt
+SHA-256 `59c8a2634fb4fc44dfeb234cab2e48a3ad57f1b9a2a0ac12da39dcb7bfdaa2c5`.
+G-003 is `CLOSED` and non-renewable.
+
+Offline implementation grant `HC06-G-004-I01-types-and-keys`, sequence 4, binds
+that exact accepted G-003 prestate, the same fixed Executor/three-resource claim,
+and only this plan, `tests/test_semantic_core.py`,
+`evaluation/semantic/{__init__,types,schema,canonical}.py`, and
+`evaluation/core/identity.py`. Its external durable intent SHA-256 is
+`3541512afffcf04dd48c5279cbb4d6f52e0193f44b23c39dab621ee56652b9e8`.
+It authorizes no deletion, I-02 surface, evaluator CLI, live/model/provider call,
+fixture/output, Runtime, adapter, ledger/result/manifest/plugin/install/release, or
+other repository path.
 
 ## Frozen implementation sequence
 
@@ -800,7 +819,9 @@ captured in the grant receipt.
    `semantic/{__init__,types,schema,canonical}.py`; update only module/input
    classification needed to recognize those paths. Close tagged identities,
    immutable types, canonical ordering, `StateKey`, `AttemptKey`, receipt links,
-   aliases, and capacity behavior.
+   aliases, and capacity behavior. G-004 has complete persisted RED and local
+   focused/classification GREEN; its semantic revision/receipt and Root acceptance
+   remain pending, so no later slice is open.
 2. `I-02/reducer-and-replay`: add
    `semantic/{parse,reduce,project,replay}.py`; move shared strict case/holdout/
    terminal/ledger parsing and pure Decision/report/replay into them. Migrate
@@ -992,6 +1013,21 @@ evaluator/model command runs during G-003.
 - `2026-07-29`: Derived `MF-06-003` monotonically from the accepted Outcome/G-002
   source and reopened only the plan-level semantic-identity wording; no
   implementation evidence existed or was invalidated, promoted, or accepted.
+- `2026-07-29`: Root independently verified and accepted G-003 at commit
+  `8758b87c932531ecb5417ea35d1bd882b4f0b1f3`, tree
+  `da185d3cb3704ca8b6931259fbaf05c4bc7649af`; G-003 is `CLOSED`.
+- `2026-07-29`: Persisted `HC06-G-004-I01-types-and-keys` durable intent at the
+  exact accepted G-003 prestate before repository mutation.
+- `2026-07-29`: Persisted the complete `TypedStateTests` behavioral RED before
+  production implementation. The exact focused command exited 1 with one loader
+  error because `evaluation.semantic` did not yet exist; exact output SHA-256
+  `5119e395619621ff703dd9b52ed2befbfd7bcbf6e6a1ee3d7928b7c42161365f`.
+  The import failure was meaningful only because all behavioral counterexamples
+  were already present; it was not treated as closure.
+- `2026-07-29`: Implemented only I-01 frozen types/schema/canonical keys and exact
+  semantic input classification. The final focused command passed 17 tests in
+  0.017s; existing `CertificationImpactTests` passed 16 tests in 2.057s. No I-02 or live
+  surface ran.
 - Decision `D-06-001`: use released public 0.5 as a generation boundary, not the
   separate 0.5.1 development worktree or abandoned convergence branches.
 - Decision `D-06-002`: freeze one provider-neutral semantic package and one Codex
@@ -1010,32 +1046,38 @@ evaluator/model command runs during G-003.
 
 ## Checkpoint
 
-- Milestone: accepted contract freeze plus monotonic semantic-identity correction;
-  the revision carrying this update is the G-003 correction candidate, while G-002
-  commit/tree are closed in its accepted receipt.
-- Last accepted revision: G-002 commit
-  `5c2d04354741a2531fec29242c22ecce3a1f039e`, tree
-  `9302b7a7d670807947f1d626471350407d52c305`; immutable released baseline remains
+- Milestone: I-01 types-and-keys local GREEN under G-004; the revision carrying
+  this update is the I-01 semantic candidate, not a frozen 0.6 candidate or later
+  implementation surface.
+- Last accepted revision: G-003 commit
+  `8758b87c932531ecb5417ea35d1bd882b4f0b1f3`, tree
+  `da185d3cb3704ca8b6931259fbaf05c4bc7649af`; immutable released baseline remains
   `1ea888ddeac94ebbb9f92e5dc80b1de289e6aec0` /
   `ab42724288e3e588c30bd0f4a941436f4a8f35f5`.
 - Controlled domain: the exact branch, worktree, ledger, private claim receipt,
-  and external G-001/G-002/G-003 intent/receipt records; no product/evaluator/
-  Runtime/manifest/active-plugin/external release state changed in G-002 or G-003.
-- Active grant: `HC06-G-003-statekey-correction`, sequence 3,
-  `INTENT_RECORDED`; terminal receipt and Root acceptance pending. G-001 and G-002
-  are `CLOSED`.
-- Next Decision after G-003 acceptance: `IMPLEMENT_BATCH` for `I-01` only if Root
+  and external G-001/G-002/G-003/G-004 intent/receipt records. G-004 changes only
+  the seven authorized I-01 repository paths and creates no live/external product
+  state.
+- Active grant: `HC06-G-004-I01-types-and-keys`, sequence 4, `APPLYING`; semantic
+  commit/terminal receipt and Root acceptance pending. G-001 through G-003 are
+  `CLOSED`.
+- Next Decision after G-004 acceptance: `IMPLEMENT_BATCH` for `I-02` only if Root
   issues a new exact grant to the same Executor; otherwise `ASK_USER`/stop.
 - Family: `F-06-SEMANTIC-CORE`, `RB-06-001/instance`, status `open`,
-  recurrence 0; all four claims remain open for implementation evidence.
+  recurrence 0; I-01 has local GREEN but the family and all four claims remain open
+  for later-slice/cumulative/exact-final evidence.
 - Candidate/evidence: no 0.6 candidate or accepted evidence; fresh genesis,
   checks, focused review if needed, exact-final, calibration, corpus, holdout,
   install, and release gates remain open.
 - Agents/review: fixed Executor remains the writer; Challenger and Fable inputs
   are terminal read-only design inputs, not candidate evidence; no exact-final
   exists.
-- Dirty ownership: only this plan during G-003 plus the pre-existing adjacent
-  untracked claim directory; no staged path before final staging.
+- Checks: exact RED output digest above; `TypedStateTests` 17/17 GREEN;
+  `CertificationImpactTests` 16/16 GREEN; exact semantic module classification,
+  banned-side-effect import inventory, no-bytecode inventory, and diff checks are
+  G-004 closure requirements.
+- Dirty ownership: only the seven G-004-authorized paths plus the pre-existing
+  adjacent untracked claim directory; no staged path before final staging.
 - Goal: none created or inferred.
 
 ## Retrospective
