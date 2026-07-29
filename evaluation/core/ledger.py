@@ -35,7 +35,9 @@ from evaluation.corpus.contract import (
     PERMISSION_FIELDS,
     PUBLIC_040_PACKAGE_ARTIFACT_SHA256,
     PUBLIC_040_PACKAGE_SEMANTIC_SHA256,
+    RECOVERY_ACTIONS,
     RECOVERY_GATE_FIELDS,
+    RECOVERY_PENDING_GATES,
     classifications_share_identity,
     has_distinct_identity_assignment,
     identity_match_values,
@@ -54,7 +56,6 @@ LEDGER_FIELDS = {
     "schema_version",
     "state",
     "snapshot",
-    "prior_evidence",
     "pending",
     "historical_cost",
     "live_authority",
@@ -229,6 +230,10 @@ RESULT_RECEIPT_FIELDS = {
     "blocker_classifications",
     "open_gates_count",
     "open_gates_sha256",
+    "repair_gate_present",
+    "user_gate_present",
+    "focused_review_gate_present",
+    "exact_final_review_gate_present",
     "goal_pause_handoff_present",
     "evidence_count",
     "evidence_sha256",
@@ -270,6 +275,9 @@ RECOVERY_RECEIPT_FIELDS = {
     "live_agents",
     "marker_ids_count",
     "marker_ids_sha256",
+    "recovery_manifest_count",
+    "recovery_manifest_sha256",
+    "summary_consistent",
 }
 RECOVERY_TEST_FIELDS = {
     "passed",
@@ -312,32 +320,6 @@ FRESH_CONTROL_FIELDS = {
 }
 RECOVERY_WRITERS = {"Root", "unknown"}
 RECOVERY_PHASES = set(CONVERGENCE_PHASES)
-RECOVERY_ACTIONS = {
-    "ask_user",
-    "create_execplan",
-    "complete_boundary_union",
-    "create_contract_freeze_revision",
-    "observe_red",
-    "implement",
-    "run_checks",
-    "focused_review",
-    "freeze_candidate",
-    "exact_final_review",
-    "release",
-    "none",
-    "unknown",
-}
-RECOVERY_PENDING_GATES = {
-    "user_selection",
-    "contract_freeze",
-    "red_oracle",
-    "product_edit",
-    "checks",
-    "family_hardening",
-    "candidate_freeze",
-    "exact_final_review",
-    "release",
-}
 RECOVERY_WORKTREE_STATES = {"clean", "dirty", "unknown"}
 RECOVERY_AGENT_STATES = {"pending", "terminal", "missing"}
 COMPACTION_EVENT_TYPES = {"compacted", "context_compacted"}
@@ -817,46 +799,17 @@ def _load_evidence(
     return payload, actual_sha256
 
 
-def _load_prior_certified_ledger(
-    repo: Path,
-    prior: dict[str, Any],
-    *,
-    source_commit: str,
-) -> dict[str, Any]:
-    commit = prior.get("source_commit")
-    _require_reachable_commit(repo, commit, label="prior certified ledger commit")
-    if commit == source_commit:
-        raise ValueError("prior certified ledger must predate successor source")
-    ancestor = _run_git(repo, "merge-base", "--is-ancestor", commit, source_commit)
-    if ancestor.returncode:
-        raise ValueError("prior certified ledger must predate successor source")
-    path = prior.get("source_path")
-    if path != "evaluation/results/current.json":
-        raise ValueError("incremental certification requires a prior 0.4 ledger")
-    content = _run_git(repo, "show", f"{commit}:{path}")
-    if content.returncode:
-        raise ValueError("prior certified ledger is unreachable")
-    if prior.get("sha256") != sha256_bytes(content.stdout):
-        raise ValueError("prior certified ledger digest mismatch")
-    try:
-        ledger = json.loads(content.stdout)
-    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-        raise ValueError("prior certified ledger is not JSON") from exc
-    if not isinstance(ledger, dict) or ledger.get("state") != "certified":
-        raise ValueError("incremental certification requires prior certified state")
-    validate_ledger(ledger, repo=repo)
-    return ledger
-
-
 def _validate_coverage(
     coverage: Any,
     *,
     snapshot: dict[str, Any],
     impact: dict[str, Any],
-) -> tuple[set[str], bool]:
+    corpus_holdout_waived: bool,
+) -> set[str]:
     if not isinstance(coverage, dict) or set(coverage) != COVERAGE_FIELDS:
         raise ValueError("invalid certification coverage manifest")
     refreshed: dict[str, set[str]] = {}
+    required_disposition = "waived" if corpus_holdout_waived else "refreshed"
     for label, available in (
         ("corpus", set(snapshot["corpus"]["cases"])),
         ("holdout", set(snapshot["holdout"]["pairs"])),
@@ -865,7 +818,7 @@ def _validate_coverage(
         if (
             not isinstance(values, dict)
             or set(values) != available
-            or any(value not in {"refreshed", "prior"} for value in values.values())
+            or any(value != required_disposition for value in values.values())
         ):
             raise ValueError(f"invalid certification {label} coverage")
         refreshed[label] = {
@@ -880,12 +833,7 @@ def _validate_coverage(
         evidence_fields.add("corpus_summary")
     if refreshed["holdout"]:
         evidence_fields.update({"holdout_run", "holdout_summary"})
-    carries_prior = any(
-        disposition == "prior"
-        for label in ("corpus", "holdout")
-        for disposition in coverage[label].values()
-    )
-    return evidence_fields, carries_prior
+    return evidence_fields
 
 
 def _offline_gates(impact: dict[str, Any]) -> set[str]:
@@ -1180,6 +1128,16 @@ def _validate_recovery_receipt(value: Any, *, label: str) -> None:
         length=64,
         label=f"{label} recovery markers",
     )
+    if (
+        value.get("recovery_manifest_count") != 1
+        or value.get("summary_consistent") is not True
+    ):
+        raise ValueError(f"invalid {label} Recovery Manifest receipt")
+    _require_digest(
+        value.get("recovery_manifest_sha256"),
+        length=64,
+        label=f"{label} Recovery Manifest",
+    )
 
 
 def _validate_result_receipt(
@@ -1221,6 +1179,15 @@ def _validate_result_receipt(
         or not _nonnegative_int(value.get("open_gates_count"))
         or not _nonnegative_int(value.get("evidence_count"))
         or not isinstance(value.get("goal_pause_handoff_present"), bool)
+        or any(
+            not isinstance(value.get(field), bool)
+            for field in (
+                "repair_gate_present",
+                "user_gate_present",
+                "focused_review_gate_present",
+                "exact_final_review_gate_present",
+            )
+        )
     ):
         raise ValueError(f"invalid {label} result receipt")
     findings = value.get("finding_classifications")
@@ -1961,7 +1928,6 @@ def _validate_certification_receipt(
     certification: Any,
     *,
     snapshot: dict[str, Any],
-    prior_evidence: dict[str, Any],
     historical_cost: dict[str, Any],
     live_authority: dict[str, Any] | None,
     repo: Path | None,
@@ -2002,40 +1968,29 @@ def _validate_certification_receipt(
         snapshot,
         live_authority,
     )
-    if source["ledger"]["prior_evidence"] != prior_evidence:
-        raise ValueError("prior certified ledger digest or locator mismatch")
     if source["ledger"]["historical_cost"] != historical_cost:
         raise ValueError("certification source historical cost mismatch")
     source_pending = source["ledger"]["pending"]
     if source_pending["review"] is not True:
         raise ValueError("certification source must retain the external review gate")
-    incremental = (
-        source["ledger"]["prior_evidence"].get("source_path")
-        == "evaluation/results/current.json"
+    corpus_holdout_waived = (
+        "user_waived_corpus_holdout_2026_07_29" in source_pending["reasons"]
     )
-    if incremental:
-        prior = _load_prior_certified_ledger(
-            repo,
-            source["ledger"]["prior_evidence"],
-            source_commit=source_commit,
+    for field, available in (
+        ("corpus_cases", set(snapshot["corpus"]["cases"])),
+        ("holdout_pairs", set(snapshot["holdout"]["pairs"])),
+    ):
+        required = set() if corpus_holdout_waived else available
+        if set(source_pending[field]) != required:
+            raise ValueError("fresh certification source scope is incomplete")
+    try:
+        expected_impact = plan_impact(
+            snapshot,
+            snapshot,
+            pending=source_pending,
         )
-        try:
-            expected_impact = plan_impact(
-                prior["snapshot"],
-                snapshot,
-                pending=source_pending,
-            )
-        except (OSError, ValueError) as exc:
-            raise ValueError("invalid incremental certification impact") from exc
-    else:
-        try:
-            expected_impact = plan_impact(
-                snapshot,
-                snapshot,
-                pending=source_pending,
-            )
-        except (OSError, ValueError) as exc:
-            raise ValueError("invalid certification source pending impact") from exc
+    except (OSError, ValueError) as exc:
+        raise ValueError("invalid certification source pending impact") from exc
     live_required = expected_impact["live_calls"]["maximum"] > 0
     if live_required:
         if live_authority is None:
@@ -2044,16 +1999,15 @@ def _validate_certification_receipt(
             raise ValueError("certification source authority impact mismatch")
     elif live_authority is not None:
         raise ValueError("zero-live certification must not carry live authority")
-    evidence_fields, carries_prior = _validate_coverage(
+    evidence_fields = _validate_coverage(
         certification.get("coverage"),
         snapshot=snapshot,
         impact=expected_impact,
+        corpus_holdout_waived=corpus_holdout_waived,
     )
     offline_gate_set = _offline_gates(expected_impact)
     if offline_gate_set:
         evidence_fields.add("offline_summary")
-    if carries_prior and not incremental:
-        raise ValueError("certification prior coverage does not match source lineage")
     evidence = certification.get("evidence")
     if not isinstance(evidence, dict) or set(evidence) != evidence_fields:
         if offline_gate_set and (
@@ -2113,14 +2067,6 @@ def validate_ledger(ledger: dict[str, Any], *, repo: Path | None = None) -> None
     if not isinstance(snapshot, dict):
         raise ValueError("invalid certification snapshot")
     validate_snapshot(snapshot)
-    prior = ledger.get("prior_evidence")
-    if not isinstance(prior, dict):
-        raise ValueError("invalid prior evidence")
-    for field in ("source_commit", "source_path", "sha256"):
-        if not isinstance(prior.get(field), str):
-            raise ValueError(f"invalid prior evidence field: {field}")
-    _require_digest(prior["source_commit"], length=40, label="prior evidence commit")
-    _require_digest(prior["sha256"], length=64, label="prior evidence digest")
     pending = ledger.get("pending")
     if not isinstance(pending, dict) or set(pending) != PENDING_FIELDS:
         raise ValueError("invalid pending refresh envelope")
@@ -2167,7 +2113,6 @@ def validate_ledger(ledger: dict[str, Any], *, repo: Path | None = None) -> None
         _validate_certification_receipt(
             certification,
             snapshot=snapshot,
-            prior_evidence=prior,
             historical_cost=ledger["historical_cost"],
             live_authority=live_authority,
             repo=repo,

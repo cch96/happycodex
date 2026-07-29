@@ -376,6 +376,8 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                     "anchors": [marker],
                 }
                 for marker in (
+                    "RECOVERY-MANIFEST-SHA256:"
+                    "113f8a757da2a5a4057c82c35696eed0407cc8f00585460f9e9ae3e961233d19",
                     "RECOVERY-GIT-6D91",
                     "RECOVERY-PLAN-47B2",
                     "RECOVERY-TEST-19C4",
@@ -400,7 +402,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             case=case,
             label="compaction-markers",
         )
-        for index in range(3):
+        for index in range(4):
             missing = json.loads(json.dumps(result))
             del missing["finding_classifications"][index]
             self.assertTrue(
@@ -418,6 +420,193 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                     case=case,
                     label="compaction-marker",
                 )
+
+    def test_recovery_manifest_binds_current_index_and_one_checkpoint(self) -> None:
+        native = self.cases["pre-freeze-compaction"]["fixture"][
+            "native_compaction_resume"
+        ]
+        content = native["post_compaction_transition"]["files"][
+            "docs/execplans/recovery-manifest.json"
+        ]
+        manifest = json.loads(content)
+        self.assertEqual(
+            manifest["selected_checkpoint"],
+            {
+                "archive": "sha256:" + "8" * 64,
+                "ref": None,
+            },
+        )
+        self.assertEqual(
+            manifest["repositories"],
+            [
+                {
+                    "namespace": "queue-primary",
+                    "revision": "1" * 40,
+                    "tree": "2" * 40,
+                },
+                {
+                    "namespace": "queue-secondary",
+                    "revision": "5" * 40,
+                    "tree": "6" * 40,
+                },
+            ],
+        )
+        self.assertEqual(
+            {
+                resource.split(":", 1)[0]
+                for resource in manifest["resource_claim"]["resources"]
+            },
+            {"worktree", "ref", "ledger", "output", "activation"},
+        )
+        self.assertEqual(
+            manifest["convergence"]["families"],
+            [
+                {
+                    "family_id": "F-QUEUE",
+                    "recurrence": 1,
+                    "repair_batch": "RB-QUEUE/boundary",
+                    "status": "boundary_required",
+                }
+            ],
+        )
+        self.assertEqual(manifest["writer"], "Root")
+        self.assertEqual(manifest["tests"]["failed"], 0)
+        self.assertTrue(manifest["agents"][0]["receipt_reproduced"])
+        self.assertEqual(
+            manifest["gates"],
+            ["contract_freeze", "red_oracle", "product_edit"],
+        )
+
+        content_tamper = json.loads(json.dumps(native))
+        content_tamper["post_compaction_transition"]["files"][
+            "docs/execplans/recovery-manifest.json"
+        ] += " "
+        with self.assertRaisesRegex(ValueError, "digest mismatch"):
+            runner.validate_recovery_manifest(
+                content_tamper,
+                case_id="pre-freeze-compaction-content-tamper",
+            )
+
+        def resigned(mutator: object) -> dict[str, object]:
+            tampered = json.loads(json.dumps(native))
+            tampered_manifest = json.loads(
+                tampered["post_compaction_transition"]["files"][
+                    "docs/execplans/recovery-manifest.json"
+                ]
+            )
+            mutator(tampered_manifest)
+            tampered_content = (
+                json.dumps(
+                    tampered_manifest,
+                    ensure_ascii=False,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                )
+                + "\n"
+            )
+            tampered["post_compaction_transition"]["files"][
+                "docs/execplans/recovery-manifest.json"
+            ] = tampered_content
+            marker = (
+                "RECOVERY-MANIFEST-SHA256:"
+                + hashlib.sha256(tampered_content.encode()).hexdigest()
+            )
+            tampered["recovery_oracle"]["marker_ids"] = [
+                marker if item.startswith("RECOVERY-MANIFEST-SHA256:") else item
+                for item in tampered["recovery_oracle"]["marker_ids"]
+            ]
+            return tampered
+
+        invalid_states = (
+            (
+                "state",
+                lambda value: value.__setitem__("writer", "unknown"),
+                "Recovery Manifest state",
+            ),
+            (
+                "checkpoint",
+                lambda value: value["selected_checkpoint"].__setitem__(
+                    "archive",
+                    "latest.tar",
+                ),
+                "Recovery Manifest checkpoint",
+            ),
+            (
+                "claim",
+                lambda value: value["resource_claim"]["resources"].append(
+                    "output:review/other"
+                ),
+                "Recovery Manifest resource claim",
+            ),
+        )
+        for label, mutator, error in invalid_states:
+            with self.subTest(label=label):
+                with self.assertRaisesRegex(ValueError, error):
+                    runner.validate_recovery_manifest(
+                        resigned(mutator),
+                        case_id=f"pre-freeze-compaction-{label}-tamper",
+                    )
+
+        def before_terminal_sibling(value: dict[str, object]) -> None:
+            family = value["convergence"]["families"][0]
+            family.update(
+                recurrence=0,
+                repair_batch="RB-QUEUE/instance",
+                status="open",
+            )
+
+        def independent_family(value: dict[str, object]) -> None:
+            value["convergence"]["families"].append(
+                {
+                    "family_id": "F-INDEPENDENT",
+                    "recurrence": 0,
+                    "repair_batch": "RB-INDEPENDENT/instance",
+                    "status": "open",
+                }
+            )
+
+        def second_recurrence_user_gate(value: dict[str, object]) -> None:
+            value["convergence"]["phase"] = "focused_hardening"
+            value["convergence"]["families"][0].update(
+                recurrence=2,
+                status="open",
+            )
+            value["gates"] = ["user_selection"]
+
+        for label, mutator in (
+            ("before-terminal-sibling", before_terminal_sibling),
+            ("independent-family", independent_family),
+            ("second-recurrence-user-gate", second_recurrence_user_gate),
+        ):
+            with self.subTest(label=label):
+                runner.validate_recovery_manifest(
+                    resigned(mutator),
+                    case_id=f"pre-freeze-compaction-{label}",
+                )
+
+        def recurrence_keeps_instance_batch(value: dict[str, object]) -> None:
+            value["convergence"]["families"][0]["repair_batch"] = "RB-QUEUE/instance"
+
+        def second_recurrence_without_user_gate(value: dict[str, object]) -> None:
+            value["convergence"]["phase"] = "focused_hardening"
+            value["convergence"]["families"][0].update(
+                recurrence=2,
+                status="open",
+            )
+
+        for label, mutator in (
+            ("recurrence-keeps-instance-batch", recurrence_keeps_instance_batch),
+            (
+                "second-recurrence-without-user-gate",
+                second_recurrence_without_user_gate,
+            ),
+        ):
+            with self.subTest(label=label):
+                with self.assertRaisesRegex(ValueError, "convergence transition"):
+                    runner.validate_recovery_manifest(
+                        resigned(mutator),
+                        case_id=f"pre-freeze-compaction-{label}",
+                    )
 
     def test_live_oracle_alternatives_cannot_authorize_user_gated_writes(self) -> None:
         case = self.cases["multi-repo-submodule"]
@@ -577,7 +766,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             "qualifies": True,
             "execplan_condition": "usable",
             "protocol_may_product_write": True,
-            "protocol_review_mode": "focused_hardening",
+            "protocol_review_mode": "none",
             "protocol_may_complete": False,
             "finding_classifications": [
                 {
@@ -798,6 +987,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             phases,
             [
                 "implementation",
+                "implementation",
                 "focused_hardening",
                 "candidate_frozen",
                 "exact_final",
@@ -920,12 +1110,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                 result["protocol_review_mode"] = (
                     "focused_hardening" if mode == "none" else "none"
                 )
-                self.assertTrue(
-                    any(
-                        "phase requires" in failure
-                        for failure in runner.match_oracle(result, oracle)
-                    )
-                )
+                self.assertTrue(runner.match_oracle(result, oracle))
                 with self.assertRaisesRegex(ValueError, "review mode state"):
                     ledger_engine._validate_result_receipt(
                         receipt_engine.sanitized_result_receipt(result),
@@ -1615,6 +1800,15 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             root = Path(raw)
             public_source = root / "public-source"
             runner.copy_plugin_package(ROOT, public_source)
+            with self.assertRaisesRegex(RuntimeError, "runtime surface"):
+                runner.copy_plugin_package(
+                    public_source,
+                    root / "public-rejects-candidate-script",
+                    arm="public-0.4.0",
+                )
+            helper = public_source / "skills/happycodex/scripts/resource_claim.py"
+            helper.unlink()
+            helper.parent.rmdir()
             public_package = root / "public-package"
             runner.copy_plugin_package(
                 public_source, public_package, arm="public-0.4.0"
@@ -2018,11 +2212,11 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             repo = Path(raw) / "repo"
             facts = runner.build_fixture(self.cases["review-admin-cycle"], repo)
             fixture_commits = self.cases["review-admin-cycle"]["fixture"]["commits"]
-            self.assertEqual(len(fixture_commits), 7)
-            self.assertNotIn("review_projection", fixture_commits[4])
-            self.assertIn("review_projection", fixture_commits[5])
-            self.assertNotIn("review_projection", fixture_commits[6])
-            self.assertEqual(len(facts["commits"]), 7)
+            self.assertEqual(len(fixture_commits), 8)
+            self.assertNotIn("review_projection", fixture_commits[5])
+            self.assertIn("review_projection", fixture_commits[6])
+            self.assertNotIn("review_projection", fixture_commits[7])
+            self.assertEqual(len(facts["commits"]), 8)
             self.assertIn(
                 "public api contract",
                 (repo / "PUBLIC_CONTRACT.md").read_text().casefold(),
@@ -2045,25 +2239,28 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             self.assertEqual(projection["challenger_blob"], challenger["blob"])
             skeleton = git(repo, "show", f"{facts['commits'][1]}:{excluded}")
             contract = git(repo, "show", f"{facts['commits'][2]}:{excluded}")
-            prelaunch = git(repo, "show", f"{facts['commits'][4]}:{excluded}")
-            exact_final = git(repo, "show", f"{facts['commits'][5]}:{excluded}")
+            focused = git(repo, "show", f"{facts['commits'][4]}:{excluded}")
+            prelaunch = git(repo, "show", f"{facts['commits'][5]}:{excluded}")
+            exact_final = git(repo, "show", f"{facts['commits'][6]}:{excluded}")
             self.assertIn("State: implementation", skeleton)
             self.assertIn("boundary-challenger-9: pending", skeleton)
-            self.assertIn("State: focused_hardening", contract)
+            self.assertIn("State: implementation", contract)
             self.assertIn("boundary-challenger-9: terminal complete", contract)
+            self.assertIn("State: focused_hardening", focused)
+            self.assertIn("Repair wave: terminal GREEN", focused)
             self.assertEqual(
                 git(
                     repo,
                     "diff",
                     "--name-only",
                     facts["commits"][3],
-                    facts["commits"][4],
+                    facts["commits"][5],
                 ),
                 excluded,
             )
             self.assertEqual(
                 product_entries(repo, facts["commits"][3], excluded),
-                product_entries(repo, facts["commits"][4], excluded),
+                product_entries(repo, facts["commits"][5], excluded),
             )
             self.assertIn("State: candidate_frozen", prelaunch)
             self.assertIn("Review status: not started", prelaunch)
@@ -2090,7 +2287,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             self.assertIn("refs/happycodex-eval/admin-cycle/output", prelaunch)
             self.assertIn("State: exact_final", exact_final)
             self.assertIn("completion is still prohibited", exact_final)
-            self.assertIn(f"Prelaunch revision {facts['commits'][4]}", plan)
+            self.assertIn(f"Prelaunch revision {facts['commits'][5]}", plan)
             self.assertIn(projection["baseline_commit"], plan)
             self.assertIn(projection["candidate_commit"], plan)
             self.assertIn(projection["output_sha256"], plan)
@@ -2980,7 +3177,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             "qualifies": True,
             "execplan_condition": "usable",
             "protocol_may_product_write": True,
-            "protocol_review_mode": "focused_hardening",
+            "protocol_review_mode": "none",
             "protocol_may_complete": False,
             "finding_classifications": [
                 {
@@ -3029,7 +3226,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
     def test_inventory_gate_fixture_is_otherwise_complete_but_unnumbered(self) -> None:
         excluded = "docs/execplans/inventory-gate.md"
         self.assertEqual(
-            "focused_hardening",
+            "none",
             self.cases["review-inventory-gate"]["oracle"]["expected"][
                 "protocol_review_mode"
             ],
@@ -3125,7 +3322,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             "protocol_may_complete": False,
             "finding_classifications": [
                 {
-                    "identity": "REVIEW-SEARCH-TRUNCATED",
+                    "identity": "R-TRUNCATED-COVERAGE",
                     "domain": "receipt",
                     "state": "unknown",
                 }

@@ -94,14 +94,14 @@ class ResourceClaimTests(unittest.TestCase):
             receipts = (root / "a.json", root / "b.json")
             sets = (
                 (
-                    f"worktree={root / 'worktree-a'}",
+                    f"worktree={root / 'repo-a'}",
                     f"ref={root / 'repo-a'}::refs/tasks/a",
                     f"ledger={root / 'ledger-a.json'}",
                     f"output={root / 'output-a'}",
                     f"activation={root / 'activation-a'}",
                 ),
                 (
-                    f"worktree={root / 'worktree-b'}",
+                    f"worktree={root / 'repo-b'}",
                     f"ref={root / 'repo-b'}::refs/tasks/b",
                     f"ledger={root / 'ledger-b.json'}",
                     f"output={root / 'output-b'}",
@@ -110,13 +110,39 @@ class ResourceClaimTests(unittest.TestCase):
             )
             for repo in (root / "repo-a", root / "repo-b"):
                 subprocess.run(["git", "init", "-q", str(repo)], check=True)
-            completed = [
-                self.acquire(receipt, *resources, task=f"task-{index}")
+            processes = [
+                subprocess.Popen(
+                    [
+                        sys.executable,
+                        str(HELPER),
+                        "acquire",
+                        "--owner",
+                        "Root",
+                        "--task",
+                        f"task-{index}",
+                        "--execplan",
+                        str(root / f"plan-{index}.md"),
+                        "--receipt",
+                        str(receipt),
+                        *(
+                            argument
+                            for resource in resources
+                            for argument in ("--resource", resource)
+                        ),
+                    ],
+                    text=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                )
                 for index, (receipt, resources) in enumerate(
                     zip(receipts, sets), start=1
                 )
             ]
-            self.assertEqual([item.returncode for item in completed], [0, 0], completed)
+            completed = [
+                process.communicate()[0:2] + (process.returncode,)
+                for process in processes
+            ]
+            self.assertEqual([item[2] for item in completed], [0, 0], completed)
             for receipt in receipts:
                 self.assertEqual(
                     run_claim("verify", "--receipt", str(receipt)).returncode, 0
@@ -152,7 +178,7 @@ class ResourceClaimTests(unittest.TestCase):
             self.assertEqual(self.acquire(receipt, resource).returncode, 0)
             data = json.loads(receipt.read_text(encoding="utf-8"))
             claim_dir = Path(data["claims"][0]["claim_dir"])
-            metadata = claim_dir / "claim.json"
+            metadata = claim_dir / "claim"
             metadata.write_text('{"schema_version":999}\n', encoding="utf-8")
 
             self.assertEqual(
@@ -194,4 +220,53 @@ class ResourceClaimTests(unittest.TestCase):
             )
             self.assertEqual(
                 run_claim("release", "--receipt", str(receipt)).returncode, 0
+            )
+
+    def test_worktree_uses_common_dir_but_file_claim_is_resource_adjacent(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            repo = root / "repo"
+            subprocess.run(["git", "init", "-q", str(repo)], check=True)
+            state = repo / "state"
+            state.mkdir()
+            ledger = state / "current.json"
+            receipt = root / "locations.json"
+            acquired = self.acquire(
+                receipt,
+                f"worktree={repo}",
+                f"ledger={ledger}",
+            )
+            self.assertEqual(acquired.returncode, 0, acquired.stderr)
+            claims = {
+                item["resource"].split("=", 1)[0]: Path(item["claim_dir"])
+                for item in json.loads(receipt.read_text(encoding="utf-8"))["claims"]
+            }
+            common_dir = Path(
+                subprocess.run(
+                    [
+                        "git",
+                        "-C",
+                        str(repo),
+                        "rev-parse",
+                        "--path-format=absolute",
+                        "--git-common-dir",
+                    ],
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                ).stdout.strip()
+            )
+            self.assertEqual(
+                claims["worktree"].parent,
+                common_dir / "happycodex-resource-claims",
+            )
+            self.assertEqual(
+                claims["ledger"].parent,
+                ledger.parent / ".happycodex-resource-claims",
+            )
+            self.assertEqual(
+                run_claim("release", "--receipt", str(receipt)).returncode,
+                0,
             )

@@ -30,7 +30,7 @@
       "qualifies": true,
       "execplan_condition": "needs_amendment",
       "protocol_may_product_write": false,
-      "protocol_review_mode": "focused_hardening",
+      "protocol_review_mode": "none",
       "protocol_may_complete": false
     },
     "required_anchored_blockers": [

@@ -7,7 +7,13 @@ import re
 from typing import Any
 
 from evaluation.core.identity import canonical_sha256, sha256_bytes
-from evaluation.corpus.contract import PERMISSION_FIELDS, identity_match_values
+from evaluation.corpus.contract import (
+    PERMISSION_FIELDS,
+    gate_projection,
+    identity_match_values,
+    recovery_manifest_projection,
+    recovery_summary_consistent,
+)
 
 
 def text_sha256(value: Any) -> str:
@@ -79,6 +85,8 @@ def sanitized_recovery_receipt(value: Any) -> dict[str, Any] | None:
     marker_ids = value.get("marker_ids", [])
     receipt["marker_ids_count"] = len(marker_ids) if isinstance(marker_ids, list) else 0
     receipt["marker_ids_sha256"] = canonical_sha256(marker_ids)
+    receipt.update(recovery_manifest_projection(value))
+    receipt["summary_consistent"] = recovery_summary_consistent(value)
     return receipt
 
 
@@ -147,6 +155,7 @@ def sanitized_result_receipt(value: Any) -> dict[str, Any] | None:
         receipt[f"{field}_count"] = len(items) if isinstance(items, list) else 0
         receipt[f"{field}_sha256"] = canonical_sha256(items)
     open_gates = value.get("open_gates", [])
+    receipt.update(gate_projection(open_gates))
     receipt["goal_pause_handoff_present"] = isinstance(open_gates, list) and any(
         isinstance(gate, str) and "/goal pause" in gate for gate in open_gates
     )
