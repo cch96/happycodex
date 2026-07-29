@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 from dataclasses import FrozenInstanceError
 from enum import Enum
+from hashlib import sha256
 from inspect import signature
 from pathlib import Path
 import unittest
@@ -20,7 +21,6 @@ from evaluation.semantic import (
     InfraKind,
     NextAction,
     ProgressReport,
-    ProvenanceKind,
     SemanticError,
     TaskBinding,
     canonical_bytes,
@@ -49,27 +49,25 @@ def raw_envelope() -> dict[str, object]:
             "destination_id": "destination-a",
             "lineage_digest": HEX_A,
             "role_config_digest": HEX_B,
+            "repository_digest": HEX_B,
+            "outcome_digest": HEX_C,
         },
         "facts": {
             "claims": [{"id": "claim-a", "state": "OPEN", "evidence": ["source-a"]}],
             "findings": [
                 {"id": "finding-a", "state": "OPEN", "evidence": ["source-a"]}
             ],
-            "gates": [{"id": "gate-a", "state": "OPEN", "evidence": ["source-a"]}],
+            "gates": [
+                {
+                    "id": "gate-a",
+                    "state": "OPEN",
+                    "family_id": "family-a",
+                    "evidence": ["source-a"],
+                }
+            ],
             "checks": [{"id": "check-a", "state": "PASS", "evidence": ["source-a"]}],
             "families": [
                 {"id": "family-a", "state": "OPEN", "evidence": ["source-a"]}
-            ],
-            "pending": [
-                {
-                    "id": "pending-a",
-                    "priority": 10,
-                    "kind": "IMPLEMENT_BATCH",
-                    "target": "kernel",
-                    "scope": "batch-1",
-                    "falsifier_id": "falsifier-a",
-                    "evidence_source_id": "source-a",
-                }
             ],
             "replacements": [
                 {
@@ -107,7 +105,6 @@ def terminal_envelope() -> dict[str, object]:
     candidate["facts"]["findings"][0]["state"] = "RESOLVED"
     candidate["facts"]["families"][0]["state"] = "CLOSED"
     candidate["facts"]["gates"][0]["state"] = "SATISFIED"
-    candidate["facts"]["pending"] = []
     return candidate
 
 
@@ -115,19 +112,27 @@ def adapter_authority(
     binding: TaskBinding,
     action: object,
     *,
-    kind: ProvenanceKind = ProvenanceKind.DIRECT,
-    issuer: Id | None = None,
+    channel: str = "current_task_user",
+    root_task: Id | None = None,
+    source_task: Id | None = None,
+    target_task: Id | None = None,
+    executor_task: Id | None = None,
     destination: Id | None = None,
     lineage: Id | None = None,
     target: Id | None = None,
     scope: Id | None = None,
 ) -> AuthorityProvenance:
     return _issue_authority(
-        kind=kind,
-        issuer=issuer or binding.root_task,
+        channel=channel,
+        root_task=root_task or binding.root_task,
+        source_task=source_task or binding.task,
+        target_task=target_task or binding.task,
+        executor_task=executor_task or binding.executor_task,
         destination=destination or binding.destination,
         lineage=lineage or binding.lineage,
-        source_event=Id("source_event", HEX_C),
+        message_id=Id("message", "message-a"),
+        turn_id=Id("turn", "turn-a"),
+        content_digest=Id("content", HEX_C),
         target=target or action.target,
         scope=scope or action.scope,
     )
@@ -148,7 +153,6 @@ class PublicSurfaceTests(unittest.TestCase):
                 "InfraKind",
                 "NextAction",
                 "ProgressReport",
-                "ProvenanceKind",
                 "SemanticError",
                 "TaskBinding",
                 "canonical_bytes",
@@ -239,6 +243,8 @@ class PrimaryKeyAndParseTests(unittest.TestCase):
                 destination=Id("destination", "destination-a"),
                 lineage=Id("lineage", HEX_A),
                 role_config=Id("role_config", HEX_B),
+                repository=Id("repository", HEX_B),
+                outcome=Id("outcome", HEX_C),
             )
         raw = raw_envelope()
         facts = parse_facts(raw)
@@ -287,16 +293,7 @@ class BoundaryHardeningTests(unittest.TestCase):
         report = reduce_facts(parse_facts(raw_envelope()))
         binding = report.facts.task
         with self.assertRaises((TypeError, SemanticError)):
-            AuthorityProvenance(
-                ProvenanceKind.DIRECT,
-                binding.root_task,
-                binding.destination,
-                binding.lineage,
-                Id("source_event", HEX_C),
-                report.next_action.target,
-                report.next_action.scope,
-                True,
-            )
+            AuthorityProvenance()
 
     def test_caller_supplied_report_action_cannot_reach_attempt_key(self) -> None:
         facts = parse_facts(raw_envelope())
@@ -304,6 +301,7 @@ class BoundaryHardeningTests(unittest.TestCase):
             ActionKind.CLOSE,
             Id("action_target", "forged-target"),
             Id("action_scope", "forged-scope"),
+            Id("family_id", "forged-family"),
             Id("falsifier", "forged-falsifier"),
             Id("evidence_source", "forged-source"),
         )
@@ -322,6 +320,7 @@ class BoundaryHardeningTests(unittest.TestCase):
             ActionKind.CLOSE,
             Id("action_target", "forged-target"),
             Id("action_scope", "forged-scope"),
+            Id("family_id", "forged-family"),
             Id("falsifier", "forged-falsifier"),
             Id("evidence_source", "forged-source"),
         )
@@ -340,6 +339,7 @@ class BoundaryHardeningTests(unittest.TestCase):
             ActionKind.CLOSE,
             Id("action_target", "forged-target"),
             Id("action_scope", "forged-scope"),
+            Id("family_id", "forged-family"),
             Id("falsifier", "forged-falsifier"),
             Id("evidence_source", "forged-source"),
         )
@@ -408,7 +408,7 @@ class BoundaryHardeningTests(unittest.TestCase):
         with self.assertRaisesRegex(SemanticError, "payload.*id"):
             _Record(Id("claim_id", "claim-a"), {"id": "override"})
 
-    def test_parser_enforces_exact_states_and_tagged_pending_values(self) -> None:
+    def test_parser_enforces_exact_states_and_tagged_gate_family(self) -> None:
         for domain in ("checks", "claims", "families", "findings", "gates"):
             candidate = raw_envelope()
             candidate["facts"][domain][0]["state"] = "ARBITRARY"
@@ -417,24 +417,17 @@ class BoundaryHardeningTests(unittest.TestCase):
                     parse_facts(candidate)
 
         facts = parse_facts(raw_envelope())
-        pending = facts.stable["pending"][0].payload
-        for field, tag in (
-            ("target", "action_target"),
-            ("scope", "action_scope"),
-            ("falsifier_id", "falsifier"),
-            ("evidence_source_id", "evidence_source"),
-        ):
-            with self.subTest(field=field):
-                self.assertIs(type(pending[field]), Id)
-                self.assertEqual(pending[field].tag, tag)
+        family = facts.stable["gates"][0].payload["family_id"]
+        self.assertIs(type(family), Id)
+        self.assertEqual(family.tag, "family_id")
 
-    def test_open_state_without_pending_reconciles(self) -> None:
-        for domain, unresolved_state in (
-            ("checks", "PENDING"),
-            ("claims", "OPEN"),
-            ("findings", "OPEN"),
-            ("families", "OPEN"),
-            ("gates", "OPEN"),
+    def test_open_state_derives_safe_action_without_close(self) -> None:
+        for domain, unresolved_state, expected, scope in (
+            ("checks", "PENDING", ActionKind.VERIFY, "family:task:task-a"),
+            ("claims", "OPEN", ActionKind.RECONCILE, "family:task:task-a"),
+            ("findings", "OPEN", ActionKind.IMPLEMENT_BATCH, "family:task:task-a"),
+            ("families", "OPEN", ActionKind.IMPLEMENT_BATCH, "family:family-a"),
+            ("gates", "OPEN", ActionKind.RECONCILE, "family:family-a"),
         ):
             candidate = terminal_envelope()
             candidate["facts"][domain][0]["state"] = unresolved_state
@@ -442,31 +435,13 @@ class BoundaryHardeningTests(unittest.TestCase):
             with self.subTest(domain=domain):
                 self.assertIs(
                     report.next_action.kind,
-                    ActionKind.RECONCILE,
-                    f"open {domain} without pending must not produce CLOSE",
+                    expected,
+                    f"open {domain} must not produce CLOSE",
                 )
                 self.assertEqual(
                     report.next_action.scope,
-                    Id("action_scope", domain),
+                    Id("action_scope", scope),
                 )
-
-    def test_open_state_with_pending_close_reconciles(self) -> None:
-        candidate = terminal_envelope()
-        candidate["facts"]["claims"][0]["state"] = "OPEN"
-        candidate["facts"]["pending"] = [
-            {
-                "id": "pending-close",
-                "priority": 0,
-                "kind": "CLOSE",
-                "target": "task-a",
-                "scope": "task",
-                "falsifier_id": "all-terminal",
-                "evidence_source_id": "facts",
-            }
-        ]
-        report = reduce_facts(parse_facts(candidate))
-        self.assertIs(report.next_action.kind, ActionKind.RECONCILE)
-        self.assertEqual(report.next_action.scope, Id("action_scope", "claims"))
 
     def test_all_terminal_without_work_closes(self) -> None:
         report = reduce_facts(parse_facts(terminal_envelope()))
@@ -506,7 +481,7 @@ class ProgressAndReplayTests(unittest.TestCase):
         report = reduce_facts(parse_facts(raw_envelope()))
         first = make_attempt_key(report)
         changed = raw_envelope()
-        changed["facts"]["pending"][0]["falsifier_id"] = "falsifier-b"
+        changed["facts"]["gates"][0]["evidence"] = ["source-b"]
         self.assertNotEqual(first, make_attempt_key(reduce_facts(parse_facts(changed))))
         tampered = copy.copy(report)
         object.__setattr__(tampered, "progress_key", Id("progress_key", HEX_C))
@@ -556,13 +531,14 @@ class AuthorityEnforcementTests(unittest.TestCase):
         )
         self.assertIs(gate.decision, EffectDecision.ALLOW)
 
-    def test_legitimate_delegation_asks_user(self) -> None:
+    def test_legitimate_cross_task_asks_user(self) -> None:
         gate = enforce_effect(
             self.report,
             adapter_authority(
                 self.binding,
                 self.report.next_action,
-                kind=ProvenanceKind.DELEGATED,
+                channel="cross_task_user_delegation",
+                source_task=Id("task", "other-task"),
             ),
         )
         self.assertIs(gate.decision, EffectDecision.ASK_USER)
@@ -573,25 +549,20 @@ class AuthorityEnforcementTests(unittest.TestCase):
             EffectDecision.REFUSE,
         )
         spoofed = object.__new__(AuthorityProvenance)
-        for name, value in (
-            ("kind", ProvenanceKind.DIRECT),
-            ("issuer", self.binding.root_task),
-            ("destination", self.binding.destination),
-            ("lineage", self.binding.lineage),
-            ("source_event", Id("source_event", HEX_C)),
-            ("target", self.report.next_action.target),
-            ("scope", self.report.next_action.scope),
-        ):
-            object.__setattr__(spoofed, name, value)
         gate = enforce_effect(self.report, spoofed)
         self.assertIs(gate.decision, EffectDecision.REFUSE)
         self.assertEqual(gate.reason, "spoofed")
 
-    def test_wrong_issuer_destination_lineage_target_or_scope_refuses(self) -> None:
+    def test_wrong_binding_or_action_metadata_refuses(self) -> None:
         variants = {
-            "issuer": {"issuer": Id("root_task", "root-other")},
+            "root": {"root_task": Id("root_task", "root-other")},
             "destination": {"destination": Id("destination", "destination-other")},
             "lineage": {"lineage": Id("lineage", HEX_C)},
+            "executor": {"executor_task": Id("executor_task", "executor-other")},
+            "target_task": {
+                "source_task": Id("task", "task-other"),
+                "target_task": Id("task", "task-other"),
+            },
             "target": {"target": Id("action_target", "target-other")},
             "scope": {"scope": Id("action_scope", "scope-other")},
         }
@@ -639,11 +610,347 @@ class EnumBoundaryTests(unittest.TestCase):
             {item.value for item in EffectDecision},
             {"ALLOW", "ASK_USER", "REFUSE"},
         )
-        self.assertEqual(
-            {item.value for item in ProvenanceKind},
-            {"DIRECT", "DELEGATED"},
-        )
+        self.assertFalse(hasattr(semantic, "ProvenanceKind"))
         self.assertEqual({item.value for item in InfraKind}, {"REPLACED"})
+
+
+class G008FactsOnlyRedTests(unittest.TestCase):
+    def envelope(self) -> dict[str, object]:
+        candidate = terminal_envelope()
+        candidate["task_binding"]["repository_digest"] = HEX_B
+        candidate["task_binding"]["outcome_digest"] = HEX_C
+        candidate["facts"].pop("pending", None)
+        candidate["facts"]["gates"][0]["family_id"] = "family-a"
+        return candidate
+
+    def test_pending_and_other_derived_action_inputs_reject(self) -> None:
+        for field in ("pending", "action", "decision", "projection", "blocker"):
+            for location in ("top", "facts", "gate"):
+                candidate = raw_envelope()
+                target = (
+                    candidate
+                    if location == "top"
+                    else candidate["facts"]
+                    if location == "facts"
+                    else candidate["facts"]["gates"][0]
+                )
+                target[field] = []
+                with self.subTest(field=field, location=location):
+                    with self.assertRaisesRegex(SemanticError, "unknown"):
+                        parse_facts(candidate)
+
+    def test_repository_and_outcome_digests_bind_progress(self) -> None:
+        baseline = self.envelope()
+        first = make_progress_key(parse_facts(baseline))
+        for field in ("repository_digest", "outcome_digest"):
+            changed = copy.deepcopy(baseline)
+            changed["task_binding"][field] = HEX_A
+            with self.subTest(field=field):
+                self.assertNotEqual(first, make_progress_key(parse_facts(changed)))
+
+    def test_gate_facts_derive_the_complete_action(self) -> None:
+        candidate = self.envelope()
+        candidate["facts"]["gates"] = [
+            {
+                "id": "product_edit",
+                "state": "OPEN",
+                "family_id": "family-a",
+                "evidence": ["source-a"],
+            }
+        ]
+        action = reduce_facts(parse_facts(candidate)).next_action
+        self.assertIs(action.kind, ActionKind.IMPLEMENT_BATCH)
+        self.assertEqual(action.target, Id("action_target", "gate:product_edit"))
+        self.assertEqual(action.scope, Id("action_scope", "family:family-a"))
+        self.assertEqual(action.family, Id("family_id", "family-a"))
+        self.assertEqual(action.falsifier, Id("falsifier", "gate:product_edit:open"))
+        evidence_digest = sha256(
+            b"happycodex/0.6/evidence-source\0"
+            + canonical_bytes(("source-a",))
+        ).hexdigest()
+        self.assertEqual(
+            action.evidence_source,
+            Id("evidence_source", f"evidence:{evidence_digest}"),
+        )
+
+    def test_all_gate_mappings_order_unknown_and_referential_integrity(self) -> None:
+        gate_map = (
+            ("user_selection", ActionKind.ASK_USER),
+            ("contract_freeze", ActionKind.VERIFY),
+            ("red_oracle", ActionKind.VERIFY),
+            ("product_edit", ActionKind.IMPLEMENT_BATCH),
+            ("checks", ActionKind.VERIFY),
+            ("family_hardening", ActionKind.IMPLEMENT_BATCH),
+            ("boundary_repair", ActionKind.IMPLEMENT_BATCH),
+            ("reconciliation", ActionKind.RECONCILE),
+            ("focused_review", ActionKind.FOCUSED_REVIEW),
+            ("candidate_freeze", ActionKind.FREEZE_CANDIDATE),
+            ("exact_final_review", ActionKind.EXACT_FINAL),
+            ("release", ActionKind.VERIFY),
+        )
+        for gate, expected in gate_map:
+            candidate = self.envelope()
+            candidate["facts"]["gates"] = [
+                {
+                    "id": gate,
+                    "state": "OPEN",
+                    "family_id": "family-a",
+                    "evidence": ["source-a"],
+                }
+            ]
+            with self.subTest(gate=gate):
+                self.assertIs(
+                    reduce_facts(parse_facts(candidate)).next_action.kind,
+                    expected,
+                )
+
+        ordered = self.envelope()
+        ordered["facts"]["gates"] = [
+            {
+                "id": "exact_final_review",
+                "state": "OPEN",
+                "family_id": "family-a",
+                "evidence": ["source-a"],
+            },
+            {
+                "id": "user_selection",
+                "state": "OPEN",
+                "family_id": "family-a",
+                "evidence": ["source-b"],
+            },
+        ]
+        reversed_input = copy.deepcopy(ordered)
+        reversed_input["facts"]["gates"].reverse()
+        self.assertEqual(
+            reduce_facts(parse_facts(ordered)).next_action,
+            reduce_facts(parse_facts(reversed_input)).next_action,
+        )
+        self.assertIs(
+            reduce_facts(parse_facts(ordered)).next_action.kind,
+            ActionKind.ASK_USER,
+        )
+
+        unknown = self.envelope()
+        unknown["facts"]["gates"] = [
+            {
+                "id": "unknown_gate",
+                "state": "OPEN",
+                "family_id": "family-a",
+                "evidence": ["source-a"],
+            }
+        ]
+        self.assertIs(
+            reduce_facts(parse_facts(unknown)).next_action.kind,
+            ActionKind.RECONCILE,
+        )
+        for mutation, message in (
+            ({"family_id": "missing-family"}, "family"),
+            ({"evidence": []}, "evidence"),
+        ):
+            invalid = copy.deepcopy(unknown)
+            invalid["facts"]["gates"][0].update(mutation)
+            with self.subTest(mutation=mutation):
+                with self.assertRaisesRegex(SemanticError, message):
+                    parse_facts(invalid)
+
+    def test_unresolved_state_preempts_downstream_and_family_boundary_discovers(
+        self,
+    ) -> None:
+        failed_check = self.envelope()
+        failed_check["facts"]["checks"][0]["state"] = "FAIL"
+        failed_check["facts"]["gates"] = [
+            {
+                "id": "product_edit",
+                "state": "OPEN",
+                "family_id": "family-a",
+                "evidence": ["source-a"],
+            }
+        ]
+        self.assertNotIn(
+            reduce_facts(parse_facts(failed_check)).next_action.kind,
+            {
+                ActionKind.IMPLEMENT_BATCH,
+                ActionKind.FOCUSED_REVIEW,
+                ActionKind.EXACT_FINAL,
+                ActionKind.FREEZE_CANDIDATE,
+            },
+        )
+
+        unresolved = self.envelope()
+        unresolved["facts"]["findings"][0]["state"] = "UNKNOWN"
+        unresolved["facts"]["gates"] = [
+            {
+                "id": "exact_final_review",
+                "state": "OPEN",
+                "family_id": "family-a",
+                "evidence": ["source-a"],
+            }
+        ]
+        self.assertIsNot(
+            reduce_facts(parse_facts(unresolved)).next_action.kind,
+            ActionKind.EXACT_FINAL,
+        )
+
+        boundary = self.envelope()
+        boundary["facts"]["families"][0]["state"] = "BOUNDARY_REQUIRED"
+        self.assertIs(
+            reduce_facts(parse_facts(boundary)).next_action.kind,
+            ActionKind.DISCOVER,
+        )
+        boundary["facts"]["gates"] = [
+            {
+                "id": "product_edit",
+                "state": "OPEN",
+                "family_id": "family-a",
+                "evidence": ["source-a"],
+            }
+        ]
+        self.assertIs(
+            reduce_facts(parse_facts(boundary)).next_action.kind,
+            ActionKind.DISCOVER,
+        )
+
+    def test_user_gate_preempts_unresolved_and_blocked_effect_gate_reconciles(
+        self,
+    ) -> None:
+        user_gate = self.envelope()
+        user_gate["facts"]["findings"][0]["state"] = "UNKNOWN"
+        user_gate["facts"]["families"][0]["state"] = "OPEN"
+        user_gate["facts"]["gates"] = [
+            {
+                "id": "user_selection",
+                "state": "OPEN",
+                "family_id": "family-a",
+                "evidence": ["source-a"],
+            }
+        ]
+        self.assertIs(
+            reduce_facts(parse_facts(user_gate)).next_action.kind,
+            ActionKind.ASK_USER,
+        )
+
+        blocked = self.envelope()
+        blocked["facts"]["gates"] = [
+            {
+                "id": "product_edit",
+                "state": "BLOCKED",
+                "family_id": "family-a",
+                "evidence": ["source-a"],
+            }
+        ]
+        self.assertIs(
+            reduce_facts(parse_facts(blocked)).next_action.kind,
+            ActionKind.RECONCILE,
+        )
+
+    def test_unlinked_fact_uses_stable_task_family(self) -> None:
+        candidate = self.envelope()
+        candidate["facts"]["claims"][0]["state"] = "OPEN"
+        action = reduce_facts(parse_facts(candidate)).next_action
+        self.assertEqual(action.family, Id("family_id", "task:task-a"))
+        self.assertEqual(action.scope, Id("action_scope", "family:task:task-a"))
+
+    def test_forged_family_replay_rejects(self) -> None:
+        report = reduce_facts(parse_facts(self.envelope()))
+        forged = report.to_wire()
+        forged["next_action"]["family_id"] = "forged-family"
+        with self.assertRaisesRegex(SemanticError, "action mismatch"):
+            replay_report(forged)
+
+    def issue(
+        self,
+        report: ProgressReport,
+        *,
+        channel: str = "current_task_user",
+        root_task: Id | None = None,
+        source_task: Id | None = None,
+        target_task: Id | None = None,
+        executor_task: Id | None = None,
+    ) -> AuthorityProvenance:
+        binding = report.facts.task
+        return _issue_authority(
+            channel=channel,
+            root_task=root_task or binding.root_task,
+            source_task=source_task or binding.task,
+            target_task=target_task or binding.task,
+            executor_task=executor_task or binding.executor_task,
+            destination=binding.destination,
+            lineage=binding.lineage,
+            message_id=Id("message", "message-a"),
+            turn_id=Id("turn", "turn-a"),
+            content_digest=Id("content", HEX_C),
+            target=report.next_action.target,
+            scope=report.next_action.scope,
+        )
+
+    def test_authority_kind_is_derived_and_decisions_bind_tasks(self) -> None:
+        self.assertNotIn("kind", signature(_issue_authority).parameters)
+        for field in (
+            "channel",
+            "root_task",
+            "source_task",
+            "target_task",
+            "executor_task",
+            "destination",
+            "lineage",
+            "message_id",
+            "turn_id",
+            "content_digest",
+            "target",
+            "scope",
+        ):
+            with self.subTest(field=field):
+                self.assertIn(field, signature(_issue_authority).parameters)
+
+        report = reduce_facts(parse_facts(self.envelope()))
+        direct = self.issue(report)
+        self.assertIs(
+            enforce_effect(report, direct).decision,
+            EffectDecision.ALLOW,
+        )
+        cross = self.issue(
+            report,
+            channel="cross_task_user_delegation",
+            source_task=Id("task", "other-task"),
+        )
+        self.assertIs(
+            enforce_effect(report, cross).decision,
+            EffectDecision.ASK_USER,
+        )
+        wrong_executor = self.issue(
+            report,
+            executor_task=Id("executor_task", "other-executor"),
+        )
+        self.assertEqual(
+            enforce_effect(report, wrong_executor).reason,
+            "wrong_executor",
+        )
+        wrong_target = self.issue(
+            report,
+            source_task=Id("task", "other-task"),
+            target_task=Id("task", "other-task"),
+        )
+        self.assertEqual(
+            enforce_effect(report, wrong_target).reason,
+            "wrong_target_task",
+        )
+        object.__setattr__(cross, "channel", "current_task_user")
+        self.assertIs(
+            enforce_effect(report, cross).decision,
+            EffectDecision.REFUSE,
+        )
+        forged_kind = self.issue(report)
+        object.__setattr__(forged_kind, "kind", cross.kind)
+        self.assertIs(
+            enforce_effect(report, forged_kind).decision,
+            EffectDecision.REFUSE,
+        )
+
+        class Channel(str, Enum):
+            DIRECT = "current_task_user"
+
+        with self.assertRaisesRegex(SemanticError, "channel"):
+            self.issue(report, channel=Channel.DIRECT)
 
 
 if __name__ == "__main__":

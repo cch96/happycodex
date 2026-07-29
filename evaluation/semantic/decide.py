@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from types import MappingProxyType
 
-from evaluation.semantic.canonical import make_progress_key
+from evaluation.semantic.canonical import _digest, make_progress_key
 from evaluation.semantic.parse import parse_facts
 from evaluation.semantic.types import (
     ActionKind,
@@ -14,12 +14,12 @@ from evaluation.semantic.types import (
     Id,
     NextAction,
     ProgressReport,
-    ProvenanceKind,
     SemanticError,
     _Record,
     _is_issued_authority,
     _is_reducer_report,
     _make_report,
+    _validate_authority,
 )
 
 _TERMINAL_STATES = MappingProxyType(
@@ -31,74 +31,147 @@ _TERMINAL_STATES = MappingProxyType(
         "gates": frozenset({"SATISFIED", "WAIVED"}),
     }
 )
-_UNRESOLVED_ORDER = ("checks", "claims", "findings", "families", "gates")
-
-
-def _pending_action(record: _Record) -> NextAction:
-    payload = record.payload
-    return NextAction(
-        ActionKind(payload["kind"]),
-        payload["target"],
-        payload["scope"],
-        payload["falsifier_id"],
-        payload["evidence_source_id"],
+_GATE_POLICY = (
+    ("user_selection", ActionKind.ASK_USER),
+    ("contract_freeze", ActionKind.VERIFY),
+    ("red_oracle", ActionKind.VERIFY),
+    ("product_edit", ActionKind.IMPLEMENT_BATCH),
+    ("checks", ActionKind.VERIFY),
+    ("family_hardening", ActionKind.IMPLEMENT_BATCH),
+    ("boundary_repair", ActionKind.IMPLEMENT_BATCH),
+    ("reconciliation", ActionKind.RECONCILE),
+    ("focused_review", ActionKind.FOCUSED_REVIEW),
+    ("candidate_freeze", ActionKind.FREEZE_CANDIDATE),
+    ("exact_final_review", ActionKind.EXACT_FINAL),
+    ("release", ActionKind.VERIFY),
+)
+def _family_for(facts: Facts, domain: str, record: _Record) -> Id:
+    if domain == "gates":
+        return record.payload["family_id"]
+    if domain == "families":
+        return Id("family_id", record.primary_key.value)
+    return Id("family_id", f"task:{facts.task.task.value}")
+def _evidence_source(evidence: tuple[str, ...]) -> Id:
+    return Id(
+        "evidence_source",
+        f"evidence:{_digest('happycodex/0.6/evidence-source', evidence)}",
     )
-
-
-def _first_unresolved(facts: Facts) -> tuple[str, _Record] | None:
-    for domain in _UNRESOLVED_ORDER:
-        for record in facts.stable[domain]:
-            if record.payload["state"] not in _TERMINAL_STATES[domain]:
-                return domain, record
-    return None
-
-
-def _reconcile_action(domain: str, record: _Record) -> NextAction:
+def _unresolved_action(facts: Facts, domain: str, record: _Record) -> NextAction:
     identity = record.primary_key.value
+    state = record.payload["state"]
+    if domain == "checks":
+        kind = ActionKind.RECONCILE if identity == "execplan" else ActionKind.VERIFY
+    elif domain == "findings" and state == "OPEN":
+        kind = ActionKind.IMPLEMENT_BATCH
+    elif domain == "families":
+        kind = (
+            ActionKind.DISCOVER
+            if state == "BOUNDARY_REQUIRED"
+            else ActionKind.IMPLEMENT_BATCH
+        )
+    else:
+        kind = ActionKind.RECONCILE
+    family = _family_for(facts, domain, record)
     return NextAction(
-        ActionKind.RECONCILE,
+        kind,
         Id("action_target", f"{domain}:{identity}"),
-        Id("action_scope", domain),
+        Id("action_scope", f"family:{family.value}"),
+        family,
         Id("falsifier", f"unresolved:{domain}:{identity}"),
-        Id("evidence_source", "stable-facts"),
+        _evidence_source(record.payload["evidence"]),
     )
-
-
+def _gate_action(facts: Facts, record: _Record, kind: ActionKind) -> NextAction:
+    identity = record.primary_key.value
+    family = _family_for(facts, "gates", record)
+    return NextAction(
+        kind,
+        Id("action_target", f"gate:{identity}"),
+        Id("action_scope", f"family:{family.value}"),
+        family,
+        Id("falsifier", f"gate:{identity}:open"),
+        _evidence_source(record.payload["evidence"]),
+    )
 def _default_close(facts: Facts) -> NextAction:
+    family = Id("family_id", f"task:{facts.task.task.value}")
     return NextAction(
         ActionKind.CLOSE,
         Id("action_target", facts.task.task.value),
         Id("action_scope", "task"),
+        family,
         Id("falsifier", "all-terminal"),
-        Id("evidence_source", "facts"),
+        _evidence_source(()),
     )
-
 
 def _derive_action(facts: Facts) -> NextAction:
-    pending = facts.stable["pending"]
-    non_close = tuple(
-        record for record in pending if record.payload["kind"] != ActionKind.CLOSE.value
-    )
-    if non_close:
-        chosen = min(
-            non_close,
-            key=lambda record: (record.payload["priority"], record.primary_key.value),
+    unresolved = [
+        (domain, record)
+        for domain in ("checks", "claims", "findings", "families")
+        for record in facts.stable[domain]
+        if record.payload["state"] not in _TERMINAL_STATES[domain]
+    ]
+    active_gates = {
+        record.primary_key.value: record
+        for record in facts.stable["gates"]
+        if record.payload["state"] not in _TERMINAL_STATES["gates"]
+    }
+    known = {identity for identity, _ in _GATE_POLICY}
+    unknown = sorted(set(active_gates) - known)
+    if unknown:
+        return _gate_action(
+            facts,
+            active_gates[unknown[0]],
+            ActionKind.RECONCILE,
         )
-        return _pending_action(chosen)
-    unresolved = _first_unresolved(facts)
-    if unresolved is not None:
-        return _reconcile_action(*unresolved)
-    if pending:
-        chosen = min(
-            pending,
-            key=lambda record: (
-                record.payload["priority"],
-                record.primary_key.value,
+    gate_action = None
+    for identity, kind in _GATE_POLICY:
+        if identity in active_gates:
+            record = active_gates[identity]
+            gate_action = _gate_action(
+                facts,
+                record,
+                (
+                    kind
+                    if record.payload["state"] == "OPEN"
+                    or identity == "user_selection"
+                    else ActionKind.RECONCILE
+                ),
+            )
+            break
+    if gate_action is not None:
+        if gate_action.kind in {ActionKind.ASK_USER, ActionKind.RECONCILE}:
+            return gate_action
+        boundary = next(
+            (
+                (domain, record)
+                for domain, record in unresolved
+                if domain == "families"
+                and record.payload["state"] == "BOUNDARY_REQUIRED"
             ),
+            None,
         )
-        return _pending_action(chosen)
+        if boundary is not None:
+            return _unresolved_action(facts, *boundary)
+        failed_check = next(
+            ((domain, record) for domain, record in unresolved if domain == "checks"),
+            None,
+        )
+        if failed_check is not None and gate_action.kind in {
+            ActionKind.IMPLEMENT_BATCH,
+            ActionKind.FOCUSED_REVIEW,
+            ActionKind.EXACT_FINAL,
+            ActionKind.FREEZE_CANDIDATE,
+        }:
+            return _unresolved_action(facts, *failed_check)
+        if unresolved and gate_action.kind in {
+            ActionKind.FOCUSED_REVIEW,
+            ActionKind.EXACT_FINAL,
+            ActionKind.FREEZE_CANDIDATE,
+        }:
+            return _unresolved_action(facts, *unresolved[0])
+        return gate_action
+    if unresolved:
+        return _unresolved_action(facts, *unresolved[0])
     return _default_close(facts)
-
 
 def reduce_facts(facts: Facts) -> ProgressReport:
     return _make_report(
@@ -106,7 +179,6 @@ def reduce_facts(facts: Facts) -> ProgressReport:
         progress_key=make_progress_key(facts),
         next_action=_derive_action(facts),
     )
-
 
 def enforce_effect(
     report: ProgressReport,
@@ -133,10 +205,44 @@ def enforce_effect(
             report.next_action.scope,
             "spoofed",
         )
+    try:
+        derived_kind = _validate_authority(
+            authority.channel,
+            authority.root_task,
+            authority.source_task,
+            authority.target_task,
+            authority.executor_task,
+            authority.destination,
+            authority.lineage,
+            authority.message_id,
+            authority.turn_id,
+            authority.content_digest,
+            authority.target,
+            authority.scope,
+        )
+    except (AttributeError, SemanticError):
+        return EffectGate(
+            EffectDecision.REFUSE,
+            report.next_action.target,
+            report.next_action.scope,
+            "spoofed",
+        )
+    if authority.kind is not derived_kind:
+        return EffectGate(
+            EffectDecision.REFUSE,
+            report.next_action.target,
+            report.next_action.scope,
+            "spoofed",
+        )
     checks = (
-        (authority.issuer != report.facts.task.root_task, "wrong_issuer"),
+        (authority.root_task != report.facts.task.root_task, "wrong_root"),
         (authority.destination != report.facts.task.destination, "wrong_destination"),
         (authority.lineage != report.facts.task.lineage, "wrong_lineage"),
+        (
+            authority.executor_task != report.facts.task.executor_task,
+            "wrong_executor",
+        ),
+        (authority.target_task != report.facts.task.task, "wrong_target_task"),
         (authority.target != report.next_action.target, "wrong_target"),
         (authority.scope != report.next_action.scope, "wrong_scope"),
     )
@@ -150,17 +256,16 @@ def enforce_effect(
             )
     decision = (
         EffectDecision.ASK_USER
-        if authority.kind is ProvenanceKind.DELEGATED
+        if authority.channel == "cross_task_user_delegation"
         else EffectDecision.ALLOW
     )
-    reason = "delegated" if decision is EffectDecision.ASK_USER else "direct"
+    reason = "cross_task" if decision is EffectDecision.ASK_USER else "direct"
     return EffectGate(
         decision,
         report.next_action.target,
         report.next_action.scope,
         reason,
     )
-
 
 def replay_report(raw: object) -> ProgressReport:
     if not isinstance(raw, Mapping) or any(type(key) is not str for key in raw):

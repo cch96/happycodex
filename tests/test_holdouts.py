@@ -8,7 +8,6 @@ import threading
 import unittest
 from unittest import mock
 
-from evaluation.core import ledger as ledger_engine
 from evaluation.core.identity import canonical_sha256
 from evaluation.corpus import engine as corpus_engine
 from evaluation.holdout import blind, compare
@@ -28,20 +27,6 @@ def metadata(*, passed: bool, uncached: int, output: int, elapsed: float) -> dic
         "usage": {"output_tokens": output},
         "elapsed_seconds": elapsed,
     }
-
-
-class TestAuthorization:
-    def __init__(self, descriptor: dict, snapshot: dict) -> None:
-        self._descriptor = descriptor
-        self._snapshot = snapshot
-        self.impact_token = "a" * 64
-        self.authority_sha256 = "b" * 64
-
-    def descriptor(self) -> dict:
-        return copy.deepcopy(self._descriptor)
-
-    def snapshot(self) -> dict:
-        return copy.deepcopy(self._snapshot)
 
 
 class HappyCodexHoldoutTests(unittest.TestCase):
@@ -284,157 +269,6 @@ class HappyCodexHoldoutTests(unittest.TestCase):
                     ]
                 )
 
-    def test_pair_runner_persists_commitment_before_runs_and_reveal_after(self) -> None:
-        pair = holdout_engine.load_manifest()["pairs"][0]
-        observations: list[tuple[bool, bool, bool]] = []
-
-        def fake_evaluator(
-            case: dict,
-            *,
-            plugin: Path,
-            output: Path,
-            model: str,
-            effort: str,
-            timeout: int,
-            arm: str,
-            authorization: object,
-            authorization_unit: str,
-        ) -> dict:
-            del plugin, model, effort, timeout
-            self.assertIsInstance(authorization, TestAuthorization)
-            self.assertEqual(authorization_unit, pair["id"])
-            pair_output = output.parents[1]
-            observations.append(
-                (
-                    (pair_output / "01-mapping-commitment.json").is_file(),
-                    (pair_output / "02-pre-reveal-decision.json").exists(),
-                    (pair_output / "03-mapping-reveal.json").exists(),
-                )
-            )
-            result = metadata(
-                passed=arm == "candidate", uncached=40, output=10, elapsed=3.5
-            )
-            result["case"] = case["id"]
-            result["arm"] = arm
-            result["oracle_failures"] = [] if result["passed"] else ["mismatch"]
-            metadata_path = output / case["id"] / "metadata.json"
-            metadata_path.parent.mkdir(parents=True)
-            metadata_path.write_text(json.dumps(result), encoding="utf-8")
-            return result
-
-        with tempfile.TemporaryDirectory() as raw:
-            root = Path(raw)
-            package = {
-                "semantic_sha256": "c" * 64,
-                "artifact_sha256": "d" * 64,
-            }
-            public_package = {
-                "semantic_sha256": "e" * 64,
-                "artifact_sha256": "f" * 64,
-            }
-            authorization = TestAuthorization(
-                {
-                    "command": "holdout",
-                    "pairs": [pair["id"]],
-                    "model": "test-model",
-                    "effort": "high",
-                    "timeout_seconds": 10,
-                    "candidate_semantic_sha256": package["semantic_sha256"],
-                    "candidate_artifact_sha256": package["artifact_sha256"],
-                    "public_semantic_sha256": public_package["semantic_sha256"],
-                    "public_artifact_sha256": public_package["artifact_sha256"],
-                },
-                {
-                    "settings": {
-                        "model": "test-model",
-                        "effort": "high",
-                        "timeout_seconds": 10,
-                    },
-                    "holdout": {"pairs": {pair["id"]: "e" * 64}},
-                    "package": package,
-                },
-            )
-            with (
-                mock.patch.object(
-                    ledger_engine, "AuthorizedInvocation", TestAuthorization
-                ),
-                mock.patch.object(
-                    holdout_engine,
-                    "package_identities",
-                    side_effect=[package, public_package],
-                ),
-            ):
-                receipt = holdout_engine.run_pair(
-                    pair,
-                    candidate=root / "candidate",
-                    public=root / "public",
-                    output=root / "results",
-                    model="test-model",
-                    effort="high",
-                    timeout=10,
-                    authorization=authorization,
-                    evaluator=fake_evaluator,
-                )
-            pair_output = root / "results" / pair["id"]
-            self.assertEqual(observations, [(True, False, False), (True, False, False)])
-            self.assertEqual(receipt["outcome"], "better")
-            self.assertTrue((pair_output / "02-pre-reveal-decision.json").is_file())
-            self.assertTrue((pair_output / "03-mapping-reveal.json").is_file())
-            self.assertTrue((pair_output / "04-pair-receipt.json").is_file())
-
-    def test_live_run_rejects_unpinned_public_package_before_receipt(self) -> None:
-        with tempfile.TemporaryDirectory() as raw:
-            root = Path(raw)
-            candidate = root / "candidate"
-            public = root / "not-public-0.4.0"
-            output = root / "results"
-            candidate.mkdir()
-            public.mkdir()
-            output.mkdir()
-            authorization = TestAuthorization(
-                {
-                    "command": "holdout",
-                    "pairs": sorted(
-                        pair["id"] for pair in holdout_engine.load_manifest()["pairs"]
-                    ),
-                    "model": "test-model",
-                    "effort": "high",
-                    "timeout_seconds": 10,
-                },
-                {},
-            )
-            with (
-                mock.patch.object(
-                    ledger_engine, "AuthorizedInvocation", TestAuthorization
-                ),
-                mock.patch.object(
-                    holdout_engine,
-                    "package_manifest_sha256",
-                    side_effect=["c" * 64, "b" * 64],
-                ),
-                mock.patch.object(
-                    holdout_engine,
-                    "run_pair",
-                    side_effect=AssertionError(
-                        "holdout execution started before public baseline binding"
-                    ),
-                ) as run_pair,
-            ):
-                with self.assertRaisesRegex(
-                    ValueError, "public-0.4.0 package manifest mismatch"
-                ):
-                    holdout_engine.run_holdouts(
-                        candidate=candidate,
-                        public=public,
-                        output=output,
-                        model="test-model",
-                        effort="high",
-                        timeout=10,
-                        authorization=authorization,
-                    )
-            run_pair.assert_not_called()
-            self.assertEqual(list(output.iterdir()), [])
-
     def test_pair_runner_requires_authorized_capability(self) -> None:
         pair = holdout_engine.load_manifest()["pairs"][0]
         with tempfile.TemporaryDirectory() as raw:
@@ -453,63 +287,6 @@ class HappyCodexHoldoutTests(unittest.TestCase):
                         model="gpt-5.6-sol",
                         effort="high",
                         timeout=300,
-                    )
-            mapping.assert_not_called()
-
-            package = {
-                "semantic_sha256": "c" * 64,
-                "artifact_sha256": "d" * 64,
-            }
-            authorization = TestAuthorization(
-                {
-                    "command": "holdout",
-                    "pairs": [pair["id"]],
-                    "model": "gpt-5.6-sol",
-                    "effort": "high",
-                    "timeout_seconds": 300,
-                    "candidate_semantic_sha256": package["semantic_sha256"],
-                    "candidate_artifact_sha256": package["artifact_sha256"],
-                    "public_semantic_sha256": "e" * 64,
-                    "public_artifact_sha256": "f" * 64,
-                },
-                {
-                    "settings": {
-                        "model": "gpt-5.6-sol",
-                        "effort": "high",
-                        "timeout_seconds": 300,
-                    },
-                    "holdout": {"pairs": {pair["id"]: "a" * 64}},
-                    "package": package,
-                },
-            )
-            with (
-                mock.patch.object(
-                    ledger_engine, "AuthorizedInvocation", TestAuthorization
-                ),
-                mock.patch.object(
-                    holdout_engine,
-                    "package_identities",
-                    return_value={
-                        "semantic_sha256": "0" * 64,
-                        "artifact_sha256": "1" * 64,
-                    },
-                ),
-                mock.patch.object(
-                    holdout_engine,
-                    "seal_mapping",
-                    side_effect=AssertionError("holdout live seam reached"),
-                ) as mapping,
-            ):
-                with self.assertRaisesRegex(ValueError, "pair"):
-                    holdout_engine.run_pair(
-                        pair,
-                        candidate=root / "candidate",
-                        public=root / "public",
-                        output=root / "output",
-                        model="gpt-5.6-sol",
-                        effort="high",
-                        timeout=300,
-                        authorization=authorization,
                     )
             mapping.assert_not_called()
 

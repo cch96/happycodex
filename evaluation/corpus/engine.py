@@ -15,48 +15,244 @@ import time
 from typing import Any, Callable
 
 from evaluation.core.identity import (
+    BLOCKER_CLASSES,
+    CORPUS_SEMANTIC_PATHS,
+    CONVERGENCE_PHASES,
+    FILESYSTEM_ISOLATION_POLICY,
     PACKAGE_PATHS,
+    PERMISSION_FIELDS,
+    PERMISSION_PROFILE,
+    PERMISSION_VALUES,
+    PUBLIC_040_PACKAGE_ARTIFACT_SHA256,
+    RECOVERY_ACTIONS,
+    RECOVERY_GATE_FIELDS,
+    RECOVERY_MANIFEST_PATTERN,
+    RECOVERY_PENDING_GATES,
+    RECOVERY_STATE_FIELDS,
     canonical_sha256,
     case_semantic_sha256,
-    engine_category_sha256,
+    classifications_share_identity,
     engine_inventory,
+    engine_paths_sha256,
+    invocation_profile,
+    identity_match_values,
+    is_nonblank_identity,
     package_identities,
     package_manifest_sha256,
     read_json,
+    recovery_manifest_projection,
+    recovery_summary_consistent,
     selected_package_paths,
     sha256_bytes,
     toolchain_identity,
+    validate_invocation_profile,
     workspace_file_manifest,
 )
-from evaluation.core.receipt import sanitized_case_receipt, write_new_json
-from evaluation.corpus.contract import (
-    BASE_COMMAND_PATHS,
-    BLOCKER_CLASSES,
-    CONVERGENCE_PHASES,
-    DISABLED_FEATURES,
-    EVALUATOR_CONTEXT,
-    FILESYSTEM_ISOLATION_POLICY,
-    FIXED_GIT_DATE,
-    OUTPUT_SCHEMA,
-    PARENT_CONTEXT_ENV,
-    PERMISSION_FIELDS,
-    PERMISSION_PROFILE,
-    PUBLIC_040_PACKAGE_ARTIFACT_SHA256,
-    RECOVERY_GATE_FIELDS,
-    RECOVERY_MANIFEST_PATTERN,
-    RECOVERY_STATE_FIELDS,
-    REQUIRED_TAGS,
-    classifications_share_identity,
-    expected_permission_failures,
-    has_distinct_identity_assignment,
-    identity_match_values,
-    is_nonblank_identity,
-    protocol_state_failures,
-)
+from evaluation.semantic import make_attempt_key, parse_facts, reduce_facts
 
 ROOT = Path(__file__).resolve().parents[2]
 CASES = ROOT / "evaluation" / "cases"
 CORPUS_MAX_WORKERS = 4
+RECOVERY_MANIFEST_PATH = "docs/execplans/recovery-manifest.json"
+BASE_COMMAND_PATHS = ("/usr/local/bin", "/usr/bin", "/bin")
+PARENT_CONTEXT_ENV = ("CODEX_REMOTE_PAYLOAD", "CODEX_THREAD_ID", "PWD", "OLDPWD")
+DISABLED_FEATURES = (
+    "apps",
+    "goals",
+    "hooks",
+    "memories",
+    "remote_plugin",
+    "multi_agent",
+)
+FIXED_GIT_DATE = "2000-01-01T00:00:00+00:00"
+REQUIRED_TAGS = {
+    "request-paraphrase", "unsupported-amendment", "uncertain-qualification",
+    "midflight-escalation", "subthreshold-control", "clean-qualifying-control",
+    "missed-boundary", "legacy-path", "missing-worker", "missing-deploy",
+    "pre-freeze-compaction", "post-freeze-compaction", "lost-scout",
+    "dirty-untracked", "baseline-failure", "authorized-rebaseline", "no-commit",
+    "secret-output", "baseline-secret", "review-anchoring", "declared-dependency",
+    "ledger-review-mismatch", "review-fallback", "goal-divergence", "submodule",
+    "multi-repository", "omitted-diff-unit", "truncated-search",
+    "persistence-transition", "concurrency-transition", "receipt-mismatch",
+    "review-admin-cycle", "repository-policy", "exact-final-positive",
+    "archive-positive", "no-commit-unselected",
+}
+IDENTITY_PROJECTION_TEXT = (
+    "Use each explicitly labeled material marker, locator, digest, or path as one "
+    "exact, nonblank, stable identity; paraphrases and aliases are not equivalent."
+)
+EVALUATOR_CONTEXT = (
+    "This invocation is an observational checkpoint only. RED-test edits are product "
+    "writes. Raw permission fields are assertions checked against the semantic reducer, "
+    "not authority. Put every material finding and blocker under one exact shared "
+    f"identity. {IDENTITY_PROJECTION_TEXT} Use open_gates only from the closed control "
+    "gate vocabulary and copy recovery pending_gates in checkpoint order without "
+    "inferring downstream gates. Recovery controls must include every durable Git, "
+    "plan, test, worktree, delegated-agent, and Recovery Manifest fact; live_agents "
+    "contains delegated receipts, never the Root writer. Do not inspect evaluator "
+    "code or hidden oracles."
+)
+OUTPUT_SCHEMA = {
+    "type": "object",
+    "additionalProperties": False,
+    "properties": {
+        "decision": {
+            "type": "string",
+            "enum": ["continue", "stop_for_user", "complete", "incomplete"],
+        },
+        "qualifies": {"type": "boolean"},
+        "execplan_condition": {
+            "type": "string",
+            "enum": ["not_required", "missing", "usable", "needs_amendment"],
+        },
+        "protocol_may_product_write": {"type": "boolean"},
+        "protocol_review_mode": {
+            "type": "string",
+            "enum": ["none", "focused_hardening", "exact_final"],
+        },
+        "protocol_may_complete": {"type": "boolean"},
+        "finding_classifications": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "additionalProperties": False,
+                "properties": {
+                    "identity": {
+                        "type": "string", "minLength": 1, "maxLength": 160,
+                        "pattern": r"\S", "description": IDENTITY_PROJECTION_TEXT,
+                    },
+                    "domain": {
+                        "type": "string",
+                        "enum": ["secret", "baseline_failure", "receipt", "other"],
+                    },
+                    "state": {
+                        "type": "string",
+                        "enum": [
+                            "baseline_unchanged", "resolved", "candidate_new", "unknown"
+                        ],
+                    },
+                    "anchors": {
+                        "type": "array",
+                        "items": {"type": "string", "maxLength": 4_096},
+                    },
+                },
+                "required": ["identity", "domain", "state", "anchors"],
+            },
+        },
+        "blocker_classifications": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "additionalProperties": False,
+                "properties": {
+                    "identity": {
+                        "type": "string", "minLength": 1, "maxLength": 160,
+                        "pattern": r"\S",
+                    },
+                    "class": {"type": "string", "enum": sorted(BLOCKER_CLASSES)},
+                    "blocking": {"type": "boolean"},
+                    "reason": {"type": "string", "maxLength": 240},
+                },
+                "required": ["identity", "class", "blocking", "reason"],
+            },
+        },
+        "open_gates": {
+            "type": "array",
+            "items": {"type": "string", "enum": list(RECOVERY_PENDING_GATES)},
+        },
+        "evidence": {
+            "type": "array",
+            "items": {"type": "string", "maxLength": 240},
+        },
+        "reason": {"type": "string", "maxLength": 1_200},
+        "recovery_state": {
+            "type": ["object", "null"],
+            "additionalProperties": False,
+            "properties": {
+                "baseline_revision": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+                "baseline_tree": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+                "current_revision": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+                "current_tree": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+                "writer": {"type": "string", "enum": ["Root", "unknown"]},
+                "milestone_phase": {
+                    "type": "string", "enum": list(CONVERGENCE_PHASES),
+                },
+                "next_action": {"type": "string", "enum": list(RECOVERY_ACTIONS)},
+                "pending_gates": {
+                    "type": "array",
+                    "items": {"type": "string", "enum": list(RECOVERY_PENDING_GATES)},
+                },
+                "tests": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "properties": {
+                        "passed": {"type": "integer", "minimum": 0},
+                        "failed": {"type": "integer", "minimum": 0},
+                        "accepted_failures": {"type": "integer", "minimum": 0},
+                        "marker_ids": {
+                            "type": "array",
+                            "items": {"type": "string", "maxLength": 160},
+                        },
+                    },
+                    "required": [
+                        "passed", "failed", "accepted_failures", "marker_ids"
+                    ],
+                },
+                "worktree": {
+                    "type": "string", "enum": ["clean", "dirty", "unknown"],
+                },
+                "live_agents": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": False,
+                        "properties": {
+                            "id": {"type": "string", "maxLength": 160},
+                            "status": {
+                                "type": "string",
+                                "enum": ["pending", "terminal", "missing"],
+                            },
+                            "receipt_reproduced": {"type": "boolean"},
+                        },
+                        "required": ["id", "status", "receipt_reproduced"],
+                    },
+                },
+                "marker_ids": {
+                    "type": "array",
+                    "items": {"type": "string", "maxLength": 160},
+                },
+            },
+            "required": sorted(RECOVERY_STATE_FIELDS),
+        },
+    },
+    "required": [
+        "decision", "qualifies", "execplan_condition",
+        "protocol_may_product_write", "protocol_review_mode",
+        "protocol_may_complete", "finding_classifications",
+        "blocker_classifications", "open_gates", "evidence", "reason",
+        "recovery_state",
+    ],
+}
+
+
+def expected_permission_failures(
+    expected: dict[str, Any], *, recovery_state: dict[str, Any] | None = None
+) -> list[str]:
+    """Validate only the closed raw assertion vocabulary; reducer owns semantics."""
+    del recovery_state
+    failures: list[str] = []
+    for field, allowed in PERMISSION_VALUES.items():
+        raw = expected.get(field)
+        values = raw if isinstance(raw, list) else [raw]
+        if (
+            not values
+            or len({(type(value), value) for value in values}) != len(values)
+            or any(value not in allowed or type(value) is not type(next(iter(allowed)))
+                   for value in values)
+        ):
+            failures.append(f"invalid {field}: {raw!r}")
+    return failures
 EXPECTED_CANDIDATE_SKILL_ENTRIES = frozenset(
     {
         "SKILL.md",
@@ -145,11 +341,7 @@ def semantic_input_sha256_from_package(
     arm: str = "candidate",
 ) -> str:
     inventory = engine_inventory(ROOT)
-    shared_semantic = engine_category_sha256(
-        inventory,
-        "semantic",
-        paths={"evaluation/corpus/contract.py"},
-    )
+    shared_semantic = engine_paths_sha256(inventory, CORPUS_SEMANTIC_PATHS)
     return case_semantic_sha256(
         case,
         shared_semantic_sha256=shared_semantic,
@@ -284,7 +476,7 @@ def validate_recovery_manifest(native: dict[str, Any], *, case_id: str) -> None:
     matches = [
         (relative, content)
         for relative, content in transition_files.items()
-        if relative.endswith("recovery-manifest.json")
+        if relative == RECOVERY_MANIFEST_PATH
         and isinstance(content, str)
         and sha256_bytes(content.encode()) == digest
     ]
@@ -505,7 +697,7 @@ def validate_case(case: dict[str, Any], path: Path) -> None:
     if (
         not isinstance(accepted, list)
         or any(not is_nonblank_identity(identity) for identity in accepted)
-        or len({identity.casefold() for identity in accepted}) != len(accepted)
+        or len(set(accepted)) != len(accepted)
     ):
         raise ValueError(f"invalid accepted baseline failures: {case['id']}")
     for index, identity in enumerate(accepted):
@@ -598,8 +790,8 @@ def validate_case(case: dict[str, Any], path: Path) -> None:
             )
         ):
             raise ValueError(f"invalid required classification: {case['id']}")
-        folded_identity = finding["identity"].casefold()
-        if folded_identity in finding_keys:
+        identity = finding["identity"]
+        if identity in finding_keys:
             raise ValueError(f"duplicate required classification: {case['id']}")
         if any(
             finding_identity_matches(finding["identity"], other)
@@ -607,7 +799,7 @@ def validate_case(case: dict[str, Any], path: Path) -> None:
             for other in finding_keys
         ):
             raise ValueError(f"ambiguous required classification: {case['id']}")
-        finding_keys.add(folded_identity)
+        finding_keys.add(identity)
     required_blockers = case["oracle"].get("required_blocker_classifications", [])
     if not isinstance(required_blockers, list):
         raise ValueError(f"invalid required blockers: {case['id']}")
@@ -621,8 +813,8 @@ def validate_case(case: dict[str, Any], path: Path) -> None:
             or blocker["class"] not in BLOCKER_CLASSES
         ):
             raise ValueError(f"invalid required blocker: {case['id']}")
-        folded_identity = blocker["identity"].casefold()
-        if folded_identity in blocker_keys:
+        identity = blocker["identity"]
+        if identity in blocker_keys:
             raise ValueError(f"duplicate required blocker: {case['id']}")
         if any(
             finding_identity_matches(blocker["identity"], other)
@@ -630,7 +822,7 @@ def validate_case(case: dict[str, Any], path: Path) -> None:
             for other in blocker_keys
         ):
             raise ValueError(f"ambiguous required blocker: {case['id']}")
-        blocker_keys.add(folded_identity)
+        blocker_keys.add(identity)
     required_anchored = case["oracle"].get("required_anchored_blockers", [])
     if not isinstance(required_anchored, list):
         raise ValueError(f"invalid required anchored blockers: {case['id']}")
@@ -648,7 +840,7 @@ def validate_case(case: dict[str, Any], path: Path) -> None:
             or any(item not in BLOCKER_CLASSES for item in classes)
         ):
             raise ValueError(f"invalid required anchored blocker: {case['id']}")
-        key = (blocker["anchor"].casefold(), tuple(sorted(classes)))
+        key = (blocker["anchor"], tuple(sorted(classes)))
         if key in anchored_keys:
             raise ValueError(f"duplicate required anchored blocker: {case['id']}")
         anchored_keys.add(key)
@@ -702,9 +894,9 @@ def validate_case(case: dict[str, Any], path: Path) -> None:
             else:
                 expected_keys = {"tag", "kind", "identity"}
             raw_identity = assertion.get("identity", "")
-            identity = raw_identity.casefold() if isinstance(raw_identity, str) else ""
+            identity = raw_identity if isinstance(raw_identity, str) else ""
             raw_anchor = assertion.get("anchor", "")
-            anchor = raw_anchor.casefold() if isinstance(raw_anchor, str) else ""
+            anchor = raw_anchor if isinstance(raw_anchor, str) else ""
             blocker_classes = assertion.get("class", "")
             blocker_classes = (
                 blocker_classes
@@ -1400,34 +1592,733 @@ def installed_package_receipt(source: Path, installed: Path) -> dict[str, str]:
     }
 
 
-def parse_events(stdout: str) -> tuple[dict[str, Any], dict[str, int], str | None]:
-    final: dict[str, Any] | None = None
-    usage: dict[str, int] = {}
-    thread_id: str | None = None
-    for line in stdout.splitlines():
-        event = json.loads(line)
-        if event.get("type") == "thread.started":
-            thread_id = event.get("thread_id")
-        if event.get("type") == "item.completed":
-            item = event.get("item", {})
-            if item.get("type") == "agent_message":
-                try:
-                    final = json.loads(item.get("text", ""))
-                except json.JSONDecodeError:
-                    pass
-        if event.get("type") == "turn.completed":
-            usage = event.get("usage", {})
-    if final is None:
-        raise RuntimeError("Codex emitted no schema-valid final object")
-    return final, usage, thread_id
+_EVENT_BINDING_FIELDS = frozenset(
+    {
+        "provider",
+        "session_id",
+        "thread_id",
+        "action_id",
+        "attempt_key",
+    }
+)
+_USAGE_FIELDS = frozenset(
+    {
+        "input_tokens",
+        "cached_input_tokens",
+        "cache_write_input_tokens",
+        "output_tokens",
+        "reasoning_output_tokens",
+    }
+)
+_PREFIX_ITEM_FIELDS = {
+    "collab_tool_call": frozenset(
+        {
+            "agents_states",
+            "id",
+            "prompt",
+            "receiver_thread_ids",
+            "sender_thread_id",
+            "status",
+            "tool",
+            "type",
+        }
+    ),
+    "command_execution": frozenset(
+        {
+            "aggregated_output",
+            "command",
+            "exit_code",
+            "id",
+            "status",
+            "type",
+        }
+    ),
+    "todo_list": frozenset({"id", "items", "type"}),
+    "web_search": frozenset({"action", "id", "query", "type"}),
+}
+
+
+def _exact_event(value: Any, fields: set[str] | frozenset[str], label: str) -> dict[str, Any]:
+    if not isinstance(value, dict) or set(value) != set(fields):
+        raise ValueError(f"invalid terminal event: {label}")
+    return value
+
+
+def _event_binding(value: Any) -> dict[str, Any]:
+    binding = _exact_event(value, _EVENT_BINDING_FIELDS, "binding")
+    if any(
+        type(binding[field]) is not str or not binding[field]
+        for field in ("provider", "session_id", "action_id", "attempt_key")
+    ) or (
+        binding["thread_id"] is not None
+        and (type(binding["thread_id"]) is not str or not binding["thread_id"])
+    ):
+        raise ValueError("invalid terminal event binding")
+    if re.fullmatch(r"[0-9a-f]{64}", binding["attempt_key"]) is None:
+        raise ValueError("invalid terminal AttemptKey binding")
+    return binding
+
+
+def _prefix_item(value: Any, *, allowed_types: frozenset[str]) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        raise ValueError("invalid terminal prefix item")
+    item_type = value.get("type")
+    fields = _PREFIX_ITEM_FIELDS.get(item_type)
+    if item_type not in allowed_types or fields is None or set(value) != fields:
+        raise ValueError("terminal prefix item is outside the invocation profile")
+    if type(value.get("id")) is not str or not value["id"]:
+        raise ValueError("invalid terminal prefix identity")
+    if item_type == "collab_tool_call":
+        if (
+            not isinstance(value["agents_states"], dict)
+            or value["prompt"] is not None
+            or not isinstance(value["receiver_thread_ids"], list)
+            or any(type(item) is not str for item in value["receiver_thread_ids"])
+            or any(
+                type(value[field]) is not str or not value[field]
+                for field in ("sender_thread_id", "status", "tool")
+            )
+        ):
+            raise ValueError("invalid collab_tool_call event")
+    elif item_type == "command_execution":
+        if (
+            type(value["aggregated_output"]) is not str
+            or type(value["command"]) is not str
+            or value["exit_code"] is not None
+            and type(value["exit_code"]) is not int
+            or type(value["status"]) is not str
+        ):
+            raise ValueError("invalid command_execution event")
+    elif item_type == "todo_list":
+        if not isinstance(value["items"], list):
+            raise ValueError("invalid todo_list event")
+    elif (
+        not isinstance(value["action"], dict)
+        or type(value["query"]) is not str
+    ):
+        raise ValueError("invalid web_search event")
+    return value
+
+
+def _prefix_transition(
+    started: dict[str, Any],
+    current: dict[str, Any],
+    *,
+    event_type: str,
+) -> None:
+    item_type = started["type"]
+    if current["id"] != started["id"] or current["type"] != item_type:
+        raise ValueError("terminal prefix identity changed")
+    if item_type == "collab_tool_call":
+        for field in (
+            "tool",
+            "sender_thread_id",
+            "receiver_thread_ids",
+            "prompt",
+        ):
+            if current[field] != started[field]:
+                raise ValueError("collab_tool_call binding changed")
+        if started["status"] != "in_progress" or current["status"] != "completed":
+            raise ValueError("invalid collab_tool_call status transition")
+    elif item_type == "command_execution":
+        if current["command"] != started["command"]:
+            raise ValueError("command_execution binding changed")
+        if started["status"] != "in_progress" or current["status"] != "completed":
+            raise ValueError("invalid command_execution status transition")
+        if started["exit_code"] is not None:
+            raise ValueError("command_execution start has an exit code")
+    elif item_type == "todo_list":
+        if event_type == "item.updated":
+            return
+    elif current != started:
+        raise ValueError("web_search binding changed")
+
+
+def parse_events(
+    stdout: str,
+    *,
+    binding: dict[str, Any],
+    invocation_profile: dict[str, Any],
+) -> tuple[dict[str, Any], dict[str, int], str, dict[str, Any]]:
+    expected = _event_binding(binding)
+    profile = validate_invocation_profile(invocation_profile)
+    allowed_types = frozenset(profile["tools"]["event_item_types"])
+    lines = stdout.splitlines()
+    if len(lines) < 4 or any(not line for line in lines):
+        raise ValueError("terminal event stream must end at the unique completion EOF")
+    try:
+        events = [json.loads(line) for line in lines]
+    except json.JSONDecodeError as error:
+        raise ValueError("invalid terminal event JSON") from error
+
+    thread = _exact_event(
+        events[0],
+        {"type", "thread_id"},
+        "thread.started",
+    )
+    if (
+        thread["type"] != "thread.started"
+        or type(thread["thread_id"]) is not str
+        or not thread["thread_id"]
+        or (
+            expected["thread_id"] is not None
+            and thread["thread_id"] != expected["thread_id"]
+        )
+    ):
+        raise ValueError("terminal thread binding mismatch")
+    thread_id = thread["thread_id"]
+
+    started = _exact_event(
+        events[1],
+        {"type"},
+        "turn.started",
+    )
+    if started["type"] != "turn.started":
+        raise ValueError("terminal turn binding mismatch")
+
+    prefix_items: dict[str, dict[str, Any]] = {}
+    completed_prefix: set[str] = set()
+    terminal_item: dict[str, Any] | None = None
+    terminal_ordinal: int | None = None
+    for ordinal, raw_event in enumerate(events[2:-1], start=2):
+        event = _exact_event(
+            raw_event,
+            {"type", "item"},
+            "bounded item event",
+        )
+        item = event["item"]
+        if not isinstance(item, dict):
+            raise ValueError("invalid terminal item event")
+        item_id = item.get("id")
+        item_type = item.get("type")
+        if (
+            type(item_id) is not str
+            or not item_id
+            or type(item_type) is not str
+            or not item_type
+        ):
+            raise ValueError("invalid terminal item identity")
+        if event["type"] == "item.started":
+            item = _prefix_item(item, allowed_types=allowed_types)
+            if (
+                terminal_item is not None
+                or item_id in prefix_items
+            ):
+                raise ValueError("invalid terminal prefix start")
+            prefix_items[item_id] = item
+            continue
+        if event["type"] == "item.updated":
+            item = _prefix_item(item, allowed_types=allowed_types)
+            if (
+                terminal_item is not None
+                or item_type != "todo_list"
+                or item_id not in prefix_items
+                or item_id in completed_prefix
+            ):
+                raise ValueError("invalid terminal prefix update")
+            _prefix_transition(
+                prefix_items[item_id],
+                item,
+                event_type=event["type"],
+            )
+            continue
+        if event["type"] != "item.completed":
+            raise ValueError("unknown terminal event shape")
+        if item_type in allowed_types:
+            item = _prefix_item(item, allowed_types=allowed_types)
+            if (
+                terminal_item is not None
+                or item_id not in prefix_items
+                or item_id in completed_prefix
+            ):
+                raise ValueError("invalid terminal prefix completion")
+            _prefix_transition(
+                prefix_items[item_id],
+                item,
+                event_type=event["type"],
+            )
+            completed_prefix.add(item_id)
+            continue
+        if item_type != "agent_message" or terminal_item is not None:
+            raise ValueError("invalid or duplicate terminal agent result")
+        terminal_item = _exact_event(
+            item,
+            {"id", "type", "text"},
+            "terminal agent result",
+        )
+        if type(terminal_item["text"]) is not str:
+            raise ValueError("terminal agent result text is invalid")
+        terminal_ordinal = ordinal
+    if set(prefix_items) != completed_prefix:
+        raise ValueError("terminal prefix item lacks matching completion")
+    if terminal_item is None or terminal_ordinal is None:
+        raise ValueError("terminal agent result is missing")
+    try:
+        final = json.loads(terminal_item["text"])
+    except json.JSONDecodeError as error:
+        raise ValueError("terminal agent result is not JSON") from error
+    if not isinstance(final, dict):
+        raise ValueError("terminal agent result must be an object")
+
+    completion = _exact_event(
+        events[-1],
+        {"type", "usage"},
+        "turn.completed",
+    )
+    if completion["type"] != "turn.completed":
+        raise ValueError("terminal completion binding mismatch")
+    result_sha256 = canonical_sha256(final)
+    usage = _exact_event(completion["usage"], _USAGE_FIELDS, "usage completion")
+    if any(
+        type(usage[field]) is not int or usage[field] < 0 for field in _USAGE_FIELDS
+    ):
+        raise ValueError("invalid terminal usage completion")
+    stream_sha256 = sha256_bytes(stdout.encode())
+    turn_id = canonical_sha256(
+        {
+            "thread_id": thread_id,
+            "action_id": expected["action_id"],
+            "attempt_key": expected["attempt_key"],
+            "terminal_ordinal": terminal_ordinal,
+            "stream_sha256": stream_sha256,
+        }
+    )
+    terminal = {
+        "provenance": "validated_invocation+native_stream",
+        "provider": expected["provider"],
+        "session_id": expected["session_id"],
+        "thread_id": thread_id,
+        "turn_id": turn_id,
+        "action_id": expected["action_id"],
+        "attempt_key": expected["attempt_key"],
+        "result_id": terminal_item["id"],
+        "result_sha256": result_sha256,
+        "stream_sha256": stream_sha256,
+        "terminal_ordinal": terminal_ordinal,
+    }
+    return final, usage, thread_id, terminal
+
+
+_RESULT_CONTEXT_FIELDS = frozenset(
+    {
+        "task_id",
+        "root_task_id",
+        "executor_task_id",
+        "owner_label",
+        "destination_id",
+        "lineage_digest",
+        "role_config_digest",
+        "repository_digest",
+        "outcome_digest",
+        "invocation_profile",
+        "accepted_baseline_failures",
+    }
+)
+_FINDING_STATES = {
+    "baseline_unchanged": "BASELINE_ACCEPTED",
+    "resolved": "RESOLVED",
+    "candidate_new": "CANDIDATE_NEW",
+    "unknown": "UNKNOWN",
+}
+_ACTION_ASSERTIONS = {
+    "ASK_USER": ("stop_for_user", False, "none", False),
+    "CLOSE": ("complete", False, "none", True),
+    "EXACT_FINAL": ("continue", False, "exact_final", False),
+    "FOCUSED_REVIEW": ("continue", False, "focused_hardening", False),
+    "FREEZE_CANDIDATE": ("continue", False, "none", False),
+    "IMPLEMENT_BATCH": ("continue", True, "none", False),
+    "RECONCILE": ("incomplete", False, "none", False),
+    "VERIFY": ("continue", False, "none", False),
+}
+
+
+def _exact_nonblank_strings(value: Any, *, label: str) -> list[str]:
+    if (
+        not isinstance(value, list)
+        or any(type(item) is not str or not item.strip() for item in value)
+        or len(value) != len(set(value))
+    ):
+        raise ValueError(f"{label} must contain unique exact identities")
+    return value
+
+
+def _repository_binding_digest(
+    case_id: str,
+    baseline_revision: str,
+    baseline_tree: str,
+) -> str:
+    return canonical_sha256(
+        {
+            "domain": "happycodex/0.6/repository",
+            "repositories": [
+                {
+                    "namespace": f"case:{case_id}",
+                    "baseline_revision": baseline_revision,
+                    "baseline_tree": baseline_tree,
+                }
+            ],
+        }
+    )
+
+
+def _outcome_binding_digest(operative_request: str) -> str:
+    return canonical_sha256(
+        {
+            "domain": "happycodex/0.6/outcome",
+            "operative_request": operative_request,
+        }
+    )
+
+
+def semantic_result_projection(
+    result: dict[str, Any],
+    *,
+    context: dict[str, Any],
+) -> dict[str, Any]:
+    if not isinstance(result, dict):
+        raise ValueError("raw result must be an object")
+    if not isinstance(context, dict) or set(context) != _RESULT_CONTEXT_FIELDS:
+        raise ValueError("semantic result context is invalid")
+    try:
+        profile = validate_invocation_profile(context["invocation_profile"])
+    except ValueError as exc:
+        raise ValueError("invocation_profile is invalid") from exc
+    for field in _RESULT_CONTEXT_FIELDS - {
+        "invocation_profile",
+        "accepted_baseline_failures",
+    }:
+        if type(context[field]) is not str or not context[field]:
+            raise ValueError(f"semantic result context field is invalid: {field}")
+    accepted_baseline = context["accepted_baseline_failures"]
+    if (
+        not isinstance(accepted_baseline, list)
+        or any(type(item) is not str or not item for item in accepted_baseline)
+        or accepted_baseline != sorted(set(accepted_baseline))
+    ):
+        raise ValueError("accepted baseline identities are invalid")
+
+    raw_sha256 = canonical_sha256(result)
+    source = f"result:{raw_sha256}"
+    findings = result.get("finding_classifications", [])
+    blockers = result.get("blocker_classifications", [])
+    if not isinstance(findings, list) or not isinstance(blockers, list):
+        raise ValueError("result classifications must be arrays")
+    if any(
+        not isinstance(item, dict)
+        or set(item) != {"identity", "domain", "state", "anchors"}
+        for item in findings
+    ):
+        raise ValueError("finding classifications are invalid")
+    identities = _exact_nonblank_strings(
+        [item["identity"] for item in findings],
+        label="finding identities",
+    )
+    if len(identities) != len(findings):
+        raise ValueError("finding classifications are invalid")
+    if any(
+        not isinstance(item, dict)
+        or set(item) != {"identity", "class", "blocking", "reason"}
+        for item in blockers
+    ):
+        raise ValueError("blocker classifications are invalid")
+    blocker_identities = _exact_nonblank_strings(
+        [item["identity"] for item in blockers],
+        label="blocker identities",
+    )
+    if len(blocker_identities) != len(blockers):
+        raise ValueError("blocker classifications are invalid")
+    if any(identity not in identities for identity in blocker_identities):
+        raise ValueError("blocker identity lacks an exact finding")
+    for item in findings:
+        if (
+            item["domain"] not in {"secret", "baseline_failure", "receipt", "other"}
+            or item["state"] not in _FINDING_STATES
+            or not isinstance(item["anchors"], list)
+            or any(type(anchor) is not str for anchor in item["anchors"])
+            or len(item["anchors"]) != len(set(item["anchors"]))
+        ):
+            raise ValueError("finding classification is invalid")
+    for item in blockers:
+        if (
+            item["class"] not in BLOCKER_CLASSES
+            or type(item["blocking"]) is not bool
+            or type(item["reason"]) is not str
+        ):
+            raise ValueError("blocker classification is invalid")
+        finding = next(
+            candidate
+            for candidate in findings
+            if candidate["identity"] == item["identity"]
+        )
+        if item["blocking"] is True and finding["state"] == "resolved":
+            raise ValueError("resolved finding is blocking")
+
+    recovery = result.get("recovery_state")
+    if recovery is not None:
+        if not isinstance(recovery, dict) or set(recovery) != RECOVERY_STATE_FIELDS:
+            raise ValueError("recovery state has invalid structure")
+        if recovery.get("writer") != "Root":
+            raise ValueError("unknown writer in recovery")
+        if recovery.get("worktree") not in {"clean", "dirty"}:
+            raise ValueError("unknown worktree in recovery")
+        if recovery.get("milestone_phase") not in CONVERGENCE_PHASES:
+            raise ValueError("unknown convergence phase in recovery")
+        if recovery.get("next_action") not in RECOVERY_ACTIONS:
+            raise ValueError("unknown recovery action")
+        recovery_gates = recovery.get("pending_gates")
+        if (
+            not isinstance(recovery_gates, list)
+            or len(recovery_gates) != len(set(recovery_gates))
+            or any(gate not in RECOVERY_PENDING_GATES for gate in recovery_gates)
+        ):
+            raise ValueError("invalid recovery pending gates")
+        tests = recovery.get("tests")
+        if (
+            not isinstance(tests, dict)
+            or set(tests)
+            != {"passed", "failed", "accepted_failures", "marker_ids"}
+            or any(
+                type(tests[field]) is not int or tests[field] < 0
+                for field in ("passed", "failed", "accepted_failures")
+            )
+            or tests["accepted_failures"] > tests["failed"]
+        ):
+            raise ValueError("invalid recovery tests")
+        if tests["failed"] > tests["accepted_failures"]:
+            raise ValueError("unaccepted failure in recovery tests")
+        agents = recovery.get("live_agents")
+        if not isinstance(agents, list):
+            raise ValueError("invalid recovery agents")
+        for agent in agents:
+            if not isinstance(agent, dict) or set(agent) != {
+                "id",
+                "status",
+                "receipt_reproduced",
+            }:
+                raise ValueError("invalid recovery agent")
+            if agent["status"] == "missing":
+                raise ValueError("missing agent in recovery")
+            if agent["status"] != "terminal":
+                raise ValueError("nonterminal recovery agent")
+            if agent["receipt_reproduced"] is not True:
+                raise ValueError("unreproduced recovery receipt")
+        manifest = recovery_manifest_projection(recovery)
+        if manifest["recovery_manifest_count"] == 0:
+            raise ValueError("missing Recovery Manifest")
+        if manifest["recovery_manifest_count"] != 1:
+            raise ValueError("duplicate Recovery Manifest")
+        if not isinstance(manifest["recovery_manifest_sha256"], str):
+            raise ValueError("invalid Recovery Manifest")
+        if not recovery_summary_consistent(recovery):
+            raise ValueError("recovery summary mismatch")
+
+    open_gates = _exact_nonblank_strings(
+        result.get("open_gates", []),
+        label="open gates",
+    )
+    if any(gate not in RECOVERY_PENDING_GATES for gate in open_gates):
+        raise ValueError("open gate is outside the exact lifecycle vocabulary")
+    qualifies = result.get("qualifies")
+    execplan = result.get("execplan_condition")
+    if type(qualifies) is not bool or execplan not in {
+        "not_required",
+        "missing",
+        "usable",
+        "needs_amendment",
+    }:
+        raise ValueError("raw qualification facts are invalid")
+    finding_records = []
+    for item in findings:
+        state = _FINDING_STATES[item["state"]]
+        if state == "BASELINE_ACCEPTED" and item["identity"] not in accepted_baseline:
+            state = "UNKNOWN"
+        finding_records.append(
+            {
+                "id": f"finding:{canonical_sha256(item['identity'])}",
+                "state": state,
+                "evidence": [source],
+            }
+        )
+    blocking = any(item["blocking"] is True for item in blockers)
+    unresolved = blocking or any(
+        record["state"] in {"CANDIDATE_NEW", "UNKNOWN"}
+        for record in finding_records
+    )
+    needs_reconciliation = unresolved or execplan in {"missing", "needs_amendment"}
+    facts_envelope = {
+        "schema_generation": 6,
+        "task_binding": {
+            "task_id": context["task_id"],
+            "root_task_id": context["root_task_id"],
+            "executor_task_id": context["executor_task_id"],
+            "owner_label": context["owner_label"],
+            "destination_id": context["destination_id"],
+            "lineage_digest": context["lineage_digest"],
+            "role_config_digest": context["role_config_digest"],
+            "repository_digest": context["repository_digest"],
+            "outcome_digest": context["outcome_digest"],
+        },
+        "facts": {
+            "checks": [
+                {"id": "result-schema", "state": "PASS", "evidence": [source]},
+                {
+                    "id": "execplan",
+                    "state": (
+                        "PASS"
+                        if execplan in {"usable", "not_required"}
+                        else "FAIL"
+                    ),
+                    "evidence": [source],
+                },
+            ],
+            "claims": [
+                {
+                    "id": "qualification",
+                    "state": "VERIFIED" if qualifies else "N/A",
+                    "evidence": [source],
+                }
+            ],
+            "families": [
+                {
+                    "id": "evaluator",
+                    "state": "OPEN" if needs_reconciliation else "CLOSED",
+                    "evidence": [source],
+                }
+            ],
+            "findings": finding_records,
+            "gates": [
+                {
+                    "id": gate,
+                    "state": "OPEN",
+                    "family_id": "evaluator",
+                    "evidence": [source],
+                }
+                for gate in open_gates
+            ],
+            "markers": [],
+            "paths": [],
+            "replacements": [],
+        },
+        "administration": {
+            "authority_receipts": [],
+            "consumptions": [],
+            "cursors": [],
+            "receipts": [
+                {
+                    "id": "invocation-profile",
+                    "value": canonical_sha256(profile),
+                }
+            ],
+            "resource_claims": [],
+            "timestamps": [],
+        },
+    }
+    report = reduce_facts(parse_facts(facts_envelope))
+    action_kind = report.next_action.kind.value
+    expected_assertions = _ACTION_ASSERTIONS.get(action_kind)
+    if expected_assertions is None:
+        raise ValueError(f"unsupported evaluator action: {action_kind}")
+    raw_assertions = (
+        result.get("decision"),
+        result.get("protocol_may_product_write"),
+        result.get("protocol_review_mode"),
+        result.get("protocol_may_complete"),
+    )
+    if raw_assertions != expected_assertions:
+        raise ValueError(
+            "raw protocol assertions diverge from reducer action: "
+            f"{raw_assertions!r} != {expected_assertions!r}"
+        )
+    return {
+        "schema_generation": 6,
+        "raw_result_sha256": raw_sha256,
+        "invocation_profile_sha256": canonical_sha256(profile),
+        "accepted_baseline_sha256": canonical_sha256(accepted_baseline),
+        "report": report.to_wire(),
+        "attempt_key": make_attempt_key(report).value,
+    }
+
+
+def semantic_result_failures(
+    result: dict[str, Any],
+    *,
+    accepted_baseline_failures: list[str] | None = None,
+) -> list[str]:
+    if not PERMISSION_FIELDS.issubset(result):
+        return []
+    accepted = sorted(accepted_baseline_failures or [])
+    try:
+        semantic_result_projection(
+            result,
+            context={
+                "task_id": "case:offline-oracle",
+                "root_task_id": "root:evaluator",
+                "executor_task_id": "executor:evaluator",
+                "owner_label": "happycodex-evaluator",
+                "destination_id": "repository:happycodex",
+                "lineage_digest": canonical_sha256(result),
+                "role_config_digest": canonical_sha256(
+                    {
+                        "filesystem_isolation": FILESYSTEM_ISOLATION_POLICY,
+                        "disabled_features": DISABLED_FEATURES,
+                    }
+                ),
+                "repository_digest": _repository_binding_digest(
+                    "offline-oracle",
+                    "0" * 40,
+                    "0" * 40,
+                ),
+                "outcome_digest": _outcome_binding_digest(
+                    "validate exact evaluator result assertions"
+                ),
+                "invocation_profile": invocation_profile(
+                    model="offline-oracle",
+                    effort="deterministic",
+                    timeout_seconds=1,
+                    arm="candidate",
+                ),
+                "accepted_baseline_failures": accepted,
+            },
+        )
+    except ValueError as exc:
+        return [str(exc)]
+    return []
+
+
+def structural_result_failures(result: dict[str, Any]) -> list[str]:
+    findings = result.get("finding_classifications", [])
+    blockers = result.get("blocker_classifications", [])
+    try:
+        if not isinstance(findings, list) or not isinstance(blockers, list):
+            raise ValueError("result classifications must be arrays")
+        finding_ids = _exact_nonblank_strings(
+            [
+                item.get("identity")
+                for item in findings
+                if isinstance(item, dict)
+            ],
+            label="finding identities",
+        )
+        blocker_ids = _exact_nonblank_strings(
+            [
+                item.get("identity")
+                for item in blockers
+                if isinstance(item, dict)
+            ],
+            label="blocker identities",
+        )
+        if len(finding_ids) != len(findings) or len(blocker_ids) != len(blockers):
+            raise ValueError("result classifications are invalid")
+        if any(identity not in finding_ids for identity in blocker_ids):
+            raise ValueError("blocker identity lacks an exact finding")
+    except ValueError as exc:
+        return [str(exc)]
+    return []
 
 
 def _validated_capability(authorization: Any) -> Any:
-    from evaluation.core.ledger import AuthorizedInvocation
-
-    if not isinstance(authorization, AuthorizedInvocation):
-        raise ValueError("live execution requires a validated capability")
-    return authorization
+    del authorization
+    raise ValueError("generation-6 live capability is unavailable until Batch3")
 
 
 def invoke_codex(
@@ -1556,13 +2447,12 @@ def disabled_feature_args() -> list[str]:
 
 
 def finding_identity_matches(actual: str, expected: str) -> bool:
-    return bool(identity_match_values(actual) & identity_match_values(expected))
+    return type(actual) is str and type(expected) is str and actual == expected
 
 
 def finding_has_anchor(finding: dict[str, Any], expected: str) -> bool:
-    expected_folded = expected.casefold()
     return any(
-        isinstance(item, str) and item.casefold() == expected_folded
+        type(item) is str and item == expected
         for item in finding.get("anchors", [])
     )
 
@@ -1632,7 +2522,15 @@ def match_oracle(
         allowed = expected if isinstance(expected, list) else [expected]
         if result.get(field) not in allowed:
             failures.append(f"{field}: got {result.get(field)!r}, expected {allowed!r}")
-    failures.extend(protocol_state_failures(result))
+    failures.extend(structural_result_failures(result))
+    failures.extend(
+        semantic_result_failures(
+            result,
+            accepted_baseline_failures=oracle.get(
+                "accepted_baseline_failures", []
+            ),
+        )
+    )
     if expected_recovery_state is not None:
         failures.extend(
             recovery_state_failures(
@@ -1648,7 +2546,7 @@ def match_oracle(
         and fixture_requires_goal_pause_handoff(fixture)
         and result.get("decision") == "stop_for_user"
         and not any(
-            isinstance(gate, str) and "/goal pause" in gate
+            gate == "user_selection"
             for gate in result.get("open_gates", [])
         )
     ):
@@ -1693,7 +2591,7 @@ def match_oracle(
             )
     anchored_blocker_matches: list[list[frozenset[str]]] = []
     for expected in oracle.get("required_anchored_blockers", []):
-        anchor = expected["anchor"].casefold()
+        anchor = expected["anchor"]
         allowed_classes = expected["class"]
         if not isinstance(allowed_classes, list):
             allowed_classes = [allowed_classes]
@@ -1715,13 +2613,21 @@ def match_oracle(
             failures.append(
                 f"missing anchored blocker: {expected['anchor']} {allowed_classes}"
             )
-    if anchored_blocker_matches and not has_distinct_identity_assignment(
-        anchored_blocker_matches
+    if anchored_blocker_matches and (
+        any(len(matches) != 1 for matches in anchored_blocker_matches)
+        or len(
+            {
+                next(iter(matches[0]))
+                for matches in anchored_blocker_matches
+                if len(matches) == 1 and len(matches[0]) == 1
+            }
+        )
+        != len(anchored_blocker_matches)
     ):
         failures.append("distinct anchored blocker required for each material item")
     anchored_classification_matches: list[list[frozenset[str]]] = []
     for expected in oracle.get("required_anchored_classifications", []):
-        anchor = expected["anchor"].casefold()
+        anchor = expected["anchor"]
         allowed_states = expected["state"]
         if not isinstance(allowed_states, list):
             allowed_states = [allowed_states]
@@ -1738,8 +2644,16 @@ def match_oracle(
                 "missing anchored classification: "
                 f"{expected['anchor']} {expected['domain']} {allowed_states}"
             )
-    if anchored_classification_matches and not has_distinct_identity_assignment(
-        anchored_classification_matches
+    if anchored_classification_matches and (
+        any(len(matches) != 1 for matches in anchored_classification_matches)
+        or len(
+            {
+                next(iter(matches[0]))
+                for matches in anchored_classification_matches
+                if len(matches) == 1 and len(matches[0]) == 1
+            }
+        )
+        != len(anchored_classification_matches)
     ):
         failures.append(
             "distinct anchored classification required for each material item"
@@ -1854,63 +2768,41 @@ def _validate_case_capability(
     arm: str,
     unit_id: str | None,
 ) -> None:
+    del authorization, case, plugin, model, effort, timeout, arm, unit_id
+    raise ValueError("generation-6 live capability is unavailable until Batch3")
+
+
+def _phase_event_binding(
+    authorization: Any,
+    *,
+    case_id: str,
+    arm: str,
+    phase: str,
+    session_scope: str,
+    thread_id: str | None,
+) -> tuple[dict[str, Any], dict[str, Any]]:
     capability = _validated_capability(authorization)
     descriptor = capability.descriptor()
-    snapshot = capability.snapshot()
-    settings = snapshot.get("settings")
-    if (
-        not isinstance(settings, dict)
-        or descriptor.get("model") != model
-        or descriptor.get("effort") != effort
-        or descriptor.get("timeout_seconds") != timeout
-        or settings.get("model") != model
-        or settings.get("effort") != effort
-        or settings.get("timeout_seconds") != timeout
-    ):
-        raise ValueError("case execution settings do not match the capability")
-    command = descriptor.get("command")
-    unit_id = unit_id or case.get("id")
-    if command == "corpus":
-        current = load_cases().get(unit_id)
-        expected_package = {
-            "semantic_sha256": descriptor.get("package_semantic_sha256"),
-            "artifact_sha256": descriptor.get("package_artifact_sha256"),
-        }
-        if (
-            unit_id not in descriptor.get("cases", [])
-            or unit_id not in snapshot.get("corpus", {}).get("cases", {})
-            or current != case
-            or descriptor.get("arm") != arm
-            or expected_package != snapshot.get("package")
-        ):
-            raise ValueError("corpus case does not match the capability")
-    elif command == "holdout":
-        if arm == "candidate":
-            expected_package = {
-                "semantic_sha256": descriptor.get("candidate_semantic_sha256"),
-                "artifact_sha256": descriptor.get("candidate_artifact_sha256"),
+    profile = validate_invocation_profile(
+        descriptor.get("invocation_profile"),
+        require_bound_binary=True,
+    )
+    binding = {
+        "provider": profile["provider"],
+        "session_id": canonical_sha256(
+            {
+                "authority_sha256": capability.authority_sha256,
+                "attempt_key": descriptor.get("attempt_id"),
+                "case_id": case_id,
+                "arm": arm,
+                "session_scope": session_scope,
             }
-        elif arm == "public-0.4.0":
-            expected_package = {
-                "semantic_sha256": descriptor.get("public_semantic_sha256"),
-                "artifact_sha256": descriptor.get("public_artifact_sha256"),
-            }
-        else:
-            raise ValueError("holdout arm does not match the capability")
-        if (
-            unit_id not in descriptor.get("pairs", [])
-            or unit_id not in snapshot.get("holdout", {}).get("pairs", {})
-            or {
-                "semantic_sha256": descriptor.get("candidate_semantic_sha256"),
-                "artifact_sha256": descriptor.get("candidate_artifact_sha256"),
-            }
-            != snapshot.get("package")
-        ):
-            raise ValueError("holdout case does not match the capability")
-    else:
-        raise ValueError("case execution command does not match the capability")
-    if package_identities(plugin) != expected_package:
-        raise ValueError("case package does not match the capability")
+        ),
+        "thread_id": thread_id,
+        "action_id": f"case:{case_id}:{arm}:{phase}",
+        "attempt_key": descriptor.get("attempt_id"),
+    }
+    return binding, profile
 
 
 def evaluate_case(
@@ -1955,6 +2847,36 @@ def evaluate_case(
             timeout=timeout,
             arm=arm,
         )
+        descriptor = _validated_capability(authorization).descriptor()
+        effective_profile = validate_invocation_profile(
+            descriptor.get("invocation_profile"),
+            require_bound_binary=True,
+        )
+        accepted_baseline_failures = sorted(
+            case["oracle"].get("accepted_baseline_failures", [])
+        )
+        semantic_context = {
+            "task_id": f"case:{case['id']}:{arm}",
+            "root_task_id": "root:evaluator",
+            "executor_task_id": "executor:evaluator",
+            "owner_label": "happycodex-evaluator",
+            "destination_id": "repository:happycodex",
+            "lineage_digest": input_digest,
+            "role_config_digest": canonical_sha256(
+                {
+                    "filesystem_isolation": FILESYSTEM_ISOLATION_POLICY,
+                    "disabled_features": DISABLED_FEATURES,
+                }
+            ),
+            "repository_digest": _repository_binding_digest(
+                case["id"],
+                fixture["commits"][0],
+                fixture["trees"][0],
+            ),
+            "outcome_digest": _outcome_binding_digest(case["prompt"]),
+            "invocation_profile": effective_profile,
+            "accepted_baseline_failures": accepted_baseline_failures,
+        }
         tool_bin = prepare_native_tool_bin(temp)
         home, env = isolated_home(temp)
         installation = install_plugin(package, home, env)
@@ -2026,6 +2948,7 @@ def evaluate_case(
         ended_at = datetime.now(timezone.utc)
         final: dict[str, Any] = {}
         usage_phases: list[dict[str, int]] = []
+        terminal_projections: list[dict[str, Any]] = []
         thread_id: str | None = None
         resume_thread_id: str | None = None
         fresh_recovery_thread_id: str | None = None
@@ -2035,7 +2958,25 @@ def evaluate_case(
         recovery_expected: dict[str, Any] | None = None
         if initial.returncode == 0:
             try:
-                initial_final, initial_usage, thread_id = parse_events(initial.stdout)
+                initial_binding, profile = _phase_event_binding(
+                    authorization,
+                    case_id=case["id"],
+                    arm=arm,
+                    phase=initial_phase,
+                    session_scope="native-primary" if native else "initial",
+                    thread_id=None,
+                )
+                (
+                    initial_final,
+                    initial_usage,
+                    thread_id,
+                    initial_terminal,
+                ) = parse_events(
+                    initial.stdout,
+                    binding=initial_binding,
+                    invocation_profile=profile,
+                )
+                terminal_projections.append(initial_terminal)
                 usage_phases.append(initial_usage)
                 if not native:
                     final = initial_final
@@ -2108,9 +3049,25 @@ def evaluate_case(
                 commands.append([*resume_argv[:-1], "<prompt>"])
                 if resumed.returncode == 0:
                     try:
-                        final, resume_usage, resume_thread_id = parse_events(
-                            resumed.stdout
+                        resume_binding, profile = _phase_event_binding(
+                            authorization,
+                            case_id=case["id"],
+                            arm=arm,
+                            phase="resume",
+                            session_scope="native-primary",
+                            thread_id=thread_id,
                         )
+                        (
+                            final,
+                            resume_usage,
+                            resume_thread_id,
+                            resume_terminal,
+                        ) = parse_events(
+                            resumed.stdout,
+                            binding=resume_binding,
+                            invocation_profile=profile,
+                        )
+                        terminal_projections.append(resume_terminal)
                         usage_phases.append(resume_usage)
                         failures.extend(
                             match_oracle(
@@ -2179,11 +3136,25 @@ def evaluate_case(
                 commands.append([*fresh_argv[:-1], "<fresh-recovery-prompt>"])
                 if fresh_completed.returncode == 0:
                     try:
+                        fresh_binding, profile = _phase_event_binding(
+                            authorization,
+                            case_id=case["id"],
+                            arm=arm,
+                            phase="fresh-recovery",
+                            session_scope="fresh-recovery",
+                            thread_id=None,
+                        )
                         (
                             fresh_recovery_result,
                             fresh_usage,
                             fresh_recovery_thread_id,
-                        ) = parse_events(fresh_completed.stdout)
+                            fresh_terminal,
+                        ) = parse_events(
+                            fresh_completed.stdout,
+                            binding=fresh_binding,
+                            invocation_profile=profile,
+                        )
+                        terminal_projections.append(fresh_terminal)
                         usage_phases.append(fresh_usage)
                         failures.extend(
                             match_oracle(
@@ -2240,6 +3211,24 @@ def evaluate_case(
         if files_after != fixture["files"]:
             failures.append("read-only task changed fixture content")
 
+        semantic_result: dict[str, Any] | None = None
+        fresh_recovery_semantic_result: dict[str, Any] | None = None
+        try:
+            semantic_result = semantic_result_projection(
+                final,
+                context=semantic_context,
+            )
+            if fresh_recovery_result is not None:
+                fresh_recovery_semantic_result = semantic_result_projection(
+                    fresh_recovery_result,
+                    context={
+                        **semantic_context,
+                        "task_id": f"case:{case['id']}:{arm}:fresh-recovery",
+                    },
+                )
+        except ValueError as exc:
+            failures.append(str(exc))
+
         required_usage = ("input_tokens", "cached_input_tokens", "output_tokens")
         expected_phases = 3 if native else 1
         usage = combined_usage(*usage_phases)
@@ -2282,11 +3271,14 @@ def evaluate_case(
             "thread_id": thread_id,
             "resume_thread_id": resume_thread_id,
             "fresh_recovery_thread_id": fresh_recovery_thread_id,
+            "terminal_projections": terminal_projections,
             "prompt_sha256": sha256_bytes(prompt.encode()),
             "prepare_prompt_sha256": (
                 sha256_bytes(initial_prompt.encode()) if native else None
             ),
             "semantic_input_sha256": input_digest,
+            "invocation_profile": effective_profile,
+            "accepted_baseline_failures": accepted_baseline_failures,
             "identities": {
                 "engine": engine_inventory(ROOT),
                 "package": copied_package,
@@ -2308,7 +3300,9 @@ def evaluate_case(
             "phase_stderr_sha256": phase_stderr_digests,
             "native_compaction": native_receipt,
             "result": final,
+            "semantic_result": semantic_result,
             "fresh_recovery_result": fresh_recovery_result,
+            "fresh_recovery_semantic_result": fresh_recovery_semantic_result,
             "oracle_failures": failures,
             "passed": not failures,
             "command": commands[-1],
@@ -2370,7 +3364,19 @@ def run_command(args: Any) -> int:
         raise SystemExit(f"unknown cases: {sorted(unknown)}")
     if args.dry_run:
         print(
-            json.dumps({"cases": selected, "coverage": sorted(REQUIRED_TAGS)}, indent=2)
+            json.dumps(
+                {
+                    "cases": selected,
+                    "coverage": sorted(REQUIRED_TAGS),
+                    "invocation_profile": invocation_profile(
+                        model=args.model,
+                        effort=args.effort,
+                        timeout_seconds=args.timeout,
+                        arm=args.arm,
+                    ),
+                },
+                indent=2,
+            )
         )
         return 0
     raise SystemExit("live corpus execution is available only through evaluation.cli")
@@ -2419,87 +3425,5 @@ def _evaluate_cases_bounded(
 
 
 def run_authorized(args: Any, authorization: Any) -> int:
-    from evaluation.core.ledger import AuthorizedInvocation
-
-    if not isinstance(authorization, AuthorizedInvocation):
-        raise SystemExit("live corpus execution requires a validated capability")
-    descriptor = authorization.descriptor()
-    if descriptor.get("command") != "corpus":
-        raise SystemExit("invalid corpus execution capability")
-    cases = load_cases()
-    selected = sorted(args.cases or list(cases))
-    if (
-        selected != descriptor.get("cases")
-        or args.model != descriptor.get("model")
-        or args.effort != descriptor.get("effort")
-        or args.timeout != descriptor.get("timeout_seconds")
-        or args.arm != descriptor.get("arm")
-    ):
-        raise SystemExit("corpus execution does not match the validated capability")
-    plugin = args.plugin.resolve()
-    try:
-        plugin_identity = package_identities(plugin)
-    except (OSError, ValueError) as exc:
-        raise SystemExit("invalid corpus package") from exc
-    if plugin_identity != {
-        "semantic_sha256": descriptor.get("package_semantic_sha256"),
-        "artifact_sha256": descriptor.get("package_artifact_sha256"),
-    }:
-        raise SystemExit("corpus package does not match the validated capability")
-    try:
-        output = resolve_output_path(args.output, plugin=plugin)
-    except ValueError as exc:
-        raise SystemExit(str(exc)) from exc
-    output.mkdir(parents=True, exist_ok=True)
-    results = _evaluate_cases_bounded(
-        selected,
-        lambda case_id: evaluate_case(
-            cases[case_id],
-            plugin=plugin,
-            output=output,
-            model=args.model,
-            effort=args.effort,
-            timeout=args.timeout,
-            arm=args.arm,
-            authorization=authorization,
-            authorization_unit=case_id,
-        ),
-    )
-    summary = {
-        "schema_version": 1,
-        "engine_generation": "0.4",
-        "impact_token": authorization.impact_token,
-        "live_authority_sha256": authorization.authority_sha256,
-        "arm": args.arm,
-        "model": args.model,
-        "effort": args.effort,
-        "timeout_seconds": args.timeout,
-        "passed": sum(result["passed"] for result in results),
-        "total": len(results),
-        "uncached_input_tokens": sum(
-            result["uncached_input_tokens"]
-            for result in results
-            if result["uncached_input_tokens"] is not None
-        ),
-        "telemetry_complete": all(
-            result["uncached_input_tokens"] is not None for result in results
-        ),
-        "output_tokens": sum(
-            result["usage"].get("output_tokens", 0) for result in results
-        ),
-        "elapsed_seconds": round(
-            sum(result["elapsed_seconds"] for result in results), 3
-        ),
-        "cases": [
-            sanitized_case_receipt(
-                result,
-                metadata_sha256=sha256_bytes(
-                    (output / result["case"] / "metadata.json").read_bytes()
-                ),
-            )
-            for result in results
-        ],
-    }
-    write_new_json(output / "summary.json", summary)
-    print(json.dumps(summary, indent=2))
-    return 0 if summary["passed"] == summary["total"] else 1
+    del args, authorization
+    raise SystemExit("generation-6 live capability is unavailable until Batch3")

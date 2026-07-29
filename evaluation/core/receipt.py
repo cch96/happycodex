@@ -6,13 +6,12 @@ from pathlib import Path
 import re
 from typing import Any
 
-from evaluation.core.identity import canonical_sha256, sha256_bytes
-from evaluation.corpus.contract import (
+from evaluation.core.identity import (
     PERMISSION_FIELDS,
-    gate_projection,
-    identity_match_values,
+    canonical_sha256,
     recovery_manifest_projection,
     recovery_summary_consistent,
+    sha256_bytes,
 )
 
 
@@ -20,20 +19,16 @@ def text_sha256(value: Any) -> str:
     return sha256_bytes(str(value).encode())
 
 
-def casefold_text_sha256(value: Any) -> str:
-    return sha256_bytes(str(value).casefold().encode())
-
-
-def identity_match_sha256s(value: Any) -> list[str]:
-    return sorted(
-        casefold_text_sha256(candidate) for candidate in identity_match_values(value)
-    )
-
-
 def member_sha256s(value: Any) -> list[str]:
     if not isinstance(value, list):
         return []
-    return sorted({casefold_text_sha256(item) for item in value})
+    return sorted({text_sha256(item) for item in value if type(item) is str})
+
+
+def canonical_members_sha256(value: Any) -> str:
+    if not isinstance(value, list):
+        return canonical_sha256([])
+    return canonical_sha256(sorted(value))
 
 
 def sanitized_recovery_receipt(value: Any) -> dict[str, Any] | None:
@@ -65,7 +60,7 @@ def sanitized_recovery_receipt(value: Any) -> dict[str, Any] | None:
     receipt["tests"].update(
         {
             "marker_ids_count": len(markers) if isinstance(markers, list) else 0,
-            "marker_ids_sha256": canonical_sha256(markers),
+            "marker_ids_sha256": canonical_members_sha256(markers),
         }
     )
     agents = value.get("live_agents", [])
@@ -84,7 +79,7 @@ def sanitized_recovery_receipt(value: Any) -> dict[str, Any] | None:
     )
     marker_ids = value.get("marker_ids", [])
     receipt["marker_ids_count"] = len(marker_ids) if isinstance(marker_ids, list) else 0
-    receipt["marker_ids_sha256"] = canonical_sha256(marker_ids)
+    receipt["marker_ids_sha256"] = canonical_members_sha256(marker_ids)
     receipt.update(recovery_manifest_projection(value))
     receipt["summary_consistent"] = recovery_summary_consistent(value)
     return receipt
@@ -103,12 +98,6 @@ def sanitized_result_receipt(value: Any) -> dict[str, Any] | None:
         [
             {
                 "identity_sha256": text_sha256(item.get("identity", "")),
-                "identity_casefold_sha256": casefold_text_sha256(
-                    item.get("identity", "")
-                ),
-                "identity_match_sha256s": identity_match_sha256s(
-                    item.get("identity", "")
-                ),
                 "identity_nonblank": bool(
                     isinstance(item.get("identity"), str) and item["identity"].strip()
                 ),
@@ -117,7 +106,7 @@ def sanitized_result_receipt(value: Any) -> dict[str, Any] | None:
                 "anchors_count": len(item.get("anchors", []))
                 if isinstance(item.get("anchors", []), list)
                 else 0,
-                "anchors_sha256": canonical_sha256(item.get("anchors", [])),
+                "anchors_sha256": canonical_members_sha256(item.get("anchors", [])),
                 "anchor_sha256s": member_sha256s(item.get("anchors", [])),
             }
             for item in findings
@@ -131,12 +120,6 @@ def sanitized_result_receipt(value: Any) -> dict[str, Any] | None:
         [
             {
                 "identity_sha256": text_sha256(item.get("identity", "")),
-                "identity_casefold_sha256": casefold_text_sha256(
-                    item.get("identity", "")
-                ),
-                "identity_match_sha256s": identity_match_sha256s(
-                    item.get("identity", "")
-                ),
                 "identity_nonblank": bool(
                     isinstance(item.get("identity"), str) and item["identity"].strip()
                 ),
@@ -153,11 +136,10 @@ def sanitized_result_receipt(value: Any) -> dict[str, Any] | None:
     for field in ("open_gates", "evidence"):
         items = value.get(field, [])
         receipt[f"{field}_count"] = len(items) if isinstance(items, list) else 0
-        receipt[f"{field}_sha256"] = canonical_sha256(items)
+        receipt[f"{field}_sha256"] = canonical_members_sha256(items)
     open_gates = value.get("open_gates", [])
-    receipt.update(gate_projection(open_gates))
-    receipt["goal_pause_handoff_present"] = isinstance(open_gates, list) and any(
-        isinstance(gate, str) and "/goal pause" in gate for gate in open_gates
+    receipt["goal_pause_handoff_present"] = (
+        isinstance(open_gates, list) and "user_selection" in open_gates
     )
     receipt["reason_sha256"] = text_sha256(value.get("reason", ""))
     receipt["recovery_state"] = sanitized_recovery_receipt(value.get("recovery_state"))
@@ -215,6 +197,8 @@ def sanitized_native_compaction_receipt(value: Any) -> dict[str, Any] | None:
 def sanitized_case_receipt(
     result: dict[str, Any], *, metadata_sha256: str
 ) -> dict[str, Any]:
+    from evaluation.core.ledger import _validate_semantic_result_projection
+
     installation = result.get("installation", {})
     safe_installation = {
         key: installation.get(key)
@@ -228,9 +212,28 @@ def sanitized_case_receipt(
     plugin = installation.get("plugin", {})
     if plugin:
         safe_installation["plugin_sha256"] = canonical_sha256(plugin)
+    profile = result.get("invocation_profile")
+    accepted_baseline = result.get("accepted_baseline_failures", [])
+    semantic_result = _validate_semantic_result_projection(
+        result.get("semantic_result"),
+        raw_result=result.get("result"),
+        invocation_profile=profile,
+        accepted_baseline_failures=accepted_baseline,
+    )
+    fresh_raw = result.get("fresh_recovery_result")
+    fresh_semantic = result.get("fresh_recovery_semantic_result")
+    if fresh_raw is not None:
+        fresh_semantic = _validate_semantic_result_projection(
+            fresh_semantic,
+            raw_result=fresh_raw,
+            invocation_profile=profile,
+            accepted_baseline_failures=accepted_baseline,
+        )
+    elif fresh_semantic is not None:
+        raise ValueError("unexpected fresh recovery semantic projection")
     receipt = {
         "schema_version": 1,
-        "engine_generation": "0.4",
+        "engine_generation": "0.6",
         "id": result["case"],
         "metadata_sha256": metadata_sha256,
         "installation": safe_installation,
@@ -244,6 +247,7 @@ def sanitized_case_receipt(
                 "elapsed_seconds",
                 "exit_code",
                 "semantic_input_sha256",
+                "invocation_profile",
                 "identities",
                 "events_sha256",
                 "stderr_sha256",
@@ -254,9 +258,12 @@ def sanitized_case_receipt(
             )
         },
         "result": sanitized_result_receipt(result.get("result")),
+        "semantic_result": semantic_result,
         "fresh_recovery_result": sanitized_result_receipt(
             result.get("fresh_recovery_result")
         ),
+        "fresh_recovery_semantic_result": fresh_semantic,
+        "terminal_projections": result.get("terminal_projections", []),
         "oracle_failures": {
             "count": len(result.get("oracle_failures", [])),
             "sha256": canonical_sha256(result.get("oracle_failures", [])),

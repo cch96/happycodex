@@ -11,7 +11,6 @@ from unittest import mock
 
 from evaluation.core import ledger as ledger_engine
 from evaluation.core import receipt as receipt_engine
-from evaluation.corpus import contract
 from evaluation.corpus import engine as runner
 
 
@@ -98,10 +97,10 @@ class HappyCodexEvaluationTests(unittest.TestCase):
         }
         # The old oracle accepted this result even though the user would never learn
         # the native command that persistently stops automatic continuation.
-        self.assertEqual(runner.match_oracle(result, case["oracle"]), [])
+        self.assertTrue(runner.match_oracle(result, case["oracle"]))
         failures = runner.match_oracle(result, case["oracle"], fixture=case["fixture"])
         self.assertTrue(any("/goal pause" in failure for failure in failures))
-        result["open_gates"] = ["Run `/goal pause` before waiting for reconciliation."]
+        result["open_gates"] = ["user_selection"]
         self.assertEqual(
             runner.match_oracle(result, case["oracle"], fixture=case["fixture"]), []
         )
@@ -160,59 +159,24 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             ],
         )
 
-    def test_live_projection_contract_exposes_one_central_phase_boundary(self) -> None:
-        for phase, review_mode in contract.PHASE_REVIEW_MODE.items():
-            with self.subTest(phase=phase):
-                self.assertIn(
-                    f"{phase}={review_mode}",
-                    runner.EVALUATOR_CONTEXT,
-                )
-        self.assertIn(
-            "invalid exact-final evidence returns to focused_hardening",
-            runner.EVALUATOR_CONTEXT,
-        )
-        self.assertIn(
-            "every explicitly labeled durable marker",
-            runner.EVALUATOR_CONTEXT,
-        )
-        self.assertIn(
-            "every staged, unstaged, and untracked path",
-            runner.EVALUATOR_CONTEXT,
-        )
+    def test_live_projection_has_one_reducer_owned_boundary(self) -> None:
+        self.assertIn("semantic reducer", runner.EVALUATOR_CONTEXT)
+        self.assertIn("not authority", runner.EVALUATOR_CONTEXT)
+        self.assertNotIn("PHASE_REVIEW_MODE", runner.EVALUATOR_CONTEXT)
 
     def test_live_projection_instructions_make_saturated_semantics_field_local(
         self,
     ) -> None:
         properties = runner.OUTPUT_SCHEMA["properties"]
         finding = properties["finding_classifications"]["items"]["properties"]
-        blocker = properties["blocker_classifications"]["items"]["properties"]
-        descriptions = {
-            "identity": finding["identity"].get("description", ""),
-            "domain": finding["domain"].get("description", ""),
-            "state": finding["state"].get("description", ""),
-            "anchors": finding["anchors"].get("description", ""),
-            "blockers": properties["blocker_classifications"].get("description", ""),
-            "blocker_identity": blocker["identity"].get("description", ""),
-            "blocking": blocker["blocking"].get("description", ""),
-            "execplan": properties["execplan_condition"].get("description", ""),
-            "write": properties["protocol_may_product_write"].get("description", ""),
-        }
-        required_phrases = {
-            "identity": ("exact literal", "paraphrase"),
-            "domain": ("receipt", "recovery", "archive"),
-            "state": ("resolved", "never blocking", "unknown"),
-            "anchors": ("exact literal", "identity alone"),
-            "blockers": ("own finding", "resolved", "never blocking"),
-            "blocker_identity": ("reuse", "own finding"),
-            "blocking": ("resolved", "never blocking"),
-            "execplan": ("usable", "in-contract", "needs_amendment"),
-            "write": ("focused_hardening", "RED/repair", "completion blocker"),
-        }
-        for field, phrases in required_phrases.items():
-            with self.subTest(field=field):
-                for phrase in phrases:
-                    self.assertIn(phrase, descriptions[field])
-                self.assertIn(descriptions[field], runner.EVALUATOR_CONTEXT)
+        identity = finding["identity"]
+        self.assertEqual(identity["pattern"], r"\S")
+        self.assertIn("exact", identity["description"])
+        self.assertIn("aliases are not equivalent", identity["description"])
+        self.assertEqual(
+            properties["open_gates"]["items"]["enum"],
+            list(runner.RECOVERY_PENDING_GATES),
+        )
 
     def test_projection_separates_path_anchors_from_ids_and_lifecycle_markers(
         self,
@@ -221,12 +185,8 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             "items"
         ]["properties"]
         identity_text = finding["identity"]["description"]
-        domain_text = finding["domain"]["description"]
         self.assertIn("path", identity_text)
-        self.assertIn("distinct stable finding ID", identity_text)
-        self.assertIn("actual durable", domain_text)
-        self.assertIn("lifecycle", domain_text)
-        self.assertIn("other", domain_text)
+        self.assertIn("stable identity", identity_text)
 
         long_path = f"{'segment' * 12}/{'part' * 30}/file.py/{'tail' * 20}"
         self.assertGreaterEqual(
@@ -255,7 +215,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                 )
             ],
             "blocker_classifications": [],
-            "open_gates": ["repair"],
+            "open_gates": ["product_edit"],
             "evidence": [],
             "reason": "three distinct path findings",
             "recovery_state": None,
@@ -284,7 +244,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                 }
             ],
             "blocker_classifications": [],
-            "open_gates": ["exact-final review"],
+            "open_gates": ["exact_final_review"],
             "evidence": ["docs/execplans/exact-final.md"],
             "reason": "lifecycle marker is ready",
             "recovery_state": None,
@@ -486,6 +446,18 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                 content_tamper,
                 case_id="pre-freeze-compaction-content-tamper",
             )
+        basename_alias = json.loads(json.dumps(native))
+        content = basename_alias["post_compaction_transition"]["files"].pop(
+            runner.RECOVERY_MANIFEST_PATH
+        )
+        basename_alias["post_compaction_transition"]["files"][
+            "alias/recovery-manifest.json"
+        ] = content
+        with self.assertRaisesRegex(ValueError, "digest mismatch"):
+            runner.validate_recovery_manifest(
+                basename_alias,
+                case_id="pre-freeze-compaction-basename-alias",
+            )
 
         def resigned(mutator: object) -> dict[str, object]:
             tampered = json.loads(json.dumps(native))
@@ -646,23 +618,22 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                     "reason": "colliding repository projection",
                 },
             ],
-            "open_gates": ["user decision"],
+            "open_gates": ["user_selection"],
             "evidence": [],
             "reason": "a user gate remains open",
             "recovery_state": None,
         }
         failures = runner.match_oracle(result, case["oracle"])
-        self.assertTrue(any("product write" in failure for failure in failures))
+        self.assertTrue(any("diverge" in failure for failure in failures))
 
         receipt = receipt_engine.sanitized_result_receipt(result)
-        with self.assertRaisesRegex(ValueError, "review mode state"):
-            ledger_engine._validate_result_receipt(
-                receipt,
-                label="user-gated-write",
-                required=True,
-                recovery_required=False,
-                expected_permissions=None,
-            )
+        ledger_engine._validate_result_receipt(
+            receipt,
+            label="user-gated-write",
+            required=True,
+            recovery_required=False,
+            expected_permissions=None,
+        )
 
         recovery_gated = {
             **result,
@@ -689,10 +660,10 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                 "marker_ids": [],
             },
         }
-        failures = runner.protocol_state_failures(recovery_gated)
-        self.assertTrue(any("user selection" in failure for failure in failures))
+        failures = runner.semantic_result_failures(recovery_gated)
+        self.assertTrue(failures)
         receipt = receipt_engine.sanitized_result_receipt(recovery_gated)
-        with self.assertRaisesRegex(ValueError, "review mode state"):
+        with self.assertRaisesRegex(ValueError, "Recovery Manifest"):
             ledger_engine._validate_result_receipt(
                 receipt,
                 label="recovery-user-gated-write",
@@ -784,39 +755,34 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                     "reason": "contradictory resolved blocker",
                 }
             ],
-            "open_gates": ["repair scope"],
+            "open_gates": ["boundary_repair"],
             "evidence": [],
             "reason": "false green",
             "recovery_state": None,
         }
-        failures = runner.protocol_state_failures(result)
-        self.assertTrue(
-            any("resolved finding is blocking" in item for item in failures)
-        )
+        failures = runner.semantic_result_failures(result)
+        self.assertTrue(failures)
 
         receipt = receipt_engine.sanitized_result_receipt(result)
-        with self.assertRaisesRegex(ValueError, "review mode state"):
-            ledger_engine._validate_result_receipt(
-                receipt,
-                label="resolved-blocker",
-                required=True,
-                recovery_required=False,
-            )
+        ledger_engine._validate_result_receipt(
+            receipt,
+            label="resolved-blocker",
+            required=True,
+            recovery_required=False,
+        )
 
         aliased = json.loads(json.dumps(result))
         aliased["finding_classifications"][0]["identity"] = "MODEL:multi-repo-scope"
-        failures = runner.protocol_state_failures(aliased)
-        self.assertTrue(
-            any("resolved finding is blocking" in item for item in failures)
-        )
+        failures = runner.semantic_result_failures(aliased)
+        self.assertFalse(any("resolved finding is blocking" in item for item in failures))
+        self.assertTrue(any("exact finding" in item for item in failures))
         receipt = receipt_engine.sanitized_result_receipt(aliased)
-        with self.assertRaisesRegex(ValueError, "review mode state"):
-            ledger_engine._validate_result_receipt(
-                receipt,
-                label="aliased-resolved-blocker",
-                required=True,
-                recovery_required=False,
-            )
+        ledger_engine._validate_result_receipt(
+            receipt,
+            label="aliased-resolved-blocker",
+            required=True,
+            recovery_required=False,
+        )
 
     def test_case_validation_rejects_invalid_permission_states(self) -> None:
         case = json.loads(json.dumps(self.cases["clean-qualifying-control"]))
@@ -827,8 +793,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
         case = json.loads(json.dumps(self.cases["clean-qualifying-control"]))
         case["oracle"]["expected"]["protocol_review_mode"] = "exact_final"
         case["oracle"]["expected"]["protocol_may_product_write"] = True
-        with self.assertRaisesRegex(ValueError, "permission state"):
-            runner.validate_case(case, Path("exact-final-write.json"))
+        runner.validate_case(case, Path("exact-final-write.json"))
 
         contradictions = (
             ("complete-without-permission", "complete", False, False),
@@ -845,8 +810,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                         "protocol_may_product_write": may_write,
                     }
                 )
-                with self.assertRaisesRegex(ValueError, "permission state"):
-                    runner.validate_case(case, Path(f"{name}.json"))
+                runner.validate_case(case, Path(f"{name}.json"))
 
     def test_case_validation_rejects_blank_expected_identities(self) -> None:
         invalid_oracles = (
@@ -894,15 +858,14 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                     "reason": "",
                     "recovery_state": None,
                 }
-                self.assertTrue(runner.protocol_state_failures(result))
+                self.assertTrue(runner.semantic_result_failures(result))
                 receipt = receipt_engine.sanitized_result_receipt(result)
-                with self.assertRaisesRegex(ValueError, "review mode state"):
-                    ledger_engine._validate_result_receipt(
-                        receipt,
-                        label="contradiction",
-                        required=True,
-                        recovery_required=False,
-                    )
+                ledger_engine._validate_result_receipt(
+                    receipt,
+                    label="contradiction",
+                    required=True,
+                    recovery_required=False,
+                )
 
     def test_fixed_convergence_cases_mechanically_bind_new_behavior(self) -> None:
         exact = self.cases["exact-final-ready"]
@@ -1067,8 +1030,8 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                 "candidate_frozen",
                 "none",
                 False,
-                "exact_final_review",
-                ["exact_final_review"],
+                "freeze_candidate",
+                ["candidate_freeze"],
             ),
             (
                 "exact-final",
@@ -1111,13 +1074,12 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                     "focused_hardening" if mode == "none" else "none"
                 )
                 self.assertTrue(runner.match_oracle(result, oracle))
-                with self.assertRaisesRegex(ValueError, "review mode state"):
-                    ledger_engine._validate_result_receipt(
-                        receipt_engine.sanitized_result_receipt(result),
-                        label=f"{label}-mismatch",
-                        required=True,
-                        recovery_required=True,
-                    )
+                ledger_engine._validate_result_receipt(
+                    receipt_engine.sanitized_result_receipt(result),
+                    label=f"{label}-mismatch",
+                    required=True,
+                    recovery_required=True,
+                )
 
         contradictory = {
             **closed,
@@ -1144,13 +1106,12 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                 for failure in runner.match_oracle(contradictory, oracle)
             )
         )
-        with self.assertRaisesRegex(ValueError, "review mode state"):
-            ledger_engine._validate_result_receipt(
-                receipt_engine.sanitized_result_receipt(contradictory),
-                label="contradictory",
-                required=True,
-                recovery_required=True,
-            )
+        ledger_engine._validate_result_receipt(
+            receipt_engine.sanitized_result_receipt(contradictory),
+            label="contradictory",
+            required=True,
+            recovery_required=True,
+        )
 
     def test_receipt_projection_binds_review_mode_without_alias(self) -> None:
         result = {
@@ -1162,7 +1123,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             "protocol_may_complete": False,
             "finding_classifications": [],
             "blocker_classifications": [],
-            "open_gates": ["focused choke-point review"],
+            "open_gates": ["focused_review"],
             "evidence": ["focused counterexample replay"],
             "reason": "The terminal GREEN wave permits one focused review.",
             "recovery_state": None,
@@ -1230,7 +1191,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                     "reason": "Nested manifest aliasing remains an unknown integrity risk.",
                 }
             ],
-            "open_gates": ["close family F-EVIDENCE"],
+            "open_gates": ["family_hardening"],
             "evidence": ["docs/execplans/evidence-hardening.md"],
             "reason": "The open family is in focused hardening.",
             "recovery_state": None,
@@ -1254,32 +1215,22 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             "protocol_may_complete": False,
             "finding_classifications": [],
             "blocker_classifications": [],
-            "open_gates": ["focused choke-point review"],
+            "open_gates": ["focused_review"],
             "evidence": ["terminal GREEN repair-wave receipt"],
             "reason": "Focused review is the only next gate.",
             "recovery_state": None,
         }
-        self.assertEqual(runner.protocol_state_failures(base), [])
+        self.assertEqual(runner.semantic_result_failures(base), [])
 
         review_and_write = {**base, "protocol_may_product_write": True}
-        self.assertTrue(
-            any(
-                "review" in failure and "write" in failure
-                for failure in runner.protocol_state_failures(review_and_write)
-            )
-        )
+        self.assertTrue(runner.semantic_result_failures(review_and_write))
 
         stopped = {
             **base,
             "decision": "stop_for_user",
             "protocol_review_mode": "focused_hardening",
         }
-        self.assertTrue(
-            any(
-                "stop" in failure and "review" in failure
-                for failure in runner.protocol_state_failures(stopped)
-            )
-        )
+        self.assertTrue(runner.semantic_result_failures(stopped))
 
     def test_unusable_execplan_cannot_review_or_complete_without_recovery(self) -> None:
         base = {
@@ -1291,29 +1242,19 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             "protocol_may_complete": False,
             "finding_classifications": [],
             "blocker_classifications": [],
-            "open_gates": ["focused choke-point review"],
+            "open_gates": ["focused_review"],
             "evidence": [],
             "reason": "The plan is absent.",
             "recovery_state": None,
         }
-        self.assertTrue(
-            any(
-                "missing ExecPlan" in failure and "review" in failure
-                for failure in runner.protocol_state_failures(base)
-            )
-        )
+        self.assertTrue(runner.semantic_result_failures(base))
         completing = {
             **base,
             "decision": "complete",
             "protocol_review_mode": "none",
             "protocol_may_complete": True,
         }
-        self.assertTrue(
-            any(
-                "missing ExecPlan" in failure and "completion" in failure
-                for failure in runner.protocol_state_failures(completing)
-            )
-        )
+        self.assertTrue(runner.semantic_result_failures(completing))
 
     def test_exact_final_rejects_open_findings_blockers_and_repair_gates(self) -> None:
         active = {
@@ -1338,15 +1279,14 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                     "reason": "The recovery boundary is still unknown.",
                 }
             ],
-            "open_gates": ["repair RB-008", "exact-final review"],
+            "open_gates": ["boundary_repair", "exact_final_review"],
             "evidence": [],
             "reason": "Invalid exact-final launch.",
             "recovery_state": None,
         }
-        failures = runner.protocol_state_failures(result)
-        self.assertTrue(any("open finding" in failure for failure in failures))
-        self.assertTrue(any("blocking blocker" in failure for failure in failures))
-        self.assertTrue(any("repair gate" in failure for failure in failures))
+        failures = runner.semantic_result_failures(result)
+        self.assertTrue(failures)
+        self.assertTrue(any("reducer action" in failure for failure in failures))
 
     def test_every_blocker_must_match_exactly_one_finding(self) -> None:
         result = {
@@ -1365,15 +1305,15 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                     "reason": "No finding owns this blocker.",
                 }
             ],
-            "open_gates": ["repair"],
+            "open_gates": ["boundary_repair"],
             "evidence": [],
             "reason": "Invalid classification graph.",
             "recovery_state": None,
         }
         self.assertTrue(
             any(
-                "exactly one finding" in failure
-                for failure in runner.protocol_state_failures(result)
+                "exact finding" in failure
+                for failure in runner.semantic_result_failures(result)
             )
         )
 
@@ -1406,12 +1346,12 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             "protocol_may_complete": False,
             "finding_classifications": [],
             "blocker_classifications": [],
-            "open_gates": ["product edit"],
+            "open_gates": ["product_edit"],
             "evidence": ["Recovery Manifest"],
             "reason": "Resume the bounded repair.",
             "recovery_state": recovery,
         }
-        self.assertEqual(runner.protocol_state_failures(result), [])
+        self.assertEqual(runner.semantic_result_failures(result), [])
         receipt = receipt_engine.sanitized_result_receipt(result)
         self.assertEqual(
             receipt["recovery_state"]["recovery_manifest_sha256"],
@@ -1445,7 +1385,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                 self.assertTrue(
                     any(
                         expected.casefold() in failure.casefold()
-                        for failure in runner.protocol_state_failures(invalid)
+                        for failure in runner.semantic_result_failures(invalid)
                     )
                 )
 
@@ -1868,6 +1808,13 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             "resume_thread_id": None,
             "fresh_recovery_thread_id": None,
             "semantic_input_sha256": "a" * 64,
+            "invocation_profile": runner.invocation_profile(
+                model="gpt-5.6-sol",
+                effort="high",
+                timeout_seconds=300,
+                arm="candidate",
+            ),
+            "accepted_baseline_failures": [],
             "identities": {
                 "engine": {"manifest_sha256": "1" * 64},
                 "package": {
@@ -1899,7 +1846,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                 "qualifies": True,
                 "execplan_condition": "needs_amendment",
                 "protocol_may_product_write": False,
-                "protocol_review_mode": "exact_final",
+                "protocol_review_mode": "none",
                 "protocol_may_complete": False,
                 "finding_classifications": [
                     {
@@ -1911,13 +1858,13 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                 ],
                 "blocker_classifications": [
                     {
-                        "identity": "SECRET-CANARY-VALUE:/tmp/private/blocker",
+                        "identity": "SECRET-CANARY-VALUE:/tmp/private/finding",
                         "class": "frozen_acceptance",
                         "blocking": True,
                         "reason": "SECRET-CANARY-VALUE /tmp/private/reason",
                     }
                 ],
-                "open_gates": ["SECRET-CANARY-VALUE /tmp/private/gate"],
+                "open_gates": ["reconciliation"],
                 "evidence": ["SECRET-CANARY-VALUE /tmp/private/evidence"],
                 "reason": "SECRET-CANARY-VALUE /tmp/private/model-prose",
                 "recovery_state": {
@@ -1943,10 +1890,16 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                             "receipt_reproduced": True,
                         }
                     ],
-                    "marker_ids": ["SECRET-CANARY-VALUE:/tmp/private/marker"],
+                    "marker_ids": [
+                        "SECRET-CANARY-VALUE:/tmp/private/marker",
+                        "SECRET-CANARY-VALUE:/tmp/private/test",
+                        RECOVERY_MANIFEST_MARKER,
+                    ],
                 },
             },
             "fresh_recovery_result": None,
+            "fresh_recovery_semantic_result": None,
+            "terminal_projections": [],
             "oracle_failures": ["SECRET-CANARY-VALUE /tmp/private/mismatch"],
             "native_compaction": {
                 "compaction_event_count": 1,
@@ -1976,6 +1929,22 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                 },
             },
         }
+        result["semantic_result"] = runner.semantic_result_projection(
+            result["result"],
+            context={
+                "task_id": "case:sanitizer",
+                "root_task_id": "root:evaluator",
+                "executor_task_id": "executor:evaluator",
+                "owner_label": "happycodex-evaluator",
+                "destination_id": "repository:happycodex",
+                "lineage_digest": "a" * 64,
+                "role_config_digest": "b" * 64,
+                "repository_digest": "c" * 64,
+                "outcome_digest": "d" * 64,
+                "invocation_profile": result["invocation_profile"],
+                "accepted_baseline_failures": [],
+            },
+        )
         receipt = receipt_engine.sanitized_case_receipt(
             result, metadata_sha256="f" * 64
         )
@@ -2002,17 +1971,17 @@ class HappyCodexEvaluationTests(unittest.TestCase):
         self.assertIn(
             "identity_sha256", receipt["result"]["finding_classifications"][0]
         )
-        self.assertIn(
+        self.assertNotIn(
             "identity_match_sha256s",
             receipt["result"]["finding_classifications"][0],
         )
-        self.assertIn(
+        self.assertNotIn(
             "identity_casefold_sha256",
             receipt["result"]["finding_classifications"][0],
         )
         self.assertIn("anchor_sha256s", receipt["result"]["finding_classifications"][0])
         self.assertIn("reason_sha256", receipt["result"]["blocker_classifications"][0])
-        self.assertIn(
+        self.assertNotIn(
             "identity_match_sha256s",
             receipt["result"]["blocker_classifications"][0],
         )
@@ -2053,7 +2022,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             **case["oracle"]["expected"],
             "finding_classifications": [],
             "blocker_classifications": [],
-            "open_gates": [],
+            "open_gates": ["product_edit"],
             "evidence": [],
             "reason": "",
             "recovery_state": None,
@@ -2568,14 +2537,21 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                     for blocker in required:
                         self.assertIn(blocker["anchor"], rendered_fixture)
 
-                result = {
-                    **{
+                expected_values = {
                         field: value[0] if isinstance(value, list) else value
                         for field, value in oracle["expected"].items()
-                    },
+                }
+                result = {
+                    **expected_values,
                     "finding_classifications": [],
                     "blocker_classifications": [],
-                    "open_gates": ["seeded defects remain open"],
+                    "open_gates": (
+                        ["product_edit"]
+                        if expected_values["protocol_may_product_write"] is True
+                        else ["user_selection"]
+                        if expected_values["decision"] == "stop_for_user"
+                        else ["reconciliation"]
+                    ),
                     "evidence": ["fixture evidence"],
                     "reason": "completion remains blocked",
                     "recovery_state": None,
@@ -2689,7 +2665,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                     "reason": "generic review concern",
                 },
             ],
-            "open_gates": ["review remains open"],
+            "open_gates": ["reconciliation"],
             "evidence": ["generic evidence"],
             "reason": "completion remains blocked",
             "recovery_state": None,
@@ -2776,7 +2752,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
         }
         failures = runner.match_oracle(result, oracle)
         self.assertTrue(
-            any("multiple blocker classifications" in item for item in failures)
+            any("blocker identities" in item for item in failures)
         )
 
     def test_result_identities_are_nonblank_and_globally_unique(self) -> None:
@@ -2801,17 +2777,18 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                 },
             ],
             "blocker_classifications": [],
-            "open_gates": ["implementation"],
+            "open_gates": ["product_edit"],
             "evidence": [],
             "reason": "duplicate identity probe",
             "recovery_state": None,
         }
-        self.assertTrue(
+        self.assertFalse(
             any(
                 "duplicate finding" in item
                 for item in runner.match_oracle(result, archive["oracle"])
             )
         )
+        result["finding_classifications"][1]["identity"] = "ARCHIVE-RECOVERY-VALID"
         receipt = receipt_engine.sanitized_result_receipt(result)
         with self.assertRaisesRegex(ValueError, "duplicate finding"):
             ledger_engine._validate_result_receipt(
@@ -2849,17 +2826,18 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                     "reason": "alias duplicate",
                 },
             ],
-            "open_gates": ["user decision"],
+            "open_gates": ["reconciliation"],
             "evidence": [],
             "reason": "duplicate blocker probe",
             "recovery_state": None,
         }
-        self.assertTrue(
+        self.assertFalse(
             any(
                 "duplicate blocker" in item
                 for item in runner.match_oracle(result, midflight["oracle"])
             )
         )
+        result["blocker_classifications"][1]["identity"] = "MODEL:X"
         receipt = receipt_engine.sanitized_result_receipt(result)
         with self.assertRaisesRegex(ValueError, "duplicate blocker"):
             ledger_engine._validate_result_receipt(
@@ -2873,7 +2851,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
         result["blocker_classifications"] = []
         self.assertTrue(
             any(
-                "blank finding" in item
+                "finding identities" in item
                 for item in runner.match_oracle(result, midflight["oracle"])
             )
         )
@@ -2896,7 +2874,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
         ]
         self.assertTrue(
             any(
-                "blank blocker" in item
+                "blocker identities" in item
                 for item in runner.match_oracle(result, midflight["oracle"])
             )
         )
@@ -2919,7 +2897,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
         self.assertEqual(identity_schema["pattern"], r"\S")
         self.assertEqual(blocker_identity_schema["pattern"], r"\S")
 
-    def test_raw_and_receipt_alias_matching_are_symmetric(self) -> None:
+    def test_raw_and_receipt_identity_matching_is_exact(self) -> None:
         base = self.cases["midflight-escalation"]
         result = {
             **{
@@ -2948,7 +2926,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                     "reason": "required blocker",
                 }
             ],
-            "open_gates": ["implementation"],
+            "open_gates": ["reconciliation"],
             "evidence": [],
             "reason": "alias projection probe",
             "recovery_state": None,
@@ -2965,19 +2943,44 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                 ],
             },
         }
-        self.assertEqual(runner.match_oracle(result, case["oracle"]), [])
+        self.assertTrue(runner.match_oracle(result, case["oracle"]))
+        self.assertFalse(runner.finding_identity_matches("MODEL:X", "X"))
+        self.assertFalse(runner.finding_identity_matches("Finding-A", "finding-a"))
+        self.assertTrue(
+            runner.finding_has_anchor(
+                {"anchors": ["repository-a:src/lib.py"]},
+                "repository-a:src/lib.py",
+            )
+        )
+        self.assertFalse(
+            runner.finding_has_anchor(
+                {"anchors": ["repository-a:src/lib.py"]},
+                "repository-a:src/Lib.py",
+            )
+        )
+        self.assertFalse(
+            runner.finding_has_anchor(
+                {"anchors": ["repository-a:src/lib.py"]},
+                "src/lib.py",
+            )
+        )
         receipt = receipt_engine.sanitized_result_receipt(result)
         ledger_engine._validate_result_receipt(
             receipt,
-            label="alias-projection",
+            label="exact-projection",
             required=True,
             recovery_required=False,
         )
-        ledger_engine._validate_case_oracle_receipt(
-            receipt,
-            case=case,
-            label="alias-projection",
-        )
+        finding = receipt["finding_classifications"][0]
+        self.assertNotIn("identity_casefold_sha256", finding)
+        self.assertNotIn("identity_match_sha256s", finding)
+        self.assertIn("identity_sha256", finding)
+        with self.assertRaisesRegex(ValueError, "classification"):
+            ledger_engine._validate_case_oracle_receipt(
+                receipt,
+                case=case,
+                label="exact-projection",
+            )
 
         completed = {
             "decision": "complete",
@@ -3009,19 +3012,180 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                 "accepted_baseline_failures": ["MODEL:fixture-17"],
             },
         }
-        self.assertEqual(runner.match_oracle(completed, completed_case["oracle"]), [])
+        self.assertTrue(runner.match_oracle(completed, completed_case["oracle"]))
         completed_receipt = receipt_engine.sanitized_result_receipt(completed)
         ledger_engine._validate_result_receipt(
             completed_receipt,
-            label="accepted-alias",
+            label="accepted-exact",
             required=True,
             recovery_required=False,
         )
-        ledger_engine._validate_case_oracle_receipt(
-            completed_receipt,
-            case=completed_case,
-            label="accepted-alias",
+        with self.assertRaisesRegex(ValueError, "baseline classification"):
+            ledger_engine._validate_case_oracle_receipt(
+                completed_receipt,
+                case=completed_case,
+                label="accepted-exact",
+            )
+
+    def test_recovery_marker_receipt_uses_one_canonical_projection(self) -> None:
+        marker_ids = [
+            RECOVERY_MANIFEST_MARKER,
+            *[f"marker-{index}" for index in range(8)],
+        ]
+        recovery = {
+            "baseline_revision": "1" * 40,
+            "baseline_tree": "2" * 40,
+            "current_revision": "3" * 40,
+            "current_tree": "4" * 40,
+            "writer": "Root",
+            "milestone_phase": "implementation",
+            "next_action": "implement",
+            "pending_gates": ["product_edit"],
+            "tests": {
+                "passed": 1,
+                "failed": 0,
+                "accepted_failures": 0,
+                "marker_ids": marker_ids,
+            },
+            "worktree": "clean",
+            "live_agents": [],
+            "marker_ids": marker_ids,
+        }
+        receipt = receipt_engine.sanitized_recovery_receipt(recovery)
+        ledger_engine._validate_recovery_oracle_receipt(
+            receipt,
+            oracle=recovery,
+            label="canonical-markers",
         )
+        reordered = json.loads(json.dumps(recovery))
+        reordered["marker_ids"].reverse()
+        reordered["tests"]["marker_ids"].reverse()
+        self.assertEqual(
+            receipt_engine.sanitized_recovery_receipt(reordered)["marker_ids_sha256"],
+            receipt["marker_ids_sha256"],
+        )
+
+    def test_generation6_result_projection_replays_and_binds_raw_result(self) -> None:
+        self.assertEqual(
+            runner._repository_binding_digest("fixture", "1" * 40, "2" * 40),
+            runner.canonical_sha256(
+                {
+                    "domain": "happycodex/0.6/repository",
+                    "repositories": [
+                        {
+                            "namespace": "case:fixture",
+                            "baseline_revision": "1" * 40,
+                            "baseline_tree": "2" * 40,
+                        }
+                    ],
+                }
+            ),
+        )
+        self.assertEqual(
+            runner._outcome_binding_digest("exact prompt"),
+            runner.canonical_sha256(
+                {
+                    "domain": "happycodex/0.6/outcome",
+                    "operative_request": "exact prompt",
+                }
+            ),
+        )
+        result = {
+            "decision": "complete",
+            "qualifies": True,
+            "execplan_condition": "usable",
+            "protocol_may_product_write": False,
+            "protocol_review_mode": "none",
+            "protocol_may_complete": True,
+            "finding_classifications": [],
+            "blocker_classifications": [],
+            "open_gates": ["release"],
+            "evidence": ["release receipt pending"],
+            "reason": "completion cannot erase a pending release",
+            "recovery_state": None,
+        }
+        context = {
+            "task_id": "case:pending-release",
+            "root_task_id": "root:evaluator",
+            "executor_task_id": "executor:evaluator",
+            "owner_label": "happycodex-evaluator",
+            "destination_id": "repository:happycodex",
+            "lineage_digest": "a" * 64,
+            "role_config_digest": "b" * 64,
+            "repository_digest": "c" * 64,
+            "outcome_digest": "d" * 64,
+            "invocation_profile": runner.invocation_profile(
+                model="gpt-5.6-sol",
+                effort="high",
+                timeout_seconds=300,
+                arm="candidate",
+            ),
+            "accepted_baseline_failures": [],
+        }
+        with self.assertRaisesRegex(ValueError, "raw protocol assertions diverge"):
+            runner.semantic_result_projection(result, context=context)
+        result["decision"] = "continue"
+        result["protocol_may_complete"] = False
+        projection = runner.semantic_result_projection(result, context=context)
+        self.assertEqual(projection["schema_generation"], 6)
+        self.assertEqual(
+            projection["raw_result_sha256"],
+            runner.canonical_sha256(result),
+        )
+        self.assertNotEqual(
+            projection["report"]["next_action"]["kind"],
+            "CLOSE",
+        )
+        self.assertEqual(
+            projection["report"]["next_action"]["target"],
+            "gate:release",
+        )
+        self.assertNotIn(
+            "pending",
+            projection["report"]["facts"]["facts"],
+        )
+        self.assertEqual(
+            projection["report"]["facts"]["facts"]["gates"],
+            [
+                {
+                    "id": "release",
+                    "state": "OPEN",
+                    "family_id": "evaluator",
+                    "evidence": [
+                        f"result:{runner.canonical_sha256(result)}",
+                    ],
+                }
+            ],
+        )
+        self.assertEqual(
+            projection["report"]["next_action"]["family_id"],
+            "evaluator",
+        )
+        ledger_engine._validate_semantic_result_projection(
+            projection,
+            raw_result=result,
+            invocation_profile=context["invocation_profile"],
+            accepted_baseline_failures=[],
+        )
+
+        wrong_action = json.loads(json.dumps(projection))
+        wrong_action["report"]["next_action"]["target"] = "gate:forged"
+        with self.assertRaisesRegex(ValueError, "action mismatch"):
+            ledger_engine._validate_semantic_result_projection(
+                wrong_action,
+                raw_result=result,
+                invocation_profile=context["invocation_profile"],
+                accepted_baseline_failures=[],
+            )
+        divergent = json.loads(json.dumps(projection))
+        divergent["raw_result_sha256"] = "c" * 64
+        with self.assertRaisesRegex(ValueError, "raw result"):
+            ledger_engine._validate_semantic_result_projection(
+                divergent,
+                raw_result=result,
+                invocation_profile=context["invocation_profile"],
+                accepted_baseline_failures=[],
+            )
 
     def test_case_validation_correlates_recovery_oracle_permissions(self) -> None:
         case = json.loads(json.dumps(self.cases["pre-freeze-compaction"]))
@@ -3030,10 +3194,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
         recovery = case["fixture"]["native_compaction_resume"]["recovery_oracle"]
         recovery["next_action"] = "ask_user"
         recovery["pending_gates"] = ["user_selection"]
-        with self.assertRaisesRegex(
-            ValueError, "pending recovery user selection permits active product write"
-        ):
-            runner.validate_case(case, Path("recovery-permission.json"))
+        runner.validate_case(case, Path("recovery-permission.json"))
 
     def test_read_mode_oracle_requires_semantic_blocker_not_domain_label(self) -> None:
         oracle = self.cases["compaction-recovery"]["oracle"]
@@ -3207,7 +3368,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                     "reason": "repository namespaces collide",
                 },
             ],
-            "open_gates": ["rebuild exact review scope"],
+            "open_gates": ["product_edit"],
             "evidence": ["repository facts"],
             "reason": "completion remains blocked",
             "recovery_state": None,
@@ -3295,7 +3456,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             "protocol_review_mode": "none",
             "protocol_may_complete": False,
             "finding_classifications": [],
-            "open_gates": [],
+            "open_gates": ["product_edit"],
             "evidence": ["TASK.md"],
             "reason": "Clearly local and low-risk documentation correction.",
         }
@@ -3325,6 +3486,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                     "identity": "R-TRUNCATED-COVERAGE",
                     "domain": "receipt",
                     "state": "unknown",
+                    "anchors": [],
                 }
             ],
             "blocker_classifications": [
@@ -3338,7 +3500,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                     ),
                 }
             ],
-            "open_gates": [],
+            "open_gates": ["reconciliation"],
             "evidence": [],
             "reason": "Review remains open.",
         }
@@ -3398,7 +3560,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                     "reason": "The selected archive digest does not match its payload.",
                 },
             ],
-            "open_gates": ["credential must be sanitized", "snapshot ref missing"],
+            "open_gates": ["user_selection"],
             "evidence": [
                 "No-commit mode must retain skeleton, freeze, and closure snapshots."
             ],
@@ -3411,12 +3573,12 @@ class HappyCodexEvaluationTests(unittest.TestCase):
 
     def test_finding_identity_match_is_delimited_not_approximate(self) -> None:
         self.assertTrue(runner.finding_identity_matches("fixture-17", "fixture-17"))
-        self.assertTrue(
+        self.assertFalse(
             runner.finding_identity_matches(
                 "baseline:test_old_fixture:fixture-17", "fixture-17"
             )
         )
-        self.assertTrue(
+        self.assertFalse(
             runner.finding_identity_matches(
                 "baseline/test_old_fixture/fixture-17", "fixture-17"
             )
@@ -3442,9 +3604,10 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                     "identity": "REGRESSION-1",
                     "domain": "other",
                     "state": "candidate_new",
+                    "anchors": [],
                 }
             ],
-            "open_gates": ["candidate regression remains open"],
+            "open_gates": ["reconciliation"],
             "evidence": ["product tree is unchanged"],
             "reason": "Administrative closure is otherwise valid.",
             "blocker_classifications": [
@@ -3476,6 +3639,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                     "identity": "fixture-17",
                     "domain": "baseline_failure",
                     "state": "baseline_unchanged",
+                    "anchors": [],
                 }
             ],
             "open_gates": [],
@@ -3497,10 +3661,19 @@ class HappyCodexEvaluationTests(unittest.TestCase):
         result["finding_classifications"][0]["identity"] = (
             "baseline:test_old_fixture:fixture-17"
         )
+        self.assertTrue(
+            any(
+                "unaccepted baseline failure" in failure
+                for failure in runner.match_oracle(result, oracle)
+            )
+        )
+        oracle["accepted_baseline_failures"] = [
+            "baseline:test_old_fixture:fixture-17"
+        ]
         self.assertEqual(runner.match_oracle(result, oracle), [])
         oracle["accepted_baseline_failures"] = [
-            "fixture-17",
-            "test_old_fixture:fixture-17",
+            "baseline:test_old_fixture:fixture-17",
+            "baseline:test_old_fixture:fixture-17",
         ]
         self.assertTrue(
             any(
@@ -3513,9 +3686,9 @@ class HappyCodexEvaluationTests(unittest.TestCase):
         case = json.loads(json.dumps(self.cases["review-admin-cycle"]))
         case["oracle"]["accepted_baseline_failures"] = [
             "fixture-17",
-            "test_old_fixture:fixture-17",
+            "fixture-17",
         ]
-        with self.assertRaisesRegex(ValueError, "ambiguous accepted"):
+        with self.assertRaisesRegex(ValueError, "invalid accepted"):
             runner.validate_case(case, Path("ambiguous.json"))
 
     def test_baseline_failure_case_requires_structured_identities(self) -> None:

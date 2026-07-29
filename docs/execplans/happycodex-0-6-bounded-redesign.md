@@ -2,9 +2,10 @@
 
 Protocol: `HappyCodex/0.5`
 
-Current index: independent 0.6 bounded-redesign contract plus active same-batch
-action recomputation. G001/G002 are accepted source. G003 is unaccepted. G004
-is reachable but its receipt is invalidated; G005 owns its action-forge sibling.
+Current index: G001-G005 are accepted Batch 1 source at commit
+`27ea46e27254426ee5737078117d43f28c9df523`. Root accepts G006-G010
+collectively as the uncommitted Batch 2 candidate. G009 remains a rejected
+intermediate corrected by G010; G011 is active only through commit verification.
 
 Restore guard: restore this entire ExecPlan, then reconcile the exact Git source,
 fixed Executor identity, three resource claims, external intent and receipts,
@@ -12,12 +13,14 @@ current grant, phase, families, checks, candidate, evidence, agents, and any Goa
 before any write, review, effect, or completion claim. Conversation summaries,
 copied handles, and another task's source do not reconstruct authority.
 
-Phase: `implementation`. Active grant:
-`HC06BR-G-005-attempt-recompute`, sequence 5. It binds G004 commit
-`e500340ce7c4de8e50f5aa8292515478b1b4bc66`, tree
-`4a7c9db64c4551fc6fb588d5062eccaf38f2be9f`, the same fixed Executor/claim,
-and only canonical, decision, semantic-test, and ExecPlan paths. G001/G002 are
-Root-accepted/`CLOSED`; G003/G004 are not terminal evidence.
+Phase: `implementation`. Active grant `HC06BR-G-011-B2-commit`,
+sequence 11, family `F-06BR-EVALUATOR`, repair batch
+`RB-06BR-003/commit`, recurrence 0. It binds accepted commit/tree
+`27ea46e27254426ee5737078117d43f28c9df523` /
+`e4fd88e21d0b4190ccf407b082f6ba1cbe6af59f`, dirty diff
+`164c90dc3e8f0f8bd1103ba7d53f250483a6d6c2b9a9dd2f3ce192da79517ec2`,
+the same fixed Executor and claim, one plan edit, exact checks, staging, commit,
+and post-commit verification.
 
 ## Operative request and normalized Outcome
 
@@ -208,19 +211,24 @@ TaskBinding {
   owner_label,
   destination_id,
   lineage_digest,
-  role_config_digest
+  role_config_digest,
+  repository_digest,
+  outcome_digest
 }
 ```
 
-It binds this task to the fixed Root/Executor relationship and destination.
-Runtime supplies it from durable task/config facts. It is not inferred from prose,
-a conversation summary, or a live handle.
+It binds the fixed Root/Executor relationship, destination, exact repository
+artifact, and normalized Outcome. Runtime supplies both lowercase-64hex digests
+from a trusted adapter; neither is inferred from result prose, a conversation
+summary, or a live handle.
 
 `AuthorityProvenance` is separately issued by the current boundary adapter after
-exact event/user/config validation. It contains provenance kind
-`DIRECT | DELEGATED`, issuer, destination, lineage, source-event digest, exact
-scope, and authority digest. Model output cannot construct it. It is enforcement
-administration, not semantic progress.
+exact event/user/config validation. Its sealed fields are channel, root/source/
+target task, executor task, destination, lineage, message, turn, content digest,
+and reducer target/scope. The private kind is derived, never caller-declared:
+`current_task_user` requires source equals target;
+`cross_task_user_delegation` requires distinct tasks. Model output cannot
+construct it. It is enforcement administration, not semantic progress.
 
 `NextAction` is produced only by the reducer from parsed facts. It has an exact
 variant, target, scope, family, falsifier, and evidence-source identity.
@@ -229,6 +237,22 @@ variant, target, scope, family, falsifier, and evidence-source identity.
 No parser accepts serialized `NextAction`, `EffectGate`, permission boolean,
 phase, completion decision, or other derived action as a fact. Derived-state
 injection fails unknown-field validation.
+
+There is no semantic `pending` domain. An active gate is exactly
+`id/state/family_id/nonempty evidence`; its family must exist. The reducer owns
+the ordered policy: user selection asks; contract freeze, RED, checks, and
+release verify; product edit, family hardening, and boundary repair implement;
+reconciliation reconciles; focused review, candidate freeze, and exact final use
+their exact variants. Unknown or blocked effectful gates reconcile. User
+selection remains dominant; unresolved checks preempt effectful work/review/
+freeze, and unresolved semantics preempt downstream review/freeze. An unlinked
+fact uses a task-derived family rather than guessing a family association.
+
+Corpus repository binding hashes canonical
+`{domain:"happycodex/0.6/repository", repositories:[{namespace:"case:<id>",
+baseline_revision:<first>, baseline_tree:<first>}]}`
+and Outcome binding hashes canonical
+`{domain:"happycodex/0.6/outcome", operative_request:<exact prompt>}`.
 
 The one canonical encoder is domain-separated UTF-8 JSON with sorted object keys,
 explicit union tags, exact booleans and integers, no NaN/coercion, exact
@@ -270,11 +294,11 @@ Enforcement is exact:
 | Provenance/binding condition | EffectGate |
 | --- | --- |
 | direct authority to the exact bound destination, lineage, scope, and action | `ALLOW` |
-| legitimate delegated authority with exact issuer/destination/lineage but user decision required | `ASK_USER` |
+| exact cross-task user delegation to the bound task/executor/destination/lineage | `ASK_USER` |
 | missing provenance or authority | `REFUSE` |
-| spoofed issuer/source event | `REFUSE` |
+| spoofed or malformed channel/task/message/turn/content metadata | `REFUSE` |
 | wrong destination | `REFUSE` |
-| wrong lineage/task/config | `REFUSE` |
+| wrong root/lineage/task/executor/config | `REFUSE` |
 | target or scope differs from reducer-produced `NextAction` | `REFUSE` |
 
 `ASK_USER` authorizes no effect. `ALLOW` is necessary but not sufficient: the
@@ -321,9 +345,10 @@ remain maintainer support and are never linked from Runtime Skill Markdown.
 
 | Family | Invariant | Six-surface closure | Status | Batch | Recurrence |
 | --- | --- | --- | --- | --- | --- |
-| `F-06BR-RUNTIME` | semantic progress and event correction prevent equivalent repeated work and false GREEN | G003 siblings joined before acceptance; G004 covers sealed parse/reduction; G005 recomputes action at both consumers | `G005 GREEN; Root acceptance open` | `RB-06BR-001/instance` | `0` |
-| `F-06BR-AUTHORITY` | exact `TaskBinding`, provenance, reducer action, capability, claim, authority, and attempt gate every effect | G004 covers private authority/report issuance; G005 rejects sealed arbitrary action at AttemptKey and effect gate | `G005 GREEN; Root acceptance open` | `RB-06BR-002/instance` | `0` |
-| `F-06BR-EVALUATOR` | terminal, identity, decision, ledger, and replay share strict parsing and exact recomputation | same six surfaces, including duplicate/order/terminal/path/key/raw-ledger divergence and consumer propagation | `open` | `RB-06BR-003/instance` | `0` |
+| `F-06BR-RUNTIME` | semantic progress and event correction prevent equivalent repeated work and false GREEN | sealed parse/reduction plus action recomputation at both consumers | `Batch 1 accepted` | `RB-06BR-001/instance` | `0` |
+| `F-06BR-AUTHORITY` | exact binding, provenance, reducer action, capability, claim, authority, and attempt gate every effect | private issuance, recomputation, and exact enforcement | `Batch 1 and G010 accepted` | `RB-06BR-002/instance` | `0` |
+| `F-06BR-EVALUATOR` | terminal, identity, decision, ledger, and replay share strict parsing and exact recomputation | duplicate/order/terminal/path/key/raw-ledger divergence and consumer propagation | `G006-G010 candidate accepted; G011 commit active` | `RB-06BR-003/instance` | `0` |
+| `F-06BR-SEMANTIC-ACTION-BOUNDARY` | facts cannot inject actions and trustworthy metadata cannot be reclassified | parser/reducer/replay/authority/projection attack matrix | `active; terminal checks open` | `RB-06BR-004/instance` | `0` |
 
 Holdout quality and cost comparison remain separate gated evidence. They do not
 collapse into a family merely because their engines consume shared semantics.
@@ -417,10 +442,11 @@ checks include `verify` plus executor, corpus, and holdout dry-runs.
 
 ## Batch 3: fresh evidence, effect ordering, recovery, and candidate source
 
-Batch 3 replaces `evaluation/results/current.json` with a fresh generation-6
-genesis. No old-generation reader, alias, migration, fallback, prior-coverage
-reuse, or evidence locator is added. Old evidence may remain only as inert Git
-history and cannot be named by the active parser. Genesis has
+G009 explicitly moves only the minimal `evaluation/results/current.json`
+generation-6 genesis into Batch 2 so its terminal `verify` can be GREEN. No
+old-generation reader, alias, migration, fallback, prior-coverage reuse, or
+evidence locator is added. Old evidence remains inert and cannot be named by
+the active parser. Genesis has
 `engine_generation = "0.6"`, state `refresh_required`, exact source/snapshot/
 package/config/manifest identities, sorted pending gates, null executor/corpus/
 holdout authorities, empty calibration history, empty accepted evidence, no
@@ -533,7 +559,8 @@ The three holdout identities remain `authority-production-boundary`,
 cardinality, and behavior are preservation claims; schema bytes may change only
 to generation 6.
 
-Batch 3 owns `evaluation/results/current.json`, active old evidence deletion,
+G009 owns the one fresh `evaluation/results/current.json` genesis construction.
+Batch 3 retains later ledger evolution, active old evidence deletion,
 effect/recovery implementation and tests not closed earlier, `evaluation/README.md`,
 `AGENTS.md`, `README.md`, candidate source inventory, and tracked package/config
 source documentation needed to identify 0.6. A later exact grant must enumerate
@@ -574,8 +601,8 @@ directories and fixtures do not exist before capability/claim/authority/attempt
 consumption. A dry-run stops before capability mint and consumption. `ASK_USER`
 and `REFUSE` stop before every effect. A terminal tag says what the provider
 reported, not whether release or completion gates are satisfied. Thus
-`pending RELEASE + CompletionTag.COMPLETE` reduces to the pending release action
-or blocker and cannot close.
+an OPEN `release` gate plus `CompletionTag.COMPLETE` reduces to VERIFY or a
+safer blocker and cannot close.
 
 Parser output has two channels: stable semantic facts and validated administrative
 enforcement facts. Only the first plus `TaskBinding` feeds `ProgressKey`.
@@ -620,8 +647,8 @@ The following are behavior/state-transition oracles, not phrase checks:
 | parse/derive | reject derived-state injection; serialize/parse/reduce recomputes equal keys; stored mismatch refuses |
 | action/attempt | caller cannot substitute action target/scope; falsifier/evidence source changes attempt; admin-only facts do not |
 | infrastructure | `REPLACED` with empty evidence rejects; exact evidenced replacement changes stable facts |
-| authority | direct exact target ALLOW; legitimate delegated ASK_USER; spoofed/missing/wrong destination/wrong lineage REFUSE |
-| completion | pending-release plus `COMPLETE` remains blocked; negation is interpreted structurally, not as phrase presence |
+| authority | exact direct ALLOW; exact cross-task ASK_USER; spoofed/missing/wrong task/executor/destination/lineage REFUSE |
+| completion | open release plus `COMPLETE` remains blocked; negation is interpreted structurally, not as phrase presence |
 | path identity | repository-qualified case-sensitive exact path passes; alias/casefold/basename/suffix variants reject |
 | terminal | exact result/completion/EOF passes; extra/missing/late/mismatched/semantic terminal or trailing byte rejects |
 | capacity | marker/input overflow blocks without truncation, eviction, permutation cap, or false equality |
@@ -791,85 +818,68 @@ One token claims exactly the bounded-redesign worktree, branch ref, and this
 ledger. Its adjacent untracked claim directory is private control state, excluded
 from product/commit content, and is not released automatically.
 
-## Unaccepted G003-G005 same-batch hardening
+## Accepted Batch 1 and accepted Batch 2 candidate
 
-G003 produced reachable commit
-`f87b9dce68c88f537c0a18bd13da3d248248eebf`, tree
-`89944223582465667e84ea2982bd31e810f64a28`, with exact subject/trailer and
-mode-`0600` receipt SHA-256
-`2c6e288edfab2e1c5b981ddfb298b1111d17d335d1286a2d75dddb305cd0d18e`.
-Its recorded baseline/RED/focused/full checks remain historical characterization,
-but Root did not accept G003 or its terminal closure.
+Root accepted G003-G005 together as Batch 1 commit
+`27ea46e27254426ee5737078117d43f28c9df523`, tree
+`e4fd88e21d0b4190ccf407b082f6ba1cbe6af59f`. The accepted boundary removes
+public authority/report construction, rejects parser/type/duplicate bypasses,
+recomputes action at AttemptKey and enforcement, and never closes unresolved
+facts. Earlier invalidated intermediate receipts remain history, not evidence.
 
-Independent source review and executable probes on that exact commit confirmed
-four material same-batch sibling families:
+G006 owns the combined Batch 2 evaluator seams; G007 corrects the semantic
+inventory. Their immutable intent SHA-256 values are respectively
+`bedc7767eea10d04bf50d49dd9d00a3dafce05a3c887b0da9561d65464f796bf`
+and `1b39d234eeaca7443edc22b6c5beef610a8cafaf05c5aaff72c8d8bef50a544a`.
+G008 binds their accepted dirty binary diff
+`dd56e7954aff92476667e500223417290b95cd1886d999a1044fa624eef442ef`
+and tracked-path-list digest
+`743a5789f246002db2c26498fe29176f37396691a2ae730ab37eb8a7ce401112`.
 
-| Finding | Family | Exact reproduced G003 behavior | G004 boundary |
-| --- | --- | --- | --- |
-| `BR-FIND-B1-004` | `AUTHORITY-PUBLIC-FORGE` | public `from_adapter` and positional true marker each produced `ALLOW` | public construction/factory removed; only private issuance seam carries an identity seal; unissued authority refuses |
-| `BR-FIND-B1-005` | `REPORT-ACTION-FORGE` | caller-built report with arbitrary action produced an AttemptKey | public construction fails; reducer-only seal required; AttemptKey also recomputes ProgressKey |
-| `BR-FIND-B1-006` | `PARSER-TYPE-BYPASS` | duplicate evidence and a `str, Enum` identity were accepted; trusted Facts/record construction bypassed parse | exact string types, state/tag/domain/PK validation, duplicate rejection, canonical evidence order, immutable parser-issued Facts |
-| `BR-FIND-B1-007` | `FALSE-CLOSE` | unresolved facts with no pending action reduced to `CLOSE` | exact terminal sets; deterministic `RECONCILE` before any close while stable state is unresolved |
+G008 intent is mode `0600`, SHA-256
+`12c7eaff259ff617394621f276357282682b354a53a8736a32293ee3b9ada416`;
+its exact contract annex SHA-256 is
+`7af82f7f58801a6cda68e8cd68a9151b74eb9ddd1f82c3878a33c457160cba30`.
+Expanded RED SHA-256
+`ecadbdd91086e57e23abb49d11ba21e5d82f467697e450dddfe9ebce62a0d2bf`
+binds parser injection, every gate mapping and precedence, canonical evidence,
+TaskBinding digests, forged action family, and direct/cross-task authority
+attacks. The combined commit remains unmade pending G011 verification and must use
+subject `refactor: unify HappyCodex evaluator semantics` with G006-G010
+grant trailers.
 
-All arrived before Root acceptance/terminal GREEN, join
-`RB-06BR-001/instance` or `RB-06BR-002/instance`, and keep recurrence at 0.
-No boundary-required recurrence or new repair wave is created.
+G009 attempted the minimal Batch 2 genesis correction. Its mode-`0600` intent
+SHA-256 is
+`681bdbf7a835525cbc359dc72a5e7d8575f1680bd371d681dc68c229eef205ad`;
+its focused RED receipt SHA-256 is
+`cd21659baba9d6709475cbdc4d8c8fc792e1220b5d1fa05d8de6a01be1cf9726`.
+Root rejected its terminal receipt because legacy authority construction, claim,
+approval-string, combined-schema, attempt, historical-cost, and old-evidence
+surfaces remained.
 
-Grant `HC06BR-G-004-B1-boundary-hardening`, sequence 4, binds G003 as exact
-prestate, the same fixed Executor/role/owner and verified three-key claim, the
-same two repair waves, and no other family. Durable intent:
-`/home/caichenghang/.codex/happycodex-0.6-bounded-redesign-g004-b1-intent.json`,
-mode `0600`, SHA-256
-`8af7bb240c4fdbaad1a5349a8bb2a632bf23821c3668c4eb779db0ca5f8681d4`.
-Its only repository paths are the five final semantic modules,
-`tests/test_semantic_core.py`, and this ExecPlan. Runtime, identity, other
-tests/consumers, package metadata, and later batches cannot change.
+G010 physically removes those residual surfaces and leaves every non-dry
+executor/corpus/holdout path refusing before effects until Batch 3. Its
+mode-`0600` intent SHA-256 is
+`d4d4379ffe5ca942cbca09bf64725fc8a8532118e79e49285ddeddf7bb5907fa`;
+its focused RED receipt SHA-256 is
+`080f10ad32902af3178332501ae2d5ed3611ff6cad9191e70b30d13775be3a79`.
+Root accepts G010 and the combined G006-G010 Batch 2 candidate after independently
+reproducing 206/206 GREEN, refresh-required/noncertified verify, all three
+dry-runs, expected impact exit 2, old-field/generation rejection, pre-effect
+non-dry refusal, exact snapshot, zero legacy production hits, and diff/claim/hash
+checks. Evaluation production Python is 8,667 lines; the remaining 1,767-line
+overage is recorded and deferred because the frozen plan makes 6,900 blocking
+only at Batch 3 closure.
+The active ledger is exact generation `0.6`, `refresh_required`, with six sorted
+pending gates, all 17/3 identities, three null authorities, empty calibration
+and accepted evidence, and null receipt head/certification. Historical cost,
+attempt, singular-authority, compatibility, and old-evidence paths are absent
+from active production.
 
-G004 produced commit
-`e500340ce7c4de8e50f5aa8292515478b1b4bc66`, tree
-`4a7c9db64c4551fc6fb588d5062eccaf38f2be9f`. Its mode-`0600` receipt at
-`/home/caichenghang/.codex/happycodex-0.6-bounded-redesign-g004-b1-receipt.json`
-has SHA-256
-`3ee8276b50c969721733c5b82e54e0ce8d51e73297ca9c80fcbc2ac4a221203e`,
-but is superseded and invalidated: Root's post-receipt acceptance amendment
-changed the intent SHA, and a sealed arbitrary action still passed both
-AttemptKey and effect enforcement. G004 source/intent/receipt remain immutable
-historical inputs; they are not amended or rewritten.
-
-Grant `HC06BR-G-005-attempt-recompute`, sequence 5, binds G004 as prestate and
-permits only `evaluation/semantic/{canonical,decide}.py`,
-`tests/test_semantic_core.py`, and this ExecPlan. Its mode-`0600` intent is
-`/home/caichenghang/.codex/happycodex-0.6-bounded-redesign-g005-attempt-recompute-intent.json`,
-SHA-256
-`aada0d261a04dd035b1c7241a1c2ff3d6d1cbc60c31162d609727fc1d168736d`.
-It authorizes one commit, subject `fix: recompute HappyCodex reducer actions`,
-with trailer `HappyCodex-Grant: HC06BR-G-005-attempt-recompute`, then a
-mode-`0600` receipt at the same basename ending `-receipt.json`.
-
-G005 RED is
-`/home/caichenghang/.codex/happycodex-0.6-bounded-redesign-g005-attempt-recompute-red.txt`,
-SHA-256
-`021f1c7382ccc281c4412cd66d4913588030e8bfd8a765628a192719e10da6e6`:
-33 focused tests, exactly two failures, proving `_make_report` could seal an
-arbitrary action accepted by both consumers. Focused GREEN is the corresponding
-`-green.txt`, SHA-256
-`298982308aa5ec7908e28e6179ade0f17fc20498fb2285a89c209b3600957b83`:
-33/33 pass. The pure derivation remains owned by `decide.py`; effect enforcement
-calls it directly, while AttemptKey locally imports `reduce_facts` and compares
-the recomputed action without a module-level cycle.
-
-The semantic package remains exactly five files and 20 exports; it is 1,092
-production lines, below 1,200. Runtime bytes remain unchanged at 227 lines/1,919
-words. No Goal, model/network/live call, authority/attempt, install, release,
-activation, cross-line action, delegation, or claim release exists.
-
-Current checkpoint: both Batch 1 family portions are G005 GREEN at recurrence 0,
-but Root acceptance stays open. The Executor runs the complete offline terminal
-schedule against this index, commits only the four authorized paths, verifies
-source/status/claim/trailer, persists and reads back the G005 receipt, and stops.
-The receipt is terminal evidence and the G005 intent cannot change afterward.
-Batch 2 and every later live/cost/install/release/activation gate require new
-exact authority.
+The semantic package remains exactly five files, at most 1,200 production lines
+and at most 20 exports. Runtime bytes remain unchanged. No Goal, model/network/
+live call, authority or attempt consumption, install, release, activation,
+delegation, or claim release is authorized.
 
 Uncertainty rule: an outside path, changed prestate, unverified claim, ambiguous
 or partial effect, reproduction mismatch, unknown input, identity/config drift,

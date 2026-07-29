@@ -5,6 +5,7 @@ from functools import lru_cache
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
@@ -14,6 +15,16 @@ from typing import Any
 
 PACKAGE_PATHS = (".agents", ".codex-plugin", "README.md", "skills")
 ENGINE_CATEGORIES = ("semantic", "harness", "artifact")
+CORPUS_SEMANTIC_PATHS = frozenset(
+    {
+        "evaluation/corpus/engine.py",
+        "evaluation/semantic/__init__.py",
+        "evaluation/semantic/types.py",
+        "evaluation/semantic/canonical.py",
+        "evaluation/semantic/parse.py",
+        "evaluation/semantic/decide.py",
+    }
+)
 MODULE_CATEGORIES = {
     "evaluation/__init__.py": "harness",
     "evaluation/cli.py": "harness",
@@ -24,8 +35,7 @@ MODULE_CATEGORIES = {
     "evaluation/core/ledger.py": "harness",
     "evaluation/core/receipt.py": "artifact",
     "evaluation/corpus/__init__.py": "harness",
-    "evaluation/corpus/contract.py": "semantic",
-    "evaluation/corpus/engine.py": "harness",
+    "evaluation/corpus/engine.py": "semantic",
     "evaluation/holdout/__init__.py": "harness",
     "evaluation/holdout/blind.py": "harness",
     "evaluation/holdout/compare.py": "semantic",
@@ -36,6 +46,234 @@ MODULE_CATEGORIES = {
     "evaluation/semantic/parse.py": "semantic",
     "evaluation/semantic/types.py": "semantic",
 }
+INVOCATION_PROFILE_FIELDS = frozenset(
+    {
+        "provider",
+        "binary",
+        "model",
+        "effort",
+        "timeout_seconds",
+        "arm",
+        "tools",
+        "network",
+        "mcp",
+        "hooks",
+        "session",
+    }
+)
+_PROFILE_BINARY_FIELDS = frozenset({"command", "identity_sha256"})
+_PROFILE_TOOLS_FIELDS = frozenset({"allowed", "event_item_types"})
+_PROFILE_SESSION_FIELDS = frozenset({"mode", "history"})
+_TOOL_EVENT_TYPES = {
+    "collaboration": "collab_tool_call",
+    "command_execution": "command_execution",
+    "todo": "todo_list",
+    "web_search": "web_search",
+}
+_SESSION_MODES = frozenset({"fresh", "fresh-with-bounded-resume"})
+PERMISSION_PROFILE = "happycodex-evaluator"
+PROTOCOL_REVIEW_MODES = ("none", "focused_hardening", "exact_final")
+CONVERGENCE_PHASES = (
+    "implementation",
+    "focused_hardening",
+    "candidate_frozen",
+    "exact_final",
+    "closed",
+)
+PERMISSION_VALUES = {
+    "decision": frozenset({"continue", "stop_for_user", "complete", "incomplete"}),
+    "qualifies": frozenset({True, False}),
+    "execplan_condition": frozenset(
+        {"not_required", "missing", "usable", "needs_amendment"}
+    ),
+    "protocol_may_product_write": frozenset({True, False}),
+    "protocol_review_mode": frozenset(PROTOCOL_REVIEW_MODES),
+    "protocol_may_complete": frozenset({True, False}),
+}
+PERMISSION_FIELDS = frozenset(PERMISSION_VALUES)
+RECOVERY_ACTIONS = (
+    "ask_user",
+    "create_execplan",
+    "complete_boundary_union",
+    "create_contract_freeze_revision",
+    "observe_red",
+    "implement",
+    "repair",
+    "run_checks",
+    "reconciliation",
+    "focused_review",
+    "freeze_candidate",
+    "exact_final_review",
+    "release",
+    "none",
+    "unknown",
+)
+RECOVERY_PENDING_GATES = (
+    "user_selection",
+    "contract_freeze",
+    "red_oracle",
+    "product_edit",
+    "checks",
+    "family_hardening",
+    "boundary_repair",
+    "reconciliation",
+    "focused_review",
+    "candidate_freeze",
+    "exact_final_review",
+    "release",
+)
+RECOVERY_GATE_FIELDS = frozenset(
+    {
+        "qualifies",
+        "protocol_may_product_write",
+        "protocol_review_mode",
+        "protocol_may_complete",
+    }
+)
+RECOVERY_STATE_FIELDS = frozenset(
+    {
+        "baseline_revision",
+        "baseline_tree",
+        "current_revision",
+        "current_tree",
+        "writer",
+        "milestone_phase",
+        "next_action",
+        "pending_gates",
+        "tests",
+        "worktree",
+        "live_agents",
+        "marker_ids",
+    }
+)
+RECOVERY_MANIFEST_PREFIX = "RECOVERY-MANIFEST-SHA256:"
+RECOVERY_MANIFEST_PATTERN = re.compile(
+    rf"^{re.escape(RECOVERY_MANIFEST_PREFIX)}([0-9a-f]{{64}})$"
+)
+BLOCKER_CLASSES = frozenset(
+    {
+        "original_goal",
+        "frozen_acceptance",
+        "safety_data_integrity",
+        "production_condition",
+        "exhaustive_claim",
+    }
+)
+PUBLIC_040_PACKAGE_ARTIFACT_SHA256 = (
+    "ace7f39fd61341e5d4b1bc3b268fd89a1562acaaacb80d7456c2bb97fb9c497e"
+)
+PUBLIC_040_PACKAGE_SEMANTIC_SHA256 = (
+    "c5030e99dd7cd1681148c069775671c5720bb8dd366930ff90f61cbc54cdfc05"
+)
+NATIVE_TOOL_NAMES = ("apply_patch", "codex", "codex-linux-sandbox", "rg")
+FILESYSTEM_ISOLATION_POLICY = {
+    "mechanism": "codex-permission-profile",
+    "profile": PERMISSION_PROFILE,
+    "filesystem": "minimal-plus-current-workspace-and-native-tools",
+    "default_access": "deny",
+    "workspace": "read-only",
+    "nonworkspace": "unreadable",
+    "credential_file": "parent-only-command-denied",
+    "native_tool_allowlist": NATIVE_TOOL_NAMES,
+    "native_tools": "read-only",
+    "home": "isolated",
+    "parent_task_environment": "stripped",
+    "command_environment": "inherit-none",
+    "network": "disabled",
+    "selection": "explicit-on-every-turn",
+}
+
+
+def identity_match_values(value: Any) -> frozenset[str]:
+    """Return the one exact nonblank identity admitted by generation 6."""
+    if type(value) is not str or not value.strip():
+        return frozenset()
+    return frozenset({value})
+
+
+def is_nonblank_identity(value: Any) -> bool:
+    return bool(identity_match_values(value))
+
+
+def classification_identity_keys(item: Any) -> frozenset[str]:
+    if not isinstance(item, dict):
+        return frozenset()
+    identity = item.get("identity")
+    if isinstance(identity, str):
+        return identity_match_values(identity)
+    digest = item.get("identity_sha256")
+    return frozenset({digest}) if isinstance(digest, str) else frozenset()
+
+
+def classifications_share_identity(left: Any, right: Any) -> bool:
+    return bool(
+        classification_identity_keys(left) & classification_identity_keys(right)
+    )
+
+
+def classification_identity_failures(items: Any, *, label: str) -> list[str]:
+    if not isinstance(items, list):
+        return [f"invalid {label} classifications"]
+    failures: list[str] = []
+    seen: set[str] = set()
+    for item in items:
+        keys = classification_identity_keys(item)
+        nonblank = isinstance(item, dict) and (
+            is_nonblank_identity(item.get("identity"))
+            or item.get("identity_nonblank") is True
+        )
+        if not nonblank or len(keys) != 1:
+            failures.append(f"blank {label} identity")
+            continue
+        identity = next(iter(keys))
+        if identity in seen:
+            failures.append(f"duplicate {label} identity")
+        seen.add(identity)
+    return failures
+
+
+def recovery_manifest_projection(value: Any) -> dict[str, Any]:
+    markers = value.get("marker_ids", []) if isinstance(value, dict) else []
+    candidates = [
+        marker
+        for marker in markers
+        if isinstance(marker, str) and marker.startswith(RECOVERY_MANIFEST_PREFIX)
+    ]
+    match = (
+        RECOVERY_MANIFEST_PATTERN.fullmatch(candidates[0])
+        if len(candidates) == 1
+        else None
+    )
+    return {
+        "recovery_manifest_count": len(candidates),
+        "recovery_manifest_sha256": match.group(1) if match else None,
+    }
+
+
+def recovery_summary_consistent(value: Any) -> bool:
+    if not isinstance(value, dict):
+        return False
+    markers = value.get("marker_ids")
+    tests = value.get("tests")
+    if (
+        not isinstance(markers, list)
+        or not all(isinstance(marker, str) and marker for marker in markers)
+        or len(markers) != len(set(markers))
+        or not isinstance(tests, dict)
+    ):
+        return False
+    test_markers = tests.get("marker_ids")
+    failed = tests.get("failed")
+    accepted = tests.get("accepted_failures")
+    return (
+        isinstance(test_markers, list)
+        and all(isinstance(marker, str) and marker for marker in test_markers)
+        and len(test_markers) == len(set(test_markers))
+        and set(test_markers).issubset(markers)
+        and type(failed) is int
+        and type(accepted) is int
+        and 0 <= accepted <= failed
+    )
 
 
 class IdentityError(ValueError):
@@ -58,6 +296,102 @@ def canonical_json_bytes(value: Any) -> bytes:
 
 def canonical_sha256(value: Any) -> str:
     return sha256_bytes(canonical_json_bytes(value))
+
+
+def validate_invocation_profile(
+    value: Any,
+    *,
+    require_bound_binary: bool = False,
+) -> dict[str, Any]:
+    """Validate one exact administrative invocation identity."""
+    if not isinstance(value, dict) or set(value) != INVOCATION_PROFILE_FIELDS:
+        raise IdentityError("invalid invocation profile envelope")
+    binary = value["binary"]
+    tools = value["tools"]
+    session = value["session"]
+    if not isinstance(binary, dict) or set(binary) != _PROFILE_BINARY_FIELDS:
+        raise IdentityError("invalid invocation binary profile")
+    if binary.get("command") != "codex":
+        raise IdentityError("invalid invocation binary command")
+    binary_digest = binary.get("identity_sha256")
+    if binary_digest is not None and (
+        type(binary_digest) is not str
+        or re.fullmatch(r"[0-9a-f]{64}", binary_digest) is None
+    ):
+        raise IdentityError("invalid invocation binary identity")
+    if require_bound_binary and binary_digest is None:
+        raise IdentityError("live invocation binary identity is unbound")
+    if not isinstance(tools, dict) or set(tools) != _PROFILE_TOOLS_FIELDS:
+        raise IdentityError("invalid invocation tool profile")
+    allowed = tools.get("allowed")
+    if (
+        not isinstance(allowed, list)
+        or allowed != sorted(set(allowed))
+        or any(item not in _TOOL_EVENT_TYPES for item in allowed)
+    ):
+        raise IdentityError("invalid invocation tool allowlist")
+    expected_events = sorted(_TOOL_EVENT_TYPES[item] for item in allowed)
+    if tools.get("event_item_types") != expected_events:
+        raise IdentityError("invocation event types diverge from allowed tools")
+    if value.get("network") not in {"disabled", "enabled"}:
+        raise IdentityError("invalid invocation network profile")
+    if "web_search" in allowed and value["network"] != "enabled":
+        raise IdentityError("web search requires enabled invocation network")
+    if value.get("mcp") not in {"disabled", "enabled"}:
+        raise IdentityError("invalid invocation MCP profile")
+    if value.get("hooks") not in {"disabled", "enabled"}:
+        raise IdentityError("invalid invocation hook profile")
+    if not isinstance(session, dict) or set(session) != _PROFILE_SESSION_FIELDS:
+        raise IdentityError("invalid invocation session profile")
+    if session.get("mode") not in _SESSION_MODES or session.get("history") != "isolated":
+        raise IdentityError("invalid invocation session profile")
+    for field in ("provider", "model", "effort", "arm"):
+        if type(value.get(field)) is not str or not value[field]:
+            raise IdentityError(f"invalid invocation profile field: {field}")
+    timeout = value.get("timeout_seconds")
+    if type(timeout) is not int or timeout <= 0:
+        raise IdentityError("invalid invocation profile field: timeout_seconds")
+    return value
+
+
+def invocation_profile(
+    *,
+    model: str,
+    effort: str,
+    timeout_seconds: int,
+    arm: str,
+    binary_identity_sha256: str | None = None,
+    allowed_tools: tuple[str, ...] = ("command_execution",),
+    network: str = "disabled",
+    mcp: str = "disabled",
+    hooks: str = "disabled",
+    session_mode: str = "fresh-with-bounded-resume",
+) -> dict[str, Any]:
+    profile = {
+        "provider": "openai",
+        "binary": {
+            "command": "codex",
+            "identity_sha256": binary_identity_sha256,
+        },
+        "model": model,
+        "effort": effort,
+        "timeout_seconds": timeout_seconds,
+        "arm": arm,
+        "tools": {
+            "allowed": sorted(allowed_tools),
+            "event_item_types": sorted(
+                _TOOL_EVENT_TYPES[item] for item in allowed_tools
+            ),
+        },
+        "network": network,
+        "mcp": mcp,
+        "hooks": hooks,
+        "session": {
+            "mode": session_mode,
+            "history": "isolated",
+        },
+    }
+    return validate_invocation_profile(profile)
 
 
 def read_json(path: Path) -> Any:
@@ -375,11 +709,26 @@ def engine_category_sha256(
     selected = [
         {"path": item["path"], "sha256": item["sha256"]}
         for item in inventory["entries"]
-        if item["category"] == category and (paths is None or item["path"] in paths)
+        if item["category"] == category
+        and (paths is None or item["path"] in paths)
     ]
     if not selected:
         raise IdentityError(f"empty engine category selection: {category}")
     return canonical_sha256(selected)
+
+
+def engine_paths_sha256(
+    inventory: dict[str, Any],
+    paths: set[str],
+) -> str:
+    """Bind an exact cross-category source bundle without reclassifying inputs."""
+    by_path = {
+        item["path"]: {"path": item["path"], "sha256": item["sha256"]}
+        for item in inventory["entries"]
+    }
+    if not paths or not paths.issubset(by_path):
+        raise IdentityError("engine source bundle is incomplete")
+    return canonical_sha256([by_path[path] for path in sorted(paths)])
 
 
 def case_semantic_sha256(

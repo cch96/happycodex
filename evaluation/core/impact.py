@@ -7,10 +7,12 @@ from typing import Any
 
 from evaluation.core.identity import (
     IdentityError,
+    CORPUS_SEMANTIC_PATHS,
     canonical_sha256,
     case_semantic_sha256,
     engine_category_sha256,
     engine_inventory,
+    engine_paths_sha256,
     package_identities,
     toolchain_identity,
 )
@@ -28,7 +30,12 @@ SNAPSHOT_FIELDS = {
     "holdout",
 }
 ENGINE_CATEGORY_FIELDS = {"semantic", "harness", "artifact"}
-ENGINE_SCOPE_FIELDS = {"corpus_harness", "holdout_harness", "holdout_semantic"}
+ENGINE_SCOPE_FIELDS = {
+    "corpus_harness",
+    "corpus_semantic",
+    "holdout_harness",
+    "holdout_semantic",
+}
 ENGINE_FIELDS = {"categories", "scopes", "manifest_sha256"}
 SETTINGS_FIELDS = {"model", "effort", "timeout_seconds", "toolchain"}
 TOOLCHAIN_FIELDS = {"python", "codex", "git", "rg"}
@@ -58,7 +65,6 @@ CORPUS_HARNESS_PATHS = {
     "evaluation/core/impact.py",
     "evaluation/core/ledger.py",
     "evaluation/corpus/__init__.py",
-    "evaluation/corpus/engine.py",
 }
 HOLDOUT_HARNESS_PATHS = {
     "evaluation/holdout/__init__.py",
@@ -66,124 +72,36 @@ HOLDOUT_HARNESS_PATHS = {
     "evaluation/holdout/engine.py",
 }
 HOLDOUT_SEMANTIC_PATHS = {"evaluation/holdout/compare.py"}
-GATE_ORDER = ("corpus", "holdout", "receipt", "isolated_install", "review")
-CORPUS_COST = {
-    "authorized-rebaseline": (26015, 93.933),
-    "boundary-cutover": (28776, 281.718),
-    "clean-qualifying-control": (39337, 90.086),
-    "compaction-recovery": (26075, 224.845),
-    "exact-final-ready": (44614, 281.718),
-    "goal-divergence": (22538, 87.522),
-    "midflight-escalation": (24407, 130.736),
-    "multi-repo-submodule": (42105, 149.799),
-    "no-commit-secret": (23875, 90.357),
-    "no-commit-archive-recovery": (44614, 281.718),
-    "no-commit-unselected": (44614, 281.718),
-    "pre-freeze-compaction": (104203, 622.99),
-    "receipt-mismatch": (44614, 276.224),
-    "review-admin-cycle": (31325, 71.457),
-    "review-inventory-gate": (22009, 107.795),
-    "review-isolation": (42543, 152.363),
-    "subthreshold-control": (20886, 49.584),
-}
+GATE_ORDER = (
+    "corpus",
+    "executor_pilot",
+    "holdout",
+    "isolated_install",
+    "receipt",
+    "review",
+)
 CORPUS_MODEL_CALLS = {
-    case_id: 3 if case_id == "pre-freeze-compaction" else 1 for case_id in CORPUS_COST
+    case_id: 3 if case_id == "pre-freeze-compaction" else 1
+    for case_id in (
+        "authorized-rebaseline",
+        "boundary-cutover",
+        "clean-qualifying-control",
+        "compaction-recovery",
+        "exact-final-ready",
+        "goal-divergence",
+        "midflight-escalation",
+        "multi-repo-submodule",
+        "no-commit-archive-recovery",
+        "no-commit-secret",
+        "no-commit-unselected",
+        "pre-freeze-compaction",
+        "receipt-mismatch",
+        "review-admin-cycle",
+        "review-inventory-gate",
+        "review-isolation",
+        "subthreshold-control",
+    )
 }
-HOLDOUT_COST = {
-    "authority-production-boundary": (57410, 389.038),
-    "local-documentation-control": (29091, 93.427),
-    "destructive-migration-fallback": (51818, 275.211),
-}
-HISTORICAL_COST_BASIS = (
-    "HappyCodex 0.3 v21 candidate corpus and v23 adaptive holdout receipts; "
-    "new 0.4.1 single-call controls conservatively use the prior maximum "
-    "single-call token and wall envelopes"
-)
-MANDATORY_HOLDOUT_PAIRS = (
-    "authority-production-boundary",
-    "local-documentation-control",
-)
-
-
-def historical_cost_provenance() -> dict[str, Any]:
-    return {
-        "baseline_commit": "2836d7363db364807a2ec384dc1b6c2cc13df95e",
-        "baseline_plan_path": "docs/execplans/happycodex-0-3-cleanroom.md",
-        "baseline_plan_blob": "a5b16c5edb54324ee0a7a2efb17a7d7fdef3f207",
-        "corpus_receipt_sha256": (
-            "89b9760e08752dc9600f600268d447364970b89cb16d253e7a098b01f76fb56c"
-        ),
-        "selected_corpus_receipts_sha256": (
-            "5159899e8c950885b5c210921ff5b4738b5d81b17293e41a7df8c6b0efb33616"
-        ),
-        "holdout_run_receipt_sha256": (
-            "bb2fa16edfd82c3da004d630bcdc87a098488ae483a1026b012ce117447fd580"
-        ),
-        "holdout_summary_sha256": (
-            "f301f23d0d841deaef538cf07d9fba36705ebb175a3a1e4f099bb68cfc91ea3d"
-        ),
-        "holdout_pair_receipt_sha256s": {
-            "authority-production-boundary": (
-                "18164c21533563b15bc483996e0f9a8db6c2080b7e3bf819dd2a003948395c82"
-            ),
-            "local-documentation-control": (
-                "27c1bcbf3566379b7c71255fadddcda5aa82509d3f01d15a170933a527de5f2c"
-            ),
-            "destructive-migration-fallback": (
-                "10b6cf8a40bdb9d1097d287d80a9c7106686f6b6c19458984366994833f2c3a2"
-            ),
-        },
-    }
-
-
-def historical_cost_receipt() -> dict[str, Any]:
-    corpus_tokens = sum(tokens for tokens, _wall in CORPUS_COST.values())
-    corpus_wall = round(sum(wall for _tokens, wall in CORPUS_COST.values()), 3)
-    corpus_calls = corpus_model_calls(set(CORPUS_COST))
-    minimum_holdout_tokens = sum(
-        HOLDOUT_COST[pair_id][0] for pair_id in MANDATORY_HOLDOUT_PAIRS
-    )
-    maximum_holdout_tokens = sum(tokens for tokens, _wall in HOLDOUT_COST.values())
-    minimum_holdout_wall = round(
-        sum(HOLDOUT_COST[pair_id][1] for pair_id in MANDATORY_HOLDOUT_PAIRS), 3
-    )
-    maximum_holdout_wall = round(
-        sum(wall for _tokens, wall in HOLDOUT_COST.values()), 3
-    )
-    return {
-        "basis": HISTORICAL_COST_BASIS,
-        "provenance": historical_cost_provenance(),
-        "corpus": {
-            "combined_tokens": corpus_tokens,
-            "live_calls": corpus_calls,
-            "wall_seconds": corpus_wall,
-        },
-        "holdout": {
-            "combined_tokens": {
-                "minimum": minimum_holdout_tokens,
-                "maximum": maximum_holdout_tokens,
-            },
-            "live_calls": {"minimum": 4, "maximum": 6},
-            "wall_seconds": {
-                "minimum": minimum_holdout_wall,
-                "maximum": maximum_holdout_wall,
-            },
-        },
-        "total": {
-            "combined_tokens": {
-                "minimum": corpus_tokens + minimum_holdout_tokens,
-                "maximum": corpus_tokens + maximum_holdout_tokens,
-            },
-            "live_calls": {
-                "minimum": corpus_calls + 4,
-                "maximum": corpus_calls + 6,
-            },
-            "wall_seconds": {
-                "minimum": round(corpus_wall + minimum_holdout_wall, 3),
-                "maximum": round(corpus_wall + maximum_holdout_wall, 3),
-            },
-        },
-    }
 
 
 def _read_json(path: Path) -> dict[str, Any]:
@@ -191,15 +109,6 @@ def _read_json(path: Path) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise IdentityError(f"JSON object required: {path}")
     return value
-
-
-def corpus_model_calls(case_ids: set[str]) -> int:
-    unknown = case_ids - set(CORPUS_MODEL_CALLS)
-    if unknown:
-        raise IdentityError(
-            "missing corpus model-call count: " + ", ".join(sorted(unknown))
-        )
-    return sum(CORPUS_MODEL_CALLS[case_id] for case_id in case_ids)
 
 
 def _load_cases(root: Path) -> dict[str, dict[str, Any]]:
@@ -247,11 +156,7 @@ def build_snapshot(
     if harness_paths != scoped_harness_paths:
         raise IdentityError("harness scope inventory is incomplete")
     package = package_identities(root)
-    shared_semantic = engine_category_sha256(
-        inventory,
-        "semantic",
-        paths={"evaluation/corpus/contract.py"},
-    )
+    shared_semantic = engine_paths_sha256(inventory, CORPUS_SEMANTIC_PATHS)
     cases = _load_cases(root)
     case_ids = {
         case_id: case_semantic_sha256(
@@ -295,7 +200,7 @@ def build_snapshot(
         "engine": {
             "manifest_sha256": inventory["manifest_sha256"],
             "categories": {
-                "semantic": shared_semantic,
+                "semantic": inventory["categories"]["semantic"],
                 "harness": inventory["categories"]["harness"],
                 "artifact": inventory["categories"]["artifact"],
             },
@@ -303,6 +208,7 @@ def build_snapshot(
                 "corpus_harness": engine_category_sha256(
                     inventory, "harness", paths=CORPUS_HARNESS_PATHS
                 ),
+                "corpus_semantic": shared_semantic,
                 "holdout_harness": engine_category_sha256(
                     inventory, "harness", paths=HOLDOUT_HARNESS_PATHS
                 ),
@@ -423,39 +329,6 @@ def _changed_keys(before: dict[str, str], after: dict[str, str]) -> set[str]:
     }
 
 
-def _cost(corpus_cases: set[str], holdout: bool) -> dict[str, Any]:
-    unknown_cases = corpus_cases - set(CORPUS_COST)
-    if unknown_cases:
-        raise IdentityError(
-            "missing historical corpus cost: " + ", ".join(sorted(unknown_cases))
-        )
-    corpus_tokens = sum(CORPUS_COST[case][0] for case in corpus_cases)
-    corpus_wall = sum(CORPUS_COST[case][1] for case in corpus_cases)
-    holdout_order = list(HOLDOUT_COST)
-    minimum_pairs = holdout_order[:2] if holdout else []
-    maximum_pairs = holdout_order if holdout else []
-    minimum_tokens = corpus_tokens + sum(
-        HOLDOUT_COST[pair][0] for pair in minimum_pairs
-    )
-    maximum_tokens = corpus_tokens + sum(
-        HOLDOUT_COST[pair][0] for pair in maximum_pairs
-    )
-    minimum_wall = corpus_wall + sum(HOLDOUT_COST[pair][1] for pair in minimum_pairs)
-    maximum_wall = corpus_wall + sum(HOLDOUT_COST[pair][1] for pair in maximum_pairs)
-    return {
-        "basis": HISTORICAL_COST_BASIS,
-        "provenance": historical_cost_provenance(),
-        "combined_tokens": {
-            "minimum": minimum_tokens,
-            "maximum": maximum_tokens,
-        },
-        "wall_seconds": {
-            "minimum": round(minimum_wall, 3),
-            "maximum": round(maximum_wall, 3),
-        },
-    }
-
-
 def validate_impact(impact: dict[str, Any], snapshot: dict[str, Any]) -> None:
     validate_snapshot(snapshot)
     if not isinstance(impact, dict) or set(impact) != IMPACT_FIELDS:
@@ -499,15 +372,8 @@ def validate_impact(impact: dict[str, Any], snapshot: dict[str, Any]) -> None:
         raise IdentityError("impact corpus gate does not match scope")
     if holdout_live != ("holdout" in gates):
         raise IdentityError("impact holdout gate does not match scope")
-    corpus_calls = corpus_model_calls(corpus_cases)
-    expected_calls = {
-        "minimum": corpus_calls + (4 if holdout_live else 0),
-        "maximum": corpus_calls + (6 if holdout_live else 0),
-    }
-    if impact["live_calls"] != expected_calls:
-        raise IdentityError("impact live-call count does not match scope")
-    if impact["cost"] != _cost(corpus_cases, holdout_live):
-        raise IdentityError("impact cost does not match scope")
+    if impact["live_calls"] is not None or impact["cost"] is not None:
+        raise IdentityError("generation-6 cost envelope is not persisted")
 
 
 def impact_token(snapshot: dict[str, Any], impact: dict[str, Any]) -> str:
@@ -559,11 +425,10 @@ def plan_impact(
     if baseline["engine"]["manifest_sha256"] != current["engine"]["manifest_sha256"]:
         reasons.add("engine_manifest_changed")
         gates.add("receipt")
-    if (
+    semantic_changed = (
         baseline["engine"]["categories"]["semantic"]
         != current["engine"]["categories"]["semantic"]
-    ):
-        full_live("engine_semantic_changed")
+    )
     if (
         baseline["engine"]["categories"]["artifact"]
         != current["engine"]["categories"]["artifact"]
@@ -586,6 +451,12 @@ def plan_impact(
         baseline["engine"]["scopes"]["holdout_semantic"]
         != current["engine"]["scopes"]["holdout_semantic"]
     )
+    corpus_semantic_changed = (
+        baseline["engine"]["scopes"]["corpus_semantic"]
+        != current["engine"]["scopes"]["corpus_semantic"]
+    )
+    if semantic_changed != (corpus_semantic_changed or holdout_semantic_changed):
+        raise IdentityError("inconsistent semantic aggregate and scope identities")
     if harness_changed != (corpus_harness_changed or holdout_harness_changed):
         raise IdentityError("inconsistent harness aggregate and scope identities")
     if corpus_harness_changed:
@@ -594,7 +465,9 @@ def plan_impact(
         reasons.add("holdout_harness_changed")
         gates.add("holdout")
         holdout_pairs.update(all_pairs)
-    if holdout_semantic_changed:
+    if corpus_semantic_changed:
+        full_live("corpus_semantic_changed")
+    elif holdout_semantic_changed:
         reasons.add("holdout_semantic_changed")
         gates.add("holdout")
         holdout_pairs.update(all_pairs)
@@ -622,15 +495,21 @@ def plan_impact(
         holdout_pairs.update(all_pairs)
 
     if pending:
-        allowed_pending = {"reasons", "corpus_cases", "holdout_pairs", "review"}
-        unknown_pending = set(pending) - allowed_pending
-        if unknown_pending:
-            raise IdentityError(
-                "unknown pending field: " + ", ".join(sorted(unknown_pending))
-            )
-        reasons.update(pending.get("reasons", []))
-        pending_cases = set(pending.get("corpus_cases", []))
-        pending_pairs = set(pending.get("holdout_pairs", []))
+        allowed_pending = {"gates", "corpus_cases", "holdout_pairs"}
+        if set(pending) != allowed_pending:
+            raise IdentityError("invalid generation-6 pending envelope")
+        pending_gates = pending["gates"]
+        if (
+            not isinstance(pending_gates, list)
+            or pending_gates
+            != [gate for gate in GATE_ORDER if gate in pending_gates]
+            or len(pending_gates) != len(set(pending_gates))
+        ):
+            raise IdentityError("invalid generation-6 pending gates")
+        gates.update(pending_gates)
+        reasons.add("generation_6_genesis")
+        pending_cases = set(pending["corpus_cases"])
+        pending_pairs = set(pending["holdout_pairs"])
         if not pending_cases <= all_cases or not pending_pairs <= all_pairs:
             raise IdentityError("pending scope is not present in current snapshot")
         if pending_cases:
@@ -639,21 +518,19 @@ def plan_impact(
         if pending_pairs:
             gates.add("holdout")
             holdout_pairs.update(all_pairs)
-        if pending.get("review"):
-            gates.add("review")
+        if ("corpus" in pending_gates) != bool(pending_cases):
+            raise IdentityError("pending corpus gate does not match scope")
+        if ("holdout" in pending_gates) != bool(pending_pairs):
+            raise IdentityError("pending holdout gate does not match scope")
 
-    holdout_live = bool(holdout_pairs)
-    corpus_calls = corpus_model_calls(corpus_cases)
-    minimum_calls = corpus_calls + (4 if holdout_live else 0)
-    maximum_calls = corpus_calls + (6 if holdout_live else 0)
     result = {
         "schema_version": 1,
         "reasons": sorted(reasons),
         "gates": [gate for gate in GATE_ORDER if gate in gates],
         "corpus_cases": sorted(corpus_cases),
         "holdout_pairs": sorted(holdout_pairs),
-        "live_calls": {"minimum": minimum_calls, "maximum": maximum_calls},
-        "cost": _cost(corpus_cases, holdout_live),
+        "live_calls": None,
+        "cost": None,
     }
     validate_impact(result, current)
     return result

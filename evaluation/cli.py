@@ -5,7 +5,11 @@ import json
 from pathlib import Path
 
 from evaluation import live
-from evaluation.core.identity import canonical_sha256, engine_inventory
+from evaluation.core.identity import (
+    canonical_sha256,
+    engine_inventory,
+    invocation_profile,
+)
 from evaluation.core.impact import DEFAULT_EFFORT, DEFAULT_MODEL, DEFAULT_TIMEOUT
 from evaluation.core.ledger import ledger_sha256
 
@@ -24,27 +28,52 @@ def verify_command() -> int:
         "snapshot_sha256": canonical_sha256(current),
         "engine_manifest_sha256": inventory["manifest_sha256"],
         "pending_gates": impact["gates"],
-        "live_authority_persisted": ledger["live_authority"] is not None,
+        "authorities_persisted": {
+            gate: authority is not None
+            for gate, authority in ledger["authorities"].items()
+        },
+        "certified": ledger["state"] == "certified",
     }
     print(json.dumps(payload, ensure_ascii=False, sort_keys=True, indent=2))
     return 0
 
 
 def impact_command(public: Path | None = None) -> int:
-    ledger, current, impact = live.load_state()
-    invocations = live.proposed_invocations(ledger, current, impact, public=public)
-    holdout_ready = not impact["holdout_pairs"] or any(
-        item["command"] == "holdout" for item in invocations
+    del public
+    live.load_state()
+    raise ValueError(
+        "generation-6 cost envelope and exact gate invocations are not persisted"
     )
+
+
+def executor_command(args: argparse.Namespace) -> int:
+    if not args.dry_run:
+        raise ValueError(
+            "live executor pilot requires separate exact user authority"
+        )
     payload = {
-        **impact,
-        "ledger_state": ledger["state"],
-        "snapshot_sha256": canonical_sha256(current),
-        "cost_approval_required": bool(impact["live_calls"]["maximum"]),
-        "live_authority_persisted": ledger["live_authority"] is not None,
-        "live_authority_ready": holdout_ready,
-        "proposed_invocations": invocations,
-        "impact_token": live.impact_token(ledger, current, impact),
+        "schema_generation": 6,
+        "command": "executor",
+        "dry_run": True,
+        "invocation_profile": invocation_profile(
+            model=args.model,
+            effort=args.effort,
+            timeout_seconds=args.timeout,
+            arm=args.arm,
+            session_mode="fresh",
+        ),
+        "effects": {
+            "capabilities_minted": 0,
+            "attempts_claimed": 0,
+            "authorities_consumed": 0,
+            "fixtures_created": 0,
+            "outputs_created": 0,
+            "workspaces_created": 0,
+            "subprocesses": 0,
+            "model_calls": 0,
+            "network_calls": 0,
+        },
+        "gate_authority_required": True,
     }
     print(json.dumps(payload, ensure_ascii=False, sort_keys=True, indent=2))
     return 0
@@ -58,13 +87,22 @@ def build_parser() -> argparse.ArgumentParser:
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("verify", help="validate identities and the evidence ledger")
     impact = commands.add_parser(
-        "impact", help="print exact rerun gates and historical cost"
+        "impact", help="inspect pending gates; fail closed until cost is persisted"
     )
     impact.add_argument(
         "--public",
         type=Path,
         help="bind the pinned public-0.4.0 package into the proposed holdout invocation",
     )
+
+    executor = commands.add_parser(
+        "executor", help="inspect the separately gated Executor pilot"
+    )
+    executor.add_argument("--dry-run", action="store_true")
+    executor.add_argument("--model", default=DEFAULT_MODEL)
+    executor.add_argument("--effort", default=DEFAULT_EFFORT)
+    executor.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT)
+    executor.add_argument("--arm", choices=("candidate",), default="candidate")
 
     corpus = commands.add_parser("corpus", help="inspect or run behavior cases")
     corpus.add_argument("--plugin", type=Path, default=ROOT)
@@ -102,6 +140,11 @@ def main(argv: list[str] | None = None) -> int:
         try:
             return impact_command(args.public)
         except (OSError, RuntimeError, ValueError) as exc:
+            parser.error(str(exc))
+    if args.command == "executor":
+        try:
+            return executor_command(args)
+        except ValueError as exc:
             parser.error(str(exc))
     if args.command in {"corpus", "holdout"}:
         return live.run_command(args, parser)

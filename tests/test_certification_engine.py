@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-from concurrent.futures import ThreadPoolExecutor
 import copy
 import json
 from pathlib import Path
-import pickle
 import shutil
 import subprocess
 import sys
@@ -17,28 +15,21 @@ from unittest import mock
 from evaluation import cli, live
 from evaluation.core import ledger as ledger_engine
 from evaluation.core.identity import (
+    CORPUS_SEMANTIC_PATHS,
     IdentityError,
     canonical_sha256,
-    case_semantic_sha256,
-    engine_category_sha256,
     engine_inventory,
+    engine_paths_sha256,
+    invocation_profile,
     package_identities,
-    sha256_bytes,
 )
 from evaluation.core.impact import (
     CORPUS_MODEL_CALLS,
     build_snapshot,
-    historical_cost_receipt,
     plan_impact,
 )
 from evaluation.core.ledger import ledger_sha256, validate_ledger
-from evaluation.core.receipt import sanitized_case_receipt
 from evaluation.corpus import engine as corpus_engine
-from evaluation.corpus.contract import (
-    FILESYSTEM_ISOLATION_POLICY,
-    RECOVERY_GATE_FIELDS,
-)
-from evaluation.holdout import engine as holdout_engine
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -52,7 +43,6 @@ EXPECTED_MODULES = {
     "evaluation/core/ledger.py",
     "evaluation/core/receipt.py",
     "evaluation/corpus/__init__.py",
-    "evaluation/corpus/contract.py",
     "evaluation/corpus/engine.py",
     "evaluation/holdout/__init__.py",
     "evaluation/holdout/blind.py",
@@ -64,67 +54,6 @@ EXPECTED_MODULES = {
     "evaluation/semantic/parse.py",
     "evaluation/semantic/types.py",
 }
-
-
-def complete_live_authority(
-    ledger: dict[str, object],
-    current: dict[str, object],
-    impact: dict[str, object],
-) -> dict[str, object]:
-    settings = current["settings"]
-    package = current["package"]
-    invocations: list[dict[str, object]] = []
-    if impact["corpus_cases"]:
-        invocations.append(
-            {
-                "command": "corpus",
-                "attempt_id": ledger["live_attempts"]["corpus"],
-                "package_semantic_sha256": package["semantic_sha256"],
-                "package_artifact_sha256": package["artifact_sha256"],
-                "model": settings["model"],
-                "effort": settings["effort"],
-                "timeout_seconds": settings["timeout_seconds"],
-                "arm": "candidate",
-                "cases": impact["corpus_cases"],
-            }
-        )
-    if impact["holdout_pairs"]:
-        invocations.append(
-            {
-                "command": "holdout",
-                "attempt_id": ledger["live_attempts"]["holdout"],
-                "candidate_semantic_sha256": package["semantic_sha256"],
-                "candidate_artifact_sha256": package["artifact_sha256"],
-                "public_semantic_sha256": "c5030e99dd7cd1681148c069775671c5720bb8dd366930ff90f61cbc54cdfc05",
-                "public_artifact_sha256": "ace7f39fd61341e5d4b1bc3b268fd89a1562acaaacb80d7456c2bb97fb9c497e",
-                "model": settings["model"],
-                "effort": settings["effort"],
-                "timeout_seconds": settings["timeout_seconds"],
-                "pairs": impact["holdout_pairs"],
-            }
-        )
-    token = live.impact_token(ledger, current, impact)
-    snapshot_sha256 = canonical_sha256(current)
-    request = {
-        "schema_version": 1,
-        "snapshot_sha256": snapshot_sha256,
-        "impact": impact,
-        "impact_token": token,
-        "invocations": invocations,
-    }
-    request_sha256 = canonical_sha256(request)
-    response = ledger_engine.affirmative_approval_response(request_sha256)
-    return {
-        "schema_version": 1,
-        "source": "current-task/user/approve-exact-cost",
-        "approval_request_sha256": request_sha256,
-        "approval_response": response,
-        "approval_response_sha256": sha256_bytes(response.encode()),
-        "snapshot_sha256": snapshot_sha256,
-        "impact": impact,
-        "impact_token": token,
-        "invocations": invocations,
-    }
 
 
 def refreshed_coverage(snapshot: dict[str, object]) -> dict[str, object]:
@@ -146,22 +75,27 @@ def full_live_test_state() -> tuple[
 ]:
     current = build_snapshot(ROOT)
     pending = {
-        "reasons": ["test-full-live-refresh"],
+        "gates": [
+            "corpus",
+            "executor_pilot",
+            "holdout",
+            "isolated_install",
+            "receipt",
+            "review",
+        ],
         "corpus_cases": sorted(current["corpus"]["cases"]),
         "holdout_pairs": sorted(current["holdout"]["pairs"]),
-        "review": True,
     }
     ledger = {
         "schema_version": 1,
+        "engine_generation": "0.6",
         "state": "refresh_required",
         "snapshot": current,
         "pending": pending,
-        "live_attempts": {
-            "corpus": "1" * 64,
-            "holdout": "2" * 64,
-        },
-        "historical_cost": historical_cost_receipt(),
-        "live_authority": None,
+        "authorities": {"executor": None, "corpus": None, "holdout": None},
+        "calibration_history": [],
+        "accepted_evidence": [],
+        "receipt_head": None,
         "certification": None,
     }
     impact = plan_impact(current, current, pending=pending)
@@ -170,6 +104,225 @@ def full_live_test_state() -> tuple[
 
 
 class CertificationIdentityTests(unittest.TestCase):
+    def test_legacy_authority_construction_and_claim_apis_are_absent(self) -> None:
+        for name in (
+            "affirmative_approval_response",
+            "validate_live_authority",
+            "claim_authorized_invocation",
+            "AuthorizedInvocation",
+        ):
+            self.assertFalse(hasattr(ledger_engine, name), name)
+
+    def test_legacy_ledger_names_are_absent_from_production(self) -> None:
+        production = "\n".join(
+            (ROOT / relative).read_text(encoding="utf-8")
+            for relative in (
+                "evaluation/cli.py",
+                "evaluation/live.py",
+                "evaluation/core/ledger.py",
+                "evaluation/core/impact.py",
+                "evaluation/core/receipt.py",
+                "evaluation/corpus/engine.py",
+                "evaluation/holdout/engine.py",
+            )
+        )
+        for legacy in ("live_authority", "live_attempts", "historical_cost"):
+            self.assertNotIn(legacy, production)
+        self.assertNotIn("current-task/user", production)
+
+    def test_legacy_source_and_certification_readers_are_absent(self) -> None:
+        for name in (
+            "_validate_source_identity",
+            "_load_evidence",
+            "_validate_certification_receipt",
+        ):
+            self.assertFalse(hasattr(ledger_engine, name), name)
+
+    def test_active_ledger_is_exact_fresh_generation_6_genesis(self) -> None:
+        active = json.loads(
+            (ROOT / "evaluation" / "results" / "current.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(
+            set(active),
+            {
+                "schema_version",
+                "engine_generation",
+                "state",
+                "snapshot",
+                "pending",
+                "authorities",
+                "calibration_history",
+                "accepted_evidence",
+                "receipt_head",
+                "certification",
+            },
+        )
+        self.assertEqual(active["schema_version"], 1)
+        self.assertEqual(active["engine_generation"], "0.6")
+        self.assertEqual(active["state"], "refresh_required")
+        self.assertEqual(
+            active["pending"]["gates"],
+            [
+                "corpus",
+                "executor_pilot",
+                "holdout",
+                "isolated_install",
+                "receipt",
+                "review",
+            ],
+        )
+        self.assertEqual(
+            active["pending"]["corpus_cases"],
+            sorted(active["snapshot"]["corpus"]["cases"]),
+        )
+        self.assertEqual(
+            active["pending"]["holdout_pairs"],
+            sorted(active["snapshot"]["holdout"]["pairs"]),
+        )
+        self.assertEqual(
+            active["authorities"],
+            {"executor": None, "corpus": None, "holdout": None},
+        )
+        self.assertEqual(active["calibration_history"], [])
+        self.assertEqual(active["accepted_evidence"], [])
+        self.assertIsNone(active["receipt_head"])
+        self.assertIsNone(active["certification"])
+        for legacy in ("historical_cost", "live_attempts", "live_authority"):
+            self.assertNotIn(legacy, active)
+        validate_ledger(active, repo=ROOT)
+
+    def test_active_generation_rejects_legacy_envelopes_and_evidence(self) -> None:
+        active = json.loads(
+            (ROOT / "evaluation" / "results" / "current.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        for generation in ("0.4", "0.5"):
+            invalid = copy.deepcopy(active)
+            invalid["engine_generation"] = generation
+            with self.assertRaisesRegex(ValueError, "generation|envelope"):
+                validate_ledger(invalid, repo=ROOT)
+        for legacy, value in (
+            ("historical_cost", {}),
+            ("live_attempts", {}),
+            ("live_authority", None),
+        ):
+            invalid = copy.deepcopy(active)
+            invalid[legacy] = value
+            with self.assertRaisesRegex(ValueError, "envelope"):
+                validate_ledger(invalid, repo=ROOT)
+        self.assertEqual(active["accepted_evidence"], [])
+        self.assertFalse(
+            any(
+                "evaluation/results/evidence" in json.dumps(value)
+                for value in active.values()
+            )
+        )
+
+    def test_active_producers_and_validators_are_generation_6_only(self) -> None:
+        receipt = (ROOT / "evaluation/core/receipt.py").read_text(encoding="utf-8")
+        self.assertNotIn('"engine_generation": "0.4"', receipt)
+        self.assertIn('"engine_generation": "0.6"', receipt)
+        for relative in (
+            "evaluation/corpus/engine.py",
+            "evaluation/holdout/engine.py",
+        ):
+            source = (ROOT / relative).read_text(encoding="utf-8")
+            self.assertNotIn('"engine_generation": "0.4"', source)
+            self.assertIn("unavailable until Batch3", source)
+        validator = (ROOT / "evaluation/core/ledger.py").read_text(encoding="utf-8")
+        self.assertNotIn('engine_generation") != "0.4"', validator)
+        self.assertIn('engine_generation") != "0.6"', validator)
+
+    def test_generation_6_has_no_prior_cost_or_attempt_surface(self) -> None:
+        impact_source = (ROOT / "evaluation/core/impact.py").read_text(
+            encoding="utf-8"
+        )
+        live_source = (ROOT / "evaluation/live.py").read_text(encoding="utf-8")
+        self.assertNotIn("historical_cost_receipt", impact_source)
+        self.assertNotIn('ledger["live_attempts"]', live_source)
+
+    def test_generation_6_verify_is_green_refresh_required(self) -> None:
+        with mock.patch("builtins.print") as output:
+            self.assertEqual(cli.verify_command(), 0)
+        payload = json.loads(output.call_args.args[0])
+        self.assertEqual(payload["status"], "ok")
+        self.assertEqual(payload["ledger_state"], "refresh_required")
+        self.assertFalse(payload["certified"])
+        self.assertEqual(
+            payload["pending_gates"],
+            [
+                "corpus",
+                "executor_pilot",
+                "holdout",
+                "isolated_install",
+                "receipt",
+                "review",
+            ],
+        )
+
+    def test_four_terminal_commands_are_read_only_and_zero_effect(self) -> None:
+        ledger_path = ROOT / "evaluation" / "results" / "current.json"
+        ledger_before = ledger_path.read_bytes()
+        status_before = subprocess.run(
+            ["git", "status", "--short"],
+            cwd=ROOT,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout
+        commands = (
+            ("verify",),
+            ("executor", "--dry-run"),
+            ("corpus", "--dry-run"),
+            ("holdout", "--dry-run"),
+        )
+        for command in commands:
+            with self.subTest(command=command):
+                completed = subprocess.run(
+                    [sys.executable, "-m", "evaluation.cli", *command],
+                    cwd=ROOT,
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                )
+                self.assertEqual(completed.returncode, 0, completed.stderr)
+                payload = json.loads(completed.stdout)
+                if command == ("verify",):
+                    self.assertEqual(payload["ledger_state"], "refresh_required")
+                    self.assertFalse(payload["certified"])
+                elif command == ("executor", "--dry-run"):
+                    self.assertTrue(payload["dry_run"])
+                    self.assertTrue(all(value == 0 for value in payload["effects"].values()))
+        self.assertEqual(ledger_path.read_bytes(), ledger_before)
+        status_after = subprocess.run(
+            ["git", "status", "--short"],
+            cwd=ROOT,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout
+        self.assertEqual(status_after, status_before)
+
+    def test_current_json_bytes_do_not_contribute_to_build_snapshot(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            clone = Path(raw) / "repo"
+            shutil.copytree(ROOT / "evaluation", clone / "evaluation")
+            for package_path in (".agents", ".codex-plugin", "README.md", "skills"):
+                source = ROOT / package_path
+                target = clone / package_path
+                if source.is_dir():
+                    shutil.copytree(source, target)
+                else:
+                    shutil.copy2(source, target)
+            before = build_snapshot(clone)
+            (clone / "evaluation" / "results" / "current.json").write_text(
+                '{"deliberately":"different"}\n', encoding="utf-8"
+            )
+            self.assertEqual(build_snapshot(clone), before)
+
     def test_inventory_classifies_every_engine_module_and_schema(self) -> None:
         first = engine_inventory(ROOT)
         second = engine_inventory(ROOT)
@@ -311,7 +464,8 @@ class CertificationImpactTests(unittest.TestCase):
     def test_no_change_has_no_gate_or_live_call(self) -> None:
         impact = plan_impact(self.snapshot, self.snapshot)
         self.assertEqual(impact["gates"], [])
-        self.assertEqual(impact["live_calls"], {"minimum": 0, "maximum": 0})
+        self.assertIsNone(impact["live_calls"])
+        self.assertIsNone(impact["cost"])
         self.assertEqual(impact["reasons"], [])
 
     def test_one_case_change_invalidates_only_that_corpus_case(self) -> None:
@@ -323,7 +477,8 @@ class CertificationImpactTests(unittest.TestCase):
         self.assertEqual(impact["corpus_cases"], [case_id])
         self.assertEqual(impact["holdout_pairs"], [])
         self.assertEqual(impact["gates"], ["corpus"])
-        self.assertEqual(impact["live_calls"], {"minimum": 1, "maximum": 1})
+        self.assertIsNone(impact["live_calls"])
+        self.assertIsNone(impact["cost"])
 
     def test_native_case_counts_initial_resume_and_fresh_model_calls(self) -> None:
         cases = corpus_engine.load_cases(ROOT / "evaluation" / "cases")
@@ -340,13 +495,12 @@ class CertificationImpactTests(unittest.TestCase):
             self.snapshot,
             self.snapshot,
             pending={
-                "reasons": ["native-proof-required"],
+                "gates": ["corpus"],
                 "corpus_cases": ["pre-freeze-compaction"],
                 "holdout_pairs": [],
-                "review": False,
             },
         )
-        self.assertEqual(impact["live_calls"], {"minimum": 3, "maximum": 3})
+        self.assertIsNone(impact["live_calls"])
 
     def test_removed_case_blocks_impact_instead_of_reporting_zero_cost(self) -> None:
         changed = copy.deepcopy(self.snapshot)
@@ -354,6 +508,25 @@ class CertificationImpactTests(unittest.TestCase):
 
         with self.assertRaisesRegex(IdentityError, "removed corpus case"):
             plan_impact(self.snapshot, changed)
+
+    def test_corpus_semantic_bundle_has_one_authoritative_exact_path_set(self) -> None:
+        from evaluation.core import impact as impact_engine
+
+        self.assertIs(corpus_engine.CORPUS_SEMANTIC_PATHS, CORPUS_SEMANTIC_PATHS)
+        self.assertIs(impact_engine.CORPUS_SEMANTIC_PATHS, CORPUS_SEMANTIC_PATHS)
+        self.assertEqual(len(CORPUS_SEMANTIC_PATHS), 6)
+        inventory = engine_inventory(ROOT)
+        expected = {
+            item["path"]
+            for item in inventory["entries"]
+            if item["path"] in CORPUS_SEMANTIC_PATHS
+        }
+        self.assertEqual(expected, set(CORPUS_SEMANTIC_PATHS))
+        with self.assertRaisesRegex(IdentityError, "source bundle"):
+            engine_paths_sha256(
+                inventory,
+                set(CORPUS_SEMANTIC_PATHS) | {"evaluation/corpus/contract.py"},
+            )
 
     def test_removed_holdout_pair_blocks_impact(self) -> None:
         changed = copy.deepcopy(self.snapshot)
@@ -369,11 +542,13 @@ class CertificationImpactTests(unittest.TestCase):
                 changed["engine"]["categories"][category] = "e" * 64
                 if category == "harness":
                     changed["engine"]["scopes"]["corpus_harness"] = "d" * 64
+                else:
+                    changed["engine"]["scopes"]["corpus_semantic"] = "d" * 64
                 impact = plan_impact(self.snapshot, changed)
                 self.assertEqual(len(impact["corpus_cases"]), 17)
                 self.assertEqual(len(impact["holdout_pairs"]), 3)
                 self.assertEqual(impact["gates"], ["corpus", "holdout"])
-                self.assertEqual(impact["live_calls"], {"minimum": 23, "maximum": 25})
+                self.assertIsNone(impact["live_calls"])
 
     def test_holdout_only_harness_change_does_not_rerun_corpus(self) -> None:
         changed = copy.deepcopy(self.snapshot)
@@ -384,17 +559,18 @@ class CertificationImpactTests(unittest.TestCase):
         self.assertEqual(impact["corpus_cases"], [])
         self.assertEqual(len(impact["holdout_pairs"]), 3)
         self.assertEqual(impact["gates"], ["holdout"])
-        self.assertEqual(impact["live_calls"], {"minimum": 4, "maximum": 6})
+        self.assertIsNone(impact["live_calls"])
 
     def test_holdout_policy_change_does_not_rerun_corpus(self) -> None:
         changed = copy.deepcopy(self.snapshot)
+        changed["engine"]["categories"]["semantic"] = "e" * 64
         changed["engine"]["scopes"]["holdout_semantic"] = "d" * 64
 
         impact = plan_impact(self.snapshot, changed)
         self.assertEqual(impact["corpus_cases"], [])
         self.assertEqual(len(impact["holdout_pairs"]), 3)
         self.assertEqual(impact["gates"], ["holdout"])
-        self.assertEqual(impact["live_calls"], {"minimum": 4, "maximum": 6})
+        self.assertIsNone(impact["live_calls"])
 
     def test_partial_pending_holdout_expands_to_the_executable_adaptive_scope(
         self,
@@ -404,23 +580,22 @@ class CertificationImpactTests(unittest.TestCase):
             self.snapshot,
             self.snapshot,
             pending={
-                "reasons": ["pending-pair"],
+                "gates": ["holdout"],
                 "corpus_cases": [],
                 "holdout_pairs": [pair_id],
-                "review": False,
             },
         )
         self.assertEqual(
             impact["holdout_pairs"], sorted(self.snapshot["holdout"]["pairs"])
         )
-        self.assertEqual(impact["live_calls"], {"minimum": 4, "maximum": 6})
+        self.assertIsNone(impact["live_calls"])
 
     def test_artifact_engine_or_package_change_needs_no_model_call(self) -> None:
         changed = copy.deepcopy(self.snapshot)
         changed["engine"]["categories"]["artifact"] = "d" * 64
         impact = plan_impact(self.snapshot, changed)
         self.assertEqual(impact["gates"], ["receipt"])
-        self.assertEqual(impact["live_calls"], {"minimum": 0, "maximum": 0})
+        self.assertIsNone(impact["live_calls"])
 
     def test_real_control_mutations_fail_closed_but_sanitizer_is_artifact(self) -> None:
         for relative, expected_calls in (
@@ -445,7 +620,7 @@ class CertificationImpactTests(unittest.TestCase):
                     path.read_text(encoding="utf-8") + "\n", encoding="utf-8"
                 )
                 impact = plan_impact(baseline, build_snapshot(clone))
-                self.assertEqual(impact["live_calls"], expected_calls)
+                self.assertIsNone(impact["live_calls"])
                 if relative.endswith("receipt.py"):
                     self.assertEqual(impact["gates"], ["receipt"])
                 else:
@@ -455,7 +630,7 @@ class CertificationImpactTests(unittest.TestCase):
         changed["package"]["artifact_sha256"] = "c" * 64
         impact = plan_impact(self.snapshot, changed)
         self.assertEqual(impact["gates"], ["isolated_install"])
-        self.assertEqual(impact["live_calls"], {"minimum": 0, "maximum": 0})
+        self.assertIsNone(impact["live_calls"])
 
     def test_impact_rejects_the_same_malformed_case_as_execution(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
@@ -507,66 +682,234 @@ class CertificationImpactTests(unittest.TestCase):
         with self.assertRaisesRegex(IdentityError, "unknown snapshot field"):
             plan_impact(self.snapshot, changed)
 
-    def test_refresh_ledger_cost_and_active_waiver_scope_are_exact(self) -> None:
+    def test_refresh_ledger_has_no_prior_cost_attempt_or_evidence(self) -> None:
         ledger, current, impact = full_live_test_state()
         self.assertEqual(current, self.snapshot)
         self.assertEqual(len(impact["corpus_cases"]), 17)
         self.assertEqual(len(impact["holdout_pairs"]), 3)
-        self.assertEqual(impact["live_calls"], {"minimum": 23, "maximum": 25})
-        self.assertEqual(impact["cost"]["combined_tokens"]["maximum"], 770869)
-        self.assertEqual(impact["cost"]["wall_seconds"]["maximum"], 4032.239)
-        self.assertIn(
-            "new 0.4.1 single-call controls conservatively use",
-            impact["cost"]["basis"],
-        )
-        self.assertEqual(
-            impact["cost"]["provenance"]["holdout_summary_sha256"],
-            "f301f23d0d841deaef538cf07d9fba36705ebb175a3a1e4f099bb68cfc91ea3d",
-        )
+        self.assertIsNone(impact["live_calls"])
+        self.assertIsNone(impact["cost"])
 
         invalid = copy.deepcopy(ledger)
         invalid["historical_cost"] = {}
-        with self.assertRaisesRegex(ValueError, "historical cost"):
+        with self.assertRaisesRegex(ValueError, "envelope"):
             validate_ledger(invalid, repo=ROOT)
-
-        active = json.loads(
-            (ROOT / "evaluation" / "results" / "current.json").read_text(
-                encoding="utf-8"
-            )
-        )
-        self.assertNotIn("prior_evidence", active)
+        self.assertEqual(ledger["calibration_history"], [])
+        self.assertEqual(ledger["accepted_evidence"], [])
         self.assertEqual(
-            active["pending"]["corpus_cases"],
-            sorted(active["snapshot"]["corpus"]["cases"]),
-        )
-        self.assertEqual(
-            active["pending"]["holdout_pairs"],
-            sorted(active["snapshot"]["holdout"]["pairs"]),
-        )
-        self.assertEqual(
-            active["pending"]["reasons"],
-            [
-                "release_0_4_2_refresh",
-                "user_waived_corpus_holdout_0_4_2_2026_07_29",
-                "user_waived_review_2026_07_29",
-            ],
-        )
-        self.assertFalse(active["pending"]["review"])
-        self.assertEqual(set(active["live_attempts"]), {"corpus", "holdout"})
-        pending_refresh = plan_impact(
-            active["snapshot"],
-            active["snapshot"],
-            pending=active["pending"],
-        )
-        self.assertEqual(pending_refresh["gates"], ["corpus", "holdout"])
-        self.assertEqual(pending_refresh["live_calls"], {"minimum": 23, "maximum": 25})
-        self.assertEqual(
-            pending_refresh["cost"]["combined_tokens"],
-            {"minimum": 719051, "maximum": 770869},
+            ledger["authorities"],
+            {"executor": None, "corpus": None, "holdout": None},
         )
 
 
 class CertificationReceiptAndCliTests(unittest.TestCase):
+    def test_executor_dry_run_is_deterministic_and_zero_effect(self) -> None:
+        with (
+            mock.patch("subprocess.run", side_effect=AssertionError("subprocess")),
+            mock.patch.object(
+                corpus_engine,
+                "build_fixture",
+                side_effect=AssertionError("fixture"),
+            ),
+            mock.patch("builtins.print") as output,
+        ):
+            self.assertEqual(cli.main(["executor", "--dry-run"]), 0)
+        payload = json.loads(output.call_args.args[0])
+        self.assertEqual(
+            payload,
+            {
+                "schema_generation": 6,
+                "command": "executor",
+                "dry_run": True,
+                "invocation_profile": invocation_profile(
+                    model="gpt-5.6-sol",
+                    effort="high",
+                    timeout_seconds=300,
+                    arm="candidate",
+                    session_mode="fresh",
+                ),
+                "effects": {
+                    "capabilities_minted": 0,
+                    "attempts_claimed": 0,
+                    "authorities_consumed": 0,
+                    "fixtures_created": 0,
+                    "outputs_created": 0,
+                    "workspaces_created": 0,
+                    "subprocesses": 0,
+                    "model_calls": 0,
+                    "network_calls": 0,
+                },
+                "gate_authority_required": True,
+            },
+        )
+
+    def test_terminal_events_bind_one_result_usage_completion_and_eof(self) -> None:
+        final = {"decision": "continue", "value": "bound"}
+        binding = {
+            "provider": "openai",
+            "session_id": "session-1",
+            "thread_id": "thread-1",
+            "action_id": "evaluate:case-1",
+            "attempt_key": "a" * 64,
+        }
+        profile = invocation_profile(
+            model="gpt-5.6-sol",
+            effort="high",
+            timeout_seconds=300,
+            arm="candidate",
+        )
+        events = [
+            {
+                "type": "thread.started",
+                "thread_id": binding["thread_id"],
+            },
+            {"type": "turn.started"},
+            {
+                "type": "item.started",
+                "item": {
+                    "aggregated_output": "",
+                    "command": "rg --files",
+                    "exit_code": None,
+                    "id": "tool-1",
+                    "status": "in_progress",
+                    "type": "command_execution",
+                },
+            },
+            {
+                "type": "item.completed",
+                "item": {
+                    "id": "tool-1",
+                    "type": "command_execution",
+                    "aggregated_output": "bounded fixture",
+                    "command": "rg --files",
+                    "exit_code": 0,
+                    "status": "completed",
+                },
+            },
+            {
+                "type": "item.completed",
+                "item": {
+                    "id": "result-1",
+                    "type": "agent_message",
+                    "text": json.dumps(final),
+                },
+            },
+            {
+                "type": "turn.completed",
+                "usage": {
+                    "input_tokens": 10,
+                    "cached_input_tokens": 2,
+                    "cache_write_input_tokens": 1,
+                    "output_tokens": 3,
+                    "reasoning_output_tokens": 1,
+                },
+            },
+        ]
+
+        parsed, usage, thread_id, terminal = corpus_engine.parse_events(
+            "\n".join(json.dumps(item) for item in events),
+            binding=binding,
+            invocation_profile=profile,
+        )
+        self.assertEqual(parsed, final)
+        self.assertEqual(usage["output_tokens"], 3)
+        self.assertEqual(thread_id, "thread-1")
+        self.assertEqual(terminal["provider"], binding["provider"])
+        self.assertEqual(terminal["session_id"], binding["session_id"])
+        self.assertEqual(terminal["action_id"], binding["action_id"])
+        self.assertEqual(terminal["attempt_key"], binding["attempt_key"])
+        self.assertEqual(terminal["thread_id"], binding["thread_id"])
+        self.assertEqual(terminal["result_id"], "result-1")
+        self.assertEqual(terminal["result_sha256"], canonical_sha256(final))
+        self.assertEqual(terminal["provenance"], "validated_invocation+native_stream")
+        self.assertEqual(terminal["terminal_ordinal"], 4)
+        self.assertRegex(terminal["turn_id"], r"^[0-9a-f]{64}$")
+        self.assertRegex(terminal["stream_sha256"], r"^[0-9a-f]{64}$")
+
+        variants = {
+            "duplicate result": [*events[:-1], events[-2], events[-1]],
+            "duplicate completion": [*events, events[-1]],
+            "late result": [*events, events[-2]],
+            "extra terminal": [
+                *events,
+                {"type": "terminal.extra", "value": "forbidden"},
+            ],
+            "unpaired prefix": [
+                *events[:2],
+                {
+                    "type": "item.completed",
+                    "item": {
+                        "aggregated_output": "",
+                        "command": "rg",
+                        "exit_code": 0,
+                        "id": "tool-2",
+                        "status": "completed",
+                        "type": "command_execution",
+                    },
+                },
+                *events[-2:],
+            ],
+            "unknown terminal shape": [
+                *events[:-2],
+                {
+                    "type": "item.completed",
+                    "item": {"type": "agent_message", "text": json.dumps(final)},
+                },
+                events[-1],
+            ],
+        }
+        for label, variant in variants.items():
+            with self.subTest(label=label), self.assertRaisesRegex(
+                ValueError, "terminal|event|digest|EOF"
+            ):
+                corpus_engine.parse_events(
+                    "\n".join(json.dumps(item) for item in variant),
+                    binding=binding,
+                    invocation_profile=profile,
+                )
+
+        collab_profile = invocation_profile(
+            model="gpt-5.6-sol",
+            effort="high",
+            timeout_seconds=300,
+            arm="candidate",
+            allowed_tools=("collaboration",),
+        )
+        collab_base = {
+            "agents_states": {},
+            "id": "collab-1",
+            "prompt": None,
+            "receiver_thread_ids": ["thread-child"],
+            "sender_thread_id": "thread-1",
+            "tool": "wait",
+            "type": "collab_tool_call",
+        }
+        collab_events = [
+            events[0],
+            events[1],
+            {
+                "type": "item.started",
+                "item": {**collab_base, "status": "in_progress"},
+            },
+            {
+                "type": "item.completed",
+                "item": {**collab_base, "status": "completed"},
+            },
+            events[-2],
+            events[-1],
+        ]
+        corpus_engine.parse_events(
+            "\n".join(json.dumps(item) for item in collab_events),
+            binding=binding,
+            invocation_profile=collab_profile,
+        )
+        with self.assertRaisesRegex(ValueError, "invocation profile"):
+            corpus_engine.parse_events(
+                "\n".join(json.dumps(item) for item in collab_events),
+                binding=binding,
+                invocation_profile=profile,
+            )
+
     def test_041_is_fresh_only_with_no_prior_evidence_surface(self) -> None:
         current = json.loads(
             (ROOT / "evaluation" / "results" / "current.json").read_text(
@@ -736,168 +1079,20 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
         ledger, _current, _impact = full_live_test_state()
         self.assertEqual(ledger["state"], "refresh_required")
         self.assertIsNone(ledger["certification"])
-        self.assertIsNone(ledger["live_authority"])
+        self.assertEqual(
+            ledger["authorities"],
+            {"executor": None, "corpus": None, "holdout": None},
+        )
         validate_ledger(ledger)
 
         invalid = copy.deepcopy(ledger)
         invalid["state"] = "certified"
-        invalid["pending"] = {
-            "reasons": [],
-            "corpus_cases": [],
-            "holdout_pairs": [],
-            "review": False,
-        }
-        invalid["live_attempts"] = {}
         invalid["certification"] = {}
-        with self.assertRaisesRegex(ValueError, "certification receipt"):
+        with self.assertRaisesRegex(ValueError, "state"):
             validate_ledger(invalid)
 
-    def test_user_authority_is_exact_and_invocation_bound(self) -> None:
+    def test_live_dispatch_refuses_before_authority_or_runner_effect(self) -> None:
         ledger, current, impact = full_live_test_state()
-        authority = complete_live_authority(ledger, current, impact)
-        invocation = authority["invocations"][0]
-        ledger_engine.validate_live_authority(authority, snapshot=current)
-        with tempfile.TemporaryDirectory() as raw:
-            attempt_root = Path(raw)
-            ledger_engine.claim_authorized_invocation(
-                authority,
-                snapshot=current,
-                impact=impact,
-                invocation=invocation,
-                attempt_root=attempt_root,
-            )
-            with self.assertRaisesRegex(ValueError, "already consumed"):
-                ledger_engine.claim_authorized_invocation(
-                    authority,
-                    snapshot=current,
-                    impact=impact,
-                    invocation=invocation,
-                    attempt_root=attempt_root,
-                )
-            for field, value in (
-                ("model", "unapproved-model"),
-                ("effort", "low"),
-                ("timeout_seconds", 1),
-                ("package_artifact_sha256", "5" * 64),
-            ):
-                with self.subTest(field=field):
-                    changed = copy.deepcopy(invocation)
-                    changed[field] = value
-                    with self.assertRaisesRegex(
-                        ValueError, "invocation is not authorized"
-                    ):
-                        ledger_engine.claim_authorized_invocation(
-                            authority,
-                            snapshot=current,
-                            impact=impact,
-                            invocation=changed,
-                            attempt_root=attempt_root,
-                        )
-
-        incomplete = copy.deepcopy(authority)
-        incomplete["invocations"] = incomplete["invocations"][:1]
-        with self.assertRaisesRegex(ValueError, "complete impact scope"):
-            ledger_engine.validate_live_authority(incomplete, snapshot=current)
-
-        fabricated = copy.deepcopy(authority)
-        fabricated["approval_response"] = "not the approved response"
-        with self.assertRaisesRegex(ValueError, "approval response"):
-            ledger_engine.validate_live_authority(fabricated, snapshot=current)
-
-        rejecting = copy.deepcopy(authority)
-        rejecting["approval_response"] = (
-            "I explicitly reject every proposed call and cost.\n"
-        )
-        rejecting["approval_response_sha256"] = sha256_bytes(
-            rejecting["approval_response"].encode()
-        )
-        with self.assertRaisesRegex(ValueError, "affirmative|approval response"):
-            ledger_engine.validate_live_authority(rejecting, snapshot=current)
-
-        wrong_public_semantic = copy.deepcopy(authority)
-        holdout = next(
-            item
-            for item in wrong_public_semantic["invocations"]
-            if item["command"] == "holdout"
-        )
-        holdout["public_semantic_sha256"] = (
-            "fb3cb41922dc0c5c75f97a5eefc7af72fa60ca1d9c13d1907a3902912e5f9ce4"
-        )
-        request = {
-            "schema_version": wrong_public_semantic["schema_version"],
-            "snapshot_sha256": wrong_public_semantic["snapshot_sha256"],
-            "impact": wrong_public_semantic["impact"],
-            "impact_token": wrong_public_semantic["impact_token"],
-            "invocations": wrong_public_semantic["invocations"],
-        }
-        request_sha256 = canonical_sha256(request)
-        response = ledger_engine.affirmative_approval_response(request_sha256)
-        wrong_public_semantic["approval_request_sha256"] = request_sha256
-        wrong_public_semantic["approval_response"] = response
-        wrong_public_semantic["approval_response_sha256"] = sha256_bytes(
-            response.encode()
-        )
-        with self.assertRaisesRegex(ValueError, "frozen public-0.4.0"):
-            ledger_engine.validate_live_authority(
-                wrong_public_semantic, snapshot=current
-            )
-
-    def test_live_attempt_claim_is_atomic(self) -> None:
-        ledger, current, impact = full_live_test_state()
-        authority = complete_live_authority(ledger, current, impact)
-        invocation = authority["invocations"][0]
-        with tempfile.TemporaryDirectory() as raw:
-            barrier = threading.Barrier(2)
-
-            def claim() -> str:
-                barrier.wait(timeout=2)
-                try:
-                    ledger_engine.claim_authorized_invocation(
-                        authority,
-                        snapshot=current,
-                        impact=impact,
-                        invocation=invocation,
-                        attempt_root=Path(raw),
-                    )
-                except ValueError as exc:
-                    return str(exc)
-                return "claimed"
-
-            with ThreadPoolExecutor(max_workers=2) as executor:
-                outcomes = list(executor.map(lambda _index: claim(), range(2)))
-
-        self.assertEqual(outcomes.count("claimed"), 1)
-        self.assertEqual(
-            outcomes.count("live invocation attempt is already consumed"), 1
-        )
-
-    def test_attempt_registry_is_shared_by_linked_worktrees(self) -> None:
-        completed = subprocess.run(
-            ["git", "rev-parse", "--git-common-dir"],
-            cwd=ROOT,
-            check=True,
-            capture_output=True,
-            text=True,
-        )
-        common = Path(completed.stdout.strip())
-        if not common.is_absolute():
-            common = (ROOT / common).resolve()
-        self.assertEqual(
-            live._attempt_registry_root(),
-            common / "happycodex-live-attempts",
-        )
-
-    def test_persisting_authority_does_not_create_a_token_cycle(self) -> None:
-        ledger, current, impact = full_live_test_state()
-        token = live.impact_token(ledger, current, impact)
-        authorized = copy.deepcopy(ledger)
-        authorized["live_authority"] = complete_live_authority(ledger, current, impact)
-        validate_ledger(authorized)
-        self.assertEqual(live.impact_token(authorized, current, impact), token)
-
-    def test_live_dispatch_binds_authority_digest_into_runner_args(self) -> None:
-        ledger, current, impact = full_live_test_state()
-        ledger["live_authority"] = complete_live_authority(ledger, current, impact)
         parser = cli.build_parser()
         args = parser.parse_args(
             [
@@ -910,40 +1105,16 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
         )
         with (
             mock.patch.object(
-                live, "load_state", return_value=(ledger, current, impact)
-            ),
-            mock.patch.object(
-                live.corpus_engine, "run_authorized", return_value=0
-            ) as runner,
-            tempfile.TemporaryDirectory() as raw,
-            mock.patch.object(live, "_attempt_registry_root", return_value=Path(raw)),
+                live,
+                "load_state",
+                side_effect=AssertionError("state load reached"),
+            ) as state,
+            mock.patch.object(live.corpus_engine, "run_authorized") as runner,
+            self.assertRaisesRegex(SystemExit, "2"),
         ):
-            self.assertEqual(live.run_command(args, parser), 0)
-        authorization = runner.call_args.args[1]
-        self.assertIsInstance(authorization, ledger_engine.AuthorizedInvocation)
-        self.assertEqual(authorization.command, "corpus")
-        self.assertEqual(
-            authorization.impact_token, ledger["live_authority"]["impact_token"]
-        )
-        self.assertEqual(
-            authorization.authority_sha256, canonical_sha256(ledger["live_authority"])
-        )
-        self.assertFalse(hasattr(ledger_engine, "_AUTHORIZATION_SEAL"))
-        with self.assertRaisesRegex(TypeError, "validator-minted"):
-            ledger_engine.AuthorizedInvocation()
-        descriptor = authorization.descriptor()
-        descriptor["cases"] = []
-        self.assertNotEqual(descriptor, authorization.descriptor())
-        with self.assertRaises((AttributeError, TypeError)):
-            authorization.impact_token = "f" * 64
-        with self.assertRaises(AttributeError):
-            authorization._descriptor  # type: ignore[attr-defined]
-        with self.assertRaisesRegex(TypeError, "cannot be copied"):
-            copy.copy(authorization)
-        with self.assertRaisesRegex(TypeError, "cannot be copied"):
-            copy.deepcopy(authorization)
-        with self.assertRaisesRegex(TypeError, "cannot be serialized"):
-            pickle.dumps(authorization)
+            live.run_command(args, parser)
+        state.assert_not_called()
+        runner.assert_not_called()
 
     def test_model_reaching_helpers_require_authorized_capability(self) -> None:
         case = corpus_engine.load_cases()["receipt-mismatch"]
@@ -990,7 +1161,7 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
         }
         payload = {
             "schema_version": 1,
-            "engine_generation": "0.4",
+            "engine_generation": "0.6",
             "source_commit": "3" * 40,
             "source_ledger_sha256": "4" * 64,
             "snapshot_sha256": canonical_sha256(snapshot),
@@ -1018,87 +1189,11 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                 gates={"isolated_install", "receipt"},
             )
 
-    def test_leaf_runner_commands_reject_fabricated_live_bindings(self) -> None:
-        parser = cli.build_parser()
-        with tempfile.TemporaryDirectory() as raw:
-            corpus_args = parser.parse_args(
-                [
-                    "corpus",
-                    "--case",
-                    "receipt-mismatch",
-                    "--output",
-                    str(Path(raw) / "corpus"),
-                    "--bind-impact",
-                    "a" * 64,
-                ]
-            )
-            corpus_args.live_authority_sha256 = "b" * 64
-            with mock.patch.object(
-                corpus_engine,
-                "evaluate_case",
-                side_effect=AssertionError("corpus evaluator reached"),
-            ) as evaluator:
-                with self.assertRaisesRegex(SystemExit, "evaluation.cli"):
-                    corpus_engine.run_command(corpus_args)
-            evaluator.assert_not_called()
-
-            ledger, current, impact = full_live_test_state()
-            authority = complete_live_authority(ledger, current, impact)
-            corpus_invocation = next(
-                item for item in authority["invocations"] if item["command"] == "corpus"
-            )
-            authorization = ledger_engine.claim_authorized_invocation(
-                authority,
-                snapshot=current,
-                impact=impact,
-                invocation=corpus_invocation,
-                attempt_root=Path(raw) / "attempts",
-            )
-            mismatched_plugin = Path(raw) / "mismatched-plugin"
-            mismatched_plugin.mkdir()
-            mismatched_args = parser.parse_args(
-                [
-                    "corpus",
-                    "--plugin",
-                    str(mismatched_plugin),
-                    "--output",
-                    str(Path(raw) / "mismatched-corpus"),
-                ]
-            )
-            with mock.patch.object(
-                corpus_engine,
-                "evaluate_case",
-                side_effect=AssertionError("corpus evaluator reached"),
-            ) as evaluator:
-                with self.assertRaisesRegex(SystemExit, "package"):
-                    corpus_engine.run_authorized(mismatched_args, authorization)
-            evaluator.assert_not_called()
-
-            holdout_args = parser.parse_args(
-                [
-                    "holdout",
-                    "--candidate",
-                    str(ROOT),
-                    "--public",
-                    str(ROOT),
-                    "--output",
-                    str(Path(raw) / "holdout"),
-                    "--bind-impact",
-                    "a" * 64,
-                ]
-            )
-            holdout_args.live_authority_sha256 = "b" * 64
-            with mock.patch.object(
-                holdout_engine,
-                "run_holdouts",
-                side_effect=AssertionError("holdout evaluator reached"),
-            ) as runner:
-                with self.assertRaisesRegex(SystemExit, "evaluation.cli"):
-                    holdout_engine.run_command(holdout_args)
-            runner.assert_not_called()
-
     def test_verify_preserves_repo_context_for_certified_ledger_hash(self) -> None:
-        ledger = {"state": "certified", "live_authority": {}}
+        ledger = {
+            "state": "refresh_required",
+            "authorities": {"executor": None, "corpus": None, "holdout": None},
+        }
         current = {"engine": {"manifest_sha256": "a" * 64}}
         impact = {"gates": []}
         inventory = {"manifest_sha256": "a" * 64}
@@ -1120,7 +1215,8 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
         case_id = sorted(changed["corpus"]["cases"])[0]
         changed["corpus"]["cases"][case_id] = "f" * 64
         impact = plan_impact(snapshot, changed)
-        authority = {"impact_token": "a" * 64, "impact": impact}
+        token = live.impact_token({}, changed, impact)
+        gate_authority_sha256 = "a" * 64
         case = {
             "id": case_id,
             "uncached_input_tokens": 2,
@@ -1129,9 +1225,9 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
         }
         payload = {
             "schema_version": 1,
-            "engine_generation": "0.4",
-            "impact_token": authority["impact_token"],
-            "live_authority_sha256": canonical_sha256(authority),
+            "engine_generation": "0.6",
+            "impact_token": token,
+            "gate_authority_sha256": gate_authority_sha256,
             "arm": "candidate",
             "model": changed["settings"]["model"],
             "effort": changed["settings"]["effort"],
@@ -1149,957 +1245,50 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                 payload,
                 changed,
                 {"engine": engine_inventory(ROOT)},
-                authority,
+                gate_authority_sha256=gate_authority_sha256,
+                impact=impact,
             )
         validate.assert_called_once()
 
     def test_certified_state_requires_a_digest_bound_successor_receipt(self) -> None:
         ledger, current, impact = full_live_test_state()
-        authority = complete_live_authority(ledger, current, impact)
+        del current, impact
         certified = copy.deepcopy(ledger)
         certified["state"] = "certified"
-        certified["pending"] = {
-            "reasons": [],
-            "corpus_cases": [],
-            "holdout_pairs": [],
-            "review": False,
-        }
-        certified["live_authority"] = authority
         certified["certification"] = {
-            "schema_version": 1,
-            "successor_source_commit": "6" * 40,
-            "successor_source_tree": "7" * 40,
-            "snapshot_sha256": canonical_sha256(certified["snapshot"]),
-            "engine_manifest_sha256": certified["snapshot"]["engine"][
-                "manifest_sha256"
-            ],
-            "coverage": refreshed_coverage(certified["snapshot"]),
-            "evidence": {
-                name: {
-                    "commit": "8" * 40,
-                    "path": f"evaluation/results/evidence/{name}.json",
-                    "git_blob": "9" * 40,
-                    "sha256": "a" * 64,
-                }
-                for name in (
-                    "corpus_summary",
-                    "holdout_run",
-                    "holdout_summary",
-                )
-            },
-            "live_authority_sha256": canonical_sha256(authority),
+            "forbidden_before_generation_6_evidence_work": True
         }
-        with self.assertRaisesRegex(ValueError, "reachable certification evidence"):
+        with self.assertRaisesRegex(ValueError, "state"):
             validate_ledger(certified, repo=ROOT)
-
-    def test_certified_state_accepts_only_reachable_bound_evidence(self) -> None:
-        with tempfile.TemporaryDirectory() as raw:
-            repo = Path(raw) / "repo"
-            repo.mkdir()
-            shutil.copytree(ROOT / "evaluation", repo / "evaluation")
-            for package_path in (".agents", ".codex-plugin", "README.md", "skills"):
-                source = ROOT / package_path
-                target = repo / package_path
-                if source.is_dir():
-                    shutil.copytree(source, target)
-                else:
-                    shutil.copy2(source, target)
-
-            def git(*args: str) -> str:
-                completed = subprocess.run(
-                    ["git", *args],
-                    cwd=repo,
-                    check=True,
-                    capture_output=True,
-                    text=True,
-                )
-                return completed.stdout.strip()
-
-            git("init", "-q")
-            git("config", "user.name", "HappyCodex test")
-            git("config", "user.email", "happycodex-test@example.invalid")
-            git("add", ".")
-            git("commit", "-qm", "source without authority")
-            unauthorized_source_commit = git("rev-parse", "HEAD")
-            unauthorized_source_tree = git("rev-parse", "HEAD^{tree}")
-
-            snapshot = build_snapshot(repo)
-            pending = {
-                "reasons": ["engine_generation_changed"],
-                "corpus_cases": sorted(snapshot["corpus"]["cases"]),
-                "holdout_pairs": sorted(snapshot["holdout"]["pairs"]),
-                "review": True,
-            }
-            impact = plan_impact(snapshot, snapshot, pending=pending)
-            ledger = {
-                "schema_version": 1,
-                "state": "refresh_required",
-                "snapshot": snapshot,
-                "pending": pending,
-                "live_attempts": {
-                    "corpus": "1" * 64,
-                    "holdout": "2" * 64,
-                },
-                "historical_cost": historical_cost_receipt(),
-                "live_authority": None,
-                "certification": None,
-            }
-            authority = complete_live_authority(ledger, snapshot, impact)
-            authorized_ledger = copy.deepcopy(ledger)
-            authorized_ledger["live_authority"] = authority
-            (repo / "evaluation" / "results" / "current.json").write_text(
-                json.dumps(
-                    authorized_ledger,
-                    ensure_ascii=False,
-                    sort_keys=True,
-                    indent=2,
-                )
-                + "\n",
-                encoding="utf-8",
-            )
-            git("add", "evaluation/results/current.json")
-            git("commit", "-qm", "persist exact live authority")
-            source_commit = git("rev-parse", "HEAD")
-            source_tree = git("rev-parse", "HEAD^{tree}")
-            git("update-index", "--chmod=+x", "skills/happycodex/SKILL.md")
-            git("commit", "-qm", "source with package mode drift")
-            mode_drift_source_commit = git("rev-parse", "HEAD")
-            mode_drift_source_tree = git("rev-parse", "HEAD^{tree}")
-            git("update-index", "--chmod=-x", "skills/happycodex/SKILL.md")
-            settings = snapshot["settings"]
-            engine_identity = engine_inventory(repo)
-            source_cases = corpus_engine.load_cases(repo / "evaluation" / "cases")
-            native_fixture_evidence: dict[str, dict[str, object]] = {}
-            for case_id, source_case in source_cases.items():
-                native = source_case["fixture"].get("native_compaction_resume")
-                if native is None:
-                    continue
-                fixture_repo = Path(raw) / f"native-fixture-{case_id}"
-                fixture = corpus_engine.build_fixture(source_case, fixture_repo)
-                transition = corpus_engine.apply_post_compaction_transition(
-                    fixture_repo, native["post_compaction_transition"], fixture
-                )
-                native_fixture_evidence[case_id] = {
-                    "recovery_state": corpus_engine.expected_recovery_state(
-                        native, fixture, transition
-                    ),
-                    "post_compaction_transition_sha256": canonical_sha256(transition),
-                    "transition": transition,
-                }
-            native_evidence_oracles = {
-                case_id: {
-                    key: value for key, value in evidence.items() if key != "transition"
-                }
-                for case_id, evidence in native_fixture_evidence.items()
-            }
-
-            def case_receipt(
-                case_id: str,
-                semantic_sha256: str,
-                package: dict[str, str],
-                case_descriptor: dict[str, object] | None = None,
-            ) -> dict[str, object]:
-                case = case_descriptor or source_cases.get(case_id)
-                self.assertIsInstance(case, dict)
-                native = (
-                    case["fixture"].get("native_compaction_resume")
-                    if isinstance(case, dict)
-                    else None
-                )
-                phase = {
-                    "input_tokens": 2,
-                    "cached_input_tokens": 0,
-                    "output_tokens": 1,
-                    "reasoning_output_tokens": 0,
-                }
-                phase_count = 3 if native else 1
-                usage_phases = [copy.deepcopy(phase) for _ in range(phase_count)]
-                usage = {key: value * phase_count for key, value in phase.items()}
-                recovery_state = (
-                    copy.deepcopy(native_fixture_evidence[case_id]["recovery_state"])
-                    if native
-                    else None
-                )
-                expected = {
-                    field: values[0] if isinstance(values, list) else values
-                    for field, values in case["oracle"]["expected"].items()
-                }
-                findings = []
-                blockers = []
-                for required in case["oracle"].get("required_classifications", []):
-                    states = required["state"]
-                    findings.append(
-                        {
-                            "identity": required["identity"],
-                            "domain": required["domain"],
-                            "state": states[0] if isinstance(states, list) else states,
-                            "anchors": [],
-                        }
-                    )
-                for index, required in enumerate(
-                    case["oracle"].get("required_anchored_classifications", [])
-                ):
-                    states = required["state"]
-                    findings.append(
-                        {
-                            "identity": f"anchored-classification-{index}",
-                            "domain": required["domain"],
-                            "state": states[0] if isinstance(states, list) else states,
-                            "anchors": [required["anchor"]],
-                        }
-                    )
-                for index, required in enumerate(
-                    case["oracle"].get("required_anchored_blockers", [])
-                ):
-                    identity = f"anchored-blocker-{index}"
-                    classes = required["class"]
-                    findings.append(
-                        {
-                            "identity": identity,
-                            "domain": "other",
-                            "state": "candidate_new",
-                            "anchors": [required["anchor"]],
-                        }
-                    )
-                    blockers.append(
-                        {
-                            "identity": identity,
-                            "class": classes[0]
-                            if isinstance(classes, list)
-                            else classes,
-                            "blocking": True,
-                            "reason": "required by the case oracle",
-                        }
-                    )
-                if expected["protocol_review_mode"] == "exact_final":
-                    open_gates = ["exact-final review"]
-                elif expected["protocol_review_mode"] == "focused_hardening":
-                    open_gates = ["focused choke-point review"]
-                elif (
-                    corpus_engine.fixture_requires_goal_pause_handoff(case["fixture"])
-                    and expected["decision"] == "stop_for_user"
-                ):
-                    open_gates = ["Run /goal pause before ending at the user gate."]
-                else:
-                    open_gates = []
-                result = {
-                    **expected,
-                    "finding_classifications": findings,
-                    "blocker_classifications": blockers,
-                    "open_gates": open_gates,
-                    "evidence": [],
-                    "reason": "",
-                    "recovery_state": recovery_state,
-                }
-                self.assertEqual(
-                    corpus_engine.match_oracle(
-                        result,
-                        case["oracle"],
-                        expected_recovery_state=recovery_state if native else None,
-                        fixture=case["fixture"],
-                    ),
-                    [],
-                )
-                compaction_phase = {
-                    "rollout_path": ".codex/sessions/native.jsonl",
-                    "rollout_sha256": "7" * 64,
-                    "rollout_byte_count": 128,
-                    "rollout_prefix_sha256": None,
-                    "compaction_event_count": 1,
-                    "context_compacted_marker_count": 0,
-                    "event_types": ["compacted"],
-                    "rollout_match_count": 1,
-                }
-                native_compaction = (
-                    {
-                        "auto_compact_token_limit": native["auto_compact_token_limit"],
-                        "before_resume": copy.deepcopy(compaction_phase),
-                        "compaction_event_count": 1,
-                        "resumed_same_thread": True,
-                        "post_compaction_transition": copy.deepcopy(
-                            native_fixture_evidence[case_id]["transition"]
-                        ),
-                        "after_resume": {
-                            **copy.deepcopy(compaction_phase),
-                            "rollout_sha256": "6" * 64,
-                            "rollout_byte_count": 256,
-                            "rollout_prefix_sha256": "7" * 64,
-                        },
-                        "fresh_control": {
-                            "thread_id": "fresh-thread",
-                            "distinct_from_resumed_task": True,
-                            "no_resume_handle": True,
-                            "no_conversation_summary": True,
-                            "prompt_sha256": "8" * 64,
-                            "equivalent_gate_fields": [
-                                *sorted(RECOVERY_GATE_FIELDS),
-                                "recovery_state",
-                            ],
-                            "allowed_label_differences": {},
-                        },
-                    }
-                    if native
-                    else None
-                )
-                raw_receipt = {
-                    "case": case_id,
-                    "installation": {
-                        "source_skill_sha256": "1" * 64,
-                        "installed_skill_sha256": "1" * 64,
-                        "source_package_manifest_sha256": package["artifact_sha256"],
-                        "installed_package_manifest_sha256": package["artifact_sha256"],
-                        "plugin": {"installedPath": "/isolated/plugin"},
-                    },
-                    "model": settings["model"],
-                    "effort": settings["effort"],
-                    "timeout_seconds": settings["timeout_seconds"],
-                    "timed_out": False,
-                    "elapsed_seconds": 1.0,
-                    "exit_code": 0,
-                    "semantic_input_sha256": semantic_sha256,
-                    "identities": {
-                        "engine": engine_identity,
-                        "package": package,
-                        "toolchain": settings["toolchain"],
-                    },
-                    "events_sha256": "2" * 64,
-                    "stderr_sha256": "3" * 64,
-                    "usage": usage,
-                    "usage_phases": usage_phases,
-                    "uncached_input_tokens": 2 * phase_count,
-                    "passed": True,
-                    "result": result,
-                    "fresh_recovery_result": copy.deepcopy(result) if native else None,
-                    "oracle_failures": [],
-                    "native_compaction": native_compaction,
-                    "thread_id": "primary-thread",
-                    "resume_thread_id": "primary-thread" if native else None,
-                    "fresh_recovery_thread_id": "fresh-thread" if native else None,
-                    "filesystem_isolation": {
-                        **FILESYSTEM_ISOLATION_POLICY,
-                        "workspace_root": "<case-temp>/repo",
-                        "native_tool_root": "<case-temp>/bin",
-                    },
-                }
-                return sanitized_case_receipt(
-                    raw_receipt,
-                    metadata_sha256="0" * 64,
-                )
-
-            corpus_cases = [
-                case_receipt(case_id, semantic_sha256, snapshot["package"])
-                for case_id, semantic_sha256 in snapshot["corpus"]["cases"].items()
-            ]
-            corpus_summary = {
-                "schema_version": 1,
-                "engine_generation": "0.4",
-                "impact_token": authority["impact_token"],
-                "live_authority_sha256": canonical_sha256(authority),
-                "arm": "candidate",
-                "model": settings["model"],
-                "effort": settings["effort"],
-                "timeout_seconds": settings["timeout_seconds"],
-                "passed": len(snapshot["corpus"]["cases"]),
-                "total": len(snapshot["corpus"]["cases"]),
-                "uncached_input_tokens": sum(
-                    item["uncached_input_tokens"] for item in corpus_cases
-                ),
-                "telemetry_complete": True,
-                "output_tokens": sum(
-                    item["usage"]["output_tokens"] for item in corpus_cases
-                ),
-                "elapsed_seconds": round(
-                    sum(item["elapsed_seconds"] for item in corpus_cases), 3
-                ),
-                "cases": corpus_cases,
-            }
-
-            def retotal_corpus(summary: dict[str, object]) -> None:
-                cases = summary["cases"]
-                summary["uncached_input_tokens"] = sum(
-                    item["uncached_input_tokens"] for item in cases
-                )
-                summary["output_tokens"] = sum(
-                    item["usage"]["output_tokens"] for item in cases
-                )
-                summary["elapsed_seconds"] = round(
-                    sum(item["elapsed_seconds"] for item in cases), 3
-                )
-
-            missing_native = copy.deepcopy(corpus_summary)
-            native_receipt = next(
-                item
-                for item in missing_native["cases"]
-                if item["id"] == "pre-freeze-compaction"
-            )
-            native_receipt["usage_phases"] = [native_receipt["usage_phases"][0]]
-            native_receipt["usage"] = copy.deepcopy(native_receipt["usage_phases"][0])
-            native_receipt["uncached_input_tokens"] = 2
-            native_receipt["fresh_recovery_result"] = None
-            native_receipt["native_compaction"] = None
-            retotal_corpus(missing_native)
-
-            mismatched_install = copy.deepcopy(corpus_summary)
-            mismatched_install["cases"][0]["installation"]["installed_skill_sha256"] = (
-                "f" * 64
-            )
-
-            empty_isolation = copy.deepcopy(corpus_summary)
-            empty_isolation["cases"][0]["filesystem_isolation"] = {}
-
-            empty_result = copy.deepcopy(corpus_summary)
-            empty_result["cases"][0]["result"] = {}
-
-            wrong_oracle_projection = copy.deepcopy(corpus_summary)
-            wrong_oracle_projection["cases"][0]["result"][
-                "protocol_may_product_write"
-            ] = not wrong_oracle_projection["cases"][0]["result"][
-                "protocol_may_product_write"
-            ]
-
-            forged_isolation_policy = copy.deepcopy(corpus_summary)
-            forged_isolation_policy["cases"][0]["filesystem_isolation"][
-                "policy_sha256"
-            ] = "e" * 64
-
-            mismatched_native_control = copy.deepcopy(corpus_summary)
-            native_control = next(
-                item
-                for item in mismatched_native_control["cases"]
-                if item["id"] == "pre-freeze-compaction"
-            )
-            native_control["fresh_recovery_thread_id_sha256"] = native_control[
-                "thread_id_sha256"
-            ]
-
-            source_recovery_drift = copy.deepcopy(corpus_summary)
-            source_recovery = next(
-                item
-                for item in source_recovery_drift["cases"]
-                if item["id"] == "pre-freeze-compaction"
-            )
-            source_recovery["result"]["recovery_state"]["writer"] = "unknown"
-            source_recovery["fresh_recovery_result"]["recovery_state"]["writer"] = (
-                "unknown"
-            )
-
-            fresh_revision_drift = copy.deepcopy(corpus_summary)
-            fresh_revision = next(
-                item
-                for item in fresh_revision_drift["cases"]
-                if item["id"] == "pre-freeze-compaction"
-            )
-            fresh_revision["fresh_recovery_result"]["recovery_state"][
-                "current_revision"
-            ] = "e" * 40
-
-            unrelated_after_rollout = copy.deepcopy(corpus_summary)
-            unrelated_rollout = next(
-                item
-                for item in unrelated_after_rollout["cases"]
-                if item["id"] == "pre-freeze-compaction"
-            )
-            unrelated_rollout["native_compaction"]["after_resume"][
-                "rollout_path_sha256"
-            ] = "e" * 64
-
-            rewritten_after_rollout = copy.deepcopy(corpus_summary)
-            rewritten_rollout = next(
-                item
-                for item in rewritten_after_rollout["cases"]
-                if item["id"] == "pre-freeze-compaction"
-            )
-            rewritten_rollout["native_compaction"]["after_resume"][
-                "rollout_prefix_sha256"
-            ] = "e" * 64
-
-            missing_required_classifications = copy.deepcopy(corpus_summary)
-            classification_case = next(
-                item
-                for item in missing_required_classifications["cases"]
-                if item["id"] == "compaction-recovery"
-            )
-            classification_case["result"]["finding_classifications"] = []
-
-            missing_required_anchors = copy.deepcopy(corpus_summary)
-            anchored_case = next(
-                item
-                for item in missing_required_anchors["cases"]
-                if item["id"] == "boundary-cutover"
-            )
-            anchored_case["result"]["finding_classifications"] = []
-            anchored_case["result"]["blocker_classifications"] = []
-
-            missing_goal_pause_handoff = copy.deepcopy(corpus_summary)
-            goal_case = next(
-                item
-                for item in missing_goal_pause_handoff["cases"]
-                if item["id"] == "goal-divergence"
-            )
-            goal_case["result"]["goal_pause_handoff_present"] = False
-
-            corpus_false_greens = (
-                (
-                    "missing-native-recovery",
-                    missing_native,
-                    "native|usage phase|evidence telemetry",
-                ),
-                ("mismatched-install", mismatched_install, "installation"),
-                ("empty-isolation", empty_isolation, "isolation"),
-                ("empty-result-envelope", empty_result, "result receipt"),
-                ("wrong-oracle-projection", wrong_oracle_projection, "oracle"),
-                (
-                    "forged-isolation-policy",
-                    forged_isolation_policy,
-                    "isolation",
-                ),
-                (
-                    "mismatched-native-control",
-                    mismatched_native_control,
-                    "native|thread|control",
-                ),
-                ("source-recovery-drift", source_recovery_drift, "recovery|oracle"),
-                ("fresh-revision-drift", fresh_revision_drift, "recovery|control"),
-                (
-                    "unrelated-after-rollout",
-                    unrelated_after_rollout,
-                    "compaction|rollout",
-                ),
-                (
-                    "rewritten-after-rollout",
-                    rewritten_after_rollout,
-                    "compaction|rollout|append",
-                ),
-                (
-                    "missing-required-classifications",
-                    missing_required_classifications,
-                    "classification|blocker|oracle",
-                ),
-                (
-                    "missing-required-anchors",
-                    missing_required_anchors,
-                    "anchor|blocker|oracle",
-                ),
-                (
-                    "missing-goal-pause-handoff",
-                    missing_goal_pause_handoff,
-                    "Goal-pause|handoff|oracle",
-                ),
-            )
-            for label, false_green, expected_error in corpus_false_greens:
-                with self.subTest(corpus_false_green=label):
-                    with self.assertRaisesRegex(ValueError, expected_error):
-                        ledger_engine._validate_corpus_summary(
-                            false_green,
-                            snapshot,
-                            {
-                                "engine": engine_identity,
-                                "corpus_cases": source_cases,
-                                "native_evidence_oracles": native_evidence_oracles,
-                            },
-                            authority,
-                        )
-
-            holdout_binding = next(
-                item
-                for item in authority["invocations"]
-                if item["command"] == "holdout"
-            )
-            public_identity = {
-                "semantic_sha256": holdout_binding["public_semantic_sha256"],
-                "artifact_sha256": holdout_binding["public_artifact_sha256"],
-            }
-            manifest_path = repo / "evaluation" / "holdouts" / "manifest.json"
-            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-            run_pair_ids = [row["id"] for row in manifest["pairs"]]
-            descriptors: dict[str, dict[str, object]] = {}
-            for row in manifest["pairs"]:
-                case_path = repo / row["case_path"]
-                descriptors[row["id"]] = {
-                    **row,
-                    "case": json.loads(case_path.read_text(encoding="utf-8")),
-                    "case_sha256": sha256_bytes(case_path.read_bytes()),
-                }
-            holdout_run = {
-                "schema_version": 1,
-                "engine_generation": "0.4",
-                "impact_token": authority["impact_token"],
-                "live_authority_sha256": canonical_sha256(authority),
-                "manifest_sha256": sha256_bytes(manifest_path.read_bytes()),
-                "model": settings["model"],
-                "effort": settings["effort"],
-                "timeout_seconds": settings["timeout_seconds"],
-                "pair_ids": run_pair_ids,
-                "case_sha256": {
-                    pair_id: descriptor["case_sha256"]
-                    for pair_id, descriptor in descriptors.items()
-                },
-                "identities": {
-                    "engine": engine_identity,
-                    "packages": {
-                        "candidate": snapshot["package"],
-                        "public-0.4.0": public_identity,
-                    },
-                    "toolchain": settings["toolchain"],
-                },
-            }
-            metrics = {
-                "uncached_input_tokens": 2,
-                "output_tokens": 1,
-                "elapsed_seconds": 1.0,
-            }
-            shared_semantic = engine_category_sha256(
-                engine_identity,
-                "semantic",
-                paths={"evaluation/corpus/contract.py"},
-            )
-            pair_receipts: list[dict[str, object]] = []
-            for pair_id in run_pair_ids[:2]:
-                descriptor = descriptors[pair_id]
-                case = descriptor["case"]
-                arm_receipts = {
-                    arm: case_receipt(
-                        case["id"],
-                        case_semantic_sha256(
-                            case,
-                            shared_semantic_sha256=shared_semantic,
-                            package_semantic_sha256=package["semantic_sha256"],
-                            model=settings["model"],
-                            effort=settings["effort"],
-                            timeout=settings["timeout_seconds"],
-                            arm=arm,
-                        ),
-                        package,
-                        case,
-                    )
-                    for arm, package in (
-                        ("candidate", snapshot["package"]),
-                        ("public-0.4.0", public_identity),
-                    )
-                }
-                pair_receipts.append(
-                    {
-                        "schema_version": 1,
-                        "engine_generation": "0.4",
-                        "id": pair_id,
-                        "case_id": case["id"],
-                        "case_sha256": descriptor["case_sha256"],
-                        "outside_diff_boundary": descriptor["outside_diff_boundary"],
-                        "oracle_kind": descriptor["oracle_kind"],
-                        "mapping_commitment_file_sha256": "7" * 64,
-                        "pre_reveal_decision_file_sha256": "8" * 64,
-                        "mapping_reveal_file_sha256": "9" * 64,
-                        "pre_reveal_decision_sha256": "a" * 64,
-                        "mapping_commitment_sha256": "b" * 64,
-                        "outcome": "equal",
-                        "metrics": {
-                            "candidate": metrics,
-                            "public-0.4.0": metrics,
-                        },
-                        "arms": arm_receipts,
-                    },
-                )
-            evidence_root = repo / "evaluation" / "results" / "evidence"
-            evidence_root.mkdir(parents=True, exist_ok=True)
-
-            def write_evidence(name: str, value: object) -> str:
-                path = evidence_root / f"{name}.json"
-                encoded = (
-                    json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2)
-                    + "\n"
-                ).encode()
-                path.write_bytes(encoded)
-                return sha256_bytes(encoded)
-
-            evidence_sha = {
-                "corpus_summary": write_evidence("corpus_summary", corpus_summary),
-                "holdout_run": write_evidence("holdout_run", holdout_run),
-            }
-            holdout_summary = {
-                "schema_version": 1,
-                "engine_generation": "0.4",
-                "run_receipt_sha256": evidence_sha["holdout_run"],
-                "adaptive_history": ["equal", "equal"],
-                "adaptive_terminal_action": "stop",
-                "pairs_run": 2,
-                "pair_receipts": pair_receipts,
-                "cost_gate": ledger_engine.cost_gate(
-                    {key: value * 2 for key, value in metrics.items()},
-                    {key: value * 2 for key, value in metrics.items()},
-                    quality="equal",
-                ),
-            }
-
-            source_evidence = {
-                "corpus_semantic_sha256": shared_semantic,
-                "engine": engine_identity,
-                "holdout_descriptors": descriptors,
-                "native_evidence_oracles": native_evidence_oracles,
-            }
-            authentic_better = copy.deepcopy(holdout_summary)
-            authentic_better["adaptive_history"] = ["better", "better"]
-            for pair_receipt in authentic_better["pair_receipts"]:
-                pair_receipt["outcome"] = "better"
-                public_receipt = pair_receipt["arms"]["public-0.4.0"]
-                public_receipt["passed"] = False
-                public_receipt["oracle_failures"] = {
-                    "count": 1,
-                    "sha256": canonical_sha256(["public control failed"]),
-                }
-            authentic_better["cost_gate"] = ledger_engine.cost_gate(
-                {key: value * 2 for key, value in metrics.items()},
-                {key: value * 2 for key, value in metrics.items()},
-                quality="materially_better",
-            )
-            ledger_engine._validate_holdout_summary(
-                authentic_better,
-                snapshot,
-                run_pair_ids=run_pair_ids,
-                run_sha256=evidence_sha["holdout_run"],
-                public_package=public_identity,
-                source=source_evidence,
-            )
-
-            mislabeled_better = copy.deepcopy(holdout_summary)
-            mislabeled_better["adaptive_history"] = ["better", "better"]
-            for pair_receipt in mislabeled_better["pair_receipts"]:
-                pair_receipt["outcome"] = "better"
-            mislabeled_better["cost_gate"] = ledger_engine.cost_gate(
-                {key: value * 2 for key, value in metrics.items()},
-                {key: value * 2 for key, value in metrics.items()},
-                quality="materially_better",
-            )
-            with self.assertRaisesRegex(ValueError, "holdout outcome mismatch"):
-                ledger_engine._validate_holdout_summary(
-                    mislabeled_better,
-                    snapshot,
-                    run_pair_ids=run_pair_ids,
-                    run_sha256=evidence_sha["holdout_run"],
-                    public_package=public_identity,
-                    source=source_evidence,
-                )
-
-            nonzero_exit = copy.deepcopy(holdout_summary)
-            nonzero_exit["pair_receipts"][0]["arms"]["candidate"]["exit_code"] = 7
-
-            malformed_nested = copy.deepcopy(authentic_better)
-            malformed_public = malformed_nested["pair_receipts"][0]["arms"][
-                "public-0.4.0"
-            ]
-            malformed_public["usage_phases"] = [None]
-            malformed_public["result"] = "runner-impossible"
-            malformed_public["native_compaction"] = "runner-impossible"
-
-            timed_out_zero_exit = copy.deepcopy(authentic_better)
-            timed_out_zero_exit["pair_receipts"][0]["arms"]["public-0.4.0"][
-                "timed_out"
-            ] = True
-
-            null_result_with_usage = copy.deepcopy(authentic_better)
-            null_result_with_usage["pair_receipts"][0]["arms"]["public-0.4.0"][
-                "result"
-            ] = None
-
-            unbound_metrics = copy.deepcopy(holdout_summary)
-            expensive_candidate = unbound_metrics["pair_receipts"][0]["arms"][
-                "candidate"
-            ]
-            expensive_candidate["usage"] = {
-                "input_tokens": 20,
-                "cached_input_tokens": 0,
-                "output_tokens": 10,
-                "reasoning_output_tokens": 0,
-            }
-            expensive_candidate["usage_phases"] = [
-                copy.deepcopy(expensive_candidate["usage"])
-            ]
-            expensive_candidate["uncached_input_tokens"] = 20
-            expensive_candidate["elapsed_seconds"] = 10.0
-
-            nonterminal = copy.deepcopy(holdout_summary)
-            nonterminal["adaptive_history"] = ["equal"]
-            nonterminal["adaptive_terminal_action"] = "run_second"
-            nonterminal["pairs_run"] = 1
-            nonterminal["pair_receipts"] = nonterminal["pair_receipts"][:1]
-            nonterminal["cost_gate"] = ledger_engine.cost_gate(
-                metrics,
-                metrics,
-                quality="equal",
-            )
-
-            false_greens = (
-                ("nonzero-pass-exit", nonzero_exit, "infrastructure"),
-                (
-                    "runner-impossible-nested-receipt",
-                    malformed_nested,
-                    "nested receipt|evidence telemetry",
-                ),
-                (
-                    "timed-out-zero-exit",
-                    timed_out_zero_exit,
-                    "infrastructure",
-                ),
-                (
-                    "null-result-with-usage",
-                    null_result_with_usage,
-                    "result receipt",
-                ),
-                ("unbound-cost-metrics", unbound_metrics, "metrics mismatch"),
-                ("nonterminal-adaptive-history", nonterminal, "not terminal"),
-            )
-            for label, false_green, expected_error in false_greens:
-                with self.subTest(false_green=label):
-                    with self.assertRaisesRegex(ValueError, expected_error):
-                        ledger_engine._validate_holdout_summary(
-                            false_green,
-                            snapshot,
-                            run_pair_ids=run_pair_ids,
-                            run_sha256=evidence_sha["holdout_run"],
-                            public_package=public_identity,
-                            source=source_evidence,
-                        )
-
-            evidence_sha["holdout_summary"] = write_evidence(
-                "holdout_summary", holdout_summary
-            )
-            git("add", "evaluation/results/evidence")
-            git("commit", "-qm", "evidence")
-            evidence_commit = git("rev-parse", "HEAD")
-            locators = {
-                name: {
-                    "commit": evidence_commit,
-                    "path": f"evaluation/results/evidence/{name}.json",
-                    "git_blob": git(
-                        "rev-parse",
-                        f"{evidence_commit}:evaluation/results/evidence/{name}.json",
-                    ),
-                    "sha256": digest,
-                }
-                for name, digest in evidence_sha.items()
-            }
-            certified = copy.deepcopy(ledger)
-            certified["state"] = "certified"
-            certified["pending"] = {
-                "reasons": [],
-                "corpus_cases": [],
-                "holdout_pairs": [],
-                "review": False,
-            }
-            certified["live_authority"] = authority
-            certified["certification"] = {
-                "schema_version": 1,
-                "successor_source_commit": source_commit,
-                "successor_source_tree": source_tree,
-                "snapshot_sha256": canonical_sha256(snapshot),
-                "engine_manifest_sha256": snapshot["engine"]["manifest_sha256"],
-                "coverage": refreshed_coverage(snapshot),
-                "evidence": locators,
-                "live_authority_sha256": canonical_sha256(authority),
-            }
-            validate_ledger(certified, repo=repo)
-            self.assertEqual(build_snapshot(repo), snapshot)
-
-            late_authority = copy.deepcopy(certified)
-            late_authority["certification"]["successor_source_commit"] = (
-                unauthorized_source_commit
-            )
-            late_authority["certification"]["successor_source_tree"] = (
-                unauthorized_source_tree
-            )
-            with self.assertRaisesRegex(ValueError, "source.*authority"):
-                validate_ledger(late_authority, repo=repo)
-
-            same_commit = copy.deepcopy(certified)
-            same_commit["certification"]["successor_source_commit"] = evidence_commit
-            same_commit["certification"]["successor_source_tree"] = git(
-                "rev-parse", f"{evidence_commit}^{{tree}}"
-            )
-            with self.assertRaisesRegex(ValueError, "strictly postdate"):
-                validate_ledger(same_commit, repo=repo)
-
-            wrong_artifact = copy.deepcopy(certified)
-            wrong_artifact["certification"]["successor_source_commit"] = (
-                mode_drift_source_commit
-            )
-            wrong_artifact["certification"]["successor_source_tree"] = (
-                mode_drift_source_tree
-            )
-            with self.assertRaisesRegex(ValueError, "source package"):
-                validate_ledger(wrong_artifact, repo=repo)
 
     def test_verify_and_impact_commands_are_read_only_json(self) -> None:
         ledger_path = ROOT / "evaluation" / "results" / "current.json"
         ledger_bytes = ledger_path.read_bytes()
         ledger, current, expected_impact = live.load_state()
-        for command in ("verify", "impact"):
-            completed = subprocess.run(
-                [sys.executable, "-m", "evaluation.cli", command],
-                cwd=ROOT,
-                text=True,
-                capture_output=True,
-                check=False,
-            )
-            self.assertEqual(completed.returncode, 0, completed.stderr)
-            payload = json.loads(completed.stdout)
-            if command == "verify":
-                self.assertEqual(
-                    payload,
-                    {
-                        "schema_version": 1,
-                        "status": "ok",
-                        "ledger_state": ledger["state"],
-                        "ledger_sha256": ledger_sha256(ledger, repo=ROOT),
-                        "snapshot_sha256": canonical_sha256(current),
-                        "engine_manifest_sha256": engine_inventory(ROOT)[
-                            "manifest_sha256"
-                        ],
-                        "pending_gates": expected_impact["gates"],
-                        "live_authority_persisted": ledger["live_authority"]
-                        is not None,
-                    },
-                )
-                continue
-
-            invocations = live.proposed_invocations(ledger, current, expected_impact)
-            holdout_ready = not expected_impact["holdout_pairs"] or any(
-                item["command"] == "holdout" for item in invocations
-            )
-            self.assertEqual(
-                payload,
-                {
-                    **expected_impact,
-                    "ledger_state": ledger["state"],
-                    "snapshot_sha256": canonical_sha256(current),
-                    "cost_approval_required": bool(
-                        expected_impact["live_calls"]["maximum"]
-                    ),
-                    "live_authority_persisted": ledger["live_authority"] is not None,
-                    "live_authority_ready": holdout_ready,
-                    "proposed_invocations": invocations,
-                    "impact_token": live.impact_token(ledger, current, expected_impact),
-                },
-            )
-
+        verify = subprocess.run(
+            [sys.executable, "-m", "evaluation.cli", "verify"],
+            cwd=ROOT,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        self.assertEqual(verify.returncode, 0, verify.stderr)
+        payload = json.loads(verify.stdout)
+        self.assertEqual(payload["ledger_state"], "refresh_required")
+        self.assertFalse(payload["certified"])
+        self.assertEqual(payload["pending_gates"], expected_impact["gates"])
+        self.assertEqual(payload["ledger_sha256"], ledger_sha256(ledger, repo=ROOT))
+        self.assertEqual(payload["snapshot_sha256"], canonical_sha256(current))
+        impact = subprocess.run(
+            [sys.executable, "-m", "evaluation.cli", "impact"],
+            cwd=ROOT,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        self.assertNotEqual(impact.returncode, 0)
+        self.assertIn("cost envelope", impact.stderr)
         self.assertEqual(ledger_path.read_bytes(), ledger_bytes)
-
-        prior = copy.deepcopy(current)
-        prior["package"]["artifact_sha256"] = (
-            "0" * 64 if current["package"]["artifact_sha256"] != "0" * 64 else "f" * 64
-        )
-        artifact_impact = plan_impact(
-            prior,
-            current,
-            pending={
-                "reasons": ["test-artifact-only-refresh"],
-                "corpus_cases": [],
-                "holdout_pairs": [],
-                "review": True,
-            },
-        )
-        self.assertEqual(artifact_impact["gates"], ["isolated_install", "review"])
-        self.assertEqual(artifact_impact["live_calls"], {"minimum": 0, "maximum": 0})
-        self.assertEqual(artifact_impact["corpus_cases"], [])
-        self.assertEqual(artifact_impact["holdout_pairs"], [])
 
     def test_impact_token_cannot_self_authorize_a_live_command(self) -> None:
         ledger, current, impact = full_live_test_state()
@@ -2107,16 +1296,10 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as raw:
             with (
                 mock.patch.object(
-                    live, "load_state", return_value=(ledger, current, impact)
-                ),
-                mock.patch.object(
                     live,
-                    "claim_authorized_invocation",
-                    wraps=live.claim_authorized_invocation,
-                ) as authority_gate,
-                mock.patch.object(
-                    live, "_attempt_registry_root", return_value=Path(raw) / "attempts"
-                ),
+                    "load_state",
+                    side_effect=AssertionError("state load reached"),
+                ) as state,
                 mock.patch.object(live.corpus_engine, "run_authorized") as runner,
             ):
                 with self.assertRaisesRegex(SystemExit, "2"):
@@ -2129,9 +1312,33 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                             token,
                         ]
                     )
-        authority_gate.assert_called_once()
-        self.assertIsNone(authority_gate.call_args.args[0])
+        state.assert_not_called()
         runner.assert_not_called()
+
+    def test_missing_generation_6_authority_refuses_before_snapshot_subprocess(self) -> None:
+        ledger, current, impact = full_live_test_state()
+        parser = cli.build_parser()
+        args = parser.parse_args(
+            [
+                "corpus",
+                "--output",
+                "/tmp/happycodex-preflight-order-test",
+                "--bind-impact",
+                live.impact_token(ledger, current, impact),
+            ]
+        )
+        with (
+            mock.patch.object(
+                live,
+                "load_state",
+                side_effect=AssertionError("snapshot subprocess boundary reached"),
+            ) as state,
+            mock.patch.object(live.corpus_engine, "build_fixture") as fixture,
+            self.assertRaisesRegex(SystemExit, "2"),
+        ):
+            live.run_command(args, parser)
+        state.assert_not_called()
+        fixture.assert_not_called()
 
 
 if __name__ == "__main__":

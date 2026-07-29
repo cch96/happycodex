@@ -16,7 +16,6 @@ from evaluation.semantic.types import (
     InfraKind,
     NextAction,
     ProgressReport,
-    ProvenanceKind,
     SemanticError,
     TaskBinding,
 )
@@ -33,7 +32,6 @@ __all__ = (
     "InfraKind",
     "NextAction",
     "ProgressReport",
-    "ProvenanceKind",
     "SemanticError",
     "TaskBinding",
     "canonical_bytes",

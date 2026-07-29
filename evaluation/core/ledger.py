@@ -1,48 +1,30 @@
 from __future__ import annotations
 
-import io
-from itertools import permutations
 import json
 import math
-import os
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 import re
-import subprocess
-import tarfile
-import tempfile
 from typing import Any
 
 from evaluation.core.identity import (
-    canonical_json_bytes,
-    canonical_sha256,
-    case_semantic_sha256,
-    engine_category_sha256,
-    engine_inventory,
-    normalize_package_modes,
-    package_identities,
-    sha256_bytes,
-)
-from evaluation.core.impact import (
-    historical_cost_receipt,
-    impact_token,
-    plan_impact,
-    validate_impact,
-    validate_snapshot,
-)
-from evaluation.corpus.contract import (
     BLOCKER_CLASSES,
     CONVERGENCE_PHASES,
     FILESYSTEM_ISOLATION_POLICY,
     PERMISSION_FIELDS,
-    PUBLIC_040_PACKAGE_ARTIFACT_SHA256,
-    PUBLIC_040_PACKAGE_SEMANTIC_SHA256,
     RECOVERY_ACTIONS,
     RECOVERY_GATE_FIELDS,
     RECOVERY_PENDING_GATES,
+    canonical_sha256,
+    case_semantic_sha256,
+    classification_identity_failures,
     classifications_share_identity,
-    has_distinct_identity_assignment,
-    identity_match_values,
-    protocol_state_failures,
+    sha256_bytes,
+    validate_invocation_profile,
+)
+from evaluation.core.impact import (
+    impact_token,
+    validate_impact,
+    validate_snapshot,
 )
 from evaluation.holdout.blind import completed_quality
 from evaluation.holdout.compare import (
@@ -51,70 +33,37 @@ from evaluation.holdout.compare import (
     cost_gate,
     sum_metrics,
 )
+from evaluation.semantic import SemanticError, make_attempt_key, replay_report
 
 
 LEDGER_FIELDS = {
     "schema_version",
+    "engine_generation",
     "state",
     "snapshot",
     "pending",
-    "live_attempts",
-    "historical_cost",
-    "live_authority",
+    "authorities",
+    "calibration_history",
+    "accepted_evidence",
+    "receipt_head",
     "certification",
 }
-PENDING_FIELDS = {"reasons", "corpus_cases", "holdout_pairs", "review"}
-AUTHORITY_FIELDS = {
-    "schema_version",
-    "source",
-    "approval_request_sha256",
-    "approval_response",
-    "approval_response_sha256",
-    "snapshot_sha256",
-    "impact",
-    "impact_token",
-    "invocations",
-}
-CORPUS_INVOCATION_FIELDS = {
-    "command",
-    "attempt_id",
-    "package_semantic_sha256",
-    "package_artifact_sha256",
-    "model",
-    "effort",
-    "timeout_seconds",
-    "arm",
-    "cases",
-}
-HOLDOUT_INVOCATION_FIELDS = {
-    "command",
-    "attempt_id",
-    "candidate_semantic_sha256",
-    "candidate_artifact_sha256",
-    "public_semantic_sha256",
-    "public_artifact_sha256",
-    "model",
-    "effort",
-    "timeout_seconds",
-    "pairs",
-}
-CERTIFICATION_FIELDS = {
-    "schema_version",
-    "successor_source_commit",
-    "successor_source_tree",
-    "snapshot_sha256",
-    "engine_manifest_sha256",
-    "coverage",
-    "evidence",
-    "live_authority_sha256",
-}
+PENDING_FIELDS = {"gates", "corpus_cases", "holdout_pairs"}
+PENDING_GATES = (
+    "corpus",
+    "executor_pilot",
+    "holdout",
+    "isolated_install",
+    "receipt",
+    "review",
+)
+AUTHORITY_SLOTS = {"executor", "corpus", "holdout"}
 COVERAGE_FIELDS = {"corpus", "holdout"}
-EVIDENCE_LOCATOR_FIELDS = {"commit", "path", "git_blob", "sha256"}
 CORPUS_SUMMARY_FIELDS = {
     "schema_version",
     "engine_generation",
     "impact_token",
-    "live_authority_sha256",
+    "gate_authority_sha256",
     "arm",
     "model",
     "effort",
@@ -140,6 +89,7 @@ CASE_RECEIPT_FIELDS = {
     "elapsed_seconds",
     "exit_code",
     "semantic_input_sha256",
+    "invocation_profile",
     "identities",
     "events_sha256",
     "stderr_sha256",
@@ -148,7 +98,10 @@ CASE_RECEIPT_FIELDS = {
     "uncached_input_tokens",
     "passed",
     "result",
+    "semantic_result",
     "fresh_recovery_result",
+    "fresh_recovery_semantic_result",
+    "terminal_projections",
     "oracle_failures",
     "native_compaction",
     "thread_id_sha256",
@@ -160,7 +113,7 @@ HOLDOUT_RUN_FIELDS = {
     "schema_version",
     "engine_generation",
     "impact_token",
-    "live_authority_sha256",
+    "gate_authority_sha256",
     "manifest_sha256",
     "identities",
     "model",
@@ -234,10 +187,6 @@ RESULT_RECEIPT_FIELDS = {
     "blocker_classifications",
     "open_gates_count",
     "open_gates_sha256",
-    "repair_gate_present",
-    "user_gate_present",
-    "focused_review_gate_present",
-    "exact_final_review_gate_present",
     "goal_pause_handoff_present",
     "evidence_count",
     "evidence_sha256",
@@ -246,8 +195,6 @@ RESULT_RECEIPT_FIELDS = {
 }
 FINDING_RECEIPT_FIELDS = {
     "identity_sha256",
-    "identity_casefold_sha256",
-    "identity_match_sha256s",
     "identity_nonblank",
     "domain",
     "state",
@@ -257,12 +204,23 @@ FINDING_RECEIPT_FIELDS = {
 }
 BLOCKER_RECEIPT_FIELDS = {
     "identity_sha256",
-    "identity_casefold_sha256",
-    "identity_match_sha256s",
     "identity_nonblank",
     "class",
     "blocking",
     "reason_sha256",
+}
+TERMINAL_PROJECTION_FIELDS = {
+    "provenance",
+    "provider",
+    "session_id",
+    "thread_id",
+    "turn_id",
+    "action_id",
+    "attempt_key",
+    "result_id",
+    "result_sha256",
+    "stream_sha256",
+    "terminal_ordinal",
 }
 RECOVERY_RECEIPT_FIELDS = {
     "recovery_state_sha256",
@@ -334,507 +292,6 @@ def _require_digest(value: Any, *, length: int, label: str) -> None:
         raise ValueError(f"invalid {label}")
 
 
-def _validate_ordered_names(value: Any, *, label: str) -> None:
-    if (
-        not isinstance(value, list)
-        or not value
-        or not all(isinstance(item, str) and item for item in value)
-        or value != sorted(set(value))
-    ):
-        raise ValueError(f"invalid authorized {label}")
-
-
-def _validate_invocation(invocation: Any) -> None:
-    if not isinstance(invocation, dict):
-        raise ValueError("invalid authorized invocation")
-    command = invocation.get("command")
-    fields = {
-        "corpus": CORPUS_INVOCATION_FIELDS,
-        "holdout": HOLDOUT_INVOCATION_FIELDS,
-    }.get(command)
-    if fields is None or set(invocation) != fields:
-        raise ValueError("invalid authorized invocation envelope")
-    _require_digest(invocation["attempt_id"], length=64, label="live attempt id")
-    for field in ("model", "effort"):
-        if not isinstance(invocation[field], str) or not invocation[field]:
-            raise ValueError(f"invalid authorized invocation field: {field}")
-    timeout = invocation["timeout_seconds"]
-    if not isinstance(timeout, int) or isinstance(timeout, bool) or timeout <= 0:
-        raise ValueError("invalid authorized invocation field: timeout_seconds")
-    if command == "corpus":
-        digest_fields = ("package_semantic_sha256", "package_artifact_sha256")
-        if invocation["arm"] != "candidate":
-            raise ValueError("authorized corpus invocation must use candidate arm")
-        _validate_ordered_names(invocation["cases"], label="corpus cases")
-    else:
-        digest_fields = (
-            "candidate_semantic_sha256",
-            "candidate_artifact_sha256",
-            "public_semantic_sha256",
-            "public_artifact_sha256",
-        )
-        _validate_ordered_names(invocation["pairs"], label="holdout pairs")
-        if (
-            invocation["public_semantic_sha256"],
-            invocation["public_artifact_sha256"],
-        ) != (
-            PUBLIC_040_PACKAGE_SEMANTIC_SHA256,
-            PUBLIC_040_PACKAGE_ARTIFACT_SHA256,
-        ):
-            raise ValueError("authorized holdout does not use frozen public-0.4.0")
-    for field in digest_fields:
-        _require_digest(invocation[field], length=64, label=field)
-
-
-def _expected_authority_commands(impact: dict[str, Any]) -> list[str]:
-    commands: list[str] = []
-    if impact["corpus_cases"]:
-        commands.append("corpus")
-    if impact["holdout_pairs"]:
-        commands.append("holdout")
-    return commands
-
-
-def affirmative_approval_response(approval_request_sha256: str) -> str:
-    _require_digest(
-        approval_request_sha256,
-        length=64,
-        label="approval request digest",
-    )
-    return f"APPROVE HAPPYCODEX LIVE COST {approval_request_sha256}\n"
-
-
-def validate_live_authority(authority: Any, *, snapshot: dict[str, Any]) -> None:
-    if not isinstance(authority, dict) or set(authority) != AUTHORITY_FIELDS:
-        raise ValueError("live authority is not persisted")
-    if authority.get("schema_version") != 1:
-        raise ValueError("invalid live authority schema")
-    validate_snapshot(snapshot)
-    if not isinstance(authority.get("source"), str) or not re.fullmatch(
-        r"current-task/user/[a-z0-9][a-z0-9._/-]*", authority["source"]
-    ):
-        raise ValueError("invalid live authority source")
-    response = authority.get("approval_response")
-    if not isinstance(response, str) or not response or len(response) > 10_000:
-        raise ValueError("invalid approval response")
-    if authority.get("approval_response_sha256") != sha256_bytes(response.encode()):
-        raise ValueError("approval response digest mismatch")
-    snapshot_sha256 = canonical_sha256(snapshot)
-    if authority.get("snapshot_sha256") != snapshot_sha256:
-        raise ValueError("live authority snapshot mismatch")
-    impact = authority.get("impact")
-    if not isinstance(impact, dict):
-        raise ValueError("invalid authorized impact")
-    validate_impact(impact, snapshot)
-    token = impact_token(snapshot, impact)
-    if authority.get("impact_token") != token:
-        raise ValueError("live authority impact token mismatch")
-    invocations = authority.get("invocations")
-    if not isinstance(invocations, list):
-        raise ValueError("live authority requires exact invocations")
-    expected_commands = _expected_authority_commands(impact)
-    if [
-        item.get("command") for item in invocations if isinstance(item, dict)
-    ] != expected_commands:
-        raise ValueError("live authority does not cover complete impact scope")
-    if not expected_commands:
-        raise ValueError("live authority cannot authorize a zero-call impact")
-    settings = snapshot["settings"]
-    package = snapshot["package"]
-    for invocation in invocations:
-        _validate_invocation(invocation)
-        if (
-            invocation["model"] != settings["model"]
-            or invocation["effort"] != settings["effort"]
-            or invocation["timeout_seconds"] != settings["timeout_seconds"]
-        ):
-            raise ValueError("authorized invocation settings mismatch")
-        if invocation["command"] == "corpus":
-            candidate = {
-                "semantic_sha256": invocation["package_semantic_sha256"],
-                "artifact_sha256": invocation["package_artifact_sha256"],
-            }
-            if invocation["cases"] != impact["corpus_cases"]:
-                raise ValueError("live authority does not cover complete impact scope")
-        else:
-            candidate = {
-                "semantic_sha256": invocation["candidate_semantic_sha256"],
-                "artifact_sha256": invocation["candidate_artifact_sha256"],
-            }
-            if invocation["pairs"] != impact["holdout_pairs"]:
-                raise ValueError("live authority does not cover complete impact scope")
-        if candidate != package:
-            raise ValueError("authorized invocation package mismatch")
-    request = {
-        "schema_version": 1,
-        "snapshot_sha256": snapshot_sha256,
-        "impact": impact,
-        "impact_token": token,
-        "invocations": invocations,
-    }
-    request_sha256 = canonical_sha256(request)
-    if authority.get("approval_request_sha256") != request_sha256:
-        raise ValueError("approval request digest mismatch")
-    if response != affirmative_approval_response(request_sha256):
-        raise ValueError("approval response is not the canonical affirmative grant")
-
-
-def _authorization_boundary() -> tuple[type[Any], Any]:
-    class AuthorizedInvocation:
-        """Immutable process-local proof of exact persisted authority validation."""
-
-        __slots__ = ("__payload_json",)
-
-        def __new__(cls, *_args: Any, **_kwargs: Any) -> Any:
-            raise TypeError("authorized invocation capabilities are validator-minted")
-
-        def __setattr__(self, _name: str, _value: Any) -> None:
-            raise AttributeError("authorized invocation capabilities are immutable")
-
-        @property
-        def authority_sha256(self) -> str:
-            return self._payload()["authority_sha256"]
-
-        @property
-        def command(self) -> str:
-            return self.descriptor()["command"]
-
-        @property
-        def impact_token(self) -> str:
-            return self._payload()["impact_token"]
-
-        def descriptor(self) -> dict[str, Any]:
-            return self._payload()["descriptor"]
-
-        def snapshot(self) -> dict[str, Any]:
-            return self._payload()["snapshot"]
-
-        def _payload(self) -> dict[str, Any]:
-            return json.loads(self.__payload_json)
-
-        def __copy__(self) -> Any:
-            raise TypeError("authorized invocation capabilities cannot be copied")
-
-        def __deepcopy__(self, _memo: dict[int, Any]) -> Any:
-            raise TypeError("authorized invocation capabilities cannot be copied")
-
-        def __reduce__(self) -> Any:
-            raise TypeError("authorized invocation capabilities cannot be serialized")
-
-    def mint(
-        *,
-        descriptor: dict[str, Any],
-        snapshot: dict[str, Any],
-        impact_token_value: str,
-        authority_sha256: str,
-    ) -> AuthorizedInvocation:
-        capability = object.__new__(AuthorizedInvocation)
-        object.__setattr__(
-            capability,
-            "_AuthorizedInvocation__payload_json",
-            canonical_json_bytes(
-                {
-                    "authority_sha256": authority_sha256,
-                    "descriptor": descriptor,
-                    "impact_token": impact_token_value,
-                    "snapshot": snapshot,
-                }
-            ),
-        )
-        return capability
-
-    def claim_authorized_invocation(
-        authority: Any,
-        *,
-        snapshot: dict[str, Any],
-        impact: dict[str, Any],
-        invocation: dict[str, Any],
-        attempt_root: Path,
-    ) -> AuthorizedInvocation:
-        validate_live_authority(authority, snapshot=snapshot)
-        validate_impact(impact, snapshot)
-        if authority["impact"] != impact:
-            raise ValueError("live authority does not match current impact")
-        _validate_invocation(invocation)
-        requested = canonical_sha256(invocation)
-        authorized = {canonical_sha256(item) for item in authority["invocations"]}
-        if requested not in authorized:
-            raise ValueError("invocation is not authorized")
-        attempt_id = invocation["attempt_id"]
-        attempt_root.mkdir(parents=True, exist_ok=True)
-        receipt_path = attempt_root / f"{attempt_id}.json"
-        receipt = {
-            "schema_version": 1,
-            "attempt_id": attempt_id,
-            "authority_sha256": canonical_sha256(authority),
-            "impact_token": authority["impact_token"],
-            "invocation_sha256": requested,
-        }
-        flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
-        if hasattr(os, "O_NOFOLLOW"):
-            flags |= os.O_NOFOLLOW
-        try:
-            descriptor = os.open(receipt_path, flags, 0o600)
-        except FileExistsError as exc:
-            raise ValueError("live invocation attempt is already consumed") from exc
-        try:
-            with os.fdopen(descriptor, "wb") as stream:
-                stream.write(canonical_json_bytes(receipt) + b"\n")
-                stream.flush()
-                os.fsync(stream.fileno())
-        except BaseException:
-            receipt_path.unlink(missing_ok=True)
-            raise
-        directory = os.open(attempt_root, os.O_RDONLY)
-        try:
-            os.fsync(directory)
-        finally:
-            os.close(directory)
-        return mint(
-            descriptor=invocation,
-            snapshot=snapshot,
-            impact_token_value=authority["impact_token"],
-            authority_sha256=canonical_sha256(authority),
-        )
-
-    return AuthorizedInvocation, claim_authorized_invocation
-
-
-AuthorizedInvocation, claim_authorized_invocation = _authorization_boundary()
-del _authorization_boundary
-
-
-def _run_git(repo: Path, *args: str) -> subprocess.CompletedProcess[bytes]:
-    return subprocess.run(
-        ["git", *args],
-        cwd=repo,
-        check=False,
-        capture_output=True,
-        stdin=subprocess.DEVNULL,
-    )
-
-
-def _require_reachable_commit(repo: Path, commit: str, *, label: str) -> None:
-    _require_digest(commit, length=40, label=label)
-    exists = _run_git(repo, "cat-file", "-e", f"{commit}^{{commit}}")
-    reachable = _run_git(repo, "merge-base", "--is-ancestor", commit, "HEAD")
-    if exists.returncode or reachable.returncode:
-        raise ValueError(f"reachable certification evidence missing: {label}")
-
-
-def _build_native_evidence_oracle(
-    case: dict[str, Any], *, scratch: Path
-) -> dict[str, Any] | None:
-    native = case["fixture"].get("native_compaction_resume")
-    if native is None:
-        return None
-    from evaluation.corpus.engine import (
-        apply_post_compaction_transition,
-        build_fixture,
-        expected_recovery_state,
-    )
-
-    fixture_repo = scratch / case["id"]
-    fixture = build_fixture(case, fixture_repo)
-    transition = apply_post_compaction_transition(
-        fixture_repo, native["post_compaction_transition"], fixture
-    )
-    return {
-        "recovery_state": expected_recovery_state(native, fixture, transition),
-        "post_compaction_transition_sha256": canonical_sha256(transition),
-    }
-
-
-def _validate_source_identity(
-    repo: Path,
-    commit: str,
-    snapshot: dict[str, Any],
-    live_authority: dict[str, Any] | None,
-) -> dict[str, Any]:
-    archive = _run_git(repo, "archive", "--format=tar", commit)
-    if archive.returncode:
-        raise ValueError("cannot read certification successor source")
-    with tempfile.TemporaryDirectory(prefix="happycodex-certified-source-") as raw:
-        root = Path(raw)
-        with tarfile.open(fileobj=io.BytesIO(archive.stdout), mode="r:") as source:
-            for member in source.getmembers():
-                path = PurePosixPath(member.name)
-                if path.is_absolute() or ".." in path.parts:
-                    raise ValueError("unsafe certification successor archive")
-                if member.issym() or member.islnk():
-                    target = PurePosixPath(member.linkname)
-                    if target.is_absolute() or ".." in target.parts:
-                        raise ValueError("unsafe certification successor archive link")
-            source.extractall(root)
-        try:
-            normalize_package_modes(root)
-            source_package = package_identities(root)
-            inventory = engine_inventory(root)
-        except (OSError, ValueError) as exc:
-            raise ValueError("invalid certification successor source") from exc
-        if source_package != snapshot["package"]:
-            raise ValueError("certification source package mismatch")
-        if inventory["manifest_sha256"] != snapshot["engine"]["manifest_sha256"]:
-            raise ValueError("certification successor engine mismatch")
-        source_ledger_path = root / "evaluation" / "results" / "current.json"
-        try:
-            source_ledger_bytes = source_ledger_path.read_bytes()
-            source_ledger = json.loads(source_ledger_bytes)
-        except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
-            raise ValueError("invalid certification source authority ledger") from exc
-        if (
-            not isinstance(source_ledger, dict)
-            or source_ledger.get("state") != "refresh_required"
-            or source_ledger.get("snapshot") != snapshot
-            or source_ledger.get("live_authority") != live_authority
-            or source_ledger.get("certification") is not None
-        ):
-            raise ValueError("certification source authority was not persisted")
-        try:
-            validate_ledger(source_ledger, repo=root)
-        except (OSError, ValueError) as exc:
-            raise ValueError("invalid certification source authority ledger") from exc
-        try:
-            from evaluation.corpus.engine import load_cases
-
-            corpus_cases = load_cases(root / "evaluation" / "cases")
-        except (OSError, ValueError) as exc:
-            raise ValueError("invalid certification successor corpus") from exc
-        if set(corpus_cases) != set(snapshot["corpus"]["cases"]):
-            raise ValueError("certification successor corpus scope mismatch")
-        manifest_path = root / "evaluation" / "holdouts" / "manifest.json"
-        try:
-            manifest = json.loads(manifest_path.read_bytes())
-        except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
-            raise ValueError(
-                "invalid certification successor holdout manifest"
-            ) from exc
-        rows = manifest.get("pairs") if isinstance(manifest, dict) else None
-        if (
-            not isinstance(manifest, dict)
-            or manifest.get("schema_version") != 1
-            or not isinstance(rows, list)
-        ):
-            raise ValueError("invalid certification successor holdout manifest")
-        descriptors: dict[str, dict[str, Any]] = {}
-        pair_order: list[str] = []
-        holdout_root = (root / "evaluation" / "holdouts").resolve()
-        for row in rows:
-            if not isinstance(row, dict) or not isinstance(row.get("id"), str):
-                raise ValueError("invalid certification successor holdout descriptor")
-            pair_id = row["id"]
-            relative = row.get("case_path")
-            if not isinstance(relative, str):
-                raise ValueError("invalid certification successor holdout case")
-            case_path = (root / relative).resolve()
-            if (
-                pair_id in descriptors
-                or not case_path.is_relative_to(holdout_root)
-                or not case_path.is_file()
-            ):
-                raise ValueError("invalid certification successor holdout case")
-            try:
-                case = json.loads(case_path.read_bytes())
-            except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
-                raise ValueError(
-                    "invalid certification successor holdout case"
-                ) from exc
-            if not isinstance(case, dict) or not isinstance(case.get("id"), str):
-                raise ValueError("invalid certification successor holdout case")
-            pair_order.append(pair_id)
-            descriptors[pair_id] = {
-                "case": case,
-                "case_sha256": sha256_bytes(case_path.read_bytes()),
-                "outside_diff_boundary": row.get("outside_diff_boundary"),
-                "oracle_kind": row.get("oracle_kind"),
-            }
-        if set(pair_order) != set(snapshot["holdout"]["pairs"]):
-            raise ValueError("certification successor holdout scope mismatch")
-        native_evidence_oracles: dict[str, dict[str, Any]] = {}
-        all_cases = [*corpus_cases.values()]
-        all_cases.extend(descriptor["case"] for descriptor in descriptors.values())
-        scratch = root / ".native-evidence"
-        for case in all_cases:
-            try:
-                expected = _build_native_evidence_oracle(case, scratch=scratch)
-            except (OSError, RuntimeError, ValueError) as exc:
-                raise ValueError(
-                    "invalid certification native evidence oracle"
-                ) from exc
-            if expected is None:
-                continue
-            case_id = case["id"]
-            prior = native_evidence_oracles.get(case_id)
-            if prior is not None and prior != expected:
-                raise ValueError("conflicting certification native evidence oracle")
-            native_evidence_oracles[case_id] = expected
-        return {
-            "ledger": source_ledger,
-            "ledger_sha256": sha256_bytes(source_ledger_bytes),
-            "engine": inventory,
-            "corpus_semantic_sha256": engine_category_sha256(
-                inventory,
-                "semantic",
-                paths={"evaluation/corpus/contract.py"},
-            ),
-            "corpus_cases": corpus_cases,
-            "native_evidence_oracles": native_evidence_oracles,
-            "holdout_manifest_sha256": sha256_bytes(manifest_path.read_bytes()),
-            "holdout_pair_order": pair_order,
-            "holdout_descriptors": descriptors,
-        }
-
-
-def _load_evidence(
-    repo: Path,
-    locator: Any,
-    *,
-    label: str,
-    source_commit: str,
-) -> tuple[dict[str, Any], str]:
-    if not isinstance(locator, dict) or set(locator) != EVIDENCE_LOCATOR_FIELDS:
-        raise ValueError(f"invalid certification evidence locator: {label}")
-    commit = locator["commit"]
-    _require_reachable_commit(repo, commit, label=f"{label} commit")
-    if commit == source_commit:
-        raise ValueError(
-            f"certification evidence must strictly postdate source: {label}"
-        )
-    after_source = _run_git(repo, "merge-base", "--is-ancestor", source_commit, commit)
-    if after_source.returncode:
-        raise ValueError(f"certification evidence predates source: {label}")
-    path = locator["path"]
-    if not isinstance(path, str):
-        raise ValueError(f"invalid certification evidence path: {label}")
-    relative = PurePosixPath(path)
-    if (
-        relative.is_absolute()
-        or ".." in relative.parts
-        or relative.parts[:3] != ("evaluation", "results", "evidence")
-        or relative.suffix != ".json"
-    ):
-        raise ValueError(f"unsafe certification evidence path: {label}")
-    blob = _run_git(repo, "rev-parse", f"{commit}:{path}")
-    content = _run_git(repo, "show", f"{commit}:{path}")
-    if blob.returncode or content.returncode:
-        raise ValueError(f"reachable certification evidence missing: {label}")
-    actual_blob = blob.stdout.decode().strip()
-    _require_digest(locator.get("git_blob"), length=40, label=f"{label} blob")
-    if locator["git_blob"] != actual_blob:
-        raise ValueError(f"certification evidence blob mismatch: {label}")
-    actual_sha256 = sha256_bytes(content.stdout)
-    _require_digest(locator.get("sha256"), length=64, label=f"{label} sha256")
-    if locator["sha256"] != actual_sha256:
-        raise ValueError(f"certification evidence digest mismatch: {label}")
-    try:
-        payload = json.loads(content.stdout)
-    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-        raise ValueError(f"certification evidence is not JSON: {label}") from exc
-    if not isinstance(payload, dict):
-        raise ValueError(f"certification evidence must be an object: {label}")
-    return payload, actual_sha256
-
-
 def _validate_coverage(
     coverage: Any,
     *,
@@ -891,7 +348,7 @@ def _validate_offline_summary(
         not gates
         or not gates.issubset(OFFLINE_GATES)
         or payload.get("schema_version") != 1
-        or payload.get("engine_generation") != "0.4"
+        or payload.get("engine_generation") != "0.6"
         or payload.get("source_commit") != source_commit
         or payload.get("source_ledger_sha256") != source_ledger_sha256
         or payload.get("snapshot_sha256") != canonical_sha256(snapshot)
@@ -920,14 +377,8 @@ def _nonnegative_int(value: Any) -> bool:
     return isinstance(value, int) and not isinstance(value, bool) and value >= 0
 
 
-def _casefold_text_sha256(value: Any) -> str:
-    return sha256_bytes(str(value).casefold().encode())
-
-
-def _identity_match_sha256s(value: Any) -> frozenset[str]:
-    return frozenset(
-        _casefold_text_sha256(candidate) for candidate in identity_match_values(value)
-    )
+def _identity_sha256(value: Any) -> str:
+    return sha256_bytes(str(value).encode())
 
 
 def _validate_digest_list(value: Any, *, label: str, required: bool) -> None:
@@ -941,13 +392,8 @@ def _validate_digest_list(value: Any, *, label: str, required: bool) -> None:
         _require_digest(item, length=64, label=label)
 
 
-def _matches_unordered_list_digest(value: Any, expected: list[Any]) -> bool:
-    if len(expected) > 8:
-        raise ValueError("recovery marker set is too large to verify exactly")
-    expected_digests = {
-        canonical_sha256(list(order)) for order in set(permutations(expected))
-    }
-    return value in expected_digests
+def _matches_canonical_list_digest(value: Any, expected: list[Any]) -> bool:
+    return value == canonical_sha256(sorted(expected))
 
 
 def _validate_recovery_oracle_receipt(
@@ -978,7 +424,7 @@ def _validate_recovery_oracle_receipt(
     expected_test_markers = expected_tests["marker_ids"]
     if tests["marker_ids_count"] != len(
         expected_test_markers
-    ) or not _matches_unordered_list_digest(
+    ) or not _matches_canonical_list_digest(
         tests["marker_ids_sha256"], expected_test_markers
     ):
         raise ValueError(f"invalid {label} recovery oracle test markers")
@@ -997,7 +443,7 @@ def _validate_recovery_oracle_receipt(
     expected_markers = oracle["marker_ids"]
     if value["marker_ids_count"] != len(
         expected_markers
-    ) or not _matches_unordered_list_digest(
+    ) or not _matches_canonical_list_digest(
         value["marker_ids_sha256"], expected_markers
     ):
         raise ValueError(f"invalid {label} recovery oracle markers")
@@ -1020,9 +466,9 @@ def _validate_case_oracle_receipt(
     for required in oracle.get("required_classifications", []):
         states = required["state"]
         allowed_states = states if isinstance(states, list) else [states]
-        identities = _identity_match_sha256s(required["identity"])
+        identity = _identity_sha256(required["identity"])
         if not any(
-            identities & set(finding["identity_match_sha256s"])
+            identity == finding["identity_sha256"]
             and finding["domain"] == required["domain"]
             and finding["state"] in allowed_states
             for finding in findings
@@ -1035,9 +481,9 @@ def _validate_case_oracle_receipt(
         ):
             raise ValueError(f"missing {label} oracle blocker-class receipt")
     for required in oracle.get("required_blocker_classifications", []):
-        identities = _identity_match_sha256s(required["identity"])
+        identity = _identity_sha256(required["identity"])
         if not any(
-            identities & set(blocker["identity_match_sha256s"])
+            identity == blocker["identity_sha256"]
             and blocker["class"] == required["class"]
             and blocker["blocking"] is True
             for blocker in blockers
@@ -1045,14 +491,14 @@ def _validate_case_oracle_receipt(
             raise ValueError(f"missing {label} oracle blocker receipt")
     anchored_blocker_matches: list[list[frozenset[str]]] = []
     for required in oracle.get("required_anchored_blockers", []):
-        anchor = _casefold_text_sha256(required["anchor"])
+        anchor = _identity_sha256(required["anchor"])
         classes = required["class"]
         allowed_classes = classes if isinstance(classes, list) else [classes]
         anchored = [
             finding for finding in findings if anchor in finding["anchor_sha256s"]
         ]
         matches = [
-            frozenset(finding["identity_match_sha256s"])
+            frozenset({finding["identity_sha256"]})
             for finding in anchored
             for blocker in blockers
             if classifications_share_identity(finding, blocker)
@@ -1062,17 +508,19 @@ def _validate_case_oracle_receipt(
         anchored_blocker_matches.append(matches)
         if not matches:
             raise ValueError(f"missing {label} oracle anchored blocker receipt")
-    if anchored_blocker_matches and not has_distinct_identity_assignment(
-        anchored_blocker_matches
+    if anchored_blocker_matches and (
+        any(len(matches) != 1 for matches in anchored_blocker_matches)
+        or len({next(iter(matches[0])) for matches in anchored_blocker_matches})
+        != len(anchored_blocker_matches)
     ):
         raise ValueError(f"distinct anchored blocker receipt required for {label}")
     anchored_classification_matches: list[list[frozenset[str]]] = []
     for required in oracle.get("required_anchored_classifications", []):
-        anchor = _casefold_text_sha256(required["anchor"])
+        anchor = _identity_sha256(required["anchor"])
         states = required["state"]
         allowed_states = states if isinstance(states, list) else [states]
         matches = [
-            frozenset(finding["identity_match_sha256s"])
+            frozenset({finding["identity_sha256"]})
             for finding in findings
             if anchor in finding["anchor_sha256s"]
             and finding["domain"] == required["domain"]
@@ -1081,15 +529,17 @@ def _validate_case_oracle_receipt(
         anchored_classification_matches.append(matches)
         if not matches:
             raise ValueError(f"missing {label} oracle anchored classification receipt")
-    if anchored_classification_matches and not has_distinct_identity_assignment(
-        anchored_classification_matches
+    if anchored_classification_matches and (
+        any(len(matches) != 1 for matches in anchored_classification_matches)
+        or len({next(iter(matches[0])) for matches in anchored_classification_matches})
+        != len(anchored_classification_matches)
     ):
         raise ValueError(
             f"distinct anchored classification receipt required for {label}"
         )
     if value["decision"] == "complete" or value["protocol_may_complete"] is True:
         accepted = [
-            (identity, _identity_match_sha256s(identity))
+            (identity, _identity_sha256(identity))
             for identity in oracle.get("accepted_baseline_failures", [])
         ]
         for finding in findings:
@@ -1097,14 +547,144 @@ def _validate_case_oracle_receipt(
                 finding["domain"] == "baseline_failure"
                 and finding["state"] == "baseline_unchanged"
                 and sum(
-                    bool(identities & set(finding["identity_match_sha256s"]))
-                    for _, identities in accepted
+                    identity_sha256 == finding["identity_sha256"]
+                    for _, identity_sha256 in accepted
                 )
                 != 1
             ):
                 raise ValueError(
                     f"invalid {label} accepted baseline classification receipt"
                 )
+
+
+SEMANTIC_RESULT_PROJECTION_FIELDS = {
+    "schema_generation",
+    "raw_result_sha256",
+    "invocation_profile_sha256",
+    "accepted_baseline_sha256",
+    "report",
+    "attempt_key",
+}
+
+
+def _validate_semantic_result_projection(
+    value: Any,
+    *,
+    raw_result: dict[str, Any] | None = None,
+    raw_result_sha256: str | None = None,
+    invocation_profile: dict[str, Any],
+    accepted_baseline_failures: list[str],
+) -> dict[str, Any]:
+    if (
+        not isinstance(value, dict)
+        or set(value) != SEMANTIC_RESULT_PROJECTION_FIELDS
+        or value.get("schema_generation") != 6
+    ):
+        raise ValueError("invalid generation-6 result projection")
+    expected_raw_sha256 = (
+        canonical_sha256(raw_result)
+        if raw_result is not None
+        else raw_result_sha256
+    )
+    if value.get("raw_result_sha256") != expected_raw_sha256:
+        raise ValueError("semantic projection raw result mismatch")
+    if value.get("invocation_profile_sha256") != canonical_sha256(
+        invocation_profile
+    ):
+        raise ValueError("semantic projection invocation_profile mismatch")
+    if value.get("accepted_baseline_sha256") != canonical_sha256(
+        accepted_baseline_failures
+    ):
+        raise ValueError("semantic projection accepted baseline mismatch")
+    try:
+        report = replay_report(value.get("report"))
+        attempt_key = make_attempt_key(report).value
+    except SemanticError as error:
+        raise ValueError(str(error)) from error
+    if value.get("attempt_key") != attempt_key:
+        raise ValueError("semantic projection AttemptKey mismatch")
+
+    if raw_result is not None:
+        report_wire = report.to_wire()
+        binding = report_wire["facts"]["task_binding"]
+        from evaluation.corpus.engine import semantic_result_projection
+
+        expected = semantic_result_projection(
+            raw_result,
+            context={
+                **binding,
+                "invocation_profile": invocation_profile,
+                "accepted_baseline_failures": accepted_baseline_failures,
+            },
+        )
+        if value != expected:
+            raise ValueError("semantic projection does not match raw result")
+    return value
+
+
+def _validate_terminal_projections(
+    value: Any,
+    *,
+    invocation_profile: dict[str, Any],
+    result_sha256: str,
+    fresh_result_sha256: str | None,
+    native: bool,
+) -> None:
+    expected_count = 3 if native else 1
+    if not isinstance(value, list) or len(value) != expected_count:
+        raise ValueError("invalid terminal projection count")
+    for projection in value:
+        if (
+            not isinstance(projection, dict)
+            or set(projection) != TERMINAL_PROJECTION_FIELDS
+            or projection.get("provenance")
+            != "validated_invocation+native_stream"
+            or projection.get("provider") != invocation_profile["provider"]
+            or any(
+                type(projection.get(field)) is not str or not projection[field]
+                for field in (
+                    "session_id",
+                    "thread_id",
+                    "turn_id",
+                    "action_id",
+                    "attempt_key",
+                    "result_id",
+                    "result_sha256",
+                    "stream_sha256",
+                )
+            )
+            or type(projection.get("terminal_ordinal")) is not int
+            or projection["terminal_ordinal"] < 2
+        ):
+            raise ValueError("invalid terminal projection")
+        for field in (
+            "session_id",
+            "turn_id",
+            "attempt_key",
+            "result_sha256",
+            "stream_sha256",
+        ):
+            _require_digest(
+                projection[field], length=64, label=f"terminal projection {field}"
+            )
+    if len({item["action_id"] for item in value}) != expected_count:
+        raise ValueError("terminal action identities are not exact-unique")
+    if len({item["turn_id"] for item in value}) != expected_count:
+        raise ValueError("terminal turn identities are not exact-unique")
+    if not native:
+        if value[0]["result_sha256"] != result_sha256:
+            raise ValueError("terminal result binding mismatch")
+        return
+    if (
+        value[0]["session_id"] != value[1]["session_id"]
+        or value[0]["thread_id"] != value[1]["thread_id"]
+        or value[2]["session_id"] == value[1]["session_id"]
+        or value[2]["thread_id"] == value[1]["thread_id"]
+        or value[1]["result_sha256"] != result_sha256
+        or fresh_result_sha256 is None
+        or value[2]["result_sha256"] != fresh_result_sha256
+    ):
+        raise ValueError("native terminal lineage binding mismatch")
 
 
 def _validate_recovery_receipt(value: Any, *, label: str) -> None:
@@ -1215,21 +795,18 @@ def _validate_result_receipt(
         or not _nonnegative_int(value.get("open_gates_count"))
         or not _nonnegative_int(value.get("evidence_count"))
         or not isinstance(value.get("goal_pause_handoff_present"), bool)
-        or any(
-            not isinstance(value.get(field), bool)
-            for field in (
-                "repair_gate_present",
-                "user_gate_present",
-                "focused_review_gate_present",
-                "exact_final_review_gate_present",
-            )
-        )
     ):
         raise ValueError(f"invalid {label} result receipt")
     findings = value.get("finding_classifications")
     blockers = value.get("blocker_classifications")
     if not isinstance(findings, list) or not isinstance(blockers, list):
         raise ValueError(f"invalid {label} result classifications")
+    identity_failures = [
+        *classification_identity_failures(findings, label="finding"),
+        *classification_identity_failures(blockers, label="blocker"),
+    ]
+    if identity_failures:
+        raise ValueError(f"invalid {label} " + "; ".join(identity_failures))
     for finding in findings:
         if (
             not isinstance(finding, dict)
@@ -1242,23 +819,12 @@ def _validate_result_receipt(
             or not _nonnegative_int(finding.get("anchors_count"))
         ):
             raise ValueError(f"invalid {label} result finding receipt")
-        for field in (
-            "identity_sha256",
-            "identity_casefold_sha256",
-            "anchors_sha256",
-        ):
+        for field in ("identity_sha256", "anchors_sha256"):
             _require_digest(
                 finding.get(field), length=64, label=f"{label} finding {field}"
             )
         if finding["identity_nonblank"] is not True:
             raise ValueError(f"invalid {label} blank finding identity")
-        _validate_digest_list(
-            finding.get("identity_match_sha256s"),
-            label=f"{label} finding identity matches",
-            required=True,
-        )
-        if finding["identity_casefold_sha256"] not in finding["identity_match_sha256s"]:
-            raise ValueError(f"invalid {label} result finding identity matches")
         _validate_digest_list(
             finding.get("anchor_sha256s"),
             label=f"{label} finding anchors",
@@ -1275,46 +841,18 @@ def _validate_result_receipt(
             or not isinstance(blocker.get("identity_nonblank"), bool)
         ):
             raise ValueError(f"invalid {label} result blocker receipt")
-        for field in (
-            "identity_sha256",
-            "identity_casefold_sha256",
-            "reason_sha256",
-        ):
+        for field in ("identity_sha256", "reason_sha256"):
             _require_digest(
                 blocker.get(field), length=64, label=f"{label} blocker {field}"
             )
         if blocker["identity_nonblank"] is not True:
             raise ValueError(f"invalid {label} blank blocker identity")
-        _validate_digest_list(
-            blocker.get("identity_match_sha256s"),
-            label=f"{label} blocker identity matches",
-            required=True,
-        )
-        if blocker["identity_casefold_sha256"] not in blocker["identity_match_sha256s"]:
-            raise ValueError(f"invalid {label} result blocker identity matches")
     if expected_permissions is not None:
         for field in PERMISSION_FIELDS:
             allowed = expected_permissions.get(field)
             allowed = allowed if isinstance(allowed, list) else [allowed]
             if value.get(field) not in allowed:
                 raise ValueError(f"invalid {label} oracle permission receipt")
-    state_failures = protocol_state_failures(value)
-    if state_failures:
-        raise ValueError(
-            f"invalid {label} review mode state: {'; '.join(state_failures)}"
-        )
-    completion_claimed = (
-        value["decision"] == "complete" or value["protocol_may_complete"] is True
-    )
-    if completion_claimed and (
-        value["decision"] != "complete"
-        or value["protocol_may_complete"] is not True
-        or value["protocol_review_mode"] != "none"
-        or value["open_gates_count"] != 0
-        or any(item["blocking"] is True for item in blockers)
-        or any(item["state"] in {"candidate_new", "unknown"} for item in findings)
-    ):
-        raise ValueError(f"invalid {label} completion receipt")
     recovery = value.get("recovery_state")
     if recovery_required is True:
         _validate_recovery_receipt(recovery, label=label)
@@ -1522,13 +1060,14 @@ def _validate_case_identity(
     semantic_sha256: str,
     package: dict[str, str],
     engine: dict[str, Any],
+    expected_profile_arm: str = "candidate",
 ) -> None:
     settings = snapshot["settings"]
     if (
         not isinstance(receipt, dict)
         or set(receipt) != CASE_RECEIPT_FIELDS
         or receipt.get("schema_version") != 1
-        or receipt.get("engine_generation") != "0.4"
+        or receipt.get("engine_generation") != "0.6"
         or receipt.get("id") != case_id
         or not isinstance(case, dict)
         or case.get("id") != case_id
@@ -1546,6 +1085,19 @@ def _validate_case_identity(
         raise ValueError(f"corpus evidence case did not pass: {case_id}")
     if receipt.get("semantic_input_sha256") != semantic_sha256:
         raise ValueError(f"corpus evidence semantic identity mismatch: {case_id}")
+    profile = validate_invocation_profile(
+        receipt.get("invocation_profile"),
+        require_bound_binary=True,
+    )
+    if (
+        profile["model"] != settings["model"]
+        or profile["effort"] != settings["effort"]
+        or profile["timeout_seconds"] != settings["timeout_seconds"]
+        or profile["arm"] != expected_profile_arm
+        or profile["binary"]["identity_sha256"]
+        != canonical_sha256(settings["toolchain"]["codex"])
+    ):
+        raise ValueError(f"corpus evidence invocation profile mismatch: {case_id}")
     identities = receipt.get("identities")
     if not isinstance(identities, dict) or set(identities) != {
         "engine",
@@ -1643,6 +1195,20 @@ def _validate_case_identity(
         _validate_case_oracle_receipt(
             result_receipt, case=case, label=f"case {case_id}"
         )
+    accepted_baseline = sorted(
+        case["oracle"].get("accepted_baseline_failures", [])
+    )
+    semantic_result = _validate_semantic_result_projection(
+        receipt.get("semantic_result"),
+        raw_result_sha256=result_receipt["result_sha256"],
+        invocation_profile=profile,
+        accepted_baseline_failures=accepted_baseline,
+    )
+    if (
+        semantic_result["report"]["facts"]["task_binding"]["lineage_digest"]
+        != semantic_sha256
+    ):
+        raise ValueError(f"corpus semantic lineage mismatch: {case_id}")
     fresh_result_receipt = None
     if native:
         fresh_result_receipt = _validate_result_receipt(
@@ -1658,8 +1224,27 @@ def _validate_case_identity(
                 case=case,
                 label=f"case {case_id} fresh recovery",
             )
+        _validate_semantic_result_projection(
+            receipt.get("fresh_recovery_semantic_result"),
+            raw_result_sha256=fresh_result_receipt["result_sha256"],
+            invocation_profile=profile,
+            accepted_baseline_failures=accepted_baseline,
+        )
     elif receipt.get("fresh_recovery_result") is not None:
         raise ValueError(f"unexpected fresh recovery result receipt: {case_id}")
+    elif receipt.get("fresh_recovery_semantic_result") is not None:
+        raise ValueError(f"unexpected fresh recovery semantic result: {case_id}")
+    _validate_terminal_projections(
+        receipt.get("terminal_projections"),
+        invocation_profile=profile,
+        result_sha256=result_receipt["result_sha256"],
+        fresh_result_sha256=(
+            fresh_result_receipt["result_sha256"]
+            if fresh_result_receipt is not None
+            else None
+        ),
+        native=native,
+    )
     _validate_native_compaction(
         receipt.get("native_compaction"),
         case=case,
@@ -1687,16 +1272,24 @@ def _validate_corpus_summary(
     payload: dict[str, Any],
     snapshot: dict[str, Any],
     source: dict[str, Any],
-    live_authority: dict[str, Any],
+    *,
+    gate_authority_sha256: str,
+    impact: dict[str, Any],
 ) -> None:
+    validate_impact(impact, snapshot)
+    _require_digest(
+        gate_authority_sha256,
+        length=64,
+        label="gate authority digest",
+    )
     settings = snapshot["settings"]
     cases = payload.get("cases")
     if (
         set(payload) != CORPUS_SUMMARY_FIELDS
         or payload.get("schema_version") != 1
-        or payload.get("engine_generation") != "0.4"
-        or payload.get("impact_token") != live_authority["impact_token"]
-        or payload.get("live_authority_sha256") != canonical_sha256(live_authority)
+        or payload.get("engine_generation") != "0.6"
+        or payload.get("impact_token") != impact_token(snapshot, impact)
+        or payload.get("gate_authority_sha256") != gate_authority_sha256
         or payload.get("arm") != "candidate"
         or payload.get("model") != settings["model"]
         or payload.get("effort") != settings["effort"]
@@ -1710,7 +1303,7 @@ def _validate_corpus_summary(
         for item in cases
         if isinstance(item, dict) and isinstance(item.get("id"), str)
     }
-    expected = set(live_authority["impact"]["corpus_cases"])
+    expected = set(impact["corpus_cases"])
     if not expected:
         raise ValueError("corpus certification evidence has no authorized scope")
     if set(by_id) != expected or len(by_id) != len(cases):
@@ -1741,62 +1334,6 @@ def _validate_corpus_summary(
         raise ValueError("corpus certification evidence telemetry mismatch")
 
 
-def _validate_holdout_run(
-    payload: dict[str, Any],
-    snapshot: dict[str, Any],
-    authority: dict[str, Any],
-    source: dict[str, Any],
-) -> tuple[list[str], dict[str, str]]:
-    settings = snapshot["settings"]
-    identities = payload.get("identities")
-    packages = identities.get("packages") if isinstance(identities, dict) else None
-    engine = identities.get("engine") if isinstance(identities, dict) else None
-    pair_ids = payload.get("pair_ids")
-    if (
-        set(payload) != HOLDOUT_RUN_FIELDS
-        or payload.get("schema_version") != 1
-        or payload.get("engine_generation") != "0.4"
-        or payload.get("impact_token") != authority["impact_token"]
-        or payload.get("live_authority_sha256") != canonical_sha256(authority)
-        or payload.get("manifest_sha256") != source["holdout_manifest_sha256"]
-        or payload.get("model") != settings["model"]
-        or payload.get("effort") != settings["effort"]
-        or payload.get("timeout_seconds") != settings["timeout_seconds"]
-        or engine != source["engine"]
-        or not isinstance(packages, dict)
-        or set(packages) != {"candidate", "public-0.4.0"}
-        or packages.get("candidate") != snapshot["package"]
-        or not isinstance(pair_ids, list)
-        or pair_ids != source["holdout_pair_order"]
-        or payload.get("case_sha256")
-        != {
-            pair_id: descriptor["case_sha256"]
-            for pair_id, descriptor in source["holdout_descriptors"].items()
-        }
-        or identities.get("toolchain") != snapshot["settings"]["toolchain"]
-    ):
-        raise ValueError("invalid holdout run certification evidence")
-    holdout_invocation = next(
-        (item for item in authority["invocations"] if item["command"] == "holdout"),
-        None,
-    )
-    public = packages.get("public-0.4.0")
-    if holdout_invocation is not None:
-        if not isinstance(public, dict) or public != {
-            "semantic_sha256": holdout_invocation["public_semantic_sha256"],
-            "artifact_sha256": holdout_invocation["public_artifact_sha256"],
-        }:
-            raise ValueError("holdout public evidence does not match authority")
-    elif (
-        not isinstance(public, dict)
-        or set(public) != {"semantic_sha256", "artifact_sha256"}
-        or public.get("semantic_sha256") != PUBLIC_040_PACKAGE_SEMANTIC_SHA256
-        or public.get("artifact_sha256") != PUBLIC_040_PACKAGE_ARTIFACT_SHA256
-    ):
-        raise ValueError("invalid holdout public evidence")
-    return pair_ids, public
-
-
 def _validate_arm_identity(
     receipt: Any,
     snapshot: dict[str, Any],
@@ -1810,7 +1347,7 @@ def _validate_arm_identity(
     settings = snapshot["settings"]
     semantic_sha256 = case_semantic_sha256(
         descriptor["case"],
-        shared_semantic_sha256=source["corpus_semantic_sha256"],
+        shared_semantic_sha256=source["holdout_case_semantic_sha256"],
         package_semantic_sha256=package["semantic_sha256"],
         model=settings["model"],
         effort=settings["effort"],
@@ -1829,6 +1366,7 @@ def _validate_arm_identity(
         semantic_sha256=semantic_sha256,
         package=package,
         engine=source["engine"],
+        expected_profile_arm="blinded-pair",
     )
 
 
@@ -1845,7 +1383,7 @@ def _validate_holdout_summary(
     if (
         set(payload) != HOLDOUT_SUMMARY_FIELDS
         or payload.get("schema_version") != 1
-        or payload.get("engine_generation") != "0.4"
+        or payload.get("engine_generation") != "0.6"
         or payload.get("run_receipt_sha256") != run_sha256
         or not isinstance(receipts, list)
         or payload.get("pairs_run") != len(receipts)
@@ -1872,7 +1410,7 @@ def _validate_holdout_summary(
         descriptor = source["holdout_descriptors"].get(receipt["id"])
         if (
             receipt.get("schema_version") != 1
-            or receipt.get("engine_generation") != "0.4"
+            or receipt.get("engine_generation") != "0.6"
             or not isinstance(descriptor, dict)
             or receipt.get("case_id") != descriptor["case"]["id"]
             or receipt.get("case_sha256") != descriptor["case_sha256"]
@@ -1960,144 +1498,15 @@ def _validate_holdout_summary(
         raise ValueError("holdout cost/quality evidence does not permit certification")
 
 
-def _validate_certification_receipt(
-    certification: Any,
-    *,
-    snapshot: dict[str, Any],
-    historical_cost: dict[str, Any],
-    live_authority: dict[str, Any] | None,
-    repo: Path | None,
-) -> None:
-    if (
-        not isinstance(certification, dict)
-        or set(certification) != CERTIFICATION_FIELDS
-    ):
-        raise ValueError("invalid certification receipt")
-    if certification.get("schema_version") != 1:
-        raise ValueError("invalid certification receipt schema")
-    snapshot_sha256 = canonical_sha256(snapshot)
-    if certification.get("snapshot_sha256") != snapshot_sha256:
-        raise ValueError("certification receipt snapshot mismatch")
-    if (
-        certification.get("engine_manifest_sha256")
-        != snapshot["engine"]["manifest_sha256"]
-    ):
-        raise ValueError("certification receipt engine manifest mismatch")
-    if certification.get("live_authority_sha256") != canonical_sha256(live_authority):
-        raise ValueError("certification receipt authority mismatch")
-    if live_authority is not None:
-        validate_live_authority(live_authority, snapshot=snapshot)
-    if repo is None or not (repo / ".git").exists():
-        raise ValueError("reachable certification evidence requires a Git repository")
-    repo = repo.resolve()
-    source_commit = certification.get("successor_source_commit")
-    _require_reachable_commit(repo, source_commit, label="successor source commit")
-    tree = _run_git(repo, "rev-parse", f"{source_commit}^{{tree}}")
-    if (
-        tree.returncode
-        or certification.get("successor_source_tree") != tree.stdout.decode().strip()
-    ):
-        raise ValueError("certification successor source tree mismatch")
-    source = _validate_source_identity(
-        repo,
-        source_commit,
-        snapshot,
-        live_authority,
-    )
-    if source["ledger"]["historical_cost"] != historical_cost:
-        raise ValueError("certification source historical cost mismatch")
-    source_pending = source["ledger"]["pending"]
-    if source_pending["review"] is not True:
-        raise ValueError("certification source must retain the external review gate")
-    corpus_holdout_waived = (
-        "user_waived_corpus_holdout_2026_07_29" in source_pending["reasons"]
-    )
-    for field, available in (
-        ("corpus_cases", set(snapshot["corpus"]["cases"])),
-        ("holdout_pairs", set(snapshot["holdout"]["pairs"])),
-    ):
-        required = set() if corpus_holdout_waived else available
-        if set(source_pending[field]) != required:
-            raise ValueError("fresh certification source scope is incomplete")
-    try:
-        expected_impact = plan_impact(
-            snapshot,
-            snapshot,
-            pending=source_pending,
-        )
-    except (OSError, ValueError) as exc:
-        raise ValueError("invalid certification source pending impact") from exc
-    live_required = expected_impact["live_calls"]["maximum"] > 0
-    if live_required:
-        if live_authority is None:
-            raise ValueError("nonzero certification impact requires live authority")
-        if expected_impact != live_authority["impact"]:
-            raise ValueError("certification source authority impact mismatch")
-    elif live_authority is not None:
-        raise ValueError("zero-live certification must not carry live authority")
-    evidence_fields = _validate_coverage(
-        certification.get("coverage"),
-        snapshot=snapshot,
-        impact=expected_impact,
-        corpus_holdout_waived=corpus_holdout_waived,
-    )
-    offline_gate_set = _offline_gates(expected_impact)
-    if offline_gate_set:
-        evidence_fields.add("offline_summary")
-    evidence = certification.get("evidence")
-    if not isinstance(evidence, dict) or set(evidence) != evidence_fields:
-        if offline_gate_set and (
-            not isinstance(evidence, dict) or "offline_summary" not in evidence
-        ):
-            raise ValueError("offline certification evidence is required")
-        raise ValueError("invalid certification evidence envelope")
-    loaded: dict[str, dict[str, Any]] = {}
-    evidence_sha: dict[str, str] = {}
-    for label in sorted(evidence_fields):
-        loaded[label], evidence_sha[label] = _load_evidence(
-            repo,
-            evidence[label],
-            label=label,
-            source_commit=source_commit,
-        )
-    if "corpus_summary" in loaded:
-        if live_authority is None:
-            raise AssertionError("corpus evidence cannot exist without live authority")
-        _validate_corpus_summary(
-            loaded["corpus_summary"],
-            snapshot,
-            source,
-            live_authority,
-        )
-    if "holdout_run" in loaded:
-        if live_authority is None:
-            raise AssertionError("holdout evidence cannot exist without live authority")
-        pair_ids, public_package = _validate_holdout_run(
-            loaded["holdout_run"], snapshot, live_authority, source
-        )
-        _validate_holdout_summary(
-            loaded["holdout_summary"],
-            snapshot,
-            run_pair_ids=pair_ids,
-            run_sha256=evidence_sha["holdout_run"],
-            public_package=public_package,
-            source=source,
-        )
-    if "offline_summary" in loaded:
-        _validate_offline_summary(
-            loaded["offline_summary"],
-            snapshot=snapshot,
-            source_commit=source_commit,
-            source_ledger_sha256=source["ledger_sha256"],
-            gates=offline_gate_set,
-        )
-
-
 def validate_ledger(ledger: dict[str, Any], *, repo: Path | None = None) -> None:
-    if set(ledger) != LEDGER_FIELDS or ledger.get("schema_version") != 1:
+    del repo
+    if (
+        set(ledger) != LEDGER_FIELDS
+        or ledger.get("schema_version") != 1
+        or ledger.get("engine_generation") != "0.6"
+    ):
         raise ValueError("invalid certification ledger envelope")
-    state = ledger.get("state")
-    if state not in {"refresh_required", "certified"}:
+    if ledger.get("state") != "refresh_required":
         raise ValueError("invalid certification ledger state")
     snapshot = ledger.get("snapshot")
     if not isinstance(snapshot, dict):
@@ -2106,12 +1515,9 @@ def validate_ledger(ledger: dict[str, Any], *, repo: Path | None = None) -> None
     pending = ledger.get("pending")
     if not isinstance(pending, dict) or set(pending) != PENDING_FIELDS:
         raise ValueError("invalid pending refresh envelope")
-    if (
-        not isinstance(pending["reasons"], list)
-        or not all(isinstance(item, str) and item for item in pending["reasons"])
-        or pending["reasons"] != sorted(set(pending["reasons"]))
-    ):
-        raise ValueError("invalid pending reasons")
+    gates = pending["gates"]
+    if gates != list(PENDING_GATES):
+        raise ValueError("invalid generation-6 pending gates")
     for field in ("corpus_cases", "holdout_pairs"):
         value = pending[field]
         if (
@@ -2120,66 +1526,27 @@ def validate_ledger(ledger: dict[str, Any], *, repo: Path | None = None) -> None
             or value != sorted(set(value))
         ):
             raise ValueError(f"invalid pending scope: {field}")
-    if not isinstance(pending["review"], bool):
-        raise ValueError("invalid pending review gate")
-    live_attempts = ledger.get("live_attempts")
-    if not isinstance(live_attempts, dict):
-        raise ValueError("invalid live attempt envelope")
-    expected_attempts = {
-        command
-        for command, selected in (
-            ("corpus", pending["corpus_cases"]),
-            ("holdout", pending["holdout_pairs"]),
-        )
-        if selected
-    }
-    live_authority = ledger.get("live_authority")
-    if live_authority is not None:
-        invocations = live_authority.get("invocations")
-        if not isinstance(invocations, list):
-            raise ValueError("invalid live authority attempts")
-        expected_attempts = {
-            item.get("command") for item in invocations if isinstance(item, dict)
-        }
-    if set(live_attempts) != expected_attempts:
-        raise ValueError("live attempt scope does not match pending invocations")
-    for command, attempt_id in live_attempts.items():
-        _require_digest(attempt_id, length=64, label=f"{command} live attempt id")
-    if len(set(live_attempts.values())) != len(live_attempts):
-        raise ValueError("live attempt ids must be unique")
-    if ledger.get("historical_cost") != historical_cost_receipt():
-        raise ValueError("invalid historical cost receipt")
-    if live_authority is not None:
-        validate_live_authority(live_authority, snapshot=snapshot)
-        for invocation in live_authority["invocations"]:
-            if live_attempts[invocation["command"]] != invocation["attempt_id"]:
-                raise ValueError("live authority attempt id mismatch")
-    certification = ledger.get("certification")
-    if state == "refresh_required":
-        if certification is not None:
-            raise ValueError("refresh-required ledger cannot carry certification")
-        if not (
-            pending["reasons"]
-            or pending["corpus_cases"]
-            or pending["holdout_pairs"]
-            or pending["review"]
-        ):
-            raise ValueError("refresh-required ledger must name a pending gate")
-    else:
-        if (
-            pending["reasons"]
-            or pending["corpus_cases"]
-            or pending["holdout_pairs"]
-            or pending["review"]
-        ):
-            raise ValueError("certified ledger cannot retain pending gates")
-        _validate_certification_receipt(
-            certification,
-            snapshot=snapshot,
-            historical_cost=ledger["historical_cost"],
-            live_authority=live_authority,
-            repo=repo,
-        )
+    if pending["corpus_cases"] != sorted(snapshot["corpus"]["cases"]):
+        raise ValueError("generation-6 genesis requires all corpus cases")
+    if pending["holdout_pairs"] != sorted(snapshot["holdout"]["pairs"]):
+        raise ValueError("generation-6 genesis requires all holdout pairs")
+    if len(pending["corpus_cases"]) != 17 or len(pending["holdout_pairs"]) != 3:
+        raise ValueError("invalid generation-6 genesis cardinality")
+    authorities = ledger.get("authorities")
+    if (
+        not isinstance(authorities, dict)
+        or set(authorities) != AUTHORITY_SLOTS
+        or any(value is not None for value in authorities.values())
+    ):
+        raise ValueError("generation-6 genesis authorities must be null")
+    if ledger.get("calibration_history") != []:
+        raise ValueError("generation-6 genesis calibration history must be empty")
+    if ledger.get("accepted_evidence") != []:
+        raise ValueError("generation-6 genesis accepted evidence must be empty")
+    if ledger.get("receipt_head") is not None:
+        raise ValueError("generation-6 genesis receipt head must be null")
+    if ledger.get("certification") is not None:
+        raise ValueError("refresh-required ledger cannot carry certification")
 
 
 def load_ledger(path: Path) -> dict[str, Any]:

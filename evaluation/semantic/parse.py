@@ -5,7 +5,6 @@ from types import MappingProxyType
 from typing import Any
 
 from evaluation.semantic.types import (
-    ActionKind,
     CapacityError,
     Facts,
     Id,
@@ -19,7 +18,6 @@ from evaluation.semantic.types import (
     _make_facts,
 )
 
-
 _BINDING_FIELDS = frozenset(
     {
         "task_id",
@@ -29,25 +27,17 @@ _BINDING_FIELDS = frozenset(
         "destination_id",
         "lineage_digest",
         "role_config_digest",
+        "repository_digest",
+        "outcome_digest",
     }
 )
 _RECORD_FIELDS = MappingProxyType(
     {
         **{
             domain: frozenset({"id", "state", "evidence"})
-            for domain in ("checks", "claims", "families", "findings", "gates")
+            for domain in ("checks", "claims", "families", "findings")
         },
-        "pending": frozenset(
-            {
-                "id",
-                "priority",
-                "kind",
-                "target",
-                "scope",
-                "falsifier_id",
-                "evidence_source_id",
-            }
-        ),
+        "gates": frozenset({"id", "state", "evidence", "family_id"}),
         "replacements": frozenset(
             {"id", "kind", "prior", "current", "evidence"}
         ),
@@ -77,21 +67,10 @@ _STATE_VALUES = MappingProxyType(
         "gates": frozenset({"OPEN", "BLOCKED", "SATISFIED", "WAIVED"}),
     }
 )
-_PENDING_ID_FIELDS = MappingProxyType(
-    {
-        "target": "action_target",
-        "scope": "action_scope",
-        "falsifier_id": "falsifier",
-        "evidence_source_id": "evidence_source",
-    }
-)
-
-
 def _mapping(value: object, name: str) -> Mapping[str, Any]:
     if not isinstance(value, Mapping) or any(type(key) is not str for key in value):
         raise SemanticError(f"{name} must be an object")
     return value
-
 
 def _exact_fields(
     value: Mapping[str, Any],
@@ -106,12 +85,10 @@ def _exact_fields(
             f"{name} fields mismatch: missing={missing}, unknown={unknown}"
         )
 
-
 def _text(value: object, name: str) -> str:
     if type(value) is not str or not value:
         raise SemanticError(f"{name} must be nonblank text")
     return value
-
 
 def _string_tuple(value: object, name: str) -> tuple[str, ...]:
     if type(value) is not list:
@@ -125,7 +102,6 @@ def _string_tuple(value: object, name: str) -> tuple[str, ...]:
         seen.add(text)
         result.append(text)
     return tuple(sorted(result))
-
 
 def _binding(raw: object) -> TaskBinding:
     value = _mapping(raw, "task_binding")
@@ -144,8 +120,11 @@ def _binding(raw: object) -> TaskBinding:
         role_config=Id(
             "role_config", _text(value["role_config_digest"], "role_config_digest")
         ),
+        repository=Id(
+            "repository", _text(value["repository_digest"], "repository_digest")
+        ),
+        outcome=Id("outcome", _text(value["outcome_digest"], "outcome_digest")),
     )
-
 
 def _state_payload(
     record: Mapping[str, Any],
@@ -154,28 +133,18 @@ def _state_payload(
     state = _text(record["state"], f"{domain}.state")
     if state not in _STATE_VALUES[domain]:
         raise SemanticError(f"{domain}.state is invalid")
-    return {
-        "state": state,
-        "evidence": _string_tuple(record["evidence"], f"{domain}.evidence"),
-    }
-
-
-def _pending_payload(record: Mapping[str, Any]) -> dict[str, object]:
-    if type(record["priority"]) is not int or record["priority"] < 0:
-        raise SemanticError("pending.priority must be a nonnegative integer")
-    kind = _text(record["kind"], "pending.kind")
-    try:
-        ActionKind(kind)
-    except ValueError as error:
-        raise SemanticError("pending.kind is invalid") from error
+    evidence = _string_tuple(record["evidence"], f"{domain}.evidence")
+    if domain == "gates" and not evidence:
+        raise SemanticError("gates.evidence must be nonempty")
     payload: dict[str, object] = {
-        "priority": record["priority"],
-        "kind": kind,
+        "state": state,
+        "evidence": evidence,
     }
-    for field, tag in _PENDING_ID_FIELDS.items():
-        payload[field] = Id(tag, _text(record[field], f"pending.{field}"))
+    if domain == "gates":
+        payload["family_id"] = Id(
+            "family_id", _text(record["family_id"], "gates.family_id")
+        )
     return payload
-
 
 def _replacement_payload(record: Mapping[str, Any]) -> dict[str, object]:
     kind = _text(record["kind"], "replacements.kind")
@@ -195,7 +164,6 @@ def _replacement_payload(record: Mapping[str, Any]) -> dict[str, object]:
         "evidence": evidence,
     }
 
-
 def _path_payload(record: Mapping[str, Any]) -> dict[str, object]:
     repository = _text(record["repository_id"], "paths.repository_id")
     path = _text(record["path"], "paths.path")
@@ -209,12 +177,9 @@ def _path_payload(record: Mapping[str, Any]) -> dict[str, object]:
         raise SemanticError("path must be exact root-relative POSIX identity")
     return {"repository_id": repository, "path": path}
 
-
 def _payload(record: Mapping[str, Any], domain: str) -> dict[str, object]:
     if domain in _STATE_VALUES:
         return _state_payload(record, domain)
-    if domain == "pending":
-        return _pending_payload(record)
     if domain == "replacements":
         return _replacement_payload(record)
     if domain == "paths":
@@ -227,7 +192,6 @@ def _payload(record: Mapping[str, Any], domain: str) -> dict[str, object]:
             raise SemanticError("timestamps.value must be a nonnegative integer")
         return {"value": value}
     return {"value": _text(record["value"], f"{domain}.value")}
-
 
 def _records(raw: object, domain: str) -> tuple[_Record, ...]:
     if type(raw) is not list:
@@ -251,7 +215,6 @@ def _records(raw: object, domain: str) -> tuple[_Record, ...]:
         )
     return tuple(sorted(result, key=lambda item: item.primary_key.value))
 
-
 def parse_facts(raw: object) -> Facts:
     envelope = _mapping(raw, "facts envelope")
     _exact_fields(
@@ -266,6 +229,12 @@ def parse_facts(raw: object) -> Facts:
     stable = {
         domain: _records(stable_raw[domain], domain) for domain in _STABLE_DOMAINS
     }
+    family_ids = {record.primary_key.value for record in stable["families"]}
+    for gate in stable["gates"]:
+        if gate.payload["family_id"].value not in family_ids:
+            raise SemanticError(
+                f"gates family does not exist: {gate.payload['family_id'].value}"
+            )
     administration = {
         domain: _records(admin_raw[domain], domain) for domain in _ADMIN_DOMAINS
     }
@@ -275,6 +244,5 @@ def parse_facts(raw: object) -> Facts:
         stable=stable,
         administration=administration,
     )
-
 
 __all__ = ("parse_facts",)

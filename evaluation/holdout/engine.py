@@ -10,11 +10,8 @@ from typing import Any, Callable
 
 from evaluation.core.identity import (
     canonical_sha256,
-    engine_inventory,
-    package_identities,
-    package_manifest_sha256,
+    invocation_profile,
     sha256_bytes,
-    toolchain_identity,
 )
 from evaluation.core.receipt import sanitized_case_receipt, write_new_json
 from evaluation.corpus import engine as corpus_engine
@@ -28,12 +25,8 @@ from evaluation.holdout.blind import (
     validate_reveal,
 )
 from evaluation.holdout.compare import (
-    adaptive_next,
-    aggregate_quality,
     compare_pair,
-    cost_gate,
     decision_metrics,
-    sum_metrics,
 )
 
 
@@ -124,42 +117,8 @@ def _validate_pair_capability(
     effort: str,
     timeout: int,
 ) -> None:
-    from evaluation.core.ledger import AuthorizedInvocation
-
-    if not isinstance(authorization, AuthorizedInvocation):
-        raise ValueError("live holdout execution requires a validated capability")
-    descriptor = authorization.descriptor()
-    snapshot = authorization.snapshot()
-    settings = snapshot.get("settings")
-    current = next(
-        (item for item in load_manifest()["pairs"] if item["id"] == pair.get("id")),
-        None,
-    )
-    candidate_identity = {
-        "semantic_sha256": descriptor.get("candidate_semantic_sha256"),
-        "artifact_sha256": descriptor.get("candidate_artifact_sha256"),
-    }
-    public_identity = {
-        "semantic_sha256": descriptor.get("public_semantic_sha256"),
-        "artifact_sha256": descriptor.get("public_artifact_sha256"),
-    }
-    if (
-        descriptor.get("command") != "holdout"
-        or pair.get("id") not in descriptor.get("pairs", [])
-        or pair.get("id") not in snapshot.get("holdout", {}).get("pairs", {})
-        or current != pair
-        or descriptor.get("model") != model
-        or descriptor.get("effort") != effort
-        or descriptor.get("timeout_seconds") != timeout
-        or not isinstance(settings, dict)
-        or settings.get("model") != model
-        or settings.get("effort") != effort
-        or settings.get("timeout_seconds") != timeout
-        or candidate_identity != snapshot.get("package")
-        or package_identities(candidate) != candidate_identity
-        or package_identities(public) != public_identity
-    ):
-        raise ValueError("holdout pair does not match the validated capability")
+    del authorization, pair, candidate, public, model, effort, timeout
+    raise ValueError("generation-6 live capability is unavailable until Batch3")
 
 
 def _evaluate_pair_arms(
@@ -237,7 +196,7 @@ def run_pair(
         )
     receipt = {
         "schema_version": 1,
-        "engine_generation": "0.4",
+        "engine_generation": "0.6",
         "id": pair["id"],
         "case_id": pair["case"]["id"],
         "case_sha256": pair["case_sha256"],
@@ -281,109 +240,8 @@ def run_holdouts(
     timeout: int,
     authorization: Any,
 ) -> dict[str, Any]:
-    from evaluation.core.ledger import AuthorizedInvocation
-
-    if not isinstance(authorization, AuthorizedInvocation):
-        raise ValueError("live holdout execution requires a validated capability")
-    descriptor = authorization.descriptor()
-    if descriptor.get("command") != "holdout":
-        raise ValueError("invalid holdout execution capability")
-    manifest = load_manifest()
-    pair_ids = [pair["id"] for pair in manifest["pairs"]]
-    if (
-        descriptor.get("pairs") != sorted(pair_ids)
-        or descriptor.get("model") != model
-        or descriptor.get("effort") != effort
-        or descriptor.get("timeout_seconds") != timeout
-    ):
-        raise ValueError("holdout execution does not match the validated capability")
-    candidate_manifest = package_manifest_sha256(candidate)
-    public_manifest = package_manifest_sha256(public)
-    if public_manifest != corpus_engine.EXPECTED_PUBLIC_040_PACKAGE_MANIFEST_SHA256:
-        raise ValueError(
-            "public-0.4.0 package manifest mismatch: "
-            f"got {public_manifest}, expected "
-            f"{corpus_engine.EXPECTED_PUBLIC_040_PACKAGE_MANIFEST_SHA256}"
-        )
-    package_manifests = {
-        "candidate": candidate_manifest,
-        "public-0.4.0": public_manifest,
-    }
-    package_identity = {
-        "candidate": package_identities(candidate),
-        "public-0.4.0": package_identities(public),
-    }
-    if package_identity != {
-        "candidate": {
-            "semantic_sha256": descriptor.get("candidate_semantic_sha256"),
-            "artifact_sha256": descriptor.get("candidate_artifact_sha256"),
-        },
-        "public-0.4.0": {
-            "semantic_sha256": descriptor.get("public_semantic_sha256"),
-            "artifact_sha256": descriptor.get("public_artifact_sha256"),
-        },
-    }:
-        raise ValueError("holdout packages do not match the validated capability")
-    run_receipt = {
-        "schema_version": 1,
-        "engine_generation": "0.4",
-        "impact_token": authorization.impact_token,
-        "live_authority_sha256": authorization.authority_sha256,
-        "manifest_sha256": manifest["manifest_sha256"],
-        "identities": {
-            "engine": engine_inventory(ROOT),
-            "packages": package_identity,
-            "toolchain": toolchain_identity(),
-        },
-        "model": model,
-        "effort": effort,
-        "timeout_seconds": timeout,
-        "pair_ids": pair_ids,
-        "case_sha256": {pair["id"]: pair["case_sha256"] for pair in manifest["pairs"]},
-    }
-    write_new_json(output / "00-run-receipt.json", run_receipt)
-    receipts: list[dict[str, Any]] = []
-    outcomes: list[str] = []
-    while True:
-        action = adaptive_next(outcomes)
-        if action in {"reject", "stop"}:
-            break
-        pair = manifest["pairs"][len(outcomes)]
-        receipt = run_pair(
-            pair,
-            candidate=candidate,
-            public=public,
-            output=output,
-            model=model,
-            effort=effort,
-            timeout=timeout,
-            authorization=authorization,
-        )
-        receipts.append(receipt)
-        outcomes.append(receipt["outcome"])
-    if {
-        arm: package_manifest_sha256(path)
-        for arm, path in (("candidate", candidate), ("public-0.4.0", public))
-    } != package_manifests:
-        raise RuntimeError("evaluated package changed during holdouts")
-    quality = aggregate_quality(outcomes)
-    aggregate = {
-        arm: sum_metrics([receipt["metrics"][arm] for receipt in receipts])
-        for arm in ACTUAL_ARMS
-    }
-    gate = cost_gate(aggregate["candidate"], aggregate["public-0.4.0"], quality=quality)
-    summary = {
-        "schema_version": 1,
-        "engine_generation": "0.4",
-        "run_receipt_sha256": file_sha256(output / "00-run-receipt.json"),
-        "adaptive_history": outcomes,
-        "adaptive_terminal_action": adaptive_next(outcomes),
-        "pairs_run": len(receipts),
-        "pair_receipts": receipts,
-        "cost_gate": gate,
-    }
-    write_new_json(output / "summary.json", summary)
-    return summary
+    del candidate, public, output, model, effort, timeout, authorization
+    raise ValueError("generation-6 live capability is unavailable until Batch3")
 
 
 def run_command(args: Any) -> int:
@@ -414,6 +272,12 @@ def run_command(args: Any) -> int:
                         "otherwise second pair is mandatory",
                         "split or uncertainty runs the third pair",
                     ],
+                    "invocation_profile": invocation_profile(
+                        model=args.model,
+                        effort=args.effort,
+                        timeout_seconds=args.timeout,
+                        arm="blinded-pair",
+                    ),
                 },
                 indent=2,
             )
@@ -423,26 +287,5 @@ def run_command(args: Any) -> int:
 
 
 def run_authorized(args: Any, authorization: Any) -> int:
-    from evaluation.core.ledger import AuthorizedInvocation
-
-    if not isinstance(authorization, AuthorizedInvocation):
-        raise SystemExit("live holdout execution requires a validated capability")
-    if args.public is None:
-        raise SystemExit("--public is required for a live paired run")
-    candidate = args.candidate.expanduser().resolve()
-    public = args.public.expanduser().resolve()
-    try:
-        output = resolve_output(args.output, candidate, public)
-        summary = run_holdouts(
-            candidate=candidate,
-            public=public,
-            output=output,
-            model=args.model,
-            effort=args.effort,
-            timeout=args.timeout,
-            authorization=authorization,
-        )
-    except (OSError, RuntimeError, ValueError) as exc:
-        raise SystemExit(str(exc)) from exc
-    print(json.dumps(summary, indent=2))
-    return 0 if summary["cost_gate"]["release_permitted"] else 1
+    del args, authorization
+    raise SystemExit("generation-6 live capability is unavailable until Batch3")
