@@ -71,6 +71,53 @@ class HappyCodexHoldoutTests(unittest.TestCase):
         self.assertEqual(maximum_active, holdout_engine.HOLDOUT_ARM_WORKERS)
         self.assertEqual(holdout_engine.HOLDOUT_ARM_WORKERS, 2)
 
+    def test_pair_arm_failure_propagates_without_retry(self) -> None:
+        attempts: dict[str, int] = {}
+
+        def evaluate(alias: str) -> dict[str, str]:
+            attempts[alias] = attempts.get(alias, 0) + 1
+            raise RuntimeError(f"infra failure: {alias}")
+
+        with self.assertRaisesRegex(RuntimeError, "infra failure"):
+            holdout_engine._evaluate_pair_arms(evaluate)
+
+        self.assertTrue(attempts)
+        self.assertLessEqual(set(attempts), set(holdout_engine.ALIASES))
+        self.assertEqual(set(attempts.values()), {1})
+
+    def test_pair_arm_failure_stops_before_decision_and_reveal(self) -> None:
+        pair = holdout_engine.load_manifest()["pairs"][0]
+
+        def evaluate(*_args: object, **kwargs: object) -> dict[str, object]:
+            raise RuntimeError(f"infra failure: {kwargs['arm']}")
+
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            with mock.patch.object(
+                holdout_engine, "_validate_pair_capability", return_value=None
+            ):
+                with self.assertRaisesRegex(RuntimeError, "infra failure"):
+                    holdout_engine.run_pair(
+                        pair,
+                        candidate=root / "candidate",
+                        public=root / "public",
+                        output=root / "output",
+                        model="test-model",
+                        effort="high",
+                        timeout=10,
+                        authorization=object(),
+                        evaluator=evaluate,
+                    )
+
+            pair_output = root / "output" / pair["id"]
+            self.assertTrue((pair_output / "01-mapping-commitment.json").is_file())
+            for name in (
+                "02-pre-reveal-decision.json",
+                "03-mapping-reveal.json",
+                "04-pair-receipt.json",
+            ):
+                self.assertFalse((pair_output / name).exists())
+
     def test_manifest_has_distinct_hidden_pairs_and_required_coverage(self) -> None:
         manifest = holdout_engine.load_manifest()
         pairs = manifest["pairs"]

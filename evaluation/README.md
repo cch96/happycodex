@@ -108,3 +108,13 @@ digests, fixed fixtures, and the explicit ledger state may be tracked.
 A holdout arm contributes quality evidence only after a completed, exit-zero runner
 execution whose pass status agrees with its oracle failures. A timeout or nonzero exit
 is infrastructure failure and aborts the pair; it is never scored as candidate quality.
+The complete corpus runs once after the candidate and three-role exact-final union are
+frozen, using at most four workers with stable case-order projection. Holdout pairs stay
+serial and adaptive; only the current pair's two blinded arms overlap, with stable alias
+projection. Corpus and holdout never overlap. Neither behavior nor infrastructure
+failure is retried automatically: no summary or reveal is promoted, and any rerun needs
+a fresh empty output plus freshly validated authority.
+
+Historical per-call wall times imply a conservative 21–40 minute planning band for a
+complete corpus plus adaptive holdout under this schedule. This is not a live
+measurement or certification claim, and bounded concurrency does not reduce token cost.

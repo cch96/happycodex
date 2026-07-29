@@ -38,19 +38,7 @@ Current index: target 8,000 words; hard limit 12,000. Keep evidence; compress cl
 ### Retrospective
 
 Fill only after final completion; record lessons/risks, do not expose it to a reviewer, and never use it as evidence.
-
 ## Neutral review brief
-
-`focused_hardening` may see history, families, counterexamples, and repair story but cannot satisfy final review.
-It defaults to `high`; use `max` only for a recurring family or unresolved material uncertainty. `exact_final` remains `max`, fresh, and neutral: Phase 1 receives verbatim
-requests/amendments, source and synthetic commits, scope, accepted baseline failures,
-objective facts, and exclusions. Exclude the ExecPlan; prove manifest equality. Before
-candidate evidence, freeze numbered independent obligations, then inspect every obligation
-and diff unit. Missing inventory permits one same-session correction; incomplete correctness stops.
-
-Only then send contract-only sources, Outcome, claims, and oracles; exclude evidence,
-decisions, findings, receipts, Retrospective, repair story, and verdict.
-
+Focused defaults `high`; recurrence uses `max`. Exact-final: correctness/QA and release/preservation `max`; simplification `high`, escalating for risk. Freeze obligations, then map contract-only sources.
 ## Coverage receipt
-
 Record review identity/output, mode/model/permissions, source/manifest, coverage/limits, contamination/dispositions; prove unchanged product-tree identity.

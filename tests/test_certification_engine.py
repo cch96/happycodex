@@ -627,6 +627,20 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
         self.assertEqual(maximum_active, corpus_engine.CORPUS_MAX_WORKERS)
         self.assertEqual(corpus_engine.CORPUS_MAX_WORKERS, 4)
 
+    def test_corpus_worker_failure_propagates_without_retry(self) -> None:
+        attempts: dict[str, int] = {}
+
+        def evaluate(case_id: str) -> dict[str, object]:
+            attempts[case_id] = attempts.get(case_id, 0) + 1
+            raise RuntimeError(f"infra failure: {case_id}")
+
+        with self.assertRaisesRegex(RuntimeError, "infra failure"):
+            corpus_engine._evaluate_cases_bounded(["case-0", "case-1"], evaluate)
+
+        self.assertTrue(attempts)
+        self.assertLessEqual(set(attempts), {"case-0", "case-1"})
+        self.assertEqual(set(attempts.values()), {1})
+
     def test_native_review_remains_an_external_completion_gate(self) -> None:
         self.assertNotIn("review", ledger_engine.COVERAGE_FIELDS)
         self.assertFalse(hasattr(ledger_engine, "_validate_review_receipt"))

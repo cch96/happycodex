@@ -17,7 +17,6 @@ OPENAI_YAML = SKILL_ROOT / "agents" / "openai.yaml"
 MANIFEST = ROOT / ".codex-plugin" / "plugin.json"
 MARKETPLACE = ROOT / ".agents" / "plugins" / "marketplace.json"
 README = ROOT / "README.md"
-AGENTS = ROOT / "AGENTS.md"
 
 EXPECTED_RUNTIME_FILES = {
     "skills/happycodex/SKILL.md",
@@ -149,16 +148,8 @@ class HappyCodexContractTests(unittest.TestCase):
 
     def test_runtime_markdown_meets_clean_room_budget(self) -> None:
         lines, words = runtime_markdown_budget()
-        self.assertLessEqual(lines, 340)
-        self.assertLessEqual(words, 3_000)
-        policy = folded(AGENTS)
-        for phrase in (
-            "target at most 300 lines",
-            "340 lines",
-            "target at most 2,600 words",
-            "3,000 words",
-        ):
-            self.assertIn(phrase, policy)
+        self.assertLessEqual(lines, 262)
+        self.assertLessEqual(words, 2_400)
 
     def test_manifest_uses_final_041_identity(self) -> None:
         manifest = json.loads(read(MANIFEST))
@@ -200,7 +191,10 @@ class HappyCodexContractTests(unittest.TestCase):
             "focused reviewers may see",
             "focused hardening defaults to `high`",
             "use `max` only for a recurring family or unresolved material uncertainty",
-            "exact-final remains `max`",
+            "three exact-final roles",
+            "correctness/qa `max`",
+            "release/preservation `max`",
+            "simplification `high`",
             "exact-final reviewers must not see",
             "product-source change",
             "returns to focused_hardening",
@@ -251,6 +245,19 @@ class HappyCodexContractTests(unittest.TestCase):
         self.assertIn("current index", text)
         self.assertIn("exactly one authoritative checkpoint", text)
         self.assertNotIn("recover along the chain", text)
+
+    def test_runtime_freezes_validation_identity_and_failure_policy(self) -> None:
+        runtime = folded(SKILL) + " " + folded(EXECPLAN)
+        for phrase in (
+            "product identity tuple",
+            "external role-config digest",
+            "any tuple change invalidates exact-final, corpus, and holdout",
+            "three releases without a unique simplification blocker",
+            "never overlap corpus and holdout",
+            "do not retry behavior or infrastructure failures automatically",
+            "freshly validated authority",
+        ):
+            self.assertIn(phrase, runtime)
 
     def test_skill_frontmatter_and_reference_graph_are_closed(self) -> None:
         text = read(SKILL)
@@ -416,7 +423,7 @@ class HappyCodexContractTests(unittest.TestCase):
             "root reproduces",
             "writer summary that an agent completed is not a receipt",
             "reachable matching terminal record",
-            "writer completion sentence cannot substitute",
+            "plan or writer summary that an agent completed is not a receipt",
         ):
             self.assertIn(phrase, text)
         ordinary_scout = (
@@ -545,7 +552,7 @@ class HappyCodexContractTests(unittest.TestCase):
             "original git metadata",
             "root conversation",
             "declared dependency",
-            "missing diff unit",
+            "missing units",
             "truncation",
             "independent obligation",
             "no fixed review-count quota",
@@ -565,12 +572,12 @@ class HappyCodexContractTests(unittest.TestCase):
             "behavior proven by the last accepted receipt",
             "disputed classification or repeated repaired-case failure stops for the user",
             "configured-model source",
-            "effective permission profile",
+            "effective model/effort/permissions",
             "rejected counter-evidence",
             "external backlog",
             "risk-bearing milestone",
-            "full final-candidate review",
-            "durable output destination",
+            "three exact-final roles",
+            "durable output",
             "foreground buffer is not a receipt",
             "resolve its durable terminal record before rerun",
             "runtime-issued command/session/effective-model receipt",
@@ -619,7 +626,7 @@ class HappyCodexContractTests(unittest.TestCase):
         text = folded(SKILL) + " " + folded(EXECPLAN)
         for phrase in (
             "never persist a secret",
-            "structured failure identities",
+            "failure ids/count",
             "new product-tree secret finding",
             "pre-existing finding",
             "enumerate material findings—including goal/outcome divergence—by stable identity",
