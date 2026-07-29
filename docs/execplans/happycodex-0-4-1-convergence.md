@@ -3,7 +3,7 @@
 Protocol: `HappyCodex/0.3` (active 0.4.0 maintainer runtime)
 Invocation: `$happycodex:happycodex`
 Writer: Root only for the mutable resources listed below
-State: focused_hardening
+State: candidate_frozen
 Resume: restore this file and reconcile Git, tests, Goal, worktree, agents, and gates before any write, review, or completion.
 
 ## Outcome and baseline
@@ -118,7 +118,7 @@ task conversion enlarge the state space without helping convergence.
 | `C-03` | outcome | `protocol_may_review` is removed and receipts bind `none`, `focused_hardening`, or `exact_final`. | Shared schema, oracle, receipt, and ledger tests; no alias. | five-phase transition matrix and contradiction tests GREEN | verified |
 | `C-04` | outcome | ExecPlan is a bounded current index with fail-closed Git/archive recovery. | Size, tamper, no-commit, multi-repo, and compaction tests. | current-index, no-commit, multi-repo, tamper, and compaction tests GREEN | verified |
 | `C-05` | preservation | Public invocation stays `$happycodex:happycodex`; resource-scoped Root ownership and unrelated behavior remain. | Package/runtime tests, exact-final review, and user-waived live comparison. | install/offline tests GREEN; corpus/holdout explicitly waived after diagnostic corpus; exact-final pending | open |
-| `C-06` | outcome | Exact 0.4.1 release, public install, personal upgrade, and 0.4.0 rollback are proven. | Fresh evidence, three GO reviews, install/readback, rollback rehearsal. | pending | open |
+| `C-06` | outcome | Exact 0.4.1 release, public install, personal upgrade, and 0.4.0 rollback are proven. | Waiver-bound zero-live ledger, three GO reviews, install/readback, rollback rehearsal. | pending | open |
 | `C-07` | premise | No live evaluator call runs without a persisted exact impact receipt and direct gate-scoped user authority. | Ledger/CLI refusal and later authority receipt. | exact `f7185e8e…7ae6` historical authority was consumed only by its corpus; `34c96c56…2950` retired unconsumed by explicit waiver | verified |
 | `C-08` | constraint | Runtime/template report the amended 300/2,600 optimization target and never exceed the 340/3,000 hard ceiling. | Contract tests compute totals and fail at hard limits; simplification review explains any target excess. | 308 lines/2,686 words after resource-scoped discovery wording; 8/86 above target, 32/314 below hard ceiling | open |
 
@@ -304,14 +304,36 @@ must also advance past already completed work before another focused confirmatio
 - Thirteenth focused-review prelaunch: exact repair range `7e4becfdcf089ffc3009491a68c3ade8b69d73e0..49fefed21e14cdd35633b75f865d7b7b7a735ed2`; history-aware brief `/home/caichenghang/.codex/happycodex-0.4.1-reviews/focused-49fefed.brief.txt` is 1,019 bytes/98 words with final LF, SHA-256 `505ed9abc2d47d39167a243a93bf0daa8ba3560340fd08cc69340906b1684c6f`; output is `/home/caichenghang/.codex/happycodex-0.4.1-reviews/focused-49fefed.txt`. Exact command: `set -o pipefail; /home/caichenghang/.codex/packages/standalone/releases/0.145.0-aarch64-unknown-linux-musl/bin/codex review -c 'model="gpt-5.6-sol"' -c 'model_reasoning_effort="max"' -c 'sandbox_mode="read-only"' - < /home/caichenghang/.codex/happycodex-0.4.1-reviews/focused-49fefed.brief.txt | tee /home/caichenghang/.codex/happycodex-0.4.1-reviews/focused-49fefed.txt`. It is non-neutral, read-only/no-network, cannot satisfy exact-final, and has not launched.
 - Thirteenth focused-review terminal receipt: native session `019fac76-c43d-70e3-9048-847093c18309`, effective `gpt-5.6-sol/max`, approval `never`, read-only sandbox, output 324 bytes/43 words, SHA-256 `e200a5fc7f671746ede0a58acf49cf60d5324928c4088d4a2400297157778921`; verdict `GO` for focused hardening only. It verified the exact range/tree/manifest, all four diff units and sibling raw/schema/receipt/ledger/holdout consumers, reproduced the RED/GREEN and path/domain/current-index counterexamples, pinned genesis with no authority, and static gates. Its read-only suite discovered all 146 tests and hit only the known temporary-directory limitation; the independent writable 146/146 receipt remains valid. No material finding remains, so `F-CONV-009/010` and `RB-007` close; this receipt cannot satisfy exact-final.
 - Toolchain drift: global Codex changed to `0.146.0` during hardening. This batch rejected the drift and retained the explicitly pinned Codex `0.145.0` plus `rg` 15.1 identities. Ruff is `/home/caichenghang/.local/bin/ruff`; the earlier `/usr/bin/python3 -m ruff` failure was an interpreter-selection error, and the exact Ruff check/format rerun is GREEN.
-- Owned mutable paths: this current-index ExecPlan and `evaluation/results/current.json` for the exact user waiver projection. Evaluator/runtime/package bytes, external raw outputs, and the active plugin/public 0.4.0 stay unchanged.
+- User-waiver product checkpoint: `2ebb6cc5a8cd05478763381fe7861038517ba4d6`,
+  tree `eb9d9cd9285dccecc385ba6bdfcb1c9119841aa9`, product-manifest SHA-256
+  excluding only this plan
+  `8c33c24fa5f365e9e5f93100ef858b3db93eae93c6eda5d53815836d7bf589ec`.
+  The ledger is `refresh_required` by design rather than falsely certified:
+  snapshot `30ac7904ad9e6ada10329bb3aa3fd3b16b61aea145f0b3bed1fe03b534caebaf`,
+  engine `b6f98f535b2915b2893942d93234ec9cb7d7bc7db29421942ce2be9a2d9bb19e`,
+  ledger `d4fbb3c58a42d6f2f64dfbcab7ad45927a720159fb46e1adcc243856b8a14059`,
+  impact `592c842b84ef19039ccb163f26815eff9c7b3be899bedf495cc99a6b0505e015`.
+  Its only impact gate is external review; corpus/holdout scopes, invocations,
+  live-call range, token/wall range, and authority are empty or zero.
+- Waiver GREEN: the focused active-ledger RED now separately proves the generic
+  non-waived refresh still requires all 17 corpus cases, three holdout pairs,
+  23–25 calls, and the historical envelope, while this exact user-waived ledger
+  requires only review and zero live work. The targeted test and the full 146/146
+  suite pass; Ruff check/format, both official validators, 31 JSON parses,
+  19 Python AST parses, pinned `verify`, and pinned `impact` are GREEN.
+- Invalidation edge: the thirteenth focused GO remains valid evidence that the
+  `RB-007` family scan closed, but its old product manifest cannot satisfy final
+  certification because the waiver projection changed the ledger and its contract
+  test. All exact-final reviewers must use the new exact product checkpoint above.
+- Owned mutable path: only this current-index ExecPlan. Product source, evaluator,
+  runtime/package bytes, external raw outputs, and active/public 0.4.0 are frozen.
 - Goal: none.
 - Agents/reviewers: all focused reviewers are terminal and reconciled; no reviewer is active.
-- Pending gates: remove corpus/holdout from the active ledger, retain review, run
-  cumulative offline checks, and freeze the new exact source. Then run three fresh
-  exact-final reviews; public release, personal upgrade, rollback, and downstream
-  successor task creation remain later gates. Completion must disclose that corpus and
-  holdout were explicitly waived and not run for the final candidate.
+- Pending gates: predeclare and run three fresh neutral exact-final reviews over
+  `2ebb6cc…ba4d`; then public release, fresh public install/readback, atomic personal
+  upgrade, rollback rehearsal, and downstream successor task creation. Completion
+  must disclose that corpus and holdout were explicitly waived and not run for the
+  final candidate.
 
 ## Retired unconsumed live-cost request
 
