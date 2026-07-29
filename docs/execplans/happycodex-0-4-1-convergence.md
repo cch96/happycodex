@@ -211,8 +211,13 @@ raw-versus-receipt expected-identity matching, and case inputs whose expected wr
 permission contradicts a user-gated recovery oracle. Root's complete marker scan also
 found three pre-freeze compaction markers missing from anchored classifications.
 RED must cover the complete union before one shared uniqueness/matching boundary,
-recovery-oracle correlation, and fixture inventory repair. No live call or exact-final
-review runs inside this batch.
+recovery-oracle correlation, and fixture inventory repair. The tenth focused review
+found one final input-side member: whitespace-only expected identities remain
+loadable for accepted baseline failures and required finding/blocker classifications
+even though the result schema and matcher cannot satisfy them. RED must cover all
+three oracle surfaces and the case loader must use the same nonblank identity
+predicate as the output boundary. No live call or exact-final review runs inside
+this batch.
 
 ## Checkpoint
 
@@ -255,12 +260,15 @@ review runs inside this batch.
 - Ninth-union RB-006 RED/GREEN: four targeted tests first produced three failures and one error for missing compaction-marker inventory, duplicate/blank identities, receipt alias asymmetry, and missing recovery correlation. The shared identity projection now enforces nonblank alias-unique finding and blocker arrays in raw and sanitized receipts; required finding, blocker, and accepted-baseline aliases match symmetrically; every native recovery oracle is combined with every allowed permission state at case load; and all three post-compaction durable markers require distinct anchored findings. The focused tests and 143-test cumulative suite are GREEN.
 - Expanded RB-006 source checkpoint: `e1162219505f0d795b66e9653fa94743ae3344f6`, tree `b11018f1d26d630147a409454e4a52474f488f00`, product-manifest SHA-256 excluding only this plan `420e8371776f7c5238c60b4ed601b7e15ce95ab80348989955eaad3da17f1e7d`. Fresh isolated Codex 0.145 home `/home/caichenghang/.codex/happycodex-release-installs/happycodex-041-hardening-e116221-wakl43` installed only `happycodex@happycodex` 0.4.1 from this source. Source/cache semantic and artifact identities are equal at `65f293e8…f4c6a` and `e8424dbd…ac89`; Skill and both manifest bytes match. The active personal installation was untouched.
 - Tenth focused-review prelaunch: exact range `b3f85504949c1ae2f2201d08aa73e08e07f11a45..e1162219505f0d795b66e9653fa94743ae3344f6` has eight diff units including this current index. History-aware brief `/home/caichenghang/.codex/happycodex-0.4.1-reviews/focused-e116221.brief.txt` is 1,510 bytes/153 words with final LF, SHA-256 `25acb854bc150f2232caf85bb8753a17e0be9fdf24fbf13a7ee09d7416638be0`; durable output is `/home/caichenghang/.codex/happycodex-0.4.1-reviews/focused-e116221.txt`. Exact command: `set -o pipefail; /home/caichenghang/.codex/packages/standalone/releases/0.145.0-aarch64-unknown-linux-musl/bin/codex review -c 'model="gpt-5.6-sol"' -c 'model_reasoning_effort="max"' -c 'sandbox_mode="read-only"' - < /home/caichenghang/.codex/happycodex-0.4.1-reviews/focused-e116221.brief.txt | tee /home/caichenghang/.codex/happycodex-0.4.1-reviews/focused-e116221.txt`. It is non-neutral, read-only/no-network, cannot satisfy exact-final, and has not launched at this checkpoint.
+- Tenth focused-review terminal receipt: native session `019fac10-3233-77e2-bd6d-fb273a6009ec`, effective `gpt-5.6-sol/max`, approval `never`, read-only sandbox, output 926 bytes/100 words, SHA-256 `e594326a201410ff5dd6a48d644777844c56f2e5eaa06044b9529b6ac88c15e5`; verdict `NOT YET`. It verified the exact product manifest, traced every changed unit and sibling consumer, and confirmed the prior raw/receipt hardening. Its sole finding is that `validate_case` admits whitespace-only expected identities for accepted baseline failures and required finding/blocker classifications, creating an impact-planning false green. Root reproduced all three accepted inputs. This is an input-side member of open `F-CONV-007/008` in `RB-006`, not a new family or recurrence. Its 49 full-suite errors were the same temporary-directory infrastructure limitation; the four focused tests, pinned verify/impact, CLI checks, Ruff, and diff check were GREEN.
 - Toolchain drift: global Codex changed to `0.146.0` during hardening. This batch rejected the drift and retained the explicitly pinned Codex `0.145.0` plus `rg` 15.1 identities. Ruff is `/home/caichenghang/.local/bin/ruff`; the earlier `/usr/bin/python3 -m ruff` failure was an interpreter-selection error, and the exact Ruff check/format rerun is GREEN.
 - Owned mutable paths: this current-index plan and the expanded frozen `RB-006` boundary above until a new GREEN checkpoint and focused confirmation. External raw outputs remain read-only evidence and the active plugin/public 0.4.0 stay unchanged.
 - Goal: none.
 - Agents/reviewers: all focused reviewers are terminal and reconciled; no reviewer is active.
-- Pending gates: commit the expanded RB-006 GREEN source and run one focused
-  confirmation; then freeze a new source, fresh genesis, impact and exact user authority;
+- Pending gates: add RED for the three whitespace-only expected-identity surfaces,
+  repair their shared loader boundary, rerun cumulative verification, and run one
+  focused confirmation; then freeze a new source, fresh genesis, impact and exact user
+  authority;
   rerun the complete corpus and holdout when account capacity exists; then run three
   fresh exact-final reviews. Public release, personal upgrade, rollback, and downstream
   successor task creation remain later gates.
