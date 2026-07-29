@@ -1,8 +1,8 @@
 # HappyCodex
 
 HappyCodex is a lightweight reliability protocol for long-running and high-risk
-Codex implementation. It keeps the system boundary and acceptance contract durable
-without replacing Codex's native plan, agents, Goal, Git, tests, or review.
+Codex implementation. One fixed Executor writes; Root decides, reproduces, and
+verifies. The boundary stays durable without replacing native Codex execution.
 
 ## When to use it
 
@@ -18,6 +18,7 @@ codex plugin add happycodex@happycodex
 ```
 
 Start a new Codex task after installation so it discovers the installed Skill.
+Version 0.5 targets Codex 0.145 or newer.
 
 ## Use
 
@@ -31,33 +32,29 @@ For a qualifying task, HappyCodex separates three kinds of state:
 - Native Plan stores only the current execution cursor;
 - Git, tests, logs, and runtime observations store facts.
 
-There is one owner per shared mutable resource. Disjoint resources may run concurrently;
-overlap rejects a second writer. Read-only challengers and reviewers provide independent
-counterexamples. For unattended continuation without Goal approval, HappyCodex asks once;
-it creates or changes Goal only when you explicitly request it. Declining keeps Native Plan
-active. Otherwise an existing Goal is only an objective pointer and cannot silently override
-a different ExecPlan Outcome.
+For every qualifying task, 0.5 uses this fixed routing:
 
-### Optional Fable review
+- Explorer: `gpt-5.6-terra` at `high`, read-only.
+- Challenger: `gpt-5.6-sol` at `high`, read-only.
+- Executor: `gpt-5.6-sol` at `high`, the sole writer.
+- Root decision and reproduction: `gpt-5.6-sol` at `max`, read-only.
+- Exact-final review: `gpt-5.6-sol` at `max`, fresh isolated read-only session.
 
-Request an independent external review explicitly:
+Pin model and effort explicitly at dispatch or through verified custom-agent profiles;
+a role name alone is not proof. If the host cannot report the effective pin, HappyCodex
+stops before writing. The same model may review, but the Root or Executor session may not.
 
-```text
-Use $happycodex:happycodex with Fable 5 max review when available.
-```
-
-The external reviewer receives the same frozen synthetic product scope and neutral
-brief as native review, never the writer's preferred verdict. Fable 5 at `max` is the
-default absent an exact user or scoped-policy override. Root reproduces the union of
-findings without voting. A required unavailable reviewer stops completion; “when
-available” permits a disclosed skip.
+Read-only exploration may run concurrently. Root grants exact writes to one recorded
+Executor thread and verifies every receipt; a second or replacement writer is rejected.
+For unattended continuation without Goal approval, HappyCodex asks once. It creates or
+changes Goal only when you explicitly request it; declining keeps Native Plan active.
 
 ## What it adds
 
 - an early durable contract for compaction-prone work;
-- Root-first system-boundary discovery plus one fresh challenger for strong claims;
+- Root-first system-boundary discovery plus pinned Explorer and Challenger roles;
 - typed claims that cannot be silently narrowed;
-- vertical RED/GREEN milestones and fact-based recovery;
+- one fixed Executor across vertical RED/GREEN milestones and recovery;
 - exact product-tree review isolated from the ExecPlan and original history;
 - honest completion only after evidence, scope, review, and ownership close.
 
@@ -87,6 +84,13 @@ holdout pair runs its blinded candidate/public arms concurrently while pairs rem
 serial. Live attempts are consumed atomically before dispatch so failures cannot reuse
 the same approval, including across linked worktrees. Focused hardening defaults to
 `high`; exact-final review remains `max`.
+
+## What's new in 0.5
+
+Version 0.5 is a narrow 0.4.2 successor. It fixes the GPT role matrix, makes one
+Executor the only writer, keeps Root on decision/reproduction, and requires exact-final
+review to use a different fresh session. It adds no compatibility reader, controller,
+daemon, or second protocol.
 
 ## What's new in 0.3
 

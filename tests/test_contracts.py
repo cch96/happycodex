@@ -152,9 +152,9 @@ class HappyCodexContractTests(unittest.TestCase):
         self.assertLessEqual(lines, 262)
         self.assertLessEqual(words, 2_400)
 
-    def test_manifest_uses_final_042_identity(self) -> None:
+    def test_manifest_uses_final_050_identity(self) -> None:
         manifest = json.loads(read(MANIFEST))
-        self.assertEqual(manifest["version"], "0.4.2+codex.20260729091527")
+        self.assertRegex(manifest["version"], r"^0\.5\.0\+codex\.[0-9]{14}$")
 
     def test_evaluator_cleanly_targets_public_040_baseline(self) -> None:
         active_evaluator = "\n".join(
@@ -182,17 +182,20 @@ class HappyCodexContractTests(unittest.TestCase):
         runtime = folded(SKILL) + " " + folded(EXECPLAN)
         for phrase in (
             "implementation → focused_hardening → candidate_frozen → exact_final → closed",
-            "one owner per shared mutable resource",
-            "disjoint resources may run concurrently",
+            "one fixed executor is the sole writer",
+            "root reads, decides, grants, reproduces, and verifies",
+            "explorer is `gpt-5.6-terra` at `high`",
+            "challenger is `gpt-5.6-sol` at `high`",
+            "fixed executor is `gpt-5.6-sol` at `high`",
             "convergence ledger",
             "family_id",
             "repair_batch",
             "six scan surfaces",
             "all reviewers reach terminal",
             "focused reviewers may see",
-            "focused hardening defaults to `high`",
-            "use `max` only for a recurring family or unresolved material uncertainty",
-            "exact-final remains `max`",
+            "focused challengers remain `gpt-5.6-sol` at `high`",
+            "root uses `max` for recurring or unresolved material uncertainty",
+            "exact-final remains `gpt-5.6-sol` at `max`",
             "exact-final reviewers must not see",
             "product-source change",
             "returns to focused_hardening",
@@ -210,6 +213,7 @@ class HappyCodexContractTests(unittest.TestCase):
             "new independent family",
             "exactly one authoritative checkpoint",
             "resource_claim.py",
+            "never replace it with a second writer",
         ):
             self.assertIn(phrase, runtime)
         self.assertIn("no controller or task state json", runtime)
@@ -241,7 +245,7 @@ class HappyCodexContractTests(unittest.TestCase):
     ) -> None:
         text = folded(EXECPLAN)
         self.assertIn("current index", text)
-        self.assertIn("exactly one authoritative checkpoint", text)
+        self.assertIn("restore exactly one checkpoint", text)
         self.assertNotIn("recover along the chain", text)
 
     def test_maintainer_validation_workflow_is_layered_and_not_runtime(self) -> None:
@@ -299,7 +303,7 @@ class HappyCodexContractTests(unittest.TestCase):
         self.assertEqual(
             headings(EXECPLAN),
             [
-                "# HappyCodex 0.4.1 ExecPlan",
+                "# HappyCodex 0.5 ExecPlan",
                 "## When to create it",
                 "## Template",
                 "### Outcome and baseline",
@@ -333,7 +337,8 @@ class HappyCodexContractTests(unittest.TestCase):
 
     def test_native_state_roles_and_goal_are_nonoverlapping(self) -> None:
         text = folded(SKILL)
-        self.assertIn("one owner per shared mutable resource", text)
+        self.assertIn("one fixed executor is the sole writer", text)
+        self.assertIn("root never edits, stages, commits, installs, or activates", text)
         self.assertIn("native plan is only the current cursor", text)
         self.assertIn("goal is only an objective pointer", text)
         for phrase in (
@@ -425,7 +430,7 @@ class HappyCodexContractTests(unittest.TestCase):
             "defaults, boundaries, type semantics, malformed input",
             "no inherited root conversation",
             "not root's inventory",
-            "every scout, challenger, and reviewer is read-only",
+            "every explorer, challenger, and reviewer is read-only",
             "one bounded question",
             "named decision",
             "do not target",
@@ -445,10 +450,10 @@ class HappyCodexContractTests(unittest.TestCase):
             "plan or writer summary that an agent completed is not a receipt",
         ):
             self.assertIn(phrase, text)
-        ordinary_scout = (
+        ordinary_explorer = (
             folded(SKILL)
-            .split("a scout gets", 1)[1]
-            .split("every scout, challenger, and reviewer", 1)[0]
+            .split("an explorer gets", 1)[1]
+            .split("every explorer, challenger, and reviewer", 1)[0]
         )
         for phrase in (
             'fork_turns="none"',
@@ -456,7 +461,7 @@ class HappyCodexContractTests(unittest.TestCase):
             "neutral packet",
             "no preferred answer",
         ):
-            self.assertIn(phrase, ordinary_scout)
+            self.assertIn(phrase, ordinary_explorer)
         self.assertLess(
             folded(SKILL).index('fork_turns="none"'),
             folded(SKILL).index("for exhaustive or architecture-shaping"),
@@ -498,15 +503,15 @@ class HappyCodexContractTests(unittest.TestCase):
         text = folded(SKILL)
         for phrase in (
             "semantic commit trailer",
-            "unique task-owned 0.4.1 execplan",
+            "unique task-owned 0.5 execplan",
             "reachable private git ref",
             "approved content-addressed archive",
             "user-selected durable location",
             "without that selection, stop",
             "skeleton, freeze, every green slice, and closure",
             "administrative closure revision",
-            "missing agent",
-            "before writing",
+            "missing fixed executor",
+            "before granting or writing",
             "facts win",
             "native compaction",
             "resume of the same task",
@@ -516,7 +521,7 @@ class HappyCodexContractTests(unittest.TestCase):
             "prose claim",
             "do not run a full reviewer after every revision",
             "tests and compatibility counterexamples to affected obligations/gates",
-            "baseline, writer ownership, current milestone, pending gates, test status, and worktree",
+            "baseline, fixed executor identity and ownership, current milestone",
             "ask the user for the missing material fact",
             "maintainer evaluation",
             "not each user task",
@@ -527,39 +532,23 @@ class HappyCodexContractTests(unittest.TestCase):
     def test_review_identity_is_product_tree_not_control_record_head(self) -> None:
         text = folded(SKILL) + " " + folded(EXECPLAN)
         for phrase in (
-            "two neutral commits",
-            "exclude only the sole execplan",
+            "two neutral product commits",
+            "excludes only the sole execplan",
             "product-tree identity",
             "diff-unit inventory",
-            "source baseline",
-            "source baseline/candidate",
             "manifest equality",
             "staged, unstaged, and untracked",
             "clean review snapshot",
-            "phase 1",
             "dedicated native `codex review`",
-            "inherits the configured model",
-            "if unset, prefer `gpt-5.6-sol`",
-            "strongest user/environment-authorized read-only",
-            "`ultra` requires explicit authorization",
+            "fresh isolated",
+            "read-only session pinned to `gpt-5.6-sol` at `max`",
+            "the same model is allowed",
+            "root or executor session is not",
             "selector flags separate from the stdin brief",
-            "contract-only projection",
-            "same fresh reviewer session",
-            "map its independent inventory",
-            "stable numbered obligation ids and text",
-            "correctness/adversarial",
-            "every independent obligation and diff unit",
-            "only then reveal",
-            "do not reveal the contract",
-            "receipt-only correction",
             "writer narrative",
-            "coverage receipt",
-            "role/config/toolchain",
-            "source/synthetic commits and manifest equality",
-            "every unit/obligation mapping",
-            "external reads/contamination",
-            "detailed findings stay in the native review output",
-            "administrative closure revision",
+            "root conversation",
+            "runtime-issued receipt",
+            "diff-unit/obligation coverage",
             "product tree is unchanged",
             "any product change invalidates",
             "material evidence-only change invalidates affected review evidence",
@@ -570,55 +559,39 @@ class HappyCodexContractTests(unittest.TestCase):
             self.assertIn(phrase, text)
         template = folded(EXECPLAN)
         for phrase in (
-            "configured-model source",
-            "authorization/degradation",
-            "query counts",
+            "exact model/effort/permissions",
+            "fixed executor",
+            "coverage",
         ):
             self.assertIn(phrase, template)
 
-    def test_review_handles_contamination_truncation_and_external_review(self) -> None:
+    def test_review_handles_contamination_without_external_model_defaults(self) -> None:
         text = folded(SKILL)
         for phrase in (
             "original git metadata",
             "root conversation",
-            "declared dependency",
             "missing units",
             "truncation",
-            "independent obligation",
             "no fixed review-count quota",
             "never rerun an unchanged candidate",
-            "explicitly requested external reviewer",
-            "same synthetic scope",
-            "union findings without voting",
-            "fable 5",
-            "defaults to `max`",
-            "never downgrade, substitute, install, enable, or search",
             "detached desktop",
-            "fresh detached",
             "original request or frozen acceptance",
             "safety or data integrity",
             "production condition",
             "exhaustive replacement or retirement",
             "behavior proven by the last accepted receipt",
             "disputed classification or repeated repaired-case failure stops for the user",
-            "configured-model source",
-            "effective model/effort/permissions",
             "rejected counter-evidence",
             "external backlog",
             "risk-bearing milestone",
             "full final-candidate review",
             "durable output",
             "foreground buffer is not a receipt",
-            "resolve its durable terminal record before rerun",
-            "runtime-issued command/session/effective-model receipt",
-            "agent or task name never proves reviewer identity",
-            "task-scoped",
-            "advisory-once",
-            "exact-final gate",
-            "unavailable: a required review stops",
-            "`when available` continues with one disclosed skip",
+            "runtime-issued receipt",
+            "role name never proves identity",
         ):
             self.assertIn(phrase, text)
+        self.assertNotIn("fable", text)
 
     def test_wait_waiver_and_new_phase_boundaries_are_explicit(self) -> None:
         text = folded(SKILL) + " " + folded(EXECPLAN)
@@ -656,7 +629,7 @@ class HappyCodexContractTests(unittest.TestCase):
         text = folded(SKILL) + " " + folded(EXECPLAN)
         for phrase in (
             "never persist a secret",
-            "failure ids/count",
+            "baseline command/exit/failures",
             "new product-tree secret finding",
             "pre-existing finding",
             "enumerate material findings—including goal/outcome divergence—by stable identity",
@@ -709,24 +682,22 @@ class HappyCodexContractTests(unittest.TestCase):
             "codex plugin add happycodex@happycodex",
             "Start a new Codex task",
             "$happycodex:happycodex",
-            "Fable 5 max",
+            "gpt-5.6-terra",
+            "gpt-5.6-sol",
         ):
             self.assertIn(phrase, public)
         self.assertIn("asks once", public)
-        self.assertIn("one owner per shared mutable resource", public.casefold())
-        self.assertIn("disjoint resources may run concurrently", public.casefold())
-        self.assertNotIn("Root remains the only writer", public)
+        self.assertIn("one fixed executor", public.casefold())
+        self.assertIn("the sole writer", public.casefold())
+        self.assertIn("read-only exploration may run concurrently", public.casefold())
+        self.assertNotIn("fable", public.casefold())
         self.assertIn(
-            "shared mutable resource",
-            manifest["interface"]["longDescription"],
-        )
-        self.assertNotIn(
-            "one Root writer",
+            "sole writer",
             manifest["interface"]["longDescription"],
         )
         skill_frontmatter = read(SKILL).split("---", 2)[1].casefold()
-        self.assertIn("resource-scoped writer", skill_frontmatter)
-        self.assertNotIn("one writer", skill_frontmatter)
+        self.assertIn("one fixed executor writes", skill_frontmatter)
+        self.assertIn("root decides and verifies", skill_frontmatter)
         self.assertIn(
             "declining keeps native plan active", " ".join(public.casefold().split())
         )

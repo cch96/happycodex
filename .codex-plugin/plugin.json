@@ -1,7 +1,7 @@
 {
   "name": "happycodex",
-  "version": "0.4.2+codex.20260729091527",
-  "description": "Codex-native reliability workflow for high-risk changes with resource-scoped writers, durable contracts, compaction recovery, and fresh review.",
+  "version": "0.5.0+codex.20260729101631",
+  "description": "Codex-native reliability workflow for high-risk changes with one fixed Executor, durable contracts, compaction recovery, and fresh review.",
   "author": {
     "name": "caichenghang",
     "url": "https://github.com/cch96"
@@ -24,7 +24,7 @@
   "interface": {
     "displayName": "HappyCodex",
     "shortDescription": "Durable contracts for risky Codex changes",
-    "longDescription": "Execute high-risk Codex work with one owner per shared mutable resource, disjoint-resource concurrency, a durable ExecPlan, evidence-backed recovery, and fresh independent review.",
+    "longDescription": "Execute high-risk Codex work with one fixed Executor as the sole writer, Root-owned decisions and reproduction, durable evidence, and fresh isolated review.",
     "developerName": "caichenghang",
     "category": "Productivity",
     "capabilities": [
@@ -34,8 +34,7 @@
     "websiteURL": "https://github.com/cch96/happycodex",
     "defaultPrompt": [
       "Use $happycodex:happycodex for this high-risk cross-system change.",
-      "Use $happycodex:happycodex with Goal for this explicitly goal-backed migration.",
-      "Use $happycodex:happycodex with Fable 5 max review when available."
+      "Use $happycodex:happycodex with Goal for this explicitly goal-backed migration."
     ]
   }
 }

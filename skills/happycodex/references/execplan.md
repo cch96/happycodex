@@ -1,45 +1,36 @@
-# HappyCodex 0.4.1 ExecPlan
+# HappyCodex 0.5 ExecPlan
 
 ## When to create it
-
-Persist a skeleton at the repository policy path or `docs/execplans/<task-slug>.md` before research/challengers.
+Persist a skeleton at the repository policy path or `docs/execplans/<task-slug>.md` before qualifying research or dispatch.
 
 ## Template
-
-Protocol/invocation: `HappyCodex/0.4.1`; `$happycodex:happycodex`. Record Root resources, state/review, and the current-index restore guard.
+Protocol/invocation: `HappyCodex/0.5`; `$happycodex:happycodex`. Record current index, restore guard, and phase.
 
 ### Outcome and baseline
-
-**Sources/outcome.** Requests/amendments hash; success, preservation, breaks, exclusions/stops; Goal divergence; waiver scope/reopen. **Amendment.** Change/reason; authorization anchor/hash; affected claims; invalidated evidence; required reruns. **Design/snapshot.** Options/rejections/saturation; revision/tree, worktree/owner/claims, baseline command/exit, failure IDs/count/digest/acceptance. The revision freezes the user contract.
-
-**Candidate identity.** Review: Git tree/config/toolchain. Behavior: semantic package/evaluator/settings/toolchain. Install: package artifact/receipt. Invalidate bound consumers; ambiguity is semantic change.
+**Contract.** Request/amendment hashes; outcome, preservation, breaks, exclusions, Goal divergence, and waiver. Record authorization, invalidation/reruns, revision/tree/worktree, and baseline command/exit/failures. The revision freezes the user contract.
+**Roles/grant.** Root `gpt-5.6-sol/max`; Explorer `gpt-5.6-terra/high`; Challenger and fixed Executor `gpt-5.6-sol/high`; exact-final `gpt-5.6-sol/max`. Bind receipts, Executor thread/token, resources, prestate, operations, acceptance, and stops.
+**Candidate.** Bind Git tree/config/toolchain, semantic package/settings, and install artifact/receipt; ambiguity is change.
 
 ### Claims Ledger
-
-Types: `outcome`, `preservation`, `allowed-break`, `premise`; states are only `open`, `verified`, or `N/A`; `N/A` requires evidence. Entailed claims grow with provenance; narrowing, widening, `N/A`, or baseline/Outcome change requires explicit user authorization.
+Types: `outcome`, `preservation`, `allowed-break`, `premise`; states are only `open`, `verified`, or `N/A`; `N/A` requires evidence. Narrowing, widening, baseline, or Outcome change needs explicit user authorization.
 
 | ID | Type | Claim | Closure | Falsifier / oracle | Evidence | State |
 | --- | --- | --- | --- | --- | --- | --- |
 | `<ID>` | `<type>` | `<claim>` | `<proof>` | `<counterexample>` | `<fact>` | `open` |
 
 ### Convergence Ledger
-
-Root assigns `family_id`; freeze `repair_batch` after terminal reviewers and dispose six Skill surfaces.
-
+Root assigns `family_id`, freezes `repair_batch`, and disposes all six Skill surfaces before closure.
 | Family | Invariant / boundary | Members | Six surfaces | Status | Repair batch | Evidence | Recurrence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `<family_id>` | `<boundary>` | `<findings>` | `<proof/open>` | `open` | `<id>/instance` | `<digests>` | `0` |
 
 ### Checkpoint
-
-Record contract/claims, grant/batch/gates, candidate/GREEN evidence, dirty paths, Recovery Manifest, writer/tests/agents, phase/status/recurrence. Restore this current index and exactly one authoritative checkpoint.
+Record claims, fixed Executor, grant/batch/gates, candidate receipts, dirty paths, Recovery Manifest, agents, phase, and recurrence. Restore exactly one checkpoint.
 
 ### Retrospective
-
-Fill only after final completion; record lessons/risks, do not expose it to a reviewer, and never use it as evidence.
+Fill only after final completion; record lessons, do not expose it to a reviewer, and never use it as evidence.
 
 ## Neutral review brief
-Focused defaults `high`; recurrence uses `max`. Exact-final is fresh, neutral, and `max`: freeze obligations before evidence, then map contract-only sources.
-
+Use fresh isolated read-only `gpt-5.6-sol/max`, not Root or Executor; provide neutral request, source, checks, failures, and exclusions.
 ## Coverage receipt
-Record command/session/output; role/config/toolchain and configured-model source; source/synthetic commits and manifest equality; model/effort/permissions and authorization/degradation; every unit/obligation mapping; query counts/paths/external reads/contamination/limits/findings/dispositions.
+Record session, source/config, exact model/effort/permissions, coverage, paths, limits, findings, and dispositions.
