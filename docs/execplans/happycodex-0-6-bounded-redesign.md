@@ -2,31 +2,32 @@
 
 Protocol: `HappyCodex/0.5`
 
-Current index: Batch 1 is accepted at
-`27ea46e27254426ee5737078117d43f28c9df523`; Batch 2 is accepted at
-`788c42917bf1e1bcec2515a361ce68b32a25fb46`. G009 and G012 remain rejected
-intermediates. G012R is accepted at
-`079b4565fd8ef063e8ff4e5b6815105fc14a2f7a`. G013/G013C and their terminal
-receipt are rejected, non-evidence intermediates: their source cannot be
-accepted, anchored, calibrated, or certified. The current G014 changes this
-ExecPlan only. G015 source repair, G016 source anchor, and every live/release
-gate remain future and ungranted.
+Current index: Batch 1 is accepted at `27ea46e27254426ee5737078117d43f28c9df523`;
+Batch 2 at `788c42917bf1e1bcec2515a361ce68b32a25fb46`; G012R at
+`079b4565fd8ef063e8ff4e5b6815105fc14a2f7a`; and G014 at
+`0148ac5f7875856b427244972f7ecb3e0f3a028d`, tree
+`a6f5798d273efb61e3c1e077a01f9e8fd65263a1`. G009, G012, G013, and G013C
+remain rejected intermediates. Original G015 stopped as an unaccepted
+false-GREEN spike and supplies no source/evidence. G015C corrects only this
+plan. `HC06BR-G-015R-b3-source-repair`, G016 construction anchor, and every
+live/release gate remain future and ungranted.
 
-Restore guard: restore this ExecPlan, then reconcile Git source, fixed Executor,
-claims, external intent/receipts, grant, phase, families, checks, candidate,
-evidence, agents, and any Goal before writing or claiming completion.
-Summaries, copied handles, and another task's source do not reconstruct authority.
+Restore guard: restore this plan and reconcile source, fixed Executor, claims,
+receipts, grant, phase, checks, candidate, evidence, agents, and Goal before
+writing. Summaries, copied handles, or another task cannot reconstruct authority.
 
-Phase: `Batch 3 plan-contract correction`. Active grant
-`HC06BR-G-014-plan-contract-correction`, sequence 14, family
-`F-06BR-EVALUATOR`, repair batch `RB-06BR-005/plan-contract`, recurrence 2.
-It binds prestate commit/tree
-`d6cecc9e2d3e0da3f1e8d7cad6f6021820cbb39e` /
-`a8b677c5b1bbe2b7e464c0ad0da0dfcb34fe1513`, the fixed Executor and claim,
-this one ExecPlan path, offline document checks, one plan-only commit, and a
-terminal receipt. It authorizes no source repair, ledger mutation, test edit,
-model/live effect, or later gate. Claim verification remains mandatory
-immediately before every mutation.
+Phase: `Batch 3 lifecycle-contract correction`. Active grant
+`HC06BR-G-015C-plan-contract-correction`, family `F-06BR-EVALUATOR`, batch
+`RB-06BR-005/plan-contract`, binds accepted prestate `0148ac5…028d` /
+`a6f5798…63a1`, fixed Executor/claim, this one ExecPlan path, one plan-only
+commit, and terminal receipt. The index began clean. The preserved 16-path
+spike has binary-diff SHA-256
+`d9bbb456e3d1d64d3657c1c6fce6aed96afc84aa445d03716e7350341980dc6c`,
+6,985 evaluation lines, and a non-probative 229/229 output SHA-256
+`16fb81e42f1e7ba615bf7996d8b16262ed7f6c4e303170ac5b6a6a2fe3a0a95f`.
+It must remain byte-identical, unstaged, and uncommitted. G015C authorizes no
+source/test/ledger mutation, model/live effect, or later gate. Verify the claim
+immediately before every edit, stage, commit, and terminal receipt.
 
 ## Operative request and normalized Outcome
 
@@ -94,15 +95,10 @@ the other 0.6 task.
 
 ## Baseline facts and open candidate-new findings
 
-The immutable base was non-GREEN. Its partial semantic package produced the
-recorded 195-test, three-failure inventory/import-policy RED, reproduced by the
-fixed Executor. Receipt SHA-256 is
-`d6d7a7f3da1bf992382117a4511dc5120997f5ec5c928cad6c352e5fc1158f5a`.
-Accepted Batch 1 repairs them safely; the partial topology is historical.
-
-Earlier Fable 5 and CLI audits remain design input only. They are not rerun,
-current-candidate review, or generation-6 evidence. No model/live effect occurred;
-accepted offline batches ran their recorded offline checks.
+The immutable base's 195-test, three-failure RED was reproduced; receipt SHA-256
+is `d6d7a7f3da1bf992382117a4511dc5120997f5ec5c928cad6c352e5fc1158f5a`.
+Batch 1 repaired it. Earlier Fable 5/CLI audits are design input, not rerun or
+generation-6 evidence. Accepted batches were offline.
 
 ## Superseded topology and design boundary
 
@@ -323,23 +319,19 @@ remain maintainer support and are never linked from Runtime Skill Markdown.
 | `F-06BR-RUNTIME` | semantic progress and event correction prevent equivalent repeated work and false GREEN | sealed parse/reduction plus action recomputation at both consumers | `Batch 1 accepted` | `RB-06BR-001/instance` | `0` |
 | `F-06BR-AUTHORITY` | exact binding, provenance, reducer action, capability, claim, authority, and attempt gate every effect | private issuance, recomputation, and exact enforcement | `Batch 1 and G010 accepted` | `RB-06BR-002/instance` | `0` |
 | `F-06BR-EVALUATOR` | terminal, identity, decision, ledger, and replay share strict parsing and exact recomputation | duplicate/order/terminal/path/key/raw-ledger divergence and consumer propagation | `Batch 2 accepted at 788c429` | `RB-06BR-003/instance` | `0` |
-| `F-06BR-SEMANTIC-ACTION-BOUNDARY` | facts cannot inject actions and trustworthy metadata cannot be reclassified | parser/reducer/replay/authority/projection attack matrix | `G012 and G013/G013C rejected; G012R accepted; G014 plan correction active` | `RB-06BR-005/plan-contract` | `2` |
+| `F-06BR-SEMANTIC-ACTION-BOUNDARY` | facts cannot inject actions and trustworthy metadata cannot be reclassified | parser/reducer/replay/authority/projection attack matrix | `G012/G013/G013C rejected; G012R/G014 accepted; G015 stopped; G015C plan-only active` | `RB-06BR-005/plan-contract` | `3` |
 
 Holdout quality and cost comparison remain separate gated evidence. They do not
 collapse into a family merely because their engines consume shared semantics.
 
 ## Batch 1: kernel, authority semantics, and early Runtime correction
 
-Accepted Batch 1 replaces the inherited partial package with the exact five-file
-surface, deletes `schema.py`, `MachineEnvelope`, `AdminFacts`, public
-`canonical_set`, wrapper inflation, and every compatibility alias. Its RED/GREEN
-matrix covers duplicate primary keys, tagged-ID/mutability violations, derived
-action injection, key roundtrip/mismatch, action substitution, evidenced
-`REPLACED`, admin-only nonprogress, authority variants, purity, capacity, and the
-historical inventory/import-policy failures. It repairs Runtime to the five event
-corrections, one wave/cumulative check per family, and one post-freeze exact-final.
-The accepted full offline GREEN commit closes the 1,200-line/20-export semantic
-budgets and Runtime limits without any live effect.
+Accepted Batch 1 creates the exact five-file surface; deletes `schema.py`,
+`MachineEnvelope`, `AdminFacts`, public `canonical_set`, wrappers, and aliases;
+and covers duplicate IDs, derived action/key substitution, evidenced `REPLACED`,
+admin nonprogress, authority variants, purity, capacity, and historical failures.
+It repairs Runtime to five event corrections, one wave/check per family, and one
+post-freeze exact-final, within semantic/Runtime budgets and without live effect.
 
 ## Batch 2: shared terminal, corpus, ledger, and replay semantics
 
@@ -349,22 +341,16 @@ receipt, identity, and Git/filesystem code remain I/O/effect owners. No adapters
 directory is created. Imperative modules may acquire bytes and perform granted
 effects; they do not redefine semantic meaning.
 
-Batch 2 routes strict terminal parsing, exact identity matching, decision, and
-replay-by-recompute through the kernel. The terminal stream is exact: one bound
-terminal agent-result carrying facts and one legal completion tag, then one
-matching usage-only nonsemantic completion event, then EOF. Provider/session/
-thread/turn/AttemptKey/result-digest fields match exactly. Missing, duplicated,
-contradictory, late, unbound, semantic completion, extra terminal, trailing byte,
-or raw/ledger divergence refuses.
+Batch 2 routes strict terminal parsing, identity, decision, and recompute replay
+through the kernel. One bound fact result/legal completion, one matching
+usage-only event, then EOF is exact; all provider/session/thread/turn/attempt/
+result fields match. Missing, duplicate, contradictory, late, unbound, semantic,
+extra, trailing, or raw/ledger-divergent input refuses.
 
-Corpus retains exactly 17 case IDs. Holdout retains exactly three pair IDs.
-Planning, execution, and replay use the same strict loader and semantic decisions.
-Batch 2 migrates `evaluation/corpus/engine.py` and ledger consumers, then deletes
-`evaluation/corpus/contract.py`. It proves and deletes duplicate casefold,
-basename, suffix/path-alias, permutation matching, and manual semantic-sanitizer
-logic. Exact case-sensitive repository-qualified paths replace aliases. Receipt
-code serializes already-sanitized typed projections rather than deciding what
-facts mean.
+Corpus retains 17 cases and holdout three pairs. Planning/execution/replay share
+strict loading and decisions. Batch 2 deletes `corpus/contract.py` and duplicate
+casefold/basename/suffix/alias/permutation/manual-sanitizer logic; paths are exact
+and repository-qualified. Receipt code only serializes sanitized projections.
 
 `evaluation/holdout/compare.py` stays in place. Blind randomness/sealing and engine
 I/O remain imperative; comparator decisions are exact and replayable. Phrase
@@ -407,70 +393,87 @@ skill_entries        SKILL.md
                      references/task-packets.md
 ```
 
-Generation 6 is a clean-break ledger. Before anchor,
-`source_anchor` is null, `planned_impact` and `planned_invocations` are null,
-three authorities are null, cost/calibration/evidence/coverage are empty, receipt
-head/certification are null, and state is `refresh_required`. No 0.4 reader,
-prior coverage/evidence, waiver, alias, migration, fallback, or dual write exists.
+Generation 6 is a clean break. Pre-anchor genesis has null `source_anchor`,
+`planned_impact`, optional `freeze`, `receipt_head`, and `certification`; exact
+nullable maps `planned_invocations`, `cost`, and `authorities` keyed only by
+`executor|corpus|holdout`; exact nullable `accepted_evidence` slots
+`executor|corpus|holdout|receipt|review|isolated_install`; empty coverage; and
+state `refresh_required`. There is no `lifecycle_stage`, `calibration_history`,
+0.4 reader, prior evidence/coverage, waiver, migration, alias, fallback, or dual
+write. Executor evidence is the single calibration record.
 
-An anchored refresh may then persist, in order: source/package/config/public
-baseline snapshots; one source-derived `planned_impact`; exact
-`planned_invocations` and conservative cost envelopes for Executor, corpus, and
-holdout; three distinct trusted current-task authorities; exactly one successful
-Executor calibration; accepted strictly post-source content-addressed evidence;
-coverage derived exactly once from that evidence; a canonical receipt chain; and
-certification. Each plan binds snapshot/source-anchor/pending digests,
-gate/phase/scope, call range, cost and impact digests, task/role/config identity,
-model/effort/timeout, complete argv/profile, absolute output,
-case/pair/resources, and self digest. Each authority binds that invocation,
-approval-request and canonical affirmative-line digests, current trusted-host
-provenance, and gate/phase. `impact_token` identifies but grants nothing.
+Lifecycle is a dependency DAG, not a total order:
 
-The Executor pilot has no prior historical cost. Its conservative envelope and
-complete one-call `subthreshold-control` invocation precede its separate
-authority; only its sanitized successful actual may become the calibration and
-historical basis. Corpus and adaptive holdout receive later independent plans and
-authorities. Certification requires the exact reachable anchored source,
-normalized archive/package/config identities, all three authorities, the one
-calibration, accepted gate-scoped post-source evidence, exact derived coverage,
-required offline summaries, review, and receipt head. A zero-live `receipt` or
-`isolated_install` gate still needs strictly post-source content-addressed
-`offline_summary`: receipt evidence binds current artifact identity, while
-install evidence binds the exact existing source/installed-package/config
-receipt. Offline checks never promote `refresh_required` to `certified`.
+| Slot | Exact prerequisite |
+| --- | --- |
+| active release anchor | committed release source plus exact package/engine/role/public identities |
+| planned impact | anchor, snapshot, immutable initial scope and adaptive-policy digest |
+| receipt evidence | active anchor and current artifact identity |
+| Executor cost/plan | planned impact; only this cost basis is source-derived |
+| Executor authority/evidence | exact cost/plan, reducer action, trusted current host; evidence is successful calibration |
+| corpus or holdout cost/plan | successful Executor evidence; each cost binds its sanitized calibration receipt |
+| corpus or holdout authority/evidence | its own exact cost/plan and authority; the two branches are independent |
+| freeze | receipt, Executor, full corpus, successful adaptive holdout, no evaluation pending/failure |
+| review evidence | freeze plus durable pre-effect exact-final grant/request |
+| install evidence | review plus durable pre-effect grant and exact frozen source/package/config |
+| certification | all six evidence slots, exact coverage, empty pending and failed projections |
 
-Live authority originates only in private trusted host provenance for the current
-user message and turn. Argument strings, environment, ledger/fixture JSON, model
-prose, caller-supplied authority/attempt fields, copied handles, or self-reported
-records cannot mint it. Tests may use a private deterministic adapter fixture;
-production cannot import it as authority.
+Every partial DAG state validates as `refresh_required`. `validate_successor`
+accepts one coherent DAG-ready append/update step, freezes all prior nonnull
+slots, and rejects rollback, replacement, deletion, or reorder. Writers also
+compare the prior Git ledger; at-rest validation alone is insufficient.
+`certified` is legal only with certification.
 
-The validator constructs immutable `GateCapability` only from the persisted plan,
-trusted current-host authority, and reducer report. It derives authority key,
-`AttemptKey`, invocation, output, resources, and ordered claims. It atomically
-acquires the sorted set as mode-`0600`, no-follow `O_EXCL` files in the resolved
-Git common-directory namespace and returns `ClaimedCapability`. An existing or
-failed claim stops before another claim or any fixture, mapping, directory,
-workspace, output, or subprocess effect. Partial/reused sets are never retried.
+Each evidence slot has exactly one kind: `executor_calibration`,
+`corpus_summary`, `holdout_summary`, `offline_summary`, `review_summary`, and
+`offline_summary`, respectively. Nonnull records have unique contiguous
+sequence `0..n-1`, exact parent receipt linkage, and an immutable tail equal to
+`receipt_head`; independent ready gates may be accepted in either serial order.
+Verification binds reachable strictly post-source commit, normalized path,
+`commit:path` blob, blob bytes/content hash, sanitized producer and subject, and
+record receipt. Populated evidence or certification rejects without a repository.
+Coverage is derived exactly once from fixed slots; duplicate slot/kind/gate or
+identity reuse rejects.
 
-For each authorized unit, `ClaimedCapability` acquires an exact `O_EXCL` unit
-claim before its first effect. Immediately before subprocess, it binds exact
-argv/cwd/environment/timeout into a PID-bound one-shot `PhaseProof`. Only
-`invoke_codex(PhaseProof)` is legal; it rejects a `GateCapability`,
-`ClaimedCapability`, serialized proof, wrong process, mismatched invocation, or
-spent proof. A process-local spent registry makes a second invocation impossible.
-Every check occurs before mkdir, fixture, mapping, workspace, output, or
-subprocess work.
+Pending and failed are derived views, never persisted inputs. Planned impact
+binds immutable initial snapshot/anchor/six-gate/17-case/three-pair/adaptive
+scope, never a changing pending digest. Corpus pending is initial cases minus
+accepted coverage. Holdout pending is the adaptive frontier: first pair; after
+non-regression the mandatory second; third only after split/uncertainty; then
+empty. A first regression is failed, not silently complete. Holdout evidence
+records the actual executed transcript, not all three authorized maximum units.
+Receipt/review/install and Executor remain pending until their slot succeeds.
+Certification requires both derived views empty.
 
-Terminal sanitization produces exactly `OUTPUT_SCHEMA`: unknown top-level result
-fields reject, every semantic projection is recomputed from the sanitized event
-stream, and persisted conclusions/keys never substitute. Corpus evidence must
-name the exact authorized case subset. Holdout evidence binds exact pair IDs,
-two distinct candidate/public arms, sealed arm-to-output mapping, and one blind
-decision per pair; mismatched pairs, duplicate/aliased decisions, cardinality
-drift, early arm reveal, and schema drift reject. Evidence replay covers the
-complete sanitized producer chain, content hashes, terminal projection, oracle
-decision, ledger projection, coverage derivation, and receipt links.
+Live authority requires private trusted current-message/turn provenance. A
+persisted plan binds reducer action kind/target/scope,
+ProgressKey/AttemptKey, model/effort/timeout/arm, binary, fixed phase templates,
+prompt digest, argv/cwd/environment, output, package/public/config identities,
+units/resources, cost, impact, and self digest. Persisted authority also binds
+exact approval-request and canonical affirmative-line digests. Canonical
+permission and claim projections are
+recomputed from reducer report, trusted host, plan, resources, and output;
+caller digests are assertions only. Runtime reconstructs the persisted authority
+payload and its consumed SHA must equal the ledger authority SHA.
+
+The only effect flow is `GateCapability -> pure full preflight ->
+ClaimedCapability -> exact/adaptive unit -> template-expanded PID-bound one-shot
+PhaseProof`. Preflight validates every argument, profile, package/public byte,
+output, resource, reducer action, authority, invocation, and template before any
+claim. Claim-namespace preflight and the sorted `0600` no-follow `O_EXCL` claim
+set are lock-atomic; collision or partial failure stops without retry. No caller
+supplies argv/cwd/env/timeout. Phase expansion must equal the persisted template,
+and spent-proof transition is lock-atomic across threads. Output creation uses
+no-follow dirfd operations or equally strong binding against replacement between
+check and use. No fixture, mapping, directory, workspace, output, or subprocess
+effect precedes full preflight and claims.
+
+Corpus producer owns `OUTPUT_SCHEMA` and one recursive raw-result validator;
+parse and semantic projection reuse it. Ledger has no shallow or duplicate result
+validator. Unknown or malformed nested fields, lists, classifications, gates, or
+evidence reject before projection. Canonical cost time is integer milliseconds.
+Replay is repository-aware and recomputes producer chain, terminal/oracle/ledger
+projection, coverage, receipt links, and exact Git evidence bytes.
 
 Recovery retains `pre-freeze-compaction`: native same-task compaction and a
 distinct no-summary/no-handle reconstruction both use current ExecPlan, Git,
@@ -478,7 +481,8 @@ external receipts, fixed claim, and durable facts. Copied handles, another
 Root/task, replacement writer, wrong role/config/session/thread/destination/
 lineage, concurrent resume, or mismatched claim refuse before effects.
 
-Future G015 creates repaired source `S2` and may edit at most these 17 paths:
+Future `HC06BR-G-015R-b3-source-repair` creates offline repaired `S2` and may
+edit at most these 17 paths:
 
 ```text
 AGENTS.md
@@ -500,20 +504,21 @@ tests/test_evaluation.py
 tests/test_holdouts.py
 ```
 
-No Runtime Markdown, semantic module, corpus case, holdout pair/manifest,
-plugin manifest, external role configuration, receipt module, evidence artifact,
-package surface, or other path may change. G015 must first persist the exact
-17-test RED receipt, then implement the source repair and end with a reachable
-full-offline-GREEN `S2`. Its `current.json` remains the exact null/empty
-generation-6 pre-anchor genesis.
+No Runtime Markdown, semantic module, case/pair/manifest, plugin manifest,
+external role config, receipt module, evidence artifact, package surface, or
+other path may change. G015R first persists an addendum RED receipt covering the
+new matrix while retaining the original 17 behaviors, then repairs source and
+ends at reachable full-offline-GREEN `S2`; `current.json` remains pre-anchor
+genesis. Future G016 may edit only this plan and `current.json` to create a
+construction anchor for `S2` with no plans, authorities, evidence, coverage,
+freeze, receipt head, or certification. Neither grant is active.
 
-Future G016 may edit only this ExecPlan and `evaluation/results/current.json`.
-From a normalized `git archive S2` it records the reachable commit/tree, exact
-package, semantic, engine-manifest, public-baseline, and external-role-config
-identities. It keeps plans, cost, authorities, calibration, evidence, coverage,
-receipt head, and certification empty/null and state `refresh_required`.
-Every evidence commit must strictly postdate `S2` and its anchor. G014 authorizes
-only this plan correction; G015 and G016 remain ungranted.
+Original G015 intent SHA-256
+`e0c73a1f22eaf2888cdcbceaaedf0e73fdaa0fc38e4a5339be1a9b33a77b2de4`
+and RED receipt SHA-256
+`004b8e62ee7014ba2b8c6b9f7d69c0a038fbfef330abcdc6cab69f73998fdde4`
+remain history. Its 16 dirty source/test paths are an unaccepted spike, not
+evidence or `S2`, and G015C does not alter them.
 
 ## Exact batch path and ownership inventory
 
@@ -572,18 +577,15 @@ The three holdout identities remain `authority-production-boundary`,
 cardinality, and behavior are preservation claims; schema bytes may change only
 to generation 6.
 
-G009 owns the accepted minimal generation-6 pre-anchor genesis. The current G014
-owns only this ExecPlan. Future G015 owns only its exact 17-path maximum; future
-G016 owns only the excluded ledger anchor and this ExecPlan. A manifest or
-role-contract edit never authorizes installed plugin bytes, personal
-marketplace/cache state, external config, or a helper invocation.
+G009 owns the accepted minimal pre-anchor genesis. G014 is accepted; G015C owns
+only this plan. Future G015R owns the unchanged 17-path maximum; G016 owns only
+this plan and the excluded ledger anchor. No manifest/role edit authorizes
+installed bytes, personal marketplace/cache, external config, or a helper.
 
-Before each batch, the Executor records an external intent containing exact
-prestate, paths, allowed commands, stop conditions, and checks, then verifies the
-fixed claim before every repository/index/commit effect. At the end it persists a
-complete external receipt, commits a reachable full-offline-GREEN revision with
-the ExecPlan trailer, and stops for Root verification. Root acceptance, not the
-writer's local GREEN sentence, advances the checkpoint.
+Before each batch, the Executor records exact external intent and verifies the
+claim before every repository/index/commit effect. It then persists a complete
+receipt and stops after the authorized commit. Only Root acceptance advances the
+checkpoint.
 
 ## Exact decision, effect, terminal, and replay flow
 
@@ -596,23 +598,22 @@ strict raw input
   -> pure reduce to one NextAction
   -> validate private trusted-host provenance and issue AuthorityProvenance
   -> pure enforce to ALLOW, ASK_USER, or REFUSE
-  -> persisted plan + trusted authority + reducer report mint GateCapability
-  -> atomically O_EXCL-claim its complete derived claim set
-  -> return ClaimedCapability and O_EXCL-claim one exact unit
+  -> persisted plan + authority + reducer report mint GateCapability
+  -> pure full preflight and exact persisted-authority replay
+  -> lock-atomically O_EXCL-claim complete derived claim set
+  -> return ClaimedCapability and claim one exact/adaptive unit
   -> create only that unit's authorized non-model effects
-  -> bind exact argv/cwd/env/timeout/PID into one-shot PhaseProof
+  -> expand its fixed invocation template into PID-bound PhaseProof
   -> invoke_codex accepts and spends only that PhaseProof
-  -> strict terminal parse into exact OUTPUT_SCHEMA
-  -> canonical receipt/ledger write
-  -> replay from raw sanitized facts by parse/reduce/enforce/recompute
+  -> recursively validate OUTPUT_SCHEMA and sanitize
+  -> verify Git evidence bytes; append one DAG-ready receipt slot
+  -> repository-aware parse/reduce/enforce/recompute replay
 ```
 
-No caller may skip, reorder, or precompute an arrow. Claims are never deleted or
-retried. Caller authority/attempt/claim values reject; `GateCapability` cannot
-invoke. No directory, fixture, mapping, or workspace precedes the complete claim
-set and unit claim. Subprocess entry cannot bypass `PhaseProof`. Dry-run,
-`ASK_USER`, and `REFUSE` stop before effects. A provider `COMPLETE` cannot close
-an OPEN `release`.
+No caller skips/reorders an arrow or supplies authority, action, claim,
+argv/cwd/env/timeout. Claims are never deleted/retried; `GateCapability` cannot
+invoke. Dry-run, `ASK_USER`, and `REFUSE` stop before effects. Provider
+`COMPLETE` cannot close an OPEN `release`.
 
 Parser output has two channels: stable semantic facts and validated administrative
 enforcement facts. Only the first plus `TaskBinding` feeds `ProgressKey`.
@@ -675,7 +676,7 @@ surfaces. A mock alone cannot prove an imperative seam. Effects require temporar
 fresh repositories/homes and explicit before/after manifests. Every coherent
 batch ends in full offline GREEN, not merely focused GREEN.
 
-G015 freezes exactly this 17-test RED matrix:
+Original G015 froze these 17 RED behaviors, which G015R preserves:
 
 ```text
 test_public_02_archive_identity_and_surface_are_exact
@@ -703,6 +704,40 @@ injects arbitrary caller authority/attempt values, reuses a capability and prove
 no second claim, tries unclaimed fixture/output creation and direct subprocess
 bypass, mismatches holdout pairs, and supplies duplicate alias decisions.
 
+Before any further production mutation, G015R persists an addendum RED receipt
+for these exact tests:
+
+```text
+test_partial_dag_states_and_successor_are_exact
+test_executor_evidence_is_single_calibration_and_later_cost_basis
+test_evidence_slot_kind_coverage_sequence_and_chain_are_exact
+test_git_evidence_binds_commit_path_blob_bytes_content_producer_subject
+test_recursive_output_schema_rejects_nested_drift
+test_runtime_replays_action_permission_claim_and_persisted_authority
+test_preflight_mismatch_writes_zero_claim_files
+test_template_expansion_and_phase_proof_are_thread_one_shot
+test_holdout_pending_and_evidence_follow_adaptive_frontier
+test_output_creation_rejects_symlink_swap
+test_populated_replay_requires_repo
+test_release_reanchor_precedes_evidence_without_reuse
+```
+
+Successor cases cover every partial state plus rollback/replace/delete/reorder.
+Cost cases reject source-derived corpus/holdout cost. Slot cases reject
+duplicates and every wrong kind/gate. Git tests use real commits and reject fake
+objects or altered paths/bytes. The action suite recomputes permission/claim
+digests and rejects arbitrary phase invocation. Preflight proves zero claim
+files on every mismatch. Adaptive tests prove first/mandatory-second/
+conditional-third execution and actual-transcript evidence.
+
+Root's concrete false-GREEN reproductions are frozen counterexamples: plan-only
+state rejected; later source-derived costs accepted; duplicate coverage and
+wrong evidence kind/gate accepted; arbitrary phase invocation accepted; an
+output/plan mismatch wrote four claims; malformed nested output accepted; and
+fake repo-less certification accepted. Adaptive overclaim, unlocked proof
+consumption, and output-path TOCTOU are additional required RED risks. Passing
+229/229 does not dispose them.
+
 ## Complexity and source budgets
 
 - semantic production LOC: at most 1,200 across the exact five-file package;
@@ -721,17 +756,18 @@ production Python LOC is measured after every batch but becomes a blocking closu
 gate only in Batch 3, after duplicate consumer semantics are deleted. A due budget
 miss blocks terminal GREEN and is not waived by passing tests.
 
-G015 freezes these per-module hard ceilings:
+G015R freezes these natural per-module ceilings; the allocation remains 6,897
+and user hard limit remains 6,900:
 
 | Production module | LOC | Production module | LOC |
 | --- | ---: | --- | ---: |
 | `evaluation/__init__.py` | 6 | `evaluation/cli.py` | 185 |
 | `evaluation/core/__init__.py` | 3 | `evaluation/core/identity.py` | 650 |
-| `evaluation/core/impact.py` | 515 | `evaluation/core/ledger.py` | 795 |
+| `evaluation/core/impact.py` | 530 | `evaluation/core/ledger.py` | 670 |
 | `evaluation/core/receipt.py` | 260 | `evaluation/corpus/__init__.py` | 3 |
-| `evaluation/corpus/engine.py` | 2,185 | `evaluation/holdout/__init__.py` | 3 |
+| `evaluation/corpus/engine.py` | 2,250 | `evaluation/holdout/__init__.py` | 3 |
 | `evaluation/holdout/blind.py` | 205 | `evaluation/holdout/compare.py` | 152 |
-| `evaluation/holdout/engine.py` | 355 | `evaluation/live.py` | 380 |
+| `evaluation/holdout/engine.py` | 355 | `evaluation/live.py` | 425 |
 | `evaluation/semantic/__init__.py` | 44 | `evaluation/semantic/canonical.py` | 111 |
 | `evaluation/semantic/decide.py` | 284 | `evaluation/semantic/parse.py` | 248 |
 | `evaluation/semantic/types.py` | 513 | **Total** | **6,897** |
@@ -743,39 +779,30 @@ waive a module ceiling.
 
 ## Future authority and release gates
 
-All gates below are separate, future, and currently unauthorized:
+All steps are future, separate, and unauthorized:
 
-1. **Executor pilot.** Persist a conservative source-derived historical-cost
-   envelope and the complete exact bounded calibration invocation first. Then
-   request separate canonical user authority bound to exact impact token,
-   source/package/config/role identities, model, effort, timeout, scope, output,
-   command, and approval-request digest. The pilot has no prior cost. Only a
-   sanitized successful actual becomes historical basis.
-2. **Corpus.** Persist exact source-derived impact and complete invocation for the
-   17 cases, then request its own exact authority. Pilot authority cannot be
-   reused.
-3. **Holdout.** Persist exact impact and adaptive invocation for the three pairs
-   and candidate/public arms, then request its own exact authority. Corpus
-   authority cannot be reused. First completion-blocking regression rejects;
-   after first success use a second distinct pair; use the third only for
-   split/uncertain results. At equal quality, uncached input plus output tokens
-   and wall time each stay within 125% of public 0.2.
-4. **Release-source preparation.** After G015/G016 are accepted and all live
-   evidence gates close, one separately
-   authorized step runs the official plugin-creator cachebuster helper exactly
-   once, commits the changed release source, and re-anchors its package, engine,
-   role, commit, and tree identities. It performs no install or review.
-5. **Candidate freeze and exact-final.** Freeze only that re-anchored exact
-   release, then under a separate grant run one fresh,
-   isolated, neutral `gpt-5.6-sol/max` exact-final with no original worktree,
-   writer narrative, ledger/history, network, tools, MCP, hooks, or write access.
-6. **Isolated install.** After freeze/exact-final, validate and install that
-   already frozen exact release plus external role config under separate
-   authority. This step must not rerun the helper, change source, or re-anchor.
-7. **Release and activation.** Release/publication and active-plugin mutation each
-   need later exact authority. Activation is atomic and retains paired prior
-   package, config, and cache for rollback. Rollback switches the paired set, not
-   one component.
+1. G015R produces offline-GREEN `S2`; G016 records its construction anchor with
+   an otherwise empty ledger.
+2. A separate release-source grant runs the official cachebuster helper exactly
+   once in an isolated temporary home, preserves active 0.4 state, and commits
+   actual release bytes as `S_release`.
+3. Reset/reanchor a fresh empty generation-6 ledger to `S_release` before any
+   impact, authority, calibration, or evidence. Nothing from the construction
+   anchor is reused.
+4. Persist immutable impact, conservative source-derived Executor cost, and its
+   complete one-call `subthreshold-control` plan; request exact Executor authority.
+   Only successful sanitized evidence becomes calibration.
+5. Accept receipt evidence. Persist corpus/holdout plans and calibrated costs;
+   request their independent authorities. Corpus runs 17 cases. Holdout rejects
+   first regression, requires a second after first success, and uses a third only
+   for split/uncertainty; equal quality stays within 125% public-0.2 token/time.
+6. Freeze the exact release after required evidence; under separate pre-effect
+   grant run one isolated neutral `gpt-5.6-sol/max` exact-final without original
+   worktree, writer narrative, ledger/history, network, tools, MCP, hooks, or write.
+7. After review, separately authorize isolated install of the same frozen release
+   and external role config. Do not rerun helper, mutate source, or reanchor.
+8. Certify only after install evidence. Publication and activation need later
+   exact grants; activation atomically retains paired package/config/cache rollback.
 
 No `impact_token`, persisted invocation, role-contract artifact, candidate,
 check, plan, JSON, environment value, argv string, or prose grants permission.
@@ -784,12 +811,10 @@ request can issue process-local provenance. Without that bridge, live execution
 fails closed. Implementation contains no live authority and performs no network
 action.
 
-Any product-source change invalidates candidate identity, exact-final, install
-proof, and source-bound evidence. A semantic input change reopens every dependent
-gate. A harness change reopens affected execution receipts. An artifact-only
-change reopens artifact/install evidence. A config/role digest change invalidates
-Executor recovery and every bound authority. An Outcome, baseline, allowed-break,
-family, or claim change requires explicit user authority; Root cannot infer it.
+Any post-release-anchor source/artifact/engine/role/config/package change resets
+the generation and all plans, authorities, evidence, coverage, freeze, and
+certification. There is no artifact-only or pre-reanchor evidence reuse. Outcome,
+baseline, allowed-break, family, or claim change requires explicit user authority.
 
 ## Claims Ledger
 
@@ -844,17 +869,15 @@ G002 is accepted commit
 `7150690668e2525ae24596f1f9875ca5d75ed771b373c669710e8833cc5371e8`.
 Both carry the mandatory ExecPlan trailer and are closed/non-renewable.
 
-The installed claim helper remains:
-`/home/caichenghang/.codex/plugins/cache/personal/happycodex/0.5.0+codex.20260729104011/skills/happycodex/scripts/resource_claim.py`.
-Private claim receipt
-`/tmp/happycodex-0.6-bounded-redesign-resource-claim.json` is mode `0600`,
-SHA-256
+Claim helper remains
+`/home/caichenghang/.codex/plugins/cache/personal/happycodex/0.5.0+codex.20260729104011/skills/happycodex/scripts/resource_claim.py`;
+mode-`0600` receipt `/tmp/happycodex-0.6-bounded-redesign-resource-claim.json`
+has SHA-256
 `7ca4471b7633ac6389b57011de429929638526f7746a602f8cf370382fa9c926`;
 owner-token SHA-256 is
 `7fb27f436e544db813365b6cfb974b8f8bf50e1e8893f5d4fc9e2d600bd90f4c`.
-One token claims exactly the bounded-redesign worktree, branch ref, and this
-ledger. Its adjacent untracked claim directory is private control state, excluded
-from product/commit content, and is not released automatically.
+One token claims the worktree, ref, and this ledger. The adjacent untracked claim
+directory is private control state, excluded from commits and not auto-released.
 
 ## Accepted Batch 1 and Batch 2
 
@@ -879,22 +902,17 @@ G011 commits and closes Batch 2 at
 `c1e5ba545399ac4a3a37a1396f1fccb5f69534f8`. Its mode-`0600` terminal receipt
 SHA-256 is
 `c843a2edc454a1e3fd4c1d59051e82672439977577c6a18813db11a4251de0fb`.
-Evaluation production Python is 8,667 lines at that accepted boundary; future
-G015 must close the frozen 6,897-line module budget without moving or compressing
-behavior.
-The active ledger is exact generation `0.6`, `refresh_required`, with six sorted
-pending gates, all 17/3 identities, three null authorities, empty calibration
-and accepted evidence, and null receipt head/certification. Historical cost,
-attempt, singular-authority, compatibility, and old-evidence paths are absent
-from active production.
+Evaluation production Python was 8,667 lines there; G015R must close the
+6,897-line allocation without moving/compressing behavior. G015C changes no
+production bytes. The eventual pre-anchor ledger uses fixed null slots and
+derived pending/failed; historical cost/evidence and compatibility remain absent.
 
-The semantic package remains exactly five files, at most 1,200 lines and 20
-exports. Runtime bytes remain unchanged. G012R remains accepted design input.
-G013/G013C and their terminal receipt are rejected and cannot be reused.
-G014 corrects this plan only; G015 source repair and G016 anchor are future and
-ungranted. No Goal, pilot, corpus, holdout, model/network/live call, exact-final,
-authority or attempt consumption, release preparation, install, release,
-marketplace/cachebuster, activation, delegation, or claim release is authorized.
+The semantic package remains five files, at most 1,200 lines/20 exports; Runtime
+bytes remain unchanged. G012R/G014 are accepted. G013/G013C and original G015
+source effects are rejected/unaccepted and cannot be reused. G015C is plan-only;
+G015R/G016 and all later gates remain ungranted. No Goal, model/network/live,
+authority/attempt consumption, cachebuster, install, release, marketplace,
+activation, delegation, or claim release is authorized.
 
 Uncertainty rule: an outside path, changed prestate, unverified claim, ambiguous
 or partial effect, reproduction mismatch, unknown input, identity/config drift,
