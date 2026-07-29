@@ -35,11 +35,7 @@ runtime and must never be linked from `skills/happycodex/SKILL.md`.
   `isolated_install` gate
   still requires strictly post-source, content-addressed `offline_summary` evidence:
   receipt evidence binds the current artifact identity, and install evidence binds
-  the existing exact source/installed package receipt. Fresh Native review is an
-  external HappyCodex/ExecPlan administrative gate, not an evaluator schema or ledger
-  receipt.
-  Its exact product scope excludes the sole mutable ExecPlan, and completion still
-  requires `GO` with zero unresolved material blockers.
+  the existing exact source/installed package receipt.
 - Store raw model events outside the repository. Track only sanitized summaries,
   hashes, fixed fixtures, prompts, hidden oracles, and executable evaluation code.
 - Maintainer evaluation must prove native same-task compaction plus a distinct
@@ -53,6 +49,5 @@ runtime and must never be linked from `skills/happycodex/SKILL.md`.
   result. At equal quality, uncached input plus output tokens and wall time must each
   stay within 25% of public 0.4.0.
 - Before release, use the plugin-creator cachebuster helper rather than hand-editing
-  marketplace state. Re-run exact final product-scope review after version/change-note
-  edits, prove a fresh isolated install/invocation of that exact release, then update
-  the active plugin with the prior cache ready for rollback.
+  marketplace state. Prove a fresh isolated install/invocation of that exact release,
+  then update the active plugin with the prior cache ready for rollback.
