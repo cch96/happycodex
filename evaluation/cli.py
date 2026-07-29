@@ -147,7 +147,15 @@ def main(argv: list[str] | None = None) -> int:
         except ValueError as exc:
             parser.error(str(exc))
     if args.command in {"corpus", "holdout"}:
-        return live.run_command(args, parser)
+        if args.list or args.dry_run:
+            from evaluation.corpus import engine as corpus_engine
+            from evaluation.holdout import engine as holdout_engine
+
+            return {
+                "corpus": corpus_engine.run_command,
+                "holdout": holdout_engine.run_command,
+            }[args.command](args)
+        parser.error("live execution requires a private trusted-host capability")
     raise AssertionError(f"unhandled command: {args.command}")
 
 

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import hashlib
-from functools import lru_cache
 import json
 import os
 from pathlib import Path
@@ -9,7 +8,7 @@ import re
 import shutil
 import subprocess
 import sys
-import sysconfig
+import tempfile
 from typing import Any
 
 
@@ -182,54 +181,26 @@ FILESYSTEM_ISOLATION_POLICY = {
     "network": "disabled",
     "selection": "explicit-on-every-turn",
 }
-
-
-def identity_match_values(value: Any) -> frozenset[str]:
-    """Return the one exact nonblank identity admitted by generation 6."""
-    if type(value) is not str or not value.strip():
-        return frozenset()
-    return frozenset({value})
-
-
-def is_nonblank_identity(value: Any) -> bool:
-    return bool(identity_match_values(value))
-
-
-def classification_identity_keys(item: Any) -> frozenset[str]:
-    if not isinstance(item, dict):
-        return frozenset()
-    identity = item.get("identity")
-    if isinstance(identity, str):
-        return identity_match_values(identity)
-    digest = item.get("identity_sha256")
-    return frozenset({digest}) if isinstance(digest, str) else frozenset()
+EXECUTOR_ROLE = {
+    "schema_version": 1,
+    "role_id": "happycodex_executor",
+    "model": "gpt-5.6-sol",
+    "reasoning_effort": "high",
+    "writer_policy": "fixed_executor_only",
+    "delegation": "forbidden",
+    "repository_effects": "exact_grant_and_resource_claim",
+    "external_effects": "separate_exact_user_authority",
+}
 
 
 def classifications_share_identity(left: Any, right: Any) -> bool:
-    return bool(
-        classification_identity_keys(left) & classification_identity_keys(right)
+    return (
+        isinstance(left, dict)
+        and isinstance(right, dict)
+        and type(left.get("identity")) is str
+        and bool(left["identity"].strip())
+        and left["identity"] == right.get("identity")
     )
-
-
-def classification_identity_failures(items: Any, *, label: str) -> list[str]:
-    if not isinstance(items, list):
-        return [f"invalid {label} classifications"]
-    failures: list[str] = []
-    seen: set[str] = set()
-    for item in items:
-        keys = classification_identity_keys(item)
-        nonblank = isinstance(item, dict) and (
-            is_nonblank_identity(item.get("identity"))
-            or item.get("identity_nonblank") is True
-        )
-        if not nonblank or len(keys) != 1:
-            failures.append(f"blank {label} identity")
-            continue
-        identity = next(iter(keys))
-        if identity in seen:
-            failures.append(f"duplicate {label} identity")
-        seen.add(identity)
-    return failures
 
 
 def recovery_manifest_projection(value: Any) -> dict[str, Any]:
@@ -255,19 +226,15 @@ def recovery_summary_consistent(value: Any) -> bool:
         return False
     markers = value.get("marker_ids")
     tests = value.get("tests")
-    if (
-        not isinstance(markers, list)
-        or not all(isinstance(marker, str) and marker for marker in markers)
-        or len(markers) != len(set(markers))
-        or not isinstance(tests, dict)
-    ):
+    if not isinstance(markers, list) or not isinstance(tests, dict):
         return False
     test_markers = tests.get("marker_ids")
     failed = tests.get("failed")
     accepted = tests.get("accepted_failures")
     return (
         isinstance(test_markers, list)
-        and all(isinstance(marker, str) and marker for marker in test_markers)
+        and all(type(item) is str and item for item in [*markers, *test_markers])
+        and len(markers) == len(set(markers))
         and len(test_markers) == len(set(test_markers))
         and set(test_markers).issubset(markers)
         and type(failed) is int
@@ -276,26 +243,22 @@ def recovery_summary_consistent(value: Any) -> bool:
     )
 
 
-class IdentityError(ValueError):
-    """The engine cannot classify an input without weakening invalidation."""
+IdentityError = ValueError
+
+
+def _read_json(path: Path) -> Any:
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
 def sha256_bytes(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
-def canonical_json_bytes(value: Any) -> bytes:
-    return json.dumps(
-        value,
-        ensure_ascii=False,
-        sort_keys=True,
-        separators=(",", ":"),
-        allow_nan=False,
-    ).encode()
-
-
 def canonical_sha256(value: Any) -> str:
-    return sha256_bytes(canonical_json_bytes(value))
+    payload = json.dumps(
+        value, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False
+    )
+    return sha256_bytes(payload.encode())
 
 
 def validate_invocation_profile(
@@ -303,54 +266,52 @@ def validate_invocation_profile(
     *,
     require_bound_binary: bool = False,
 ) -> dict[str, Any]:
-    """Validate one exact administrative invocation identity."""
     if not isinstance(value, dict) or set(value) != INVOCATION_PROFILE_FIELDS:
         raise IdentityError("invalid invocation profile envelope")
-    binary = value["binary"]
-    tools = value["tools"]
-    session = value["session"]
-    if not isinstance(binary, dict) or set(binary) != _PROFILE_BINARY_FIELDS:
+    binary, tools, session = value["binary"], value["tools"], value["session"]
+    if (
+        not isinstance(binary, dict)
+        or set(binary) != _PROFILE_BINARY_FIELDS
+        or binary["command"] != "codex"
+    ):
         raise IdentityError("invalid invocation binary profile")
-    if binary.get("command") != "codex":
-        raise IdentityError("invalid invocation binary command")
-    binary_digest = binary.get("identity_sha256")
-    if binary_digest is not None and (
-        type(binary_digest) is not str
-        or re.fullmatch(r"[0-9a-f]{64}", binary_digest) is None
+    digest = binary["identity_sha256"]
+    if digest is not None and (
+        type(digest) is not str or re.fullmatch(r"[0-9a-f]{64}", digest) is None
     ):
         raise IdentityError("invalid invocation binary identity")
-    if require_bound_binary and binary_digest is None:
+    if require_bound_binary and digest is None:
         raise IdentityError("live invocation binary identity is unbound")
     if not isinstance(tools, dict) or set(tools) != _PROFILE_TOOLS_FIELDS:
         raise IdentityError("invalid invocation tool profile")
-    allowed = tools.get("allowed")
+    allowed = tools["allowed"]
     if (
         not isinstance(allowed, list)
         or allowed != sorted(set(allowed))
         or any(item not in _TOOL_EVENT_TYPES for item in allowed)
+        or tools["event_item_types"]
+        != sorted(_TOOL_EVENT_TYPES[item] for item in allowed)
     ):
-        raise IdentityError("invalid invocation tool allowlist")
-    expected_events = sorted(_TOOL_EVENT_TYPES[item] for item in allowed)
-    if tools.get("event_item_types") != expected_events:
-        raise IdentityError("invocation event types diverge from allowed tools")
-    if value.get("network") not in {"disabled", "enabled"}:
-        raise IdentityError("invalid invocation network profile")
-    if "web_search" in allowed and value["network"] != "enabled":
-        raise IdentityError("web search requires enabled invocation network")
-    if value.get("mcp") not in {"disabled", "enabled"}:
-        raise IdentityError("invalid invocation MCP profile")
-    if value.get("hooks") not in {"disabled", "enabled"}:
-        raise IdentityError("invalid invocation hook profile")
-    if not isinstance(session, dict) or set(session) != _PROFILE_SESSION_FIELDS:
+        raise IdentityError("invalid invocation tool profile")
+    if (
+        value["network"] not in {"disabled", "enabled"}
+        or value["mcp"] not in {"disabled", "enabled"}
+        or value["hooks"] not in {"disabled", "enabled"}
+        or ("web_search" in allowed and value["network"] != "enabled")
+    ):
+        raise IdentityError("invalid invocation external access profile")
+    if (
+        not isinstance(session, dict)
+        or set(session) != _PROFILE_SESSION_FIELDS
+        or session["mode"] not in _SESSION_MODES
+        or session["history"] != "isolated"
+    ):
         raise IdentityError("invalid invocation session profile")
-    if session.get("mode") not in _SESSION_MODES or session.get("history") != "isolated":
-        raise IdentityError("invalid invocation session profile")
-    for field in ("provider", "model", "effort", "arm"):
-        if type(value.get(field)) is not str or not value[field]:
-            raise IdentityError(f"invalid invocation profile field: {field}")
-    timeout = value.get("timeout_seconds")
-    if type(timeout) is not int or timeout <= 0:
-        raise IdentityError("invalid invocation profile field: timeout_seconds")
+    if any(
+        type(value[field]) is not str or not value[field]
+        for field in ("provider", "model", "effort", "arm")
+    ) or type(value["timeout_seconds"]) is not int or value["timeout_seconds"] <= 0:
+        raise IdentityError("invalid invocation scalar profile")
     return value
 
 
@@ -367,35 +328,28 @@ def invocation_profile(
     hooks: str = "disabled",
     session_mode: str = "fresh-with-bounded-resume",
 ) -> dict[str, Any]:
-    profile = {
-        "provider": "openai",
-        "binary": {
-            "command": "codex",
-            "identity_sha256": binary_identity_sha256,
-        },
-        "model": model,
-        "effort": effort,
-        "timeout_seconds": timeout_seconds,
-        "arm": arm,
-        "tools": {
-            "allowed": sorted(allowed_tools),
-            "event_item_types": sorted(
-                _TOOL_EVENT_TYPES[item] for item in allowed_tools
-            ),
-        },
-        "network": network,
-        "mcp": mcp,
-        "hooks": hooks,
-        "session": {
-            "mode": session_mode,
-            "history": "isolated",
-        },
-    }
-    return validate_invocation_profile(profile)
-
-
-def read_json(path: Path) -> Any:
-    return json.loads(path.read_text(encoding="utf-8"))
+    allowed = sorted(allowed_tools)
+    return validate_invocation_profile(
+        {
+            "provider": "openai",
+            "binary": {
+                "command": "codex",
+                "identity_sha256": binary_identity_sha256,
+            },
+            "model": model,
+            "effort": effort,
+            "timeout_seconds": timeout_seconds,
+            "arm": arm,
+            "tools": {
+                "allowed": allowed,
+                "event_item_types": sorted(_TOOL_EVENT_TYPES[item] for item in allowed),
+            },
+            "network": network,
+            "mcp": mcp,
+            "hooks": hooks,
+            "session": {"mode": session_mode, "history": "isolated"},
+        }
+    )
 
 
 def path_record(path: Path) -> dict[str, Any]:
@@ -436,38 +390,25 @@ def selected_package_paths(plugin: Path) -> list[Path]:
 
 
 def normalize_package_modes(plugin: Path) -> None:
-    """Reconstruct the repository's private package modes from Git mode classes."""
     for path in selected_package_paths(plugin.resolve()):
-        if path.is_symlink():
-            continue
-        if path.is_dir():
+        if not path.is_symlink() and path.is_dir():
             path.chmod(0o700)
-        elif path.is_file():
+        elif not path.is_symlink() and path.is_file():
             path.chmod(0o700 if path.stat().st_mode & 0o111 else 0o600)
 
 
-def package_manifest(plugin: Path) -> dict[str, dict[str, Any]]:
-    return {
-        path.relative_to(plugin).as_posix(): path_record(path)
-        for path in selected_package_paths(plugin)
-    }
-
-
 def package_manifest_sha256(plugin: Path) -> str:
-    return canonical_sha256(package_manifest(plugin))
-
-
-def _skill_semantic_manifest(plugin: Path) -> dict[str, dict[str, Any]]:
-    root = plugin / "skills"
-    paths = [root, *root.rglob("*")]
-    return {
-        path.relative_to(plugin).as_posix(): path_record(path) for path in sorted(paths)
-    }
+    return canonical_sha256(
+        {
+            path.relative_to(plugin).as_posix(): path_record(path)
+            for path in selected_package_paths(plugin)
+        }
+    )
 
 
 def package_identities(plugin: Path) -> dict[str, str]:
     plugin = plugin.resolve()
-    manifest = read_json(plugin / ".codex-plugin" / "plugin.json")
+    manifest = _read_json(plugin / ".codex-plugin" / "plugin.json")
     if not isinstance(manifest, dict):
         raise IdentityError("plugin manifest must be an object")
     semantic_manifest = dict(manifest)
@@ -475,8 +416,12 @@ def package_identities(plugin: Path) -> dict[str, str]:
     semantic_payload = {
         "schema_version": 1,
         "plugin_manifest": semantic_manifest,
-        "marketplace": read_json(plugin / ".agents" / "plugins" / "marketplace.json"),
-        "skills": _skill_semantic_manifest(plugin),
+        "marketplace": _read_json(plugin / ".agents" / "plugins" / "marketplace.json"),
+        "skills": {
+            path.relative_to(plugin).as_posix(): path_record(path)
+            for root in [plugin / "skills"]
+            for path in sorted([root, *root.rglob("*")])
+        },
     }
     return {
         "semantic_sha256": canonical_sha256(semantic_payload),
@@ -484,13 +429,68 @@ def package_identities(plugin: Path) -> dict[str, str]:
     }
 
 
+def executor_role_identity(root: Path) -> str:
+    role = _read_json(root.resolve() / "evaluation" / "executor-role.json")
+    if role != EXECUTOR_ROLE:
+        raise IdentityError("invalid executor role contract")
+    return canonical_sha256(role)
+
+
+def _git(repo: Path, *args: str) -> str:
+    try:
+        return subprocess.check_output(
+            ["git", "-C", str(repo), *args],
+            text=True,
+            env={**os.environ, "LC_ALL": "C"},
+        ).strip()
+    except subprocess.CalledProcessError as exc:
+        raise IdentityError(f"Git source identity failed: {' '.join(args)}") from exc
+
+
+def source_archive_identity(repo: Path, revision: str) -> dict[str, Any]:
+    repo = repo.resolve()
+    commit = _git(repo, "rev-parse", "--verify", f"{revision}^{{commit}}")
+    if subprocess.run(
+        ["git", "-C", str(repo), "merge-base", "--is-ancestor", commit, "HEAD"],
+        check=False,
+        capture_output=True,
+    ).returncode:
+        raise IdentityError("source commit is not reachable from HEAD")
+    with tempfile.TemporaryDirectory(prefix="happycodex-source-") as raw:
+        archive = Path(raw) / "source.tar"
+        extracted = Path(raw) / "source"
+        extracted.mkdir()
+        if subprocess.run(
+            [
+                "git",
+                "-C",
+                str(repo),
+                "archive",
+                "--format=tar",
+                "--output",
+                str(archive),
+                commit,
+            ],
+            check=False,
+            capture_output=True,
+        ).returncode:
+            raise IdentityError("cannot archive source commit")
+        shutil.unpack_archive(str(archive), extracted)
+        normalize_package_modes(extracted)
+        return {
+            "source_commit": commit,
+            "source_tree": _git(repo, "rev-parse", f"{commit}^{{tree}}"),
+            "package": package_identities(extracted),
+            "engine_manifest_sha256": engine_inventory(extracted)["manifest_sha256"],
+            "executor_role_sha256": executor_role_identity(extracted),
+        }
+
+
 def _executable_identity(name: str, *, executable: str | None = None) -> dict[str, str]:
-    raw_path = executable or shutil.which(name)
-    if not raw_path:
+    raw = executable or shutil.which(name)
+    path = Path(raw).resolve() if raw else None
+    if path is None or not path.is_file():
         raise IdentityError(f"required certification tool is unavailable: {name}")
-    path = Path(raw_path).resolve()
-    if not path.is_file():
-        raise IdentityError(f"invalid certification tool path: {name}")
     try:
         completed = subprocess.run(
             [str(path), "--version"],
@@ -502,109 +502,19 @@ def _executable_identity(name: str, *, executable: str | None = None) -> dict[st
         )
     except (OSError, subprocess.TimeoutExpired) as exc:
         raise IdentityError(f"cannot identify certification tool: {name}") from exc
-    version = (completed.stdout or completed.stderr).strip().splitlines()
-    if completed.returncode or not version:
+    lines = (completed.stdout or completed.stderr).strip().splitlines()
+    if completed.returncode or not lines:
         raise IdentityError(f"cannot identify certification tool: {name}")
     return {
         "path": str(path),
         "sha256": sha256_bytes(path.read_bytes()),
-        "version": version[0],
-    }
-
-
-@lru_cache(maxsize=1)
-def _python_stdlib_identity() -> dict[str, Any]:
-    raw_root = sysconfig.get_paths().get("stdlib")
-    if not raw_root:
-        raise IdentityError("cannot locate the Python standard library")
-    root = Path(raw_root).resolve()
-    if not root.is_dir():
-        raise IdentityError("invalid Python standard-library path")
-    excluded = {"__pycache__", "site-packages", "dist-packages"}
-    records: list[dict[str, Any]] = []
-    for path in sorted(root.rglob("*")):
-        relative = path.relative_to(root)
-        if excluded.intersection(relative.parts) or path.suffix == ".pyc":
-            continue
-        if path.is_file():
-            content = path.read_bytes()
-            records.append(
-                {
-                    "path": relative.as_posix(),
-                    "bytes": len(content),
-                    "sha256": sha256_bytes(content),
-                }
-            )
-    if not records:
-        raise IdentityError("empty Python standard-library identity")
-    return {
-        "stdlib_sha256": canonical_sha256(records),
-        "stdlib_file_count": len(records),
-    }
-
-
-@lru_cache(maxsize=1)
-def _python_shared_library_identity() -> dict[str, Any]:
-    raw_root = sysconfig.get_paths().get("stdlib")
-    ldd = shutil.which("ldd")
-    if not raw_root or not ldd:
-        raise IdentityError("cannot identify Python shared libraries")
-    root = Path(raw_root).resolve()
-    excluded = {"__pycache__", "site-packages", "dist-packages"}
-    targets = {Path(sys.executable).resolve()}
-    for path in root.rglob("*.so*"):
-        relative = path.relative_to(root)
-        if not excluded.intersection(relative.parts) and path.is_file():
-            targets.add(path.resolve())
-    completed = subprocess.run(
-        [ldd, *(str(path) for path in sorted(targets))],
-        check=False,
-        capture_output=True,
-        text=True,
-        timeout=60,
-        env={**os.environ, "LC_ALL": "C"},
-    )
-    if completed.returncode:
-        raise IdentityError("cannot resolve Python shared-library dependencies")
-    libraries: set[Path] = set()
-    for line in completed.stdout.splitlines():
-        value = line.strip().split(" => ", maxsplit=1)[-1].split(" (", maxsplit=1)[0]
-        if value.endswith(":"):
-            continue
-        if value.startswith("/"):
-            path = Path(value)
-            if not path.is_file():
-                raise IdentityError(f"unreadable Python shared library: {path}")
-            libraries.add(path.resolve())
-    if not libraries:
-        raise IdentityError("empty Python shared-library identity")
-    resolver = Path(ldd).resolve()
-    records = [
-        {
-            "path": str(path),
-            "bytes": path.stat().st_size,
-            "sha256": sha256_bytes(path.read_bytes()),
-        }
-        for path in sorted(libraries)
-    ]
-    return {
-        "shared_libraries_sha256": canonical_sha256(records),
-        "shared_library_count": len(records),
-        "shared_library_resolver_sha256": sha256_bytes(resolver.read_bytes()),
-    }
-
-
-def _python_identity() -> dict[str, Any]:
-    return {
-        **_executable_identity("python", executable=sys.executable),
-        **_python_stdlib_identity(),
-        **_python_shared_library_identity(),
+        "version": lines[0],
     }
 
 
 def toolchain_identity() -> dict[str, dict[str, Any]]:
     return {
-        "python": _python_identity(),
+        "python": _executable_identity("python", executable=sys.executable),
         "codex": _executable_identity("codex"),
         "git": _executable_identity("git"),
         "rg": _executable_identity("rg"),
@@ -612,7 +522,7 @@ def toolchain_identity() -> dict[str, dict[str, Any]]:
 
 
 def _schema_paths(root: Path) -> dict[str, str]:
-    result: dict[str, str] = {}
+    result = {"evaluation/executor-role.json": "artifact"}
     for path in sorted((root / "evaluation" / "cases").glob("*.json")):
         result[path.relative_to(root).as_posix()] = "semantic"
     holdout_root = root / "evaluation" / "holdouts"
@@ -627,39 +537,34 @@ def _schema_paths(root: Path) -> dict[str, str]:
 def engine_inventory(root: Path) -> dict[str, Any]:
     root = root.resolve()
     evaluation = root / "evaluation"
-    discovered_modules = {
+    modules = {
         path.relative_to(root).as_posix()
         for path in evaluation.rglob("*.py")
         if "__pycache__" not in path.parts
     }
-    expected_modules = set(MODULE_CATEGORIES)
-    unknown = sorted(discovered_modules - expected_modules)
-    missing = sorted(expected_modules - discovered_modules)
-    if unknown:
-        raise IdentityError(f"unclassified engine input: {', '.join(unknown)}")
-    if missing:
-        raise IdentityError(f"missing classified engine input: {', '.join(missing)}")
-
-    classified = dict(MODULE_CATEGORIES)
-    schema_paths = _schema_paths(root)
+    unknown = sorted(modules - set(MODULE_CATEGORIES))
+    missing = sorted(set(MODULE_CATEGORIES) - modules)
+    if unknown or missing:
+        detail = unknown or missing
+        label = "unclassified" if unknown else "missing classified"
+        raise IdentityError(f"{label} engine input: {', '.join(detail)}")
+    schemas = _schema_paths(root)
     discovered_json = {
         path.relative_to(root).as_posix()
         for path in evaluation.rglob("*.json")
         if "__pycache__" not in path.parts
     }
-    ledger_outputs = {"evaluation/results/current.json"}
-    evidence_outputs = {
-        relative
-        for relative in discovered_json
-        if Path(relative).parts[:3] == ("evaluation", "results", "evidence")
+    outputs = {
+        item
+        for item in discovered_json
+        if item == "evaluation/results/current.json"
+        or Path(item).parts[:3] == ("evaluation", "results", "evidence")
     }
-    unknown_json = sorted(
-        discovered_json - set(schema_paths) - ledger_outputs - evidence_outputs
-    )
+    unknown_json = sorted(discovered_json - set(schemas) - outputs)
     if unknown_json:
         raise IdentityError(f"unclassified engine input: {', '.join(unknown_json)}")
-    classified.update(schema_paths)
-    entries: list[dict[str, Any]] = []
+    classified = {**MODULE_CATEGORIES, **schemas}
+    entries = []
     for relative, category in sorted(classified.items()):
         path = root / relative
         if not path.is_file():
@@ -673,29 +578,20 @@ def engine_inventory(root: Path) -> dict[str, Any]:
                 "sha256": sha256_bytes(content),
             }
         )
-
-    category_digests = {
-        category: canonical_sha256(
-            [
-                {"path": item["path"], "sha256": item["sha256"]}
-                for item in entries
-                if item["category"] == category
-            ]
-        )
+    categories = {
+        category: canonical_sha256([
+            {"path": item["path"], "sha256": item["sha256"]}
+            for item in entries
+            if item["category"] == category
+        ])
         for category in ENGINE_CATEGORIES
     }
-    return {
+    payload = {
         "schema_version": 1,
-        "categories": category_digests,
+        "categories": categories,
         "entries": entries,
-        "manifest_sha256": canonical_sha256(
-            {
-                "schema_version": 1,
-                "categories": category_digests,
-                "entries": entries,
-            }
-        ),
     }
+    return {**payload, "manifest_sha256": canonical_sha256(payload)}
 
 
 def engine_category_sha256(
@@ -721,7 +617,6 @@ def engine_paths_sha256(
     inventory: dict[str, Any],
     paths: set[str],
 ) -> str:
-    """Bind an exact cross-category source bundle without reclassifying inputs."""
     by_path = {
         item["path"]: {"path": item["path"], "sha256": item["sha256"]}
         for item in inventory["entries"]

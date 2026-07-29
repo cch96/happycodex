@@ -18,6 +18,7 @@ CLAIM_HELPER = SKILL_ROOT / "scripts" / "resource_claim.py"
 MANIFEST = ROOT / ".codex-plugin" / "plugin.json"
 MARKETPLACE = ROOT / ".agents" / "plugins" / "marketplace.json"
 README = ROOT / "README.md"
+EXECUTOR_ROLE = ROOT / "evaluation" / "executor-role.json"
 
 EXPECTED_RUNTIME_FILES = {
     "skills/happycodex/SKILL.md",
@@ -91,6 +92,31 @@ def section_rows(path: Path, heading: str) -> list[list[str]]:
 
 
 class HappyCodexContractTests(unittest.TestCase):
+    def test_g013_manifest_and_executor_role_are_exact_artifacts(self) -> None:
+        manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
+        self.assertEqual(manifest["version"], "0.6.0")
+        role = json.loads(EXECUTOR_ROLE.read_text(encoding="utf-8"))
+        self.assertEqual(
+            role,
+            {
+                "schema_version": 1,
+                "role_id": "happycodex_executor",
+                "model": "gpt-5.6-sol",
+                "reasoning_effort": "high",
+                "writer_policy": "fixed_executor_only",
+                "delegation": "forbidden",
+                "repository_effects": "exact_grant_and_resource_claim",
+                "external_effects": "separate_exact_user_authority",
+            },
+        )
+        from evaluation.core.identity import engine_inventory
+
+        entries = {
+            item["path"]: item["category"]
+            for item in engine_inventory(ROOT)["entries"]
+        }
+        self.assertEqual(entries["evaluation/executor-role.json"], "artifact")
+
     def test_runtime_surface_is_exact_and_has_no_custom_engine(self) -> None:
         self.assertEqual(relative_files(SKILL_ROOT), EXPECTED_RUNTIME_FILES)
         manifest = json.loads(read(MANIFEST))
@@ -119,7 +145,11 @@ class HappyCodexContractTests(unittest.TestCase):
                 probe.parent.rmdir()
 
     def test_python_validation_uses_only_declared_stdlib_dependencies(self) -> None:
-        allowed = set(sys.stdlib_module_names) | {"__future__", "evaluation"}
+        allowed = set(sys.stdlib_module_names) | {
+            "__future__",
+            "evaluation",
+            "tests",
+        }
         for path in (
             *sorted((ROOT / "evaluation").rglob("*.py")),
             *sorted((SKILL_ROOT / "scripts").rglob("*.py")),
@@ -249,7 +279,7 @@ class HappyCodexContractTests(unittest.TestCase):
 
     def test_manifest_and_public_install_surfaces_are_coherent(self) -> None:
         manifest = json.loads(read(MANIFEST))
-        self.assertRegex(manifest["version"], r"^0\.5\.0\+codex\.[0-9]{14}$")
+        self.assertEqual(manifest["version"], "0.6.0")
         self.assertEqual(manifest["repository"], "https://github.com/cch96/happycodex")
         marketplace = json.loads(read(MARKETPLACE))
         self.assertEqual(marketplace["name"], "happycodex")

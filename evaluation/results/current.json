@@ -44,52 +44,56 @@
   },
   "receipt_head": null,
   "schema_version": 1,
+  "source_anchor": null,
   "snapshot": {
     "corpus": {
       "cases": {
-        "authorized-rebaseline": "745932dea522769122dd0cb02e360f33e1706fcbe70a6a991c563ec775c1500f",
-        "boundary-cutover": "3fb471ec84b00bad234fedf9e6bc460136a468c0bd369f85c0f33839043907b7",
-        "clean-qualifying-control": "4152beec42298807b2f6cd2f46c5f358dc4d363163302a4e9db28a8a00e29407",
-        "compaction-recovery": "38ab487ee16f523a2b23ab8df9549476d17e70440bfe2587dbae51196c88fffc",
-        "exact-final-ready": "e444860a9925bf622aa295b0fb982e38138bc90dc8d3f333ee073eae6899cb07",
-        "goal-divergence": "9be3dccfcffee06ba2f83866d9c00ec4c66264c57c4cf9bfb6d0f315777a86be",
-        "midflight-escalation": "500d0d03b940fd14c40926f7f674ab33c8a95c135b0fcb27e87c7701083ff58c",
-        "multi-repo-submodule": "fec20ad509664334de3c0d62cd20b86174671a0d59e8cbc2eccd00f58d38fd34",
-        "no-commit-archive-recovery": "5425196dcf12e06a6d9e7c8c93ddb943542b3e298729b042a7c5de15dc33d883",
-        "no-commit-secret": "c77e8952bdea20ddbb28fba3bb8a0df70783c023a11143812a7870c4e448aa10",
-        "no-commit-unselected": "9fae8ab5549e4a977d3b89f2bb0bad3e1628b5b1915140d438a24f8596441ce0",
-        "pre-freeze-compaction": "5857a8ac7c7380127d2db01a8b39f4d6a28f1ef05e937c8d5aaca21584ead617",
-        "receipt-mismatch": "b67a0fdb213e0adfd2dd725a897ed3d297350ddac256c154f8285c49a469a180",
-        "review-admin-cycle": "83e5e4103b1ee61deb074cf7e3a641954001f55bff2415035cbf763e46811498",
-        "review-inventory-gate": "05669383c3a1481b34ec1bbfacdd9eb8a4ccba62e48e210f13bad7a01ac337b3",
-        "review-isolation": "54559b4b7f8bdc789de0100e87fb40d9d5b4cfb6917e50008dc53c94223ceb08",
-        "subthreshold-control": "db66b8f07d221b62922598f31a8cdcf0d850312b43b8d10a1c4b4c7f01a8832d"
+        "authorized-rebaseline": "cb55191e837bba3000c65048aa8e0caa83eef1e50b32e6759f1a3678cf812dd8",
+        "boundary-cutover": "2a14d2920ca2a261d8e8a4a0ec2917d116f0111732c8507baf3096281161beb1",
+        "clean-qualifying-control": "472f1e359f4a303ef6b815273d92e84e609dbdbddb897b7ce7a13a971ee8db5f",
+        "compaction-recovery": "851fa384df3d71c55dbe54d6657c0c84fb54ab5c340a9a21cc76f3595bf03ab2",
+        "exact-final-ready": "f8c32f6d93d9922a5cc396ba7df4c5f88bdc874dbef8b4bf888e9004540997b3",
+        "goal-divergence": "4778ad0afec7f8d5fdc7dc3507849acb52f24436492d24531b29391cdfad43de",
+        "midflight-escalation": "95b930047080a080fd255139d7dd2d03f86b3e0acc6d9dd1c15d8a0c640dc52a",
+        "multi-repo-submodule": "e1c7c3ff6f22b962a67bb4715a4bf6e1a19a2dba8c17fe79193924ddf6a52910",
+        "no-commit-archive-recovery": "3af6efed3b9d2888d7294c174030d8762526bd4c19ee815a7aaa79461cbd9d58",
+        "no-commit-secret": "a889b48a3ddf447e3f3e654e6cc269986cc5b04b33c42da55dfc57af772e1b74",
+        "no-commit-unselected": "48c0c6a3ba2b904f18e557d232fae3738bfb41c1bee3f3aff10569f814885073",
+        "pre-freeze-compaction": "4938852d95bea5252765ab4bc5fd9d81e4a49e3e2d6b95f228d2402cb12428c0",
+        "receipt-mismatch": "373506a1a37e54b3c366dbd205c433692c808e88250ad466436a7d8c01b71640",
+        "review-admin-cycle": "a07f8e322ff636e7d4736d788508fbff4d2462fa99470fcca1153b8d6692195b",
+        "review-inventory-gate": "11200d0671c4832c1c5663d2214623692168b6412c6e229310dd3d602db43ced",
+        "review-isolation": "a4ba33b14b7b90d2aaa3ef54f28b358bf12899aacb1c0cfc31f3b95dae215dee",
+        "subthreshold-control": "a2a6dfec81657580ebb33abf07812a0324373434a2f74b9fef30e6d00a38abf0"
       }
     },
     "engine": {
       "categories": {
-        "artifact": "0009255d489c3c9b1174b82d20ab156aff352eb136a68e397bbccb5222fe6d6a",
-        "harness": "a6682fbda4779a41739eb266c5d0c3fa6d414fe1febe7fb872f9f68ebc3a0410",
-        "semantic": "de935dd7b67080c5a9059c08db2cdbfaaab49f6c4a7e040a033314414fe711ee"
+        "artifact": "a02699fe55d34fe8d1415189d11331aae8a9f196008f82700d43259274cc54df",
+        "harness": "39212411df2365b13cb8a3986dc2a2a6d4c2c7db9fd283141371d3934899bf3a",
+        "semantic": "475722eb3a32038ce479069ba470324a98425e24a66b2b63d988a7fb6eb977db"
       },
-      "manifest_sha256": "26a73b343277a8f99723361a38aeff1c0129268816ac04f94265e362d4d491d4",
+      "manifest_sha256": "ea9ae8a39b9d0253d939998cb64718b379f6c12b99e450ec2c659ef0a8d0db3f",
       "scopes": {
-        "corpus_harness": "f0eea1c88c34c67d47e0f769ade1b2dd68ee71a8a7cf5dc42a4aa1694f3452c7",
-        "corpus_semantic": "c7c70548097c822a04da39f3618ece5080f754e7efdbd4d285dd9a8fecfb2fc8",
-        "holdout_harness": "f942c55cd639fc38339f8abe3f5b9398727baa808146aa9e0ec7fac7e9ad5539",
+        "corpus_harness": "aed6f5a4fbddcc7ab375f195f5ce1fdba619c2ced03c8fe04f74036918d61855",
+        "corpus_semantic": "fa4821ec296e256dca0e6d938b8e5b443e482ea4d28292661ce3c5cb8842570c",
+        "holdout_harness": "70e4d9bb8aa0067312479d8167dada44a8318941700d363f65c110113a43f58b",
         "holdout_semantic": "f4947543ea227ca66ab9f9a0d23fc2383c2d7bb64cd2b2100fae1dedc22ed548"
       }
     },
     "holdout": {
       "pairs": {
-        "authority-production-boundary": "dd902e258a2474776d6223d78ed5b209639e236e09c9635142fe6b0e9779aaca",
-        "destructive-migration-fallback": "d883c7e852b6d18548e35094e2497a06c9a3206fe4d52aa88794f92882a3d561",
-        "local-documentation-control": "a2e7e824d9bdd4e315fc200ad3e233611406d72627f4cd449da07d8737a52c0f"
+        "authority-production-boundary": "6c0673d28550bad9cc5def0a13f73e93c8ba553385af2baff2c72fce571bcb11",
+        "destructive-migration-fallback": "5a9e7855c3e48f61d661e660c9cb7690c0cf78057f769712c08422851afc2c31",
+        "local-documentation-control": "d6c854792435f5c9aa3613f7ebb8af2b93211cb5f5e69dafc6cd53e622946751"
       }
     },
     "package": {
-      "artifact_sha256": "090e150fa7a6e6749f8d8d8dd81bda5aefa3dd5ae3a96c537cc8e01af788c980",
+      "artifact_sha256": "0fe39460ad54c9d842d014f809019bb2e42ee4138173c32d2f490cba64171d83",
       "semantic_sha256": "b3326b911a3cd49e24ff0f8799ca53b54b4e62df3167267b5ad4129f6f5367f7"
+    },
+    "role": {
+      "executor_sha256": "f1effcc84e7ed24f6d54c972e2e412db42a3e46a6d92565e6d61b358128305da"
     },
     "schema_version": 1,
     "settings": {
@@ -110,11 +114,6 @@
         "python": {
           "path": "/usr/bin/python3.10",
           "sha256": "2a07e4b31eebc00649ee310a4a289bb55e213c25f523f41b4c471bee6284ba97",
-          "shared_libraries_sha256": "ba93e5f16a1c91403ea37627af0c087cc586a152ee0e95e507e35534bb4323d1",
-          "shared_library_count": 47,
-          "shared_library_resolver_sha256": "236431e509066e30abd8696f289ddf246c56386bd451e3f50de3175a75480708",
-          "stdlib_file_count": 735,
-          "stdlib_sha256": "6cc498f1e8135d99b81b739d2425757c4f78d7e8914da895318ae8c49048d9ba",
           "version": "Python 3.10.12"
         },
         "rg": {

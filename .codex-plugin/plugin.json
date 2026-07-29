@@ -1,6 +1,6 @@
 {
   "name": "happycodex",
-  "version": "0.5.0+codex.20260729104011",
+  "version": "0.6.0",
   "description": "Codex-native reliability workflow for high-risk changes with one fixed Executor, durable contracts, compaction recovery, and fresh review.",
   "author": {
     "name": "caichenghang",

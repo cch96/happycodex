@@ -1,142 +1,114 @@
 # Certification engine
 
-The evaluator is maintainer-only, pure-standard-library support code. It is excluded
-from the shipped plugin. The sole command surface is:
+The evaluator is maintainer-only standard-library support code. It is excluded
+from the shipped plugin. Its sole command surface is:
 
 ```bash
 python3 -m evaluation.cli verify
 python3 -m evaluation.cli impact
+python3 -m evaluation.cli executor --dry-run
 python3 -m evaluation.cli corpus --dry-run
 python3 -m evaluation.cli holdout --dry-run
 ```
 
-`verify` validates the complete classified engine inventory and the tracked evidence
-ledger. `impact` is read-only: it reports exact invalidated cases/pairs, downstream
-gates, live-call range, and historical combined-token/aggregate-call-wall estimates.
-The wall estimate is summed exposure, not elapsed runtime under bounded concurrency.
-A live run is not authorized by either command.
+`verify` validates the classified engine inventory and the sole active ledger.
+The three dry-runs inspect exact work without creating a capability, consuming a
+claim, making a fixture/output/workspace, invoking a model, or using the network.
+`impact` currently fails closed because generation 6 has no persisted cost
+envelope or exact future invocation. No standalone CLI argument, environment
+variable, impact token, ledger record, or prose response is live authority.
 
-## Identities and evidence
+## Identities and fresh evidence
 
-The engine records three independent identities:
+The engine records independent identity layers:
 
-- semantic inputs: case/holdout data, prompt/schema/comparison policy,
-  runtime-semantic package projection, model, effort, timeout, and arm;
-- harness inputs: every executable fixture/install/invoke/blind/control/authority
-  module and exact Python/Codex/Git/rg toolchain identities; Python also binds the
-  standard-library tree, shared-library closure, and resolver bytes;
-- artifact inputs: receipt serialization and sanitization only.
+- semantic inputs: cases, holdouts, strict terminal/schema/comparison policy,
+  the semantic package, model, effort, timeout, and arm;
+- harness inputs: every executable evaluator module plus the exact resolved
+  Python, Codex, Git, rg, and sandbox binary path/hash/version identities;
+- artifact inputs: receipt projection, sanitization, and the exact external
+  `evaluation/executor-role.json` contract.
 
-Every evaluator Python module and JSON case/schema is explicitly classified. An
-unknown module fails validation. Semantic or execution-affecting harness changes fail
-closed to the exact live gates; artifact-only changes require no model call.
+Every evaluator Python module and case/holdout JSON input is classified as
+semantic, harness, or artifact. Unknown inputs fail closed. Impact planning and
+execution use the same strict input schema from `evaluation.core.ledger`.
 
-`results/current.json` is the only active ledger. Its `refresh_required` state cannot
-be promoted by offline checks. `certified` requires a Git-reachable successor whose
-normalized Git package artifact, engine manifest, and source pending impact match the
-snapshot, plus strictly later content-addressed corpus and holdout evidence for every
-refreshed item. Nonzero live scope also requires the exact authority to be persisted
-before that successor commit; zero-live artifact transitions require no authority but
-do require strictly post-source, content-addressed `offline_summary` evidence. That
-summary binds the source ledger bytes and current artifact identity for a `receipt`
-gate, and binds the exact source/installed package receipt for `isolated_install`.
-The coverage manifest marks every current case and pair either refreshed or, under one
-explicit exact corpus/holdout waiver, waived. Mixed, partial, and prior dispositions
-fail closed; 0.4 evidence remains Git history with no active reader, alias, migration,
-or compatibility path. Corpus and holdout receipts bind the impact token, authority,
-source engine, cases, package/toolchain, adaptive policy, and cost gate. Impact and
-execution share complete input validation. Fresh Native review remains an external
-HappyCodex/ExecPlan gate over the exact product diff; the evaluator defines no review
-receipt.
+`results/current.json` is the only active evidence ledger. Generation 6 is a
+fresh `refresh_required` genesis: all three authorities are null, calibration and
+accepted evidence are empty, receipt head and certification are null, and the
+pre-anchor `source_anchor` is null. G014 alone may replace that null with the
+Git-archive identity of the reachable G013 source commit. Offline checks and
+offline summaries cannot promote the ledger to `certified`.
 
-## Offline and live commands
+There is no reader, alias, migration, dual write, prior-coverage reuse, or parser
+fallback for older evidence. Evidence commits must strictly descend from the
+anchored source and remain reachable from `HEAD`. Source identity comes from
+`git archive`, not dirty working-tree bytes, and binds source commit/tree,
+normalized package artifact and semantics, engine manifest, and external
+Executor role digest.
 
-Inspect one or every corpus case without a model call:
+## Effect authority and claims
 
-```bash
-python3 -m evaluation.cli corpus --list
-python3 -m evaluation.cli corpus --case receipt-mismatch --dry-run
+Live authority can originate only in private trusted host metadata for the
+current task/message/turn. The host binding includes root/source/Executor task,
+owner, destination, lineage, role config, repository, outcome, message, turn,
+content, session, thread, permission, and claim identities. Semantic enforcement
+must return `ALLOW` before the validator mints a sealed, noncopyable,
+nonserializable, process-local capability.
+
+Every model-reaching helper rebinds that same capability. The exact effect order
+is:
+
+```text
+read-only identity, invocation, path, schema, and provenance validation
+  -> enforce ALLOW and mint one process-local capability
+  -> O_EXCL authority claim
+  -> O_EXCL reducer-derived AttemptKey claim
+  -> O_EXCL sorted resource claims
+  -> O_EXCL output claim
+  -> capability rebind
+  -> authorized fixture/output/workspace effect
+  -> O_EXCL phase-child claim
+  -> capability rebind
+  -> model subprocess
 ```
 
-`impact` emits an `impact_token`, but that hash is not approval. After the user
-approves the exact printed maximum cost and invocations, a maintainer must persist a
-`live_authority` receipt in `current.json` with a current-task user source and exact
-package/settings/scope descriptors. The verbatim approval response must be the
-canonical line `APPROVE HAPPYCODEX LIVE COST <approval-request-sha256>`; arbitrary
-nonempty prose, including a rejection, grants nothing. The ledger's historical-cost
-envelope must also exactly equal the source-derived receipt. Only then may the same
-fresh token be bound to a live corpus run whose output stays outside the repository:
+Claims are mode-`0600` no-follow files in the resolved Git common directory's
+precreated mode-`0700` `happycodex/effect-claims/v6` namespace. A collision
+refuses before the corresponding effect. Claims are durable consumption, never
+transactions: no automatic retry or deletion occurs.
 
-```bash
-python3 -m evaluation.cli impact --public /path/to/public-checkout
-```
+Raw outputs require an explicit absolute absent path under an existing real
+parent, outside the repository and every evaluated plugin. Symlinks, implicit
+temporary destinations, parent creation, and in-repository output reject before
+effects. Raw model events, secrets, unsanitized streams, and hidden oracle bodies
+stay outside Git; only sanitized summaries, hashes, fixed fixtures/prompts,
+hidden-oracle hashes, and executable evaluation code may be tracked.
 
-Persisted authority validation mints an immutable process-local capability. Corpus
-and holdout propagate and rebind it at every model-reaching evaluator, pair, and
-subprocess seam; callers cannot substitute a digest string or a mutable descriptor.
+## Recovery and future gates
 
-Without `--public`, impact stays useful for cost inspection but reports
-`live_authority_ready: false` when a holdout refresh is pending.
+Maintainer evaluation proves native same-task compaction and a distinct
+no-summary/no-handle reconstruction from durable repository/control facts. It
+also proves copied or serialized capabilities, cross-task authority, replacement
+writers, wrong role/config/session/thread/destination/lineage/claim bindings, and
+concurrent recovery cannot reconstruct permission.
 
-```bash
-python3 -m evaluation.cli corpus \
-  --bind-impact <exact-impact-token> \
-  --output /tmp/happycodex-corpus
-```
+Executor calibration, corpus, and adaptive holdout are three future authority
+gates. Each first needs a persisted source-derived cost envelope and complete
+exact invocation, then its own canonical current-task user approval. Calibration
+has no inherited historical cost; only one separately authorized bounded pilot
+may establish a sanitized actual-cost basis. Corpus authority cannot authorize
+holdout, and neither authorizes installation or release.
 
-Inspect the blinded adaptive holdout plan:
+Read-only behavior comparisons use fresh isolated homes/tasks and identical
+model, effort, fixture, prompt, timeout, and oracle. Arm identity is revealed
+only after results freeze. The first completion-blocking regression rejects; a
+first success requires a second distinct pair, and a third is used only for a
+split or uncertain result. At equal quality, uncached input plus output tokens
+and wall time must each remain within 25% of public 0.2.
 
-```bash
-python3 -m evaluation.cli holdout --dry-run
-```
-
-The same persisted authority must separately name the exact adaptive holdout
-invocation. Compare the immutable public `v0.4.0` package with raw output outside
-both source trees:
-
-```bash
-python3 -m evaluation.cli holdout \
-  --candidate . \
-  --public /path/to/public-checkout \
-  --bind-impact <exact-impact-token> \
-  --output /tmp/happycodex-holdouts
-```
-
-Raw events and identity-bearing metadata stay external. Only sanitized summaries,
-digests, fixed fixtures, and the explicit ledger state may be tracked.
-
-A completed exit-zero result with oracle failures is negative behavior evidence: corpus
-persists its failing summary, while holdout freezes the blind decision, reveals the
-mapping, and persists the regression receipt. Timeout, nonzero exit, or exception is
-infrastructure failure and aborts before summary or reveal promotion.
-
-This repository's maintainer release workflow—not ordinary HappyCodex Skill Runtime—
-runs one pre-freeze simplification review at `high`, escalating for a large diff,
-recurrence, legacy bypass, or unresolved complexity. Exact-final then uses two
-non-overlapping `max` roles: correctness/QA owns evaluator semantics, state, schema,
-oracles, and negative behavior; release/preservation owns package bytes, install,
-identity, rollback, public behavior, and release claims. Freeze a responsibility matrix
-that assigns every obligation and diff unit exactly one primary role; declare only
-specific cross-layer boundary checks instead of repeating full enumeration. Give both
-roles separate fresh sessions and durable outputs; only a role's two phases share its
-session. After their clean union, run the complete corpus once with at most four active
-workers and stable case-order projection; stop replenishing the frontier after the
-first infrastructure exception. Holdout pairs stay serial and adaptive; only the
-current pair's two blinded arms overlap, with stable alias projection. Corpus and
-holdout never overlap.
-
-Review identity binds product tree, reviewer role config, and review toolchain; its
-change invalidates exact review only. Behavior identity binds semantic package,
-evaluator semantic/harness inputs, settings, and evaluator toolchain. Artifact identity
-binds normalized package bytes and install receipt. Invalidate only evidence consuming
-the changed layer; ambiguity fails closed as semantic change.
-
-Every authorized invocation carries a unique persisted `attempt_id`. Before model
-dispatch an atomic exclusive receipt in Git metadata consumes that attempt, including
-when infrastructure later fails. No call is retried automatically. A later attempt
-requires a new persisted ID, exact invocation, and canonical user cost approval; the
-prior grant cannot be reused.
-
-Historical per-call wall times imply a conservative 21–40 minute planning band for a
-complete corpus plus adaptive holdout under this schedule. This is not a live
-measurement or certification claim, and bounded concurrency does not reduce token cost.
+Release-source preparation, exact-final review, isolated install, release, and
+activation remain later separate gates. Release preparation uses the official
+plugin-creator cachebuster helper exactly once; isolated install never reruns it.
+Activation is atomic and retains the paired prior package/config/cache state for
+rollback.

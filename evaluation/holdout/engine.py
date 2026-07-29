@@ -5,7 +5,6 @@ from concurrent.futures import ThreadPoolExecutor
 import json
 from pathlib import Path
 import re
-import tempfile
 from typing import Any, Callable
 
 from evaluation.core.identity import (
@@ -117,8 +116,23 @@ def _validate_pair_capability(
     effort: str,
     timeout: int,
 ) -> None:
-    del authorization, pair, candidate, public, model, effort, timeout
-    raise ValueError("generation-6 live capability is unavailable until Batch3")
+    from evaluation.live import _rebind_capability
+
+    _rebind_capability(authorization)
+    if (
+        pair["id"] != pair["case"]["id"].removesuffix("-holdout")
+        and not pair["id"]
+    ):
+        raise ValueError("holdout pair identity is invalid")
+    for plugin in (candidate, public):
+        if not plugin.resolve().is_dir():
+            raise ValueError("holdout plugin must be an existing directory")
+    invocation_profile(
+        model=model,
+        effort=effort,
+        timeout_seconds=timeout,
+        arm="blinded-pair",
+    )
 
 
 def _evaluate_pair_arms(
@@ -216,17 +230,17 @@ def run_pair(
 
 
 def resolve_output(requested: Path | None, *plugins: Path) -> Path:
-    output = (
-        requested.expanduser().resolve()
-        if requested is not None
-        else Path(tempfile.mkdtemp(prefix="happycodex-holdouts-")).resolve()
-    )
+    if requested is None or not requested.is_absolute():
+        raise ValueError("an explicit absolute raw output path is required")
+    if requested.is_symlink() or requested.exists():
+        raise ValueError("raw holdout output path must be absent and not a symlink")
+    parent = requested.parent
+    if parent.is_symlink() or not parent.is_dir():
+        raise ValueError("raw holdout output parent must be an existing real directory")
+    output = requested.resolve()
     for protected in (ROOT.resolve(), *(plugin.resolve() for plugin in plugins)):
         if output == protected or output.is_relative_to(protected):
             raise ValueError("raw holdout output must stay outside source and plugins")
-    output.mkdir(parents=True, exist_ok=True)
-    if any(output.iterdir()):
-        raise ValueError("raw holdout output directory must be empty")
     return output
 
 

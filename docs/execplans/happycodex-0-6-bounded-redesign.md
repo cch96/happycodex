@@ -2,30 +2,41 @@
 
 Protocol: `HappyCodex/0.5`
 
-Current index: G001-G005 are accepted Batch 1 source at commit
-`27ea46e27254426ee5737078117d43f28c9df523`. G006-G011 and Batch 2 are
-accepted at commit `788c42917bf1e1bcec2515a361ce68b32a25fb46`, tree
-`c1e5ba545399ac4a3a37a1396f1fccb5f69534f8`. G009 remains a rejected
-intermediate corrected by G010. G012 is the plan-only Batch 3 contract
-correction rejected pending this bounded G012R recurrence. G012R authorizes no
-G013 implementation.
+Current index: Batch 1 is accepted at
+`27ea46e27254426ee5737078117d43f28c9df523`; Batch 2 is accepted at
+`788c42917bf1e1bcec2515a361ce68b32a25fb46`. G009 and G012 remain rejected
+intermediates. G012R is accepted at
+`079b4565fd8ef063e8ff4e5b6815105fc14a2f7a`; G013, reconciled by G013C,
+constructs the bounded Batch 3 source commit. G014 and all live/release gates
+remain future.
 
-Restore guard: restore this entire ExecPlan, then reconcile the exact Git source,
-fixed Executor identity, three resource claims, external intent and receipts,
-current grant, phase, families, checks, candidate, evidence, agents, and any Goal
-before any write, review, effect, or completion claim. Conversation summaries,
-copied handles, and another task's source do not reconstruct authority.
+Restore guard: restore this ExecPlan, then reconcile Git source, fixed Executor,
+claims, external intent/receipts, grant, phase, families, checks, candidate,
+evidence, agents, and any Goal before writing or claiming completion.
+Summaries, copied handles, and another task's source do not reconstruct authority.
 
-Phase: `plan-only contract correction`. Active grant
-`HC06BR-G-012R-B3-contract-gaps`, sequence 12, family
-`F-06BR-EVALUATOR`, repair batch `RB-06BR-004/plan-contract`, recurrence 1.
-It binds prestate commit/tree
-`742498b86b7b122dae837e3b8b80e73b3d63daa5` /
-`909d3c240368b033b748ad4c88a38d38039a54dc`, the rejected G012 terminal
-receipt SHA-256
-`fc20ecd72d3e1fa4810880f550de20d517cdb32801f664355590f3bc3a3e1e03`,
-the same fixed Executor and claim, this one plan edit, exact checks, staging,
-commit, and post-commit verification.
+Phase: `Batch 3 bounded source construction`. Active grants
+`HC06BR-G-013-B3-source` and
+`HC06BR-G-013C-B3-source-continue`, sequence 13, family
+`F-06BR-EVALUATOR`, repair batch `RB-06BR-004/source`, recurrence 1. They
+bind prestate commit/tree
+`079b4565fd8ef063e8ff4e5b6815105fc14a2f7a` /
+`cc4e3bd56f1c7ca6133cf66d928ca55b76d2a1c1`, G012R receipt SHA-256
+`167393031703ca1c2ecb64e5e84fb8cadb73bd67f8eb12af4d1ea2bcf88ce3bd`,
+the fixed Executor and claim, the exact 22-path maximum, offline checks,
+staging, one source commit, post-commit verification, and terminal receipt.
+The external intent SHA-256 is
+`8fac605b62d7e02c10215c452b6a64305b05ee9c68faaebb1b5c932c865d5142`;
+the focused RED receipt SHA-256 is
+`33893fe04998889700f3125f99b3dee09d508e96983a20c1be3e853b12992cfe`.
+G013C records one verification-order deviation: two test-only patches occurred
+under one claim verification. Root independently audited the exact 21 dirty
+allowed paths and empty index; the mode-`0600` incident and continuation records
+have SHA-256
+`340ba7d9b65d9fb223adf6ecb446ab0397906e9c3f047d9d777ebbfd9a5f95fa` and
+`586c760aded9e42af40a583aefe65a62aabaee1277a4a8434eb515cb898207a9`.
+Continuation grants no waiver, wider scope, live effect, or completion decision;
+claim verification remains mandatory immediately before every later mutation.
 
 ## Operative request and normalized Outcome
 
@@ -99,13 +110,9 @@ fixed Executor. Receipt SHA-256 is
 `d6d7a7f3da1bf992382117a4511dc5120997f5ec5c928cad6c352e5fc1158f5a`.
 Accepted Batch 1 repairs them safely; the partial topology is historical.
 
-The earlier Fable 5 review performed through the Claude Code CLI remains retained
-design evidence. It established the need for structural action identity and
-phrase-independent progress. The existing CLI audit evidence likewise remains
-design input only. Neither audit is rerun, treated as current-candidate review, or
-used as generation-6 certification evidence. Retained audits were not rerun and
-no model or live effect occurred; accepted offline batches did run their recorded
-tests, verify, impact, and evaluator dry-runs.
+Earlier Fable 5 and CLI audits remain design input only. They are not rerun,
+current-candidate review, or generation-6 evidence. No model/live effect occurred;
+accepted offline batches ran their recorded offline checks.
 
 ## Superseded topology and design boundary
 
@@ -326,7 +333,7 @@ remain maintainer support and are never linked from Runtime Skill Markdown.
 | `F-06BR-RUNTIME` | semantic progress and event correction prevent equivalent repeated work and false GREEN | sealed parse/reduction plus action recomputation at both consumers | `Batch 1 accepted` | `RB-06BR-001/instance` | `0` |
 | `F-06BR-AUTHORITY` | exact binding, provenance, reducer action, capability, claim, authority, and attempt gate every effect | private issuance, recomputation, and exact enforcement | `Batch 1 and G010 accepted` | `RB-06BR-002/instance` | `0` |
 | `F-06BR-EVALUATOR` | terminal, identity, decision, ledger, and replay share strict parsing and exact recomputation | duplicate/order/terminal/path/key/raw-ledger divergence and consumer propagation | `Batch 2 accepted at 788c429` | `RB-06BR-003/instance` | `0` |
-| `F-06BR-SEMANTIC-ACTION-BOUNDARY` | facts cannot inject actions and trustworthy metadata cannot be reclassified | parser/reducer/replay/authority/projection attack matrix | `G012 rejected; G012R correction active; implementation unauthorized` | `RB-06BR-004/instance` | `1` |
+| `F-06BR-SEMANTIC-ACTION-BOUNDARY` | facts cannot inject actions and trustworthy metadata cannot be reclassified | parser/reducer/replay/authority/projection attack matrix | `G012 rejected; G012R accepted; G013 source active` | `RB-06BR-004/instance` | `1` |
 
 Holdout quality and cost comparison remain separate gated evidence. They do not
 collapse into a family merely because their engines consume shared semantics.
@@ -379,7 +386,7 @@ raw versus ledger mismatch.
 The invocation profile—effective provider/binary/model/effort/timeout/tool/
 network/MCP/hook/session facts—is mandatory at executor-pilot, corpus, holdout,
 and live boundaries. It is not ordinary Runtime state and does not change
-`ProgressKey` merely because administrative invocation data is recorded.
+`ProgressKey` for administrative invocation data alone.
 
 Offline authority fixtures prove allow/ask/refuse without a provider call. The
 accepted full offline GREEN commit closes exact 17/3 inventory, deletion proof,
@@ -393,8 +400,8 @@ The completed read-only Batch 3 audit verdict is **GO-WITH-CONDITIONS offline /
 NOT YET live**. The 6,900-line ceiling is feasible by deleting uncalled legacy
 validation and duplicate phase/projection semantics, but the current standalone
 CLI has no authenticated current-message/turn metadata and therefore cannot mint
-trustworthy authority. G012R corrects this design only; G013 and G014 require
-later exact grants.
+trustworthy authority. G012R corrects the design; G013 has the exact bounded
+offline source grant, while G014 still requires a later exact grant.
 
 The existing generation-6 genesis is a clean-break pre-anchor ledger. A null
 `source_anchor` is legitimate only while state is `refresh_required`, all three
@@ -718,12 +725,10 @@ G013 freezes these per-module hard ceilings:
 | `evaluation/semantic/decide.py` | 284 | `evaluation/semantic/parse.py` | 248 |
 | `evaluation/semantic/types.py` | 513 | **Total** | **6,637** |
 
-The total leaves 263 lines of required headroom beneath 6,900. Reductions must
-physically delete uncalled legacy validation, compatibility-era evidence
-structure, duplicate semantic projection, and repeated phase orchestration.
-They may not move production behavior outside `evaluation`, hide it in generated
-files/tests, collapse statements through formatting compression, or waive a
-module ceiling.
+The total leaves 263 lines beneath 6,900. Reductions physically delete legacy
+validation and duplicate evidence/phase semantics; they cannot move behavior
+outside `evaluation`, hide it in generated files/tests, compress formatting, or
+waive a module ceiling.
 
 ## Future authority and release gates
 
@@ -870,12 +875,12 @@ and accepted evidence, and null receipt head/certification. Historical cost,
 attempt, singular-authority, compatibility, and old-evidence paths are absent
 from active production.
 
-The semantic package remains exactly five files, at most 1,200 production lines
-and at most 20 exports. Runtime bytes remain unchanged. G012R corrects the
-read-only Batch 3 contract for future G013/G014 grants only. No Goal,
+The semantic package remains exactly five files, at most 1,200 lines and 20
+exports. Runtime bytes remain unchanged. G012R is the Batch 3 contract. G013/G013C
+implement only bounded offline source and a fresh pre-anchor ledger. No Goal,
 pilot, corpus, holdout, model/network/live call, exact-final, authority or attempt
-consumption, release-source preparation, install, release, marketplace/cachebuster,
-activation, delegation, claim release, G013, or G014 effect is authorized.
+consumption, release preparation, install, release, marketplace/cachebuster,
+activation, delegation, claim release, or G014 effect is authorized.
 
 Uncertainty rule: an outside path, changed prestate, unverified claim, ambiguous
 or partial effect, reproduction mismatch, unknown input, identity/config drift,
