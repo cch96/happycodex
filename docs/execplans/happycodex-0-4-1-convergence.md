@@ -278,16 +278,16 @@ this batch.
 ## Exact live-cost request
 
 Pinned Codex `0.145.0` with explicitly selected `rg` 15.1 from the Codex `0.144.4`
-tool bundle recomputed the frozen genesis without writing source or evidence. Snapshot
-SHA-256 is `b6a29d4c8944c7aa35aa1665ae8ef5a0a57efad3aad7c75ce82b2232e5ee1c96`;
-impact token is `3a3ed677d388fdfc5f547147c0f1787aa1943e328efaac03800a16edb6613a6f`;
+tool bundle recomputed the candidate-frozen genesis without writing source or evidence.
+Snapshot SHA-256 is
+`b976690786a84d493861833e4b99774312b640dfa00a91a590d40eddcce069f2`;
+impact token is `9fdff8af1263920a2a6b83aa7ff1176125a62747bbaece50767aae8208e5463d`;
 the canonical request SHA-256 is
-`67704584d312e4df04f4d8ce1d03064511cf551967a5f4d0e74160ca10b3ca67`;
+`f7185e8e0dc3c0071d0a3c41651cd7bae79d51c98bf7c3440aa96d4214fa7ae6`;
 and the canonical-response SHA-256 is
-`5ddce9bbc895e06613c5eaed0279e58fefb790e8d8f0ebe385b3de62fe0bd8c5`.
-Authority source is `current-task/user/happycodex-0.4.1-live-cost`. On 2026-07-29 the
-user returned the exact canonical line; its bytes and digest are now persisted in
-`evaluation/results/current.json`.
+`5a16b7f53f384fa0df1f89e7166608cf9a0118eabb20593b06cc4235ea74c138`.
+The intended authority source is
+`current-task/user/happycodex-0.4.1-live-cost-f7185e8e`; no authority is persisted.
 
 The request binds candidate semantic/artifact identities `65f293e8…f4c6a` /
 `e8424dbd…ac89`, model `gpt-5.6-sol`, effort `high`, timeout 300 seconds, candidate
@@ -304,20 +304,32 @@ settings, and all three ordered adaptive holdout pairs:
 `local-documentation-control`.
 
 Raw outputs, if authorized, stay outside Git under the task-owned namespace
-`/home/caichenghang/.codex/happycodex-0.4.1-live/67704584d312e4df/`, with distinct
+`/home/caichenghang/.codex/happycodex-0.4.1-live/f7185e8e0dc3c007/`, with distinct
 `corpus/` and `holdout/` destinations. The candidate path is this worktree; the exact
 public path is
 `/home/caichenghang/.codex/happycodex-release-installs/public-xsZBGOfm/codex/plugins/cache/happycodex/happycodex/0.4.0+codex.20260720074523`.
 The bounded exposure is 23–25 calls, 719,051–770,869 combined tokens, and
-3,757.028–4,032.239 seconds. The only valid grant, with no surrounding prose, is:
+3,757.028–4,032.239 seconds. Both invocations use `/usr/bin/python3.10`, the pinned
+Codex/rg `PATH`, model `gpt-5.6-sol`, effort `high`, timeout 300, and bind impact
+`9fdff8af…63d`. Corpus uses `--plugin` equal to this worktree, candidate arm, all
+17 cases, and output `…/f7185e8e0dc3c007/corpus`; holdout uses `--candidate` equal
+to this worktree, the exact public path above, all three pairs, and output
+`…/f7185e8e0dc3c007/holdout`.
 
 ```text
-APPROVE HAPPYCODEX LIVE COST 67704584d312e4df04f4d8ce1d03064511cf551967a5f4d0e74160ca10b3ca67
+env PATH=/home/caichenghang/.codex/packages/standalone/releases/0.145.0-aarch64-unknown-linux-musl/bin:/home/caichenghang/.codex/packages/standalone/releases/0.144.4-aarch64-unknown-linux-musl/codex-path:/home/caichenghang/.local/bin:/usr/local/bin:/usr/bin:/bin /usr/bin/python3.10 -m evaluation.cli corpus --plugin /home/caichenghang/projects/happycodex-worktrees/happycodex-0.4.1-convergence --model gpt-5.6-sol --effort high --timeout 300 --arm candidate --output /home/caichenghang/.codex/happycodex-0.4.1-live/f7185e8e0dc3c007/corpus --bind-impact 9fdff8af1263920a2a6b83aa7ff1176125a62747bbaece50767aae8208e5463d
+env PATH=/home/caichenghang/.codex/packages/standalone/releases/0.145.0-aarch64-unknown-linux-musl/bin:/home/caichenghang/.codex/packages/standalone/releases/0.144.4-aarch64-unknown-linux-musl/codex-path:/home/caichenghang/.local/bin:/usr/local/bin:/usr/bin:/bin /usr/bin/python3.10 -m evaluation.cli holdout --candidate /home/caichenghang/projects/happycodex-worktrees/happycodex-0.4.1-convergence --public /home/caichenghang/.codex/happycodex-release-installs/public-xsZBGOfm/codex/plugins/cache/happycodex/happycodex/0.4.0+codex.20260720074523 --model gpt-5.6-sol --effort high --timeout 300 --output /home/caichenghang/.codex/happycodex-0.4.1-live/f7185e8e0dc3c007/holdout --bind-impact 9fdff8af1263920a2a6b83aa7ff1176125a62747bbaece50767aae8208e5463d
 ```
 
-This request was consumed only by the terminal first corpus attempt above. It granted
-no source repair or future live run; `RB-006` invalidates it and requires a fresh
-request after the next frozen genesis.
+The only valid grant, with no surrounding prose, is:
+
+```text
+APPROVE HAPPYCODEX LIVE COST f7185e8e0dc3c0071d0a3c41651cd7bae79d51c98bf7c3440aa96d4214fa7ae6
+```
+
+The prior `67704584…ca67` request was consumed only by the historical first corpus
+attempt and remains invalid. This fresh request is unconsumed and grants no source
+repair, release, installation, or activation.
 
 ## Retrospective
 
