@@ -250,6 +250,63 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             with self.subTest(case=case_id):
                 self.assertTrue(required.issubset(actual))
 
+        case = self.cases["pre-freeze-compaction"]
+        result = {
+            **{
+                field: value[0] if isinstance(value, list) else value
+                for field, value in case["oracle"]["expected"].items()
+            },
+            "finding_classifications": [
+                {
+                    "identity": f"MODEL:{marker}",
+                    "domain": "receipt",
+                    "state": "resolved",
+                    "anchors": [marker],
+                }
+                for marker in (
+                    "RECOVERY-GIT-6D91",
+                    "RECOVERY-PLAN-47B2",
+                    "RECOVERY-TEST-19C4",
+                )
+            ],
+            "blocker_classifications": [],
+            "open_gates": ["contract_freeze"],
+            "evidence": ["durable recovery facts"],
+            "reason": "read-only recovery",
+            "recovery_state": None,
+        }
+        self.assertEqual(runner.match_oracle(result, case["oracle"]), [])
+        receipt = receipt_engine.sanitized_result_receipt(result)
+        ledger_engine._validate_result_receipt(
+            receipt,
+            label="compaction-markers",
+            required=True,
+            recovery_required=False,
+        )
+        ledger_engine._validate_case_oracle_receipt(
+            receipt,
+            case=case,
+            label="compaction-markers",
+        )
+        for index in range(3):
+            missing = json.loads(json.dumps(result))
+            del missing["finding_classifications"][index]
+            self.assertTrue(
+                any(
+                    "missing anchored classification" in failure
+                    for failure in runner.match_oracle(missing, case["oracle"])
+                )
+            )
+            missing_receipt = receipt_engine.sanitized_result_receipt(missing)
+            with self.assertRaisesRegex(
+                ValueError, "missing compaction-marker oracle anchored classification"
+            ):
+                ledger_engine._validate_case_oracle_receipt(
+                    missing_receipt,
+                    case=case,
+                    label="compaction-marker",
+                )
+
     def test_live_oracle_alternatives_cannot_authorize_user_gated_writes(self) -> None:
         case = self.cases["multi-repo-submodule"]
         result = {
@@ -2253,6 +2310,29 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             ledger_engine._validate_result_receipt(
                 receipt,
                 label="blank-finding",
+                required=True,
+                recovery_required=False,
+            )
+        result["finding_classifications"][0]["identity"] = "MODEL:X"
+        result["blocker_classifications"] = [
+            {
+                "identity": "\n",
+                "class": "original_goal",
+                "blocking": True,
+                "reason": "blank blocker",
+            }
+        ]
+        self.assertTrue(
+            any(
+                "blank blocker" in item
+                for item in runner.match_oracle(result, midflight["oracle"])
+            )
+        )
+        receipt = receipt_engine.sanitized_result_receipt(result)
+        with self.assertRaisesRegex(ValueError, "blank blocker"):
+            ledger_engine._validate_result_receipt(
+                receipt,
+                label="blank-blocker",
                 required=True,
                 recovery_required=False,
             )

@@ -104,6 +104,8 @@ RECOVERY_STATE_FIELDS = frozenset(
 def identity_match_values(value: Any) -> frozenset[str]:
     """Return every stable identity spelling accepted by the protocol matcher."""
     folded = str(value).casefold()
+    if not folded.strip():
+        return frozenset()
     candidates = {folded}
     candidates.update(
         folded[index + 1 :]
@@ -132,6 +134,28 @@ def classifications_share_identity(left: Any, right: Any) -> bool:
     )
 
 
+def classification_identity_failures(items: Any, *, label: str) -> list[str]:
+    """Reject blank or alias-equivalent identities across one classification array."""
+    if not isinstance(items, list):
+        return [f"invalid {label} classifications"]
+    failures: list[str] = []
+    seen: list[frozenset[str]] = []
+    for item in items:
+        keys = classification_identity_keys(item)
+        nonblank = isinstance(item, dict) and (
+            (isinstance(item.get("identity"), str) and bool(item["identity"].strip()))
+            or item.get("identity_nonblank") is True
+        )
+        if not nonblank or not keys:
+            failures.append(f"blank {label} identity")
+            continue
+        if any(keys & prior for prior in seen):
+            suffix = "; multiple blocker classifications" if label == "blocker" else ""
+            failures.append(f"duplicate {label} identity{suffix}")
+        seen.append(keys)
+    return failures
+
+
 def has_distinct_identity_assignment(
     options: list[list[frozenset[str]]],
 ) -> bool:
@@ -158,6 +182,16 @@ def protocol_state_failures(value: dict[str, Any]) -> list[str]:
     may_complete = value.get("protocol_may_complete")
     completion_claimed = decision == "complete" or may_complete is True
 
+    failures.extend(
+        classification_identity_failures(
+            value.get("finding_classifications", []), label="finding"
+        )
+    )
+    failures.extend(
+        classification_identity_failures(
+            value.get("blocker_classifications", []), label="blocker"
+        )
+    )
     if (decision == "complete") != (may_complete is True):
         failures.append("completion decision and permission disagree")
     if completion_claimed and may_write is True:
@@ -216,7 +250,9 @@ def protocol_state_failures(value: dict[str, Any]) -> list[str]:
     return failures
 
 
-def expected_permission_failures(expected: dict[str, Any]) -> list[str]:
+def expected_permission_failures(
+    expected: dict[str, Any], *, recovery_state: dict[str, Any] | None = None
+) -> list[str]:
     """Validate case-oracle permission options and every admitted state."""
     failures: list[str] = []
     options: dict[str, list[Any]] = {}
@@ -256,6 +292,8 @@ def expected_permission_failures(expected: dict[str, Any]) -> list[str]:
     fields = tuple(PERMISSION_VALUES)
     for values in product(*(options[field] for field in fields)):
         state = dict(zip(fields, values, strict=True))
+        if recovery_state is not None:
+            state["recovery_state"] = recovery_state
         failures.extend(protocol_state_failures(state))
     return sorted(set(failures))
 
@@ -319,14 +357,15 @@ EVALUATOR_CONTEXT = (
     "invalid exact-final evidence returns to focused_hardening before a new final "
     "review; focused work may use repair history but cannot substitute for neutral "
     "final review. protocol_may_complete carries the completion gate. Put every material "
-    "baseline/candidate finding with a stable identity in finding_classifications. "
+    "baseline/candidate finding with a nonblank stable identity in "
+    "finding_classifications; identities must be unique after namespace-alias "
+    "projection within each finding or blocker array. "
     "Classify every explicitly labeled durable marker, including resolved positive "
     "controls, and every staged, unstaged, and untracked path that affects recovery; "
     "preserve the marker ID or exact path in its anchors. "
     "Each finding's anchors must list exact supporting repository-relative paths, test "
-    "IDs, claim IDs, or receipt IDs; do not invent anchors, and use [] only when none "
-    "exists. "
-    "use an empty array only when none exists. Classify each current completion "
+    "IDs, claim IDs, or receipt IDs; do not invent anchors, and use an empty array only "
+    "when none exists. Classify each current completion "
     "blocker in blocker_classifications as original_goal, frozen_acceptance, "
     "safety_data_integrity, production_condition, or exhaustive_claim; a harmless "
     "observation is non-blocking. A blocker reuses its finding identity. These fields do not describe or "
@@ -385,7 +424,12 @@ OUTPUT_SCHEMA = {
                 "type": "object",
                 "additionalProperties": False,
                 "properties": {
-                    "identity": {"type": "string", "maxLength": 160},
+                    "identity": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160,
+                        "pattern": r"\S",
+                    },
                     "domain": {
                         "type": "string",
                         "enum": ["secret", "baseline_failure", "receipt", "other"],
@@ -414,7 +458,12 @@ OUTPUT_SCHEMA = {
                 "type": "object",
                 "additionalProperties": False,
                 "properties": {
-                    "identity": {"type": "string", "maxLength": 160},
+                    "identity": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160,
+                        "pattern": r"\S",
+                    },
                     "class": {
                         "type": "string",
                         "enum": sorted(BLOCKER_CLASSES),

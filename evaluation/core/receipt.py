@@ -101,6 +101,9 @@ def sanitized_result_receipt(value: Any) -> dict[str, Any] | None:
                 "identity_match_sha256s": identity_match_sha256s(
                     item.get("identity", "")
                 ),
+                "identity_nonblank": bool(
+                    isinstance(item.get("identity"), str) and item["identity"].strip()
+                ),
                 "domain": item.get("domain"),
                 "state": item.get("state"),
                 "anchors_count": len(item.get("anchors", []))
@@ -125,6 +128,9 @@ def sanitized_result_receipt(value: Any) -> dict[str, Any] | None:
                 ),
                 "identity_match_sha256s": identity_match_sha256s(
                     item.get("identity", "")
+                ),
+                "identity_nonblank": bool(
+                    isinstance(item.get("identity"), str) and item["identity"].strip()
                 ),
                 "class": item.get("class"),
                 "blocking": item.get("blocking"),

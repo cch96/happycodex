@@ -340,6 +340,14 @@ def validate_case(case: dict[str, Any], path: Path) -> None:
             }
         ):
             raise ValueError(f"invalid native compaction values: {case['id']}")
+        recovery_permission_failures = expected_permission_failures(
+            expected, recovery_state=native["recovery_oracle"]
+        )
+        if recovery_permission_failures:
+            raise ValueError(
+                f"invalid recovery permission state: {case['id']}: "
+                + "; ".join(recovery_permission_failures)
+            )
         prompts.extend((native["prepare_prompt"], native["fresh_recovery_prompt"]))
     for entry in fixture["commits"]:
         generated = generated_fixture_files(entry.get("generated_files"))
@@ -1403,13 +1411,6 @@ def match_oracle(
         )
     actual_findings = result.get("finding_classifications", [])
     actual_blockers = result.get("blocker_classifications", [])
-    seen_blocker_identities: set[str] = set()
-    for blocker in actual_blockers:
-        identity = str(blocker.get("identity", ""))
-        identity_key = identity.casefold()
-        if identity_key in seen_blocker_identities:
-            failures.append(f"multiple blocker classifications: {identity}")
-        seen_blocker_identities.add(identity_key)
     if (
         fixture is not None
         and fixture_requires_goal_pause_handoff(fixture)

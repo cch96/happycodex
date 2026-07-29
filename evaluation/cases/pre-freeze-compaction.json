@@ -63,6 +63,23 @@
       "protocol_review_mode": "none",
       "protocol_may_complete": false
     },
+    "required_anchored_classifications": [
+      {
+        "anchor": "RECOVERY-GIT-6D91",
+        "domain": "receipt",
+        "state": "resolved"
+      },
+      {
+        "anchor": "RECOVERY-PLAN-47B2",
+        "domain": "receipt",
+        "state": "resolved"
+      },
+      {
+        "anchor": "RECOVERY-TEST-19C4",
+        "domain": "receipt",
+        "state": "resolved"
+      }
+    ],
     "prompt_forbidden": ["RECOVERY-PLAN-47B2", "RECOVERY-TEST-19C4", "RECOVERY-GIT-6D91", "BC-4", "legacy retry bypass", "contract-freeze revision", "queue-migration.md"]
   }
 }

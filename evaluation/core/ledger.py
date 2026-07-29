@@ -38,6 +38,7 @@ from evaluation.corpus.contract import (
     RECOVERY_GATE_FIELDS,
     classifications_share_identity,
     has_distinct_identity_assignment,
+    identity_match_values,
     protocol_state_failures,
 )
 from evaluation.holdout.blind import completed_quality
@@ -238,6 +239,7 @@ FINDING_RECEIPT_FIELDS = {
     "identity_sha256",
     "identity_casefold_sha256",
     "identity_match_sha256s",
+    "identity_nonblank",
     "domain",
     "state",
     "anchors_count",
@@ -248,6 +250,7 @@ BLOCKER_RECEIPT_FIELDS = {
     "identity_sha256",
     "identity_casefold_sha256",
     "identity_match_sha256s",
+    "identity_nonblank",
     "class",
     "blocking",
     "reason_sha256",
@@ -937,6 +940,12 @@ def _casefold_text_sha256(value: Any) -> str:
     return sha256_bytes(str(value).casefold().encode())
 
 
+def _identity_match_sha256s(value: Any) -> frozenset[str]:
+    return frozenset(
+        _casefold_text_sha256(candidate) for candidate in identity_match_values(value)
+    )
+
+
 def _validate_digest_list(value: Any, *, label: str, required: bool) -> None:
     if (
         not isinstance(value, list)
@@ -1027,9 +1036,9 @@ def _validate_case_oracle_receipt(
     for required in oracle.get("required_classifications", []):
         states = required["state"]
         allowed_states = states if isinstance(states, list) else [states]
-        identity = _casefold_text_sha256(required["identity"])
+        identities = _identity_match_sha256s(required["identity"])
         if not any(
-            identity in finding["identity_match_sha256s"]
+            identities & set(finding["identity_match_sha256s"])
             and finding["domain"] == required["domain"]
             and finding["state"] in allowed_states
             for finding in findings
@@ -1042,9 +1051,9 @@ def _validate_case_oracle_receipt(
         ):
             raise ValueError(f"missing {label} oracle blocker-class receipt")
     for required in oracle.get("required_blocker_classifications", []):
-        identity = _casefold_text_sha256(required["identity"])
+        identities = _identity_match_sha256s(required["identity"])
         if not any(
-            identity in blocker["identity_match_sha256s"]
+            identities & set(blocker["identity_match_sha256s"])
             and blocker["class"] == required["class"]
             and blocker["blocking"] is True
             for blocker in blockers
@@ -1096,7 +1105,7 @@ def _validate_case_oracle_receipt(
         )
     if value["decision"] == "complete" or value["protocol_may_complete"] is True:
         accepted = [
-            _casefold_text_sha256(identity)
+            (identity, _identity_match_sha256s(identity))
             for identity in oracle.get("accepted_baseline_failures", [])
         ]
         for finding in findings:
@@ -1104,8 +1113,8 @@ def _validate_case_oracle_receipt(
                 finding["domain"] == "baseline_failure"
                 and finding["state"] == "baseline_unchanged"
                 and sum(
-                    identity in finding["identity_match_sha256s"]
-                    for identity in accepted
+                    bool(identities & set(finding["identity_match_sha256s"]))
+                    for _, identities in accepted
                 )
                 != 1
             ):
@@ -1226,6 +1235,7 @@ def _validate_result_receipt(
             not in {"secret", "baseline_failure", "receipt", "other"}
             or finding.get("state")
             not in {"baseline_unchanged", "resolved", "candidate_new", "unknown"}
+            or not isinstance(finding.get("identity_nonblank"), bool)
             or not _nonnegative_int(finding.get("anchors_count"))
         ):
             raise ValueError(f"invalid {label} result finding receipt")
@@ -1237,6 +1247,8 @@ def _validate_result_receipt(
             _require_digest(
                 finding.get(field), length=64, label=f"{label} finding {field}"
             )
+        if finding["identity_nonblank"] is not True:
+            raise ValueError(f"invalid {label} blank finding identity")
         _validate_digest_list(
             finding.get("identity_match_sha256s"),
             label=f"{label} finding identity matches",
@@ -1257,6 +1269,7 @@ def _validate_result_receipt(
             or set(blocker) != BLOCKER_RECEIPT_FIELDS
             or blocker.get("class") not in BLOCKER_CLASSES
             or not isinstance(blocker.get("blocking"), bool)
+            or not isinstance(blocker.get("identity_nonblank"), bool)
         ):
             raise ValueError(f"invalid {label} result blocker receipt")
         for field in (
@@ -1267,6 +1280,8 @@ def _validate_result_receipt(
             _require_digest(
                 blocker.get(field), length=64, label=f"{label} blocker {field}"
             )
+        if blocker["identity_nonblank"] is not True:
+            raise ValueError(f"invalid {label} blank blocker identity")
         _validate_digest_list(
             blocker.get("identity_match_sha256s"),
             label=f"{label} blocker identity matches",
@@ -1274,9 +1289,6 @@ def _validate_result_receipt(
         )
         if blocker["identity_casefold_sha256"] not in blocker["identity_match_sha256s"]:
             raise ValueError(f"invalid {label} result blocker identity matches")
-    blocker_identities = [item["identity_casefold_sha256"] for item in blockers]
-    if len(set(blocker_identities)) != len(blocker_identities):
-        raise ValueError(f"invalid {label} duplicate blocker receipt")
     if expected_permissions is not None:
         for field in PERMISSION_FIELDS:
             allowed = expected_permissions.get(field)
