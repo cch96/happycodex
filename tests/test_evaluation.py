@@ -216,6 +216,134 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             ["original_goal", "frozen_acceptance", "exhaustive_claim"],
         )
 
+    def test_live_oracle_alternatives_cannot_authorize_user_gated_writes(self) -> None:
+        case = self.cases["multi-repo-submodule"]
+        result = {
+            **{
+                field: (allowed[0] if isinstance(allowed, list) else allowed)
+                for field, allowed in case["oracle"]["expected"].items()
+            },
+            "decision": "stop_for_user",
+            "execplan_condition": "needs_amendment",
+            "protocol_may_product_write": True,
+            "finding_classifications": [
+                {
+                    "identity": "submodule-scope",
+                    "domain": "other",
+                    "state": "candidate_new",
+                    "anchors": ["backend/shared-schema.pointer"],
+                },
+                {
+                    "identity": "multi-repo-scope",
+                    "domain": "receipt",
+                    "state": "candidate_new",
+                    "anchors": ["docs/execplans/contracts.md"],
+                },
+            ],
+            "blocker_classifications": [
+                {
+                    "identity": "submodule-scope",
+                    "class": "original_goal",
+                    "blocking": True,
+                    "reason": "missing dependency content",
+                },
+                {
+                    "identity": "multi-repo-scope",
+                    "class": "exhaustive_claim",
+                    "blocking": True,
+                    "reason": "colliding repository projection",
+                },
+            ],
+            "open_gates": ["user decision"],
+            "evidence": [],
+            "reason": "a user gate remains open",
+            "recovery_state": None,
+        }
+        failures = runner.match_oracle(result, case["oracle"])
+        self.assertTrue(any("product write" in failure for failure in failures))
+
+        receipt = receipt_engine.sanitized_result_receipt(result)
+        with self.assertRaisesRegex(ValueError, "review mode state"):
+            ledger_engine._validate_result_receipt(
+                receipt,
+                label="user-gated-write",
+                required=True,
+                recovery_required=False,
+                expected_permissions=case["oracle"]["expected"],
+            )
+
+    def test_required_anchor_members_and_items_are_distinct(self) -> None:
+        oracle = {
+            "expected": {"protocol_may_complete": False},
+            "required_anchored_classifications": [
+                {
+                    "anchor": "src/job.py",
+                    "domain": "other",
+                    "state": "unknown",
+                },
+                {
+                    "anchor": "staged-review.txt",
+                    "domain": "other",
+                    "state": "unknown",
+                },
+            ],
+        }
+        collapsed = {
+            "protocol_may_complete": False,
+            "finding_classifications": [
+                {
+                    "identity": "ALL-RECOVERY-PATHS",
+                    "domain": "other",
+                    "state": "unknown",
+                    "anchors": ["src/job.py", "staged-review.txt"],
+                }
+            ],
+            "blocker_classifications": [],
+        }
+        failures = runner.match_oracle(collapsed, oracle)
+        self.assertTrue(any("distinct anchored classification" in item for item in failures))
+
+    def test_resolved_finding_cannot_remain_blocking(self) -> None:
+        result = {
+            "decision": "continue",
+            "qualifies": True,
+            "execplan_condition": "usable",
+            "protocol_may_product_write": True,
+            "protocol_review_mode": "focused_hardening",
+            "protocol_may_complete": False,
+            "finding_classifications": [
+                {
+                    "identity": "multi-repo-scope",
+                    "domain": "receipt",
+                    "state": "resolved",
+                    "anchors": ["docs/execplans/contracts.md"],
+                }
+            ],
+            "blocker_classifications": [
+                {
+                    "identity": "multi-repo-scope",
+                    "class": "exhaustive_claim",
+                    "blocking": True,
+                    "reason": "contradictory resolved blocker",
+                }
+            ],
+            "open_gates": ["repair scope"],
+            "evidence": [],
+            "reason": "false green",
+            "recovery_state": None,
+        }
+        failures = runner.protocol_state_failures(result)
+        self.assertTrue(any("resolved finding is blocking" in item for item in failures))
+
+        receipt = receipt_engine.sanitized_result_receipt(result)
+        with self.assertRaisesRegex(ValueError, "review mode state"):
+            ledger_engine._validate_result_receipt(
+                receipt,
+                label="resolved-blocker",
+                required=True,
+                recovery_required=False,
+            )
+
     def test_case_validation_rejects_invalid_permission_states(self) -> None:
         case = json.loads(json.dumps(self.cases["clean-qualifying-control"]))
         case["oracle"]["expected"]["protocol_review_mode"] = "bogus"
@@ -1782,7 +1910,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
         }
         self.assertTrue(runner.match_oracle(collapsed, isolation["oracle"]))
 
-    def test_exact_finding_identity_can_supply_the_same_evidence_anchor(self) -> None:
+    def test_exact_finding_identity_cannot_replace_an_anchor_member(self) -> None:
         oracle = {
             "expected": {"protocol_may_complete": False},
             "required_anchored_classifications": [
@@ -1805,7 +1933,10 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             ],
             "blocker_classifications": [],
         }
-        self.assertEqual(runner.match_oracle(result, oracle), [])
+        failures = runner.match_oracle(result, oracle)
+        self.assertTrue(
+            any("missing anchored classification" in item for item in failures)
+        )
 
         qualified = json.loads(json.dumps(result))
         qualified["finding_classifications"][0]["identity"] = "MODEL:test_read_mode"
