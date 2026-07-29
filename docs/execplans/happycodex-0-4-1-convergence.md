@@ -219,15 +219,17 @@ all consumers. No live call or exact-final review runs in this batch.
 
 ## Exact live-cost request
 
-Pinned Codex `0.144.4` and its bundled `rg` 15.1 recomputed the frozen genesis without
-writing source or evidence. Snapshot SHA-256 is `b6a29d4c8944c7aa35aa1665ae8ef5a0a57efad3aad7c75ce82b2232e5ee1c96`;
+Pinned Codex `0.145.0` with explicitly selected `rg` 15.1 from the Codex `0.144.4`
+tool bundle recomputed the frozen genesis without writing source or evidence. Snapshot
+SHA-256 is `b6a29d4c8944c7aa35aa1665ae8ef5a0a57efad3aad7c75ce82b2232e5ee1c96`;
 impact token is `3a3ed677d388fdfc5f547147c0f1787aa1943e328efaac03800a16edb6613a6f`;
 the canonical request SHA-256 is
 `67704584d312e4df04f4d8ce1d03064511cf551967a5f4d0e74160ca10b3ca67`;
 and the canonical-response SHA-256 is
 `5ddce9bbc895e06613c5eaed0279e58fefb790e8d8f0ebe385b3de62fe0bd8c5`.
-The future authority source is
-`current-task/user/happycodex-0.4.1-live-cost`. No authority is yet persisted.
+Authority source is `current-task/user/happycodex-0.4.1-live-cost`. On 2026-07-29 the
+user returned the exact canonical line; its bytes and digest are now persisted in
+`evaluation/results/current.json`.
 
 The request binds candidate semantic/artifact identities `65f293e8…f4c6a` /
 `e8424dbd…ac89`, model `gpt-5.6-sol`, effort `high`, timeout 300 seconds, candidate
