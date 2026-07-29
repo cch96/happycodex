@@ -227,7 +227,11 @@ class HappyCodexEvaluationTests(unittest.TestCase):
         self.assertIn("lifecycle", domain_text)
         self.assertIn("other", domain_text)
 
-        long_path = f"{'a' * 100}/{'b' * 90}/file.py"
+        long_path = f"{'segment' * 12}/{'part' * 30}/file.py/{'tail' * 20}"
+        self.assertGreaterEqual(
+            finding["anchors"]["items"]["maxLength"],
+            len(long_path),
+        )
         paths = ("frontend/config.py", "backend/config.py", long_path)
         result = {
             "decision": "continue",
