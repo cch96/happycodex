@@ -2,10 +2,9 @@
 
 Protocol: `HappyCodex/0.5`
 
-Current index: independent 0.6 bounded-redesign bootstrap contract. This plan
-supersedes the inherited semantic-core plan as the unique current index on this
-branch. The bootstrap revision is plan-only; no Batch 1 implementation or test
-claim is part of it.
+Current index: independent 0.6 bounded-redesign contract plus the active
+source-derived command-schedule correction. Accepted G001 is the plan-only
+bootstrap source; no Batch 1 implementation claim is part of it.
 
 Restore guard: restore this entire ExecPlan, then reconcile the exact Git source,
 fixed Executor identity, three resource claims, external intent and receipts,
@@ -14,9 +13,10 @@ before any write, review, effect, or completion claim. Conversation summaries,
 copied handles, and another task's source do not reconstruct authority.
 
 Phase: `implementation`. Active grant:
-`HC06BR-G-001-bootstrap-contract`, sequence 1, with the Root-authorized
-bootstrap-order correction recorded below. The grant ends after one plan-only
-commit, terminal receipt, and verification. Batch 1 remains unauthorized.
+`HC06BR-G-002-command-schedule-correction`, sequence 2, plan-only. G001 is
+Root-accepted and `CLOSED`. G002 changes no Outcome, accepted baseline,
+allowed break, family, batch path inventory, or implementation authority. Batch 1
+remains unauthorized.
 
 ## Operative request and normalized Outcome
 
@@ -91,15 +91,24 @@ baseline. It already contains the inherited partial semantic-core work:
 semantic-core ExecPlan. Those bytes are inputs to this redesign, not accepted
 implementation evidence and not a topology to preserve.
 
-A previously reproduced full suite at this exact commit reported 195 tests with
-three failures. This result is classified `candidate-new/open`, not
-baseline-accepted and not rerun during bootstrap:
+A Root reproduction against the accepted G001 plan-only product baseline ran
+exactly:
+
+```text
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p 'test_*.py' -v
+```
+
+It completed 195 tests in 8.524 seconds with exactly three failures and no other
+failure. This result is `candidate-new/open`, not baseline-accepted:
 
 - `BR-FIND-BASE-001`: the certification full-suite module inventory did not
-  match the newly present semantic package;
-- `BR-FIND-BASE-002`: the stdlib/import policy rejected a relative import in the
-  partial semantic package;
-- `BR-FIND-BASE-003`: the same policy exposed a second relative-import failure.
+  match the newly present semantic package at
+  `CertificationIdentityTests.test_inventory_classifies_every_engine_module_and_schema`;
+- `BR-FIND-BASE-002`: the stdlib/import-policy subtest failed for
+  `evaluation/semantic/__init__.py` at
+  `HappyCodexContractTests.test_python_validation_uses_only_declared_stdlib_dependencies`;
+- `BR-FIND-BASE-003`: the same import-policy test's second subtest failed for
+  `evaluation/semantic/types.py`.
 
 Batch 1 must reproduce the exact failures from the immutable base, bind their
 actual test identities/output receipt, and repair them without weakening
@@ -349,7 +358,12 @@ the evaluator.
 Batch 1 ends only at a reachable commit whose focused checks and entire offline
 suite are GREEN and whose plan records the RED receipts, changed paths, budgets,
 and exact check receipt. It authorizes no model/provider/evaluator live effect and
-does not advance an accepted baseline merely by becoming GREEN.
+does not advance an accepted baseline merely by becoming GREEN. Batch 1 closes
+semantic production LOC at or below 1,200, public exports at or below 20, and both
+Runtime line/word limits. It measures total evaluation production Python LOC but
+does not treat the 6,900 ceiling as a Batch 1 closure gate. Its evaluator commands
+are only `verify`, `corpus --dry-run`, and `holdout --dry-run`; the accepted
+prestate has no `executor` subcommand, and Batch 1 cannot edit the CLI.
 
 ## Batch 2: shared terminal, corpus, ledger, and replay semantics
 
@@ -392,6 +406,11 @@ Offline authority tests use deterministic fixtures with no current user authorit
 and prove allow/ask/refuse behavior without issuing a provider call. Batch 2 ends
 only in another reachable full offline GREEN commit with the exact 17/3 inventory,
 deletion proof, focused receipts, dry-run non-effect receipts, and budgets.
+Batch 2 owns `evaluation/cli.py` and adds one strict offline
+`executor --dry-run` entrypoint under an observed RED and GREEN. That dry-run
+must create no model call, capability, attempt consumption, fixture, output,
+workspace mutation, or authority consumption. From Batch 2 onward, terminal
+checks include `verify` plus executor, corpus, and holdout dry-runs.
 
 ## Batch 3: fresh evidence, effect ordering, recovery, and candidate source
 
@@ -626,8 +645,11 @@ batch ends in full offline GREEN, not merely focused GREEN.
 
 Comments/docstrings count as production LOC. Test LOC does not count toward the
 evaluation production limit. Generated evidence/output does not count as source
-and may not hide production behavior. A budget miss blocks terminal GREEN; it is
-not waived by passing tests.
+and may not hide production behavior. Semantic/public-export and Runtime budgets
+are blocking Batch 1 closure gates and remain checked later. Total evaluation
+production Python LOC is measured after every batch but becomes a blocking closure
+gate only in Batch 3, after duplicate consumer semantics are deleted. A due budget
+miss blocks terminal GREEN and is not waived by passing tests.
 
 ## Future authority and release gates
 
@@ -706,8 +728,23 @@ The helper verification runs again immediately before edit, stage, commit, and
 terminal receipt. Its raw owner token remains only in the mode-0600 private
 receipt; repository/control documents record its SHA-256 only.
 
-Each later batch has grant-specific RED/focused commands, then the same terminal
-offline commands:
+Batch 1 has grant-specific RED/focused commands, then exactly:
+
+```text
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p 'test_*.py' -v
+python3 -m evaluation.cli verify
+python3 -m evaluation.cli corpus --dry-run
+python3 -m evaluation.cli holdout --dry-run
+git diff --check
+wc -l -w skills/happycodex/SKILL.md skills/happycodex/references/execplan.md
+wc -l evaluation/semantic/{__init__,types,canonical,parse,decide}.py
+PYTHONDONTWRITEBYTECODE=1 python3 -c 'import evaluation.semantic as semantic; print(len(semantic.__all__))'
+find evaluation -type f -name '*.py' -print0 | sort -z | xargs -0 wc -l
+wc -l -w docs/execplans/happycodex-0-6-bounded-redesign.md
+```
+
+Batch 1 must not run the nonexistent `executor --dry-run`. Batch 2 first adds that
+entrypoint under RED/GREEN. From Batch 2 onward, the terminal schedule is:
 
 ```text
 PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p 'test_*.py' -v
@@ -717,13 +754,35 @@ python3 -m evaluation.cli corpus --dry-run
 python3 -m evaluation.cli holdout --dry-run
 git diff --check
 wc -l -w skills/happycodex/SKILL.md skills/happycodex/references/execplan.md
+wc -l evaluation/semantic/{__init__,types,canonical,parse,decide}.py
+PYTHONDONTWRITEBYTECODE=1 python3 -c 'import evaluation.semantic as semantic; print(len(semantic.__all__))'
 find evaluation -type f -name '*.py' -print0 | sort -z | xargs -0 wc -l
 wc -l -w docs/execplans/happycodex-0-6-bounded-redesign.md
 ```
 
-Only `python3 -m evaluation.cli` invokes evaluator behavior. Dry-runs must prove
-zero model, attempt, fixture, output, workspace, and authority-consumption effect.
-No evaluator command runs during bootstrap.
+Only `python3 -m evaluation.cli` invokes evaluator behavior. Every dry-run must
+prove zero model, capability, attempt, fixture, output, workspace, and
+authority-consumption effect. No evaluator command runs during G001 or G002.
+
+## G002 monotonic command-schedule correction
+
+Accepted G001 is commit
+`39401d20ffa900f277a3317e0422a6d1c14f3ea2`, tree
+`14ab3b7279dacd6114ae66dc66164c83aa2ee9d2`. Root independently verified its
+plan/trailer/path inventory/claims and terminal receipt SHA-256
+`055564e7d593732080df6017ee59dc3d3472456a51291c67a8d8db7218f8e898`;
+G001 is `CLOSED` and non-renewable.
+
+G002 binds that exact accepted prestate, the same fixed Executor, and the same
+one-token worktree/ref/ledger claim. Its only repository path is this ExecPlan.
+External durable intent:
+`/home/caichenghang/.codex/happycodex-0.6-bounded-redesign-g002-intent.json`;
+SHA-256
+`4de0f13919247ed03c5e5b7e3ac77d89e420bd77bfdb4813cb99acb15bc1560e`.
+The terminal receipt path is
+`/home/caichenghang/.codex/happycodex-0.6-bounded-redesign-g002-receipt.json`.
+G002 authorizes no test, evaluator, product, Runtime, model, network, live,
+install, release, marketplace, or activation action.
 
 ## Bootstrap writer binding, claims, and receipt
 
@@ -768,7 +827,7 @@ read-only verification, and one external terminal receipt at:
 `/home/caichenghang/.codex/happycodex-0.6-bounded-redesign-bootstrap-receipt.json`.
 It permits no Batch 1 change or test/evaluator command.
 
-## Bootstrap verification and checkpoint
+## Accepted bootstrap and current checkpoint
 
 Post-commit verification must prove:
 
@@ -790,25 +849,27 @@ Post-commit verification must prove:
 - the terminal receipt is mode `0600`, valid JSON, content-addressed, and read back
   before stopping.
 
-Current checkpoint before the bootstrap commit:
+Current checkpoint:
 
-- immutable base and target absences were re-proved after Root's ordering
-  correction;
-- external intent was persisted and read back;
-- branch/worktree were created once and unambiguously at the exact base;
-- all three resources were acquired atomically and verified under the fixed owner;
-- only the plan path move/rewrite is in progress; adjacent claim control state is
-  the sole unrelated status path;
-- one attempted two-path `git add` exited before effect because the authorized
-  `git mv` had already removed the old path from the index; status proved the
-  staged rename and unstaged new-path rewrite were unchanged, so the exact final
-  staging command is the scoped new path recorded above;
+- G001 is accepted/closed at its exact plan-only commit/tree; its intent, claim,
+  receipt, trailer, and add/delete inventory were independently verified;
+- G002 is active and plan-only at the exact accepted G001 prestate with its
+  external intent persisted and the same three-resource claim verified;
+- Root's 195-test/3-failure reproduction is open candidate-new evidence with the
+  exact inventory failure and two exact import-policy subtests above; no failure
+  is baseline-accepted, and Batch 1 owns repair;
+- accepted source confirms no `executor` CLI subcommand; Batch 1 omits it, Batch 2
+  owns its RED/GREEN addition, and Batch 2 onward uses all four evaluator terminal
+  commands;
+- semantic/public-export and Runtime budgets close in Batch 1; total evaluation
+  production LOC is measured each batch and closes in Batch 3;
 - phase remains `implementation`;
 - families `F-06BR-RUNTIME`, `F-06BR-AUTHORITY`, and
   `F-06BR-EVALUATOR` are open at recurrence 0;
 - no accepted baseline, candidate, generation-6 evidence, Goal, model call,
   evaluator run, live authority, install, release, or activation exists;
-- next action under G001 is stage/check/commit/verify/terminal receipt, then STOP;
+- next action under G002 is plan checks/counts, one plan-only commit, verification,
+  terminal receipt, then STOP;
 - Batch 1 requires a new exact Root grant to this same fixed Executor.
 
 Uncertainty rule: a path outside the frozen batch inventory, changed prestate,
