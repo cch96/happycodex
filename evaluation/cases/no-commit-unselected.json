@@ -19,7 +19,7 @@
     "expected": {
       "decision": "stop_for_user",
       "qualifies": true,
-      "execplan_condition": "needs_amendment",
+      "execplan_condition": "usable",
       "protocol_may_product_write": false,
       "protocol_review_mode": "none",
       "protocol_may_complete": false
@@ -28,13 +28,13 @@
       {
         "identity": "BARE-OBJECT-CHECKPOINT",
         "domain": "receipt",
-        "state": "unknown"
+        "state": ["baseline_unchanged", "unknown"]
       }
     ],
     "required_anchored_blockers": [
       {
         "anchor": "1111111111111111111111111111111111111111",
-        "class": "production_condition"
+        "class": ["safety_data_integrity", "production_condition"]
       }
     ],
     "coverage_assertions": [
@@ -42,7 +42,7 @@
         "tag": "no-commit-unselected",
         "kind": "anchored_blocker",
         "anchor": "1111111111111111111111111111111111111111",
-        "class": "production_condition"
+        "class": ["safety_data_integrity", "production_condition"]
       }
     ],
     "prompt_forbidden": [

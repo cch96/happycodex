@@ -50,7 +50,7 @@
       {"anchor": "S-2", "class": ["original_goal", "frozen_acceptance", "safety_data_integrity", "production_condition", "exhaustive_claim"]},
       {"anchor": "scratch-recovery.txt", "class": ["safety_data_integrity", "frozen_acceptance"]},
       {"anchor": "test_read_mode", "class": "original_goal"},
-      {"anchor": "F-JOB-SIBLING-B", "class": "exhaustive_claim"}
+      {"anchor": "F-JOB-SIBLING-B", "class": ["original_goal", "frozen_acceptance", "exhaustive_claim"]}
     ],
     "coverage_assertions": [
       {"tag": "request-paraphrase", "kind": "anchored_blocker", "anchor": "docs/execplans/jobs.md", "class": "original_goal"},

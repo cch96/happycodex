@@ -50,124 +50,7 @@
       }
     }
   },
-  "live_authority": {
-    "approval_request_sha256": "67704584d312e4df04f4d8ce1d03064511cf551967a5f4d0e74160ca10b3ca67",
-    "approval_response": "APPROVE HAPPYCODEX LIVE COST 67704584d312e4df04f4d8ce1d03064511cf551967a5f4d0e74160ca10b3ca67\n",
-    "approval_response_sha256": "5ddce9bbc895e06613c5eaed0279e58fefb790e8d8f0ebe385b3de62fe0bd8c5",
-    "impact": {
-      "corpus_cases": [
-        "authorized-rebaseline",
-        "boundary-cutover",
-        "clean-qualifying-control",
-        "compaction-recovery",
-        "exact-final-ready",
-        "goal-divergence",
-        "midflight-escalation",
-        "multi-repo-submodule",
-        "no-commit-archive-recovery",
-        "no-commit-secret",
-        "no-commit-unselected",
-        "pre-freeze-compaction",
-        "receipt-mismatch",
-        "review-admin-cycle",
-        "review-inventory-gate",
-        "review-isolation",
-        "subthreshold-control"
-      ],
-      "cost": {
-        "basis": "HappyCodex 0.3 v21 candidate corpus and v23 adaptive holdout receipts; new 0.4.1 single-call controls conservatively use the prior maximum single-call token and wall envelopes",
-        "combined_tokens": {
-          "maximum": 770869,
-          "minimum": 719051
-        },
-        "provenance": {
-          "baseline_commit": "2836d7363db364807a2ec384dc1b6c2cc13df95e",
-          "baseline_plan_blob": "a5b16c5edb54324ee0a7a2efb17a7d7fdef3f207",
-          "baseline_plan_path": "docs/execplans/happycodex-0-3-cleanroom.md",
-          "corpus_receipt_sha256": "89b9760e08752dc9600f600268d447364970b89cb16d253e7a098b01f76fb56c",
-          "holdout_pair_receipt_sha256s": {
-            "authority-production-boundary": "18164c21533563b15bc483996e0f9a8db6c2080b7e3bf819dd2a003948395c82",
-            "destructive-migration-fallback": "10b6cf8a40bdb9d1097d287d80a9c7106686f6b6c19458984366994833f2c3a2",
-            "local-documentation-control": "27c1bcbf3566379b7c71255fadddcda5aa82509d3f01d15a170933a527de5f2c"
-          },
-          "holdout_run_receipt_sha256": "bb2fa16edfd82c3da004d630bcdc87a098488ae483a1026b012ce117447fd580",
-          "holdout_summary_sha256": "f301f23d0d841deaef538cf07d9fba36705ebb175a3a1e4f099bb68cfc91ea3d",
-          "selected_corpus_receipts_sha256": "5159899e8c950885b5c210921ff5b4738b5d81b17293e41a7df8c6b0efb33616"
-        },
-        "wall_seconds": {
-          "maximum": 4032.239,
-          "minimum": 3757.028
-        }
-      },
-      "gates": [
-        "corpus",
-        "holdout",
-        "review"
-      ],
-      "holdout_pairs": [
-        "authority-production-boundary",
-        "destructive-migration-fallback",
-        "local-documentation-control"
-      ],
-      "live_calls": {
-        "maximum": 25,
-        "minimum": 23
-      },
-      "reasons": [
-        "protocol_0_4_1_clean_break"
-      ],
-      "schema_version": 1
-    },
-    "impact_token": "3a3ed677d388fdfc5f547147c0f1787aa1943e328efaac03800a16edb6613a6f",
-    "invocations": [
-      {
-        "arm": "candidate",
-        "cases": [
-          "authorized-rebaseline",
-          "boundary-cutover",
-          "clean-qualifying-control",
-          "compaction-recovery",
-          "exact-final-ready",
-          "goal-divergence",
-          "midflight-escalation",
-          "multi-repo-submodule",
-          "no-commit-archive-recovery",
-          "no-commit-secret",
-          "no-commit-unselected",
-          "pre-freeze-compaction",
-          "receipt-mismatch",
-          "review-admin-cycle",
-          "review-inventory-gate",
-          "review-isolation",
-          "subthreshold-control"
-        ],
-        "command": "corpus",
-        "effort": "high",
-        "model": "gpt-5.6-sol",
-        "package_artifact_sha256": "e8424dbdc56e576d9e31aaca4d548b8e792497ed298c56762a606ac3ccd0ac89",
-        "package_semantic_sha256": "65f293e8f432ad7643bdf40ba7fb96edef73f2e7f5c10aa062ef22aa122f4c6a",
-        "timeout_seconds": 300
-      },
-      {
-        "candidate_artifact_sha256": "e8424dbdc56e576d9e31aaca4d548b8e792497ed298c56762a606ac3ccd0ac89",
-        "candidate_semantic_sha256": "65f293e8f432ad7643bdf40ba7fb96edef73f2e7f5c10aa062ef22aa122f4c6a",
-        "command": "holdout",
-        "effort": "high",
-        "model": "gpt-5.6-sol",
-        "pairs": [
-          "authority-production-boundary",
-          "destructive-migration-fallback",
-          "local-documentation-control"
-        ],
-        "public_artifact_sha256": "ace7f39fd61341e5d4b1bc3b268fd89a1562acaaacb80d7456c2bb97fb9c497e",
-        "public_semantic_sha256": "c5030e99dd7cd1681148c069775671c5720bb8dd366930ff90f61cbc54cdfc05",
-        "timeout_seconds": 300
-      }
-    ],
-    "schema_version": 1,
-    "snapshot_sha256": "b6a29d4c8944c7aa35aa1665ae8ef5a0a57efad3aad7c75ce82b2232e5ee1c96",
-    "source": "current-task/user/happycodex-0.4.1-live-cost"
-  },
+  "live_authority": null,
   "pending": {
     "corpus_cases": [
       "authorized-rebaseline",
@@ -207,32 +90,32 @@
   "snapshot": {
     "corpus": {
       "cases": {
-        "authorized-rebaseline": "300a5e4c5551f9dac85e3afb10e15e1058162980d082c1de0daf2c559fea2966",
-        "boundary-cutover": "f0541e3cf0dee815c8592850c92b2986db8ae7bfb3a5cb206cd372fb00556465",
-        "clean-qualifying-control": "155a45a64cc2d6508c363efec874d6f62e31111dd2f9b5f25f5ec58617bc3415",
-        "compaction-recovery": "f39d8bf274cf01690749b9d8582ab272dd69bdef69f4a68ac96c4c60ca2de224",
-        "exact-final-ready": "b660fc20f2cd7a8d5b7d3eaf43b1f4cdf90e3faef17c0bf17a09fc3b9c0e25ed",
-        "goal-divergence": "c32b53a242b037f0cdca72556c5cf0c3636c8dee5ebc508e0d2cd8fb0422fe7b",
-        "midflight-escalation": "22f3ba2af59739e2d3279bcf21288500294cc05e0267106c3ee7c4d5d117d25f",
-        "multi-repo-submodule": "5b58878709493905c6445b4f4cef6b9105e90938ca3705a47dcb700b16088965",
-        "no-commit-archive-recovery": "f53edaf9b7128b464f326a9b7aabb2b24d2ea90206b2b7db8ae3413a2035e21b",
-        "no-commit-secret": "9db137e0fbe126fd4f268c25154cef01fb0f9c1ad264fbc7fa35b6f94cccb774",
-        "no-commit-unselected": "df9de6ff949f8590f7fdbac6e385f283230e40d09b49c0063469aab307334de3",
-        "pre-freeze-compaction": "1d4cf2016fca0dfcb2222c1ab61bea6eb3978f7f60d8fc06ade9c2d3e29f1321",
-        "receipt-mismatch": "e0fa70111485d4a1e5288dcec94fc8428858f5fa9a6f431ee1e54d86dcaab5c7",
-        "review-admin-cycle": "fb0aee092858708a8c0d720ba78e9b78bcb133c2227be4194666e8a069a82bfc",
-        "review-inventory-gate": "7adacb3dd90c4fa5344a69423b4da63fe59c71bf1c578e6a8c9fc6c00f61e184",
-        "review-isolation": "f087ee740025dd3a70c860c6960aca99387a7191ce5cf0360ef8f9e362bf0d7d",
-        "subthreshold-control": "0d2439e3d70052e42fdb1431477f2cd7f7eb097819a3b85038daa0c1c7b6aaee"
+        "authorized-rebaseline": "0b8cabb6d62f1b9103036057fe9276ea080a3e5db83cfc3dbc9b8c6e8fae493f",
+        "boundary-cutover": "5147b37a0786e32b5deff4466203ca1b8c7f05fc05b86115ac13a66c7849204a",
+        "clean-qualifying-control": "ec227bbfd941cc3e231334935433400caf0a280b909f159ee9a2af09b1ecd7e9",
+        "compaction-recovery": "80ad10171973e541d903e273eeb4d0e66c79d0362b4864fae5dd63c85d9001cf",
+        "exact-final-ready": "66e4de813101eeff48937a626de2e836ba6d84ca22c61f94742391a7e339994a",
+        "goal-divergence": "6804fd3a5b2975d42044422a8bb236b586783dce40fc30d56a4f892ca07f1bcd",
+        "midflight-escalation": "faa91f5a06e3f165781090d8864bd2ba2313b91835a99b607c40200595e47e5f",
+        "multi-repo-submodule": "097789333b1a889fefb3d918e31bfeaf4f69bc6a112b28b2d431019fa99517d9",
+        "no-commit-archive-recovery": "f9eed3f9c2b689ec8baef50735e3954a1f4d166e4b4a471a7b72ba0be45598fe",
+        "no-commit-secret": "097021c01a96529cebe6b5a77f37b4060dc383187558391a3b764ac339e1b0e5",
+        "no-commit-unselected": "f7ca1e5946316b617f581e732f2c2b2aa3ff4125f85d7f5c353d54be941de2dc",
+        "pre-freeze-compaction": "14d2d574640e48a30631ce75569e7998f59a24f5c6adcbe2cfe7f4c3d1fade5d",
+        "receipt-mismatch": "cac6161c2231c6187889fecdb72a823ffd5de42f977f9d8d8a02eb3aa591ea7c",
+        "review-admin-cycle": "49afa0862210c594e3e526d0e6539d14ed67bee65be22e291f8b7346120f3947",
+        "review-inventory-gate": "fce99b71233859e0954a2efb9a805f302b9b36c07f11a8a272f0c8ebf323a777",
+        "review-isolation": "2398cf6c6be22a6170236986aacc26b4290822c691ed2b49b397c9c4273bb043",
+        "subthreshold-control": "344bf0a2c863be63a34bd475b0906e1dbf930671be7e5400b3af43c575e13eab"
       }
     },
     "engine": {
       "categories": {
         "artifact": "8542b02d73e07d4f7ccfa58775969c22097eca157e151365632d71e92e6a07ea",
         "harness": "964061b1b584c758ed4ad538051340c33c4bba207bc16e9c67618cceea7b0d51",
-        "semantic": "9a00c444226a6019766fd5331b78a18cde3351498cca31d41310243ddcb7b118"
+        "semantic": "33fb79adb9c5f9264da09bbb3b371082dc3fb270c714bf6820b9b81eb10e6fd8"
       },
-      "manifest_sha256": "7358b7756af684c85f5b4e116267d262fa945ea70dd876b7a104f3df5886b5f0",
+      "manifest_sha256": "9e495629cf7c8c87dca9aa538b607b62a594f787af1e9735a830a405fde213f5",
       "scopes": {
         "corpus_harness": "2614a7577e31e3538dd446e623d4c89dfb3a067c0b0c85d1f1b5087ac493aee8",
         "holdout_harness": "f2912e576cb08cda345c60e94b7aaf425e85b6d73eacd14e114f3e2076043ada",
@@ -241,9 +124,9 @@
     },
     "holdout": {
       "pairs": {
-        "authority-production-boundary": "0416ccfc2b350a490d563960ee3948da70ba026eb4160abb963be4aa0eec1bce",
-        "destructive-migration-fallback": "50a762fe3071e5b3e1dba94fcf773645d87d61e2c4c9d53a920d9e9f208d28e5",
-        "local-documentation-control": "80507052616f9b9f1a7278fcebf77532afc30fa2f25e3fdacb7e029b24e7b0d4"
+        "authority-production-boundary": "7075e5d888326b5452d8aeb03706fc368ca42c061897ae969fefafc0ede92d82",
+        "destructive-migration-fallback": "89ed0a4bfc8b0ce2387888db187a90b1172d7fa7db8a1c474d717415f885e5ab",
+        "local-documentation-control": "90b5160fc4e8287033c2b6a3273501fa1187faf536ae8a2394b1ad7bc07b215e"
       }
     },
     "package": {

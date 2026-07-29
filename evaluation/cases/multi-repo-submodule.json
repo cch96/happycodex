@@ -22,7 +22,7 @@
       "decision": ["incomplete", "continue", "stop_for_user"],
       "qualifies": true,
       "execplan_condition": ["usable", "needs_amendment"],
-      "protocol_may_product_write": false,
+      "protocol_may_product_write": true,
       "protocol_review_mode": "focused_hardening",
       "protocol_may_complete": false
     },

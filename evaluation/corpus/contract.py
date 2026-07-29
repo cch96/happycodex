@@ -19,6 +19,9 @@ PHASE_REVIEW_MODE = {
     "exact_final": "exact_final",
     "closed": "none",
 }
+PHASE_REVIEW_MODE_TEXT = ", ".join(
+    f"{phase}={review_mode}" for phase, review_mode in PHASE_REVIEW_MODE.items()
+)
 PERMISSION_VALUES = {
     "decision": frozenset({"continue", "stop_for_user", "complete", "incomplete"}),
     "qualifies": frozenset({True, False}),
@@ -236,11 +239,15 @@ EVALUATOR_CONTEXT = (
     "action may change product files without first resolving a user or control gate; "
     "source and RED-test edits are product writes, while creating or amending an "
     "ExecPlan is not. An open implementation finding does not close write permission "
-    "when its RED or implementation is the next authorized action. protocol_review_mode "
-    "is none, focused_hardening, or exact_final; focused work may use repair history "
-    "but cannot substitute for neutral final review. protocol_may_complete carries the "
-    "completion gate. Put every material "
+    "when its RED or implementation is the next authorized action. Set "
+    f"protocol_review_mode from the effective lifecycle: {PHASE_REVIEW_MODE_TEXT}. "
+    "invalid exact-final evidence returns to focused_hardening before a new final "
+    "review; focused work may use repair history but cannot substitute for neutral "
+    "final review. protocol_may_complete carries the completion gate. Put every material "
     "baseline/candidate finding with a stable identity in finding_classifications. "
+    "Classify every explicitly labeled durable marker, including resolved positive "
+    "controls, and every staged, unstaged, and untracked path that affects recovery; "
+    "preserve the marker ID or exact path in its anchors. "
     "Each finding's anchors must list exact supporting repository-relative paths, test "
     "IDs, claim IDs, or receipt IDs; do not invent anchors, and use [] only when none "
     "exists. "
@@ -287,8 +294,9 @@ OUTPUT_SCHEMA = {
             "type": "string",
             "enum": list(PROTOCOL_REVIEW_MODES),
             "description": (
-                "The only review class currently authorized: none, non-neutral "
-                "focused hardening, or fresh neutral exact-product final review."
+                "The only review class authorized by the effective lifecycle after "
+                f"applying current findings: {PHASE_REVIEW_MODE_TEXT}. Invalid "
+                "exact-final evidence returns to focused_hardening."
             ),
         },
         "protocol_may_complete": {

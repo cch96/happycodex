@@ -311,7 +311,11 @@ class HappyCodexEvaluationTests(unittest.TestCase):
         self.assertIn(
             {
                 "anchor": "F-JOB-SIBLING-B",
-                "class": "exhaustive_claim",
+                "class": [
+                    "original_goal",
+                    "frozen_acceptance",
+                    "exhaustive_claim",
+                ],
             },
             family["oracle"]["required_anchored_blockers"],
         )
@@ -342,7 +346,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
         self.assertIn(
             {
                 "anchor": "1111111111111111111111111111111111111111",
-                "class": "production_condition",
+                "class": ["safety_data_integrity", "production_condition"],
             },
             unselected["oracle"]["required_anchored_blockers"],
         )
@@ -513,7 +517,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             "decision": "continue",
             "qualifies": True,
             "execplan_condition": "usable",
-            "protocol_may_product_write": False,
+            "protocol_may_product_write": True,
             "protocol_review_mode": "focused_hardening",
             "protocol_may_complete": False,
             "finding_classifications": [],
@@ -1991,7 +1995,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             "decision": "continue",
             "qualifies": True,
             "execplan_condition": "usable",
-            "protocol_may_product_write": False,
+            "protocol_may_product_write": True,
             "protocol_review_mode": "focused_hardening",
             "protocol_may_complete": False,
             "finding_classifications": [
