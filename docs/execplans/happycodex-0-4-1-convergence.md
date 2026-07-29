@@ -2,9 +2,9 @@
 
 Protocol: `HappyCodex/0.3` (the active 0.4.0 maintainer runtime)
 Invocation: `$happycodex:happycodex`
-State: `candidate_frozen`; remaining review gates explicitly waived; release authorized
+State: `closed`; 0.4.1 released and activated under explicit review/test waivers
 Review mode: `none`
-Writer: Root for the final cachebuster, release, installation, and rollback grant
+Writer: none after final claim reconciliation
 Resume: read this complete current index and reconcile its one selected checkpoint, Git,
 claims, tests, agents, and gates before any write, review, or completion.
 
@@ -42,6 +42,12 @@ Together these waive the one focused bypass review and the three neutral exact-f
 reviews for this exact `e4ad487` product plus final cachebuster-only metadata. They do
 not waive offline validation, exact install/readback, publication integrity, personal
 activation byte equality, rollback rehearsal, or disclosure of skipped gates.
+
+After personal activation the user removed the rollback-copy requirement with exact
+text `不用考虑从回滚副本`, UTF-8 SHA-256
+`49c44c1bfaf75a594924ceb4f6162664020b6219c42f5a7c38dbc1dfab87545b`.
+The retained 0.4.0 source is therefore not used as release evidence and no downgrade
+rehearsal is claimed.
 
 No controller, Task State JSON, Evidence DAG, compatibility reader, dual write, old
 schema alias, model-generated `family_id`, incremental certification, old-task
@@ -144,8 +150,8 @@ public/release refs, other worktrees/tasks/ledgers, or run corpus/holdout/model 
 | `C-02` | Same-family repair is bounded by terminal GREEN, first recurrence boundary repair, one bypass falsification, then closure or user gate. | Runtime/template, Recovery Manifest transition rules, durable GREEN revision; focused falsification explicitly waived. | closed by user waiver |
 | `C-03` | Review/write/user-stop/exact-final states are mechanically exclusive through one raw/oracle/receipt/recovery boundary. | Transition matrix, missing-plan, open finding/blocker/repair gate, orphan blocker, lifecycle, and positive exact-final tests GREEN. | verified |
 | `C-04` | Recovery is current-index plus one content-addressed checkpoint and fails closed on unknown or tampered facts. | Multi-repo Recovery Manifest, marker projection, claim receipt, post-commit compaction equivalence and tamper tests GREEN. | verified |
-| `C-05` | 0.4.1 is a fresh-only clean break with no prior reader/disposition and exact zero-live waiver projection. | Ledger verify/impact and fresh/waived negative tests GREEN; exact-final review pending. | open |
-| `C-06` | Public invocation stays `$happycodex:happycodex`, and final 0.4.1 installs, upgrades, and rolls back safely. | Validators and package tests GREEN; release/install/activation/rollback gates pending. | open |
+| `C-05` | 0.4.1 is a fresh-only clean break with no prior reader/disposition and exact zero-live waiver projection. | Ledger verify/impact and fresh/waived negative tests GREEN; exact-final explicitly waived. | closed by user waiver |
+| `C-06` | Public invocation stays `$happycodex:happycodex`, and final 0.4.1 installs and upgrades safely. | Public tag install and personal source/cache readback are byte-equal; downgrade rehearsal explicitly removed. | closed |
 | `C-07` | No live evaluator call occurs without a fresh exact authority. | Current ledger has null authority, empty invocations, zero cost/calls; corpus/holdout waived. | verified |
 | `C-08` | Runtime/template retain full semantics within both applicable budget envelopes. | 261 lines and exactly 2,400 words; contract and official validators GREEN. | verified |
 
@@ -196,7 +202,7 @@ Current GREEN facts under pinned PATH
 `/home/caichenghang/.codex/packages/standalone/releases/0.146.0-aarch64-unknown-linux-musl/bin`
 plus its `codex-path` and system bins:
 
-- 163/163 unit tests pass in 8.288 seconds.
+- 163/163 unit tests pass in 8.169 seconds.
 - Ruff check and format-check pass; both official Skill/plugin validators pass.
 - Corpus lists 17 cases and holdout lists three pairs; both dry-runs pass without a
   model call. Twenty-seven JSON files parse and 21 Python files parse as AST.
@@ -248,6 +254,22 @@ The four removed `offline-summary-*` artifacts are absent from the active ledger
 their exact bytes remain reachable in Git history. No active evidence references them.
 The official plugin-creator cachebuster helper set the final version to
 `0.4.1+codex.20260729085734`; no marketplace file was hand-edited.
+
+Final release source is `c20cf21233a95c35bd1f1e43e5fab4d813b52585`;
+PR [#4](https://github.com/cch96/happycodex/pull/4) merged it as
+`ae07140b43e04f3a39499ebd9178c77f017067b8`. Annotated tag `v0.4.1` and the
+[HappyCodex 0.4.1 Release](https://github.com/cch96/happycodex/releases/tag/v0.4.1)
+are public. A fresh install from that exact public tag at
+`/home/caichenghang/.codex/happycodex-0.4.1-rb008/public-install.y7fb0w` returned the
+final version and matched source artifact, semantic, and Skill identities; canonical
+readback receipt SHA-256 is
+`b1a1e809a812dc9142579e000ee19cc28dd75a3cd0d21721335395005c8413f4`.
+
+Personal `happycodex@personal` now reports enabled
+`0.4.1+codex.20260729085734`. Active source and cache both match artifact
+`af541d4e…887b`, semantic `b8db5a56…c795`, and Skill
+`cdb1d9ba…5411`; canonical readback receipt SHA-256 is
+`176789f65d36fc776068e394db84267453ea5258f08ceecc5238990ec51bc0f6`.
 
 Focused choke-point review is predeclared against exact product source
 `e4ad487c54b1620a6b1df69f0e2c2c65c3316e7e` and the identities above. History-aware
@@ -301,22 +323,18 @@ selected checkpoint.
   Product changes invalidated it and the explicit waiver retires any rerun. Request
   `34c96c56…2950` was never authorized or consumed. Neither authorizes current work.
 
-## Pending gates
+## Follow-up outside this release
 
-1. Use the plugin-creator cachebuster helper for final
-   `0.4.1+codex.<timestamp>` bytes, synchronize change notes, rerun complete offline
-   checks, and commit the exact release source. Focused and exact-final reviews remain
-   explicitly skipped.
-2. Push the release branch, create/merge the public PR as needed, create `v0.4.1` and
-   its GitHub Release, then prove a fresh public install/readback.
-3. Atomically upgrade personal `happycodex@personal`, compare source/cache/manifest/
-   Skill bytes, retain 0.4.0 source/cache, and complete an isolated downgrade rehearsal.
-4. Create fresh successor worktrees, ExecPlans, ledgers, and evidence for the old
-   HappyCodex/StockAI tasks and the 0.5 port. Do not migrate old task state or evidence.
+Create fresh successor worktrees, ExecPlans, ledgers, and evidence for the old
+HappyCodex/StockAI tasks and the 0.5 port. Do not migrate old task state or evidence.
 
-Completion must explicitly disclose that final corpus and holdout were user-waived and
-not run.
+Completion must explicitly disclose that corpus/holdout, focused review, three
+exact-final reviews, and the downgrade rehearsal were waived or removed and not run.
 
 ## Retrospective
 
-Fill only after closure; never expose it as review evidence.
+The release closed without further product repair after `RB-008`: the bounded family
+model moved repeated sibling defects to four shared boundaries, while resource-scoped
+claims allowed unrelated worktrees to remain independent. The public and personal
+package bytes match. This is an explicitly user-waived release, not a certified one:
+the evaluator correctly remains `refresh_required` with its external review gate.
