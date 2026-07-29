@@ -3,9 +3,11 @@
 Protocol: `HappyCodex/0.5`
 
 Current index: G001-G005 are accepted Batch 1 source at commit
-`27ea46e27254426ee5737078117d43f28c9df523`. Root accepts G006-G010
-collectively as the uncommitted Batch 2 candidate. G009 remains a rejected
-intermediate corrected by G010; G011 is active only through commit verification.
+`27ea46e27254426ee5737078117d43f28c9df523`. G006-G011 and Batch 2 are
+accepted at commit `788c42917bf1e1bcec2515a361ce68b32a25fb46`, tree
+`c1e5ba545399ac4a3a37a1396f1fccb5f69534f8`. G009 remains a rejected
+intermediate corrected by G010. G012 is the plan-only Batch 3 contract
+correction; it authorizes no G013 implementation.
 
 Restore guard: restore this entire ExecPlan, then reconcile the exact Git source,
 fixed Executor identity, three resource claims, external intent and receipts,
@@ -13,14 +15,15 @@ current grant, phase, families, checks, candidate, evidence, agents, and any Goa
 before any write, review, effect, or completion claim. Conversation summaries,
 copied handles, and another task's source do not reconstruct authority.
 
-Phase: `implementation`. Active grant `HC06BR-G-011-B2-commit`,
-sequence 11, family `F-06BR-EVALUATOR`, repair batch
-`RB-06BR-003/commit`, recurrence 0. It binds accepted commit/tree
-`27ea46e27254426ee5737078117d43f28c9df523` /
-`e4fd88e21d0b4190ccf407b082f6ba1cbe6af59f`, dirty diff
-`164c90dc3e8f0f8bd1103ba7d53f250483a6d6c2b9a9dd2f3ce192da79517ec2`,
-the same fixed Executor and claim, one plan edit, exact checks, staging, commit,
-and post-commit verification.
+Phase: `plan-only contract correction`. Active grant
+`HC06BR-G-012-B3-contract`, sequence 12, family `F-06BR-EVALUATOR`,
+repair batch `RB-06BR-004/plan-contract`, recurrence 0. It binds accepted
+commit/tree `788c42917bf1e1bcec2515a361ce68b32a25fb46` /
+`c1e5ba545399ac4a3a37a1396f1fccb5f69534f8`, the accepted G011 terminal
+receipt SHA-256
+`c843a2edc454a1e3fd4c1d59051e82672439977577c6a18813db11a4251de0fb`,
+the same fixed Executor and claim, this one plan edit, exact checks, staging,
+commit, and post-commit verification.
 
 ## Operative request and normalized Outcome
 
@@ -88,39 +91,14 @@ the other 0.6 task.
 
 ## Baseline facts and open candidate-new findings
 
-The immutable base is a source construction point, not an accepted GREEN
-baseline. It already contains the inherited partial semantic-core work:
-`evaluation/semantic/{__init__,types,schema,canonical}.py`,
-`tests/test_semantic_core.py`, associated input classification, and the old
-semantic-core ExecPlan. Those bytes are inputs to this redesign, not accepted
-implementation evidence and not a topology to preserve.
-
-A Root reproduction against the accepted G001 plan-only product baseline ran
-exactly:
-
-```text
-PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p 'test_*.py' -v
-```
-
-It completed 195 tests in 8.524 seconds with exactly three failures and no other
-failure. This result is `candidate-new/open`, not baseline-accepted:
-
-- `BR-FIND-BASE-001`: the certification full-suite module inventory did not
-  match the newly present semantic package at
-  `CertificationIdentityTests.test_inventory_classifies_every_engine_module_and_schema`;
-- `BR-FIND-BASE-002`: the stdlib/import-policy subtest failed for
-  `evaluation/semantic/__init__.py` at
-  `HappyCodexContractTests.test_python_validation_uses_only_declared_stdlib_dependencies`;
-- `BR-FIND-BASE-003`: the same import-policy test's second subtest failed for
-  `evaluation/semantic/types.py`.
-
-The fixed Executor reproduced the same exact 195-test/three-failure set in 8.549
-seconds. External baseline receipt:
-`/home/caichenghang/.codex/happycodex-0.6-bounded-redesign-g003-b1-baseline.txt`,
-SHA-256
+The immutable base was a source construction point, not a GREEN baseline. Its
+inherited partial semantic package produced the recorded three-failure
+inventory/import-policy RED under 195 tests. The fixed Executor reproduced it;
+external receipt SHA-256 is
 `d6d7a7f3da1bf992382117a4511dc5120997f5ec5c928cad6c352e5fc1158f5a`.
-Batch 1 repairs all three without weakening fail-closed inventory or import
-policy; final focused/full GREEN is required before they become resolved.
+Accepted Batch 1 repairs all three without weakening fail-closed inventory or
+import policy. The old partial topology remains reachable history, not current
+implementation evidence.
 
 The earlier Fable 5 review performed through the Claude Code CLI remains retained
 design evidence. It established the need for structural action identity and
@@ -347,51 +325,24 @@ remain maintainer support and are never linked from Runtime Skill Markdown.
 | --- | --- | --- | --- | --- | --- |
 | `F-06BR-RUNTIME` | semantic progress and event correction prevent equivalent repeated work and false GREEN | sealed parse/reduction plus action recomputation at both consumers | `Batch 1 accepted` | `RB-06BR-001/instance` | `0` |
 | `F-06BR-AUTHORITY` | exact binding, provenance, reducer action, capability, claim, authority, and attempt gate every effect | private issuance, recomputation, and exact enforcement | `Batch 1 and G010 accepted` | `RB-06BR-002/instance` | `0` |
-| `F-06BR-EVALUATOR` | terminal, identity, decision, ledger, and replay share strict parsing and exact recomputation | duplicate/order/terminal/path/key/raw-ledger divergence and consumer propagation | `G006-G010 candidate accepted; G011 commit active` | `RB-06BR-003/instance` | `0` |
-| `F-06BR-SEMANTIC-ACTION-BOUNDARY` | facts cannot inject actions and trustworthy metadata cannot be reclassified | parser/reducer/replay/authority/projection attack matrix | `active; terminal checks open` | `RB-06BR-004/instance` | `0` |
+| `F-06BR-EVALUATOR` | terminal, identity, decision, ledger, and replay share strict parsing and exact recomputation | duplicate/order/terminal/path/key/raw-ledger divergence and consumer propagation | `Batch 2 accepted at 788c429` | `RB-06BR-003/instance` | `0` |
+| `F-06BR-SEMANTIC-ACTION-BOUNDARY` | facts cannot inject actions and trustworthy metadata cannot be reclassified | parser/reducer/replay/authority/projection attack matrix | `Batch 3 contract frozen; implementation unauthorized` | `RB-06BR-004/instance` | `0` |
 
 Holdout quality and cost comparison remain separate gated evidence. They do not
 collapse into a family merely because their engines consume shared semantics.
 
 ## Batch 1: kernel, authority semantics, and early Runtime correction
 
-Batch 1 replaces the inherited partial semantic package with the exact five-file
-surface above. `schema.py` is deleted after its required definitions move into
-`types.py`/`parse.py`. `MachineEnvelope`, `AdminFacts`, public `canonical_set`, and
-wrapper inflation are deleted. No compatibility import or forwarding alias remains.
-
-Batch 1 first persists RED or exact characterization for:
-
-- all primary-key duplicates, including identical duplicates;
-- wrong tagged ID use and mutable fact members;
-- derived action/phase/permission injection;
-- canonical serialize/parse/reduce `ProgressKey` roundtrip;
-- stored key mismatch and caller-supplied action mismatch;
-- empty-evidence `REPLACED`;
-- admin-only changes that must not change progress;
-- direct, legitimate delegated, spoofed, missing, wrong-destination, and
-  wrong-lineage authority;
-- reducer/enforcer purity and side-effect-free imports;
-- marker/schema capacity overflow without truncation;
-- the historical 195-test inventory failure and two relative-import-policy
-  failures.
-
-It then migrates direct semantic callers only as necessary to compile and prove the
-kernel, repairs the inventory oracle by explicitly classifying the final package,
-and repairs relative-import policy without weakening the policy. It rewrites
-Runtime Skill/reference early to the five event corrections, one wave/cumulative
-check per family, and one post-freeze exact-final. Runtime cannot import or link
-the evaluator.
-
-Batch 1 ends only at a reachable commit whose focused checks and entire offline
-suite are GREEN and whose plan records the RED receipts, changed paths, budgets,
-and exact check receipt. It authorizes no model/provider/evaluator live effect and
-does not advance an accepted baseline merely by becoming GREEN. Batch 1 closes
-semantic production LOC at or below 1,200, public exports at or below 20, and both
-Runtime line/word limits. It measures total evaluation production Python LOC but
-does not treat the 6,900 ceiling as a Batch 1 closure gate. Its evaluator commands
-are only `verify`, `corpus --dry-run`, and `holdout --dry-run`; the accepted
-prestate has no `executor` subcommand, and Batch 1 cannot edit the CLI.
+Accepted Batch 1 replaces the inherited partial package with the exact five-file
+surface, deletes `schema.py`, `MachineEnvelope`, `AdminFacts`, public
+`canonical_set`, wrapper inflation, and every compatibility alias. Its RED/GREEN
+matrix covers duplicate primary keys, tagged-ID/mutability violations, derived
+action injection, key roundtrip/mismatch, action substitution, evidenced
+`REPLACED`, admin-only nonprogress, authority variants, purity, capacity, and the
+historical inventory/import-policy failures. It repairs Runtime to the five event
+corrections, one wave/cumulative check per family, and one post-freeze exact-final.
+The accepted full offline GREEN commit closes the 1,200-line/20-export semantic
+budgets and Runtime limits without any live effect.
 
 ## Batch 2: shared terminal, corpus, ledger, and replay semantics
 
@@ -430,77 +381,114 @@ network/MCP/hook/session facts—is mandatory at executor-pilot, corpus, holdout
 and live boundaries. It is not ordinary Runtime state and does not change
 `ProgressKey` merely because administrative invocation data is recorded.
 
-Offline authority tests use deterministic fixtures with no current user authority
-and prove allow/ask/refuse behavior without issuing a provider call. Batch 2 ends
-only in another reachable full offline GREEN commit with the exact 17/3 inventory,
-deletion proof, focused receipts, dry-run non-effect receipts, and budgets.
-Batch 2 owns `evaluation/cli.py` and adds one strict offline
-`executor --dry-run` entrypoint under an observed RED and GREEN. That dry-run
-must create no model call, capability, attempt consumption, fixture, output,
-workspace mutation, or authority consumption. From Batch 2 onward, terminal
-checks include `verify` plus executor, corpus, and holdout dry-runs.
+Offline authority fixtures prove allow/ask/refuse without a provider call. The
+accepted full offline GREEN commit closes exact 17/3 inventory, deletion proof,
+focused receipts, and dry-run non-effects. Its new `executor --dry-run`, like
+corpus and holdout dry-runs, creates no model call, capability, attempt, fixture,
+output, workspace mutation, or authority consumption.
 
 ## Batch 3: fresh evidence, effect ordering, recovery, and candidate source
 
-G009 explicitly moves only the minimal `evaluation/results/current.json`
-generation-6 genesis into Batch 2 so its terminal `verify` can be GREEN. No
-old-generation reader, alias, migration, fallback, prior-coverage reuse, or
-evidence locator is added. Old evidence remains inert and cannot be named by
-the active parser. Genesis has
-`engine_generation = "0.6"`, state `refresh_required`, exact source/snapshot/
-package/config/manifest identities, sorted pending gates, null executor/corpus/
-holdout authorities, empty calibration history, empty accepted evidence, no
-receipt head, and no certification.
+The completed read-only Batch 3 audit verdict is **GO-WITH-CONDITIONS offline /
+NOT YET live**. The 6,900-line ceiling is feasible by deleting uncalled legacy
+validation and duplicate phase/projection semantics, but the current standalone
+CLI has no authenticated current-message/turn metadata and therefore cannot mint
+trustworthy authority. G012 freezes this design only; G013 and G014 require later
+exact grants.
 
-Offline checks and content-addressed `offline_summary` evidence never promote
-`refresh_required` to `certified`. Every accepted generation-6 evidence commit
-strictly postdates the Git-reachable source it proves. A zero-live `receipt` or
-`isolated_install` gate still needs its own strictly post-source offline summary;
-receipt evidence binds current artifact identity and install evidence binds the
-exact source/installed-package/config receipt.
+The existing generation-6 genesis is a clean-break pre-anchor ledger. A null
+`source_anchor` is legitimate only while state is `refresh_required`, all three
+gate authorities are null, calibration and accepted evidence are empty, and
+certification is absent. It is not a compatibility path, migration, alias,
+fallback, prior-source reader, or authority. Old generation evidence is inert and
+must be physically deleted in G013. Offline checks and content-addressed
+`offline_summary` evidence never promote `refresh_required` to `certified`.
 
-The live validator mints one immutable process-local capability. Every
-model-reaching executor/corpus/holdout helper rebinds it before fixture creation,
-mapping, workspace mutation, output creation, or subprocess execution. Authority
-is gate-scoped and consumed for its exact invocation. `AttemptKey`, resource, and
-output claims use `O_EXCL`; consumption precedes every effect and recording it
-does not change progress. A failed semantic attempt is not retried. Only a
-validated infrastructure `REPLACED` fact with nonempty evidence and new exact
-authority can create a new semantic prestate.
+Live authority may originate only in private trusted host provenance for the
+current user message and turn. The host adapter validates exact root/source/
+target task, fixed Executor, destination, lineage, role config, message, turn,
+content digest, reducer-produced target, scope, and complete invocation before a
+private issuer constructs `AuthorityProvenance`. Argument strings, environment,
+ledger or fixture JSON, model prose, copied handles, and self-reported records
+cannot mint it. Standalone CLI execution remains fail-closed until this trusted
+host bridge exists. Offline tests use a deterministic private adapter fixture to
+prove one exact ALLOW; that fixture is not importable production authority.
 
-Raw model events, hidden prompts/oracles, secrets, and unsanitized streams stay
-outside the repository. Tracked evidence contains only sanitized summaries,
-hashes, fixed fixtures, prompts, hidden-oracle hashes, and executable evaluator
-code. Raw-event and ledger digests must agree or refuse.
+After semantic enforcement returns ALLOW, the validator mints one sealed
+immutable process-local capability. Live owns issuance and claims; corpus and
+holdout can only rebind the same capability at gate, unit, and phase boundaries.
+The exact pre-effect sequence is normative:
 
-Recovery requires all of:
+```text
+read-only validate identities, invocation, safe paths, claim keys, and provenance
+  -> enforce ALLOW and mint sealed process-local capability
+  -> O_EXCL consume gate authority digest
+  -> recompute reducer action and O_EXCL consume AttemptKey
+  -> O_EXCL acquire sorted resource digests
+  -> O_EXCL acquire output digest
+  -> rebind the same capability
+  -> create authorized fixture/output/workspace/mapping effects
+  -> derive and O_EXCL consume the phase child attempt
+  -> invoke the model subprocess
+  -> sanitize, persist receipt, and replay by recomputation
+```
 
-- this current ExecPlan and its unique checkpoint;
-- exact Git commit/tree and owned dirty-path reconciliation;
-- external intent and complete receipts;
-- the active three-resource claim and owner-token digest;
-- the same fixed Executor task/session/thread/config/permission identity;
-- exact grant, family/batch, checks, candidate/evidence, and attempt state.
+Every output is an explicit absolute absent path beneath a validated existing
+safe parent; authorized paths never default to `mkdtemp`, create parents, follow
+symlinks, or touch the repository before all preceding claims. Claim files use
+mode `0600`, private claim directories use `0700`, and `O_EXCL` plus no-follow
+where supported provides one winner. Claims are administrative durable effects,
+not a transaction: any claim consumed before a later collision remains consumed
+and is never deleted or retried. A new attempt requires a new reducer-derived
+semantic prestate and exact authority, never wording changes. Raw model events,
+secrets, unsanitized streams, and hidden oracle bodies stay outside the
+repository; only sanitized summaries, hashes, fixed public fixtures/prompts,
+hidden-oracle hashes, and executable evaluator code may be tracked.
 
-A conversation summary, copied live handle, replacement writer, fork, concurrent
-resume, other Root, other task authority, or cross-task claim is insufficient and
-refuses. Maintainer evaluation proves native same-task compaction and separately
-proves reconstruction with no summary and no handle. It also proves writer
-identity cannot be replaced; ordinary tasks do not rerun this control every turn.
+Recovery reuses the existing `pre-freeze-compaction` case and creates no new paid
+case. The positive matrix proves native same-task compaction/resume and, as a
+distinct phase of that same case, fresh no-summary/no-handle reconstruction from
+the current ExecPlan, exact Git state, external intent/receipts, fixed claims, and
+durable evaluator facts. The negative matrix refuses before every effect for a
+copied or serialized handle, cross-task or cross-Root authority, replacement
+writer/Executor, wrong task/session/thread/config/permission, wrong role digest,
+wrong destination/lineage, concurrent resume, or mismatched claim. A model output
+string naming the writer is never identity evidence.
 
-Batch 3 completes source inventory and package/config documentation. The source
-candidate must be Git-reachable. Its normalized Git package artifact, engine
-manifest, external role-config digest, source commit/tree, and documented
-identities must match the snapshot exactly. The ledger already binds the three
-future gate scopes to the pending phase but contains no authority. All evidence
-strictly postdates source. The candidate freeze itself remains a separate
-post-GREEN Root grant; Batch 3 does not infer it.
+G013 creates source commit `S`. Its exact allowed inventory is production and
+evaluator Python, evaluator schemas/fixtures, tests, repository/package/docs
+including this ExecPlan, `AGENTS.md`, `README.md`,
+`.codex-plugin/plugin.json`, and the new tracked
+`evaluation/executor-role.json`; it also deletes the three old tracked 0.4
+evidence JSON files. `evaluation/results/current.json` may change in G013 only to
+the strict refresh-required pre-anchor form with null `source_anchor`, null
+authorities, and no accepted evidence. No evidence summary is created. G013 runs
+the complete offline suite, verify, all dry-runs, source/caller/deletion scans,
+budget checks, and diff/status checks GREEN before committing `S`.
 
-Batch 3 ends in a third reachable full offline GREEN commit after all focused and
-cumulative checks, dry-run non-effects, source/deletion/classification inventory,
-Runtime and LOC budgets, clean owned status, and complete receipt. Product changes
-after that commit invalidate candidate, review, and affected evidence and reopen
-the relevant family.
+`evaluation/executor-role.json` is an `artifact` input containing the expected
+fixed Executor role contract. Its exact canonical bytes are hashed into role and
+candidate identity but confer no authority; private real host metadata must match
+those bytes and the active task binding. The candidate manifest base version is
+`0.6.0`. G012 does not run or imitate the plugin-creator helper. A future official
+cachebuster must run under its own grant before final source freeze and
+exact-final; because it changes artifact identity, the resulting source must be
+re-anchored before evidence or review.
+
+G014 creates anchor commit `A` and may edit only excluded
+`evaluation/results/current.json` plus this ExecPlan. From a normalized
+`git archive S`, it records the reachable `S` commit/tree, exact package artifact
+and semantic identities, engine manifest, and executor-role identity; working-tree
+bytes cannot substitute. `A` keeps all future gate authorities null and state
+`refresh_required`. G014 also runs the full offline schedule GREEN. Since
+`current.json` is excluded from package and engine identity, `A` does not create
+circular source identity. Every later evidence commit must be a strict descendant
+of both `S` and `A`.
+
+Neither G013 nor G014 authorizes pilot, corpus, holdout, model or network calls,
+exact-final, install, release, marketplace/cache mutation, cachebuster, activation,
+claim release, or certification. Product changes after `S` invalidate the anchor
+and reopen the relevant family.
 
 ## Exact batch path and ownership inventory
 
@@ -559,16 +547,11 @@ The three holdout identities remain `authority-production-boundary`,
 cardinality, and behavior are preservation claims; schema bytes may change only
 to generation 6.
 
-G009 owns the one fresh `evaluation/results/current.json` genesis construction.
-Batch 3 retains later ledger evolution, active old evidence deletion,
-effect/recovery implementation and tests not closed earlier, `evaluation/README.md`,
-`AGENTS.md`, `README.md`, candidate source inventory, and tracked package/config
-source documentation needed to identify 0.6. A later exact grant must enumerate
-any `.codex-plugin/plugin.json`, `.agents/plugins/marketplace.json`, or external
-role-config source change explicitly. A tracked source-manifest edit is not
-permission to touch installed plugin bytes, personal marketplace/cache state, or
-external config. The plugin-creator cachebuster and all external marketplace
-effects remain future install/release work.
+G009 owns the minimal generation-6 pre-anchor genesis already accepted through
+Batch 2. G013 owns the bounded source implementation and `S` inventory frozen
+above. G014 owns only the excluded ledger anchor and this ExecPlan. A tracked
+manifest or role-contract edit never authorizes installed plugin bytes, personal
+marketplace/cache state, external config, or a cachebuster helper invocation.
 
 Before each batch, the Executor records an external intent containing exact
 prestate, paths, allowed commands, stop conditions, and checks, then verifies the
@@ -586,23 +569,26 @@ strict raw input
   -> parse facts and reject unknown/duplicate/derived fields
   -> bind TaskBinding and recompute ProgressKey
   -> pure reduce to one NextAction
-  -> validate adapter-issued AuthorityProvenance
+  -> validate private trusted-host provenance and issue AuthorityProvenance
   -> pure enforce to ALLOW, ASK_USER, or REFUSE
-  -> if ALLOW, rebind capability and verify grant/claim/authority
-  -> compute and O_EXCL-consume AttemptKey
-  -> only then create fixture/output/workspace/subprocess effect
+  -> if ALLOW, mint sealed process-local capability
+  -> O_EXCL-consume authority, AttemptKey, sorted resources, then output
+  -> rebind capability and create the authorized non-model effects
+  -> O_EXCL-consume the just-in-time phase child attempt
+  -> only then invoke the model subprocess
   -> strict terminal parse and sanitized typed projection
   -> canonical receipt/ledger write
   -> replay from raw sanitized facts by parse/reduce/enforce/recompute
 ```
 
-No caller may skip, reorder, or precompute a later arrow. In particular, output
-directories and fixtures do not exist before capability/claim/authority/attempt
-consumption. A dry-run stops before capability mint and consumption. `ASK_USER`
-and `REFUSE` stop before every effect. A terminal tag says what the provider
-reported, not whether release or completion gates are satisfied. Thus
-an OPEN `release` gate plus `CompletionTag.COMPLETE` reduces to VERIFY or a
-safer blocker and cannot close.
+No caller may skip, reorder, or precompute a later arrow. Consumed claims are
+never deleted or retried. In particular, output directories and fixtures do not
+exist before authority, AttemptKey, sorted resources, output claim, and capability
+rebind. A dry-run stops before capability mint and consumption. `ASK_USER` and
+`REFUSE` stop before every effect. A terminal tag says what the provider reported,
+not whether release or completion gates are satisfied. Thus an OPEN `release`
+gate plus `CompletionTag.COMPLETE` reduces to VERIFY or a safer blocker and cannot
+close.
 
 Parser output has two channels: stable semantic facts and validated administrative
 enforcement facts. Only the first plus `TaskBinding` feeds `ProgressKey`.
@@ -654,7 +640,7 @@ The following are behavior/state-transition oracles, not phrase checks:
 | capacity | marker/input overflow blocks without truncation, eviction, permutation cap, or false equality |
 | raw/ledger | terminal/raw digest and ledger projection recompute identically; divergence refuses |
 | pre-effect | capability rebind, exact claim verification, authority and AttemptKey consumption all precede fixture/output/workspace/subprocess effect |
-| recovery | native compaction, no-summary/no-handle reconstruction, copied-handle rejection, and writer nonreplacement |
+| recovery | reuse `pre-freeze-compaction`: native same-task compaction and distinct no-summary/no-handle reconstruction pass; copied/serialized handle, cross-task/Root, replacement writer/Executor, wrong role/config/session/thread/destination/lineage/claim, and concurrent resume refuse before effects |
 | fresh evidence | old generation/evidence rejects; pre-source evidence rejects; offline summary remains noncertifying |
 | dry-run | every evaluator dry-run makes no model call, capability/attempt consumption, fixture, output, or workspace effect |
 
@@ -681,6 +667,28 @@ production Python LOC is measured after every batch but becomes a blocking closu
 gate only in Batch 3, after duplicate consumer semantics are deleted. A due budget
 miss blocks terminal GREEN and is not waived by passing tests.
 
+G013 freezes these per-module hard ceilings:
+
+| Production module | LOC | Production module | LOC |
+| --- | ---: | --- | ---: |
+| `evaluation/__init__.py` | 6 | `evaluation/cli.py` | 165 |
+| `evaluation/core/__init__.py` | 3 | `evaluation/core/identity.py` | 650 |
+| `evaluation/core/impact.py` | 450 | `evaluation/core/ledger.py` | 760 |
+| `evaluation/core/receipt.py` | 260 | `evaluation/corpus/__init__.py` | 3 |
+| `evaluation/corpus/engine.py` | 2,150 | `evaluation/holdout/__init__.py` | 3 |
+| `evaluation/holdout/blind.py` | 205 | `evaluation/holdout/compare.py` | 152 |
+| `evaluation/holdout/engine.py` | 330 | `evaluation/live.py` | 300 |
+| `evaluation/semantic/__init__.py` | 44 | `evaluation/semantic/canonical.py` | 111 |
+| `evaluation/semantic/decide.py` | 284 | `evaluation/semantic/parse.py` | 248 |
+| `evaluation/semantic/types.py` | 513 | **Total** | **6,637** |
+
+The total leaves 263 lines of required headroom beneath 6,900. Reductions must
+physically delete uncalled legacy validation, compatibility-era evidence
+structure, duplicate semantic projection, and repeated phase orchestration.
+They may not move production behavior outside `evaluation`, hide it in generated
+files/tests, collapse statements through formatting compression, or waive a
+module ceiling.
+
 ## Future authority and release gates
 
 All gates below are separate, future, and currently unauthorized:
@@ -700,8 +708,9 @@ All gates below are separate, future, and currently unauthorized:
    after first success use a second distinct pair; use the third only for
    split/uncertain results. At equal quality, uncached input plus output tokens
    and wall time each stay within 125% of public 0.2.
-4. **Candidate freeze and exact-final.** After three batch GREEN and source freeze,
-   materialize an exact isolated candidate under a separate grant. Run one fresh,
+4. **Candidate freeze and exact-final.** After G013/G014 GREEN and the separately
+   authorized official cachebuster/re-anchor, materialize an exact isolated
+   candidate under a separate grant. Run one fresh,
    isolated, neutral `gpt-5.6-sol/max` exact-final with no original worktree,
    writer narrative, ledger/history, network, tools, MCP, hooks, or write access.
 5. **Isolated install.** Under separate authority use the plugin-creator
@@ -713,10 +722,12 @@ All gates below are separate, future, and currently unauthorized:
    package, config, and cache for rollback. Rollback switches the paired set, not
    one component.
 
-No `impact_token`, persisted invocation, candidate, check, or plan grants
-permission. Only the canonical affirmative line derived from the exact
-approval-request digest is authority. Prose agreement is not. Implementation
-contains no live authority and performs no network action.
+No `impact_token`, persisted invocation, role-contract artifact, candidate,
+check, plan, JSON, environment value, argv string, or prose grants permission.
+Only private authenticated current-turn host metadata matching the exact persisted
+request can issue process-local provenance. Without that bridge, live execution
+fails closed. Implementation contains no live authority and performs no network
+action.
 
 Any product-source change invalidates candidate identity, exact-final, install
 proof, and source-bound evidence. A semantic input change reopens every dependent
@@ -742,39 +753,11 @@ closed. No claim can close from display prose or test-name presence.
 
 ## Exact command contract
 
-Bootstrap commands are limited to the already corrected sequence:
-
-```text
-git worktree add -b codex/happycodex-0.6-bounded-redesign /home/caichenghang/projects/happycodex-worktrees/happycodex-0.6-bounded-redesign 96ac7563f22eb42d84c827717eba346ecfd80090
-python3 /home/caichenghang/.codex/plugins/cache/personal/happycodex/0.5.0+codex.20260729104011/skills/happycodex/scripts/resource_claim.py acquire --owner happycodex-0.6-bounded-redesign-executor --task /root/bounded_redesign_executor --execplan /home/caichenghang/projects/happycodex-worktrees/happycodex-0.6-bounded-redesign/docs/execplans/happycodex-0-6-bounded-redesign.md --receipt /tmp/happycodex-0.6-bounded-redesign-resource-claim.json --resource worktree=/home/caichenghang/projects/happycodex-worktrees/happycodex-0.6-bounded-redesign --resource ref=/home/caichenghang/projects/happycodex::refs/heads/codex/happycodex-0.6-bounded-redesign --resource ledger=/home/caichenghang/projects/happycodex-worktrees/happycodex-0.6-bounded-redesign/docs/execplans/happycodex-0-6-bounded-redesign.md
-python3 /home/caichenghang/.codex/plugins/cache/personal/happycodex/0.5.0+codex.20260729104011/skills/happycodex/scripts/resource_claim.py verify --receipt /tmp/happycodex-0.6-bounded-redesign-resource-claim.json
-git add -- docs/execplans/happycodex-0-6-bounded-redesign.md
-git diff --check
-git diff --cached --check
-git commit -m "docs: bootstrap HappyCodex 0.6 bounded redesign" -m "HappyCodex-ExecPlan: docs/execplans/happycodex-0-6-bounded-redesign.md"
-```
-
-The helper verification runs again immediately before edit, stage, commit, and
-terminal receipt. Its raw owner token remains only in the mode-0600 private
-receipt; repository/control documents record its SHA-256 only.
-
-Batch 1 has grant-specific RED/focused commands, then exactly:
-
-```text
-PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p 'test_*.py' -v
-python3 -m evaluation.cli verify
-python3 -m evaluation.cli corpus --dry-run
-python3 -m evaluation.cli holdout --dry-run
-git diff --check
-wc -l -w skills/happycodex/SKILL.md skills/happycodex/references/execplan.md
-wc -l evaluation/semantic/{__init__,types,canonical,parse,decide}.py
-PYTHONDONTWRITEBYTECODE=1 python3 -c 'import evaluation.semantic as semantic; print(len(semantic.__all__))'
-find evaluation -type f -name '*.py' -print0 | sort -z | xargs -0 wc -l
-wc -l -w docs/execplans/happycodex-0-6-bounded-redesign.md
-```
-
-Batch 1 must not run the nonexistent `executor --dry-run`. Batch 2 first adds that
-entrypoint under RED/GREEN. From Batch 2 onward, the terminal schedule is:
+Bootstrap and Batch 1/2 command receipts are accepted history and are not
+re-executed by G012. The installed helper verifies the same private receipt
+immediately before every edit, stage, commit, and terminal receipt. Its raw owner
+token remains only in mode-0600 control state; this plan records its SHA-256.
+From accepted Batch 2 onward, every implementation terminal schedule is:
 
 ```text
 PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p 'test_*.py' -v
@@ -818,7 +801,7 @@ One token claims exactly the bounded-redesign worktree, branch ref, and this
 ledger. Its adjacent untracked claim directory is private control state, excluded
 from product/commit content, and is not released automatically.
 
-## Accepted Batch 1 and accepted Batch 2 candidate
+## Accepted Batch 1 and Batch 2
 
 Root accepted G003-G005 together as Batch 1 commit
 `27ea46e27254426ee5737078117d43f28c9df523`, tree
@@ -827,49 +810,22 @@ public authority/report construction, rejects parser/type/duplicate bypasses,
 recomputes action at AttemptKey and enforcement, and never closes unresolved
 facts. Earlier invalidated intermediate receipts remain history, not evidence.
 
-G006 owns the combined Batch 2 evaluator seams; G007 corrects the semantic
-inventory. Their immutable intent SHA-256 values are respectively
-`bedc7767eea10d04bf50d49dd9d00a3dafce05a3c887b0da9561d65464f796bf`
-and `1b39d234eeaca7443edc22b6c5beef610a8cafaf05c5aaff72c8d8bef50a544a`.
-G008 binds their accepted dirty binary diff
-`dd56e7954aff92476667e500223417290b95cd1886d999a1044fa624eef442ef`
-and tracked-path-list digest
-`743a5789f246002db2c26498fe29176f37396691a2ae730ab37eb8a7ce401112`.
+G006-G008 build the combined evaluator seams and close the semantic inventory.
+G009 is retained as a rejected intermediate because legacy authority,
+approval-string, attempt, cost, and old-evidence surfaces remained. G010 removes
+those residuals and makes every non-dry executor/corpus/holdout path refuse before
+effects. Root independently reproduced 206/206 GREEN,
+refresh-required/noncertified verify, all three dry-runs, expected impact exit 2,
+old-field/generation rejection, pre-effect refusal, exact snapshot, zero legacy
+production hits, and diff/claim/hash checks.
 
-G008 intent is mode `0600`, SHA-256
-`12c7eaff259ff617394621f276357282682b354a53a8736a32293ee3b9ada416`;
-its exact contract annex SHA-256 is
-`7af82f7f58801a6cda68e8cd68a9151b74eb9ddd1f82c3878a33c457160cba30`.
-Expanded RED SHA-256
-`ecadbdd91086e57e23abb49d11ba21e5d82f467697e450dddfe9ebce62a0d2bf`
-binds parser injection, every gate mapping and precedence, canonical evidence,
-TaskBinding digests, forged action family, and direct/cross-task authority
-attacks. The combined commit remains unmade pending G011 verification and must use
-subject `refactor: unify HappyCodex evaluator semantics` with G006-G010
-grant trailers.
-
-G009 attempted the minimal Batch 2 genesis correction. Its mode-`0600` intent
+G011 commits and closes Batch 2 at
+`788c42917bf1e1bcec2515a361ce68b32a25fb46`, tree
+`c1e5ba545399ac4a3a37a1396f1fccb5f69534f8`. Its mode-`0600` terminal receipt
 SHA-256 is
-`681bdbf7a835525cbc359dc72a5e7d8575f1680bd371d681dc68c229eef205ad`;
-its focused RED receipt SHA-256 is
-`cd21659baba9d6709475cbdc4d8c8fc792e1220b5d1fa05d8de6a01be1cf9726`.
-Root rejected its terminal receipt because legacy authority construction, claim,
-approval-string, combined-schema, attempt, historical-cost, and old-evidence
-surfaces remained.
-
-G010 physically removes those residual surfaces and leaves every non-dry
-executor/corpus/holdout path refusing before effects until Batch 3. Its
-mode-`0600` intent SHA-256 is
-`d4d4379ffe5ca942cbca09bf64725fc8a8532118e79e49285ddeddf7bb5907fa`;
-its focused RED receipt SHA-256 is
-`080f10ad32902af3178332501ae2d5ed3611ff6cad9191e70b30d13775be3a79`.
-Root accepts G010 and the combined G006-G010 Batch 2 candidate after independently
-reproducing 206/206 GREEN, refresh-required/noncertified verify, all three
-dry-runs, expected impact exit 2, old-field/generation rejection, pre-effect
-non-dry refusal, exact snapshot, zero legacy production hits, and diff/claim/hash
-checks. Evaluation production Python is 8,667 lines; the remaining 1,767-line
-overage is recorded and deferred because the frozen plan makes 6,900 blocking
-only at Batch 3 closure.
+`c843a2edc454a1e3fd4c1d59051e82672439977577c6a18813db11a4251de0fb`.
+Evaluation production Python is 8,667 lines at that accepted boundary; G013 must
+close the frozen 6,637-line module budget without moving or compressing behavior.
 The active ledger is exact generation `0.6`, `refresh_required`, with six sorted
 pending gates, all 17/3 identities, three null authorities, empty calibration
 and accepted evidence, and null receipt head/certification. Historical cost,
@@ -877,9 +833,11 @@ attempt, singular-authority, compatibility, and old-evidence paths are absent
 from active production.
 
 The semantic package remains exactly five files, at most 1,200 production lines
-and at most 20 exports. Runtime bytes remain unchanged. No Goal, model/network/
-live call, authority or attempt consumption, install, release, activation,
-delegation, or claim release is authorized.
+and at most 20 exports. Runtime bytes remain unchanged. G012 records the
+read-only Batch 3 audit and freezes future G013/G014 contracts only. No Goal,
+pilot, corpus, holdout, model/network/live call, exact-final, authority or attempt
+consumption, install, release, marketplace/cachebuster, activation, delegation,
+claim release, G013, or G014 effect is authorized.
 
 Uncertainty rule: an outside path, changed prestate, unverified claim, ambiguous
 or partial effect, reproduction mismatch, unknown input, identity/config drift,
