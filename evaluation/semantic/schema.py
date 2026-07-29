@@ -66,9 +66,9 @@ COMPLETION_EVENT_FIELDS = (
 def _strict_mapping(value: object, *, name: str, fields: tuple[str, ...]) -> Mapping[str, Any]:
     if not isinstance(value, Mapping):
         raise SemanticValidationError(f"{name} must be an object")
-    keys = tuple(sorted(value))
     if any(not isinstance(key, str) for key in value):
         raise SemanticValidationError(f"{name} keys must be strings")
+    keys = tuple(sorted(value))
     expected = tuple(sorted(fields))
     if keys != expected:
         missing = tuple(field for field in expected if field not in value)
@@ -209,7 +209,19 @@ def parse_model_observation(
     existing = set(catalog.existing_finding_ids)
     claims = set(catalog.claim_ids)
     falsifiers = set(catalog.falsifier_ids)
+    namespace_prefix = f"{catalog.namespace}."
+    proposed_ids: set[FindingId] = set()
     for finding in proposed:
+        if (
+            not finding.finding_id.value.startswith(namespace_prefix)
+            or finding.finding_id.value == namespace_prefix
+        ):
+            raise SemanticValidationError(
+                "model proposal FindingId is outside the exact catalog namespace"
+            )
+        if finding.finding_id in proposed_ids:
+            raise SemanticValidationError("duplicate proposed FindingId")
+        proposed_ids.add(finding.finding_id)
         if finding.finding_id in existing:
             raise SemanticValidationError("model proposal must use a new FindingId")
         if finding.claim_id not in claims:

@@ -224,11 +224,53 @@ class TypedStateTests(unittest.TestCase):
         self.assertNotEqual(FindingId("same"), ClaimId("same"))
         self.assertNotEqual(ClaimId("same"), FalsifierId("same"))
         self.assertNotEqual(FalsifierId("same"), EvidenceSourceId("same"))
+        exact_frozen = (
+            FindingId("MF-06-001"),
+            ClaimId("CL-06-STRUCTURAL-DECISION-TARGET"),
+            GateWorkId("I-01/types-and-keys"),
+            AttemptScope("RB-06-001/instance"),
+            EvidenceSourceId("current-task/user/happycodex-0.6"),
+            ResourceId(
+                "worktree:/home/caichenghang/projects/happycodex-worktrees/"
+                "happycodex-0.6-semantic-core"
+            ),
+            ResourceId(
+                "ref:/home/caichenghang/projects/happycodex::"
+                "refs/heads/codex/happycodex-0.6-semantic-core"
+            ),
+        )
+        self.assertEqual(
+            tuple(item.value for item in exact_frozen[:5]),
+            (
+                "MF-06-001",
+                "CL-06-STRUCTURAL-DECISION-TARGET",
+                "I-01/types-and-keys",
+                "RB-06-001/instance",
+                "current-task/user/happycodex-0.6",
+            ),
+        )
+        self.assertNotEqual(FindingId("MF-06-001"), FindingId("mf-06-001"))
+        exact_claim = ResourceClaim(exact_frozen[5], Sha256(HEX_A))
+        case_variant_claim = ResourceClaim(
+            ResourceId(
+                "worktree:/home/caichenghang/projects/happycodex-worktrees/"
+                "HappyCodex-0.6-semantic-core"
+            ),
+            Sha256(HEX_A),
+        )
+        self.assertNotEqual(exact_claim, case_variant_claim)
+        self.assertNotEqual(
+            make_state_key(self.projection(claimed_resources=(exact_claim,))),
+            make_state_key(self.projection(claimed_resources=(case_variant_claim,))),
+        )
         for factory, bad in (
             (FindingId, ""),
             (ClaimId, " leading"),
             (FalsifierId, "trailing "),
-            (EvidenceSourceId, "UPPER_CASE"),
+            (EvidenceSourceId, "contains whitespace"),
+            (ResourceId, "resource\\alias"),
+            (ResourceId, "line\nfeed"),
+            (ResourceId, 1),
             (Sha256, "A" * 64),
             (Sha256, "a" * 63),
             (GitCommit, "a" * 39),
@@ -290,6 +332,10 @@ class TypedStateTests(unittest.TestCase):
         )
         with self.assertRaisesRegex(SemanticValidationError, "duplicate"):
             canonical_set((ClaimId("a"), ClaimId("a")))
+        for mutable in ({"a": 1}, ["a"], {"a"}, bytearray(b"a")):
+            with self.subTest(mutable=type(mutable).__name__):
+                with self.assertRaises(SemanticValidationError):
+                    canonical_set((mutable,))
         self.assertEqual(canonical_bytes(True), b"true")
         self.assertEqual(canonical_bytes(False), b"false")
         for value in (float("nan"), 1.0, float("inf")):
@@ -300,6 +346,19 @@ class TypedStateTests(unittest.TestCase):
             canonical_sha256("domain-a", {"x": 1}),
             canonical_sha256("domain-b", {"x": 1}),
         )
+
+    def test_mapping_key_validation_precedes_sorting(self) -> None:
+        mixed = {"a": 1, 2: "b"}
+        for operation in (
+            lambda: canonical_bytes(mixed),
+            lambda: freeze_mapping(mixed),
+            lambda: parse_repo_path(
+                {"tag": "RepoPath", "repository_id": "repo-main", 2: "bad"}
+            ),
+        ):
+            with self.subTest(operation=operation):
+                with self.assertRaises(SemanticValidationError):
+                    operation()
 
     def test_unknown_enum_and_bool_as_int_fail_closed(self) -> None:
         with self.assertRaises(ValueError):
@@ -346,6 +405,7 @@ class TypedStateTests(unittest.TestCase):
             with self.subTest(variant=variant):
                 self.assertNotEqual(base.semantic_identity(), variant.semantic_identity())
 
+        resolution_evidence = self.evidence(HEX_B, kind=EvidenceKind.CHECK)
         resolved = Finding.resolved(
             finding_id=base.finding_id,
             claim_id=base.claim_id,
@@ -353,8 +413,8 @@ class TypedStateTests(unittest.TestCase):
             anchors=base.anchors,
             claim_text=base.claim_text,
             falsifier_text=base.falsifier_text,
-            evidence=(self.evidence(HEX_B),),
-            resolution=ResolutionEvidence(self.evidence(HEX_B, kind=EvidenceKind.CHECK)),
+            evidence=(resolution_evidence,),
+            resolution=ResolutionEvidence(resolution_evidence),
         )
         self.assertNotEqual(base.semantic_identity(), resolved.semantic_identity())
 
@@ -386,7 +446,7 @@ class TypedStateTests(unittest.TestCase):
             finding_id=base.finding_id,
             claim_id=base.claim_id,
             falsifier_id=base.falsifier_id,
-            anchors=base.anchors,
+            anchors=(*base.anchors, DigestAnchor("baseline", Sha256(HEX_C))),
             claim_text=base.claim_text,
             falsifier_text=base.falsifier_text,
             evidence=(self.evidence(HEX_C),),
@@ -397,10 +457,82 @@ class TypedStateTests(unittest.TestCase):
         )
         self.assertEqual(accepted.status, FindingStatus.BASELINE_ACCEPTED)
 
+    def test_finding_resolution_evidence_must_be_present_exactly(self) -> None:
+        base = self.finding()
+        resolution = ResolutionEvidence(self.evidence(HEX_B, kind=EvidenceKind.CHECK))
+        with self.assertRaises(SemanticValidationError):
+            Finding.resolved(
+                finding_id=base.finding_id,
+                claim_id=base.claim_id,
+                falsifier_id=base.falsifier_id,
+                anchors=base.anchors,
+                claim_text=base.claim_text,
+                falsifier_text=base.falsifier_text,
+                evidence=(self.evidence(HEX_B),),
+                resolution=resolution,
+            )
+        resolved = Finding.resolved(
+            finding_id=base.finding_id,
+            claim_id=base.claim_id,
+            falsifier_id=base.falsifier_id,
+            anchors=base.anchors,
+            claim_text=base.claim_text,
+            falsifier_text=base.falsifier_text,
+            evidence=(resolution.evidence,),
+            resolution=resolution,
+        )
+        self.assertIn(resolution.evidence, resolved.evidence)
+
+    def test_baseline_identity_is_semantic_but_authority_receipt_is_administrative(self) -> None:
+        base = self.finding()
+        baseline_a = Sha256(HEX_A)
+        baseline_b = Sha256(HEX_B)
+        authority_a = self.evidence("1" * 64, kind=EvidenceKind.AUTHORITY)
+        authority_b = self.evidence("2" * 64, kind=EvidenceKind.AUTHORITY)
+
+        def accepted(baseline: Sha256, authority: EvidenceRef) -> Finding:
+            return Finding.baseline_accepted(
+                finding_id=base.finding_id,
+                claim_id=base.claim_id,
+                falsifier_id=base.falsifier_id,
+                anchors=(*base.anchors, DigestAnchor("baseline", baseline)),
+                claim_text=base.claim_text,
+                falsifier_text=base.falsifier_text,
+                evidence=(self.evidence(HEX_C),),
+                acceptance=BaselineAcceptance(authority=authority, baseline=baseline),
+            )
+
+        first = accepted(baseline_a, authority_a)
+        same_baseline_new_authority = accepted(baseline_a, authority_b)
+        different_baseline = accepted(baseline_b, authority_b)
+        self.assertEqual(first.semantic_identity(), same_baseline_new_authority.semantic_identity())
+        self.assertNotEqual(first.semantic_identity(), different_baseline.semantic_identity())
+
+        invalid_anchors = (
+            base.anchors,
+            (*base.anchors, DigestAnchor("baseline", baseline_b)),
+        )
+        for anchors in invalid_anchors:
+            with self.subTest(anchors=anchors):
+                with self.assertRaises(SemanticValidationError):
+                    Finding.baseline_accepted(
+                        finding_id=base.finding_id,
+                        claim_id=base.claim_id,
+                        falsifier_id=base.falsifier_id,
+                        anchors=anchors,
+                        claim_text=base.claim_text,
+                        falsifier_text=base.falsifier_text,
+                        evidence=(self.evidence(HEX_C),),
+                        acceptance=BaselineAcceptance(
+                            authority=authority_a,
+                            baseline=baseline_a,
+                        ),
+                    )
+
     def test_model_observation_accepts_only_new_open_or_unknown_catalog_entries(self) -> None:
         catalog = FindingCatalog(
             namespace="semantic-core",
-            existing_finding_ids=(FindingId("existing-finding"),),
+            existing_finding_ids=(FindingId("semantic-core.existing-finding"),),
             claim_ids=(ClaimId("claim-progress"),),
             falsifier_ids=(FalsifierId("falsifier-repeat"),),
         )
@@ -409,7 +541,7 @@ class TypedStateTests(unittest.TestCase):
             "proposed_findings": [
                 {
                     "tag": "Finding",
-                    "finding_id": "finding-progress",
+                    "finding_id": "semantic-core.finding-progress",
                     "claim_id": "claim-progress",
                     "falsifier_id": "falsifier-repeat",
                     "status": "OPEN",
@@ -431,7 +563,8 @@ class TypedStateTests(unittest.TestCase):
                 with self.assertRaises(SemanticValidationError):
                     parse_model_observation(malformed, catalog=catalog)
         for key, value in (
-            ("finding_id", "existing-finding"),
+            ("finding_id", "semantic-core.existing-finding"),
+            ("finding_id", "outside"),
             ("claim_id", "claim-outside-catalog"),
             ("falsifier_id", "falsifier-outside-catalog"),
         ):
@@ -441,6 +574,39 @@ class TypedStateTests(unittest.TestCase):
                     parse_model_observation(malformed, catalog=catalog)
         with self.assertRaises(SemanticValidationError):
             parse_model_observation({**raw, "decision": "CLOSE"}, catalog=catalog)
+        with self.assertRaises(SemanticValidationError):
+            parse_model_observation(
+                {
+                    **raw,
+                    "proposed_findings": [
+                        raw["proposed_findings"][0],
+                        raw["proposed_findings"][0],
+                    ],
+                },
+                catalog=catalog,
+            )
+        duplicate_id_different_status = {
+            **raw,
+            "proposed_findings": [
+                raw["proposed_findings"][0],
+                {**raw["proposed_findings"][0], "status": "UNKNOWN"},
+            ],
+        }
+        with self.assertRaises(SemanticValidationError):
+            parse_model_observation(
+                duplicate_id_different_status,
+                catalog=catalog,
+            )
+        with self.assertRaises(SemanticValidationError):
+            parse_model_observation(
+                {
+                    **raw,
+                    "proposed_findings": [
+                        {**raw["proposed_findings"][0], "finding_id": "semantic-core."}
+                    ],
+                },
+                catalog=catalog,
+            )
 
     def test_state_key_ignores_all_administrative_lifecycle_fields(self) -> None:
         baseline = make_state_key(self.envelope())
@@ -509,7 +675,7 @@ class TypedStateTests(unittest.TestCase):
                         anchors=base.findings[0].anchors,
                         claim_text=base.findings[0].claim_text,
                         falsifier_text=base.findings[0].falsifier_text,
-                        evidence=(self.evidence(HEX_B),),
+                        evidence=(self.evidence(HEX_B, kind=EvidenceKind.CHECK),),
                         resolution=ResolutionEvidence(
                             self.evidence(HEX_B, kind=EvidenceKind.CHECK)
                         ),
@@ -561,7 +727,7 @@ class TypedStateTests(unittest.TestCase):
         base = make_attempt_key(
             state_key,
             Decision.VERIFY,
-            AttemptTarget(DecisionTargetId("typed-state-check")),
+            AttemptTarget("typed-state-check"),
             AttemptScope("semantic-core"),
             FalsifierId("falsifier-repeat"),
             EvidenceSourceId("source-main"),
@@ -583,7 +749,7 @@ class TypedStateTests(unittest.TestCase):
                 )
             ),
             Decision.VERIFY,
-            AttemptTarget(DecisionTargetId("typed-state-check")),
+            AttemptTarget("typed-state-check"),
             AttemptScope("semantic-core"),
             FalsifierId("falsifier-repeat"),
             EvidenceSourceId("source-main"),
@@ -593,7 +759,7 @@ class TypedStateTests(unittest.TestCase):
             make_attempt_key(
                 state_key,
                 Decision.IMPLEMENT_BATCH,
-                AttemptTarget(DecisionTargetId("typed-state-check")),
+                AttemptTarget("typed-state-check"),
                 AttemptScope("semantic-core"),
                 FalsifierId("falsifier-repeat"),
                 EvidenceSourceId("source-main"),
@@ -601,7 +767,7 @@ class TypedStateTests(unittest.TestCase):
             make_attempt_key(
                 state_key,
                 Decision.VERIFY,
-                AttemptTarget(DecisionTargetId("other-target")),
+                AttemptTarget("other-target"),
                 AttemptScope("semantic-core"),
                 FalsifierId("falsifier-repeat"),
                 EvidenceSourceId("source-main"),
@@ -609,7 +775,7 @@ class TypedStateTests(unittest.TestCase):
             make_attempt_key(
                 state_key,
                 Decision.VERIFY,
-                AttemptTarget(DecisionTargetId("typed-state-check")),
+                AttemptTarget("typed-state-check"),
                 AttemptScope("other-scope"),
                 FalsifierId("other-falsifier"),
                 EvidenceSourceId("other-source"),
@@ -618,12 +784,23 @@ class TypedStateTests(unittest.TestCase):
         for variant in variants:
             self.assertNotEqual(base, variant)
 
+    def test_attempt_target_rejects_cross_tag_conversion(self) -> None:
+        self.assertEqual(AttemptTarget("typed-state-check").value, "typed-state-check")
+        for tagged in (
+            DecisionTargetId("typed-state-check"),
+            FalsifierId("typed-state-check"),
+            EvidenceSourceId("typed-state-check"),
+        ):
+            with self.subTest(tagged=type(tagged).__name__):
+                with self.assertRaises(SemanticValidationError):
+                    AttemptTarget(tagged)
+
     def test_receipt_link_validates_sequence_and_never_feeds_state_key(self) -> None:
         state_key = make_state_key(self.envelope())
         attempt = make_attempt_key(
             state_key,
             Decision.VERIFY,
-            AttemptTarget(DecisionTargetId("typed-state-check")),
+            AttemptTarget("typed-state-check"),
             AttemptScope("semantic-core"),
             FalsifierId("falsifier-repeat"),
             EvidenceSourceId("source-main"),
@@ -670,6 +847,55 @@ class TypedStateTests(unittest.TestCase):
                 )
             ).semantic_identity(),
         )
+        for invalid in (
+            lambda: Marker("raw"),
+            lambda: DigestAnchor("config", "raw"),
+            lambda: ReceiptAnchor("check", "raw"),
+            lambda: DigestAnchor("config", StateKey(HEX_A)),
+            lambda: ReceiptAnchor(ReceiptKind("check"), AttemptKey(HEX_B)),
+        ):
+            with self.subTest(invalid=invalid):
+                with self.assertRaises(SemanticValidationError):
+                    invalid()
+
+    def test_authority_evidence_is_rejected_from_every_state_bearing_position(self) -> None:
+        authority = self.evidence(HEX_B, kind=EvidenceKind.AUTHORITY)
+        base = self.projection()
+        checks = (
+            lambda: self.finding(evidence=(authority,)),
+            lambda: ClaimFact(
+                ClaimId("claim-authority-smuggle"),
+                "outcome",
+                ClaimState.OPEN,
+                (Marker(MarkerId("claim-anchor")),),
+                (authority,),
+            ),
+            lambda: GateFact(
+                GateId.IMPLEMENTATION,
+                GateState.OPEN,
+                GateWorkId("i-01"),
+                (authority,),
+            ),
+            lambda: CheckFact(
+                CheckId("authority-smuggle"),
+                Sha256(HEX_A),
+                CheckState.FAIL,
+                None,
+                authority,
+            ),
+            lambda: InfrastructureTransition(
+                InfrastructureTransitionKind.REPLACED,
+                InfrastructureId("runner"),
+                Sha256(HEX_A),
+                Sha256(HEX_C),
+                (authority,),
+            ),
+            lambda: replace(base, accepted_evidence=(authority,)),
+        )
+        for index, constructor in enumerate(checks):
+            with self.subTest(position=index):
+                with self.assertRaises(SemanticValidationError):
+                    constructor()
 
     def test_supporting_enums_are_exact(self) -> None:
         self.assertEqual(Arm.CANDIDATE.value, "CANDIDATE")

@@ -41,10 +41,10 @@ def _canonical_value(value: Any) -> Any:
     if isinstance(value, str):
         return value
     if isinstance(value, Mapping):
+        if any(not isinstance(key, str) for key in value):
+            raise SemanticValidationError("canonical mapping keys must be strings")
         result: dict[str, Any] = {}
         for key in sorted(value):
-            if not isinstance(key, str):
-                raise SemanticValidationError("canonical mapping keys must be strings")
             result[key] = _canonical_value(value[key])
         return result
     if isinstance(value, tuple):
@@ -99,6 +99,8 @@ def canonical_set(values: Iterable[T], *, max_items: int | None = None) -> tuple
             from .types import CapacityError
 
             raise CapacityError(limit=max_items, actual=len(materialized))
+    if any(isinstance(value, (Mapping, list, set, bytearray)) for value in materialized):
+        raise SemanticValidationError("canonical_set members must be deeply immutable")
     keyed = sorted(
         ((canonical_bytes(value), value) for value in materialized),
         key=lambda item: item[0],

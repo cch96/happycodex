@@ -33,12 +33,14 @@ def _require_exact_bool(value: object, *, name: str) -> bool:
 
 
 def _require_instance(value: object, expected: type | tuple[type, ...], *, name: str) -> None:
-    if not isinstance(value, expected):
+    allowed = expected if isinstance(expected, tuple) else (expected,)
+    if type(value) not in allowed:
         raise SemanticValidationError(f"{name} has the wrong tagged type")
 
 
 def _require_tuple_instances(values: object, expected: type | tuple[type, ...], *, name: str) -> None:
-    if not isinstance(values, tuple) or any(not isinstance(value, expected) for value in values):
+    allowed = expected if isinstance(expected, tuple) else (expected,)
+    if not isinstance(values, tuple) or any(type(value) not in allowed for value in values):
         raise SemanticValidationError(f"{name} must be an immutable tuple of exact tagged values")
 
 
@@ -51,9 +53,11 @@ def _require_text(value: object, *, name: str, maximum: int = 512) -> str:
 
 
 def _require_identifier(value: object, *, name: str) -> str:
-    text = _require_text(value, name=name, maximum=160)
-    if re.fullmatch(r"[a-z0-9][a-z0-9.-]*", text) is None:
-        raise SemanticValidationError(f"{name} must be a canonical lowercase identifier")
+    text = _require_text(value, name=name, maximum=512)
+    if "\\" in text or re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:/=+@-]*", text) is None:
+        raise SemanticValidationError(
+            f"{name} must match the bounded case-sensitive ASCII identity grammar"
+        )
     return text
 
 
@@ -127,9 +131,7 @@ class ReceiptKind(_Identifier):
 
 @dataclass(frozen=True)
 class AttemptTarget(_Identifier):
-    def __init__(self, value: DecisionTargetId | str) -> None:
-        object.__setattr__(self, "value", value.value if isinstance(value, DecisionTargetId) else value)
-        self.__post_init__()
+    pass
 
 
 @dataclass(frozen=True)
@@ -331,6 +333,9 @@ class RepoPath:
 class Marker:
     marker_id: MarkerId
 
+    def __post_init__(self) -> None:
+        _require_instance(self.marker_id, MarkerId, name="Marker.marker_id")
+
 
 @dataclass(frozen=True)
 class DigestAnchor:
@@ -339,12 +344,17 @@ class DigestAnchor:
 
     def __post_init__(self) -> None:
         _require_identifier(self.kind, name="DigestAnchor.kind")
+        _require_instance(self.digest, Sha256, name="DigestAnchor.digest")
 
 
 @dataclass(frozen=True)
 class ReceiptAnchor:
     receipt_kind: ReceiptKind
     digest: Sha256
+
+    def __post_init__(self) -> None:
+        _require_instance(self.receipt_kind, ReceiptKind, name="ReceiptAnchor.receipt_kind")
+        _require_instance(self.digest, Sha256, name="ReceiptAnchor.digest")
 
 
 Anchor = RepoPath | Marker | DigestAnchor | ReceiptAnchor
@@ -389,12 +399,17 @@ def _freeze_value(value: Any) -> Any:
 def freeze_mapping(value: Mapping[str, Any]) -> Mapping[str, Any]:
     if not isinstance(value, Mapping):
         raise SemanticValidationError("mapping input required")
+    if any(not isinstance(key, str) for key in value):
+        raise SemanticValidationError("mapping keys must be strings")
     normalized: dict[str, Any] = {}
     for key in sorted(value):
-        if not isinstance(key, str):
-            raise SemanticValidationError("mapping keys must be strings")
         normalized[key] = _freeze_value(value[key])
     return MappingProxyType(normalized)
+
+
+def _reject_authority_evidence(values: tuple[EvidenceRef, ...], *, name: str) -> None:
+    if any(evidence.kind is EvidenceKind.AUTHORITY for evidence in values):
+        raise SemanticValidationError(f"authority receipts are excluded from {name}")
 
 
 @dataclass(frozen=True)
@@ -515,6 +530,7 @@ class ClaimFact:
             raise SemanticValidationError("ClaimFact.state must be a ClaimState")
         _require_tuple_instances(self.anchors, (RepoPath, Marker, DigestAnchor, ReceiptAnchor), name="ClaimFact.anchors")
         _require_tuple_instances(self.evidence, EvidenceRef, name="ClaimFact.evidence")
+        _reject_authority_evidence(self.evidence, name="ClaimFact.evidence")
         object.__setattr__(self, "anchors", sorted_unique(self.anchors, name="ClaimFact.anchors"))
         object.__setattr__(self, "evidence", sorted_unique(self.evidence, name="ClaimFact.evidence"))
 
@@ -548,6 +564,7 @@ class GateFact:
         if self.work_id is not None:
             _require_instance(self.work_id, GateWorkId, name="GateFact.work_id")
         _require_tuple_instances(self.evidence, EvidenceRef, name="GateFact.evidence")
+        _reject_authority_evidence(self.evidence, name="GateFact.evidence")
         object.__setattr__(self, "evidence", sorted_unique(self.evidence, name="GateFact.evidence"))
 
 
@@ -567,6 +584,7 @@ class CheckFact:
         if self.candidate_identity is not None:
             _require_instance(self.candidate_identity, Sha256, name="CheckFact.candidate_identity")
         _require_instance(self.receipt, EvidenceRef, name="CheckFact.receipt")
+        _reject_authority_evidence((self.receipt,), name="CheckFact.receipt")
 
 
 @dataclass(frozen=True)
@@ -584,6 +602,10 @@ class InfrastructureTransition:
         _require_instance(self.prior_envelope, Sha256, name="InfrastructureTransition.prior_envelope")
         _require_instance(self.new_envelope, Sha256, name="InfrastructureTransition.new_envelope")
         _require_tuple_instances(self.evidence, EvidenceRef, name="InfrastructureTransition.evidence")
+        _reject_authority_evidence(
+            self.evidence,
+            name="InfrastructureTransition.evidence",
+        )
         if self.prior_envelope == self.new_envelope:
             raise SemanticValidationError("infrastructure replacement must change envelope")
         object.__setattr__(self, "evidence", sorted_unique(self.evidence, name="InfrastructureTransition.evidence"))
@@ -634,6 +656,7 @@ class Finding:
         _require_instance(self.claim_text, SafeText, name="Finding.claim_text")
         _require_instance(self.falsifier_text, SafeText, name="Finding.falsifier_text")
         _require_tuple_instances(self.evidence, EvidenceRef, name="Finding.evidence")
+        _reject_authority_evidence(self.evidence, name="Finding.evidence")
         anchors = sorted_unique(self.anchors, name="Finding.anchors")
         evidence = sorted_unique(self.evidence, name="Finding.evidence")
         if not anchors:
@@ -646,9 +669,25 @@ class Finding:
         elif self.status is FindingStatus.RESOLVED:
             if self.resolution is None or self.baseline_acceptance is not None:
                 raise SemanticValidationError("RESOLVED requires exact machine evidence")
+            if self.resolution.evidence not in evidence:
+                raise SemanticValidationError(
+                    "RESOLVED evidence must include the exact ResolutionEvidence"
+                )
         elif self.status is FindingStatus.BASELINE_ACCEPTED:
             if self.baseline_acceptance is None or self.resolution is not None:
                 raise SemanticValidationError("BASELINE_ACCEPTED requires exact user authority")
+            baseline_anchors = tuple(
+                anchor
+                for anchor in anchors
+                if isinstance(anchor, DigestAnchor) and anchor.kind == "baseline"
+            )
+            if (
+                len(baseline_anchors) != 1
+                or baseline_anchors[0].digest != self.baseline_acceptance.baseline
+            ):
+                raise SemanticValidationError(
+                    "BASELINE_ACCEPTED requires one exact matching baseline DigestAnchor"
+                )
 
     @classmethod
     def proposed(
