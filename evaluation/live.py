@@ -174,7 +174,7 @@ def holdout_invocation(
 
 def _attempt_registry_root() -> Path:
     completed = subprocess.run(
-        ["git", "rev-parse", "--git-path", "happycodex-live-attempts"],
+        ["git", "rev-parse", "--git-common-dir"],
         cwd=ROOT,
         check=False,
         capture_output=True,
@@ -183,7 +183,8 @@ def _attempt_registry_root() -> Path:
     if completed.returncode:
         raise ValueError("cannot resolve durable live attempt registry")
     path = Path(completed.stdout.strip())
-    return (ROOT / path).resolve() if not path.is_absolute() else path.resolve()
+    common = (ROOT / path).resolve() if not path.is_absolute() else path.resolve()
+    return common / "happycodex-live-attempts"
 
 
 def run_command(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:

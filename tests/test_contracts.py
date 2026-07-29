@@ -568,6 +568,13 @@ class HappyCodexContractTests(unittest.TestCase):
             "required user decision",
         ):
             self.assertIn(phrase, text)
+        template = folded(EXECPLAN)
+        for phrase in (
+            "configured-model source",
+            "authorization/degradation",
+            "query counts",
+        ):
+            self.assertIn(phrase, template)
 
     def test_review_handles_contamination_truncation_and_external_review(self) -> None:
         text = folded(SKILL)

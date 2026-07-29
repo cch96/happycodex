@@ -10,6 +10,7 @@ import subprocess
 import sys
 import tempfile
 import threading
+import time
 import unittest
 from unittest import mock
 
@@ -653,6 +654,37 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
         )
         self.assertEqual(set(attempts.values()), {1})
 
+    def test_corpus_frontier_stops_after_replacement_failure(self) -> None:
+        barrier = threading.Barrier(corpus_engine.CORPUS_MAX_WORKERS)
+        failure_started = threading.Event()
+        seen: list[int] = []
+        lock = threading.Lock()
+
+        def evaluate(case_id: str) -> dict[str, object]:
+            index = int(case_id.removeprefix("case-"))
+            with lock:
+                seen.append(index)
+            if index < corpus_engine.CORPUS_MAX_WORKERS:
+                barrier.wait(timeout=2)
+            elif index == corpus_engine.CORPUS_MAX_WORKERS:
+                failure_started.set()
+                raise RuntimeError("replacement failed")
+            else:
+                failure_started.wait(timeout=2)
+                time.sleep(0.02)
+            return {"case": case_id}
+
+        with self.assertRaisesRegex(RuntimeError, "replacement failed"):
+            corpus_engine._evaluate_cases_bounded(
+                [f"case-{index}" for index in range(12)], evaluate
+            )
+
+        self.assertLessEqual(
+            set(seen),
+            {f for f in range(corpus_engine.CORPUS_MAX_WORKERS * 2)},
+        )
+        self.assertNotIn(corpus_engine.CORPUS_MAX_WORKERS * 2, seen)
+
     def test_timeout_and_nonzero_exit_are_infrastructure_failures(self) -> None:
         for label, completed, timed_out in (
             (
@@ -823,6 +855,22 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
         self.assertEqual(outcomes.count("claimed"), 1)
         self.assertEqual(
             outcomes.count("live invocation attempt is already consumed"), 1
+        )
+
+    def test_attempt_registry_is_shared_by_linked_worktrees(self) -> None:
+        completed = subprocess.run(
+            ["git", "rev-parse", "--git-common-dir"],
+            cwd=ROOT,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        common = Path(completed.stdout.strip())
+        if not common.is_absolute():
+            common = (ROOT / common).resolve()
+        self.assertEqual(
+            live._attempt_registry_root(),
+            common / "happycodex-live-attempts",
         )
 
     def test_persisting_authority_does_not_create_a_token_cycle(self) -> None:

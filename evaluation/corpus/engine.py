@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-from concurrent.futures import FIRST_COMPLETED, Future, ThreadPoolExecutor, wait
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 import json
 import os
@@ -10,6 +10,7 @@ import re
 import shutil
 import subprocess
 import tempfile
+import threading
 import time
 from typing import Any, Callable
 
@@ -2383,32 +2384,35 @@ def _evaluate_cases_bounded(
     if not case_ids:
         return []
     worker_count = min(CORPUS_MAX_WORKERS, len(case_ids))
-    executor = ThreadPoolExecutor(max_workers=worker_count)
     results: list[dict[str, Any] | None] = [None] * len(case_ids)
-    inflight: dict[Future[dict[str, Any]], int] = {}
     next_index = 0
-    try:
-        while next_index < worker_count:
-            inflight[executor.submit(evaluate, case_ids[next_index])] = next_index
-            next_index += 1
-        while inflight:
-            completed, _pending = wait(inflight, return_when=FIRST_COMPLETED)
-            failure = next(
-                (future.exception() for future in completed if future.exception()),
-                None,
-            )
-            if failure is not None:
-                for future in inflight:
-                    future.cancel()
-                raise failure
-            for future in sorted(completed, key=inflight.__getitem__):
-                index = inflight.pop(future)
-                results[index] = future.result()
-            while next_index < len(case_ids) and len(inflight) < worker_count:
-                inflight[executor.submit(evaluate, case_ids[next_index])] = next_index
+    failure: BaseException | None = None
+    stopped = threading.Event()
+    lock = threading.Lock()
+
+    def worker() -> None:
+        nonlocal next_index, failure
+        while not stopped.is_set():
+            with lock:
+                if stopped.is_set() or next_index >= len(case_ids):
+                    return
+                index = next_index
                 next_index += 1
-    finally:
-        executor.shutdown(wait=True, cancel_futures=True)
+            try:
+                results[index] = evaluate(case_ids[index])
+            except BaseException as exc:
+                with lock:
+                    if failure is None:
+                        failure = exc
+                    stopped.set()
+                return
+
+    with ThreadPoolExecutor(max_workers=worker_count) as executor:
+        workers = [executor.submit(worker) for _index in range(worker_count)]
+        for future in workers:
+            future.result()
+    if failure is not None:
+        raise failure
     if any(result is None for result in results):
         raise AssertionError("corpus scheduler lost a completed result")
     return [result for result in results if result is not None]
