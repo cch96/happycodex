@@ -17,6 +17,7 @@ from evaluation.corpus import engine as runner
 
 ROOT = Path(__file__).resolve().parents[1]
 ENGINE_PATH = ROOT / "evaluation" / "corpus" / "engine.py"
+RECOVERY_MANIFEST_MARKER = "RECOVERY-MANIFEST-SHA256:" + "a" * 64
 
 
 def git(repo: Path, *args: str) -> str:
@@ -822,7 +823,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             },
             "worktree": "clean",
             "live_agents": [],
-            "marker_ids": [],
+            "marker_ids": [RECOVERY_MANIFEST_MARKER],
         }
         closed = {
             "decision": "complete",
@@ -846,29 +847,50 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             recovery_required=True,
         )
 
-        nonterminal = {
-            "implementation": ("none", True, "implement", ["product_edit"]),
-            "focused_hardening": (
-                "focused_hardening",
+        nonterminal = (
+            (
+                "implementation",
+                "implementation",
+                "none",
                 True,
-                "focused_review",
-                ["family_hardening"],
+                "implement",
+                ["product_edit"],
             ),
-            "candidate_frozen": (
+            (
+                "focused-repair",
+                "focused_hardening",
+                "none",
+                True,
+                "repair",
+                ["product_edit"],
+            ),
+            (
+                "focused-review",
+                "focused_hardening",
+                "focused_hardening",
+                False,
+                "focused_review",
+                ["focused_review"],
+            ),
+            (
+                "candidate-frozen",
+                "candidate_frozen",
                 "none",
                 False,
                 "exact_final_review",
                 ["exact_final_review"],
             ),
-            "exact_final": (
+            (
+                "exact-final",
+                "exact_final",
                 "exact_final",
                 False,
                 "exact_final_review",
                 ["exact_final_review"],
             ),
-        }
-        for phase, (mode, may_write, next_action, pending) in nonterminal.items():
-            with self.subTest(phase=phase):
+        )
+        for label, phase, mode, may_write, next_action, pending in nonterminal:
+            with self.subTest(state=label):
                 result = {
                     **closed,
                     "decision": "continue",
@@ -891,7 +913,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                 self.assertEqual(runner.match_oracle(result, oracle), [])
                 ledger_engine._validate_result_receipt(
                     receipt_engine.sanitized_result_receipt(result),
-                    label=phase,
+                    label=label,
                     required=True,
                     recovery_required=True,
                 )
@@ -907,7 +929,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "review mode state"):
                     ledger_engine._validate_result_receipt(
                         receipt_engine.sanitized_result_receipt(result),
-                        label=f"{phase}-mismatch",
+                        label=f"{label}-mismatch",
                         required=True,
                         recovery_required=True,
                     )
@@ -950,14 +972,14 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             "decision": "continue",
             "qualifies": True,
             "execplan_condition": "usable",
-            "protocol_may_product_write": True,
+            "protocol_may_product_write": False,
             "protocol_review_mode": "focused_hardening",
             "protocol_may_complete": False,
             "finding_classifications": [],
             "blocker_classifications": [],
-            "open_gates": ["close family F-SNAPSHOT"],
+            "open_gates": ["focused choke-point review"],
             "evidence": ["focused counterexample replay"],
-            "reason": "The open family permits focused hardening only.",
+            "reason": "The terminal GREEN wave permits one focused review.",
             "recovery_state": None,
         }
         receipt = receipt_engine.sanitized_result_receipt(result)
@@ -993,7 +1015,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                 "qualifies": True,
                 "execplan_condition": "usable",
                 "protocol_may_product_write": True,
-                "protocol_review_mode": "focused_hardening",
+                "protocol_review_mode": "none",
                 "protocol_may_complete": False,
             },
             "required_classifications": sibling_findings,
@@ -1032,10 +1054,231 @@ class HappyCodexEvaluationTests(unittest.TestCase):
         result["protocol_review_mode"] = "exact_final"
         self.assertTrue(
             any(
-                "protocol_review_mode" in failure
+                "protocol_review_mode" in failure or "exact_final" in failure
                 for failure in runner.match_oracle(result, oracle)
             )
         )
+
+    def test_review_write_and_stop_for_user_are_mechanically_exclusive(self) -> None:
+        base = {
+            "decision": "continue",
+            "qualifies": True,
+            "execplan_condition": "usable",
+            "protocol_may_product_write": False,
+            "protocol_review_mode": "focused_hardening",
+            "protocol_may_complete": False,
+            "finding_classifications": [],
+            "blocker_classifications": [],
+            "open_gates": ["focused choke-point review"],
+            "evidence": ["terminal GREEN repair-wave receipt"],
+            "reason": "Focused review is the only next gate.",
+            "recovery_state": None,
+        }
+        self.assertEqual(runner.protocol_state_failures(base), [])
+
+        review_and_write = {**base, "protocol_may_product_write": True}
+        self.assertTrue(
+            any(
+                "review" in failure and "write" in failure
+                for failure in runner.protocol_state_failures(review_and_write)
+            )
+        )
+
+        stopped = {
+            **base,
+            "decision": "stop_for_user",
+            "protocol_review_mode": "focused_hardening",
+        }
+        self.assertTrue(
+            any(
+                "stop" in failure and "review" in failure
+                for failure in runner.protocol_state_failures(stopped)
+            )
+        )
+
+    def test_unusable_execplan_cannot_review_or_complete_without_recovery(self) -> None:
+        base = {
+            "decision": "continue",
+            "qualifies": True,
+            "execplan_condition": "missing",
+            "protocol_may_product_write": False,
+            "protocol_review_mode": "focused_hardening",
+            "protocol_may_complete": False,
+            "finding_classifications": [],
+            "blocker_classifications": [],
+            "open_gates": ["focused choke-point review"],
+            "evidence": [],
+            "reason": "The plan is absent.",
+            "recovery_state": None,
+        }
+        self.assertTrue(
+            any(
+                "missing ExecPlan" in failure and "review" in failure
+                for failure in runner.protocol_state_failures(base)
+            )
+        )
+        completing = {
+            **base,
+            "decision": "complete",
+            "protocol_review_mode": "none",
+            "protocol_may_complete": True,
+        }
+        self.assertTrue(
+            any(
+                "missing ExecPlan" in failure and "completion" in failure
+                for failure in runner.protocol_state_failures(completing)
+            )
+        )
+
+    def test_exact_final_rejects_open_findings_blockers_and_repair_gates(self) -> None:
+        active = {
+            "identity": "F-CONV-OPEN",
+            "domain": "other",
+            "state": "unknown",
+            "anchors": ["F-CONV-OPEN"],
+        }
+        result = {
+            "decision": "continue",
+            "qualifies": True,
+            "execplan_condition": "usable",
+            "protocol_may_product_write": False,
+            "protocol_review_mode": "exact_final",
+            "protocol_may_complete": False,
+            "finding_classifications": [active],
+            "blocker_classifications": [
+                {
+                    "identity": "F-CONV-OPEN",
+                    "class": "safety_data_integrity",
+                    "blocking": True,
+                    "reason": "The recovery boundary is still unknown.",
+                }
+            ],
+            "open_gates": ["repair RB-008", "exact-final review"],
+            "evidence": [],
+            "reason": "Invalid exact-final launch.",
+            "recovery_state": None,
+        }
+        failures = runner.protocol_state_failures(result)
+        self.assertTrue(any("open finding" in failure for failure in failures))
+        self.assertTrue(any("blocking blocker" in failure for failure in failures))
+        self.assertTrue(any("repair gate" in failure for failure in failures))
+
+    def test_every_blocker_must_match_exactly_one_finding(self) -> None:
+        result = {
+            "decision": "continue",
+            "qualifies": True,
+            "execplan_condition": "usable",
+            "protocol_may_product_write": True,
+            "protocol_review_mode": "none",
+            "protocol_may_complete": False,
+            "finding_classifications": [],
+            "blocker_classifications": [
+                {
+                    "identity": "ORPHAN-BLOCKER",
+                    "class": "original_goal",
+                    "blocking": True,
+                    "reason": "No finding owns this blocker.",
+                }
+            ],
+            "open_gates": ["repair"],
+            "evidence": [],
+            "reason": "Invalid classification graph.",
+            "recovery_state": None,
+        }
+        self.assertTrue(
+            any(
+                "exactly one finding" in failure
+                for failure in runner.protocol_state_failures(result)
+            )
+        )
+
+    def test_recovery_facts_and_content_addressed_manifest_fail_closed(self) -> None:
+        recovery = {
+            "baseline_revision": "1" * 40,
+            "baseline_tree": "2" * 40,
+            "current_revision": "3" * 40,
+            "current_tree": "4" * 40,
+            "writer": "Root",
+            "milestone_phase": "implementation",
+            "next_action": "repair",
+            "pending_gates": ["product_edit"],
+            "tests": {
+                "passed": 4,
+                "failed": 0,
+                "accepted_failures": 0,
+                "marker_ids": [],
+            },
+            "worktree": "clean",
+            "live_agents": [],
+            "marker_ids": [RECOVERY_MANIFEST_MARKER],
+        }
+        result = {
+            "decision": "continue",
+            "qualifies": True,
+            "execplan_condition": "usable",
+            "protocol_may_product_write": True,
+            "protocol_review_mode": "none",
+            "protocol_may_complete": False,
+            "finding_classifications": [],
+            "blocker_classifications": [],
+            "open_gates": ["product edit"],
+            "evidence": ["Recovery Manifest"],
+            "reason": "Resume the bounded repair.",
+            "recovery_state": recovery,
+        }
+        self.assertEqual(runner.protocol_state_failures(result), [])
+        receipt = receipt_engine.sanitized_result_receipt(result)
+        self.assertEqual(
+            receipt["recovery_state"]["recovery_manifest_sha256"],
+            "a" * 64,
+        )
+
+        mutations = {
+            "unknown writer": lambda state: state.update(writer="unknown"),
+            "unknown worktree": lambda state: state.update(worktree="unknown"),
+            "missing agent": lambda state: state.update(
+                live_agents=[
+                    {
+                        "id": "review-1",
+                        "status": "missing",
+                        "receipt_reproduced": False,
+                    }
+                ]
+            ),
+            "unaccepted failure": lambda state: state["tests"].update(
+                failed=1, accepted_failures=0
+            ),
+            "missing Recovery Manifest": lambda state: state.update(marker_ids=[]),
+            "duplicate Recovery Manifest": lambda state: state.update(
+                marker_ids=[RECOVERY_MANIFEST_MARKER, RECOVERY_MANIFEST_MARKER]
+            ),
+        }
+        for expected, mutate in mutations.items():
+            with self.subTest(expected=expected):
+                invalid = json.loads(json.dumps(result))
+                mutate(invalid["recovery_state"])
+                self.assertTrue(
+                    any(
+                        expected.casefold() in failure.casefold()
+                        for failure in runner.protocol_state_failures(invalid)
+                    )
+                )
+
+    def test_exact_final_fixture_is_reachable_evidence_not_plan_prose(self) -> None:
+        case = self.cases["exact-final-ready"]
+        commits = case["fixture"]["commits"]
+        self.assertGreaterEqual(len(commits), 5)
+        rendered = json.dumps(case, sort_keys=True)
+        for marker in (
+            "{{COMMIT_",
+            "{{TREE_",
+            "{{PRODUCT_SHA256_",
+            "focused review receipt",
+            "review_projection",
+            "post-source offline evidence",
+            "review prelaunch",
+        ):
+            self.assertIn(marker, rendered)
 
     def test_fixed_behavior_inventory_exercises_041_convergence(self) -> None:
         plans: list[str] = []

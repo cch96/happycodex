@@ -23,6 +23,7 @@ EXPECTED_RUNTIME_FILES = {
     "skills/happycodex/SKILL.md",
     "skills/happycodex/agents/openai.yaml",
     "skills/happycodex/references/execplan.md",
+    "skills/happycodex/scripts/resource_claim.py",
 }
 FORBIDDEN_PLUGIN_SURFACES = (
     ".app.json",
@@ -33,7 +34,6 @@ FORBIDDEN_PLUGIN_SURFACES = (
     "mcp",
     "scripts",
     "skills/happycodex/hooks",
-    "skills/happycodex/scripts",
 )
 
 
@@ -135,6 +135,7 @@ class HappyCodexContractTests(unittest.TestCase):
         allowed = set(sys.stdlib_module_names) | {"__future__", "evaluation"}
         for path in (
             *sorted((ROOT / "evaluation").rglob("*.py")),
+            *sorted((SKILL_ROOT / "scripts").rglob("*.py")),
             *ROOT.glob("tests/*.py"),
         ):
             imported: set[str] = set()
@@ -205,9 +206,48 @@ class HappyCodexContractTests(unittest.TestCase):
             "8,000 words",
             "12,000 words",
             "fail closed",
+            "terminal green repair wave",
+            "status: open | boundary_required | closed",
+            "repair batch: <id>/instance | <id>/boundary",
+            "unique authoritative choke point",
+            "whether or not the family was closed",
+            "before terminal green",
+            "new independent family",
+            "exactly one authoritative checkpoint",
+            "resource_claim.py",
         ):
             self.assertIn(phrase, runtime)
         self.assertIn("no controller or task state json", runtime)
+        self.assertIn(
+            "a second recurrence after boundary repair",
+            runtime,
+        )
+        self.assertIn(
+            "review mode is none",
+            runtime,
+        )
+        self.assertIn(
+            "review mode is focused_hardening",
+            runtime,
+        )
+
+    def test_runtime_claim_helper_is_packaged_but_not_a_controller(self) -> None:
+        helper = SKILL_ROOT / "scripts" / "resource_claim.py"
+        self.assertTrue(helper.is_file())
+        text = read(helper)
+        self.assertIn("def acquire", text)
+        self.assertIn("def verify", text)
+        self.assertIn("def release", text)
+        self.assertNotIn("daemon", text.casefold())
+        self.assertNotIn("timeout", text.casefold())
+
+    def test_execplan_recovery_is_bounded_to_current_index_and_one_checkpoint(
+        self,
+    ) -> None:
+        text = folded(EXECPLAN)
+        self.assertIn("current index", text)
+        self.assertIn("exactly one authoritative checkpoint", text)
+        self.assertNotIn("recover along the chain", text)
 
     def test_skill_frontmatter_and_reference_graph_are_closed(self) -> None:
         text = read(SKILL)

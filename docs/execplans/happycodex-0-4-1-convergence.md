@@ -419,6 +419,16 @@ old false greens. No focused or exact-final review may run inside the batch.
   consumers; fixed cases/oracles and focused tests; fresh genesis; change notes and
   this current index. External raw outputs, marketplace/active/public 0.4.0, release
   refs, other worktrees, and other task ledgers remain frozen.
+- `RB-008` RED receipt: 16 bounded tests covering gate-driven review/write state,
+  unusable plans, exact-final blockers, blocker ownership, Recovery Manifest,
+  evidence-backed exact-final fixtures, fresh-only coverage, Runtime recurrence,
+  bounded recovery, and resource claims produced 15 failures plus two errors before
+  repair. Durable output
+  `/home/caichenghang/.codex/happycodex-0.4.1-rb008/red-matrix.txt` is 41,940 bytes,
+  186 lines, SHA-256
+  `1e8c4ca107e89c57c2674c16668d7f973c3e96bb197259a93adda5b8fbf168f8`.
+  Failures map to the frozen `F-CONV-001..004` boundary union; no new family was
+  inferred from infrastructure behavior.
 - Goal: none.
 - Agents/reviewers: all focused and exact-final reviewers are terminal and reconciled;
   no reviewer is active.

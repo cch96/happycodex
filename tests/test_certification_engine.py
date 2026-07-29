@@ -545,6 +545,21 @@ class CertificationImpactTests(unittest.TestCase):
 
 
 class CertificationReceiptAndCliTests(unittest.TestCase):
+    def test_041_is_fresh_only_with_no_prior_evidence_surface(self) -> None:
+        current = json.loads(
+            (ROOT / "evaluation" / "results" / "current.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        source = (ROOT / "evaluation" / "core" / "ledger.py").read_text(
+            encoding="utf-8"
+        )
+        self.assertNotIn("prior_evidence", ledger_engine.LEDGER_FIELDS)
+        self.assertNotIn("prior_evidence", current)
+        self.assertNotIn("_load_prior_certified_ledger", source)
+        self.assertNotIn('disposition == "prior"', source)
+        self.assertNotIn('"prior"', source)
+
     def test_native_review_remains_an_external_completion_gate(self) -> None:
         self.assertNotIn("review", ledger_engine.COVERAGE_FIELDS)
         self.assertFalse(hasattr(ledger_engine, "_validate_review_receipt"))
