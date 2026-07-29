@@ -306,6 +306,42 @@ must also advance past already completed work before another focused confirmatio
   fresh exact-final reviews, public release, personal upgrade, rollback, and downstream
   successor task creation remain later gates.
 
+## Current live-cost request
+
+Pinned Codex `0.145.0` and pinned `rg` 15.1 recomputed the frozen candidate without
+writing source or evidence. Snapshot SHA-256 is
+`30ac7904ad9e6ada10329bb3aa3fd3b16b61aea145f0b3bed1fe03b534caebaf`;
+impact token is
+`9ea685a67a9eacdddfe919c69e95e3f4afec62aa7ea14b71a7fb83cc1867c6e5`;
+and canonical approval-request SHA-256 is
+`34c96c56f4753cb3484f295ed4d754c4c7ed3f9722e1349291d785a504352950`.
+The request binds source `49fefed…5ed2`, product manifest `791112c0…e3da`,
+candidate semantic/artifact identities `65f293e8…f4c6a` / `e8424dbd…ac89`,
+public 0.4.0 identities `c5030e99…c05` / `ace7f39f…497e`, model
+`gpt-5.6-sol`, effort `high`, timeout 300 seconds, all 17 ordered corpus cases, and
+all three ordered adaptive holdout pairs.
+
+Raw outputs stay outside Git in task-owned namespace
+`/home/caichenghang/.codex/happycodex-0.4.1-live/34c96c56f4753cb3/`, with distinct
+`corpus/` and `holdout/` destinations. The candidate path is this worktree; the public
+path is `/home/caichenghang/.codex/happycodex-release-installs/public-xsZBGOfm/codex/plugins/cache/happycodex/happycodex/0.4.0+codex.20260720074523`.
+Bounded exposure is 23–25 calls, 719,051–770,869 combined tokens, and
+3,757.028–4,032.239 seconds. Exact invocations are:
+
+```text
+env PATH=/home/caichenghang/.codex/packages/standalone/releases/0.145.0-aarch64-unknown-linux-musl/bin:/home/caichenghang/.codex/packages/standalone/releases/0.144.4-aarch64-unknown-linux-musl/codex-path:/home/caichenghang/.local/bin:/usr/local/bin:/usr/bin:/bin /usr/bin/python3.10 -m evaluation.cli corpus --plugin /home/caichenghang/projects/happycodex-worktrees/happycodex-0.4.1-convergence --model gpt-5.6-sol --effort high --timeout 300 --arm candidate --output /home/caichenghang/.codex/happycodex-0.4.1-live/34c96c56f4753cb3/corpus --bind-impact 9ea685a67a9eacdddfe919c69e95e3f4afec62aa7ea14b71a7fb83cc1867c6e5
+env PATH=/home/caichenghang/.codex/packages/standalone/releases/0.145.0-aarch64-unknown-linux-musl/bin:/home/caichenghang/.codex/packages/standalone/releases/0.144.4-aarch64-unknown-linux-musl/codex-path:/home/caichenghang/.local/bin:/usr/local/bin:/usr/bin:/bin /usr/bin/python3.10 -m evaluation.cli holdout --candidate /home/caichenghang/projects/happycodex-worktrees/happycodex-0.4.1-convergence --public /home/caichenghang/.codex/happycodex-release-installs/public-xsZBGOfm/codex/plugins/cache/happycodex/happycodex/0.4.0+codex.20260720074523 --model gpt-5.6-sol --effort high --timeout 300 --output /home/caichenghang/.codex/happycodex-0.4.1-live/34c96c56f4753cb3/holdout --bind-impact 9ea685a67a9eacdddfe919c69e95e3f4afec62aa7ea14b71a7fb83cc1867c6e5
+```
+
+The only valid grant, with no surrounding prose, is:
+
+```text
+APPROVE HAPPYCODEX LIVE COST 34c96c56f4753cb3484f295ed4d754c4c7ed3f9722e1349291d785a504352950
+```
+
+This request grants only the exact corpus/holdout execution above. It grants no source
+repair, exact-final review, release, installation, activation, or reuse after drift.
+
 ## Historical live-cost request
 
 Pinned Codex `0.145.0` with explicitly selected `rg` 15.1 from the Codex `0.144.4`
