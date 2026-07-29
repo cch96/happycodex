@@ -1,0 +1,544 @@
+{
+  "schema_version": 1,
+  "schemas": {
+    "nonempty": {"type": "string", "minLength":1},
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "git_oid": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "tool_identity": {"type": "object"},
+    "output_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "decision": {"type": "string", "enum":["continue", "stop_for_user", "complete", "incomplete"]},
+        "qualifies": {"type": "boolean"},
+        "execplan_condition": {"type": "string", "enum":["not_required", "missing", "usable", "needs_amendment"]},
+        "protocol_may_product_write": {"type": "boolean"},
+        "protocol_review_mode": {"type": "string", "enum":["none", "focused_hardening", "exact_final"]},
+        "protocol_may_complete": {"type": "boolean"},
+        "finding_classifications": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "identity": {"type": "string", "minLength":1},
+              "domain": {"type": "string", "enum":["secret", "baseline_failure", "receipt", "other"]},
+              "state": {"type": "string", "enum":["baseline_unchanged", "resolved", "candidate_new", "unknown"]},
+              "anchors": {
+                "type": "array",
+                "items": {"type": "string"}
+              }
+            },
+            "required": ["anchors", "domain", "identity", "state"]
+          }
+        },
+        "blocker_classifications": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "identity": {"type": "string", "minLength":1},
+              "class": {"type": "string", "enum":["exhaustive_claim", "frozen_acceptance", "original_goal", "production_condition", "safety_data_integrity"]},
+              "blocking": {"type": "boolean"},
+              "reason": {"type": "string"}
+            },
+            "required": ["blocking", "class", "identity", "reason"]
+          }
+        },
+        "open_gates": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["user_selection", "contract_freeze", "red_oracle", "product_edit", "checks", "family_hardening", "boundary_repair", "reconciliation", "focused_review", "candidate_freeze", "exact_final_review", "release"]
+          }
+        },
+        "evidence": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "reason": {"type": "string"},
+        "recovery_state": {
+          "type": ["object", "null"],
+          "additionalProperties": false,
+          "properties": {
+            "baseline_revision": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+            "baseline_tree": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+            "current_revision": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+            "current_tree": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+            "writer": {"type": "string", "enum":["Root", "unknown"]},
+            "milestone_phase": {"type": "string", "enum":["implementation", "focused_hardening", "candidate_frozen", "exact_final", "closed"]},
+            "next_action": {
+              "type": "string",
+              "enum": [
+                "ask_user",
+                "create_execplan",
+                "complete_boundary_union",
+                "create_contract_freeze_revision",
+                "observe_red",
+                "implement",
+                "repair",
+                "run_checks",
+                "reconciliation",
+                "focused_review",
+                "freeze_candidate",
+                "exact_final_review",
+                "release",
+                "none",
+                "unknown"
+              ]
+            },
+            "pending_gates": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": ["user_selection", "contract_freeze", "red_oracle", "product_edit", "checks", "family_hardening", "boundary_repair", "reconciliation", "focused_review", "candidate_freeze", "exact_final_review", "release"]
+              }
+            },
+            "tests": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {"passed":{"type": "integer", "minimum":0},"failed":{"type": "integer", "minimum":0},"accepted_failures":{"type": "integer", "minimum":0},"marker_ids":{"type": "array", "items":{"type": "string"}}},
+              "required": ["accepted_failures", "failed", "marker_ids", "passed"]
+            },
+            "worktree": {"type": "string", "enum":["clean", "dirty", "unknown"]},
+            "live_agents": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {"id":{"type": "string"},"status":{"type": "string", "enum":["pending", "terminal", "missing"]},"receipt_reproduced":{"type": "boolean"}},
+                "required": ["id", "receipt_reproduced", "status"]
+              }
+            },
+            "marker_ids": {
+              "type": "array",
+              "items": {"type": "string"}
+            }
+          },
+          "required": ["baseline_revision", "baseline_tree", "current_revision", "current_tree", "live_agents", "marker_ids", "milestone_phase", "next_action", "pending_gates", "tests", "worktree", "writer"]
+        }
+      },
+      "required": [
+        "blocker_classifications",
+        "decision",
+        "evidence",
+        "execplan_condition",
+        "finding_classifications",
+        "open_gates",
+        "protocol_may_complete",
+        "protocol_may_product_write",
+        "protocol_review_mode",
+        "qualifies",
+        "reason",
+        "recovery_state"
+      ]
+    },
+    "case": {
+      "type": "object",
+      "properties": {
+        "schema_version": {"type": "integer", "enum":[1]},
+        "id": {"type": "string", "pattern": "^[a-z0-9-]+$"},
+        "covers": {
+          "type": "array",
+          "items": {"$ref": "nonempty"},
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "prompt": {"$ref": "nonempty"},
+        "fixture": {"type": "object"},
+        "oracle": {"type": "object"}
+      },
+      "required": ["schema_version", "id", "covers", "prompt", "fixture", "oracle"],
+      "additionalProperties": false
+    },
+    "recovery_manifest": {
+      "type": "object",
+      "properties": {
+        "schema_version": {"type": "integer", "enum":[1]},
+        "repositories": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {"namespace":{"$ref": "nonempty"},"revision":{"$ref": "git_oid"},"tree":{"$ref": "git_oid"}},
+            "required": ["namespace", "revision", "tree"],
+            "additionalProperties": false
+          },
+          "minItems": 1
+        },
+        "resource_claim": {
+          "type": "object",
+          "properties": {
+            "owner": {"type": "string", "enum":["Root"]},
+            "owner_token_sha256": {"$ref": "sha256"},
+            "resources": {
+              "type": "array",
+              "items": {"type": "string", "pattern": "^(worktree|ref|ledger|output|activation):.+$"},
+              "minItems": 5,
+              "maxItems": 5,
+              "uniqueItems": true
+            }
+          },
+          "required": ["owner", "owner_token_sha256", "resources"],
+          "additionalProperties": false
+        },
+        "selected_checkpoint": {
+          "type": "object",
+          "properties": {
+            "archive": {"type":["string", "null"],"pattern":"^sha256:[0-9a-f]{64}$"},
+            "ref": {"type":["string", "null"]}
+          },
+          "required": ["archive", "ref"],
+          "additionalProperties": false
+        },
+        "convergence": {
+          "type": "object",
+          "properties": {
+            "phase": {"type": "string", "enum":["implementation", "focused_hardening", "candidate_frozen", "exact_final", "closed"]},
+            "families": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "family_id": {"$ref": "nonempty"},
+                  "status": {"type": "string", "enum":["open", "boundary_required", "closed"]},
+                  "repair_batch": {"type": "string", "pattern": "^.+/(instance|boundary)$"},
+                  "recurrence": {"type": "integer", "minimum":0}
+                },
+                "required": ["family_id", "status", "repair_batch", "recurrence"],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": ["phase", "families"],
+          "additionalProperties": false
+        },
+        "writer": {"type": "string", "enum":["Root"]},
+        "tests": {
+          "type": "object",
+          "properties": {
+            "accepted_failures": {"type": "integer", "minimum":0},
+            "failed": {"type": "integer", "minimum":0},
+            "passed": {"type": "integer", "minimum":0}
+          },
+          "required": ["accepted_failures", "failed", "passed"],
+          "additionalProperties": false
+        },
+        "agents": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {"id":{"$ref": "nonempty"},"status":{"type": "string", "enum":["terminal"]},"receipt_reproduced":{"type": "boolean"}},
+            "required": ["id", "status", "receipt_reproduced"],
+            "additionalProperties": false
+          }
+        },
+        "gates": {
+          "type": "array",
+          "items": {"$ref": "nonempty"},
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "required": ["schema_version", "repositories", "resource_claim", "selected_checkpoint", "convergence", "writer", "tests", "agents", "gates"],
+      "additionalProperties": false
+    },
+    "invocation_profile": {
+      "type": "object",
+      "properties": {
+        "provider": {"$ref": "nonempty"},
+        "binary": {
+          "type": "object",
+          "properties": {"command":{"type": "string", "enum":["codex"]},"identity_sha256":{"type":["string", "null"],"pattern": "^[0-9a-f]{64}$"}},
+          "required": ["command", "identity_sha256"],
+          "additionalProperties": false
+        },
+        "model": {"$ref": "nonempty"},
+        "effort": {"$ref": "nonempty"},
+        "timeout_seconds": {"type": "integer", "minimum":1},
+        "arm": {"$ref": "nonempty"},
+        "tools": {
+          "type": "object",
+          "properties": {
+            "allowed": {
+              "type": "array",
+              "items": {"type": "string", "enum":["collaboration", "command_execution", "todo", "web_search"]},
+              "uniqueItems": true
+            },
+            "event_item_types": {
+              "type": "array",
+              "items": {"type": "string", "enum":["collab_tool_call", "command_execution", "todo_list", "web_search"]},
+              "uniqueItems": true
+            }
+          },
+          "required": ["allowed", "event_item_types"],
+          "additionalProperties": false
+        },
+        "network": {"type": "string", "enum":["disabled", "enabled"]},
+        "mcp": {"type": "string", "enum":["disabled", "enabled"]},
+        "hooks": {"type": "string", "enum":["disabled", "enabled"]},
+        "session": {
+          "type": "object",
+          "properties": {"mode":{"type": "string", "enum":["fresh", "fresh-with-bounded-resume"]},"history":{"type": "string", "enum":["isolated"]}},
+          "required": ["mode", "history"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["provider", "binary", "model", "effort", "timeout_seconds", "arm", "tools", "network", "mcp", "hooks", "session"],
+      "additionalProperties": false
+    },
+    "gate_plan": {
+      "type": "object",
+      "properties": {
+        "schema_version": {"type": "integer", "enum":[1]},
+        "repo": {"$ref": "nonempty"},
+        "gate": {"type": "string", "enum":["executor", "corpus", "holdout"]},
+        "phase": {"type": "string", "enum":["calibration", "evaluation"]},
+        "impact_token": {"$ref": "sha256"},
+        "action": {
+          "type": "object",
+          "properties": {"kind":{"$ref": "nonempty"},"target":{"$ref": "nonempty"},"scope":{"$ref": "nonempty"},"progress_key":{"$ref": "sha256"},"attempt_key":{"$ref": "sha256"}},
+          "required": ["kind", "target", "scope", "progress_key", "attempt_key"],
+          "additionalProperties": false
+        },
+        "task_binding_sha256": {"$ref": "sha256"},
+        "role_config_sha256": {"$ref": "sha256"},
+        "profile": {
+          "type": "object",
+          "properties": {"binary":{"$ref": "nonempty"},"model":{"$ref": "nonempty"},"effort":{"$ref": "nonempty"},"timeout_ms":{"type": "integer", "minimum":1},"arm":{"$ref": "nonempty"},"prompt_sha256":{"$ref": "sha256"}},
+          "required": ["binary", "model", "effort", "timeout_ms", "arm", "prompt_sha256"],
+          "additionalProperties": false
+        },
+        "template": {
+          "type": "object",
+          "properties": {"argv":{"type": "array", "items":{"$ref": "nonempty"},"minItems":1},"cwd":{"$ref": "nonempty"},"env":{"type": "object"},"timeout_ms":{"type": "integer", "minimum":1}},
+          "required": ["argv", "cwd", "env", "timeout_ms"],
+          "additionalProperties": false
+        },
+        "output": {"$ref": "nonempty"},
+        "units": {
+          "type": "array",
+          "items": {"$ref": "nonempty"},
+          "uniqueItems": true
+        },
+        "resource_digests": {
+          "type": "array",
+          "items": {"$ref": "sha256"},
+          "uniqueItems": true
+        },
+        "cost_sha256": {"$ref": "sha256"},
+        "invocation_sha256": {"$ref": "sha256"}
+      },
+      "required": ["schema_version", "repo", "gate", "phase", "impact_token", "action", "task_binding_sha256", "role_config_sha256", "profile", "template", "output", "units", "resource_digests", "cost_sha256", "invocation_sha256"],
+      "additionalProperties": false
+    },
+    "snapshot": {
+      "type": "object",
+      "properties": {
+        "schema_version": {"type": "integer", "enum":[1]},
+        "settings": {
+          "type": "object",
+          "properties": {
+            "model": {"$ref": "nonempty"},
+            "effort": {"$ref": "nonempty"},
+            "timeout_seconds": {"type": "integer", "minimum":1},
+            "toolchain": {
+              "type": "object",
+              "properties": {"python":{"$ref": "tool_identity"},"codex":{"$ref": "tool_identity"},"git":{"$ref": "tool_identity"},"rg":{"$ref": "tool_identity"}},
+              "required": ["python", "codex", "git", "rg"],
+              "additionalProperties": false
+            }
+          },
+          "required": ["model", "effort", "timeout_seconds", "toolchain"],
+          "additionalProperties": false
+        },
+        "engine": {
+          "type": "object",
+          "properties": {"categories":{"type": "object"},"scopes":{"type": "object"},"manifest_sha256":{"$ref": "sha256"}},
+          "required": ["categories", "scopes", "manifest_sha256"],
+          "additionalProperties": false
+        },
+        "package": {
+          "type": "object",
+          "properties": {"semantic_sha256":{"$ref": "sha256"},"artifact_sha256":{"$ref": "sha256"}},
+          "required": ["semantic_sha256", "artifact_sha256"],
+          "additionalProperties": false
+        },
+        "role": {
+          "type": "object",
+          "properties": {"executor_sha256":{"$ref": "sha256"}},
+          "required": ["executor_sha256"],
+          "additionalProperties": false
+        },
+        "public_baseline": {
+          "type": "object",
+          "properties": {
+            "arm": {"$ref": "nonempty"},
+            "source_commit": {"$ref": "git_oid"},
+            "source_tree": {"$ref": "git_oid"},
+            "artifact_sha256": {"$ref": "sha256"},
+            "semantic_sha256": {"$ref": "sha256"},
+            "skill_entries": {
+              "type": "array",
+              "items": {"$ref": "nonempty"},
+              "minItems": 1,
+              "uniqueItems": true
+            }
+          },
+          "required": ["arm", "source_commit", "source_tree", "artifact_sha256", "semantic_sha256", "skill_entries"],
+          "additionalProperties": false
+        },
+        "corpus": {
+          "type": "object",
+          "properties": {"cases":{"type": "object"}},
+          "required": ["cases"],
+          "additionalProperties": false
+        },
+        "holdout": {
+          "type": "object",
+          "properties": {"pairs":{"type": "object"}},
+          "required": ["pairs"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["schema_version", "settings", "engine", "package", "role", "public_baseline", "corpus", "holdout"],
+      "additionalProperties": false
+    },
+    "planned_impact": {
+      "type": "object",
+      "properties": {
+        "schema_version": {"type": "integer", "enum":[1]},
+        "snapshot_sha256": {"$ref": "sha256"},
+        "source_anchor_sha256": {"$ref": "sha256"},
+        "initial_scope": {"type": "object"},
+        "initial_scope_sha256": {"$ref": "sha256"},
+        "live_calls": {"type": "object"},
+        "impact_token": {"$ref": "sha256"}
+      },
+      "required": ["schema_version", "snapshot_sha256", "source_anchor_sha256", "initial_scope", "initial_scope_sha256", "live_calls", "impact_token"],
+      "additionalProperties": false
+    },
+    "source_anchor": {
+      "type": "object",
+      "properties": {
+        "source_commit": {"$ref": "git_oid"},
+        "source_tree": {"$ref": "git_oid"},
+        "package_artifact_sha256": {"$ref": "sha256"},
+        "package_semantic_sha256": {"$ref": "sha256"},
+        "engine_manifest_sha256": {"$ref": "sha256"},
+        "executor_role_sha256": {"$ref": "sha256"},
+        "public_baseline_sha256": {"$ref": "sha256"}
+      },
+      "required": ["source_commit", "source_tree", "package_artifact_sha256", "package_semantic_sha256", "engine_manifest_sha256", "executor_role_sha256", "public_baseline_sha256"],
+      "additionalProperties": false
+    },
+    "evidence_record": {
+      "type": "object",
+      "properties": {
+        "schema_version": {"type": "integer", "enum":[1]},
+        "kind": {"type": "string", "enum":["executor_calibration", "corpus_summary", "holdout_summary", "offline_summary", "review_summary"]},
+        "gate": {"type": "string", "enum":["executor", "corpus", "holdout", "receipt", "review", "isolated_install"]},
+        "sequence": {"type": "integer", "minimum":0},
+        "evidence_commit": {"$ref": "git_oid"},
+        "path": {"$ref": "nonempty"},
+        "blob": {"$ref": "git_oid"},
+        "content_sha256": {"$ref": "sha256"},
+        "impact_token": {"$ref": "sha256"},
+        "invocation_sha256": {"type":["string", "null"],"pattern": "^[0-9a-f]{64}$"},
+        "authority_sha256": {"type":["string", "null"],"pattern": "^[0-9a-f]{64}$"},
+        "units": {
+          "type": "array",
+          "items": {"type": "string"},
+          "uniqueItems": true
+        },
+        "transcript": {
+          "type": "array",
+          "items": {"type": "object"}
+        },
+        "actual": {"type":["object", "null"]},
+        "producer": {"type": "object"},
+        "subject": {"type": "object"},
+        "pre_effect_grant_sha256": {"$ref": "sha256"},
+        "parent_receipt_sha256": {"type":["string", "null"],"pattern": "^[0-9a-f]{64}$"},
+        "receipt_sha256": {"$ref": "sha256"}
+      },
+      "required": [
+        "schema_version",
+        "kind",
+        "gate",
+        "sequence",
+        "evidence_commit",
+        "path",
+        "blob",
+        "content_sha256",
+        "impact_token",
+        "invocation_sha256",
+        "authority_sha256",
+        "units",
+        "transcript",
+        "actual",
+        "producer",
+        "subject",
+        "pre_effect_grant_sha256",
+        "parent_receipt_sha256",
+        "receipt_sha256"
+      ],
+      "additionalProperties": false
+    },
+    "ledger": {
+      "type": "object",
+      "properties": {
+        "schema_version": {"type": "integer", "enum":[1]},
+        "engine_generation": {"type": "string", "enum":["0.6"]},
+        "state": {"type": "string", "enum":["refresh_required", "certified"]},
+        "snapshot": {"$ref": "snapshot"},
+        "source_anchor": {"type":["object", "null"]},
+        "planned_impact": {"type":["object", "null"]},
+        "planned_invocations": {"type": "object"},
+        "cost": {"type": "object"},
+        "authorities": {"type": "object"},
+        "accepted_evidence": {"type": "object"},
+        "coverage": {"type": "object"},
+        "receipt_head": {"type":["string", "null"],"pattern": "^[0-9a-f]{64}$"},
+        "freeze": {"type":["object", "null"]},
+        "certification": {"type":["object", "null"]}
+      },
+      "required": [
+        "schema_version",
+        "engine_generation",
+        "state",
+        "snapshot",
+        "source_anchor",
+        "planned_impact",
+        "planned_invocations",
+        "cost",
+        "authorities",
+        "accepted_evidence",
+        "coverage",
+        "receipt_head",
+        "freeze",
+        "certification"
+      ],
+      "additionalProperties": false
+    },
+    "holdout_manifest": {
+      "type": "object",
+      "properties": {
+        "schema_version": {"type": "integer", "enum":[1]},
+        "pairs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {"id":{"type": "string", "pattern": "^[a-z0-9-]+$"},"case_path":{"$ref": "nonempty"},"outside_diff_boundary":{"type": "boolean"},"oracle_kind":{"type": "string", "enum":["mechanical", "behavioral"]}},
+            "required": ["id", "case_path", "outside_diff_boundary", "oracle_kind"],
+            "additionalProperties": false
+          },
+          "minItems": 3,
+          "maxItems": 3
+        }
+      },
+      "required": ["schema_version", "pairs"],
+      "additionalProperties": false
+    }
+  }
+}

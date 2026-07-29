@@ -36,9 +36,15 @@ execution use the same strict input schema from `evaluation.core.ledger`.
 `results/current.json` is the only active evidence ledger. Generation 6 is a
 fresh `refresh_required` genesis: all three authorities are null, calibration and
 accepted evidence are empty, receipt head and certification are null, and the
-pre-anchor `source_anchor` is null. G014 alone may replace that null with the
-Git-archive identity of the reachable G013 source commit. Offline checks and
-offline summaries cannot promote the ledger to `certified`.
+pre-anchor source, planned impact, and planned invocations are null. G015U keeps
+that genesis in candidate `S2`; future G016 alone may anchor its reachable
+Git archive. Offline checks and summaries cannot promote it to `certified`.
+
+The comparison arm is exactly `public-0.2`: commit `3b9c11f`, tree `4708ebc`,
+the frozen artifact/semantic digests, and only `SKILL.md`,
+`agents/openai.yaml`, `references/external-review.md`, and
+`references/task-packets.md`. Public-0.4 bytes or receipt fields cannot be
+relabeled as that arm.
 
 There is no reader, alias, migration, dual write, prior-coverage reuse, or parser
 fallback for older evidence. Evidence commits must strictly descend from the
@@ -53,30 +59,27 @@ Live authority can originate only in private trusted host metadata for the
 current task/message/turn. The host binding includes root/source/Executor task,
 owner, destination, lineage, role config, repository, outcome, message, turn,
 content, session, thread, permission, and claim identities. Semantic enforcement
-must return `ALLOW` before the validator mints a sealed, noncopyable,
-nonserializable, process-local capability.
-
-Every model-reaching helper rebinds that same capability. The exact effect order
-is:
+must return `ALLOW`. The validator then seals `GateCapability` only from the
+persisted plan, trusted authority, and reducer report; callers cannot supply
+authority, AttemptKey, resources, or output claims. The exact effect order is:
 
 ```text
-read-only identity, invocation, path, schema, and provenance validation
-  -> enforce ALLOW and mint one process-local capability
-  -> O_EXCL authority claim
-  -> O_EXCL reducer-derived AttemptKey claim
-  -> O_EXCL sorted resource claims
-  -> O_EXCL output claim
-  -> capability rebind
-  -> authorized fixture/output/workspace effect
-  -> O_EXCL phase-child claim
-  -> capability rebind
-  -> model subprocess
+read-only persisted-plan, identity, path, schema, and provenance validation
+  -> enforce ALLOW and mint GateCapability
+  -> namespace lock plus complete collision preflight
+  -> O_EXCL authority/AttemptKey/resource/output claim set
+  -> ClaimedCapability
+  -> O_EXCL exact unit claim
+  -> authorized fixture/mapping/workspace/output effect
+  -> bind exact argv/cwd/env/timeout/PID into one-shot PhaseProof
+  -> invoke_codex spends only that proof
 ```
 
 Claims are mode-`0600` no-follow files in the resolved Git common directory's
 precreated mode-`0700` `happycodex/effect-claims/v6` namespace. A collision
-refuses before the corresponding effect. Claims are durable consumption, never
-transactions: no automatic retry or deletion occurs.
+or partial/reused set refuses before another claim or effect. Claims are durable
+consumption: no retry or deletion occurs. Gate/claimed capabilities, copied
+proofs, wrong process/invocation, and spent proofs refuse before subprocess.
 
 Raw outputs require an explicit absolute absent path under an existing real
 parent, outside the repository and every evaluated plugin. Symlinks, implicit

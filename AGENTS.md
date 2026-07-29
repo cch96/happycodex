@@ -14,10 +14,13 @@ never be linked from `skills/happycodex/SKILL.md`.
   Existing 0.4 tasks finish under 0.4 or are abandoned; never migrate them into 0.5.
 - Use only `python3 -m evaluation.cli`. Every evaluator Python/schema input is
   classified as semantic, harness, or artifact; unknown inputs fail closed.
-- `evaluation/results/current.json` is the sole active evidence ledger. 0.5 uses a
-  fresh full-refresh 0.5 genesis: add no 0.4 evidence reader, alias, migration, dual
+- `evaluation/results/current.json` is the sole active evidence ledger. 0.6 uses a
+  fresh full-refresh generation-6 genesis: add no 0.4 evidence reader, alias, migration, dual
   write, prior-coverage reuse, or parser fallback. Offline checks never promote
   `refresh_required` to `certified`.
+- The comparison baseline is exactly public-0.2 commit `3b9c11f`, tree `4708ebc`,
+  its frozen artifact/semantic digests, and four-file Skill surface. Never relabel
+  public-0.4 bytes, arms, or receipt fields as public-0.2.
 - Before any live corpus or holdout authorization, persist the read-only impact receipt
   and exact source-derived historical-cost envelope. `impact_token` binds identity but
   grants no permission. Live CLI execution additionally requires current-task user
@@ -28,10 +31,11 @@ never be linked from `skills/happycodex/SKILL.md`.
   envelope and complete exact invocation, then request separate exact authority for one
   bounded calibration. Its sanitized successful actual cost becomes historical basis.
   Executor pilot, corpus, and adaptive holdout are three separate authority gates.
-- The validator mints one immutable process-local capability. Every model-reaching
-  Executor/corpus/holdout helper requires and rebinds it before fixture, mapping,
-  workspace mutation, or subprocess work. Candidate Executor fixtures run only in fresh
-  temporary repos/homes and never touch the source or active plugin.
+- The validator seals `GateCapability` only from the persisted plan, trusted
+  current-host authority, and reducer report. A namespace lock and complete preflight
+  precede its durable claims; `ClaimedCapability` and an exact unit claim precede every
+  fixture/mapping/workspace/output effect. `invoke_codex` accepts only a PID-bound,
+  nonserializable, one-shot `PhaseProof` for exact argv/cwd/env/timeout.
 - Certification requires a Git-reachable successor source whose normalized Git package
   artifact and engine manifest match the snapshot. Its retained Executor authority and
   calibration bind the exact external role-config digest; its ledger already persists

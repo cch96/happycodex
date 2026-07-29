@@ -8,6 +8,12 @@ from typing import Any
 from evaluation.core.identity import (
     IdentityError,
     CORPUS_SEMANTIC_PATHS,
+    PUBLIC_02_ARM,
+    PUBLIC_02_PACKAGE_ARTIFACT_SHA256,
+    PUBLIC_02_PACKAGE_SEMANTIC_SHA256,
+    PUBLIC_02_SKILL_ENTRIES,
+    PUBLIC_02_SOURCE_COMMIT,
+    PUBLIC_02_SOURCE_TREE,
     canonical_sha256,
     case_semantic_sha256,
     engine_category_sha256,
@@ -17,21 +23,12 @@ from evaluation.core.identity import (
     package_identities,
     toolchain_identity,
 )
+from evaluation.core.schema import CONTRACTS, validate_named
 
 
 DEFAULT_MODEL = "gpt-5.6-sol"
 DEFAULT_EFFORT = "high"
 DEFAULT_TIMEOUT = 300
-SNAPSHOT_FIELDS = {
-    "schema_version",
-    "settings",
-    "engine",
-    "package",
-    "role",
-    "corpus",
-    "holdout",
-}
-ROLE_FIELDS = {"executor_sha256"}
 ENGINE_CATEGORY_FIELDS = {"semantic", "harness", "artifact"}
 ENGINE_SCOPE_FIELDS = {
     "corpus_harness",
@@ -39,9 +36,6 @@ ENGINE_SCOPE_FIELDS = {
     "holdout_harness",
     "holdout_semantic",
 }
-ENGINE_FIELDS = {"categories", "scopes", "manifest_sha256"}
-SETTINGS_FIELDS = {"model", "effort", "timeout_seconds", "toolchain"}
-TOOLCHAIN_FIELDS = {"python", "codex", "git", "rg"}
 TOOL_IDENTITY_FIELDS = {"path", "sha256", "version"}
 IMPACT_FIELDS = {
     "schema_version",
@@ -60,6 +54,7 @@ CORPUS_HARNESS_PATHS = {
     "evaluation/core/identity.py",
     "evaluation/core/impact.py",
     "evaluation/core/ledger.py",
+    "evaluation/core/schema.py",
     "evaluation/corpus/__init__.py",
 }
 HOLDOUT_HARNESS_PATHS = {
@@ -98,6 +93,24 @@ CORPUS_MODEL_CALLS = {
         "subthreshold-control",
     )
 }
+
+
+def validate_gate_plan(value: Any) -> dict[str, Any]:
+    validate_named(CONTRACTS, "gate_plan", value)
+    repo, output = Path(str(value["repo"])), Path(str(value["output"]))
+    profile, template = value["profile"], value["template"]
+    if (
+        not Path(template["cwd"]).is_absolute()
+        or any(type(key) is not str or type(item) is not str
+               for key, item in template["env"].items())
+        or template["timeout_ms"] != profile["timeout_ms"]
+        or not repo.is_absolute()
+        or not output.is_absolute()
+        or value["units"] != sorted(set(value["units"]))
+        or value["resource_digests"] != sorted(set(value["resource_digests"]))
+    ):
+        raise ValueError("persisted gate plan is invalid")
+    return {**value, "repo": str(repo.resolve()), "output": str(output.resolve())}
 
 
 def _load_cases(root: Path) -> dict[str, dict[str, Any]]:
@@ -191,6 +204,14 @@ def build_snapshot(
         },
         "package": package,
         "role": {"executor_sha256": executor_role_identity(root)},
+        "public_baseline": {
+            "arm": PUBLIC_02_ARM,
+            "source_commit": PUBLIC_02_SOURCE_COMMIT,
+            "source_tree": PUBLIC_02_SOURCE_TREE,
+            "artifact_sha256": PUBLIC_02_PACKAGE_ARTIFACT_SHA256,
+            "semantic_sha256": PUBLIC_02_PACKAGE_SEMANTIC_SHA256,
+            "skill_entries": list(PUBLIC_02_SKILL_ENTRIES),
+        },
         "corpus": {"cases": identities(_load_cases(root), shared, "candidate")},
         "holdout": {"pairs": identities(pairs, holdout_shared, "blinded-pair")},
     }
@@ -212,26 +233,9 @@ def _digest_map(value: Any, fields: set[str] | None = None) -> bool:
 
 
 def validate_snapshot(snapshot: dict[str, Any]) -> None:
-    if not isinstance(snapshot, dict) or set(snapshot) != SNAPSHOT_FIELDS:
-        unknown = set(snapshot) - SNAPSHOT_FIELDS if isinstance(snapshot, dict) else set()
-        label = "unknown" if unknown else "missing"
-        raise IdentityError(f"{label} snapshot field")
-    if snapshot["schema_version"] != 1:
-        raise IdentityError("unsupported snapshot schema")
+    validate_named(CONTRACTS, "snapshot", snapshot)
     settings = snapshot["settings"]
-    if (
-        not isinstance(settings, dict)
-        or set(settings) != SETTINGS_FIELDS
-        or any(type(settings[field]) is not str or not settings[field] for field in (
-            "model", "effort"
-        ))
-        or type(settings["timeout_seconds"]) is not int
-        or settings["timeout_seconds"] <= 0
-    ):
-        raise IdentityError("invalid snapshot settings")
     toolchain = settings["toolchain"]
-    if not isinstance(toolchain, dict) or set(toolchain) != TOOLCHAIN_FIELDS:
-        raise IdentityError("invalid snapshot toolchain")
     for name, identity in toolchain.items():
         if (
             not isinstance(identity, dict)
@@ -244,27 +248,23 @@ def validate_snapshot(snapshot: dict[str, Any]) -> None:
             raise IdentityError(f"invalid snapshot tool identity: {name}")
     engine = snapshot["engine"]
     if (
-        not isinstance(engine, dict)
-        or set(engine) != ENGINE_FIELDS
-        or re.fullmatch(r"[0-9a-f]{64}", engine["manifest_sha256"]) is None
-        or not _digest_map(engine["categories"], ENGINE_CATEGORY_FIELDS)
+        not _digest_map(engine["categories"], ENGINE_CATEGORY_FIELDS)
         or not _digest_map(engine["scopes"], ENGINE_SCOPE_FIELDS)
     ):
         raise IdentityError("invalid engine identity")
-    if (
-        not _digest_map(
-            snapshot["package"], {"semantic_sha256", "artifact_sha256"}
-        )
-        or not _digest_map(snapshot["role"], ROLE_FIELDS)
-    ):
-        raise IdentityError("invalid package or role identity")
+    public = snapshot["public_baseline"]
+    if public != {
+        "arm": PUBLIC_02_ARM,
+        "source_commit": PUBLIC_02_SOURCE_COMMIT,
+        "source_tree": PUBLIC_02_SOURCE_TREE,
+        "artifact_sha256": PUBLIC_02_PACKAGE_ARTIFACT_SHA256,
+        "semantic_sha256": PUBLIC_02_PACKAGE_SEMANTIC_SHA256,
+        "skill_entries": list(PUBLIC_02_SKILL_ENTRIES),
+    }:
+        raise IdentityError("public-0.2 baseline identity is not exact")
     for envelope, field in (("corpus", "cases"), ("holdout", "pairs")):
         value = snapshot[envelope]
-        if (
-            not isinstance(value, dict)
-            or set(value) != {field}
-            or not _digest_map(value[field])
-        ):
+        if not _digest_map(value[field]):
             raise IdentityError(f"invalid {envelope} identities")
     if len(snapshot["holdout"]["pairs"]) != 3:
         raise IdentityError("holdout identity requires exactly three pairs")
@@ -448,3 +448,42 @@ def plan_impact(
     }
     validate_impact(result, current)
     return result
+
+
+def validate_successor(before: dict[str, Any], after: dict[str, Any],
+                       *, repo: Path | None = None) -> None:
+    from evaluation.core.ledger import _empty_lifecycle, validate_ledger
+
+    validate_ledger(before, repo=repo)
+    validate_ledger(after, repo=repo)
+    if before["snapshot"] != after["snapshot"]:
+        raise ValueError("successor snapshot is immutable")
+    if before["source_anchor"] != after["source_anchor"]:
+        if not _empty_lifecycle(before) or not _empty_lifecycle(after):
+            raise ValueError("release reanchor must reset without evidence reuse")
+        return
+    for field in ("planned_impact", "freeze", "certification"):
+        if before[field] is not None and before[field] != after[field]:
+            raise ValueError(f"successor cannot rollback or replace {field}")
+    slots = (
+        ("planned_invocations", ("executor", "corpus", "holdout")),
+        ("cost", ("executor", "corpus", "holdout")),
+        ("authorities", ("executor", "corpus", "holdout")),
+        ("accepted_evidence", ("executor", "corpus", "holdout", "receipt", "review", "isolated_install")),
+    )
+    for field, names in slots:
+        for name in names:
+            old, new = before[field][name], after[field][name]
+            if old is not None and old != new:
+                raise ValueError(f"successor cannot rollback, replace, or delete {field}.{name}")
+    changed = {field for field in before if before[field] != after[field]}
+    allowed = (
+        {"source_anchor"}, {"planned_impact"}, {"planned_invocations", "cost"},
+        {"authorities"}, {"accepted_evidence", "coverage", "receipt_head"},
+        {"freeze"}, {"certification", "state"},
+    )
+    if changed not in allowed:
+        raise ValueError("successor is not one coherent DAG-ready step")
+    for field, names in slots:
+        if field in changed and sum(before[field][name] != after[field][name] for name in names) != 1:
+            raise ValueError("successor must append exactly one slot")

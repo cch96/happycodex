@@ -6,9 +6,12 @@ from pathlib import Path
 
 from evaluation import live
 from evaluation.core.identity import (
+    PUBLIC_02_PACKAGE_ARTIFACT_SHA256,
+    PUBLIC_02_PACKAGE_SEMANTIC_SHA256,
     canonical_sha256,
     engine_inventory,
     invocation_profile,
+    package_identities,
 )
 from evaluation.core.impact import DEFAULT_EFFORT, DEFAULT_MODEL, DEFAULT_TIMEOUT
 from evaluation.core.ledger import ledger_sha256
@@ -39,11 +42,19 @@ def verify_command() -> int:
 
 
 def impact_command(public: Path | None = None) -> int:
-    del public
-    live.load_state()
-    raise ValueError(
-        "generation-6 cost envelope and exact gate invocations are not persisted"
-    )
+    ledger, current, impact = live.load_state()
+    planned = ledger["planned_impact"] or impact
+    if public is not None and package_identities(public) != {
+        "artifact_sha256": PUBLIC_02_PACKAGE_ARTIFACT_SHA256,
+        "semantic_sha256": PUBLIC_02_PACKAGE_SEMANTIC_SHA256,
+    }:
+        raise ValueError("public path does not equal frozen public-0.2 archive")
+    print(json.dumps({
+        "snapshot": current, "planned_impact": planned,
+        "planned_invocations": ledger["planned_invocations"],
+        "cost": ledger["cost"],
+    }, sort_keys=True, indent=2))
+    return 0 if ledger["planned_impact"] is not None and all(ledger["cost"].values()) else 2
 
 
 def executor_command(args: argparse.Namespace) -> int:
@@ -79,11 +90,17 @@ def executor_command(args: argparse.Namespace) -> int:
     return 0
 
 
+def _gate_options(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--model", default=DEFAULT_MODEL)
+    parser.add_argument("--effort", default=DEFAULT_EFFORT)
+    parser.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT)
+    parser.add_argument("--bind-impact")
+
+
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        prog="python3 -m evaluation.cli",
-        description="HappyCodex clean-break certification engine",
-    )
+    parser = argparse.ArgumentParser(prog="python3 -m evaluation.cli",
+                                     description="HappyCodex clean-break certification engine")
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("verify", help="validate identities and the evidence ledger")
     impact = commands.add_parser(
@@ -92,43 +109,48 @@ def build_parser() -> argparse.ArgumentParser:
     impact.add_argument(
         "--public",
         type=Path,
-        help="bind the pinned public-0.4.0 package into the proposed holdout invocation",
+        help="bind the pinned public-0.2 package into the proposed holdout invocation",
     )
 
     executor = commands.add_parser(
         "executor", help="inspect the separately gated Executor pilot"
     )
-    executor.add_argument("--dry-run", action="store_true")
-    executor.add_argument("--model", default=DEFAULT_MODEL)
-    executor.add_argument("--effort", default=DEFAULT_EFFORT)
-    executor.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT)
+    _gate_options(executor)
     executor.add_argument("--arm", choices=("candidate",), default="candidate")
+    executor.add_argument("--plugin", type=Path, default=ROOT)
+    executor.add_argument("--output", type=Path)
 
     corpus = commands.add_parser("corpus", help="inspect or run behavior cases")
     corpus.add_argument("--plugin", type=Path, default=ROOT)
     corpus.add_argument("--case", action="append", dest="cases")
     corpus.add_argument("--list", action="store_true")
-    corpus.add_argument("--dry-run", action="store_true")
-    corpus.add_argument("--model", default=DEFAULT_MODEL)
-    corpus.add_argument("--effort", default=DEFAULT_EFFORT)
-    corpus.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT)
+    _gate_options(corpus)
     corpus.add_argument(
-        "--arm", choices=("candidate", "public-0.4.0"), default="candidate"
+        "--arm", choices=("candidate", "public-0.2"), default="candidate"
     )
     corpus.add_argument("--output", type=Path)
-    corpus.add_argument("--bind-impact")
 
     holdout = commands.add_parser("holdout", help="inspect or run blinded holdouts")
     holdout.add_argument("--candidate", type=Path, default=ROOT)
     holdout.add_argument("--public", type=Path)
     holdout.add_argument("--output", type=Path)
-    holdout.add_argument("--model", default=DEFAULT_MODEL)
-    holdout.add_argument("--effort", default=DEFAULT_EFFORT)
-    holdout.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT)
     holdout.add_argument("--list", action="store_true")
-    holdout.add_argument("--dry-run", action="store_true")
-    holdout.add_argument("--bind-impact")
+    _gate_options(holdout)
     return parser
+
+
+def run_authorized(args: argparse.Namespace, authorization: object) -> int:
+    from evaluation.corpus import engine as corpus_engine
+    from evaluation.holdout import engine as holdout_engine
+
+    if args.command == "executor":
+        args.cases = ["subthreshold-control"]
+        return corpus_engine.run_authorized(args, authorization)
+    if args.command == "corpus":
+        return corpus_engine.run_authorized(args, authorization)
+    if args.command == "holdout":
+        return holdout_engine.run_authorized(args, authorization)
+    raise ValueError("authorized dispatch requires a model-reaching gate")
 
 
 def main(argv: list[str] | None = None) -> int:

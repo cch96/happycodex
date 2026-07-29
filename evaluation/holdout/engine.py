@@ -4,7 +4,6 @@ from __future__ import annotations
 from concurrent.futures import ThreadPoolExecutor
 import json
 from pathlib import Path
-import re
 from typing import Any, Callable
 
 from evaluation.core.identity import (
@@ -13,6 +12,7 @@ from evaluation.core.identity import (
     sha256_bytes,
 )
 from evaluation.core.receipt import sanitized_case_receipt, write_new_json
+from evaluation.core.schema import CONTRACTS, validate_named
 from evaluation.corpus import engine as corpus_engine
 from evaluation.holdout.blind import (
     ACTUAL_ARMS,
@@ -24,6 +24,7 @@ from evaluation.holdout.blind import (
     validate_reveal,
 )
 from evaluation.holdout.compare import (
+    adaptive_next,
     compare_pair,
     decision_metrics,
 )
@@ -39,31 +40,25 @@ def file_sha256(path: Path) -> str:
     return sha256_bytes(path.read_bytes())
 
 
+def adaptive_frontier(pair_ids: list[str], outcomes: list[str]) -> list[str]:
+    action = adaptive_next(outcomes)
+    index = len(outcomes)
+    if action in {"run_first", "run_second", "run_third"} and index < len(pair_ids):
+        return [pair_ids[index]]
+    return []
+
+
 def load_manifest(path: Path = MANIFEST_PATH) -> dict[str, Any]:
     path = path.resolve()
     holdout_root = path.parent
     repo_root = holdout_root.parents[1]
     raw = json.loads(path.read_text(encoding="utf-8"))
-    if set(raw) != {"schema_version", "pairs"} or raw["schema_version"] != 1:
-        raise ValueError("invalid holdout manifest envelope")
-    pairs = raw["pairs"]
-    if not isinstance(pairs, list) or len(pairs) != 3:
-        raise ValueError("holdout manifest must freeze exactly three pairs")
+    validate_named(CONTRACTS, "holdout_manifest", raw)
     loaded: list[dict[str, Any]] = []
     pair_ids: set[str] = set()
     case_ids: set[str] = set()
-    expected_fields = {
-        "id",
-        "case_path",
-        "outside_diff_boundary",
-        "oracle_kind",
-    }
-    for raw_pair in pairs:
-        if not isinstance(raw_pair, dict) or set(raw_pair) != expected_fields:
-            raise ValueError("invalid holdout pair envelope")
+    for raw_pair in raw["pairs"]:
         pair_id = raw_pair["id"]
-        if not isinstance(pair_id, str) or not re.fullmatch(r"[a-z0-9-]+", pair_id):
-            raise ValueError(f"invalid holdout pair id: {pair_id!r}")
         if pair_id in pair_ids:
             raise ValueError(f"duplicate holdout pair id: {pair_id}")
         pair_ids.add(pair_id)
@@ -81,10 +76,6 @@ def load_manifest(path: Path = MANIFEST_PATH) -> dict[str, Any]:
         if case["id"] in case_ids:
             raise ValueError(f"duplicate holdout case id: {case['id']}")
         case_ids.add(case["id"])
-        if not isinstance(raw_pair["outside_diff_boundary"], bool):
-            raise ValueError(f"invalid boundary marker: {pair_id}")
-        if raw_pair["oracle_kind"] not in {"mechanical", "behavioral"}:
-            raise ValueError(f"invalid oracle kind: {pair_id}")
         loaded.append(
             {
                 **raw_pair,
@@ -95,15 +86,8 @@ def load_manifest(path: Path = MANIFEST_PATH) -> dict[str, Any]:
         )
     if not any(pair["outside_diff_boundary"] for pair in loaded[:2]):
         raise ValueError("first two holdouts need an outside-diff boundary")
-    if not any(
-        pair["oracle_kind"] in {"mechanical", "behavioral"} for pair in loaded[:2]
-    ):
-        raise ValueError("first two holdouts need a mechanical or behavioral oracle")
-    return {
-        "schema_version": 1,
-        "manifest_sha256": file_sha256(path),
-        "pairs": loaded,
-    }
+    return {"schema_version": 1, "manifest_sha256": file_sha256(path),
+            "pairs": loaded}
 
 
 def _validate_pair_capability(
@@ -116,13 +100,10 @@ def _validate_pair_capability(
     effort: str,
     timeout: int,
 ) -> None:
-    from evaluation.live import _rebind_capability
+    from evaluation.live import _require_unit_capability
 
-    _rebind_capability(authorization)
-    if (
-        pair["id"] != pair["case"]["id"].removesuffix("-holdout")
-        and not pair["id"]
-    ):
+    _require_unit_capability(authorization, pair["id"])
+    if pair["case"]["id"] != f"holdout-{pair['id']}":
         raise ValueError("holdout pair identity is invalid")
     for plugin in (candidate, public):
         if not plugin.resolve().is_dir():
@@ -171,7 +152,7 @@ def run_pair(
     commitment_sha = write_new_json(
         pair_output / "01-mapping-commitment.json", sealed.public_receipt()
     )
-    plugins = {"candidate": candidate, "public-0.4.0": public}
+    plugins = {"candidate": candidate, "public-0.2": public}
     inverse = {alias: arm for arm, alias in sealed._mapping.items()}
 
     def evaluate_alias(alias: str) -> dict[str, Any]:
@@ -254,8 +235,49 @@ def run_holdouts(
     timeout: int,
     authorization: Any,
 ) -> dict[str, Any]:
-    del candidate, public, output, model, effort, timeout, authorization
-    raise ValueError("generation-6 live capability is unavailable until Batch3")
+    from evaluation import live
+
+    manifest = load_manifest()
+    output = resolve_output(output, candidate, public)
+    pair_ids = [pair["id"] for pair in manifest["pairs"]]
+    preflight = live._preflight_effect(
+        authorization,
+        gate="holdout",
+        output=output,
+        units=sorted(pair_ids),
+        model=model,
+        effort=effort,
+        timeout_ms=timeout * 1000,
+        arm="blinded-pair",
+    )
+    claimed = live._claim_effect_set(preflight)
+    corpus_engine.create_output_root(output)
+    receipts = []
+    outcomes = []
+    by_id = {pair["id"]: pair for pair in manifest["pairs"]}
+    while frontier := adaptive_frontier(pair_ids, outcomes):
+        pair = by_id[frontier[0]]
+        unit = live._claim_unit(claimed, pair["id"])
+        receipt = run_pair(
+            pair,
+            candidate=candidate,
+            public=public,
+            output=output,
+            model=model,
+            effort=effort,
+            timeout=timeout,
+            authorization=unit,
+        )
+        receipts.append(receipt)
+        outcomes.append(receipt["outcome"])
+    return {
+        "schema_version": 1,
+        "engine_generation": "0.6",
+        "manifest_sha256": manifest["manifest_sha256"],
+        "pairs": [receipt["id"] for receipt in receipts],
+        "outcomes": outcomes,
+        "receipts": [canonical_sha256(receipt) for receipt in receipts],
+    }
 
 
 def run_command(args: Any) -> int:
@@ -301,5 +323,16 @@ def run_command(args: Any) -> int:
 
 
 def run_authorized(args: Any, authorization: Any) -> int:
-    del args, authorization
-    raise SystemExit("generation-6 live capability is unavailable until Batch3")
+    if args.public is None:
+        raise ValueError("exact public-0.2 package path is required")
+    result = run_holdouts(
+        candidate=args.candidate,
+        public=args.public,
+        output=args.output,
+        model=args.model,
+        effort=args.effort,
+        timeout=args.timeout,
+        authorization=authorization,
+    )
+    print(json.dumps(result, sort_keys=True))
+    return 0

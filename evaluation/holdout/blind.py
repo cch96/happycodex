@@ -10,7 +10,7 @@ from evaluation.core.identity import canonical_sha256
 
 
 ALIASES = ("arm-a", "arm-b")
-ACTUAL_ARMS = ("candidate", "public-0.4.0")
+ACTUAL_ARMS = ("candidate", "public-0.2")
 BLIND_FIELDS = frozenset(
     {
         "passed",
@@ -22,29 +22,6 @@ BLIND_FIELDS = frozenset(
         "elapsed_seconds",
     }
 )
-
-
-def completed_quality(
-    *, passed: Any, timed_out: Any, exit_code: Any, oracle_failures_count: Any
-) -> str:
-    if not isinstance(passed, bool) or not isinstance(timed_out, bool):
-        raise ValueError("invalid execution status")
-    if not isinstance(exit_code, int) or isinstance(exit_code, bool):
-        raise ValueError("invalid execution exit code")
-    if (
-        not isinstance(oracle_failures_count, int)
-        or isinstance(oracle_failures_count, bool)
-        or oracle_failures_count < 0
-    ):
-        raise ValueError("invalid oracle failure count")
-    if timed_out or exit_code != 0:
-        raise ValueError(
-            "quality evidence requires a completed execution without infrastructure "
-            "failure"
-        )
-    if passed is not (oracle_failures_count == 0):
-        raise ValueError("pass status does not match oracle failures")
-    return "pass" if passed else "fail"
 
 
 def blind_view(metadata: dict[str, Any]) -> dict[str, Any]:
@@ -68,32 +45,29 @@ def blind_view(metadata: dict[str, Any]) -> dict[str, Any]:
 def validate_blind_view(view: dict[str, Any]) -> None:
     if set(view) != BLIND_FIELDS:
         raise ValueError("unexpected blind receipt fields")
-    if not isinstance(view["passed"], bool) or not isinstance(view["timed_out"], bool):
-        raise ValueError("invalid blind receipt status")
-    if not isinstance(view["exit_code"], int) or isinstance(view["exit_code"], bool):
-        raise ValueError("invalid blind receipt exit code")
-    for field_name in (
-        "oracle_failures_count",
-        "uncached_input_tokens",
-        "output_tokens",
+    if (
+        type(view["passed"]) is not bool
+        or type(view["timed_out"]) is not bool
+        or type(view["exit_code"]) is not int
+        or type(view["oracle_failures_count"]) is not int
+        or view["oracle_failures_count"] < 0
     ):
+        raise ValueError("invalid execution status")
+    for field_name in ("uncached_input_tokens", "output_tokens"):
         value = view[field_name]
-        if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+        if type(value) is not int or value < 0:
             raise ValueError(f"invalid blind receipt metric: {field_name}")
     elapsed = view["elapsed_seconds"]
     if (
-        not isinstance(elapsed, (int, float))
-        or isinstance(elapsed, bool)
+        type(elapsed) not in (int, float)
         or not math.isfinite(elapsed)
         or elapsed < 0
     ):
         raise ValueError("invalid blind receipt elapsed time")
-    completed_quality(
-        passed=view["passed"],
-        timed_out=view["timed_out"],
-        exit_code=view["exit_code"],
-        oracle_failures_count=view["oracle_failures_count"],
-    )
+    if view["timed_out"] or view["exit_code"] != 0:
+        raise ValueError("quality evidence requires a completed execution")
+    if view["passed"] is not (view["oracle_failures_count"] == 0):
+        raise ValueError("pass status does not match oracle failures")
 
 
 def freeze_blind_decision(views: dict[str, dict[str, Any]]) -> dict[str, Any]:
@@ -107,12 +81,7 @@ def freeze_blind_decision(views: dict[str, dict[str, Any]]) -> dict[str, Any]:
             {
                 "alias": alias,
                 "blind_view_sha256": canonical_sha256(view),
-                "quality": completed_quality(
-                    passed=view["passed"],
-                    timed_out=view["timed_out"],
-                    exit_code=view["exit_code"],
-                    oracle_failures_count=view["oracle_failures_count"],
-                ),
+                "quality": "pass" if view["passed"] else "fail",
                 "metrics": {
                     "uncached_input_tokens": view["uncached_input_tokens"],
                     "output_tokens": view["output_tokens"],
@@ -150,7 +119,7 @@ def seal_mapping(
     nonce = nonce or secrets.token_hex(32)
     if not isinstance(nonce, str) or len(nonce) < 16:
         raise ValueError("mapping nonce is too short")
-    mapping = {"candidate": candidate_alias, "public-0.4.0": public_alias}
+    mapping = {"candidate": candidate_alias, "public-0.2": public_alias}
     payload = {
         "schema_version": 1,
         "pair_id": pair_id,
@@ -186,6 +155,26 @@ def validate_reveal(reveal: dict[str, Any], decision: dict[str, Any]) -> None:
     }
     if set(reveal) != expected_fields or reveal["schema_version"] != 1:
         raise ValueError("invalid reveal envelope")
+    aliases = decision.get("aliases") if isinstance(decision, dict) else None
+    if set(decision) != {"schema_version", "aliases"} or (
+        decision["schema_version"] != 1
+        or not isinstance(aliases, list)
+        or len(aliases) != len(ALIASES)
+    ):
+        raise ValueError("invalid blind decision envelope")
+    for alias, row in zip(ALIASES, aliases, strict=True):
+        if (
+            not isinstance(row, dict)
+            or set(row) != {"alias", "blind_view_sha256", "quality", "metrics"}
+            or row["alias"] != alias
+            or re.fullmatch(r"[0-9a-f]{64}", row["blind_view_sha256"]) is None
+            or row["quality"] not in {"pass", "fail"}
+            or not isinstance(row["metrics"], dict)
+            or set(row["metrics"]) != {
+                "uncached_input_tokens", "output_tokens", "elapsed_seconds"
+            }
+        ):
+            raise ValueError("invalid blind decision row")
     mapping = reveal["mapping"]
     payload = {
         "schema_version": 1,

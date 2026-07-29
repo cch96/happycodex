@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import copy
+import hashlib
+import inspect
 import json
 import multiprocessing
 import os
@@ -46,6 +48,7 @@ EXPECTED_MODULES = {
     "evaluation/core/impact.py",
     "evaluation/core/ledger.py",
     "evaluation/core/receipt.py",
+    "evaluation/core/schema.py",
     "evaluation/corpus/__init__.py",
     "evaluation/corpus/engine.py",
     "evaluation/holdout/__init__.py",
@@ -78,32 +81,29 @@ def full_live_test_state() -> tuple[
     dict[str, object], dict[str, object], dict[str, object]
 ]:
     current = build_snapshot(ROOT)
-    pending = {
-        "gates": [
-            "corpus",
-            "executor_pilot",
-            "holdout",
-            "isolated_install",
-            "receipt",
-            "review",
-        ],
-        "corpus_cases": sorted(current["corpus"]["cases"]),
-        "holdout_pairs": sorted(current["holdout"]["pairs"]),
-    }
     ledger = {
         "schema_version": 1,
         "engine_generation": "0.6",
         "state": "refresh_required",
         "snapshot": current,
         "source_anchor": None,
-        "pending": pending,
+        "planned_impact": None,
+        "planned_invocations": {
+            "executor": None, "corpus": None, "holdout": None,
+        },
+        "cost": {"executor": None, "corpus": None, "holdout": None},
         "authorities": {"executor": None, "corpus": None, "holdout": None},
-        "calibration_history": [],
-        "accepted_evidence": [],
+        "accepted_evidence": {
+            slot: None for slot in ledger_engine.EVIDENCE_SLOTS
+        },
+        "coverage": {},
         "receipt_head": None,
+        "freeze": None,
         "certification": None,
     }
-    impact = plan_impact(current, current, pending=pending)
+    impact = plan_impact(
+        current, current, pending=ledger_engine.derive_pending(ledger)
+    )
     validate_ledger(ledger, repo=ROOT)
     return ledger, current, impact
 
@@ -134,6 +134,90 @@ def g013_authority_fixture() -> tuple[object, object, dict[str, str]]:
     return report, authority, binding
 
 
+def runtime_records(
+    report: object,
+    authority: object,
+    binding: dict[str, str],
+    repo: Path,
+    *,
+    gate: str = "corpus",
+    units: tuple[str, ...] = ("unit",),
+) -> tuple[dict[str, object], dict[str, object], dict[str, str]]:
+    next_action = report.to_wire()["next_action"]
+    action = {
+        "kind": next_action["kind"],
+        "target": next_action["target"],
+        "scope": next_action["scope"],
+        "progress_key": report.to_wire()["progress_key"],
+        "attempt_key": make_attempt_key(report).value,
+    }
+    plan = {
+        "schema_version": 1,
+        "repo": str(repo.resolve()),
+        "gate": gate,
+        "phase": "calibration" if gate == "executor" else "evaluation",
+        "impact_token": "a" * 64,
+        "action": action,
+        "task_binding_sha256": canonical_sha256(dict(report.facts.task.to_value())),
+        "role_config_sha256": binding["role_config_digest"],
+        "profile": {
+            "binary": "codex",
+            "model": "gpt-5.6-sol",
+            "effort": "high",
+            "timeout_ms": 300_000,
+            "arm": "blinded-pair" if gate == "holdout" else "candidate",
+            "prompt_sha256": "b" * 64,
+        },
+        "template": {
+            "argv": ["true", "{unit}"],
+            "cwd": str(repo.resolve()),
+            "env": {"LC_ALL": "C"},
+            "timeout_ms": 300_000,
+        },
+        "output": str((repo.parent / f"{gate}-output").resolve()),
+        "units": sorted(units),
+        "resource_digests": ["c" * 64],
+        "cost_sha256": "d" * 64,
+    }
+    plan["invocation_sha256"] = canonical_sha256(plan)
+    record = {
+        "schema_version": 1,
+        "gate": gate,
+        "phase": plan["phase"],
+        "impact_token": plan["impact_token"],
+        "invocation_sha256": plan["invocation_sha256"],
+        "action": action,
+        "request_sha256": "e" * 64,
+        "affirmative_sha256": "f" * 64,
+        "host": {
+            "task_id": binding["task_id"],
+            "message_id": binding["message_id"],
+            "turn_id": binding["turn_id"],
+            "content_sha256": binding["content_digest"],
+            "role_config_sha256": binding["role_config_digest"],
+        },
+    }
+    record["authority_sha256"] = canonical_sha256(record)
+    bound = dict(binding)
+    bound["permission_digest"] = live._permission_digest(report, authority, plan)
+    bound["claim_digest"] = live._claim_digest(plan)
+    return plan, record, bound
+
+
+def preflight_gate(capability: object) -> object:
+    plan, profile = capability._plan, capability._plan["profile"]
+    return live._preflight_effect(
+        capability,
+        gate=plan["gate"],
+        output=Path(plan["output"]),
+        units=list(plan["units"]),
+        model=profile["model"],
+        effort=profile["effort"],
+        timeout_ms=profile["timeout_ms"],
+        arm=profile["arm"],
+    )
+
+
 def g013_claim_worker(
     claim_root: str,
     key: str,
@@ -142,11 +226,7 @@ def g013_claim_worker(
 ) -> None:
     start.wait()
     try:
-        live._claim_file(
-            Path(claim_root),
-            key,
-            {"schema_version": 1, "kind": "authority", "digest": "a" * 64},
-        )
+        live._claim_file(Path(claim_root), key)
     except FileExistsError:
         results.put("collision")
     else:
@@ -202,11 +282,14 @@ class CertificationIdentityTests(unittest.TestCase):
                 "state",
                 "snapshot",
                 "source_anchor",
-                "pending",
+                "planned_impact",
+                "planned_invocations",
+                "cost",
                 "authorities",
-                "calibration_history",
                 "accepted_evidence",
+                "coverage",
                 "receipt_head",
+                "freeze",
                 "certification",
             },
         )
@@ -214,32 +297,21 @@ class CertificationIdentityTests(unittest.TestCase):
         self.assertEqual(active["engine_generation"], "0.6")
         self.assertEqual(active["state"], "refresh_required")
         self.assertIsNone(active["source_anchor"])
-        self.assertEqual(
-            active["pending"]["gates"],
-            [
-                "corpus",
-                "executor_pilot",
-                "holdout",
-                "isolated_install",
-                "receipt",
-                "review",
-            ],
-        )
-        self.assertEqual(
-            active["pending"]["corpus_cases"],
-            sorted(active["snapshot"]["corpus"]["cases"]),
-        )
-        self.assertEqual(
-            active["pending"]["holdout_pairs"],
-            sorted(active["snapshot"]["holdout"]["pairs"]),
-        )
+        pending = ledger_engine.derive_pending(active)
+        self.assertEqual(pending["gates"], list(ledger_engine.PENDING_GATES))
+        self.assertEqual(pending["corpus_cases"], sorted(active["snapshot"]["corpus"]["cases"]))
+        self.assertEqual(pending["holdout_pairs"], sorted(active["snapshot"]["holdout"]["pairs"])[:1])
         self.assertEqual(
             active["authorities"],
             {"executor": None, "corpus": None, "holdout": None},
         )
-        self.assertEqual(active["calibration_history"], [])
-        self.assertEqual(active["accepted_evidence"], [])
+        self.assertTrue(all(value is None for value in active["accepted_evidence"].values()))
+        self.assertIsNone(active["planned_impact"])
+        self.assertTrue(all(value is None for value in active["planned_invocations"].values()))
+        self.assertTrue(all(value is None for value in active["cost"].values()))
+        self.assertEqual(active["coverage"], {})
         self.assertIsNone(active["receipt_head"])
+        self.assertIsNone(active["freeze"])
         self.assertIsNone(active["certification"])
         for legacy in ("historical_cost", "live_attempts", "live_authority"):
             self.assertNotIn(legacy, active)
@@ -265,7 +337,7 @@ class CertificationIdentityTests(unittest.TestCase):
             invalid[legacy] = value
             with self.assertRaisesRegex(ValueError, "envelope"):
                 validate_ledger(invalid, repo=ROOT)
-        self.assertEqual(active["accepted_evidence"], [])
+        self.assertTrue(all(value is None for value in active["accepted_evidence"].values()))
         self.assertFalse(
             any(
                 "evaluation/results/evidence" in json.dumps(value)
@@ -274,19 +346,25 @@ class CertificationIdentityTests(unittest.TestCase):
         )
 
     def test_active_producers_and_validators_are_generation_6_only(self) -> None:
+        from evaluation.holdout import engine as holdout_engine
+
         receipt = (ROOT / "evaluation/core/receipt.py").read_text(encoding="utf-8")
         self.assertNotIn('"engine_generation": "0.4"', receipt)
-        self.assertIn('"engine_generation": "0.6"', receipt)
         for relative in (
             "evaluation/corpus/engine.py",
             "evaluation/holdout/engine.py",
         ):
             source = (ROOT / relative).read_text(encoding="utf-8")
             self.assertNotIn('"engine_generation": "0.4"', source)
-            self.assertIn("unavailable until Batch3", source)
+            self.assertNotIn("unavailable until Batch3", source)
+        self.assertTrue(callable(corpus_engine.run_authorized))
+        self.assertTrue(callable(holdout_engine.run_authorized))
         validator = (ROOT / "evaluation/core/ledger.py").read_text(encoding="utf-8")
         self.assertNotIn('engine_generation") != "0.4"', validator)
-        self.assertIn('engine_generation") != "0.6"', validator)
+        args = cli.build_parser().parse_args(["executor", "--dry-run"])
+        with mock.patch("builtins.print") as output:
+            self.assertEqual(cli.executor_command(args), 0)
+        self.assertEqual(json.loads(output.call_args.args[0])["schema_generation"], 6)
 
     def test_generation_6_has_no_prior_cost_or_attempt_surface(self) -> None:
         impact_source = (ROOT / "evaluation/core/impact.py").read_text(
@@ -565,7 +643,7 @@ class CertificationImpactTests(unittest.TestCase):
 
         self.assertIs(corpus_engine.CORPUS_SEMANTIC_PATHS, CORPUS_SEMANTIC_PATHS)
         self.assertIs(impact_engine.CORPUS_SEMANTIC_PATHS, CORPUS_SEMANTIC_PATHS)
-        self.assertEqual(len(CORPUS_SEMANTIC_PATHS), 6)
+        self.assertEqual(len(CORPUS_SEMANTIC_PATHS), 7)
         inventory = engine_inventory(ROOT)
         expected = {
             item["path"]
@@ -702,7 +780,9 @@ class CertificationImpactTests(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            with self.assertRaisesRegex(IdentityError, "invalid case envelope"):
+            with self.assertRaisesRegex(
+                IdentityError, "invalid case envelope|schema object mismatch"
+            ):
                 build_snapshot(clone)
 
     def test_impact_rejects_the_same_malformed_holdout_as_execution(self) -> None:
@@ -724,13 +804,17 @@ class CertificationImpactTests(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            with self.assertRaisesRegex(IdentityError, "holdout pair envelope"):
+            with self.assertRaisesRegex(
+                IdentityError, "holdout pair envelope|schema object mismatch"
+            ):
                 build_snapshot(clone)
 
     def test_unknown_snapshot_dimension_fails_closed(self) -> None:
         changed = copy.deepcopy(self.snapshot)
         changed["unknown"] = {"value": True}
-        with self.assertRaisesRegex(IdentityError, "unknown snapshot field"):
+        with self.assertRaisesRegex(
+            IdentityError, "unknown snapshot field|schema object mismatch"
+        ):
             plan_impact(self.snapshot, changed)
 
     def test_refresh_ledger_has_no_prior_cost_attempt_or_evidence(self) -> None:
@@ -745,8 +829,7 @@ class CertificationImpactTests(unittest.TestCase):
         invalid["historical_cost"] = {}
         with self.assertRaisesRegex(ValueError, "envelope"):
             validate_ledger(invalid, repo=ROOT)
-        self.assertEqual(ledger["calibration_history"], [])
-        self.assertEqual(ledger["accepted_evidence"], [])
+        self.assertTrue(all(value is None for value in ledger["accepted_evidence"].values()))
         self.assertEqual(
             ledger["authorities"],
             {"executor": None, "corpus": None, "holdout": None},
@@ -795,7 +878,20 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
         )
 
     def test_terminal_events_bind_one_result_usage_completion_and_eof(self) -> None:
-        final = {"decision": "continue", "value": "bound"}
+        final = {
+            "decision": "continue",
+            "qualifies": False,
+            "execplan_condition": "not_required",
+            "protocol_may_product_write": False,
+            "protocol_review_mode": "none",
+            "protocol_may_complete": False,
+            "finding_classifications": [],
+            "blocker_classifications": [],
+            "open_gates": [],
+            "evidence": [],
+            "reason": "bound",
+            "recovery_state": None,
+        }
         binding = {
             "provider": "openai",
             "session_id": "session-1",
@@ -1099,7 +1195,7 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
         invalid = copy.deepcopy(ledger)
         invalid["state"] = "certified"
         invalid["certification"] = {}
-        with self.assertRaisesRegex(ValueError, "certification ledger"):
+        with self.assertRaisesRegex(ValueError, "pre-anchor|certification"):
             validate_ledger(invalid)
 
     def test_live_dispatch_refuses_before_authority_or_runner_effect(self) -> None:
@@ -1150,13 +1246,8 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                 "run",
                 side_effect=AssertionError("Codex invocation reached"),
             ) as runner:
-                with self.assertRaisesRegex(ValueError, "capability"):
-                    corpus_engine.invoke_codex(
-                        ["codex", "exec"],
-                        cwd=Path(raw),
-                        env={},
-                        timeout=1,
-                    )
+                with self.assertRaisesRegex(ValueError, "phase proof"):
+                    corpus_engine.invoke_codex(object())
             runner.assert_not_called()
 
     def test_verify_preserves_repo_context_for_certified_ledger_hash(self) -> None:
@@ -1187,7 +1278,7 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
         certified["certification"] = {
             "forbidden_before_generation_6_evidence_work": True
         }
-        with self.assertRaisesRegex(ValueError, "certification ledger"):
+        with self.assertRaisesRegex(ValueError, "pre-anchor|certification"):
             validate_ledger(certified, repo=ROOT)
 
     def test_verify_and_impact_commands_are_read_only_json(self) -> None:
@@ -1215,8 +1306,10 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
             capture_output=True,
             check=False,
         )
-        self.assertNotEqual(impact.returncode, 0)
-        self.assertIn("cost envelope", impact.stderr)
+        self.assertEqual(impact.returncode, 2, impact.stderr)
+        impact_payload = json.loads(impact.stdout)
+        self.assertEqual(impact_payload["snapshot"], build_snapshot(ROOT))
+        self.assertEqual(impact_payload["planned_impact"], expected_impact)
         self.assertEqual(ledger_path.read_bytes(), ledger_bytes)
 
     def test_impact_token_cannot_self_authorize_a_live_command(self) -> None:
@@ -1286,10 +1379,40 @@ class G013SourceContractTests(unittest.TestCase):
         root.chmod(0o700)
         return root
 
-    def _capability(self) -> tuple[object, object, dict[str, str]]:
+    def _plan_only(self) -> dict[str, object]:
+        ledger = self._lifecycle(certified=False)
+        ledger["authorities"] = {gate: None for gate in ledger_engine.LIVE_SLOTS}
+        for field in ("planned_invocations", "cost"):
+            ledger[field]["corpus"] = None
+            ledger[field]["holdout"] = None
+        ledger["accepted_evidence"] = {
+            slot: None for slot in ledger_engine.EVIDENCE_SLOTS
+        }
+        ledger.update(coverage={}, receipt_head=None, freeze=None, certification=None)
+        return ledger
+
+    def _capability(
+        self,
+        repo: Path = ROOT,
+        *,
+        units: tuple[str, ...] = ("unit",),
+        resource_digests: tuple[str, ...] = ("b" * 64, "c" * 64),
+    ) -> tuple[object, object, dict[str, str]]:
         report, authority, binding = g013_authority_fixture()
+        plan, record, binding = runtime_records(
+            report, authority, binding, repo, units=units
+        )
+        plan["resource_digests"] = sorted(resource_digests)
+        plan["invocation_sha256"] = canonical_sha256({
+            key: value for key, value in plan.items() if key != "invocation_sha256"
+        })
+        record["invocation_sha256"] = plan["invocation_sha256"]
+        record["authority_sha256"] = canonical_sha256({
+            key: value for key, value in record.items() if key != "authority_sha256"
+        })
+        binding["claim_digest"] = live._claim_digest(plan)
         issue = getattr(live, "_issue_trusted_host_context")
-        context = issue(authority, binding)
+        context = issue(authority, binding, plan, record)
         with mock.patch.object(live, "_trusted_host_context", return_value=context):
             capability = live._authorize_effect(report, object())
         return capability, report, binding
@@ -1308,7 +1431,7 @@ class G013SourceContractTests(unittest.TestCase):
 
         invalid = copy.deepcopy(active)
         invalid["source_anchor"] = {}
-        with self.assertRaisesRegex(ValueError, "source anchor"):
+        with self.assertRaisesRegex(ValueError, "source anchor|schema object mismatch"):
             validate_ledger(invalid, repo=ROOT)
 
         with tempfile.TemporaryDirectory() as raw:
@@ -1359,7 +1482,10 @@ class G013SourceContractTests(unittest.TestCase):
             live._authorize_effect(report, {"authority": binding, "approved": True})
 
         issue = getattr(live, "_issue_trusted_host_context")
-        context = issue(authority, binding)
+        plan, record, binding = runtime_records(
+            report, authority, binding, ROOT
+        )
+        context = issue(authority, binding, plan, record)
         with mock.patch.object(live, "_trusted_host_context", return_value=context):
             capability = live._authorize_effect(report, object())
         self.assertIs(live._rebind_capability(capability, binding), capability)
@@ -1386,60 +1512,32 @@ class G013SourceContractTests(unittest.TestCase):
             live._rebind_capability(capability, binding)
 
     def test_g013_claim_order_is_exact_and_faults_precede_effects(self) -> None:
-        capability, report, _binding = self._capability()
         with tempfile.TemporaryDirectory() as raw:
             repo = Path(raw) / "repo"
             repo.mkdir()
             self._git(repo, "init")
             root = self._claim_root(repo)
-            request_type = getattr(live, "_ClaimRequest")
-            request = request_type(
-                repo=repo,
-                authority_digest="a" * 64,
-                attempt_key=make_attempt_key(report),
-                resource_digests=("c" * 64, "b" * 64),
-                output_digest="d" * 64,
-            )
+            capability, _report, _binding = self._capability(repo)
             order: list[str] = []
-            real_rebind = live._rebind_capability
 
-            def claim(_root: Path, key: str, _payload: dict[str, object]) -> None:
+            def claim(_root: Path, key: str) -> None:
                 self.assertEqual(_root, root)
                 order.append(key.split("-", 1)[0])
 
-            def rebind(item: object, binding: dict[str, str] | None = None) -> object:
-                order.append("rebind")
-                return real_rebind(item, binding)
-
-            with (
-                mock.patch.object(live, "_claim_file", side_effect=claim),
-                mock.patch.object(live, "_rebind_capability", side_effect=rebind),
-            ):
-                live._consume_effect_claims(
-                    capability,
-                    request,
-                    lambda: order.append("effects"),
-                )
-                live._run_model_phase(
-                    capability,
-                    "e" * 64,
-                    lambda: order.append("model"),
-                )
+            with mock.patch.object(live, "_claim_file", side_effect=claim):
+                claimed = live._claim_effect_set(preflight_gate(capability))
+                unit = live._claim_units(claimed, ["unit"])["unit"]
+                live._issue_phase_proof(unit)
             self.assertEqual(
                 order,
                 [
-                    "rebind",
                     "authority",
                     "attempt",
                     "resource",
                     "resource",
                     "output",
-                    "rebind",
-                    "effects",
-                    "rebind",
+                    "unit",
                     "phase",
-                    "rebind",
-                    "model",
                 ],
             )
 
@@ -1449,60 +1547,41 @@ class G013SourceContractTests(unittest.TestCase):
                 repo.mkdir()
                 self._git(repo, "init")
                 root = self._claim_root(repo)
-                request = live._ClaimRequest(
-                    repo=repo,
-                    authority_digest="a" * 64,
-                    attempt_key=make_attempt_key(report),
-                    resource_digests=("b" * 64, "c" * 64),
-                    output_digest="d" * 64,
-                )
+                capability, _report, _binding = self._capability(repo)
                 real_claim = live._claim_file
                 count = 0
 
                 def fault(
                     claim_root: Path,
                     key: str,
-                    payload: dict[str, object],
                 ) -> None:
                     nonlocal count
-                    real_claim(claim_root, key, payload)
+                    real_claim(claim_root, key)
                     count += 1
                     if count == fail_after:
                         raise RuntimeError("injected claim failure")
 
-                effect = mock.Mock()
                 with (
                     mock.patch.object(live, "_claim_file", side_effect=fault),
                     self.assertRaisesRegex(RuntimeError, "injected"),
                 ):
-                    live._consume_effect_claims(capability, request, effect)
-                effect.assert_not_called()
+                    live._claim_effect_set(preflight_gate(capability))
                 self.assertEqual(len(list(root.iterdir())), fail_after)
 
     def test_g013_phase_claim_collision_prevents_model_invocation(self) -> None:
-        capability, report, _binding = self._capability()
         with tempfile.TemporaryDirectory() as raw:
             repo = Path(raw) / "repo"
             repo.mkdir()
             self._git(repo, "init")
-            root = self._claim_root(repo)
-            request = live._ClaimRequest(
-                repo=repo,
-                authority_digest="a" * 64,
-                attempt_key=make_attempt_key(report),
-                resource_digests=("b" * 64,),
-                output_digest="d" * 64,
+            self._claim_root(repo)
+            capability, _report, _binding = self._capability(
+                repo, resource_digests=("b" * 64,)
             )
-            live._consume_effect_claims(capability, request, lambda: None)
-            live._claim_file(
-                root,
-                "phase-" + "e" * 64,
-                {"schema_version": 1, "kind": "phase", "digest": "e" * 64},
-            )
-            invoke = mock.Mock()
+            claimed = live._claim_effect_set(preflight_gate(capability))
+            unit = live._claim_units(claimed, ["unit"])["unit"]
+            live._issue_phase_proof(unit)
             with self.assertRaises(FileExistsError):
-                live._run_model_phase(capability, "e" * 64, invoke)
-            invoke.assert_not_called()
+                live._issue_phase_proof(unit)
 
     def test_g013_claim_race_modes_and_output_paths_are_pre_effect(self) -> None:
         from evaluation.holdout import engine as holdout_engine
@@ -1652,12 +1731,964 @@ class G013SourceContractTests(unittest.TestCase):
             validate_ledger(invalid, repo=ROOT)
         invalid = copy.deepcopy(active)
         invalid["accepted_evidence"] = [{"generation": "0.4"}]
-        with self.assertRaisesRegex(ValueError, "evidence"):
+        with self.assertRaisesRegex(
+            ValueError, "pre-anchor|evidence|schema type or enum mismatch"
+        ):
             validate_ledger(invalid, repo=ROOT)
         invalid = copy.deepcopy(active)
         invalid["certification"] = {"offline": True}
-        with self.assertRaisesRegex(ValueError, "certification"):
+        with self.assertRaisesRegex(ValueError, "pre-anchor|certification"):
             validate_ledger(invalid, repo=ROOT)
+
+
+class Batch3SourceRepairRegressionTests(unittest.TestCase):
+    PUBLIC_BASELINE = {
+        "arm": "public-0.2",
+        "source_commit": "3b9c11fac1f97df75263e0bfc6421c575e04e8b2",
+        "source_tree": "4708ebc12f74d4482764796fdd00f1fa7194a13a",
+        "artifact_sha256": (
+            "77a0b2b8f7f6280d6ed32458fc61ca110f7138b5b6c17ad55d333a023dfa8c89"
+        ),
+        "semantic_sha256": (
+            "fb3cb419795a6edcb284695769b5487b1f23ae46286c5fceba8042fcb41f9ce4"
+        ),
+        "skill_entries": [
+            "SKILL.md",
+            "agents/openai.yaml",
+            "references/external-review.md",
+            "references/task-packets.md",
+        ],
+    }
+
+    @staticmethod
+    def _sealed(payload: dict[str, object], field: str) -> dict[str, object]:
+        result = copy.deepcopy(payload)
+        result[field] = canonical_sha256(result)
+        return result
+
+    def _lifecycle(self, *, certified: bool) -> dict[str, object]:
+        snapshot = build_snapshot(ROOT)
+        self.assertEqual(snapshot["public_baseline"], self.PUBLIC_BASELINE)
+        anchor = {
+            "source_commit": "1" * 40,
+            "source_tree": "2" * 40,
+            "package_artifact_sha256": snapshot["package"]["artifact_sha256"],
+            "package_semantic_sha256": snapshot["package"]["semantic_sha256"],
+            "engine_manifest_sha256": snapshot["engine"]["manifest_sha256"],
+            "executor_role_sha256": snapshot["role"]["executor_sha256"],
+            "public_baseline_sha256": canonical_sha256(self.PUBLIC_BASELINE),
+        }
+        scope = {
+            "gates": list(ledger_engine.PENDING_GATES),
+            "corpus_cases": sorted(snapshot["corpus"]["cases"]),
+            "holdout_pairs": sorted(snapshot["holdout"]["pairs"]),
+            "adaptive_policy_sha256": "3" * 64,
+        }
+        planned_impact = self._sealed(
+            {
+                "schema_version": 1,
+                "snapshot_sha256": canonical_sha256(snapshot),
+                "source_anchor_sha256": canonical_sha256(anchor),
+                "initial_scope": scope,
+                "initial_scope_sha256": canonical_sha256(scope),
+                "live_calls": {"min": 1, "max": 43},
+            },
+            "impact_token",
+        )
+        action = {
+            "kind": "RECONCILE",
+            "target": "gate:g015",
+            "scope": "family:g015",
+            "progress_key": "4" * 64,
+            "attempt_key": "5" * 64,
+        }
+        costs: dict[str, dict[str, object]] = {}
+        invocations: dict[str, dict[str, object]] = {}
+        authorities: dict[str, dict[str, object]] = {}
+        evidence: dict[str, dict[str, object]] = {}
+        executor_receipt: str | None = None
+        for gate in ("executor", "corpus", "holdout"):
+            basis = "source-derived" if gate == "executor" else "executor-calibration"
+            cost = self._sealed(
+                {
+                    "schema_version": 1,
+                    "gate": gate,
+                    "basis": basis,
+                    "basis_sha256": "6" * 64,
+                    "basis_receipt_sha256": None if gate == "executor" else executor_receipt,
+                    "model_calls": {"min": 1, "max": 1 if gate == "executor" else 20},
+                    "uncached_input_tokens": {"min": 1, "max": 1000},
+                    "output_tokens": {"min": 1, "max": 1000},
+                    "combined_tokens": {"min": 2, "max": 2000},
+                    "wall_milliseconds": {"min": 1, "max": 300_000},
+                },
+                "cost_sha256",
+            )
+            costs[gate] = cost
+            units = (
+                ["subthreshold-control"]
+                if gate == "executor"
+                else sorted(
+                    snapshot["corpus"]["cases"]
+                    if gate == "corpus"
+                    else snapshot["holdout"]["pairs"]
+                )
+            )
+            invocation = self._sealed(
+                {
+                    "schema_version": 1,
+                    "gate": gate,
+                    "phase": "calibration" if gate == "executor" else "evaluation",
+                    "impact_token": planned_impact["impact_token"],
+                    "action": action,
+                    "task_binding_sha256": "3" * 64,
+                    "role_config_sha256": snapshot["role"]["executor_sha256"],
+                    "profile": {
+                        "binary": "codex",
+                        "model": "gpt-5.6-sol",
+                        "effort": "high",
+                        "timeout_ms": 300_000,
+                        "arm": "candidate" if gate != "holdout" else "blinded-pair",
+                        "prompt_sha256": "7" * 64,
+                    },
+                    "template": {
+                        "argv": ["codex", "exec", "{unit}"],
+                        "cwd": str(ROOT),
+                        "env": {"LC_ALL": "C"},
+                        "timeout_ms": 300_000,
+                    },
+                    "repo": str(ROOT),
+                    "output": f"/tmp/happycodex-g015-{gate}",
+                    "units": units,
+                    "resource_digests": ["8" * 64],
+                    "cost_sha256": cost["cost_sha256"],
+                },
+                "invocation_sha256",
+            )
+            invocations[gate] = invocation
+            authority = self._sealed(
+                {
+                    "schema_version": 1,
+                    "gate": gate,
+                    "phase": invocation["phase"],
+                    "impact_token": planned_impact["impact_token"],
+                    "invocation_sha256": invocation["invocation_sha256"],
+                    "action": action,
+                    "request_sha256": "5" * 64,
+                    "affirmative_sha256": "6" * 64,
+                    "host": {
+                        "task_id": "task-g015",
+                        "message_id": "message-g015",
+                        "turn_id": "turn-g015",
+                        "content_sha256": "7" * 64,
+                        "role_config_sha256": snapshot["role"]["executor_sha256"],
+                    },
+                },
+                "authority_sha256",
+            )
+            authorities[gate] = authority
+            if gate == "executor":
+                executor_receipt = "pending"
+        parent: str | None = None
+        specs = (
+            ("executor_calibration", "executor", ["subthreshold-control"]),
+            ("corpus_summary", "corpus", sorted(snapshot["corpus"]["cases"])),
+            ("holdout_summary", "holdout", sorted(snapshot["holdout"]["pairs"])[:2]),
+            ("offline_summary", "receipt", []),
+            ("review_summary", "review", []),
+            ("offline_summary", "isolated_install", []),
+        )
+        for index, (kind, gate, units) in enumerate(specs):
+            bound_gate = gate if gate in invocations else None
+            record = self._sealed(
+                {
+                    "schema_version": 1,
+                    "kind": kind,
+                    "gate": gate,
+                    "sequence": index,
+                    "evidence_commit": f"{index + 10:040x}",
+                    "path": (
+                        "evaluation/results/evidence/"
+                        f"{index + 30:064x}.json"
+                    ),
+                    "blob": f"{index + 20:040x}",
+                    "content_sha256": f"{index + 30:064x}",
+                    "impact_token": planned_impact["impact_token"],
+                    "invocation_sha256": (
+                        invocations[bound_gate]["invocation_sha256"]
+                        if bound_gate
+                        else None
+                    ),
+                    "authority_sha256": (
+                        authorities[bound_gate]["authority_sha256"]
+                        if bound_gate
+                        else None
+                    ),
+                    "units": units,
+                    "transcript": (
+                        [
+                            {
+                                "pair_id": pair,
+                                "outcome": "equal",
+                                "receipt_sha256": f"{index + offset + 90:064x}",
+                            }
+                            for offset, pair in enumerate(units)
+                        ]
+                        if gate == "holdout"
+                        else []
+                    ),
+                    "actual": (
+                        {
+                            "model_calls": 1,
+                            "uncached_input_tokens": 10,
+                            "output_tokens": 5,
+                            "combined_tokens": 15,
+                            "wall_milliseconds": 1000,
+                        }
+                        if gate == "executor"
+                        else None
+                    ),
+                    "producer": {
+                        "schema_version": 1,
+                        "output_schema_sha256": canonical_sha256(
+                            corpus_engine.OUTPUT_SCHEMA
+                        ),
+                    },
+                    "subject": {
+                        "schema_version": 1,
+                        "gate": gate,
+                        "source_anchor_sha256": canonical_sha256(anchor),
+                        "snapshot_sha256": canonical_sha256(snapshot),
+                    },
+                    "pre_effect_grant_sha256": (
+                        authorities[bound_gate]["authority_sha256"]
+                        if bound_gate
+                        else "9" * 64
+                    ),
+                    "parent_receipt_sha256": parent,
+                },
+                "receipt_sha256",
+            )
+            parent = record["receipt_sha256"]
+            evidence[gate] = record
+            if gate == "executor":
+                executor_receipt = record["receipt_sha256"]
+                for later in ("corpus", "holdout"):
+                    costs[later]["basis_receipt_sha256"] = executor_receipt
+                    costs[later]["cost_sha256"] = canonical_sha256({
+                        key: value for key, value in costs[later].items()
+                        if key != "cost_sha256"
+                    })
+                    invocations[later]["cost_sha256"] = costs[later]["cost_sha256"]
+                    invocations[later]["invocation_sha256"] = canonical_sha256({
+                        key: value for key, value in invocations[later].items()
+                        if key != "invocation_sha256"
+                    })
+                    authorities[later]["invocation_sha256"] = invocations[later]["invocation_sha256"]
+                    authorities[later]["authority_sha256"] = canonical_sha256({
+                        key: value for key, value in authorities[later].items()
+                        if key != "authority_sha256"
+                    })
+        coverage = ledger_engine.derive_coverage(snapshot, evidence)
+        freeze = self._sealed(
+            {
+                "schema_version": 1,
+                "source_anchor_sha256": canonical_sha256(anchor),
+                "receipt_head": evidence["receipt"]["receipt_sha256"],
+                "coverage_sha256": coverage["coverage_sha256"],
+            },
+            "freeze_sha256",
+        ) if certified else None
+        certification = None
+        state = "refresh_required"
+        if certified:
+            certification = self._sealed(
+                {
+                    "schema_version": 1,
+                    "source_anchor_sha256": canonical_sha256(anchor),
+                    "snapshot_sha256": canonical_sha256(snapshot),
+                    "role_config_sha256": snapshot["role"]["executor_sha256"],
+                    "authorities": {
+                        gate: item["authority_sha256"]
+                        for gate, item in authorities.items()
+                    },
+                    "executor_evidence_sha256": evidence["executor"]["receipt_sha256"],
+                    "evidence_receipts": [
+                        item["receipt_sha256"]
+                        for item in sorted(evidence.values(), key=lambda item: item["sequence"])
+                    ],
+                    "coverage_sha256": coverage["coverage_sha256"],
+                    "freeze_sha256": freeze["freeze_sha256"],
+                    "receipt_head": parent,
+                },
+                "certification_sha256",
+            )
+            state = "certified"
+        return {
+            "schema_version": 1,
+            "engine_generation": "0.6",
+            "state": state,
+            "snapshot": snapshot,
+            "source_anchor": anchor,
+            "planned_impact": planned_impact,
+            "planned_invocations": invocations,
+            "cost": costs,
+            "authorities": authorities,
+            "accepted_evidence": evidence,
+            "coverage": coverage,
+            "receipt_head": parent,
+            "freeze": freeze,
+            "certification": certification,
+        }
+
+    def _claim_root(self, repo: Path) -> Path:
+        raw = Path(self._git(repo, "rev-parse", "--git-common-dir"))
+        common = raw if raw.is_absolute() else repo / raw
+        root = common.resolve() / "happycodex" / "effect-claims" / "v6"
+        root.mkdir(parents=True)
+        root.chmod(0o700)
+        return root
+
+    def _plan_only(self) -> dict[str, object]:
+        ledger = self._lifecycle(certified=False)
+        ledger["authorities"] = {gate: None for gate in ledger_engine.LIVE_SLOTS}
+        for field in ("planned_invocations", "cost"):
+            ledger[field]["corpus"] = None
+            ledger[field]["holdout"] = None
+        ledger["accepted_evidence"] = {
+            slot: None for slot in ledger_engine.EVIDENCE_SLOTS
+        }
+        ledger.update(coverage={}, receipt_head=None, freeze=None, certification=None)
+        return ledger
+
+    def _gate(
+        self, repo: Path, *, gate: str = "corpus", units: tuple[str, ...] = ("unit",)
+    ) -> object:
+        report, authority, binding = g013_authority_fixture()
+        plan, record, binding = runtime_records(
+            report, authority, binding, repo, gate=gate, units=units
+        )
+        issue = getattr(live, "_issue_trusted_host_context")
+        context = issue(authority, binding, plan, record)
+        with mock.patch.object(live, "_trusted_host_context", return_value=context):
+            return live._authorize_effect(report, object())
+
+    def _git(self, repo: Path, *args: str) -> str:
+        return subprocess.run(
+            ["git", "-C", str(repo), *args],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+
+    def _repo(self, raw: str) -> tuple[Path, Path]:
+        repo = Path(raw) / "repo"
+        repo.mkdir()
+        self._git(repo, "init")
+        return repo, self._claim_root(repo)
+
+    def test_public_02_archive_identity_and_surface_are_exact(self) -> None:
+        from evaluation.core import identity
+
+        self.assertEqual(identity.PUBLIC_02_ARM, "public-0.2")
+        self.assertEqual(identity.PUBLIC_02_SOURCE_COMMIT, self.PUBLIC_BASELINE["source_commit"])
+        self.assertEqual(identity.PUBLIC_02_SOURCE_TREE, self.PUBLIC_BASELINE["source_tree"])
+        self.assertEqual(
+            identity.PUBLIC_02_PACKAGE_ARTIFACT_SHA256,
+            self.PUBLIC_BASELINE["artifact_sha256"],
+        )
+        self.assertEqual(
+            identity.PUBLIC_02_PACKAGE_SEMANTIC_SHA256,
+            self.PUBLIC_BASELINE["semantic_sha256"],
+        )
+        self.assertEqual(
+            list(identity.PUBLIC_02_SKILL_ENTRIES),
+            self.PUBLIC_BASELINE["skill_entries"],
+        )
+
+    def test_no_public_04_arm_or_receipt_field_survives(self) -> None:
+        production = "\n".join(
+            path.read_text(encoding="utf-8")
+            for path in sorted((ROOT / "evaluation").rglob("*.py"))
+        )
+        for retired in ("public-0.4", "PUBLIC_040", "public_0_4_0"):
+            self.assertNotIn(retired, production)
+
+    def test_anchored_refresh_accepts_exact_plans_costs_and_authorities(self) -> None:
+        validate_ledger(self._plan_only())
+
+    def test_certification_requires_exact_post_source_evidence(self) -> None:
+        certified = self._lifecycle(certified=True)
+        with self.assertRaisesRegex(ValueError, "repository|repo"):
+            validate_ledger(certified)
+
+    def test_impact_replays_persisted_plan_while_null_genesis_fails_closed(self) -> None:
+        anchored = self._plan_only()
+        replay = ledger_engine.replay_planned_lifecycle(anchored)
+        self.assertEqual(replay["impact_token"], anchored["planned_impact"]["impact_token"])
+        genesis = copy.deepcopy(anchored)
+        genesis.update(
+            planned_impact=None,
+            planned_invocations={gate: None for gate in ledger_engine.LIVE_SLOTS},
+            cost={gate: None for gate in ledger_engine.LIVE_SLOTS},
+            authorities={"executor": None, "corpus": None, "holdout": None},
+            accepted_evidence={
+                slot: None for slot in ledger_engine.EVIDENCE_SLOTS
+            },
+            coverage={},
+            receipt_head=None,
+            freeze=None,
+            certification=None,
+        )
+        with self.assertRaisesRegex(ValueError, "planned|refresh"):
+            ledger_engine.replay_planned_lifecycle(genesis)
+
+    def test_claims_use_only_capability_derived_authority_and_attempt(self) -> None:
+        self.assertFalse(hasattr(live, "_ClaimRequest"))
+        with tempfile.TemporaryDirectory() as raw:
+            repo, _root = self._repo(raw)
+            gate = self._gate(repo)
+            descriptor = gate.descriptor()
+            self.assertEqual(set(descriptor), {
+                "attempt_id", "authority_sha256", "binding_sha256",
+                "gate", "invocation_sha256",
+            })
+            claimed = live._claim_effect_set(preflight_gate(gate))
+            self.assertEqual(claimed.descriptor(), descriptor)
+
+    def test_partial_or_reused_claim_set_stops_before_another_claim_or_effect(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            repo, root = self._repo(raw)
+            gate = self._gate(repo)
+            preflight = preflight_gate(gate)
+            claims = live._effect_claim_specs(preflight)
+            kind, digest = claims[1]
+            live._claim_file(root, f"{kind}-{digest}")
+            before = sorted(path.name for path in root.iterdir())
+            with self.assertRaises(FileExistsError):
+                live._claim_effect_set(preflight)
+            self.assertEqual(sorted(path.name for path in root.iterdir()), before)
+
+    def test_unclaimed_capability_cannot_create_case_pair_mapping_fixture_or_output(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            repo, _root = self._repo(raw)
+            gate = self._gate(repo)
+            target = repo.parent / "forbidden"
+            with self.assertRaisesRegex(ValueError, "claimed|unit"):
+                live._claim_unit(gate, "unit")
+            with self.assertRaisesRegex(ValueError, "unit"):
+                live._require_unit_capability(gate, "unit")
+            self.assertFalse(target.exists())
+
+    def test_phase_proof_is_exact_one_shot_and_gate_capability_cannot_invoke(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            repo, _root = self._repo(raw)
+            gate = self._gate(repo)
+            claimed = live._claim_effect_set(preflight_gate(gate))
+            unit = live._claim_unit(claimed, "unit")
+            with self.assertRaisesRegex(ValueError, "phase proof"):
+                corpus_engine.invoke_codex(gate)
+            proof = live._issue_phase_proof(unit)
+            completed = subprocess.CompletedProcess([], 0, "", "")
+            with mock.patch.object(corpus_engine, "run", return_value=completed) as runner:
+                corpus_engine.invoke_codex(proof)
+                with self.assertRaisesRegex(ValueError, "spent"):
+                    corpus_engine.invoke_codex(proof)
+            runner.assert_called_once()
+
+    def _assert_effect_order(self, gate_name: str) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            repo, root = self._repo(raw)
+            unit_id = f"{gate_name}-unit"
+            gate = self._gate(repo, gate=gate_name, units=(unit_id,))
+            claimed = live._claim_effect_set(preflight_gate(gate))
+            before = sorted(path.name for path in root.iterdir())
+            unit = live._claim_unit(claimed, unit_id)
+            after = sorted(path.name for path in root.iterdir())
+            self.assertGreater(len(after), len(before))
+            self.assertTrue(any(name.startswith("unit-") for name in after))
+            live._require_unit_capability(unit, unit_id)
+            effect = repo.parent / f"{gate_name}-effect"
+            effect.mkdir()
+            self.assertTrue(effect.is_dir())
+
+    def test_executor_effect_order_in_fresh_temp_repo(self) -> None:
+        self._assert_effect_order("executor")
+
+    def test_corpus_effect_order_in_fresh_temp_repo(self) -> None:
+        self._assert_effect_order("corpus")
+
+    def test_holdout_effect_order_in_fresh_temp_repo(self) -> None:
+        self._assert_effect_order("holdout")
+
+    def test_semantic_projection_rejects_unknown_top_level_result_fields(self) -> None:
+        result = {
+            "decision": "continue",
+            "qualifies": False,
+            "execplan_condition": "not_required",
+            "protocol_may_product_write": False,
+            "protocol_review_mode": "none",
+            "protocol_may_complete": False,
+            "finding_classifications": [],
+            "blocker_classifications": [],
+            "open_gates": [],
+            "evidence": [],
+            "reason": "bounded",
+            "recovery_state": None,
+        }
+        self.assertEqual(corpus_engine.validate_output_result(result), result)
+        with self.assertRaisesRegex(ValueError, "top-level"):
+            corpus_engine.validate_output_result({**result, "extra": True})
+
+    def test_offline_summary_requires_exact_gate_evidence_generation6(self) -> None:
+        lifecycle = self._lifecycle(certified=False)
+        offline = lifecycle["accepted_evidence"]["receipt"]
+        ledger_engine.validate_evidence_record(
+            offline,
+            lifecycle["snapshot"],
+            lifecycle["planned_impact"],
+            lifecycle["planned_invocations"],
+            lifecycle["authorities"],
+        )
+        invalid = copy.deepcopy(offline)
+        invalid["content_sha256"] = "f" * 64
+        with self.assertRaisesRegex(ValueError, "receipt|evidence"):
+            ledger_engine.validate_evidence_record(
+                invalid,
+                lifecycle["snapshot"],
+                lifecycle["planned_impact"],
+                lifecycle["planned_invocations"],
+                lifecycle["authorities"],
+            )
+
+    def test_corpus_summary_accepts_only_the_exact_authorized_subset_generation6(self) -> None:
+        lifecycle = self._lifecycle(certified=False)
+        corpus = lifecycle["accepted_evidence"]["corpus"]
+        ledger_engine.validate_evidence_record(
+            corpus,
+            lifecycle["snapshot"],
+            lifecycle["planned_impact"],
+            lifecycle["planned_invocations"],
+            lifecycle["authorities"],
+        )
+        invalid = copy.deepcopy(corpus)
+        invalid["units"] = invalid["units"][:-1]
+        with self.assertRaisesRegex(ValueError, "scope|units|receipt"):
+            ledger_engine.validate_evidence_record(
+                invalid,
+                lifecycle["snapshot"],
+                lifecycle["planned_impact"],
+                lifecycle["planned_invocations"],
+                lifecycle["authorities"],
+            )
+
+    def test_coverage_is_derived_exactly_once_without_prior_or_waiver(self) -> None:
+        lifecycle = self._lifecycle(certified=False)
+        self.assertEqual(
+            ledger_engine.derive_coverage(
+                lifecycle["snapshot"], lifecycle["accepted_evidence"]
+            ),
+            lifecycle["coverage"],
+        )
+        with self.assertRaisesRegex(ValueError, "prior|waiv|coverage"):
+            ledger_engine.derive_coverage(
+                lifecycle["snapshot"],
+                lifecycle["accepted_evidence"],
+                prior={"corpus": "waived"},
+            )
+
+    def test_partial_dag_states_and_successor_are_exact(self) -> None:
+        plan_only = self._lifecycle(certified=False)
+        plan_only["authorities"] = {
+            "executor": None,
+            "corpus": None,
+            "holdout": None,
+        }
+        for field in ("planned_invocations", "cost"):
+            plan_only[field]["corpus"] = None
+            plan_only[field]["holdout"] = None
+        plan_only["accepted_evidence"] = {
+            slot: None for slot in ledger_engine.EVIDENCE_SLOTS
+        }
+        plan_only["coverage"] = {}
+        plan_only["receipt_head"] = None
+        plan_only["freeze"] = None
+        validate_ledger(plan_only)
+        successor = copy.deepcopy(plan_only)
+        successor["authorities"]["executor"] = self._lifecycle(
+            certified=False
+        )["authorities"]["executor"]
+        ledger_engine.validate_successor(plan_only, successor)
+        with self.assertRaisesRegex(ValueError, "rollback|immutable|successor"):
+            ledger_engine.validate_successor(successor, plan_only)
+
+    def test_executor_evidence_is_single_calibration_and_later_cost_basis(self) -> None:
+        lifecycle = self._lifecycle(certified=False)
+        self.assertNotIn("calibration_history", lifecycle)
+        executor = lifecycle["accepted_evidence"]["executor"]
+        self.assertEqual(executor["kind"], "executor_calibration")
+        self.assertEqual(
+            lifecycle["cost"]["corpus"]["basis_receipt_sha256"],
+            executor["receipt_sha256"],
+        )
+        invalid = copy.deepcopy(lifecycle)
+        invalid["cost"]["corpus"]["basis"] = "source-derived"
+        invalid["cost"]["corpus"]["cost_sha256"] = canonical_sha256(
+            {
+                key: value
+                for key, value in invalid["cost"]["corpus"].items()
+                if key != "cost_sha256"
+            }
+        )
+        with self.assertRaisesRegex(ValueError, "calibration|basis"):
+            validate_ledger(invalid)
+
+    def test_evidence_slot_kind_coverage_sequence_and_chain_are_exact(self) -> None:
+        lifecycle = self._lifecycle(certified=False)
+        evidence = lifecycle["accepted_evidence"]
+        self.assertEqual(
+            set(evidence),
+            {
+                "executor",
+                "corpus",
+                "holdout",
+                "receipt",
+                "review",
+                "isolated_install",
+            },
+        )
+        invalid = copy.deepcopy(lifecycle)
+        invalid["accepted_evidence"]["corpus"]["kind"] = "review_summary"
+        with self.assertRaisesRegex(ValueError, "kind|slot|evidence"):
+            ledger_engine.validate_evidence_record(
+                invalid["accepted_evidence"]["corpus"],
+                invalid["snapshot"],
+                invalid["planned_impact"],
+                invalid["planned_invocations"],
+                invalid["authorities"],
+                slot="corpus",
+            )
+        duplicate = copy.deepcopy(lifecycle)
+        duplicate["accepted_evidence"]["review"] = copy.deepcopy(
+            duplicate["accepted_evidence"]["receipt"]
+        )
+        with self.assertRaisesRegex(ValueError, "duplicate|sequence|receipt|slot"):
+            ledger_engine.derive_coverage(
+                duplicate["snapshot"], duplicate["accepted_evidence"]
+            )
+
+    def test_git_evidence_binds_commit_path_blob_bytes_content_producer_subject(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            repo = Path(raw) / "repo"
+            repo.mkdir()
+            self._git(repo, "init")
+            self._git(repo, "config", "user.name", "HappyCodex Test")
+            self._git(repo, "config", "user.email", "happycodex@example.invalid")
+            (repo / "source.txt").write_text("source\n", encoding="utf-8")
+            self._git(repo, "add", "source.txt")
+            self._git(repo, "commit", "-m", "source")
+            source_commit = self._git(repo, "rev-parse", "HEAD")
+            producer = {"kind": "corpus", "digest": "a" * 64}
+            subject = {"gate": "corpus", "digest": "b" * 64}
+            summary = {
+                "schema_version": 1,
+                "producer": producer,
+                "subject": subject,
+            }
+            content = (
+                json.dumps(summary, sort_keys=True, separators=(",", ":")) + "\n"
+            ).encode()
+            digest = hashlib.sha256(content).hexdigest()
+            relative = f"evaluation/results/evidence/{digest}.json"
+            path = repo / relative
+            path.parent.mkdir(parents=True)
+            path.write_bytes(content)
+            self._git(repo, "add", relative)
+            self._git(repo, "commit", "-m", "evidence")
+            evidence_commit = self._git(repo, "rev-parse", "HEAD")
+            blob = self._git(repo, "rev-parse", f"HEAD:{relative}")
+            verified = ledger_engine.verify_evidence_object(
+                repo,
+                source_commit=source_commit,
+                evidence_commit=evidence_commit,
+                path=relative,
+                blob=blob,
+                content_sha256=digest,
+                producer=producer,
+                subject=subject,
+            )
+            self.assertEqual(verified, summary)
+            with self.assertRaisesRegex(ValueError, "blob|content|evidence"):
+                ledger_engine.verify_evidence_object(
+                    repo,
+                    source_commit=source_commit,
+                    evidence_commit=evidence_commit,
+                    path=relative,
+                    blob="f" * 40,
+                    content_sha256=digest,
+                    producer=producer,
+                    subject=subject,
+                )
+
+    def test_recursive_output_schema_rejects_nested_drift(self) -> None:
+        result = {
+            "decision": "continue",
+            "qualifies": False,
+            "execplan_condition": "not_required",
+            "protocol_may_product_write": False,
+            "protocol_review_mode": "none",
+            "protocol_may_complete": False,
+            "finding_classifications": [
+                {
+                    "identity": "finding",
+                    "domain": "other",
+                    "state": "unknown",
+                    "anchors": ["AGENTS.md"],
+                }
+            ],
+            "blocker_classifications": [],
+            "open_gates": [],
+            "evidence": ["bounded"],
+            "reason": "bounded",
+            "recovery_state": None,
+        }
+        self.assertEqual(corpus_engine.validate_output_result(result), result)
+        malformed = copy.deepcopy(result)
+        malformed["finding_classifications"][0]["anchors"] = [7]
+        with self.assertRaisesRegex(ValueError, "schema|anchors|result"):
+            corpus_engine.validate_output_result(malformed)
+        malformed = copy.deepcopy(result)
+        malformed["open_gates"] = ["unknown-gate"]
+        with self.assertRaisesRegex(ValueError, "schema|gate|result"):
+            corpus_engine.validate_output_result(malformed)
+
+    def test_runtime_replays_action_permission_claim_and_persisted_authority(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            repo, _root = self._repo(raw)
+            gate = self._gate(repo)
+            descriptor = gate.descriptor()
+            self.assertEqual(
+                descriptor["authority_sha256"],
+                gate._plan["authority_sha256"],
+            )
+            self.assertEqual(
+                gate._binding["permission_digest"],
+                live._permission_digest(gate._report, gate._authority, gate._plan),
+            )
+            self.assertEqual(
+                gate._binding["claim_digest"],
+                live._claim_digest(gate._plan),
+            )
+
+    def test_preflight_mismatch_writes_zero_claim_files(self) -> None:
+        from evaluation.holdout import engine as holdout_engine
+
+        with tempfile.TemporaryDirectory() as raw:
+            repo, root = self._repo(raw)
+            gate = self._gate(repo, gate="holdout", units=("wrong-pair",))
+            output = Path(gate._plan["output"])
+            before = sorted(path.name for path in root.iterdir())
+            with mock.patch.object(
+                holdout_engine, "resolve_output", return_value=output
+            ), self.assertRaisesRegex(ValueError, "plan|invocation|units"):
+                holdout_engine.run_holdouts(
+                    candidate=repo,
+                    public=repo.parent / "public",
+                    output=output,
+                    model="gpt-5.6-sol",
+                    effort="high",
+                    timeout=300,
+                    authorization=gate,
+                )
+            self.assertEqual(sorted(path.name for path in root.iterdir()), before)
+
+    def test_template_expansion_and_phase_proof_are_thread_one_shot(self) -> None:
+        parameters = inspect.signature(live._issue_phase_proof).parameters
+        self.assertNotIn("argv", parameters)
+        self.assertNotIn("cwd", parameters)
+        self.assertNotIn("env", parameters)
+        self.assertNotIn("timeout", parameters)
+        self.assertTrue(hasattr(live, "_SPENT_PHASE_LOCK"))
+
+    def test_holdout_pending_and_evidence_follow_adaptive_frontier(self) -> None:
+        from evaluation.holdout import engine as holdout_engine
+
+        pairs = ["pair-1", "pair-2", "pair-3"]
+        self.assertEqual(holdout_engine.adaptive_frontier(pairs, []), ["pair-1"])
+        self.assertEqual(
+            holdout_engine.adaptive_frontier(pairs, ["equal"]), ["pair-2"]
+        )
+        self.assertEqual(
+            holdout_engine.adaptive_frontier(pairs, ["better", "equal"]),
+            ["pair-3"],
+        )
+        self.assertEqual(
+            holdout_engine.adaptive_frontier(pairs, ["equal", "equal"]), []
+        )
+        self.assertEqual(
+            holdout_engine.adaptive_frontier(pairs, ["regression"]), []
+        )
+
+    def test_output_creation_rejects_symlink_swap(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            victim = root / "victim"
+            victim.mkdir()
+            output = root / "output"
+            corpus_engine.resolve_output_path(output, plugin=root / "plugin")
+            output.symlink_to(victim, target_is_directory=True)
+            with self.assertRaisesRegex(ValueError, "symlink|output|changed"):
+                corpus_engine.create_output_root(output)
+            self.assertEqual(list(victim.iterdir()), [])
+
+    def test_populated_replay_requires_repo(self) -> None:
+        lifecycle = self._lifecycle(certified=False)
+        with self.assertRaisesRegex(ValueError, "repository|repo"):
+            ledger_engine.replay_planned_lifecycle(lifecycle)
+
+    def test_release_reanchor_precedes_evidence_without_reuse(self) -> None:
+        lifecycle = self._lifecycle(certified=False)
+        changed = copy.deepcopy(lifecycle)
+        changed["source_anchor"]["source_commit"] = "f" * 40
+        changed["source_anchor"]["source_tree"] = "e" * 40
+        with self.assertRaisesRegex(ValueError, "reanchor|evidence|reset|successor"):
+            ledger_engine.validate_successor(lifecycle, changed)
+
+    def test_agents_and_evaluation_readme_match_executable_generation6_behavior(
+        self,
+    ) -> None:
+        agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
+        readme = (ROOT / "evaluation" / "README.md").read_text(encoding="utf-8")
+        for text in (agents, readme):
+            self.assertIn("public-0.2", text)
+            self.assertIn("PhaseProof", text)
+            self.assertNotIn("G014 alone may replace", text)
+        self.assertNotIn(
+            "generation-6 live capability is unavailable until Batch3",
+            corpus_engine.run_authorized.__code__.co_consts,
+        )
+
+    def test_structural_contract_is_semantic_and_hash_bound(self) -> None:
+        contract_path = "evaluation/contracts-v6.json"
+        inventory = engine_inventory(ROOT)
+        categories = {item["path"]: item["category"] for item in inventory["entries"]}
+        self.assertEqual(categories[contract_path], "semantic")
+        self.assertEqual(categories["evaluation/core/schema.py"], "harness")
+        self.assertIn(contract_path, CORPUS_SEMANTIC_PATHS)
+        before = engine_paths_sha256(inventory, CORPUS_SEMANTIC_PATHS)
+        with tempfile.TemporaryDirectory() as raw:
+            clone = Path(raw) / "repo"
+            shutil.copytree(ROOT / "evaluation", clone / "evaluation")
+            path = clone / contract_path
+            path.write_text(path.read_text(encoding="utf-8") + "\n", encoding="utf-8")
+            changed = engine_inventory(clone)
+        self.assertNotEqual(
+            inventory["categories"]["semantic"], changed["categories"]["semantic"]
+        )
+        self.assertEqual(
+            inventory["categories"]["harness"], changed["categories"]["harness"]
+        )
+        self.assertNotEqual(before, engine_paths_sha256(changed, CORPUS_SEMANTIC_PATHS))
+
+    def test_structural_schema_validates_invocation_plan_and_snapshot_parity(
+        self,
+    ) -> None:
+        from evaluation.core.schema import load_contracts, validate_named
+
+        contracts = load_contracts(ROOT / "evaluation" / "contracts-v6.json")
+        ledger = self._lifecycle(certified=False)
+        profile = invocation_profile(
+            model="gpt-5.6-sol", effort="high", timeout_seconds=300, arm="candidate"
+        )
+        for name, value in (
+            ("invocation_profile", profile),
+            ("gate_plan", ledger["planned_invocations"]["executor"]),
+            ("snapshot", ledger["snapshot"]),
+            ("planned_impact", ledger["planned_impact"]),
+            ("source_anchor", ledger["source_anchor"]),
+        ):
+            with self.subTest(name=name):
+                self.assertEqual(validate_named(contracts, name, value), value)
+
+    def test_structural_schema_validates_evidence_and_ledger_parity(self) -> None:
+        from evaluation.core.schema import load_contracts, validate_named
+
+        contracts = load_contracts(ROOT / "evaluation" / "contracts-v6.json")
+        ledger = self._lifecycle(certified=False)
+        for record in ledger["accepted_evidence"].values():
+            self.assertEqual(
+                validate_named(contracts, "evidence_record", record), record
+            )
+        self.assertEqual(validate_named(contracts, "ledger", ledger), ledger)
+
+    def test_ledger_recursively_rejects_nested_named_and_slot_record_drift(
+        self,
+    ) -> None:
+        cases = (
+            ("source", ("source_anchor", "source_commit"), "bad", "schema", False),
+            (
+                "impact",
+                ("planned_impact", "initial_scope", "adaptive_policy_sha256"),
+                "bad",
+                "planned impact",
+                False,
+            ),
+            (
+                "plan",
+                ("planned_invocations", "executor", "profile", "timeout_ms"),
+                "bad",
+                "persisted gate plan",
+                False,
+            ),
+            (
+                "cost",
+                ("cost", "executor", "model_calls", "min"),
+                "bad",
+                "cost basis",
+                False,
+            ),
+            (
+                "evidence",
+                ("accepted_evidence", "executor", "producer", "schema_version"),
+                "bad",
+                "evidence",
+                True,
+            ),
+        )
+        for label, path, value, error, populated in cases:
+            invalid = self._lifecycle(certified=False) if populated else self._plan_only()
+            cursor = invalid
+            for part in path[:-1]:
+                cursor = cursor[part]
+            cursor[path[-1]] = value
+            with self.subTest(label=label), self.assertRaisesRegex(ValueError, error):
+                validate_ledger(invalid)
+
+    def test_structural_schema_leaves_cross_field_relations_in_python(self) -> None:
+        from evaluation.core.identity import validate_invocation_profile
+        from evaluation.core.impact import validate_snapshot
+        from evaluation.core.schema import load_contracts, validate_named
+
+        contracts = load_contracts(ROOT / "evaluation" / "contracts-v6.json")
+        profile = invocation_profile(
+            model="gpt-5.6-sol", effort="high", timeout_seconds=300, arm="candidate"
+        )
+        invalid_profile = copy.deepcopy(profile)
+        invalid_profile["tools"]["event_item_types"] = []
+        validate_named(contracts, "invocation_profile", invalid_profile)
+        with self.assertRaisesRegex(ValueError, "invocation tool profile"):
+            validate_invocation_profile(invalid_profile)
+
+        snapshot = build_snapshot(ROOT)
+        invalid_snapshot = copy.deepcopy(snapshot)
+        invalid_snapshot["public_baseline"]["source_commit"] = "f" * 40
+        validate_named(contracts, "snapshot", invalid_snapshot)
+        with self.assertRaisesRegex(ValueError, "public-0.2 baseline"):
+            validate_snapshot(invalid_snapshot)
 
 
 if __name__ == "__main__":

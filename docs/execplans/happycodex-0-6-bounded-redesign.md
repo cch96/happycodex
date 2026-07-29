@@ -9,22 +9,21 @@ Batch 2 at `788c42917bf1e1bcec2515a361ce68b32a25fb46`; G012R at
 `deeb142c15f24f00645301a72b2c7df7f70fb179`, tree
 `1aa2733ef0a5ff6fbdfb9f347ccf65f98c7e7790`. G009, G012, G013, and G013C
 remain rejected. Original G015 and G015R remain rejected/unaccepted. G015D is
-accepted plan-only. G015S completed genuine schema RED and began implementation,
-but is now paused and unaccepted: no Phase B test, source commit, `S2`, anchor,
-coverage, or evidence exists. G016 and every live/release gate remain ungranted.
+accepted plan-only. G015T is accepted plan-only at
+`4ec89c50a596aef3acb65ae49f22e9fad2294e55`, tree
+`34fca4c0cbc29b59bc172c93a6ed84fbfeec38fe`. G015U is active; G016 and every
+live/release gate remain ungranted.
 
 Restore guard: reconcile plan, source, Executor, controls, checks, candidate, and
 evidence before writing; summaries or copied handles cannot restore authority.
 
-Phase: `Batch 3 readable-schema plan correction`. Plan-only G015T binds the
-fixed Executor/claim and only this ExecPlan. G015D is accepted; G015S Phase A
-has genuine RED/receipt, while implementation is paused, unaccepted, and
-untested. R1 moved accidentally created main-repo bytes to
+Phase: `Batch 3 readable-schema source continuation`. G015U binds the fixed
+Executor/claim, G015S dirty prestate, and 19-path maximum. G015D/G015T are
+accepted plan-only; G015S RED/receipt is not rerun. R1 moved accidental bytes to
 `/tmp/happycodex-g015s-accidental-contracts-v6-5dca60ce.json` (mode `0600`,
 24,887 bytes, SHA-256 `5dca60ce49b7ec7e6fbb90f02c5ae4f6389adfb17c62aff95c64b41f41b15a5b`)
-and restored main clean. Quarantine is never source, evidence, or input. G015T
-authorizes no source/test/JSON/ledger/mode mutation, tests, evaluator, G015U,
-G016, or later effect. Verify all control state before each authorized effect.
+and restored main clean. Quarantine is never input. G015U authorizes offline
+source/tests/docs, checks, one source commit, and its private receipt only.
 
 ## Operative request and normalized Outcome
 
@@ -492,7 +491,7 @@ duplicate result validator, and malformed nested input rejects before projection
 Replay remains repository-aware and recomputes producer, terminal/oracle/ledger,
 coverage, receipt links, and exact Git evidence bytes.
 
-Future `HC06BR-G-015U-readable-schema-source-continuation` continues the exact
+`HC06BR-G-015U-readable-schema-source-continuation` continues the exact
 paused G015S dirty state and creates offline repaired `S2`
 and may edit at most these 19 tracked paths:
 
@@ -584,8 +583,8 @@ The three holdout identities remain `authority-production-boundary`,
 cardinality, and behavior are preservation claims; schema bytes may change only
 to generation 6.
 
-G009 owns the accepted minimal pre-anchor genesis. G014, G015C, and G015D are
-accepted; future G015U owns the 19-path maximum; G016
+G009 owns the accepted minimal pre-anchor genesis. G014, G015C, G015D, and
+G015T are accepted; active G015U owns the 19-path maximum; G016
 owns only this plan and the excluded ledger anchor. No manifest/role edit
 authorizes installed bytes, personal marketplace/cache, external config, or a
 helper.
@@ -781,10 +780,10 @@ formatting, or waive any ceiling. New tracked source is `0644` before commit.
 
 ## Future authority and release gates
 
-All steps are future, separate, and unauthorized:
+G015U produces the candidate offline-GREEN `S2`. All following steps are future,
+separate, and unauthorized:
 
-1. G015U produces offline-GREEN `S2`; G016 records its construction anchor with
-   an otherwise empty ledger.
+1. G016 records the `S2` construction anchor with an otherwise empty ledger.
 2. A separate release-source grant runs the official cachebuster helper exactly
    once in an isolated temporary home, preserves active 0.4 state, and commits
    actual release bytes as `S_release`.
@@ -894,9 +893,13 @@ zero legacy hits, and diff/claim/hash checks. Production Python was 8,667 lines.
 
 G015C is accepted plan-only at `deeb142c15f24f00645301a72b2c7df7f70fb179`,
 tree `1aa2733ef0a5ff6fbdfb9f347ccf65f98c7e7790`; production is unchanged.
-G015S is paused/unaccepted after genuine RED and untested implementation. G015U
-must close fresh focused/full GREEN under 6,840 without redoing RED. G016 and
-later gates are ungranted. Order remains
+G015T is accepted plan-only at `4ec89c50a596aef3acb65ae49f22e9fad2294e55`,
+tree `34fca4c0cbc29b59bc172c93a6ed84fbfeec38fe`. G015U retained RED without
+rerun. Results are 13/13 focused, 34/34 Batch3, and 254/254 full; production is
+6,820 lines and the contract is 544 lines/15 schemas/204 properties. Verify is
+refresh-required/noncertified; impact exits 2; dry-runs exit 0 with unchanged
+file/mode/status manifests. This record belongs to candidate `S2`, pending Root;
+G016 remains ungranted. Order remains
 `S2 -> separate cachebuster -> S_release -> empty-ledger reanchor -> separate
 impact/Executor/corpus/holdout/review/install/publication/activation gates`;
 nothing creates later evidence, plan, or authority early.

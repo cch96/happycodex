@@ -518,7 +518,11 @@ class HappyCodexEvaluationTests(unittest.TestCase):
         )
         for label, mutator in invalid_states:
             with self.subTest(label=label):
-                with self.assertRaisesRegex(ValueError, "invalid Recovery Manifest state"):
+                with self.assertRaisesRegex(
+                    ValueError,
+                    "invalid Recovery Manifest state|"
+                    "schema (type or enum|string|array) mismatch",
+                ):
                     validate_recovery_manifest(
                         resigned(mutator),
                         case_id=f"pre-freeze-compaction-{label}-tamper",
@@ -1646,14 +1650,18 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                 runner.copy_plugin_package(
                     public_source,
                     root / "public-rejects-candidate-script",
-                    arm="public-0.4.0",
+                    arm="public-0.2",
                 )
             helper = public_source / "skills/happycodex/scripts/resource_claim.py"
             helper.unlink()
             helper.parent.rmdir()
+            references = public_source / "skills/happycodex/references"
+            (references / "execplan.md").unlink()
+            (references / "external-review.md").write_text("public review\n")
+            (references / "task-packets.md").write_text("public tasks\n")
             public_package = root / "public-package"
             runner.copy_plugin_package(
-                public_source, public_package, arm="public-0.4.0"
+                public_source, public_package, arm="public-0.2"
             )
 
             legacy_source = root / "legacy-public-source"
@@ -1666,9 +1674,8 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                 runner.copy_plugin_package(
                     legacy_source,
                     root / "public-rejects-legacy-surface",
-                    arm="public-0.4.0",
+                    arm="public-0.2",
                 )
-            references = public_source / "skills/happycodex/references"
             hidden = references / "__pycache__/hidden.pyc"
             hidden.parent.mkdir()
             hidden.write_bytes(b"untracked public runtime input")
@@ -1676,7 +1683,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                 runner.copy_plugin_package(
                     public_source,
                     root / "public-rejects-hidden",
-                    arm="public-0.4.0",
+                    arm="public-0.2",
                 )
 
             manifest = runner.package_identities(public_package)["semantic_sha256"]
@@ -1692,7 +1699,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                     case, **common, arm="candidate"
                 ),
                 runner.semantic_input_sha256_from_package(
-                    case, **common, arm="public-0.4.0"
+                    case, **common, arm="public-0.2"
                 ),
             )
 
@@ -1988,7 +1995,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             self.assertEqual(
                 runner.resolve_output_path(expected, plugin=ROOT), expected
             )
-            alternate_plugin = Path(raw) / "public-0.4.0"
+            alternate_plugin = Path(raw) / "public-0.2"
             alternate_plugin.mkdir()
             with self.assertRaisesRegex(ValueError, "evaluated plugin"):
                 runner.resolve_output_path(
@@ -3617,6 +3624,97 @@ class HappyCodexEvaluationTests(unittest.TestCase):
         payload = json.loads(completed.stdout)
         self.assertEqual(set(payload["cases"]), set(self.cases))
         self.assertEqual(set(payload["coverage"]), runner.REQUIRED_TAGS)
+
+    def test_structural_schema_validates_output_case_and_recovery_parity(self) -> None:
+        from evaluation.core.schema import load_contracts, validate_named
+
+        contracts = load_contracts(ROOT / "evaluation" / "contracts-v6.json")
+        result = {
+            "decision": "continue",
+            "qualifies": True,
+            "execplan_condition": "usable",
+            "protocol_may_product_write": False,
+            "protocol_review_mode": "none",
+            "protocol_may_complete": False,
+            "finding_classifications": [],
+            "blocker_classifications": [],
+            "open_gates": [],
+            "evidence": [],
+            "reason": "structurally valid",
+            "recovery_state": None,
+        }
+        self.assertEqual(validate_named(contracts, "output_result", result), result)
+        case = json.loads(
+            (ROOT / "evaluation" / "cases" / "pre-freeze-compaction.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(validate_named(contracts, "case", case), case)
+        content = case["fixture"]["native_compaction_resume"][
+            "post_compaction_transition"
+        ]["files"][runner.RECOVERY_MANIFEST_PATH]
+        manifest = json.loads(content)
+        self.assertEqual(
+            validate_named(contracts, "recovery_manifest", manifest), manifest
+        )
+
+    def test_structural_schema_leaves_result_and_recovery_relations_in_python(
+        self,
+    ) -> None:
+        from evaluation.core.schema import load_contracts, validate_named
+
+        contracts = load_contracts(ROOT / "evaluation" / "contracts-v6.json")
+        result = {
+            "decision": "continue",
+            "qualifies": True,
+            "execplan_condition": "usable",
+            "protocol_may_product_write": False,
+            "protocol_review_mode": "none",
+            "protocol_may_complete": False,
+            "finding_classifications": [{
+                "identity": "RESOLVED",
+                "domain": "other",
+                "state": "resolved",
+                "anchors": [],
+            }],
+            "blocker_classifications": [{
+                "identity": "RESOLVED",
+                "class": "production_condition",
+                "blocking": True,
+                "reason": "cross-field contradiction",
+            }],
+            "open_gates": [],
+            "evidence": [],
+            "reason": "structurally valid but semantically inconsistent",
+            "recovery_state": None,
+        }
+        validate_named(contracts, "output_result", result)
+        self.assertTrue(semantic_result_failures(result))
+
+        recovery = {
+            "baseline_revision": "1" * 40,
+            "baseline_tree": "2" * 40,
+            "current_revision": "3" * 40,
+            "current_tree": "4" * 40,
+            "writer": "Root",
+            "milestone_phase": runner.CONVERGENCE_PHASES[0],
+            "next_action": runner.RECOVERY_ACTIONS[0],
+            "pending_gates": [],
+            "tests": {
+                "passed": 1,
+                "failed": 0,
+                "accepted_failures": 0,
+                "marker_ids": [],
+            },
+            "worktree": "clean",
+            "live_agents": [],
+            "marker_ids": [],
+        }
+        result["finding_classifications"] = []
+        result["blocker_classifications"] = []
+        result["recovery_state"] = recovery
+        validate_named(contracts, "output_result", result)
+        self.assertTrue(semantic_result_failures(result))
 
 
 if __name__ == "__main__":

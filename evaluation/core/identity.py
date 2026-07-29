@@ -17,6 +17,7 @@ ENGINE_CATEGORIES = ("semantic", "harness", "artifact")
 CORPUS_SEMANTIC_PATHS = frozenset(
     {
         "evaluation/corpus/engine.py",
+        "evaluation/contracts-v6.json",
         "evaluation/semantic/__init__.py",
         "evaluation/semantic/types.py",
         "evaluation/semantic/canonical.py",
@@ -33,6 +34,7 @@ MODULE_CATEGORIES = {
     "evaluation/core/impact.py": "harness",
     "evaluation/core/ledger.py": "harness",
     "evaluation/core/receipt.py": "artifact",
+    "evaluation/core/schema.py": "harness",
     "evaluation/corpus/__init__.py": "harness",
     "evaluation/corpus/engine.py": "semantic",
     "evaluation/holdout/__init__.py": "harness",
@@ -45,31 +47,12 @@ MODULE_CATEGORIES = {
     "evaluation/semantic/parse.py": "semantic",
     "evaluation/semantic/types.py": "semantic",
 }
-INVOCATION_PROFILE_FIELDS = frozenset(
-    {
-        "provider",
-        "binary",
-        "model",
-        "effort",
-        "timeout_seconds",
-        "arm",
-        "tools",
-        "network",
-        "mcp",
-        "hooks",
-        "session",
-    }
-)
-_PROFILE_BINARY_FIELDS = frozenset({"command", "identity_sha256"})
-_PROFILE_TOOLS_FIELDS = frozenset({"allowed", "event_item_types"})
-_PROFILE_SESSION_FIELDS = frozenset({"mode", "history"})
 _TOOL_EVENT_TYPES = {
     "collaboration": "collab_tool_call",
     "command_execution": "command_execution",
     "todo": "todo_list",
     "web_search": "web_search",
 }
-_SESSION_MODES = frozenset({"fresh", "fresh-with-bounded-resume"})
 PERMISSION_PROFILE = "happycodex-evaluator"
 PROTOCOL_REVIEW_MODES = ("none", "focused_hardening", "exact_final")
 CONVERGENCE_PHASES = (
@@ -90,6 +73,20 @@ PERMISSION_VALUES = {
     "protocol_may_complete": frozenset({True, False}),
 }
 PERMISSION_FIELDS = frozenset(PERMISSION_VALUES)
+
+
+def permission_assertions_invalid(expected: dict[str, Any]) -> bool:
+    for field, allowed in PERMISSION_VALUES.items():
+        raw = expected.get(field)
+        values = raw if isinstance(raw, list) else [raw]
+        expected_type = type(next(iter(allowed)))
+        if (
+            not values
+            or len({(type(item), item) for item in values}) != len(values)
+            or any(type(item) is not expected_type or item not in allowed for item in values)
+        ):
+            return True
+    return False
 RECOVERY_ACTIONS = (
     "ask_user",
     "create_execplan",
@@ -158,12 +155,14 @@ BLOCKER_CLASSES = frozenset(
         "exhaustive_claim",
     }
 )
-PUBLIC_040_PACKAGE_ARTIFACT_SHA256 = (
-    "ace7f39fd61341e5d4b1bc3b268fd89a1562acaaacb80d7456c2bb97fb9c497e"
+PUBLIC_02_ARM = "public-0.2"
+PUBLIC_02_SOURCE_COMMIT = "3b9c11fac1f97df75263e0bfc6421c575e04e8b2"
+PUBLIC_02_SOURCE_TREE = "4708ebc12f74d4482764796fdd00f1fa7194a13a"
+PUBLIC_02_PACKAGE_ARTIFACT_SHA256 = (
+    "77a0b2b8f7f6280d6ed32458fc61ca110f7138b5b6c17ad55d333a023dfa8c89"
 )
-PUBLIC_040_PACKAGE_SEMANTIC_SHA256 = (
-    "c5030e99dd7cd1681148c069775671c5720bb8dd366930ff90f61cbc54cdfc05"
-)
+PUBLIC_02_PACKAGE_SEMANTIC_SHA256 = "fb3cb419795a6edcb284695769b5487b1f23ae46286c5fceba8042fcb41f9ce4"
+PUBLIC_02_SKILL_ENTRIES = ("SKILL.md", "agents/openai.yaml", "references/external-review.md", "references/task-packets.md")
 NATIVE_TOOL_NAMES = ("apply_patch", "codex", "codex-linux-sandbox", "rg")
 FILESYSTEM_ISOLATION_POLICY = {
     "mechanism": "codex-permission-profile",
@@ -266,52 +265,28 @@ def validate_invocation_profile(
     *,
     require_bound_binary: bool = False,
 ) -> dict[str, Any]:
-    if not isinstance(value, dict) or set(value) != INVOCATION_PROFILE_FIELDS:
-        raise IdentityError("invalid invocation profile envelope")
+    from evaluation.core.schema import CONTRACTS, validate_named
+    validate_named(CONTRACTS, "invocation_profile", value)
     binary, tools, session = value["binary"], value["tools"], value["session"]
-    if (
-        not isinstance(binary, dict)
-        or set(binary) != _PROFILE_BINARY_FIELDS
-        or binary["command"] != "codex"
-    ):
-        raise IdentityError("invalid invocation binary profile")
     digest = binary["identity_sha256"]
-    if digest is not None and (
-        type(digest) is not str or re.fullmatch(r"[0-9a-f]{64}", digest) is None
-    ):
-        raise IdentityError("invalid invocation binary identity")
     if require_bound_binary and digest is None:
         raise IdentityError("live invocation binary identity is unbound")
-    if not isinstance(tools, dict) or set(tools) != _PROFILE_TOOLS_FIELDS:
-        raise IdentityError("invalid invocation tool profile")
     allowed = tools["allowed"]
     if (
-        not isinstance(allowed, list)
-        or allowed != sorted(set(allowed))
+        allowed != sorted(set(allowed))
         or any(item not in _TOOL_EVENT_TYPES for item in allowed)
         or tools["event_item_types"]
         != sorted(_TOOL_EVENT_TYPES[item] for item in allowed)
     ):
         raise IdentityError("invalid invocation tool profile")
     if (
-        value["network"] not in {"disabled", "enabled"}
-        or value["mcp"] not in {"disabled", "enabled"}
-        or value["hooks"] not in {"disabled", "enabled"}
-        or ("web_search" in allowed and value["network"] != "enabled")
+        "web_search" in allowed and value["network"] != "enabled"
     ):
         raise IdentityError("invalid invocation external access profile")
     if (
-        not isinstance(session, dict)
-        or set(session) != _PROFILE_SESSION_FIELDS
-        or session["mode"] not in _SESSION_MODES
-        or session["history"] != "isolated"
+        session["history"] != "isolated"
     ):
         raise IdentityError("invalid invocation session profile")
-    if any(
-        type(value[field]) is not str or not value[field]
-        for field in ("provider", "model", "effort", "arm")
-    ) or type(value["timeout_seconds"]) is not int or value["timeout_seconds"] <= 0:
-        raise IdentityError("invalid invocation scalar profile")
     return value
 
 
@@ -522,7 +497,7 @@ def toolchain_identity() -> dict[str, dict[str, Any]]:
 
 
 def _schema_paths(root: Path) -> dict[str, str]:
-    result = {"evaluation/executor-role.json": "artifact"}
+    result = {"evaluation/executor-role.json": "artifact", "evaluation/contracts-v6.json": "semantic"}
     for path in sorted((root / "evaluation" / "cases").glob("*.json")):
         result[path.relative_to(root).as_posix()] = "semantic"
     holdout_root = root / "evaluation" / "holdouts"

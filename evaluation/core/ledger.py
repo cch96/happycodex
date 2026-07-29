@@ -8,7 +8,6 @@ from typing import Any
 
 from evaluation.core.identity import (
     BLOCKER_CLASSES,
-    CONVERGENCE_PHASES,
     PERMISSION_FIELDS,
     PERMISSION_VALUES,
     RECOVERY_ACTIONS,
@@ -16,161 +15,42 @@ from evaluation.core.identity import (
     RECOVERY_PENDING_GATES,
     RECOVERY_STATE_FIELDS,
     canonical_sha256,
+    permission_assertions_invalid,
     sha256_bytes,
     source_archive_identity,
 )
-from evaluation.core.impact import validate_snapshot
+from evaluation.core.impact import validate_gate_plan, validate_snapshot, validate_successor
+from evaluation.core.schema import CONTRACTS, validate_named
+from evaluation.holdout.compare import adaptive_next
 
 
-LEDGER_FIELDS = {
-    "schema_version",
-    "engine_generation",
-    "state",
-    "snapshot",
-    "source_anchor",
-    "pending",
-    "authorities",
-    "calibration_history",
-    "accepted_evidence",
-    "receipt_head",
-    "certification",
-}
-PENDING_FIELDS = {"gates", "corpus_cases", "holdout_pairs"}
-PENDING_GATES = (
-    "corpus",
-    "executor_pilot",
-    "holdout",
-    "isolated_install",
-    "receipt",
-    "review",
+LIVE_SLOTS = ("executor", "corpus", "holdout")
+EVIDENCE_SLOTS = (
+    "executor", "corpus", "holdout", "receipt", "review", "isolated_install",
 )
-AUTHORITY_SLOTS = {"executor", "corpus", "holdout"}
-SOURCE_ANCHOR_FIELDS = {
-    "source_commit",
-    "source_tree",
-    "package_artifact_sha256",
-    "package_semantic_sha256",
-    "engine_manifest_sha256",
-    "executor_role_sha256",
+PENDING_GATES = (
+    "corpus", "executor_pilot", "holdout", "isolated_install", "receipt", "review",
+)
+LEDGER_FIELDS = frozenset(CONTRACTS["schemas"]["ledger"]["required"])
+EVIDENCE_KINDS = {
+    "executor": "executor_calibration",
+    "corpus": "corpus_summary",
+    "holdout": "holdout_summary",
+    "receipt": "offline_summary",
+    "review": "review_summary",
+    "isolated_install": "offline_summary",
+}
+COST_FIELDS = {
+    "schema_version", "gate", "basis", "basis_sha256", "basis_receipt_sha256",
+    "model_calls", "uncached_input_tokens", "output_tokens", "combined_tokens",
+    "wall_milliseconds", "cost_sha256",
+}
+AUTHORITY_FIELDS = {
+    "schema_version", "gate", "phase", "impact_token", "invocation_sha256",
+    "action", "request_sha256", "affirmative_sha256", "host", "authority_sha256",
 }
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
-_GIT_OID = re.compile(r"^[0-9a-f]{40}$")
 RECOVERY_MANIFEST_PATH = "docs/execplans/recovery-manifest.json"
-
-
-def _object_schema(
-    properties: dict[str, Any], *, nullable: bool = False
-) -> dict[str, Any]:
-    return {
-        "type": ["object", "null"] if nullable else "object",
-        "additionalProperties": False,
-        "properties": properties,
-        "required": sorted(properties),
-    }
-
-
-def _array_schema(items: dict[str, Any]) -> dict[str, Any]:
-    return {"type": "array", "items": items}
-
-
-OUTPUT_SCHEMA = _object_schema(
-    {
-        "decision": {
-            "type": "string",
-            "enum": ["continue", "stop_for_user", "complete", "incomplete"],
-        },
-        "qualifies": {"type": "boolean"},
-        "execplan_condition": {
-            "type": "string",
-            "enum": ["not_required", "missing", "usable", "needs_amendment"],
-        },
-        "protocol_may_product_write": {"type": "boolean"},
-        "protocol_review_mode": {
-            "type": "string",
-            "enum": ["none", "focused_hardening", "exact_final"],
-        },
-        "protocol_may_complete": {"type": "boolean"},
-        "finding_classifications": _array_schema(
-            _object_schema(
-                {
-                    "identity": {"type": "string", "minLength": 1},
-                    "domain": {
-                        "type": "string",
-                        "enum": ["secret", "baseline_failure", "receipt", "other"],
-                    },
-                    "state": {
-                        "type": "string",
-                        "enum": [
-                            "baseline_unchanged",
-                            "resolved",
-                            "candidate_new",
-                            "unknown",
-                        ],
-                    },
-                    "anchors": _array_schema({"type": "string"}),
-                }
-            )
-        ),
-        "blocker_classifications": _array_schema(
-            _object_schema(
-                {
-                    "identity": {"type": "string", "minLength": 1},
-                    "class": {"type": "string", "enum": sorted(BLOCKER_CLASSES)},
-                    "blocking": {"type": "boolean"},
-                    "reason": {"type": "string"},
-                }
-            )
-        ),
-        "open_gates": _array_schema(
-            {"type": "string", "enum": list(RECOVERY_PENDING_GATES)}
-        ),
-        "evidence": _array_schema({"type": "string"}),
-        "reason": {"type": "string"},
-        "recovery_state": _object_schema(
-            {
-                "baseline_revision": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
-                "baseline_tree": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
-                "current_revision": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
-                "current_tree": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
-                "writer": {"type": "string", "enum": ["Root", "unknown"]},
-                "milestone_phase": {
-                    "type": "string",
-                    "enum": list(CONVERGENCE_PHASES),
-                },
-                "next_action": {"type": "string", "enum": list(RECOVERY_ACTIONS)},
-                "pending_gates": _array_schema(
-                    {"type": "string", "enum": list(RECOVERY_PENDING_GATES)}
-                ),
-                "tests": _object_schema(
-                    {
-                        "passed": {"type": "integer", "minimum": 0},
-                        "failed": {"type": "integer", "minimum": 0},
-                        "accepted_failures": {"type": "integer", "minimum": 0},
-                        "marker_ids": _array_schema({"type": "string"}),
-                    }
-                ),
-                "worktree": {
-                    "type": "string",
-                    "enum": ["clean", "dirty", "unknown"],
-                },
-                "live_agents": _array_schema(
-                    _object_schema(
-                        {
-                            "id": {"type": "string"},
-                            "status": {
-                                "type": "string",
-                                "enum": ["pending", "terminal", "missing"],
-                            },
-                            "receipt_reproduced": {"type": "boolean"},
-                        }
-                    )
-                ),
-                "marker_ids": _array_schema({"type": "string"}),
-            },
-            nullable=True,
-        ),
-    }
-)
 
 
 def _unique_strings(value: Any, label: str) -> list[str]:
@@ -181,20 +61,6 @@ def _unique_strings(value: Any, label: str) -> list[str]:
     ):
         raise ValueError(f"invalid {label}")
     return value
-
-
-def _permission_failures(expected: dict[str, Any]) -> bool:
-    for field, allowed in PERMISSION_VALUES.items():
-        raw = expected.get(field)
-        values = raw if isinstance(raw, list) else [raw]
-        expected_type = type(next(iter(allowed)))
-        if (
-            not values
-            or len({(type(item), item) for item in values}) != len(values)
-            or any(type(item) is not expected_type or item not in allowed for item in values)
-        ):
-            return True
-    return False
 
 
 def _validate_recovery_manifest(native: dict[str, Any], case_id: str) -> None:
@@ -212,121 +78,43 @@ def _validate_recovery_manifest(native: dict[str, Any], case_id: str) -> None:
     if type(content) is not str or sha256_bytes(content.encode()) != digest:
         raise ValueError(f"Recovery Manifest digest mismatch: {case_id}")
     manifest = json.loads(content)
-    fields = {
-        "schema_version",
-        "repositories",
-        "resource_claim",
-        "selected_checkpoint",
-        "convergence",
-        "writer",
-        "tests",
-        "agents",
-        "gates",
-    }
-    if not isinstance(manifest, dict) or set(manifest) != fields:
-        raise ValueError(f"invalid Recovery Manifest: {case_id}")
+    validate_named(CONTRACTS, "recovery_manifest", manifest)
     repositories = manifest["repositories"]
     claim = manifest["resource_claim"]
-    resources = claim.get("resources", []) if isinstance(claim, dict) else []
+    resources = claim["resources"]
     convergence = manifest["convergence"]
-    families = convergence.get("families", []) if isinstance(convergence, dict) else []
+    families = convergence["families"]
     tests = manifest["tests"]
     selected = manifest["selected_checkpoint"]
     agents = manifest["agents"]
-    if (
-        manifest["schema_version"] != 1
-        or manifest["writer"] != "Root"
-        or not isinstance(repositories, list)
-        or not repositories
-        or any(
-            set(item) != {"namespace", "revision", "tree"}
-            or type(item["namespace"]) is not str
-            or not item["namespace"]
-            or any(
-                type(item[key]) is not str
-                or re.fullmatch(r"[0-9a-f]{40}", item[key]) is None
-                for key in ("revision", "tree")
-            )
-            for item in repositories
-        )
-        or len({item["namespace"] for item in repositories}) != len(repositories)
-        or not isinstance(claim, dict)
-        or set(claim) != {"owner", "owner_token_sha256", "resources"}
-        or claim.get("owner") != "Root"
-        or re.fullmatch(r"[0-9a-f]{64}", claim.get("owner_token_sha256", "")) is None
-        or not isinstance(resources, list)
-        or len(resources) != 5
-        or any(
-            type(item) is not str
-            or re.fullmatch(
-                r"(?:worktree|ref|ledger|output|activation):.+", item
-            ) is None
-            for item in resources
-        )
-        or len(resources) != len(set(resources))
-        or {item.partition(":")[0] for item in resources}
-        != {"worktree", "ref", "ledger", "output", "activation"}
-        or not isinstance(selected, dict)
-        or set(selected) != {"ref", "archive"}
-        or (
+    selected_ok = (
+        (
             (
-                type(selected["ref"]) is not str
-                or re.fullmatch(
-                    r"refs/(?!.*(?:\.\.|//|@\{|\\))[A-Za-z0-9._/-]*"
-                    r"[A-Za-z0-9_-]",
+                type(selected["ref"]) is str
+                and re.fullmatch(
+                    r"refs/(?!.*(?:\.\.|//|@\{|\\))[A-Za-z0-9._/-]*[A-Za-z0-9_-]",
                     selected["ref"],
-                )
-                is None
+                ) is not None
             )
             if selected["archive"] is None
-            else (
-                selected["ref"] is not None
-                or type(selected["archive"]) is not str
-                or re.fullmatch(r"sha256:[0-9a-f]{64}", selected["archive"]) is None
-            )
+            else selected["ref"] is None
+            and type(selected["archive"]) is str
+            and re.fullmatch(r"sha256:[0-9a-f]{64}", selected["archive"]) is not None
         )
-        or not isinstance(convergence, dict)
-        or set(convergence) != {"phase", "families"}
-        or convergence.get("phase") not in CONVERGENCE_PHASES
-        or not isinstance(families, list)
-        or not families
-        or any(
-            not isinstance(item, dict)
-            or set(item) != {"family_id", "status", "repair_batch", "recurrence"}
-            or type(item["family_id"]) is not str
-            or not item["family_id"].strip()
-            or item["status"] not in {"open", "boundary_required", "closed"}
-            or re.fullmatch(r".+/(?:instance|boundary)", item["repair_batch"]) is None
-            or type(item["recurrence"]) is not int
-            or item["recurrence"] < 0
-            for item in families
-        )
+    )
+    if (
+        len({item["namespace"] for item in repositories}) != len(repositories)
+        or {item.partition(":")[0] for item in resources}
+        != {"worktree", "ref", "ledger", "output", "activation"}
+        or not selected_ok
         or len({item["family_id"] for item in families}) != len(families)
-        or not isinstance(tests, dict)
-        or set(tests) != {"passed", "failed", "accepted_failures"}
-        or any(type(tests[field]) is not int or tests[field] < 0 for field in tests)
         or tests["accepted_failures"] > tests["failed"]
-        or not isinstance(agents, list)
-        or any(
-            not isinstance(item, dict)
-            or set(item) != {"id", "status", "receipt_reproduced"}
-            or type(item["id"]) is not str
-            or not item["id"].strip()
-            or item["status"] != "terminal"
-            or item["receipt_reproduced"] is not True
-            for item in agents
-        )
+        or any(item["receipt_reproduced"] is not True for item in agents)
         or len({item["id"] for item in agents}) != len(agents)
         or any(
             (item["recurrence"] == 0 and not item["repair_batch"].endswith("/instance"))
-            or (
-                item["recurrence"] > 0
-                and not item["repair_batch"].endswith("/boundary")
-            )
-            or (
-                item["status"] == "boundary_required"
-                and item["recurrence"] != 1
-            )
+            or (item["recurrence"] > 0 and not item["repair_batch"].endswith("/boundary"))
+            or (item["status"] == "boundary_required" and item["recurrence"] != 1)
             or (
                 item["recurrence"] >= 2
                 and (
@@ -337,26 +125,19 @@ def _validate_recovery_manifest(native: dict[str, Any], case_id: str) -> None:
             )
             for item in families
         )
-        or not _unique_strings(manifest["gates"], "Recovery Manifest gates")
     ):
         raise ValueError(f"invalid Recovery Manifest state: {case_id}")
 
 
 def validate_case_input(case: dict[str, Any], path: Path) -> None:
-    fields = {"schema_version", "id", "covers", "prompt", "fixture", "oracle"}
-    if (
-        not isinstance(case, dict)
-        or set(case) != fields
-        or case["schema_version"] != 1
-        or re.fullmatch(r"[a-z0-9-]+", case["id"]) is None
-        or "$happycodex:happycodex" not in case["prompt"]
-    ):
+    validate_named(CONTRACTS, "case", case)
+    if "$happycodex:happycodex" not in case["prompt"]:
         raise ValueError(f"invalid case envelope: {path}")
     fixture, oracle = case["fixture"], case["oracle"]
     if not fixture.get("commits"):
         raise ValueError(f"case needs a commit: {case['id']}")
     expected = oracle.get("expected", {})
-    if set(expected) != PERMISSION_FIELDS or _permission_failures(expected):
+    if set(expected) != PERMISSION_FIELDS or permission_assertions_invalid(expected):
         raise ValueError(f"invalid permission state: {case['id']}")
     accepted = _unique_strings(
         oracle.get("accepted_baseline_failures", []), "accepted baseline failures"
@@ -462,12 +243,7 @@ def validate_evidence_commit(
 def validate_source_anchor(
     value: Any, *, repo: Path | None = None
 ) -> dict[str, str]:
-    if not isinstance(value, dict) or set(value) != SOURCE_ANCHOR_FIELDS:
-        raise ValueError("invalid source anchor")
-    for field in SOURCE_ANCHOR_FIELDS:
-        pattern = _GIT_OID if field in {"source_commit", "source_tree"} else _SHA256
-        if not isinstance(value[field], str) or pattern.fullmatch(value[field]) is None:
-            raise ValueError(f"invalid source anchor field: {field}")
+    validate_named(CONTRACTS, "source_anchor", value)
     if repo is not None:
         archived = source_archive_identity(repo, value["source_commit"])
         expected = {
@@ -478,65 +254,406 @@ def validate_source_anchor(
             "engine_manifest_sha256": archived["engine_manifest_sha256"],
             "executor_role_sha256": archived["executor_role_sha256"],
         }
-        if value != expected:
+        if any(value[field] != digest for field, digest in expected.items()):
             raise ValueError("source anchor does not match Git archive")
     return value
 
 
-def _validate_pending(pending: Any, snapshot: dict[str, Any]) -> None:
-    if not isinstance(pending, dict) or set(pending) != PENDING_FIELDS:
-        raise ValueError("invalid pending refresh envelope")
-    if pending["gates"] != list(PENDING_GATES):
-        raise ValueError("invalid generation-6 pending gates")
-    expected = {
-        "corpus_cases": sorted(snapshot["corpus"]["cases"]),
-        "holdout_pairs": sorted(snapshot["holdout"]["pairs"]),
+def _sealed(value: Any, field: str) -> bool:
+    if not isinstance(value, dict) or _SHA256.fullmatch(str(value.get(field))) is None:
+        return False
+    payload = dict(value)
+    digest = payload.pop(field)
+    return digest == canonical_sha256(payload)
+
+
+def _exact_record(value: Any, fields: set[str], seal: str | None = None) -> bool:
+    return (
+        isinstance(value, dict)
+        and set(value) == fields
+        and value.get("schema_version") == 1
+        and (seal is None or _sealed(value, seal))
+    )
+
+
+def _exact_range(value: Any) -> bool:
+    return (
+        isinstance(value, dict)
+        and set(value) == {"min", "max"}
+        and all(type(value[key]) is int and value[key] >= 0 for key in value)
+        and value["min"] <= value["max"]
+    )
+
+
+def _slot_map(value: Any, names: tuple[str, ...], label: str) -> dict[str, Any]:
+    if not isinstance(value, dict) or set(value) != set(names):
+        raise ValueError(f"invalid {label} slots")
+    return value
+
+
+def _validate_planning(ledger: dict[str, Any]) -> None:
+    snapshot, anchor = ledger["snapshot"], ledger["source_anchor"]
+    impact = ledger["planned_impact"]
+    plans, cost = ledger["planned_invocations"], ledger["cost"]
+    authorities, evidence = ledger["authorities"], ledger["accepted_evidence"]
+    validate_named(CONTRACTS, "planned_impact", impact)
+    scope = impact["initial_scope"]
+    if (
+        not _sealed(impact, "impact_token")
+        or impact["snapshot_sha256"] != canonical_sha256(snapshot)
+        or impact["source_anchor_sha256"] != canonical_sha256(anchor)
+        or not isinstance(scope, dict)
+        or set(scope) != {
+            "gates", "corpus_cases", "holdout_pairs", "adaptive_policy_sha256",
+        }
+        or scope["gates"] != list(PENDING_GATES)
+        or scope["corpus_cases"] != sorted(snapshot["corpus"]["cases"])
+        or scope["holdout_pairs"] != sorted(snapshot["holdout"]["pairs"])
+        or _SHA256.fullmatch(str(scope["adaptive_policy_sha256"])) is None
+        or impact["initial_scope_sha256"] != canonical_sha256(scope)
+        or not _exact_range(impact["live_calls"])
+    ):
+        raise ValueError("invalid immutable planned impact")
+    calibration = evidence["executor"]
+    ranges = (
+        "model_calls", "uncached_input_tokens", "output_tokens",
+        "combined_tokens", "wall_milliseconds",
+    )
+    for gate, item in cost.items():
+        if item is None:
+            continue
+        basis = "source-derived" if gate == "executor" else "executor-calibration"
+        receipt = None if gate == "executor" else (
+            calibration["receipt_sha256"] if calibration else None
+        )
+        if (
+            not _exact_record(item, COST_FIELDS, "cost_sha256")
+            or (item["gate"], item["basis"], item["basis_receipt_sha256"])
+            != (gate, basis, receipt)
+            or _SHA256.fullmatch(str(item["basis_sha256"])) is None
+            or any(not _exact_range(item[field]) for field in ranges)
+        ):
+            raise ValueError(f"invalid calibration cost basis: {gate}")
+    for gate, plan in plans.items():
+        if (plan is None) != (cost[gate] is None):
+            raise ValueError("plan and cost must appear together")
+        if plan is None:
+            continue
+        units = ["subthreshold-control"] if gate == "executor" else scope[
+            "corpus_cases" if gate == "corpus" else "holdout_pairs"
+        ]
+        try:
+            normalized = validate_gate_plan(plan)
+        except ValueError as exc:
+            raise ValueError(f"invalid persisted gate plan: {gate}") from exc
+        if (
+            gate != "executor" and calibration is None
+            or normalized != plan
+            or not _sealed(plan, "invocation_sha256")
+            or (plan["gate"], plan["phase"])
+            != (gate, "calibration" if gate == "executor" else "evaluation")
+            or plan["impact_token"] != impact["impact_token"]
+            or plan["role_config_sha256"] != snapshot["role"]["executor_sha256"]
+            or plan["cost_sha256"] != cost[gate]["cost_sha256"]
+            or plan["units"] != units
+        ):
+            raise ValueError(f"invalid persisted gate plan: {gate}")
+    seen = set()
+    for gate, item in authorities.items():
+        if item is None:
+            continue
+        plan = plans[gate]
+        host = item.get("host") if isinstance(item, dict) else None
+        if (
+            plan is None
+            or not _exact_record(item, AUTHORITY_FIELDS, "authority_sha256")
+            or item["gate"] != gate
+            or item["phase"] != plan["phase"]
+            or item["impact_token"] != impact["impact_token"]
+            or item["invocation_sha256"] != plan["invocation_sha256"]
+            or item["action"] != plan["action"]
+            or any(_SHA256.fullmatch(str(item[field])) is None for field in ("request_sha256", "affirmative_sha256"))
+            or not isinstance(host, dict)
+            or set(host) != {
+                "task_id", "message_id", "turn_id", "content_sha256", "role_config_sha256",
+            }
+            or host["role_config_sha256"] != plan["role_config_sha256"]
+            or item["authority_sha256"] in seen
+        ):
+            raise ValueError(f"invalid distinct persisted authority: {gate}")
+        seen.add(item["authority_sha256"])
+
+
+def validate_evidence_record(item: Any, snapshot: dict[str, Any],
+                             impact: dict[str, Any], invocations: dict[str, Any],
+                             authorities: dict[str, Any], *, slot: str | None = None) -> None:
+    validate_named(CONTRACTS, "evidence_record", item)
+    slot = slot or item["gate"]
+    producer, subject = item["producer"], item["subject"]
+    if (
+        slot not in EVIDENCE_SLOTS
+        or not _sealed(item, "receipt_sha256")
+        or item["kind"] != EVIDENCE_KINDS[slot]
+        or item["gate"] != slot
+        or Path(str(item["path"])).name != f"{item['content_sha256']}.json"
+        or item["impact_token"] != impact["impact_token"]
+        or producer.get("schema_version") != 1
+        or subject.get("gate") != slot
+        or subject.get("source_anchor_sha256") != impact["source_anchor_sha256"]
+        or subject.get("snapshot_sha256") != impact["snapshot_sha256"]
+    ):
+        raise ValueError("invalid evidence slot, kind, units, receipt, producer, or subject")
+    if slot in LIVE_SLOTS:
+        plan, authority = invocations[slot], authorities[slot]
+        if (
+            plan is None or authority is None
+            or item["invocation_sha256"] != plan["invocation_sha256"]
+            or item["authority_sha256"] != authority["authority_sha256"]
+            or item["pre_effect_grant_sha256"] != authority["authority_sha256"]
+        ):
+            raise ValueError("evidence does not bind exact authority")
+    elif item["invocation_sha256"] is not None or item["authority_sha256"] is not None:
+        raise ValueError("offline evidence borrowed live authority")
+    if slot == "executor":
+        actual = item["actual"]
+        if (
+            item["units"] != ["subthreshold-control"]
+            or item["transcript"] != []
+            or not isinstance(actual, dict)
+            or set(actual) != {
+                "model_calls", "uncached_input_tokens", "output_tokens",
+                "combined_tokens", "wall_milliseconds",
+            }
+            or any(type(value) is not int or value < 0 for value in actual.values())
+            or actual["model_calls"] != 1
+            or actual["combined_tokens"] != actual["uncached_input_tokens"] + actual["output_tokens"]
+        ):
+            raise ValueError("invalid single Executor calibration evidence")
+    elif slot == "corpus":
+        if item["units"] != impact["initial_scope"]["corpus_cases"] or item["transcript"] != []:
+            raise ValueError("corpus evidence is not exact")
+    elif slot == "holdout":
+        transcript = item["transcript"]
+        pairs = impact["initial_scope"]["holdout_pairs"]
+        if (
+            not isinstance(transcript, list)
+            or not transcript
+            or len(transcript) > 3
+            or any(
+                not isinstance(row, dict)
+                or set(row) != {"pair_id", "outcome", "receipt_sha256"}
+                or row["pair_id"] != pairs[index]
+                or row["outcome"] not in {"better", "equal", "uncertain", "regression"}
+                or _SHA256.fullmatch(str(row["receipt_sha256"])) is None
+                for index, row in enumerate(transcript)
+            )
+            or item["units"] != [row["pair_id"] for row in transcript]
+            or adaptive_next([row["outcome"] for row in transcript]) not in {"stop", "reject"}
+        ):
+            raise ValueError("invalid adaptive holdout transcript")
+    elif item["units"] != [] or item["transcript"] != [] or item["actual"] is not None:
+        raise ValueError("offline evidence has live result fields")
+
+
+def verify_evidence_object(repo: Path, *, source_commit: str, evidence_commit: str,
+                           path: str, blob: str, content_sha256: str,
+                           producer: dict[str, Any], subject: dict[str, Any]) -> dict[str, Any]:
+    candidate = Path(path)
+    if candidate.is_absolute() or ".." in candidate.parts or candidate.as_posix() != path:
+        raise ValueError("evidence path is not normalized")
+    validate_evidence_commit(repo, source_commit=source_commit, evidence_commit=evidence_commit)
+    listing = _git(repo, "ls-tree", evidence_commit, "--", path).splitlines()
+    if len(listing) != 1:
+        raise ValueError("evidence commit:path is not exact")
+    metadata, listed_path = listing[0].split("\t", 1)
+    mode, kind, actual_blob = metadata.split()
+    if listed_path != path or mode != "100644" or kind != "blob" or actual_blob != blob:
+        raise ValueError("evidence blob does not match commit:path")
+    raw = subprocess.run(
+        ["git", "-C", str(repo), "cat-file", "blob", f"{evidence_commit}:{path}"],
+        check=True, capture_output=True,
+    ).stdout
+    if sha256_bytes(raw) != content_sha256:
+        raise ValueError("evidence content hash mismatch")
+    summary = json.loads(raw)
+    if summary != {"schema_version": 1, "producer": producer, "subject": subject}:
+        raise ValueError("evidence producer or subject mismatch")
+    return summary
+
+
+def derive_coverage(snapshot: dict[str, Any], evidence: dict[str, Any],
+                    *, prior: Any = None) -> dict[str, Any]:
+    if prior is not None:
+        raise ValueError("prior or waived coverage is forbidden")
+    _slot_map(evidence, EVIDENCE_SLOTS, "evidence")
+    records = sorted((item for item in evidence.values() if item), key=lambda item: item["sequence"])
+    receipts = [item["receipt_sha256"] for item in records]
+    if len(receipts) != len(set(receipts)):
+        raise ValueError("duplicate evidence receipt")
+    corpus = evidence["corpus"]["units"] if evidence["corpus"] else []
+    holdout = evidence["holdout"]["units"] if evidence["holdout"] else []
+    if not set(corpus) <= set(snapshot["corpus"]["cases"]) or not set(holdout) <= set(snapshot["holdout"]["pairs"]):
+        raise ValueError("coverage contains unknown identity")
+    result = {
+        "schema_version": 1, "corpus_cases": corpus, "holdout_pairs": holdout,
+        "gates": [slot for slot in EVIDENCE_SLOTS if evidence[slot]],
+        "evidence_sha256": receipts,
     }
-    for field, identities in expected.items():
-        value = pending[field]
-        if value != identities or value != sorted(set(value)):
-            raise ValueError(f"invalid pending scope: {field}")
-    if len(expected["corpus_cases"]) != 17 or len(expected["holdout_pairs"]) != 3:
-        raise ValueError("invalid generation-6 genesis cardinality")
+    result["coverage_sha256"] = canonical_sha256(result)
+    return result
+
+
+def derive_pending(ledger: dict[str, Any]) -> dict[str, Any]:
+    evidence, snapshot = ledger["accepted_evidence"], ledger["snapshot"]
+    corpus_done = set(evidence["corpus"]["units"]) if evidence["corpus"] else set()
+    holdout_pairs = sorted(snapshot["holdout"]["pairs"])
+    frontier = [] if evidence["holdout"] else holdout_pairs[:1]
+    slots = {
+        "executor_pilot": evidence["executor"], "corpus": evidence["corpus"],
+        "holdout": evidence["holdout"], "receipt": evidence["receipt"],
+        "review": evidence["review"], "isolated_install": evidence["isolated_install"],
+    }
+    return {
+        "gates": [gate for gate in PENDING_GATES if not slots[gate]],
+        "corpus_cases": [case for case in sorted(snapshot["corpus"]["cases"]) if case not in corpus_done],
+        "holdout_pairs": frontier,
+    }
+
+
+def derive_failed(ledger: dict[str, Any]) -> list[str]:
+    evidence = ledger["accepted_evidence"]["holdout"]
+    if not evidence:
+        return []
+    outcomes = [row["outcome"] for row in evidence["transcript"]]
+    return ["holdout"] if adaptive_next(outcomes) == "reject" else []
+
+
+def _empty_lifecycle(ledger: dict[str, Any]) -> bool:
+    return (
+        ledger["planned_impact"] is None
+        and all(value is None for value in ledger["planned_invocations"].values())
+        and all(value is None for value in ledger["cost"].values())
+        and all(value is None for value in ledger["authorities"].values())
+        and all(value is None for value in ledger["accepted_evidence"].values())
+        and ledger["coverage"] == {}
+        and ledger["receipt_head"] is None
+        and ledger["freeze"] is None
+        and ledger["certification"] is None
+    )
 
 
 def validate_ledger(ledger: dict[str, Any], *, repo: Path | None = None) -> None:
-    if (
-        set(ledger) != LEDGER_FIELDS
-        or ledger.get("schema_version") != 1
-        or ledger.get("engine_generation") != "0.6"
-        or ledger.get("state") != "refresh_required"
+    if not isinstance(ledger, dict) or set(ledger) != LEDGER_FIELDS or (
+        ledger.get("engine_generation") != "0.6"
     ):
-        raise ValueError("invalid certification ledger envelope")
-    snapshot = ledger.get("snapshot")
-    if not isinstance(snapshot, dict):
-        raise ValueError("invalid certification snapshot")
+        raise ValueError("invalid generation-6 ledger envelope")
+    validate_named(CONTRACTS, "ledger", ledger)
+    snapshot = ledger["snapshot"]
     validate_snapshot(snapshot)
-    _validate_pending(ledger.get("pending"), snapshot)
-    authorities = ledger.get("authorities")
-    if (
-        not isinstance(authorities, dict)
-        or set(authorities) != AUTHORITY_SLOTS
-        or any(value is not None for value in authorities.values())
-    ):
-        raise ValueError("generation-6 genesis authorities must be null")
-    if ledger.get("calibration_history") != [] or ledger.get("accepted_evidence") != []:
-        raise ValueError("generation-6 genesis must not retain prior evidence")
-    if ledger.get("receipt_head") is not None:
-        raise ValueError("generation-6 genesis receipt head must be null")
-    if ledger.get("certification") is not None:
-        raise ValueError("refresh-required ledger cannot carry certification")
-    anchor = ledger.get("source_anchor")
-    if anchor is not None:
-        validated = validate_source_anchor(anchor, repo=repo)
-        expected = {
-            "package_artifact_sha256": snapshot["package"]["artifact_sha256"],
-            "package_semantic_sha256": snapshot["package"]["semantic_sha256"],
-            "engine_manifest_sha256": snapshot["engine"]["manifest_sha256"],
-            "executor_role_sha256": snapshot["role"]["executor_sha256"],
+    plans = _slot_map(ledger["planned_invocations"], LIVE_SLOTS, "invocation")
+    cost = _slot_map(ledger["cost"], LIVE_SLOTS, "cost")
+    authorities = _slot_map(ledger["authorities"], LIVE_SLOTS, "authority")
+    evidence = _slot_map(ledger["accepted_evidence"], EVIDENCE_SLOTS, "evidence")
+    anchor, impact = ledger["source_anchor"], ledger["planned_impact"]
+    if anchor is None:
+        if ledger["state"] != "refresh_required" or not _empty_lifecycle(ledger):
+            raise ValueError("pre-anchor generation-6 ledger must be null-slot genesis")
+        return
+    validated = validate_source_anchor(anchor, repo=repo)
+    expected = {
+        "package_artifact_sha256": snapshot["package"]["artifact_sha256"],
+        "package_semantic_sha256": snapshot["package"]["semantic_sha256"],
+        "engine_manifest_sha256": snapshot["engine"]["manifest_sha256"],
+        "executor_role_sha256": snapshot["role"]["executor_sha256"],
+        "public_baseline_sha256": canonical_sha256(snapshot["public_baseline"]),
+    }
+    if any(validated[field] != digest for field, digest in expected.items()):
+        raise ValueError("source anchor does not match snapshot")
+    if impact is None:
+        if not _empty_lifecycle({**ledger, "source_anchor": None}):
+            raise ValueError("anchored empty state has dependent lifecycle data")
+        return
+    _validate_planning(ledger)
+    records = sorted((item for item in evidence.values() if item), key=lambda item: item["sequence"])
+    parent = None
+    for sequence, item in enumerate(records):
+        slot = item["gate"]
+        validate_evidence_record(item, snapshot, impact, plans, authorities, slot=slot)
+        if item["sequence"] != sequence or item["parent_receipt_sha256"] != parent:
+            raise ValueError("evidence sequence or parent receipt chain is not exact")
+        parent = item["receipt_sha256"]
+    if records and repo is None:
+        raise ValueError("populated evidence requires repository")
+    for item in records:
+        verify_evidence_object(
+            repo, source_commit=anchor["source_commit"], evidence_commit=item["evidence_commit"],
+            path=item["path"], blob=item["blob"], content_sha256=item["content_sha256"],
+            producer=item["producer"], subject=item["subject"],
+        )
+    if ledger["receipt_head"] != parent:
+        raise ValueError("receipt head does not match exact evidence chain")
+    coverage = derive_coverage(snapshot, evidence)
+    if ledger["coverage"] != (coverage if records else {}):
+        raise ValueError("coverage is not exactly derived once")
+    freeze = ledger["freeze"]
+    prerequisites = ("executor", "corpus", "holdout", "receipt")
+    if freeze is not None:
+        if any(evidence[slot] is None for slot in prerequisites):
+            raise ValueError("invalid candidate freeze")
+        first = sorted((evidence[slot] for slot in prerequisites), key=lambda item: item["sequence"])
+        payload = {
+            "schema_version": 1,
+            "source_anchor_sha256": canonical_sha256(anchor),
+            "receipt_head": first[-1]["receipt_sha256"],
+            "coverage_sha256": coverage["coverage_sha256"],
         }
-        if any(validated[field] != digest for field, digest in expected.items()):
-            raise ValueError("source anchor does not match snapshot")
+        payload["freeze_sha256"] = canonical_sha256(payload)
+        if freeze != payload or derive_failed(ledger):
+            raise ValueError("invalid candidate freeze")
+    if evidence["review"] and freeze is None:
+        raise ValueError("review evidence requires freeze")
+    if evidence["isolated_install"] and evidence["review"] is None:
+        raise ValueError("install evidence requires review")
+    certification = ledger["certification"]
+    if certification is None:
+        if ledger["state"] != "refresh_required":
+            raise ValueError("certified state requires certification")
+        return
+    payload = {
+        "schema_version": 1,
+        "source_anchor_sha256": canonical_sha256(anchor),
+        "snapshot_sha256": canonical_sha256(snapshot),
+        "authorities": {gate: authorities[gate]["authority_sha256"] for gate in LIVE_SLOTS},
+        "executor_evidence_sha256": evidence["executor"]["receipt_sha256"],
+        "evidence_receipts": [item["receipt_sha256"] for item in records],
+        "coverage_sha256": coverage["coverage_sha256"],
+        "freeze_sha256": freeze["freeze_sha256"],
+        "receipt_head": parent,
+    }
+    payload["certification_sha256"] = canonical_sha256(payload)
+    if (
+        ledger["state"] != "certified"
+        or any(value is None for value in authorities.values())
+        or any(value is None for value in evidence.values())
+        or derive_pending(ledger)["gates"]
+        or derive_failed(ledger)
+        or certification != payload
+    ):
+        raise ValueError("certification does not bind exact completed DAG")
+
+
+def validate_prior_git_successor(repo: Path, path: str, after: dict[str, Any]) -> None:
+    raw = _git(repo, "show", f"HEAD:{path}")
+    validate_successor(json.loads(raw), after, repo=repo)
+
+
+def replay_planned_lifecycle(ledger: dict[str, Any], *, repo: Path | None = None) -> dict[str, Any]:
+    if any(ledger["accepted_evidence"].values()) and repo is None:
+        raise ValueError("populated lifecycle replay requires repository")
+    validate_ledger(ledger, repo=repo)
+    if ledger["planned_impact"] is None:
+        raise ValueError("refresh-required genesis has no persisted planned impact")
+    return dict(ledger["planned_impact"])
 
 
 def load_ledger(path: Path) -> dict[str, Any]:

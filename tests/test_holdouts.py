@@ -197,8 +197,8 @@ class HappyCodexHoldoutTests(unittest.TestCase):
         )
         blind.validate_reveal(reveal, decision)
         self.assertEqual(reveal["mapping"]["candidate"], "arm-b")
-        self.assertEqual(reveal["mapping"]["public-0.4.0"], "arm-a")
-        self.assertNotIn("public-0.2", reveal["mapping"])
+        self.assertEqual(reveal["mapping"]["public-0.2"], "arm-a")
+        self.assertNotIn("public-0.4.0", reveal["mapping"])
         self.assertEqual(compare.compare_pair(decision, reveal), "better")
         tampered = copy.deepcopy(reveal)
         tampered["mapping"]["candidate"] = "arm-a"
@@ -334,8 +334,8 @@ class HappyCodexHoldoutTests(unittest.TestCase):
         gate = compare.cost_gate(
             equal_total_different_components, public, quality="equal"
         )
-        self.assertIn("public_0_4_0", gate)
-        self.assertNotIn("public_0_2", gate)
+        self.assertIn("public_0_2", gate)
+        self.assertNotIn("public_0_4_0", gate)
         self.assertEqual(gate["decision"], "pass")
         self.assertEqual(gate["blocking_ratios"], {"combined_tokens": 1.0, "wall": 1.0})
         self.assertEqual(gate["diagnostic_ratios"]["output_tokens"], 2.0)
@@ -398,6 +398,23 @@ class HappyCodexHoldoutTests(unittest.TestCase):
                 gate = compare.cost_gate(metrics, metrics, quality=quality)
                 self.assertEqual(gate["decision"], "reject")
                 self.assertFalse(gate["release_permitted"])
+
+    def test_structural_schema_validates_raw_holdout_manifest_parity(self) -> None:
+        from evaluation.core.schema import load_contracts, validate_named
+
+        contracts = load_contracts(
+            Path(__file__).resolve().parents[1] / "evaluation" / "contracts-v6.json"
+        )
+        manifest = json.loads(
+            holdout_engine.MANIFEST_PATH.read_text(encoding="utf-8")
+        )
+        self.assertEqual(
+            validate_named(contracts, "holdout_manifest", manifest), manifest
+        )
+        invalid = copy.deepcopy(manifest)
+        invalid["pairs"][0]["outside_diff_boundary"] = "true"
+        with self.assertRaises(ValueError):
+            validate_named(contracts, "holdout_manifest", invalid)
 
 
 if __name__ == "__main__":

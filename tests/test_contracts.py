@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import ast
+import copy
 import json
 from pathlib import Path
 import re
 import subprocess
 import sys
+import tempfile
 import unittest
 
 
@@ -323,17 +325,17 @@ class HappyCodexContractTests(unittest.TestCase):
         public_text = "\n".join(read(path) for path in paths).casefold()
         self.assertTrue(all(term not in public_text for term in retired))
 
-    def test_evaluator_cleanly_targets_public_040_baseline(self) -> None:
+    def test_evaluator_cleanly_targets_public_02_baseline(self) -> None:
         active = "\n".join(
             read(path)
             for path in sorted((ROOT / "evaluation").rglob("*.py"))
             if "__pycache__" not in path.parts
         )
-        self.assertNotIn("PUBLIC_02", active)
-        self.assertNotIn("public-0.2", active)
-        self.assertIn("PUBLIC_040_PACKAGE_ARTIFACT_SHA256", active)
-        self.assertIn("PUBLIC_040_PACKAGE_SEMANTIC_SHA256", active)
-        self.assertIn("public-0.4.0", active)
+        self.assertIn("PUBLIC_02_PACKAGE_ARTIFACT_SHA256", active)
+        self.assertIn("PUBLIC_02_PACKAGE_SEMANTIC_SHA256", active)
+        self.assertIn("public-0.2", active)
+        self.assertNotIn("PUBLIC_040", active)
+        self.assertNotIn("public-0.4.0", active)
 
     def test_repository_has_no_tracked_generated_python_artifacts(self) -> None:
         tracked = subprocess.run(
@@ -346,6 +348,245 @@ class HappyCodexContractTests(unittest.TestCase):
         self.assertFalse(
             any("__pycache__" in path or path.endswith(".pyc") for path in tracked)
         )
+
+    def test_schema_dialect_recursively_rejects_exactness_and_wrong_primitives(
+        self,
+    ) -> None:
+        from evaluation.core.schema import validate_structure
+
+        definitions = {
+            "leaf": {
+                "type": "object",
+                "properties": {"count": {"type": "integer"}},
+                "required": ["count"],
+                "additionalProperties": False,
+            }
+        }
+        schema = {
+            "type": "object",
+            "properties": {"child": {"$ref": "leaf"}},
+            "required": ["child"],
+            "additionalProperties": False,
+        }
+        valid = {"child": {"count": 1}}
+        self.assertEqual(validate_structure(valid, schema, definitions), valid)
+        invalid = (
+            {},
+            {"child": {"count": 1}, "extra": True},
+            {"child": {}},
+            {"child": {"count": 1, "extra": True}},
+            {"child": {"count": True}},
+            {"child": {"count": "1"}},
+        )
+        for value in invalid:
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                validate_structure(value, schema, definitions)
+
+    def test_schema_dialect_rejects_value_range_and_cardinality_drift(self) -> None:
+        from evaluation.core.schema import validate_structure
+
+        schema = {
+            "type": "object",
+            "properties": {
+                "token": {
+                    "type": "string",
+                    "enum": ["aa", "ab"],
+                    "pattern": "^a[a-b]$",
+                    "minLength": 2,
+                    "maxLength": 2,
+                },
+                "count": {"type": "integer", "minimum": 1, "maximum": 2},
+                "items": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "minItems": 1,
+                    "maxItems": 2,
+                    "uniqueItems": True,
+                },
+            },
+            "required": ["token", "count", "items"],
+            "additionalProperties": False,
+        }
+        valid = {"token": "aa", "count": 1, "items": ["x", "y"]}
+        self.assertEqual(validate_structure(valid, schema, {}), valid)
+        for field, value in (
+            ("token", "zz"),
+            ("token", "a"),
+            ("count", 0),
+            ("count", 3),
+            ("items", []),
+            ("items", ["x", "y", "z"]),
+            ("items", ["x", "x"]),
+        ):
+            invalid = copy.deepcopy(valid)
+            invalid[field] = value
+            with self.subTest(field=field, value=value), self.assertRaises(ValueError):
+                validate_structure(invalid, schema, {})
+
+    def test_schema_dialect_rejects_unknown_cyclic_and_deep_references(self) -> None:
+        from evaluation.core.schema import validate_structure
+
+        with self.assertRaisesRegex(ValueError, "reference"):
+            validate_structure({}, {"$ref": "missing"}, {})
+        with self.assertRaisesRegex(ValueError, "cyclic|reference"):
+            validate_structure({}, {"$ref": "a"}, {"a": {"$ref": "b"}, "b": {"$ref": "a"}})
+        deep = {f"n{index}": {"$ref": f"n{index + 1}"} for index in range(7)}
+        deep["n7"] = {"type": "object", "properties": {}, "required": [],
+                      "additionalProperties": False}
+        with self.assertRaisesRegex(ValueError, "depth|reference"):
+            validate_structure({}, {"$ref": "n0"}, deep)
+
+    def test_schema_loader_eagerly_rejects_unused_bad_declarations(self) -> None:
+        from evaluation.core.schema import load_contracts
+
+        invalid_sets = {
+            "unsupported": {"unused": {"type": "string", "title": "ignored"}},
+            "unknown-ref": {"unused": {"$ref": "missing"}},
+            "cycle": {"a": {"$ref": "b"}, "b": {"$ref": "a"}},
+            "no-op": {"unused": {"type": "integer", "pattern": "^ignored$"}},
+        }
+        deep = {f"n{index}": {"$ref": f"n{index + 1}"} for index in range(7)}
+        deep["n7"] = {"type": "string"}
+        invalid_sets["deep"] = deep
+        with tempfile.TemporaryDirectory() as raw:
+            path = Path(raw) / "contracts.json"
+            for label, schemas in invalid_sets.items():
+                path.write_text(
+                    json.dumps({"schema_version": 1, "schemas": schemas}),
+                    encoding="utf-8",
+                )
+                with self.subTest(label=label), self.assertRaises(ValueError):
+                    load_contracts(path)
+
+    def test_schema_contract_and_validator_obey_exact_dialect_and_budgets(
+        self,
+    ) -> None:
+        from evaluation.core.schema import load_contracts
+
+        contract_path = ROOT / "evaluation" / "contracts-v6.json"
+        lines = read(contract_path).splitlines()
+        self.assertGreaterEqual(len(lines), 520)
+        self.assertLessEqual(len(lines), 650)
+        contracts = load_contracts(contract_path)
+        schemas = contracts["schemas"]
+        self.assertLessEqual(len(schemas), 30)
+        allowed = {
+            "$ref", "type", "properties", "required", "additionalProperties",
+            "items", "enum", "pattern", "minLength", "maxLength", "minimum",
+            "maximum", "minItems", "maxItems", "uniqueItems",
+        }
+        property_count = 0
+        pending = list(schemas.values())
+        while pending:
+            node = pending.pop()
+            self.assertLessEqual(set(node), allowed)
+            properties = node.get("properties", {})
+            property_count += len(properties)
+            if properties:
+                self.assertEqual(set(properties), set(node["required"]))
+                self.assertIs(node["additionalProperties"], False)
+                pending.extend(properties.values())
+            if "items" in node:
+                pending.append(node["items"])
+        self.assertLessEqual(property_count, 220)
+
+        schema_path = ROOT / "evaluation" / "core" / "schema.py"
+        source = read(schema_path)
+        self.assertLessEqual(len(source.splitlines()), 80)
+        self.assertNotIn(";", source)
+        self.assertGreaterEqual(source.count("\n\n"), 5)
+        tree = ast.parse(source)
+        compound = (
+            ast.AsyncFor, ast.AsyncFunctionDef, ast.AsyncWith, ast.ClassDef,
+            ast.For, ast.FunctionDef, ast.If, ast.Try, ast.While, ast.With,
+        )
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                self.assertEqual(len(node.names), 1)
+                modules = [alias.name.split(".", 1)[0] for alias in node.names]
+            elif isinstance(node, ast.ImportFrom) and node.module:
+                self.assertEqual(len(node.names), 1)
+                modules = [node.module.split(".", 1)[0]]
+            else:
+                modules = []
+            self.assertLessEqual(
+                set(modules), {"__future__", "json", "pathlib", "re", "typing"}
+            )
+            if isinstance(node, compound) and node.body:
+                self.assertGreater(node.body[0].lineno, node.lineno)
+
+        opaque = set()
+        pending = [(f"schemas.{name}", schema) for name, schema in schemas.items()]
+        while pending:
+            path, node = pending.pop()
+            properties = node.get("properties", {})
+            kinds = [node.get("type")] if isinstance(node.get("type"), str) else (
+                node.get("type") or []
+            )
+            if "object" in kinds and not properties:
+                opaque.add(path)
+            pending.extend(
+                (f"{path}.properties.{name}", child)
+                for name, child in properties.items()
+            )
+            if "items" in node:
+                pending.append((f"{path}.items", node["items"]))
+        self.assertEqual(opaque, {
+            "schemas.case.properties.fixture",
+            "schemas.case.properties.oracle",
+            "schemas.evidence_record.properties.actual",
+            "schemas.evidence_record.properties.producer",
+            "schemas.evidence_record.properties.subject",
+            "schemas.evidence_record.properties.transcript.items",
+            "schemas.gate_plan.properties.template.properties.env",
+            "schemas.ledger.properties.accepted_evidence",
+            "schemas.ledger.properties.authorities",
+            "schemas.ledger.properties.certification",
+            "schemas.ledger.properties.cost",
+            "schemas.ledger.properties.coverage",
+            "schemas.ledger.properties.freeze",
+            "schemas.ledger.properties.planned_impact",
+            "schemas.ledger.properties.planned_invocations",
+            "schemas.ledger.properties.source_anchor",
+            "schemas.planned_impact.properties.initial_scope",
+            "schemas.planned_impact.properties.live_calls",
+            "schemas.snapshot.properties.corpus.properties.cases",
+            "schemas.snapshot.properties.engine.properties.categories",
+            "schemas.snapshot.properties.engine.properties.scopes",
+            "schemas.snapshot.properties.holdout.properties.pairs",
+            "schemas.tool_identity",
+        })
+
+        ceilings = {
+            "evaluation/cli.py": 185,
+            "evaluation/live.py": 470,
+            "evaluation/core/identity.py": 630,
+            "evaluation/core/impact.py": 490,
+            "evaluation/core/ledger.py": 670,
+            "evaluation/core/receipt.py": 260,
+            "evaluation/core/schema.py": 80,
+            "evaluation/corpus/engine.py": 2150,
+            "evaluation/holdout/blind.py": 195,
+            "evaluation/holdout/compare.py": 155,
+            "evaluation/holdout/engine.py": 340,
+        }
+        for relative, ceiling in ceilings.items():
+            self.assertLessEqual(len(read(ROOT / relative).splitlines()), ceiling, relative)
+        semantic = list((ROOT / "evaluation" / "semantic").glob("*.py"))
+        initializers = [
+            ROOT / "evaluation" / "__init__.py",
+            ROOT / "evaluation" / "core" / "__init__.py",
+            ROOT / "evaluation" / "corpus" / "__init__.py",
+            ROOT / "evaluation" / "holdout" / "__init__.py",
+        ]
+        self.assertLessEqual(sum(len(read(path).splitlines()) for path in semantic), 1200)
+        self.assertLessEqual(sum(len(read(path).splitlines()) for path in initializers), 15)
+        self.assertEqual(sum(ceilings.values()) + 1200 + 15, 6840)
+        production = [
+            path for path in (ROOT / "evaluation").rglob("*.py")
+            if "__pycache__" not in path.parts
+        ]
+        self.assertLessEqual(sum(len(read(path).splitlines()) for path in production), 6850)
 
 
 if __name__ == "__main__":

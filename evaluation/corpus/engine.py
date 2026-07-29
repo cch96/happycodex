@@ -23,7 +23,9 @@ from evaluation.core.identity import (
     PERMISSION_FIELDS,
     PERMISSION_PROFILE,
     PERMISSION_VALUES,
-    PUBLIC_040_PACKAGE_ARTIFACT_SHA256,
+    PUBLIC_02_ARM,
+    PUBLIC_02_PACKAGE_ARTIFACT_SHA256,
+    PUBLIC_02_SKILL_ENTRIES,
     RECOVERY_ACTIONS,
     RECOVERY_GATE_FIELDS,
     RECOVERY_MANIFEST_PATTERN,
@@ -45,7 +47,8 @@ from evaluation.core.identity import (
     validate_invocation_profile,
     workspace_file_manifest,
 )
-from evaluation.core.ledger import OUTPUT_SCHEMA, validate_case_input as validate_case
+from evaluation.core.ledger import validate_case_input as validate_case
+from evaluation.core.schema import CONTRACTS, validate_named
 from evaluation.semantic import make_attempt_key, parse_facts, reduce_facts
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -63,6 +66,17 @@ DISABLED_FEATURES = (
     "multi_agent",
 )
 FIXED_GIT_DATE = "2000-01-01T00:00:00+00:00"
+
+
+OUTPUT_SCHEMA = CONTRACTS["schemas"]["output_result"]
+def validate_output_result(value: Any) -> dict[str, Any]:
+    try:
+        return validate_named(CONTRACTS, "output_result", value)
+    except ValueError as exc:
+        required = set(OUTPUT_SCHEMA["required"])
+        if isinstance(value, dict) and set(value) != required:
+            raise ValueError("result top-level fields are invalid") from exc
+        raise
 REQUIRED_TAGS = {
     "request-paraphrase", "unsupported-amendment", "uncertain-qualification",
     "midflight-escalation", "subthreshold-control", "clean-qualifying-control",
@@ -119,19 +133,11 @@ EXPECTED_CANDIDATE_SKILL_ENTRIES = frozenset(
         "scripts/resource_claim.py",
     }
 )
-EXPECTED_PUBLIC_040_SKILL_ENTRIES = frozenset(
-    {
-        "SKILL.md",
-        "agents",
-        "agents/openai.yaml",
-        "references",
-        "references/execplan.md",
-    }
-)
-EXPECTED_PUBLIC_040_PACKAGE_MANIFEST_SHA256 = PUBLIC_040_PACKAGE_ARTIFACT_SHA256
+EXPECTED_PUBLIC_02_SKILL_ENTRIES = frozenset(PUBLIC_02_SKILL_ENTRIES)
+EXPECTED_PUBLIC_02_PACKAGE_MANIFEST_SHA256 = PUBLIC_02_PACKAGE_ARTIFACT_SHA256
 EXPECTED_SKILL_ENTRIES_BY_ARM = {
     "candidate": EXPECTED_CANDIDATE_SKILL_ENTRIES,
-    "public-0.4.0": EXPECTED_PUBLIC_040_SKILL_ENTRIES,
+    PUBLIC_02_ARM: EXPECTED_PUBLIC_02_SKILL_ENTRIES,
 }
 EXPECTED_COMMON_PACKAGE_ENTRIES = frozenset(
     {
@@ -784,8 +790,14 @@ def expected_skill_entries_for_arm(arm: str) -> frozenset[str]:
 
 def expected_package_entries_for_arm(arm: str) -> frozenset[str]:
     skill_entries = expected_skill_entries_for_arm(arm)
-    return EXPECTED_COMMON_PACKAGE_ENTRIES | {
+    members = {
         f"skills/happycodex/{relative}" for relative in skill_entries
+    }
+    return EXPECTED_COMMON_PACKAGE_ENTRIES | members | {
+        parent.as_posix()
+        for member in members
+        for parent in Path(member).parents
+        if parent.as_posix() not in {"", "."}
     }
 
 
@@ -1021,6 +1033,7 @@ def parse_events(
     except json.JSONDecodeError as exc:
         raise ValueError("terminal agent result is not JSON") from exc
     completion = _exact_event(events[-1], {"type", "usage"}, "completion")
+    validate_output_result(final)
     usage = _exact_event(completion["usage"], _USAGE_FIELDS, "usage")
     if (
         completion["type"] != "turn.completed"
@@ -1128,31 +1141,11 @@ def _outcome_binding_digest(operative_request: str) -> str:
 def _validate_result_recovery(value: Any) -> None:
     if value is None:
         return
-    _exact_object(value, set(RECOVERY_STATE_FIELDS), "recovery state")
-    if (
-        value["writer"] != "Root"
-        or value["worktree"] not in {"clean", "dirty"}
-        or value["milestone_phase"] not in CONVERGENCE_PHASES
-        or value["next_action"] not in RECOVERY_ACTIONS
-    ):
+    if value["writer"] != "Root" or value["worktree"] not in {"clean", "dirty"}:
         raise ValueError("recovery identity or state is invalid")
-    gates = _unique_strings(value["pending_gates"], "recovery pending gates")
-    if any(gate not in RECOVERY_PENDING_GATES for gate in gates):
-        raise ValueError("invalid recovery pending gates")
-    tests = _exact_object(
-        value["tests"],
-        {"passed", "failed", "accepted_failures", "marker_ids"},
-        "recovery tests",
-    )
-    if (
-        any(type(tests[field]) is not int or tests[field] < 0 for field in (
-            "passed", "failed", "accepted_failures"
-        ))
-        or tests["failed"] != tests["accepted_failures"]
-    ):
+    if value["tests"]["failed"] != value["tests"]["accepted_failures"]:
         raise ValueError("unaccepted failure in recovery tests")
     for agent in value["live_agents"]:
-        _exact_object(agent, {"id", "status", "receipt_reproduced"}, "recovery agent")
         if agent["status"] != "terminal" or agent["receipt_reproduced"] is not True:
             raise ValueError("invalid recovery agent")
     manifest = recovery_manifest_projection(value)
@@ -1169,15 +1162,7 @@ def semantic_result_projection(
     *,
     context: dict[str, Any],
 ) -> dict[str, Any]:
-    required_result = {
-        *PERMISSION_FIELDS,
-        "finding_classifications",
-        "blocker_classifications",
-        "open_gates",
-        "recovery_state",
-    }
-    if not isinstance(result, dict) or not required_result.issubset(result):
-        raise ValueError("raw result lacks the semantic output contract")
+    validate_output_result(result)
     if not isinstance(context, dict) or set(context) != _RESULT_CONTEXT_FIELDS:
         raise ValueError("semantic result context is invalid")
     profile = validate_invocation_profile(context["invocation_profile"])
@@ -1205,35 +1190,14 @@ def semantic_result_projection(
     if any(identity not in finding_ids for identity in blocker_ids):
         raise ValueError("blocker identity lacks an exact finding")
     for item in findings:
-        _exact_object(item, {"identity", "domain", "state", "anchors"}, "finding")
-        if (
-            item["domain"] not in {"secret", "baseline_failure", "receipt", "other"}
-            or item["state"] not in _FINDING_STATES
-            or not isinstance(item["anchors"], list)
-            or len(item["anchors"]) != len(set(item["anchors"]))
-            or any(type(anchor) is not str for anchor in item["anchors"])
-        ):
+        if len(item["anchors"]) != len(set(item["anchors"])):
             raise ValueError("finding classification is invalid")
     for item in blockers:
-        _exact_object(item, {"identity", "class", "blocking", "reason"}, "blocker")
         finding = findings[finding_ids.index(item["identity"])]
-        if (
-            item["class"] not in BLOCKER_CLASSES
-            or type(item["blocking"]) is not bool
-            or type(item["reason"]) is not str
-            or (item["blocking"] and finding["state"] == "resolved")
-        ):
+        if item["blocking"] and finding["state"] == "resolved":
             raise ValueError("blocker classification is invalid")
     _validate_result_recovery(result["recovery_state"])
     open_gates = _exact_nonblank_strings(result["open_gates"], label="open gates")
-    if any(gate not in RECOVERY_PENDING_GATES for gate in open_gates):
-        raise ValueError("open gate is outside the exact lifecycle vocabulary")
-    if (
-        type(result["qualifies"]) is not bool
-        or result["execplan_condition"]
-        not in {"not_required", "missing", "usable", "needs_amendment"}
-    ):
-        raise ValueError("raw qualification facts are invalid")
     raw_sha256 = canonical_sha256(result)
     source = f"result:{raw_sha256}"
     records = []
@@ -1338,21 +1302,16 @@ def semantic_result_projection(
     }
 
 
-def _validated_capability(authorization: Any) -> Any:
-    from evaluation.live import _rebind_capability
+def _validated_capability(authorization: Any, unit_id: str) -> Any:
+    from evaluation.live import _require_unit_capability
 
-    return _rebind_capability(authorization)
+    return _require_unit_capability(authorization, unit_id)
 
 
-def invoke_codex(
-    argv: list[str],
-    *,
-    cwd: Path,
-    env: dict[str, str],
-    timeout: int,
-    authorization: Any = None,
-) -> tuple[subprocess.CompletedProcess[str], bool, float]:
-    _validated_capability(authorization)
+def invoke_codex(phase_proof: Any) -> tuple[subprocess.CompletedProcess[str], bool, float]:
+    from evaluation.live import _consume_phase_proof
+
+    argv, cwd, env, timeout = _consume_phase_proof(phase_proof)
     started = time.monotonic()
     try:
         completed = run(argv, cwd=cwd, env=env, timeout=timeout)
@@ -1718,9 +1677,11 @@ def _validate_case_capability(
     arm: str,
     unit_id: str | None,
 ) -> None:
-    _validated_capability(authorization)
     if unit_id is not None and unit_id != case["id"]:
-        raise ValueError("capability unit does not match case")
+        expected_unit = unit_id
+    else:
+        expected_unit = case["id"]
+    _validated_capability(authorization, expected_unit)
     if not plugin.resolve().is_dir():
         raise ValueError("evaluated plugin must be an existing directory")
     invocation_profile(
@@ -1746,8 +1707,8 @@ def _phase_event_binding(
     thread_id: str | None,
     profile: dict[str, Any],
 ) -> tuple[dict[str, Any], dict[str, Any]]:
-    capability = _validated_capability(authorization)
-    descriptor = capability.descriptor()
+    capability = _validated_capability(authorization, authorization._unit)
+    descriptor = capability._claimed.descriptor()
     profile = validate_invocation_profile(profile, require_bound_binary=True)
     binding = {
         "provider": profile["provider"],
@@ -1779,7 +1740,7 @@ def evaluate_case(
     authorization: Any = None,
     authorization_unit: str | None = None,
 ) -> dict[str, Any]:
-    from evaluation.live import _run_model_phase
+    from evaluation.live import _issue_phase_proof
 
     _validate_case_capability(
         authorization,
@@ -1860,26 +1821,8 @@ def evaluate_case(
                 *([thread] if thread else []),
                 prompt,
             ]
-            descriptor = _validated_capability(authorization).descriptor()
-            phase_digest = canonical_sha256(
-                {
-                    "attempt": descriptor["attempt_id"],
-                    "case": case["id"],
-                    "arm": arm,
-                    "phase": name,
-                }
-            )
-            completed, timed_out, elapsed = _run_model_phase(
-                authorization,
-                phase_digest,
-                lambda: invoke_codex(
-                    argv,
-                    cwd=repo,
-                    env=env,
-                    timeout=timeout,
-                    authorization=authorization,
-                ),
-            )
+            proof = _issue_phase_proof(authorization)
+            completed, timed_out, elapsed = invoke_codex(proof)
             _persist_phase_raw(case_output, name, completed)
             _require_model_phase_success(completed, timed_out=timed_out, phase=name)
             binding, bound_profile = _phase_event_binding(
@@ -2062,6 +2005,24 @@ def resolve_output_path(requested: Path | None, *, plugin: Path) -> Path:
     return output
 
 
+def create_output_root(output: Path) -> Path:
+    if output.is_symlink() or output.exists():
+        raise ValueError("raw output changed or became a symlink")
+    parent = output.parent
+    flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0)
+    flags |= getattr(os, "O_NOFOLLOW", 0)
+    descriptor = os.open(parent, flags)
+    try:
+        os.mkdir(output.name, mode=0o700, dir_fd=descriptor)
+        opened = os.open(output.name, flags, dir_fd=descriptor)
+        os.close(opened)
+    except FileExistsError as exc:
+        raise ValueError("raw output changed or became a symlink") from exc
+    finally:
+        os.close(descriptor)
+    return output
+
+
 def run_command(args: Any) -> int:
     cases = load_cases()
     if args.list:
@@ -2135,5 +2096,51 @@ def _evaluate_cases_bounded(
 
 
 def run_authorized(args: Any, authorization: Any) -> int:
-    del args, authorization
-    raise SystemExit("generation-6 live capability is unavailable until Batch3")
+    from evaluation import live
+
+    cases = load_cases()
+    selected = sorted(args.cases or cases)
+    unknown = set(selected) - set(cases)
+    if unknown:
+        raise ValueError(f"unknown cases: {sorted(unknown)}")
+    output = resolve_output_path(args.output, plugin=args.plugin)
+    gate = authorization._plan["gate"]
+    if gate == "executor" and selected != ["subthreshold-control"]:
+        raise ValueError("persisted gate plan does not match corpus invocation")
+    preflight = live._preflight_effect(
+        authorization,
+        gate=gate,
+        output=output,
+        units=selected,
+        model=args.model,
+        effort=args.effort,
+        timeout_ms=args.timeout * 1000,
+        arm=args.arm,
+    )
+    claimed = live._claim_effect_set(preflight)
+    plan = dict(live._require_claimed(claimed)._gate._plan)
+    units = live._claim_units(claimed, selected)
+    create_output_root(output)
+    results = _evaluate_cases_bounded(
+        selected,
+        lambda case_id: evaluate_case(
+            cases[case_id],
+            plugin=args.plugin,
+            output=output,
+            model=args.model,
+            effort=args.effort,
+            timeout=args.timeout,
+            arm=args.arm,
+            authorization=units[case_id],
+            authorization_unit=case_id,
+        ),
+    )
+    print(json.dumps({
+        "schema_version": 1,
+        "engine_generation": "0.6",
+        "gate": plan["gate"],
+        "cases": selected,
+        "passed": all(result["passed"] for result in results),
+        "receipts": [canonical_sha256(result) for result in results],
+    }, sort_keys=True))
+    return 0
