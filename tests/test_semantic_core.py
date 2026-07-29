@@ -9,7 +9,7 @@ import unittest
 from unittest import mock
 
 import evaluation.semantic as semantic
-from evaluation.semantic.types import _issue_authority
+from evaluation.semantic.types import _issue_authority, _make_report
 from evaluation.semantic import (
     ActionKind,
     AuthorityProvenance,
@@ -315,6 +315,43 @@ class BoundaryHardeningTests(unittest.TestCase):
         object.__setattr__(forged, "next_action", action)
         with self.assertRaisesRegex(SemanticError, "reducer report"):
             make_attempt_key(forged)
+
+    def test_attempt_key_recomputes_reducer_action(self) -> None:
+        facts = parse_facts(raw_envelope())
+        forged_action = NextAction(
+            ActionKind.CLOSE,
+            Id("action_target", "forged-target"),
+            Id("action_scope", "forged-scope"),
+            Id("falsifier", "forged-falsifier"),
+            Id("evidence_source", "forged-source"),
+        )
+        report = _make_report(
+            facts=facts,
+            progress_key=make_progress_key(facts),
+            next_action=forged_action,
+        )
+        self.assertNotEqual(report.next_action, reduce_facts(facts).next_action)
+        with self.assertRaisesRegex(SemanticError, "action mismatch"):
+            make_attempt_key(report)
+
+    def test_effect_enforcement_recomputes_reducer_action(self) -> None:
+        facts = parse_facts(raw_envelope())
+        forged_action = NextAction(
+            ActionKind.CLOSE,
+            Id("action_target", "forged-target"),
+            Id("action_scope", "forged-scope"),
+            Id("falsifier", "forged-falsifier"),
+            Id("evidence_source", "forged-source"),
+        )
+        report = _make_report(
+            facts=facts,
+            progress_key=make_progress_key(facts),
+            next_action=forged_action,
+        )
+        self.assertNotEqual(report.next_action, reduce_facts(facts).next_action)
+        authority = adapter_authority(report.facts.task, forged_action)
+        with self.assertRaisesRegex(SemanticError, "action mismatch"):
+            enforce_effect(report, authority)
 
     def test_str_enum_identity_is_rejected(self) -> None:
         class Sneaky(str, Enum):

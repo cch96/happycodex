@@ -88,6 +88,10 @@ def make_attempt_key(report: ProgressReport) -> Id:
         raise SemanticError("AttemptKey requires a reducer report")
     if report.progress_key != make_progress_key(report.facts):
         raise SemanticError("reducer report progress key mismatch")
+    from evaluation.semantic.decide import reduce_facts
+
+    if report.next_action != reduce_facts(report.facts).next_action:
+        raise SemanticError("reducer report action mismatch")
     action = report.next_action
     return Id(
         "attempt_key",

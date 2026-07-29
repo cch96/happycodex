@@ -22,7 +22,6 @@ from evaluation.semantic.types import (
     _make_report,
 )
 
-
 _TERMINAL_STATES = MappingProxyType(
     {
         "checks": frozenset({"PASS", "BASELINE_ACCEPTED"}),
@@ -75,8 +74,7 @@ def _default_close(facts: Facts) -> NextAction:
     )
 
 
-def reduce_facts(facts: Facts) -> ProgressReport:
-    progress_key = make_progress_key(facts)
+def _derive_action(facts: Facts) -> NextAction:
     pending = facts.stable["pending"]
     non_close = tuple(
         record for record in pending if record.payload["kind"] != ActionKind.CLOSE.value
@@ -86,26 +84,27 @@ def reduce_facts(facts: Facts) -> ProgressReport:
             non_close,
             key=lambda record: (record.payload["priority"], record.primary_key.value),
         )
-        action = _pending_action(chosen)
-    else:
-        unresolved = _first_unresolved(facts)
-        if unresolved is not None:
-            action = _reconcile_action(*unresolved)
-        elif pending:
-            chosen = min(
-                pending,
-                key=lambda record: (
-                    record.payload["priority"],
-                    record.primary_key.value,
-                ),
-            )
-            action = _pending_action(chosen)
-        else:
-            action = _default_close(facts)
+        return _pending_action(chosen)
+    unresolved = _first_unresolved(facts)
+    if unresolved is not None:
+        return _reconcile_action(*unresolved)
+    if pending:
+        chosen = min(
+            pending,
+            key=lambda record: (
+                record.payload["priority"],
+                record.primary_key.value,
+            ),
+        )
+        return _pending_action(chosen)
+    return _default_close(facts)
+
+
+def reduce_facts(facts: Facts) -> ProgressReport:
     return _make_report(
         facts=facts,
-        progress_key=progress_key,
-        next_action=action,
+        progress_key=make_progress_key(facts),
+        next_action=_derive_action(facts),
     )
 
 
@@ -118,6 +117,8 @@ def enforce_effect(
         or report.progress_key != make_progress_key(report.facts)
     ):
         raise SemanticError("effect enforcement requires a reducer report")
+    if report.next_action != _derive_action(report.facts):
+        raise SemanticError("reducer report action mismatch")
     if authority is None:
         return EffectGate(
             EffectDecision.REFUSE,

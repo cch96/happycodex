@@ -3,8 +3,8 @@
 Protocol: `HappyCodex/0.5`
 
 Current index: independent 0.6 bounded-redesign contract plus active same-batch
-boundary hardening. G001/G002 are accepted source. G003 is reachable but
-unaccepted; G004 owns only its four material Batch 1 sibling families.
+action recomputation. G001/G002 are accepted source. G003 is unaccepted. G004
+is reachable but its receipt is invalidated; G005 owns its action-forge sibling.
 
 Restore guard: restore this entire ExecPlan, then reconcile the exact Git source,
 fixed Executor identity, three resource claims, external intent and receipts,
@@ -13,11 +13,11 @@ before any write, review, effect, or completion claim. Conversation summaries,
 copied handles, and another task's source do not reconstruct authority.
 
 Phase: `implementation`. Active grant:
-`HC06BR-G-004-B1-boundary-hardening`, sequence 4. It binds unaccepted G003 commit
-`f87b9dce68c88f537c0a18bd13da3d248248eebf`, tree
-`89944223582465667e84ea2982bd31e810f64a28`, the same fixed Executor/claim,
-recurrence 0, and only the seven exact G004 paths. G001/G002 are
-Root-accepted/`CLOSED`; G003 is not terminal evidence.
+`HC06BR-G-005-attempt-recompute`, sequence 5. It binds G004 commit
+`e500340ce7c4de8e50f5aa8292515478b1b4bc66`, tree
+`4a7c9db64c4551fc6fb588d5062eccaf38f2be9f`, the same fixed Executor/claim,
+and only canonical, decision, semantic-test, and ExecPlan paths. G001/G002 are
+Root-accepted/`CLOSED`; G003/G004 are not terminal evidence.
 
 ## Operative request and normalized Outcome
 
@@ -321,8 +321,8 @@ remain maintainer support and are never linked from Runtime Skill Markdown.
 
 | Family | Invariant | Six-surface closure | Status | Batch | Recurrence |
 | --- | --- | --- | --- | --- | --- |
-| `F-06BR-RUNTIME` | semantic progress and event correction prevent equivalent repeated work and false GREEN | G003 false-close/report/parser siblings joined before acceptance; G004 RED/GREEN covers sealed reports, exact parse, terminal reduction, replay and consumers | `G004 GREEN; Root acceptance open` | `RB-06BR-001/instance` | `0` |
-| `F-06BR-AUTHORITY` | exact `TaskBinding`, provenance, reducer action, capability, claim, authority, and attempt gate every effect | G003 public-forge sibling joined before acceptance; G004 RED/GREEN covers private issuance plus direct/delegated/spoofed/missing/destination/lineage/target/scope | `G004 GREEN; Root acceptance open` | `RB-06BR-002/instance` | `0` |
+| `F-06BR-RUNTIME` | semantic progress and event correction prevent equivalent repeated work and false GREEN | G003 siblings joined before acceptance; G004 covers sealed parse/reduction; G005 recomputes action at both consumers | `G005 GREEN; Root acceptance open` | `RB-06BR-001/instance` | `0` |
+| `F-06BR-AUTHORITY` | exact `TaskBinding`, provenance, reducer action, capability, claim, authority, and attempt gate every effect | G004 covers private authority/report issuance; G005 rejects sealed arbitrary action at AttemptKey and effect gate | `G005 GREEN; Root acceptance open` | `RB-06BR-002/instance` | `0` |
 | `F-06BR-EVALUATOR` | terminal, identity, decision, ledger, and replay share strict parsing and exact recomputation | same six surfaces, including duplicate/order/terminal/path/key/raw-ledger divergence and consumer propagation | `open` | `RB-06BR-003/instance` | `0` |
 
 Holdout quality and cost comparison remain separate gated evidence. They do not
@@ -791,7 +791,7 @@ One token claims exactly the bounded-redesign worktree, branch ref, and this
 ledger. Its adjacent untracked claim directory is private control state, excluded
 from product/commit content, and is not released automatically.
 
-## Unaccepted G003 and G004 same-batch hardening
+## Unaccepted G003-G005 same-batch hardening
 
 G003 produced reachable commit
 `f87b9dce68c88f537c0a18bd13da3d248248eebf`, tree
@@ -820,50 +820,56 @@ prestate, the same fixed Executor/role/owner and verified three-key claim, the
 same two repair waves, and no other family. Durable intent:
 `/home/caichenghang/.codex/happycodex-0.6-bounded-redesign-g004-b1-intent.json`,
 mode `0600`, SHA-256
-`4b30bdea1aacbbefe5c5a640eca12b0beec29d2826c1e3449eb05b54d01e1ffb`.
+`8af7bb240c4fdbaad1a5349a8bb2a632bf23821c3668c4eb779db0ca5f8681d4`.
 Its only repository paths are the five final semantic modules,
 `tests/test_semantic_core.py`, and this ExecPlan. Runtime, identity, other
 tests/consumers, package metadata, and later batches cannot change.
 
-G004 permits RED/GREEN and public/import probes, the exact Batch 1 terminal
-schedule, staging only those seven paths, one commit with subject
-`fix: seal HappyCodex 0.6 semantic boundaries` and mandatory ExecPlan trailer,
-post-commit checks, and one mode-`0600` receipt at
-`/home/caichenghang/.codex/happycodex-0.6-bounded-redesign-g004-b1-receipt.json`.
-It permits no model/network/live call, executor command, install, release,
-activation, cross-line action, compatibility alias, delegation, or claim release.
+G004 produced commit
+`e500340ce7c4de8e50f5aa8292515478b1b4bc66`, tree
+`4a7c9db64c4551fc6fb588d5062eccaf38f2be9f`. Its mode-`0600` receipt at
+`/home/caichenghang/.codex/happycodex-0.6-bounded-redesign-g004-b1-receipt.json`
+has SHA-256
+`3ee8276b50c969721733c5b82e54e0ce8d51e73297ca9c80fcbc2ac4a221203e`,
+but is superseded and invalidated: Root's post-receipt acceptance amendment
+changed the intent SHA, and a sealed arbitrary action still passed both
+AttemptKey and effect enforcement. G004 source/intent/receipt remain immutable
+historical inputs; they are not amended or rewritten.
 
-G004 evidence before final terminal schedule:
+Grant `HC06BR-G-005-attempt-recompute`, sequence 5, binds G004 as prestate and
+permits only `evaluation/semantic/{canonical,decide}.py`,
+`tests/test_semantic_core.py`, and this ExecPlan. Its mode-`0600` intent is
+`/home/caichenghang/.codex/happycodex-0.6-bounded-redesign-g005-attempt-recompute-intent.json`,
+SHA-256
+`aada0d261a04dd035b1c7241a1c2ff3d6d1cbc60c31162d609727fc1d168736d`.
+It authorizes one commit, subject `fix: recompute HappyCodex reducer actions`,
+with trailer `HappyCodex-Grant: HC06BR-G-005-attempt-recompute`, then a
+mode-`0600` receipt at the same basename ending `-receipt.json`.
 
-- RED:
-  `/home/caichenghang/.codex/happycodex-0.6-bounded-redesign-g004-b1-red.txt`,
-  mode `0600`, SHA-256
-  `d75809838626d6aafca18fbaf2841fce519ea736fdecd1c40278bca68ce7a9c0`;
-  31 tests with 17 failures, directly reproducing all six Root probe outputs and
-  adjacent constructor/state/tag/sort/terminal boundaries;
-- focused GREEN plus authorized public/import probes:
-  `/home/caichenghang/.codex/happycodex-0.6-bounded-redesign-g004-b1-green.txt`,
-  mode `0600`, SHA-256
-  `10e1064836c804c3fbf2424630e0c764e7f6684cd73cc875f09235986d26003b`;
-  31 tests pass; public factories/private seams/constructors are closed and
-  exports remain exactly 20;
-- preliminary cumulative suite: 188 tests in 8.472 seconds, all passing;
-  preliminary `verify`, `corpus --dry-run`, and `holdout --dry-run` exit zero.
+G005 RED is
+`/home/caichenghang/.codex/happycodex-0.6-bounded-redesign-g005-attempt-recompute-red.txt`,
+SHA-256
+`021f1c7382ccc281c4412cd66d4913588030e8bfd8a765628a192719e10da6e6`:
+33 focused tests, exactly two failures, proving `_make_report` could seal an
+arbitrary action accepted by both consumers. Focused GREEN is the corresponding
+`-green.txt`, SHA-256
+`298982308aa5ec7908e28e6179ade0f17fc20498fb2285a89c209b3600957b83`:
+33/33 pass. The pure derivation remains owned by `decide.py`; effect enforcement
+calls it directly, while AttemptKey locally imports `reduce_facts` and compares
+the recomputed action without a module-level cycle.
 
-The semantic package remains exactly five files and is 1,087 production lines,
-below 1,200; Runtime bytes remain unchanged at 227 lines/1,919 words. Total
-production Python is 9,216 lines, measured/nonblocking until Batch 3. G003
-baseline findings `BR-FIND-BASE-001..003` remain resolved; G004 adds no accepted
-failure. No Goal, model call, live authority/attempt, generation-6 evidence,
-install, release, activation, or other-line action exists.
+The semantic package remains exactly five files and 20 exports; it is 1,092
+production lines, below 1,200. Runtime bytes remain unchanged at 227 lines/1,919
+words. No Goal, model/network/live call, authority/attempt, install, release,
+activation, cross-line action, delegation, or claim release exists.
 
-Current checkpoint: phase remains `implementation`; both Batch 1 family portions
-are G004 GREEN at recurrence 0 but Root acceptance stays open.
-`F-06BR-EVALUATOR`, imperative capability integration, the normalized Outcome,
-and every future cost/review/install/release/activation gate remain open. The
-final terminal schedule now runs against this index; then the Executor stages
-only seven paths, commits, verifies source/status/claim/trailer, writes and reads
-back the external receipt, and stops for Root. Batch 2 requires a new exact grant.
+Current checkpoint: both Batch 1 family portions are G005 GREEN at recurrence 0,
+but Root acceptance stays open. The Executor runs the complete offline terminal
+schedule against this index, commits only the four authorized paths, verifies
+source/status/claim/trailer, persists and reads back the G005 receipt, and stops.
+The receipt is terminal evidence and the G005 intent cannot change afterward.
+Batch 2 and every later live/cost/install/release/activation gate require new
+exact authority.
 
 Uncertainty rule: an outside path, changed prestate, unverified claim, ambiguous
 or partial effect, reproduction mismatch, unknown input, identity/config drift,
