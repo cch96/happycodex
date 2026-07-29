@@ -51,18 +51,40 @@
     }
   },
   "live_attempts": {
-    "corpus": "326fe08bfc17f92351705b8428f983ac1b7cb403a2d6c3402a1c3aa1cfb4eeb2",
-    "holdout": "ac8d08dce6c49bbce1758c05b26116e15e8f6f746b7cbfa5ee0a09c7669cff93"
+    "corpus": "11973c104c48374575eede79bf2a0c2ea47f1dfde478f7832d58aae2baedffec",
+    "holdout": "dba53e137f7794c8038d22f3f06a0755e669d1607add1e8da6823eff82d695f8"
   },
   "live_authority": null,
   "pending": {
-    "corpus_cases": [],
-    "holdout_pairs": [],
-    "reasons": [
-      "protocol_0_4_1_clean_break",
-      "user_waived_corpus_holdout_2026_07_29"
+    "corpus_cases": [
+      "authorized-rebaseline",
+      "boundary-cutover",
+      "clean-qualifying-control",
+      "compaction-recovery",
+      "exact-final-ready",
+      "goal-divergence",
+      "midflight-escalation",
+      "multi-repo-submodule",
+      "no-commit-archive-recovery",
+      "no-commit-secret",
+      "no-commit-unselected",
+      "pre-freeze-compaction",
+      "receipt-mismatch",
+      "review-admin-cycle",
+      "review-inventory-gate",
+      "review-isolation",
+      "subthreshold-control"
     ],
-    "review": true
+    "holdout_pairs": [
+      "authority-production-boundary",
+      "destructive-migration-fallback",
+      "local-documentation-control"
+    ],
+    "reasons": [
+      "release_0_4_2_refresh",
+      "user_waived_review_2026_07_29"
+    ],
+    "review": false
   },
   "schema_version": 1,
   "snapshot": {

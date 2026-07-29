@@ -152,9 +152,9 @@ class HappyCodexContractTests(unittest.TestCase):
         self.assertLessEqual(lines, 262)
         self.assertLessEqual(words, 2_400)
 
-    def test_manifest_uses_final_041_identity(self) -> None:
+    def test_manifest_uses_final_042_identity(self) -> None:
         manifest = json.loads(read(MANIFEST))
-        self.assertEqual(manifest["version"], "0.4.1+codex.20260729085734")
+        self.assertEqual(manifest["version"], "0.4.2+codex.20260729091527")
 
     def test_evaluator_cleanly_targets_public_040_baseline(self) -> None:
         active_evaluator = "\n".join(

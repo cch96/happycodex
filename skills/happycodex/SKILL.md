@@ -176,10 +176,10 @@ independent inventory both ways. Exclude evidence, decisions, receipts, Retrospe
 writer narrative, prior findings, verdict, original Git metadata/worktree, and Root conversation.
 Declared dependency reads require purpose/digest.
 
-Require receipt identity/status, configured-model source, effective model/effort, effective permission
-profile/network/write access, authorization/degradation, every diff unit/obligation, queries/counts,
+Require receipt identity/status, configured-model source, effective model/effort/permissions,
+network/write access, authorization/degradation, every diff unit/obligation, queries/counts,
 paths, external reads, evidence, limits, and mapping. Detailed findings stay in the native review
-output; ExecPlan keeps digests/counts/limits/dispositions. A missing diff unit, truncation, mismatch,
+output; ExecPlan keeps digests/counts/limits/dispositions. Missing units, truncation, mismatch,
 contamination, or unsupported evidence leaves review open; split correctness but keep a repository
 completeness pass. A fresh detached Desktop review substitutes only with identical source range,
 isolation, neutral brief, model/effort disclosure, and complete receipt.

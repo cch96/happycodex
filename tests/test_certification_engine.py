@@ -289,7 +289,7 @@ class CertificationImpactTests(unittest.TestCase):
         self.assertEqual(len(snapshot["holdout"]["pairs"]), 3)
         self.assertEqual(
             snapshot["package"]["artifact_sha256"],
-            "af541d4ea57becdd7c15f194222567862478adcff9b61a38e1aeaeea6b32887b",
+            "5d0955e9466897720257ff5c3ac9c3e89de139b0b8b47804b6f97aaad1bd7e88",
         )
         self.assertEqual(
             set(snapshot["settings"]["toolchain"]), {"python", "codex", "git", "rg"}
@@ -530,25 +530,33 @@ class CertificationImpactTests(unittest.TestCase):
             )
         )
         self.assertNotIn("prior_evidence", active)
-        self.assertEqual(active["pending"]["corpus_cases"], [])
-        self.assertEqual(active["pending"]["holdout_pairs"], [])
+        self.assertEqual(
+            active["pending"]["corpus_cases"],
+            sorted(active["snapshot"]["corpus"]["cases"]),
+        )
+        self.assertEqual(
+            active["pending"]["holdout_pairs"],
+            sorted(active["snapshot"]["holdout"]["pairs"]),
+        )
         self.assertEqual(
             active["pending"]["reasons"],
             [
-                "protocol_0_4_1_clean_break",
-                "user_waived_corpus_holdout_2026_07_29",
+                "release_0_4_2_refresh",
+                "user_waived_review_2026_07_29",
             ],
         )
-        self.assertTrue(active["pending"]["review"])
-        waived = plan_impact(
+        self.assertFalse(active["pending"]["review"])
+        self.assertEqual(set(active["live_attempts"]), {"corpus", "holdout"})
+        pending_refresh = plan_impact(
             active["snapshot"],
             active["snapshot"],
             pending=active["pending"],
         )
-        self.assertEqual(waived["gates"], ["review"])
-        self.assertEqual(waived["live_calls"], {"minimum": 0, "maximum": 0})
+        self.assertEqual(pending_refresh["gates"], ["corpus", "holdout"])
+        self.assertEqual(pending_refresh["live_calls"], {"minimum": 23, "maximum": 25})
         self.assertEqual(
-            waived["cost"]["combined_tokens"], {"minimum": 0, "maximum": 0}
+            pending_refresh["cost"]["combined_tokens"],
+            {"minimum": 719051, "maximum": 770869},
         )
 
 

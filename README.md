@@ -79,6 +79,15 @@ It scopes the single writer to shared mutable resources, batches sibling finding
 invariant, makes review mode explicit in evaluator receipts, and keeps ExecPlans as
 bounded current indexes with fail-closed recovery.
 
+## What's new in 0.4.2
+
+Version 0.4.2 reduces validation wall time without deleting behavior coverage.
+Corpus evaluation uses at most four workers with stable result ordering; each adaptive
+holdout pair runs its blinded candidate/public arms concurrently while pairs remain
+serial. Live attempts are consumed atomically before dispatch so failures cannot reuse
+the same approval, including across linked worktrees. Focused hardening defaults to
+`high`; exact-final review remains `max`.
+
 ## What's new in 0.3
 
 Version 0.3 is a clean-room replacement of the internal 0.2 workflow. It freezes a
