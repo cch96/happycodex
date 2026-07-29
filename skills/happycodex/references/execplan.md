@@ -40,4 +40,4 @@ Fill only after final completion; record lessons/risks, do not expose it to a re
 ## Neutral review brief
 Focused defaults `high`; recurrence uses `max`. Exact-final is fresh, neutral, and `max`: Phase 1 gets verbatim user text, accepted baseline failures, objective facts, and explicit exclusions; freeze obligations before evidence, then map contract-only sources.
 ## Coverage receipt
-Record review identity/output, mode/model/permissions, source/manifest, coverage/limits, contamination/dispositions; prove unchanged product-tree identity.
+Record command/session/output; role/config/toolchain; source/synthetic commits and manifest equality; model/effort/permissions; every unit/obligation mapping; queries/paths/external reads/contamination/limits/findings/dispositions.

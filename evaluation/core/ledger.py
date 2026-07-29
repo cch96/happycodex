@@ -4,6 +4,7 @@ import io
 from itertools import permutations
 import json
 import math
+import os
 from pathlib import Path, PurePosixPath
 import re
 import subprocess
@@ -57,6 +58,7 @@ LEDGER_FIELDS = {
     "state",
     "snapshot",
     "pending",
+    "live_attempts",
     "historical_cost",
     "live_authority",
     "certification",
@@ -75,6 +77,7 @@ AUTHORITY_FIELDS = {
 }
 CORPUS_INVOCATION_FIELDS = {
     "command",
+    "attempt_id",
     "package_semantic_sha256",
     "package_artifact_sha256",
     "model",
@@ -85,6 +88,7 @@ CORPUS_INVOCATION_FIELDS = {
 }
 HOLDOUT_INVOCATION_FIELDS = {
     "command",
+    "attempt_id",
     "candidate_semantic_sha256",
     "candidate_artifact_sha256",
     "public_semantic_sha256",
@@ -350,6 +354,7 @@ def _validate_invocation(invocation: Any) -> None:
     }.get(command)
     if fields is None or set(invocation) != fields:
         raise ValueError("invalid authorized invocation envelope")
+    _require_digest(invocation["attempt_id"], length=64, label="live attempt id")
     for field in ("model", "effort"):
         if not isinstance(invocation[field], str) or not invocation[field]:
             raise ValueError(f"invalid authorized invocation field: {field}")
@@ -538,12 +543,13 @@ def _authorization_boundary() -> tuple[type[Any], Any]:
         )
         return capability
 
-    def require_authorized_invocation(
+    def claim_authorized_invocation(
         authority: Any,
         *,
         snapshot: dict[str, Any],
         impact: dict[str, Any],
         invocation: dict[str, Any],
+        attempt_root: Path,
     ) -> AuthorizedInvocation:
         validate_live_authority(authority, snapshot=snapshot)
         validate_impact(impact, snapshot)
@@ -554,6 +560,36 @@ def _authorization_boundary() -> tuple[type[Any], Any]:
         authorized = {canonical_sha256(item) for item in authority["invocations"]}
         if requested not in authorized:
             raise ValueError("invocation is not authorized")
+        attempt_id = invocation["attempt_id"]
+        attempt_root.mkdir(parents=True, exist_ok=True)
+        receipt_path = attempt_root / f"{attempt_id}.json"
+        receipt = {
+            "schema_version": 1,
+            "attempt_id": attempt_id,
+            "authority_sha256": canonical_sha256(authority),
+            "impact_token": authority["impact_token"],
+            "invocation_sha256": requested,
+        }
+        flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+        if hasattr(os, "O_NOFOLLOW"):
+            flags |= os.O_NOFOLLOW
+        try:
+            descriptor = os.open(receipt_path, flags, 0o600)
+        except FileExistsError as exc:
+            raise ValueError("live invocation attempt is already consumed") from exc
+        try:
+            with os.fdopen(descriptor, "wb") as stream:
+                stream.write(canonical_json_bytes(receipt) + b"\n")
+                stream.flush()
+                os.fsync(stream.fileno())
+        except BaseException:
+            receipt_path.unlink(missing_ok=True)
+            raise
+        directory = os.open(attempt_root, os.O_RDONLY)
+        try:
+            os.fsync(directory)
+        finally:
+            os.close(directory)
         return mint(
             descriptor=invocation,
             snapshot=snapshot,
@@ -561,10 +597,10 @@ def _authorization_boundary() -> tuple[type[Any], Any]:
             authority_sha256=canonical_sha256(authority),
         )
 
-    return AuthorizedInvocation, require_authorized_invocation
+    return AuthorizedInvocation, claim_authorized_invocation
 
 
-AuthorizedInvocation, require_authorized_invocation = _authorization_boundary()
+AuthorizedInvocation, claim_authorized_invocation = _authorization_boundary()
 del _authorization_boundary
 
 
@@ -2086,11 +2122,38 @@ def validate_ledger(ledger: dict[str, Any], *, repo: Path | None = None) -> None
             raise ValueError(f"invalid pending scope: {field}")
     if not isinstance(pending["review"], bool):
         raise ValueError("invalid pending review gate")
-    if ledger.get("historical_cost") != historical_cost_receipt():
-        raise ValueError("invalid historical cost receipt")
+    live_attempts = ledger.get("live_attempts")
+    if not isinstance(live_attempts, dict):
+        raise ValueError("invalid live attempt envelope")
+    expected_attempts = {
+        command
+        for command, selected in (
+            ("corpus", pending["corpus_cases"]),
+            ("holdout", pending["holdout_pairs"]),
+        )
+        if selected
+    }
     live_authority = ledger.get("live_authority")
     if live_authority is not None:
+        invocations = live_authority.get("invocations")
+        if not isinstance(invocations, list):
+            raise ValueError("invalid live authority attempts")
+        expected_attempts = {
+            item.get("command") for item in invocations if isinstance(item, dict)
+        }
+    if set(live_attempts) != expected_attempts:
+        raise ValueError("live attempt scope does not match pending invocations")
+    for command, attempt_id in live_attempts.items():
+        _require_digest(attempt_id, length=64, label=f"{command} live attempt id")
+    if len(set(live_attempts.values())) != len(live_attempts):
+        raise ValueError("live attempt ids must be unique")
+    if ledger.get("historical_cost") != historical_cost_receipt():
+        raise ValueError("invalid historical cost receipt")
+    if live_authority is not None:
         validate_live_authority(live_authority, snapshot=snapshot)
+        for invocation in live_authority["invocations"]:
+            if live_attempts[invocation["command"]] != invocation["attempt_id"]:
+                raise ValueError("live authority attempt id mismatch")
     certification = ledger.get("certification")
     if state == "refresh_required":
         if certification is not None:

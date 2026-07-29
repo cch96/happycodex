@@ -32,7 +32,7 @@ def verify_command() -> int:
 
 def impact_command(public: Path | None = None) -> int:
     ledger, current, impact = live.load_state()
-    invocations = live.proposed_invocations(current, impact, public=public)
+    invocations = live.proposed_invocations(ledger, current, impact, public=public)
     holdout_ready = not impact["holdout_pairs"] or any(
         item["command"] == "holdout" for item in invocations
     )

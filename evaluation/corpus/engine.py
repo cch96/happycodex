@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import FIRST_COMPLETED, Future, ThreadPoolExecutor, wait
 from datetime import datetime, timezone
 import json
 import os
@@ -1456,6 +1456,33 @@ def invoke_codex(
     return completed, timed_out, time.monotonic() - started
 
 
+class InfrastructureFailure(RuntimeError):
+    """A model subprocess failed before producing behavior evidence."""
+
+
+def _persist_phase_raw(
+    case_output: Path,
+    phase: str,
+    completed: subprocess.CompletedProcess[str],
+) -> None:
+    (case_output / f"{phase}-events.jsonl").write_text(
+        completed.stdout, encoding="utf-8"
+    )
+    (case_output / f"{phase}-stderr.txt").write_text(completed.stderr, encoding="utf-8")
+
+
+def _require_model_phase_success(
+    completed: subprocess.CompletedProcess[str],
+    *,
+    timed_out: bool,
+    phase: str,
+) -> None:
+    if timed_out:
+        raise InfrastructureFailure(f"codex {phase} timed out")
+    if completed.returncode != 0:
+        raise InfrastructureFailure(f"codex {phase} exit {completed.returncode}")
+
+
 def compaction_receipt(
     home: Path,
     thread_id: str | None,
@@ -1982,6 +2009,13 @@ def evaluate_case(
             timeout=timeout,
             authorization=authorization,
         )
+        initial_phase = "prepare" if native else "initial"
+        _persist_phase_raw(case_output, initial_phase, initial)
+        _require_model_phase_success(
+            initial,
+            timed_out=initial_timed_out,
+            phase=initial_phase,
+        )
         completed = initial
         elapsed = initial_elapsed
         timed_out = initial_timed_out
@@ -2058,6 +2092,12 @@ def evaluate_case(
                     timeout=timeout,
                     authorization=authorization,
                 )
+                _persist_phase_raw(case_output, "resume", resumed)
+                _require_model_phase_success(
+                    resumed,
+                    timed_out=resume_timed_out,
+                    phase="resume",
+                )
                 completed = resumed
                 elapsed += resume_elapsed
                 timed_out = timed_out or resume_timed_out
@@ -2122,6 +2162,12 @@ def evaluate_case(
                     env=env,
                     timeout=timeout,
                     authorization=authorization,
+                )
+                _persist_phase_raw(case_output, "fresh-recovery", fresh_completed)
+                _require_model_phase_success(
+                    fresh_completed,
+                    timed_out=fresh_timed_out,
+                    phase="fresh recovery",
                 )
                 completed = fresh_completed
                 elapsed += fresh_elapsed
@@ -2333,13 +2379,39 @@ def _evaluate_cases_bounded(
     case_ids: list[str],
     evaluate: Callable[[str], dict[str, Any]],
 ) -> list[dict[str, Any]]:
-    """Evaluate each started case once; preserve order and propagate exceptions."""
+    """Keep a bounded frontier, preserve order, and stop replenishing on failure."""
     if not case_ids:
         return []
-    with ThreadPoolExecutor(
-        max_workers=min(CORPUS_MAX_WORKERS, len(case_ids))
-    ) as executor:
-        return list(executor.map(evaluate, case_ids))
+    worker_count = min(CORPUS_MAX_WORKERS, len(case_ids))
+    executor = ThreadPoolExecutor(max_workers=worker_count)
+    results: list[dict[str, Any] | None] = [None] * len(case_ids)
+    inflight: dict[Future[dict[str, Any]], int] = {}
+    next_index = 0
+    try:
+        while next_index < worker_count:
+            inflight[executor.submit(evaluate, case_ids[next_index])] = next_index
+            next_index += 1
+        while inflight:
+            completed, _pending = wait(inflight, return_when=FIRST_COMPLETED)
+            failure = next(
+                (future.exception() for future in completed if future.exception()),
+                None,
+            )
+            if failure is not None:
+                for future in inflight:
+                    future.cancel()
+                raise failure
+            for future in sorted(completed, key=inflight.__getitem__):
+                index = inflight.pop(future)
+                results[index] = future.result()
+            while next_index < len(case_ids) and len(inflight) < worker_count:
+                inflight[executor.submit(evaluate, case_ids[next_index])] = next_index
+                next_index += 1
+    finally:
+        executor.shutdown(wait=True, cancel_futures=True)
+    if any(result is None for result in results):
+        raise AssertionError("corpus scheduler lost a completed result")
+    return [result for result in results if result is not None]
 
 
 def run_authorized(args: Any, authorization: Any) -> int:

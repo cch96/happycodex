@@ -154,16 +154,13 @@ requested); an in-contract repair stays in the current task.
 Commit task changes or project every owned staged, unstaged, and untracked path into a clean review
 snapshot. Freeze source baseline/candidate IDs; build two neutral commits from complete product
 snapshots; exclude only the sole ExecPlan; prove manifest equality and a complete diff-unit inventory.
-The source range is authoritative. Freeze layered identities: review binds product tree, review
-configuration, and review toolchain; behavior binds semantic package/evaluator/settings/toolchain;
-artifact/install binds normalized package artifact and install receipt. Namespace repositories
-identically; changed submodules stay open until included.
+The source range is authoritative. Freeze the Git product tree, review configuration, and review
+toolchain; namespace repositories identically and keep changed submodules open until included.
 
 Any product-source change returns to focused_hardening and invalidates candidate evidence and
-all exact-final reviews. Invalidate behavior and artifact evidence only through their bound layers;
-ambiguity is a semantic product change. Before launch persist command, review identity, mode, and
-durable output. A foreground buffer is not a receipt; after interruption, resolve its durable
-terminal record before rerun.
+all exact-final reviews. Before launch persist command, candidate identity, review mode, and durable
+output. A foreground buffer is not a receipt; after interruption, resolve its durable terminal
+record before rerun.
 
 Exact-final reviewers must not see the Convergence Ledger, historical findings, counterexamples,
 repair story, or preferred verdict. Run dedicated native `codex review` in the same fresh reviewer

@@ -247,24 +247,33 @@ class HappyCodexContractTests(unittest.TestCase):
     def test_maintainer_validation_workflow_is_layered_and_not_runtime(self) -> None:
         runtime = folded(SKILL)
         maintainer = folded(EVALUATION_README)
-        self.assertNotIn("three independent exact-final roles", runtime)
+        for phrase in (
+            "behavior identity binds",
+            "artifact identity binds",
+            "semantic package/evaluator",
+        ):
+            self.assertNotIn(phrase, runtime)
         for phrase in (
             "not ordinary happycodex skill runtime",
-            "three independent exact-final roles",
-            "correctness/qa `max`",
-            "release/preservation `max`",
-            "simplification `high`",
-            "every role its own fresh session and durable output",
-            "only that role's two phases share a session",
-            "three consecutive releases with no unique simplification blocker",
+            "one pre-freeze simplification review at `high`",
+            "two non-overlapping `max` roles",
+            "correctness/qa owns evaluator semantics",
+            "release/preservation owns package bytes",
+            "assigns every obligation and diff unit exactly one primary role",
+            "specific cross-layer boundary checks",
+            "separate fresh sessions and durable outputs",
+            "only a role's two phases share its session",
             "review identity binds",
             "change invalidates exact review only",
             "behavior identity binds",
             "artifact identity binds",
             "completed exit-zero result with oracle failures is negative behavior evidence",
             "infrastructure failure and aborts before summary or reveal promotion",
+            "stop replenishing the frontier",
             "corpus and holdout never overlap",
-            "new canonical user cost approval",
+            "unique persisted `attempt_id`",
+            "atomic exclusive receipt in git metadata consumes",
+            "new persisted id, exact invocation, and canonical user cost approval",
             "prior grant cannot be reused",
         ):
             self.assertIn(phrase, maintainer)
@@ -545,6 +554,10 @@ class HappyCodexContractTests(unittest.TestCase):
             "receipt-only correction",
             "writer narrative",
             "coverage receipt",
+            "role/config/toolchain",
+            "source/synthetic commits and manifest equality",
+            "every unit/obligation mapping",
+            "external reads/contamination",
             "detailed findings stay in the native review output",
             "administrative closure revision",
             "product tree is unchanged",

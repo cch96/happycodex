@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
+import subprocess
 from typing import Any
 
 from evaluation.core.identity import package_identities
@@ -10,7 +11,7 @@ from evaluation.core.impact import (
     impact_token as snapshot_impact_token,
     plan_impact,
 )
-from evaluation.core.ledger import load_ledger, require_authorized_invocation
+from evaluation.core.ledger import claim_authorized_invocation, load_ledger
 from evaluation.corpus import engine as corpus_engine
 from evaluation.corpus.contract import (
     PUBLIC_040_PACKAGE_ARTIFACT_SHA256,
@@ -61,6 +62,7 @@ def _require_snapshot_settings(
 
 
 def proposed_invocations(
+    ledger: dict[str, Any],
     current: dict[str, Any],
     impact: dict[str, Any],
     *,
@@ -72,6 +74,7 @@ def proposed_invocations(
         invocations.append(
             {
                 "command": "corpus",
+                "attempt_id": ledger["live_attempts"]["corpus"],
                 "package_semantic_sha256": current["package"]["semantic_sha256"],
                 "package_artifact_sha256": current["package"]["artifact_sha256"],
                 "model": settings["model"],
@@ -91,6 +94,7 @@ def proposed_invocations(
         invocations.append(
             {
                 "command": "holdout",
+                "attempt_id": ledger["live_attempts"]["holdout"],
                 "candidate_semantic_sha256": current["package"]["semantic_sha256"],
                 "candidate_artifact_sha256": current["package"]["artifact_sha256"],
                 "public_semantic_sha256": public_identity["semantic_sha256"],
@@ -107,6 +111,7 @@ def proposed_invocations(
 def corpus_invocation(
     args: argparse.Namespace,
     *,
+    ledger: dict[str, Any],
     current: dict[str, Any],
     impact: dict[str, Any],
 ) -> dict[str, Any]:
@@ -127,7 +132,7 @@ def corpus_invocation(
     descriptor = next(
         (
             item
-            for item in proposed_invocations(current, impact)
+            for item in proposed_invocations(ledger, current, impact)
             if item["command"] == "corpus"
         ),
         None,
@@ -142,6 +147,7 @@ def corpus_invocation(
 def holdout_invocation(
     args: argparse.Namespace,
     *,
+    ledger: dict[str, Any],
     current: dict[str, Any],
     impact: dict[str, Any],
 ) -> dict[str, Any]:
@@ -155,7 +161,7 @@ def holdout_invocation(
     candidate = package_identities(args.candidate.expanduser().resolve())
     if candidate != current["package"]:
         raise ValueError("live holdout candidate does not match the current snapshot")
-    descriptors = proposed_invocations(current, impact, public=args.public)
+    descriptors = proposed_invocations(ledger, current, impact, public=args.public)
     descriptor = next(
         (item for item in descriptors if item["command"] == "holdout"), None
     )
@@ -164,6 +170,20 @@ def holdout_invocation(
     if descriptor["pairs"] != pairs:
         raise AssertionError("planned holdout scope changed during invocation binding")
     return descriptor
+
+
+def _attempt_registry_root() -> Path:
+    completed = subprocess.run(
+        ["git", "rev-parse", "--git-path", "happycodex-live-attempts"],
+        cwd=ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if completed.returncode:
+        raise ValueError("cannot resolve durable live attempt registry")
+    path = Path(completed.stdout.strip())
+    return (ROOT / path).resolve() if not path.is_absolute() else path.resolve()
 
 
 def run_command(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
@@ -182,15 +202,16 @@ def run_command(args: argparse.Namespace, parser: argparse.ArgumentParser) -> in
                 "read-only impact receipt"
             )
         invocation = (
-            corpus_invocation(args, current=current, impact=impact)
+            corpus_invocation(args, ledger=ledger, current=current, impact=impact)
             if args.command == "corpus"
-            else holdout_invocation(args, current=current, impact=impact)
+            else holdout_invocation(args, ledger=ledger, current=current, impact=impact)
         )
-        authorization = require_authorized_invocation(
+        authorization = claim_authorized_invocation(
             ledger["live_authority"],
             snapshot=current,
             impact=impact,
             invocation=invocation,
+            attempt_root=_attempt_registry_root(),
         )
     except (OSError, RuntimeError, ValueError) as exc:
         parser.error(str(exc))

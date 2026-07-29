@@ -50,6 +50,10 @@
       }
     }
   },
+  "live_attempts": {
+    "corpus": "326fe08bfc17f92351705b8428f983ac1b7cb403a2d6c3402a1c3aa1cfb4eeb2",
+    "holdout": "ac8d08dce6c49bbce1758c05b26116e15e8f6f746b7cbfa5ee0a09c7669cff93"
+  },
   "live_authority": null,
   "pending": {
     "corpus_cases": [],

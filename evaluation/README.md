@@ -111,16 +111,19 @@ mapping, and persists the regression receipt. Timeout, nonzero exit, or exceptio
 infrastructure failure and aborts before summary or reveal promotion.
 
 This repository's maintainer release workflow—not ordinary HappyCodex Skill Runtime—
-uses three independent exact-final roles: correctness/QA `max`,
-release/preservation `max`, and simplification `high` (escalate for a large diff,
-recurrence, legacy bypass, or unresolved complexity). Give every role its own fresh
-session and durable output; only that role's two phases share a session. After their
-clean union, run the complete corpus once with at most four workers and stable
-case-order projection. Holdout pairs stay serial and adaptive; only the current pair's
-two blinded arms overlap, with stable alias projection. Corpus and holdout never
-overlap.
-Track unique simplification blockers per release. Only a later authorized amendment
-may merge roles, after three consecutive releases with no unique simplification blocker.
+runs one pre-freeze simplification review at `high`, escalating for a large diff,
+recurrence, legacy bypass, or unresolved complexity. Exact-final then uses two
+non-overlapping `max` roles: correctness/QA owns evaluator semantics, state, schema,
+oracles, and negative behavior; release/preservation owns package bytes, install,
+identity, rollback, public behavior, and release claims. Freeze a responsibility matrix
+that assigns every obligation and diff unit exactly one primary role; declare only
+specific cross-layer boundary checks instead of repeating full enumeration. Give both
+roles separate fresh sessions and durable outputs; only a role's two phases share its
+session. After their clean union, run the complete corpus once with at most four active
+workers and stable case-order projection; stop replenishing the frontier after the
+first infrastructure exception. Holdout pairs stay serial and adaptive; only the
+current pair's two blinded arms overlap, with stable alias projection. Corpus and
+holdout never overlap.
 
 Review identity binds product tree, reviewer role config, and review toolchain; its
 change invalidates exact review only. Behavior identity binds semantic package,
@@ -128,9 +131,11 @@ evaluator semantic/harness inputs, settings, and evaluator toolchain. Artifact i
 binds normalized package bytes and install receipt. Invalidate only evidence consuming
 the changed layer; ambiguity fails closed as semantic change.
 
-No call is retried automatically. Infrastructure failure ends the authorized attempt;
-this workflow authorizes no rerun. A later attempt requires a separately persisted exact
-invocation and a new canonical user cost approval; the prior grant cannot be reused.
+Every authorized invocation carries a unique persisted `attempt_id`. Before model
+dispatch an atomic exclusive receipt in Git metadata consumes that attempt, including
+when infrastructure later fails. No call is retried automatically. A later attempt
+requires a new persisted ID, exact invocation, and canonical user cost approval; the
+prior grant cannot be reused.
 
 Historical per-call wall times imply a conservative 21–40 minute planning band for a
 complete corpus plus adaptive holdout under this schedule. This is not a live

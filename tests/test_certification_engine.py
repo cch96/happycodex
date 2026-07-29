@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 import copy
 import json
 from pathlib import Path
@@ -71,6 +72,7 @@ def complete_live_authority(
         invocations.append(
             {
                 "command": "corpus",
+                "attempt_id": ledger["live_attempts"]["corpus"],
                 "package_semantic_sha256": package["semantic_sha256"],
                 "package_artifact_sha256": package["artifact_sha256"],
                 "model": settings["model"],
@@ -84,6 +86,7 @@ def complete_live_authority(
         invocations.append(
             {
                 "command": "holdout",
+                "attempt_id": ledger["live_attempts"]["holdout"],
                 "candidate_semantic_sha256": package["semantic_sha256"],
                 "candidate_artifact_sha256": package["artifact_sha256"],
                 "public_semantic_sha256": "c5030e99dd7cd1681148c069775671c5720bb8dd366930ff90f61cbc54cdfc05",
@@ -147,6 +150,10 @@ def full_live_test_state() -> tuple[
         "state": "refresh_required",
         "snapshot": current,
         "pending": pending,
+        "live_attempts": {
+            "corpus": "1" * 64,
+            "holdout": "2" * 64,
+        },
         "historical_cost": historical_cost_receipt(),
         "live_authority": None,
         "certification": None,
@@ -635,11 +642,45 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
             raise RuntimeError(f"infra failure: {case_id}")
 
         with self.assertRaisesRegex(RuntimeError, "infra failure"):
-            corpus_engine._evaluate_cases_bounded(["case-0", "case-1"], evaluate)
+            corpus_engine._evaluate_cases_bounded(
+                [f"case-{index}" for index in range(8)], evaluate
+            )
 
         self.assertTrue(attempts)
-        self.assertLessEqual(set(attempts), {"case-0", "case-1"})
+        self.assertLessEqual(
+            set(attempts),
+            {f"case-{index}" for index in range(corpus_engine.CORPUS_MAX_WORKERS)},
+        )
         self.assertEqual(set(attempts.values()), {1})
+
+    def test_timeout_and_nonzero_exit_are_infrastructure_failures(self) -> None:
+        for label, completed, timed_out in (
+            (
+                "timeout",
+                subprocess.CompletedProcess(["codex"], 124, "", "timeout"),
+                True,
+            ),
+            (
+                "nonzero",
+                subprocess.CompletedProcess(["codex"], 7, "partial", "failed"),
+                False,
+            ),
+        ):
+            with self.subTest(label=label), tempfile.TemporaryDirectory() as raw:
+                output = Path(raw)
+                corpus_engine._persist_phase_raw(output, label, completed)
+                with self.assertRaises(corpus_engine.InfrastructureFailure):
+                    corpus_engine._require_model_phase_success(
+                        completed,
+                        timed_out=timed_out,
+                        phase=label,
+                    )
+                self.assertEqual(
+                    (output / f"{label}-events.jsonl").read_text(), completed.stdout
+                )
+                self.assertEqual(
+                    (output / f"{label}-stderr.txt").read_text(), completed.stderr
+                )
 
     def test_native_review_remains_an_external_completion_gate(self) -> None:
         self.assertNotIn("review", ledger_engine.COVERAGE_FIELDS)
@@ -660,6 +701,7 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
             "holdout_pairs": [],
             "review": False,
         }
+        invalid["live_attempts"] = {}
         invalid["certification"] = {}
         with self.assertRaisesRegex(ValueError, "certification receipt"):
             validate_ledger(invalid)
@@ -669,25 +711,42 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
         authority = complete_live_authority(ledger, current, impact)
         invocation = authority["invocations"][0]
         ledger_engine.validate_live_authority(authority, snapshot=current)
-        ledger_engine.require_authorized_invocation(
-            authority, snapshot=current, impact=impact, invocation=invocation
-        )
-        for field, value in (
-            ("model", "unapproved-model"),
-            ("effort", "low"),
-            ("timeout_seconds", 1),
-            ("package_artifact_sha256", "5" * 64),
-        ):
-            with self.subTest(field=field):
-                changed = copy.deepcopy(invocation)
-                changed[field] = value
-                with self.assertRaisesRegex(ValueError, "invocation is not authorized"):
-                    ledger_engine.require_authorized_invocation(
-                        authority,
-                        snapshot=current,
-                        impact=impact,
-                        invocation=changed,
-                    )
+        with tempfile.TemporaryDirectory() as raw:
+            attempt_root = Path(raw)
+            ledger_engine.claim_authorized_invocation(
+                authority,
+                snapshot=current,
+                impact=impact,
+                invocation=invocation,
+                attempt_root=attempt_root,
+            )
+            with self.assertRaisesRegex(ValueError, "already consumed"):
+                ledger_engine.claim_authorized_invocation(
+                    authority,
+                    snapshot=current,
+                    impact=impact,
+                    invocation=invocation,
+                    attempt_root=attempt_root,
+                )
+            for field, value in (
+                ("model", "unapproved-model"),
+                ("effort", "low"),
+                ("timeout_seconds", 1),
+                ("package_artifact_sha256", "5" * 64),
+            ):
+                with self.subTest(field=field):
+                    changed = copy.deepcopy(invocation)
+                    changed[field] = value
+                    with self.assertRaisesRegex(
+                        ValueError, "invocation is not authorized"
+                    ):
+                        ledger_engine.claim_authorized_invocation(
+                            authority,
+                            snapshot=current,
+                            impact=impact,
+                            invocation=changed,
+                            attempt_root=attempt_root,
+                        )
 
         incomplete = copy.deepcopy(authority)
         incomplete["invocations"] = incomplete["invocations"][:1]
@@ -737,6 +796,35 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                 wrong_public_semantic, snapshot=current
             )
 
+    def test_live_attempt_claim_is_atomic(self) -> None:
+        ledger, current, impact = full_live_test_state()
+        authority = complete_live_authority(ledger, current, impact)
+        invocation = authority["invocations"][0]
+        with tempfile.TemporaryDirectory() as raw:
+            barrier = threading.Barrier(2)
+
+            def claim() -> str:
+                barrier.wait(timeout=2)
+                try:
+                    ledger_engine.claim_authorized_invocation(
+                        authority,
+                        snapshot=current,
+                        impact=impact,
+                        invocation=invocation,
+                        attempt_root=Path(raw),
+                    )
+                except ValueError as exc:
+                    return str(exc)
+                return "claimed"
+
+            with ThreadPoolExecutor(max_workers=2) as executor:
+                outcomes = list(executor.map(lambda _index: claim(), range(2)))
+
+        self.assertEqual(outcomes.count("claimed"), 1)
+        self.assertEqual(
+            outcomes.count("live invocation attempt is already consumed"), 1
+        )
+
     def test_persisting_authority_does_not_create_a_token_cycle(self) -> None:
         ledger, current, impact = full_live_test_state()
         token = live.impact_token(ledger, current, impact)
@@ -765,6 +853,8 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
             mock.patch.object(
                 live.corpus_engine, "run_authorized", return_value=0
             ) as runner,
+            tempfile.TemporaryDirectory() as raw,
+            mock.patch.object(live, "_attempt_registry_root", return_value=Path(raw)),
         ):
             self.assertEqual(live.run_command(args, parser), 0)
         authorization = runner.call_args.args[1]
@@ -895,11 +985,12 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
             corpus_invocation = next(
                 item for item in authority["invocations"] if item["command"] == "corpus"
             )
-            authorization = ledger_engine.require_authorized_invocation(
+            authorization = ledger_engine.claim_authorized_invocation(
                 authority,
                 snapshot=current,
                 impact=impact,
                 invocation=corpus_invocation,
+                attempt_root=Path(raw) / "attempts",
             )
             mismatched_plugin = Path(raw) / "mismatched-plugin"
             mismatched_plugin.mkdir()
@@ -1083,6 +1174,10 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                 "state": "refresh_required",
                 "snapshot": snapshot,
                 "pending": pending,
+                "live_attempts": {
+                    "corpus": "1" * 64,
+                    "holdout": "2" * 64,
+                },
                 "historical_cost": historical_cost_receipt(),
                 "live_authority": None,
                 "certification": None,
@@ -1903,7 +1998,7 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                 )
                 continue
 
-            invocations = live.proposed_invocations(current, expected_impact)
+            invocations = live.proposed_invocations(ledger, current, expected_impact)
             holdout_ready = not expected_impact["holdout_pairs"] or any(
                 item["command"] == "holdout" for item in invocations
             )
@@ -1954,9 +2049,12 @@ class CertificationReceiptAndCliTests(unittest.TestCase):
                 ),
                 mock.patch.object(
                     live,
-                    "require_authorized_invocation",
-                    wraps=live.require_authorized_invocation,
+                    "claim_authorized_invocation",
+                    wraps=live.claim_authorized_invocation,
                 ) as authority_gate,
+                mock.patch.object(
+                    live, "_attempt_registry_root", return_value=Path(raw) / "attempts"
+                ),
                 mock.patch.object(live.corpus_engine, "run_authorized") as runner,
             ):
                 with self.assertRaisesRegex(SystemExit, "2"):
