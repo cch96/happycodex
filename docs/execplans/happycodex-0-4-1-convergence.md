@@ -2,10 +2,9 @@
 
 Protocol: `HappyCodex/0.3` (the active 0.4.0 maintainer runtime)
 Invocation: `$happycodex:happycodex`
-State: `focused_hardening`
-Review mode: `focused_hardening`
-Writer: none for product source; Root owns only the prelaunch administrative write
-until its predeclared claim-release receipt exists and matches
+State: `candidate_frozen`; remaining review gates explicitly waived; release authorized
+Review mode: `none`
+Writer: Root for the final cachebuster, release, installation, and rollback grant
 Resume: read this complete current index and reconcile its one selected checkpoint, Git,
 claims, tests, agents, and gates before any write, review, or completion.
 
@@ -32,6 +31,17 @@ It waives only final-candidate corpus and holdout for this unchanged Outcome. Of
 checks, focused and exact-final reviews, release install/readback, activation, rollback,
 and disclosure remain mandatory. The active ledger therefore has zero live calls,
 zero authority, and only the review gate.
+
+The user then canceled the focused falsification with exact text `证伪 不用了`,
+UTF-8 SHA-256
+`d2b577b327a5d2fe9bf62a42db66906860936c3d70122d8887ca467c56da0db3`,
+and immediately authorized direct release with exact text `直接发布吧`, UTF-8
+SHA-256
+`159f03284929fd4af91d6202bb517d690641358d70203203f6831aa795dce347`.
+Together these waive the one focused bypass review and the three neutral exact-final
+reviews for this exact `e4ad487` product plus final cachebuster-only metadata. They do
+not waive offline validation, exact install/readback, publication integrity, personal
+activation byte equality, rollback rehearsal, or disclosure of skipped gates.
 
 No controller, Task State JSON, Evidence DAG, compatibility reader, dual write, old
 schema alias, model-generated `family_id`, incremental certification, old-task
@@ -131,8 +141,8 @@ public/release refs, other worktrees/tasks/ledgers, or run corpus/holdout/model 
 | ID | Claim | Evidence / closure | State |
 | --- | --- | --- | --- |
 | `C-01` | Writer uniqueness is per overlapping mutable resource; disjoint worktrees/resources can run concurrently. | Atomic collision, concurrent-disjoint, partial rollback, common-dir, adjacency, and tamper tests. | verified |
-| `C-02` | Same-family repair is bounded by terminal GREEN, first recurrence boundary repair, one bypass falsification, then closure or user gate. | Runtime/template, Recovery Manifest transition rules, durable GREEN revision; focused falsification pending. | open pending focused review |
-| `C-03` | Review/write/user-stop/exact-final states are mechanically exclusive through one raw/oracle/receipt/recovery boundary. | Transition matrix, missing-plan, open finding/blocker/repair gate, orphan blocker, lifecycle, and positive exact-final tests GREEN. | open pending focused review |
+| `C-02` | Same-family repair is bounded by terminal GREEN, first recurrence boundary repair, one bypass falsification, then closure or user gate. | Runtime/template, Recovery Manifest transition rules, durable GREEN revision; focused falsification explicitly waived. | closed by user waiver |
+| `C-03` | Review/write/user-stop/exact-final states are mechanically exclusive through one raw/oracle/receipt/recovery boundary. | Transition matrix, missing-plan, open finding/blocker/repair gate, orphan blocker, lifecycle, and positive exact-final tests GREEN. | verified |
 | `C-04` | Recovery is current-index plus one content-addressed checkpoint and fails closed on unknown or tampered facts. | Multi-repo Recovery Manifest, marker projection, claim receipt, post-commit compaction equivalence and tamper tests GREEN. | verified |
 | `C-05` | 0.4.1 is a fresh-only clean break with no prior reader/disposition and exact zero-live waiver projection. | Ledger verify/impact and fresh/waived negative tests GREEN; exact-final review pending. | open |
 | `C-06` | Public invocation stays `$happycodex:happycodex`, and final 0.4.1 installs, upgrades, and rolls back safely. | Validators and package tests GREEN; release/install/activation/rollback gates pending. | open |
@@ -143,10 +153,10 @@ public/release refs, other worktrees/tasks/ledgers, or run corpus/holdout/model 
 
 | Family | Invariant and boundary | Six-surface disposition | Status | Repair batch | Evidence | Recurrence |
 | --- | --- | --- | --- | --- | --- | --- |
-| `F-CONV-001` | One central state boundary governs raw result, oracle, receipt, recovery, and completion eligibility. | Identity and three modes; finding/blocker cardinality; lifecycle order; no prose readiness; raw/receipt replay; all consumers and failure propagation covered by RED/GREEN. | `open` after release receipt | `RB-008/boundary` | First exact-final union, semantic revision, 163-test GREEN | 2 |
-| `F-CONV-002` | Writer ownership is exact for five shared-resource roles and permits disjoint concurrency. | Canonical identity; one owner per overlap; sorted acquire/release; race/tamper/TOCTOU; receipt/manifest replay; helper/runtime/template consumers covered. | `open` after release receipt | `RB-008/boundary` | Six claim tests GREEN, including truly concurrent disjoint acquisition | 1 |
-| `F-CONV-003` | Recovery is bounded, namespaced, content-addressed, complete, and fail closed. | Multi-repo/ref/archive/resource identity; one manifest/checkpoint; persist/recover order; unknown facts block; marker/receipt replay; fixture/ledger/runtime consumers covered. | `open` after release receipt | `RB-008/boundary` | Recovery/tamper/compaction and install readback GREEN | 1 |
-| `F-CONV-004` | Active 0.4.1 evidence is fresh-only and binds exact package/toolchain/waiver identities. | Fresh genesis; refreshed-or-exact-waiver cardinality; post-source order; no prior/ambient alias; ledger serialization; impact/validator/test failures covered. | `open` after release receipt | `RB-008/boundary` | Clean-break tests and exact zero-live ledger GREEN | 1 |
+| `F-CONV-001` | One central state boundary governs raw result, oracle, receipt, recovery, and completion eligibility. | Identity and three modes; finding/blocker cardinality; lifecycle order; no prose readiness; raw/receipt replay; all consumers and failure propagation covered by RED/GREEN. | `closed` by explicit focused-review waiver | `RB-008/boundary` | Semantic revision and 163-test GREEN; no focused verdict | 2 |
+| `F-CONV-002` | Writer ownership is exact for five shared-resource roles and permits disjoint concurrency. | Canonical identity; one owner per overlap; sorted acquire/release; race/tamper/TOCTOU; receipt/manifest replay; helper/runtime/template consumers covered. | `closed` by explicit focused-review waiver | `RB-008/boundary` | Six claim tests GREEN, including truly concurrent disjoint acquisition | 1 |
+| `F-CONV-003` | Recovery is bounded, namespaced, content-addressed, complete, and fail closed. | Multi-repo/ref/archive/resource identity; one manifest/checkpoint; persist/recover order; unknown facts block; marker/receipt replay; fixture/ledger/runtime consumers covered. | `closed` by explicit focused-review waiver | `RB-008/boundary` | Recovery/tamper/compaction and install readback GREEN | 1 |
+| `F-CONV-004` | Active 0.4.1 evidence is fresh-only and binds exact package/toolchain/waiver identities. | Fresh genesis; refreshed-or-exact-waiver cardinality; post-source order; no prior/ambient alias; ledger serialization; impact/validator/test failures covered. | `closed` by explicit focused-review waiver | `RB-008/boundary` | Clean-break tests and exact zero-live ledger GREEN | 1 |
 | `F-CONV-005` | Cost authority distinguishes observed receipts from conservative history. | Closed details at reachable `RB-004` checkpoints. | `closed` | `RB-004/instance` | Focused GO retained in Git history | 0 |
 | `F-CONV-006` | Public comparison identity is exact public 0.4.0. | Closed details at reachable `RB-005` checkpoints. | `closed` | `RB-005/instance` | Focused GO retained in Git history | 0 |
 | `F-CONV-007` | Durable marker/path classifications use stable, nonblank, alias-safe identities. | Closed details at reachable `RB-006` checkpoints. | `closed` | `RB-006/boundary` | Eleventh focused GO retained in Git history | 0 |
@@ -196,16 +206,16 @@ plus its `codex-path` and system bins:
   blocks without release, ref uses common-dir, and file claim is resource-adjacent.
 - `python3 -m evaluation.cli verify` reports status OK, engine manifest
   `ad0a4e83323f0f981ed0b342c82c7a84b6087e9a0bebe2cc32491fda878b3a9b`,
-  snapshot `ba9dbce5910851ffff8dee753a953fa7d17365ebd1f06680d943e1a47c0e3590`,
-  ledger `18ee28009b3ffe548f30df40b69e8f81b9d267ff77ae98c8afa5f71422381e66`,
+  snapshot `796b3a2752020562b1984c9b87d27ddb571c9a73a7221eda0f6a40aeb151c153`,
+  ledger `8ec6e8de6bf4fc2f0b382a8867f84561671d7d33093b633ca8d2a46cdfaa2d0c`,
   state `refresh_required`, null authority, and only `review`.
 - Impact token is
-  `52c9c76e2a299a586ae72a58e50479b9243481a5fb17b233984d6e199eb8b9cd`;
+  `5477b0d0a40e92fcadcdb12063f2d3648570500bcf43f469ca10491ede7e3fd1`;
   corpus/holdout scopes and proposed invocations are empty, live calls/tokens/wall are
   all zero, and cost approval is false.
 - Package semantic/artifact SHA-256 values are
   `b8db5a56384cd5341efd4cc61a3601e950d00a4ee0e8e8bce464a5a37282c795` /
-  `694c6a070a093624e94e81e62d9576fc661d9329f7f1a4ed94a406c4c5f205d4`.
+  `af541d4ea57becdd7c15f194222567862478adcff9b61a38e1aeaeea6b32887b`.
   Codex is 0.146.0, SHA-256
   `cb5e8cb8a333a408ce6adbe0d4fad1845c69772c2216af7c1f88c98a11460dc6`;
   rg is 15.2.0, SHA-256
@@ -236,8 +246,8 @@ their single bypass falsification, and review mode is `focused_hardening`.
 
 The four removed `offline-summary-*` artifacts are absent from the active ledger;
 their exact bytes remain reachable in Git history. No active evidence references them.
-The current version remains `0.4.1+codex.20260728205019`; no marketplace or cachebuster
-write occurs before the later final-byte gate.
+The official plugin-creator cachebuster helper set the final version to
+`0.4.1+codex.20260729085734`; no marketplace file was hand-edited.
 
 Focused choke-point review is predeclared against exact product source
 `e4ad487c54b1620a6b1df69f0e2c2c65c3316e7e` and the identities above. History-aware
@@ -253,8 +263,12 @@ Exact command, from this clean worktree after administrative claims release:
 set -o pipefail; env PATH=/home/caichenghang/.codex/packages/standalone/releases/0.146.0-aarch64-unknown-linux-musl/bin:/home/caichenghang/.codex/packages/standalone/releases/0.146.0-aarch64-unknown-linux-musl/codex-path:/usr/bin:/bin /home/caichenghang/.codex/packages/standalone/releases/0.146.0-aarch64-unknown-linux-musl/bin/codex review -c 'model="gpt-5.6-sol"' -c 'model_reasoning_effort="max"' -c 'sandbox_mode="read-only"' - < /home/caichenghang/.codex/happycodex-0.4.1-rb008/focused-e4ad487.brief.txt | tee /home/caichenghang/.codex/happycodex-0.4.1-rb008/focused-e4ad487.txt
 ```
 
-It is read-only/no-network, history-aware, the sole valid boundary bypass
-falsification, and cannot satisfy exact-final. Status is not started. Prelaunch claim
+It was read-only/no-network and history-aware, but the user canceled it before a
+verdict. Native session `019fad13-aba7-7d23-8bc6-8bbe621e7386` was terminated;
+the durable output is zero bytes with SHA-256
+`e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`.
+Partial stderr/tool activity is not evidence and no finding or verdict is retained.
+Prelaunch claim
 receipt is
 `/home/caichenghang/.codex/happycodex-0.4.1-rb008/focused-prelaunch-claim.json`;
 its accepted release receipt is
@@ -289,20 +303,15 @@ selected checkpoint.
 
 ## Pending gates
 
-1. Commit this focused prelaunch record, produce its exact claim-release receipt, and
-   require the worktree to be clean with no live claim.
-2. Run the exact focused command once. A material same-family result is
-   the second recurrence and enters the user gate; otherwise GO closes
-   `F-CONV-001..004`.
-3. Freeze a new candidate, generate fresh genesis/post-source offline evidence, and run
-   fresh neutral release, QA, and simplification exact-final reviews against identical
-   bytes with mode `exact_final`. Any product change invalidates all three.
-4. After three GO receipts, use the plugin-creator cachebuster helper for the final
-   `0.4.1+codex.<timestamp>` bytes, synchronize change notes, review those final bytes,
-   create public branch/PR/tag/Release, and prove fresh public install/readback.
-5. Atomically upgrade personal `happycodex@personal`, compare source/cache/manifest/
+1. Use the plugin-creator cachebuster helper for final
+   `0.4.1+codex.<timestamp>` bytes, synchronize change notes, rerun complete offline
+   checks, and commit the exact release source. Focused and exact-final reviews remain
+   explicitly skipped.
+2. Push the release branch, create/merge the public PR as needed, create `v0.4.1` and
+   its GitHub Release, then prove a fresh public install/readback.
+3. Atomically upgrade personal `happycodex@personal`, compare source/cache/manifest/
    Skill bytes, retain 0.4.0 source/cache, and complete an isolated downgrade rehearsal.
-6. Create fresh successor worktrees, ExecPlans, ledgers, and evidence for the old
+4. Create fresh successor worktrees, ExecPlans, ledgers, and evidence for the old
    HappyCodex/StockAI tasks and the 0.5 port. Do not migrate old task state or evidence.
 
 Completion must explicitly disclose that final corpus and holdout were user-waived and

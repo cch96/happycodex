@@ -162,7 +162,7 @@ class HappyCodexContractTests(unittest.TestCase):
 
     def test_manifest_uses_final_041_identity(self) -> None:
         manifest = json.loads(read(MANIFEST))
-        self.assertEqual(manifest["version"], "0.4.1+codex.20260728205019")
+        self.assertEqual(manifest["version"], "0.4.1+codex.20260729085734")
 
     def test_evaluator_cleanly_targets_public_040_baseline(self) -> None:
         active_evaluator = "\n".join(

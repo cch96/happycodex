@@ -104,7 +104,7 @@
       }
     },
     "package": {
-      "artifact_sha256": "694c6a070a093624e94e81e62d9576fc661d9329f7f1a4ed94a406c4c5f205d4",
+      "artifact_sha256": "af541d4ea57becdd7c15f194222567862478adcff9b61a38e1aeaeea6b32887b",
       "semantic_sha256": "b8db5a56384cd5341efd4cc61a3601e950d00a4ee0e8e8bce464a5a37282c795"
     },
     "schema_version": 1,
