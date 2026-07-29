@@ -216,6 +216,37 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             ["original_goal", "frozen_acceptance", "exhaustive_claim"],
         )
 
+    def test_remaining_markers_and_dirty_paths_have_anchored_classifications(
+        self,
+    ) -> None:
+        expected = {
+            "no-commit-archive-recovery": {
+                ("ARCHIVE-RECOVERY-VALID", "receipt", ("resolved",))
+            },
+            "midflight-escalation": {
+                ("lib.py", "other", ("candidate_new", "unknown"))
+            },
+            "no-commit-secret": {
+                ("product.cfg", "secret", ("baseline_unchanged",)),
+                ("scan.txt", "secret", ("candidate_new", "unknown")),
+            },
+        }
+        for case_id, required in expected.items():
+            actual = set()
+            for item in self.cases[case_id]["oracle"].get(
+                "required_anchored_classifications", []
+            ):
+                states = item["state"]
+                actual.add(
+                    (
+                        item["anchor"],
+                        item["domain"],
+                        tuple(states if isinstance(states, list) else [states]),
+                    )
+                )
+            with self.subTest(case=case_id):
+                self.assertTrue(required.issubset(actual))
+
     def test_live_oracle_alternatives_cannot_authorize_user_gated_writes(self) -> None:
         case = self.cases["multi-repo-submodule"]
         result = {
@@ -272,6 +303,42 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                 expected_permissions=None,
             )
 
+        recovery_gated = {
+            **result,
+            "decision": "continue",
+            "execplan_condition": "usable",
+            "protocol_review_mode": "none",
+            "recovery_state": {
+                "baseline_revision": "1" * 40,
+                "baseline_tree": "2" * 40,
+                "current_revision": "3" * 40,
+                "current_tree": "4" * 40,
+                "writer": "Root",
+                "milestone_phase": "implementation",
+                "next_action": "ask_user",
+                "pending_gates": ["user_selection"],
+                "tests": {
+                    "passed": 0,
+                    "failed": 0,
+                    "accepted_failures": 0,
+                    "marker_ids": [],
+                },
+                "worktree": "clean",
+                "live_agents": [],
+                "marker_ids": [],
+            },
+        }
+        failures = runner.protocol_state_failures(recovery_gated)
+        self.assertTrue(any("user selection" in failure for failure in failures))
+        receipt = receipt_engine.sanitized_result_receipt(recovery_gated)
+        with self.assertRaisesRegex(ValueError, "review mode state"):
+            ledger_engine._validate_result_receipt(
+                receipt,
+                label="recovery-user-gated-write",
+                required=True,
+                recovery_required=True,
+            )
+
     def test_required_anchor_members_and_items_are_distinct(self) -> None:
         oracle = {
             "expected": {"protocol_may_complete": False},
@@ -314,6 +381,24 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                 label="collapsed-anchors",
             )
 
+        duplicated = json.loads(json.dumps(collapsed))
+        duplicated["finding_classifications"].append(
+            json.loads(json.dumps(duplicated["finding_classifications"][0]))
+        )
+        failures = runner.match_oracle(duplicated, oracle)
+        self.assertTrue(
+            any("distinct anchored classification" in item for item in failures)
+        )
+        receipt = receipt_engine.sanitized_result_receipt(duplicated)
+        with self.assertRaisesRegex(
+            ValueError, "distinct anchored classification receipt"
+        ):
+            ledger_engine._validate_case_oracle_receipt(
+                receipt,
+                case={"fixture": {}, "oracle": oracle},
+                label="duplicate-stable-identity",
+            )
+
     def test_resolved_finding_cannot_remain_blocking(self) -> None:
         result = {
             "decision": "continue",
@@ -353,6 +438,23 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             ledger_engine._validate_result_receipt(
                 receipt,
                 label="resolved-blocker",
+                required=True,
+                recovery_required=False,
+            )
+
+        aliased = json.loads(json.dumps(result))
+        aliased["finding_classifications"][0]["identity"] = (
+            "MODEL:multi-repo-scope"
+        )
+        failures = runner.protocol_state_failures(aliased)
+        self.assertTrue(
+            any("resolved finding is blocking" in item for item in failures)
+        )
+        receipt = receipt_engine.sanitized_result_receipt(aliased)
+        with self.assertRaisesRegex(ValueError, "review mode state"):
+            ledger_engine._validate_result_receipt(
+                receipt,
+                label="aliased-resolved-blocker",
                 required=True,
                 recovery_required=False,
             )
@@ -1893,9 +1995,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                     self.assertTrue(runner.match_oracle(missing, oracle))
 
         isolation = self.cases["review-isolation"]
-        anchors = [
-            item["anchor"] for item in isolation["oracle"]["required_anchored_blockers"]
-        ]
+        required = isolation["oracle"]["required_anchored_blockers"]
         collapsed = {
             **{
                 field: value[0] if isinstance(value, list) else value
@@ -1903,16 +2003,28 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             },
             "finding_classifications": [
                 {
-                    "identity": "ONE-GENERIC-REVIEW-FINDING",
+                    "identity": "ONE-FROZEN-REVIEW-FINDING",
                     "domain": "receipt",
                     "state": "unknown",
-                    "anchors": anchors,
+                    "anchors": [item["anchor"] for item in required[:4]],
+                },
+                {
+                    "identity": "ONE-EXHAUSTIVE-REVIEW-FINDING",
+                    "domain": "receipt",
+                    "state": "unknown",
+                    "anchors": [item["anchor"] for item in required[4:]],
                 }
             ],
             "blocker_classifications": [
                 {
-                    "identity": "ONE-GENERIC-REVIEW-FINDING",
+                    "identity": "ONE-FROZEN-REVIEW-FINDING",
                     "class": "frozen_acceptance",
+                    "blocking": True,
+                    "reason": "generic review concern",
+                },
+                {
+                    "identity": "ONE-EXHAUSTIVE-REVIEW-FINDING",
+                    "class": "exhaustive_claim",
                     "blocking": True,
                     "reason": "generic review concern",
                 }
@@ -1922,7 +2034,15 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             "reason": "completion remains blocked",
             "recovery_state": None,
         }
-        self.assertTrue(runner.match_oracle(collapsed, isolation["oracle"]))
+        failures = runner.match_oracle(collapsed, isolation["oracle"])
+        self.assertTrue(any("distinct anchored blocker" in item for item in failures))
+        receipt = receipt_engine.sanitized_result_receipt(collapsed)
+        with self.assertRaisesRegex(ValueError, "distinct anchored blocker receipt"):
+            ledger_engine._validate_case_oracle_receipt(
+                receipt,
+                case=isolation,
+                label="collapsed-review-blockers",
+            )
 
     def test_exact_finding_identity_cannot_replace_an_anchor_member(self) -> None:
         oracle = {
