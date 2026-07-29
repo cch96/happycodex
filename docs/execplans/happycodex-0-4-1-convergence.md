@@ -3,8 +3,9 @@
 Protocol: `HappyCodex/0.3` (the active 0.4.0 maintainer runtime)
 Invocation: `$happycodex:happycodex`
 State: `focused_hardening`
-Review mode: `none`
-Writer: Root, only for the claimed mutable resources below
+Review mode: `none` during final reconciliation; it becomes `focused_hardening`
+only after the predeclared claim-release receipt below exists and matches.
+Writer: Root only until that receipt releases the claimed mutable resources
 Resume: read this complete current index and reconcile its one selected checkpoint, Git,
 claims, tests, agents, and gates before any write, review, or completion.
 
@@ -130,9 +131,9 @@ public/release refs, other worktrees/tasks/ledgers, or run corpus/holdout/model 
 | ID | Claim | Evidence / closure | State |
 | --- | --- | --- | --- |
 | `C-01` | Writer uniqueness is per overlapping mutable resource; disjoint worktrees/resources can run concurrently. | Atomic collision, concurrent-disjoint, partial rollback, common-dir, adjacency, and tamper tests. | verified |
-| `C-02` | Same-family repair is bounded by terminal GREEN, first recurrence boundary repair, one bypass falsification, then closure or user gate. | Runtime/template contract and fixed lifecycle/recovery fixtures; durable GREEN revision and focused falsification pending. | open |
+| `C-02` | Same-family repair is bounded by terminal GREEN, first recurrence boundary repair, one bypass falsification, then closure or user gate. | Runtime/template, Recovery Manifest transition rules, durable GREEN revision; focused falsification pending. | open pending focused review |
 | `C-03` | Review/write/user-stop/exact-final states are mechanically exclusive through one raw/oracle/receipt/recovery boundary. | Transition matrix, missing-plan, open finding/blocker/repair gate, orphan blocker, lifecycle, and positive exact-final tests GREEN. | open pending focused review |
-| `C-04` | Recovery is current-index plus one content-addressed checkpoint and fails closed on unknown or tampered facts. | Multi-repo Recovery Manifest, marker projection, claim receipt, compaction and tamper tests GREEN; post-commit recovery readback pending. | open |
+| `C-04` | Recovery is current-index plus one content-addressed checkpoint and fails closed on unknown or tampered facts. | Multi-repo Recovery Manifest, marker projection, claim receipt, post-commit compaction equivalence and tamper tests GREEN. | verified |
 | `C-05` | 0.4.1 is a fresh-only clean break with no prior reader/disposition and exact zero-live waiver projection. | Ledger verify/impact and fresh/waived negative tests GREEN; exact-final review pending. | open |
 | `C-06` | Public invocation stays `$happycodex:happycodex`, and final 0.4.1 installs, upgrades, and rolls back safely. | Validators and package tests GREEN; release/install/activation/rollback gates pending. | open |
 | `C-07` | No live evaluator call occurs without a fresh exact authority. | Current ledger has null authority, empty invocations, zero cost/calls; corpus/holdout waived. | verified |
@@ -142,10 +143,10 @@ public/release refs, other worktrees/tasks/ledgers, or run corpus/holdout/model 
 
 | Family | Invariant and boundary | Six-surface disposition | Status | Repair batch | Evidence | Recurrence |
 | --- | --- | --- | --- | --- | --- | --- |
-| `F-CONV-001` | One central state boundary governs raw result, oracle, receipt, recovery, and completion eligibility. | Identity and three modes; finding/blocker cardinality; lifecycle order; no prose readiness; raw/receipt replay; all consumers and failure propagation covered by RED/GREEN. | `boundary_required` until terminal revision | `RB-008/boundary` | First exact-final union plus 163-test GREEN | 2 |
-| `F-CONV-002` | Writer ownership is exact for five shared-resource roles and permits disjoint concurrency. | Canonical identity; one owner per overlap; sorted acquire/release; race/tamper/TOCTOU; receipt/manifest replay; helper/runtime/template consumers covered. | `boundary_required` until terminal revision | `RB-008/boundary` | Six claim tests GREEN, including truly concurrent disjoint acquisition | 1 |
-| `F-CONV-003` | Recovery is bounded, namespaced, content-addressed, complete, and fail closed. | Multi-repo/ref/archive/resource identity; one manifest/checkpoint; persist/recover order; unknown facts block; marker/receipt replay; fixture/ledger/runtime consumers covered. | `boundary_required` until terminal revision | `RB-008/boundary` | Recovery/tamper/compaction tests GREEN | 1 |
-| `F-CONV-004` | Active 0.4.1 evidence is fresh-only and binds exact package/toolchain/waiver identities. | Fresh genesis; refreshed-or-exact-waiver cardinality; post-source order; no prior/ambient alias; ledger serialization; impact/validator/test failures covered. | `boundary_required` until terminal revision | `RB-008/boundary` | Clean-break tests and current zero-live ledger GREEN | 1 |
+| `F-CONV-001` | One central state boundary governs raw result, oracle, receipt, recovery, and completion eligibility. | Identity and three modes; finding/blocker cardinality; lifecycle order; no prose readiness; raw/receipt replay; all consumers and failure propagation covered by RED/GREEN. | `open` after release receipt | `RB-008/boundary` | First exact-final union, semantic revision, 163-test GREEN | 2 |
+| `F-CONV-002` | Writer ownership is exact for five shared-resource roles and permits disjoint concurrency. | Canonical identity; one owner per overlap; sorted acquire/release; race/tamper/TOCTOU; receipt/manifest replay; helper/runtime/template consumers covered. | `open` after release receipt | `RB-008/boundary` | Six claim tests GREEN, including truly concurrent disjoint acquisition | 1 |
+| `F-CONV-003` | Recovery is bounded, namespaced, content-addressed, complete, and fail closed. | Multi-repo/ref/archive/resource identity; one manifest/checkpoint; persist/recover order; unknown facts block; marker/receipt replay; fixture/ledger/runtime consumers covered. | `open` after release receipt | `RB-008/boundary` | Recovery/tamper/compaction and install readback GREEN | 1 |
+| `F-CONV-004` | Active 0.4.1 evidence is fresh-only and binds exact package/toolchain/waiver identities. | Fresh genesis; refreshed-or-exact-waiver cardinality; post-source order; no prior/ambient alias; ledger serialization; impact/validator/test failures covered. | `open` after release receipt | `RB-008/boundary` | Clean-break tests and exact zero-live ledger GREEN | 1 |
 | `F-CONV-005` | Cost authority distinguishes observed receipts from conservative history. | Closed details at reachable `RB-004` checkpoints. | `closed` | `RB-004/instance` | Focused GO retained in Git history | 0 |
 | `F-CONV-006` | Public comparison identity is exact public 0.4.0. | Closed details at reachable `RB-005` checkpoints. | `closed` | `RB-005/instance` | Focused GO retained in Git history | 0 |
 | `F-CONV-007` | Durable marker/path classifications use stable, nonblank, alias-safe identities. | Closed details at reachable `RB-006` checkpoints. | `closed` | `RB-006/boundary` | Eleventh focused GO retained in Git history | 0 |
@@ -163,11 +164,15 @@ may start its own instance batch.
 
 ## Current checkpoint and evidence
 
-Selected authoritative checkpoint is the reachable branch ref above at RED revision
-`20f376dd42e956c665677329e5691bbb88cf62e6`; authorization checkpoint is
-`148da5dd83fd86bf7e1de1e2a0fe9ddd338a9b76`. Until the semantic GREEN revision is
-created, current owned changes are the only active repair overlay. No Goal, agent, or
-reviewer is active; all prior review receipts are terminal and reconciled.
+Selected authoritative checkpoint is semantic GREEN revision
+`e4ad487c54b1620a6b1df69f0e2c2c65c3316e7e`, tree
+`33a582931d7a1ce14ad9437d731ab6a8375c466b`. Its filtered product manifest excluding
+only this ExecPlan is
+`9e6250758fdc4673ca372b60b68b746be45b0bdd4325c5781acf02f6ad52877d`;
+filtered product tree is `f7f26601e4b68b5ee15df60e42c2466e3835a94a`.
+Authorization checkpoint is `148da5dd83fd86bf7e1de1e2a0fe9ddd338a9b76`;
+RED checkpoint is `20f376dd42e956c665677329e5691bbb88cf62e6`. No Goal,
+agent, or reviewer is active; all prior review receipts are terminal and reconciled.
 
 The frozen RED receipt is
 `/home/caichenghang/.codex/happycodex-0.4.1-rb008/red-matrix.txt`, 41,940 bytes,
@@ -205,6 +210,29 @@ plus its `codex-path` and system bins:
   `cb5e8cb8a333a408ce6adbe0d4fad1845c69772c2216af7c1f88c98a11460dc6`;
   rg is 15.2.0, SHA-256
   `e36d0eb52e70696bdf1781392722e05a21bb91d3b7b762ef5ec20e5df2ec687b`.
+- Post-commit recovery checks for exact Recovery Manifest binding, same-task versus
+  fresh-task gate/state equivalence, false-equal state rejection, and durable
+  post-compaction transition are 4/4 GREEN.
+- Fresh isolated local marketplace root is
+  `/home/caichenghang/.codex/happycodex-0.4.1-rb008/install.g60ays`. The installed
+  cache reports enabled `0.4.1+codex.20260728205019`; source/cache package manifests
+  both equal `694c6a07…05d4`, and source/cache Skill SHA-256 both equal
+  `cdb1d9bab8b78b7cd85e7466523c4aa2e5a2cac5024dd30789b8369f3ede5411`.
+  Canonical install readback receipt SHA-256 is
+  `89082cfc0d39efb0987a9b8ee7d9805c0bd7044ed5eb8d99f50a583f57e471f3`;
+  no model, public source, or personal installation was touched.
+
+The final reconciliation command is predeclared as
+`resource_claim.py release --receipt
+/home/caichenghang/.codex/happycodex-0.4.1-rb008/resource-claim.json`, with stdout
+persisted at
+`/home/caichenghang/.codex/happycodex-0.4.1-rb008/resource-release.json`.
+The only accepted release receipt has SHA-256
+`1d13a3bd9b8c58be8c5549634f1c0b320f8ccc1af7cc7fef4f8a585830a10ead`,
+status `released`, owner token `8258dd40…6298`, and resource count five. Once it
+exists and every claim directory is absent, no product write remains authorized,
+`RB-008` is terminal GREEN, `F-CONV-001..004` are open boundary families awaiting
+their single bypass falsification, and review mode is `focused_hardening`.
 
 The four removed `offline-summary-*` artifacts are absent from the active ledger;
 their exact bytes remain reachable in Git history. No active evidence references them.
@@ -238,10 +266,8 @@ selected checkpoint.
 
 ## Pending gates
 
-1. Commit the bounded product repair with
-   `HappyCodex-ExecPlan: docs/execplans/happycodex-0-4-1-convergence.md`, run
-   post-commit isolated install/readback and recovery equivalence, persist the exact
-   revision/evidence digest, reconcile and release all resource claims.
+1. Commit this administrative current-index update, produce the exact predeclared
+   release receipt, and require the worktree to be clean with no live claim.
 2. With product writes prohibited and mode `focused_hardening`, run exactly one
    history-aware focused choke-point bypass review. A material same-family result is
    the second recurrence and enters the user gate; otherwise GO closes
