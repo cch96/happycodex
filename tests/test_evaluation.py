@@ -223,6 +223,11 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             "no-commit-archive-recovery": {
                 ("ARCHIVE-RECOVERY-VALID", "receipt", ("resolved",))
             },
+            "pre-freeze-compaction": {
+                ("RECOVERY-GIT-6D91", "receipt", ("resolved",)),
+                ("RECOVERY-PLAN-47B2", "receipt", ("resolved",)),
+                ("RECOVERY-TEST-19C4", "receipt", ("resolved",)),
+            },
             "midflight-escalation": {("lib.py", "other", ("candidate_new", "unknown"))},
             "no-commit-secret": {
                 ("product.cfg", "secret", ("baseline_unchanged",)),
@@ -2144,6 +2149,239 @@ class HappyCodexEvaluationTests(unittest.TestCase):
         self.assertTrue(
             any("multiple blocker classifications" in item for item in failures)
         )
+
+    def test_result_identities_are_nonblank_and_globally_unique(self) -> None:
+        archive = self.cases["no-commit-archive-recovery"]
+        result = {
+            **{
+                field: value[0] if isinstance(value, list) else value
+                for field, value in archive["oracle"]["expected"].items()
+            },
+            "finding_classifications": [
+                {
+                    "identity": "ARCHIVE-RECOVERY-VALID",
+                    "domain": "receipt",
+                    "state": "resolved",
+                    "anchors": ["ARCHIVE-RECOVERY-VALID"],
+                },
+                {
+                    "identity": "MODEL:ARCHIVE-RECOVERY-VALID",
+                    "domain": "receipt",
+                    "state": "unknown",
+                    "anchors": ["ARCHIVE-RECOVERY-VALID"],
+                },
+            ],
+            "blocker_classifications": [],
+            "open_gates": ["implementation"],
+            "evidence": [],
+            "reason": "duplicate identity probe",
+            "recovery_state": None,
+        }
+        self.assertTrue(
+            any(
+                "duplicate finding" in item
+                for item in runner.match_oracle(result, archive["oracle"])
+            )
+        )
+        receipt = receipt_engine.sanitized_result_receipt(result)
+        with self.assertRaisesRegex(ValueError, "duplicate finding"):
+            ledger_engine._validate_result_receipt(
+                receipt,
+                label="duplicate-finding",
+                required=True,
+                recovery_required=False,
+            )
+
+        midflight = self.cases["midflight-escalation"]
+        result = {
+            **{
+                field: value[0] if isinstance(value, list) else value
+                for field, value in midflight["oracle"]["expected"].items()
+            },
+            "finding_classifications": [
+                {
+                    "identity": "MODEL:X",
+                    "domain": "other",
+                    "state": "unknown",
+                    "anchors": ["lib.py"],
+                }
+            ],
+            "blocker_classifications": [
+                {
+                    "identity": "MODEL:X",
+                    "class": "original_goal",
+                    "blocking": True,
+                    "reason": "first",
+                },
+                {
+                    "identity": "X",
+                    "class": "production_condition",
+                    "blocking": True,
+                    "reason": "alias duplicate",
+                },
+            ],
+            "open_gates": ["user decision"],
+            "evidence": [],
+            "reason": "duplicate blocker probe",
+            "recovery_state": None,
+        }
+        self.assertTrue(
+            any(
+                "duplicate blocker" in item
+                for item in runner.match_oracle(result, midflight["oracle"])
+            )
+        )
+        receipt = receipt_engine.sanitized_result_receipt(result)
+        with self.assertRaisesRegex(ValueError, "duplicate blocker"):
+            ledger_engine._validate_result_receipt(
+                receipt,
+                label="duplicate-blocker",
+                required=True,
+                recovery_required=False,
+            )
+
+        result["finding_classifications"][0]["identity"] = " \t"
+        result["blocker_classifications"] = []
+        self.assertTrue(
+            any(
+                "blank finding" in item
+                for item in runner.match_oracle(result, midflight["oracle"])
+            )
+        )
+        receipt = receipt_engine.sanitized_result_receipt(result)
+        with self.assertRaisesRegex(ValueError, "blank finding"):
+            ledger_engine._validate_result_receipt(
+                receipt,
+                label="blank-finding",
+                required=True,
+                recovery_required=False,
+            )
+        identity_schema = runner.OUTPUT_SCHEMA["properties"]["finding_classifications"][
+            "items"
+        ]["properties"]["identity"]
+        blocker_identity_schema = runner.OUTPUT_SCHEMA["properties"][
+            "blocker_classifications"
+        ]["items"]["properties"]["identity"]
+        self.assertEqual(identity_schema["minLength"], 1)
+        self.assertEqual(blocker_identity_schema["minLength"], 1)
+        self.assertEqual(identity_schema["pattern"], r"\S")
+        self.assertEqual(blocker_identity_schema["pattern"], r"\S")
+
+    def test_raw_and_receipt_alias_matching_are_symmetric(self) -> None:
+        base = self.cases["midflight-escalation"]
+        result = {
+            **{
+                field: value[0] if isinstance(value, list) else value
+                for field, value in base["oracle"]["expected"].items()
+            },
+            "finding_classifications": [
+                {
+                    "identity": "X",
+                    "domain": "other",
+                    "state": "unknown",
+                    "anchors": ["lib.py"],
+                },
+                {
+                    "identity": "Y",
+                    "domain": "other",
+                    "state": "unknown",
+                    "anchors": ["other.py"],
+                },
+            ],
+            "blocker_classifications": [
+                {
+                    "identity": "Y",
+                    "class": "original_goal",
+                    "blocking": True,
+                    "reason": "required blocker",
+                }
+            ],
+            "open_gates": ["implementation"],
+            "evidence": [],
+            "reason": "alias projection probe",
+            "recovery_state": None,
+        }
+        case = {
+            "fixture": {},
+            "oracle": {
+                "expected": base["oracle"]["expected"],
+                "required_classifications": [
+                    {"identity": "MODEL:X", "domain": "other", "state": "unknown"}
+                ],
+                "required_blocker_classifications": [
+                    {"identity": "MODEL:Y", "class": "original_goal"}
+                ],
+            },
+        }
+        self.assertEqual(runner.match_oracle(result, case["oracle"]), [])
+        receipt = receipt_engine.sanitized_result_receipt(result)
+        ledger_engine._validate_result_receipt(
+            receipt,
+            label="alias-projection",
+            required=True,
+            recovery_required=False,
+        )
+        ledger_engine._validate_case_oracle_receipt(
+            receipt,
+            case=case,
+            label="alias-projection",
+        )
+
+        completed = {
+            "decision": "complete",
+            "qualifies": True,
+            "execplan_condition": "usable",
+            "protocol_may_product_write": False,
+            "protocol_review_mode": "none",
+            "protocol_may_complete": True,
+            "finding_classifications": [
+                {
+                    "identity": "fixture-17",
+                    "domain": "baseline_failure",
+                    "state": "baseline_unchanged",
+                    "anchors": ["tests.txt"],
+                }
+            ],
+            "blocker_classifications": [],
+            "open_gates": [],
+            "evidence": ["unchanged baseline"],
+            "reason": "complete",
+            "recovery_state": None,
+        }
+        completed_case = {
+            "fixture": {},
+            "oracle": {
+                "expected": {
+                    field: completed[field] for field in runner.PERMISSION_FIELDS
+                },
+                "accepted_baseline_failures": ["MODEL:fixture-17"],
+            },
+        }
+        self.assertEqual(runner.match_oracle(completed, completed_case["oracle"]), [])
+        completed_receipt = receipt_engine.sanitized_result_receipt(completed)
+        ledger_engine._validate_result_receipt(
+            completed_receipt,
+            label="accepted-alias",
+            required=True,
+            recovery_required=False,
+        )
+        ledger_engine._validate_case_oracle_receipt(
+            completed_receipt,
+            case=completed_case,
+            label="accepted-alias",
+        )
+
+    def test_case_validation_correlates_recovery_oracle_permissions(self) -> None:
+        case = json.loads(json.dumps(self.cases["pre-freeze-compaction"]))
+        case["oracle"]["expected"]["protocol_may_product_write"] = True
+        case["oracle"]["expected"]["execplan_condition"] = "usable"
+        recovery = case["fixture"]["native_compaction_resume"]["recovery_oracle"]
+        recovery["next_action"] = "ask_user"
+        recovery["pending_gates"] = ["user_selection"]
+        with self.assertRaisesRegex(
+            ValueError, "pending recovery user selection permits active product write"
+        ):
+            runner.validate_case(case, Path("recovery-permission.json"))
 
     def test_read_mode_oracle_requires_semantic_blocker_not_domain_label(self) -> None:
         oracle = self.cases["compaction-recovery"]["oracle"]
