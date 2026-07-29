@@ -3,7 +3,7 @@
 Protocol: `HappyCodex/0.3` (active 0.4.0 maintainer runtime)
 Invocation: `$happycodex:happycodex`
 Writer: Root only for the mutable resources listed below
-State: focused_hardening
+State: candidate_frozen
 Resume: restore this file and reconcile Git, tests, Goal, worktree, agents, and gates before any write, review, or completion.
 
 ## Outcome and baseline
@@ -113,7 +113,7 @@ task conversion enlarge the state space without helping convergence.
 | `C-04` | outcome | ExecPlan is a bounded current index with fail-closed Git/archive recovery. | Size, tamper, no-commit, multi-repo, and compaction tests. | current-index, no-commit, multi-repo, tamper, and compaction tests GREEN | verified |
 | `C-05` | preservation | Public invocation stays `$happycodex:happycodex`; resource-scoped Root ownership and unrelated behavior remain. | Package/runtime tests and behavior comparison. | install GREEN; first live corpus 9/17 and exposed `RB-006`; holdout not run | open |
 | `C-06` | outcome | Exact 0.4.1 release, public install, personal upgrade, and 0.4.0 rollback are proven. | Fresh evidence, three GO reviews, install/readback, rollback rehearsal. | pending | open |
-| `C-07` | premise | No live evaluator call runs without a persisted exact impact receipt and direct gate-scoped user authority. | Ledger/CLI refusal and later authority receipt. | exact request and canonical 2026-07-29 authority are persisted and validate GREEN | verified |
+| `C-07` | premise | No live evaluator call runs without a persisted exact impact receipt and direct gate-scoped user authority. | Ledger/CLI refusal and later authority receipt. | exact `f7185e8e…7ae6` request and canonical 2026-07-29 authority are persisted and validate GREEN | verified |
 | `C-08` | constraint | Runtime/template report the amended 300/2,600 optimization target and never exceed the 340/3,000 hard ceiling. | Contract tests compute totals and fail at hard limits; simplification review explains any target excess. | 308 lines/2,686 words after resource-scoped discovery wording; 8/86 above target, 32/314 below hard ceiling | open |
 
 ## Convergence Ledger
@@ -223,7 +223,7 @@ this batch.
 
 - Milestone: `candidate_frozen`. All eight families and `RB-006` are closed; product source is frozen at `cf850794…5245` with manifest `d5414ecf…1a34`. Source `4e25aa2…47eb`, authority `451dd0d3…275e`, install evidence `be0c810…622c`, and candidate manifest `9dcb9157…43a4` remain historical and invalidated for future certification.
 - Last green: expanded RB-006 has 144/144 tests passed in 8.381s; Ruff check/format, diff/31-JSON/19-AST checks, official Skill/plugin validators, and corpus/holdout list/dry-run passed. Runtime/template remain 308 lines/2,686 words: below 340/3,000 hard limits and 8/86 above the optimization target.
-- Fresh genesis: stored/current snapshots are exact for the expanded RB-006 hardening source and `0.4.1+codex.20260728205019`; pinned `0.145.0` verify reports `refresh_required`, engine `67124b4e…2c23`, snapshot `b9766907…69f2`, ledger `d8a42f9e…1368`; full 17-case/three-pair impact remains 23–25 calls, 719,051–770,869 combined tokens, and 3,757.028–4,032.239 seconds, with no authority. Impact token is `9fdff8af…63d`. The exact proposed holdout continues to bind public artifact `ace7f39f…497e` and semantic identity `c5030e99…c05`; all active evaluator source and fresh serialization are clean of the old 0.2 arm. Origin remains `730c6a5:docs/execplans/happycodex-0-4-release.md`, never old `current.json`.
+- Fresh genesis: stored/current snapshots are exact for the expanded RB-006 hardening source and `0.4.1+codex.20260728205019`; pinned `0.145.0` verify reports `refresh_required`, engine `67124b4e…2c23`, snapshot `b9766907…69f2`, authority-bearing ledger `1cee0edf…8f2f`; full 17-case/three-pair impact remains 23–25 calls, 719,051–770,869 combined tokens, and 3,757.028–4,032.239 seconds. Impact token is `9fdff8af…63d`; the exact `f7185e8e…7ae6` authority validates GREEN. The proposed holdout binds public artifact `ace7f39f…497e` and semantic identity `c5030e99…c05`; all active evaluator source and fresh serialization are clean of the old 0.2 arm. Origin remains `730c6a5:docs/execplans/happycodex-0-4-release.md`, never old `current.json`.
 - Isolated install: `/var/tmp/happycodex-041-rb003.oyKhro` installed `0.4.1+codex.dev`; source/cache Skill SHA-256 both `fd33e911…8d6c`, source/cache manifest SHA-256 both `430f9f11…77e`, byte comparisons equal.
 - Focused review prelaunch: candidate `943c47c6b8971723c0f59bcc2c0fa6d69b6e13aa`, tree `901601e47d8d0712ad8c904aaa22e01b99d597fb`, base `8099aeb05bdb5ae0aab3a9d39a3ca77c64d89b30`, product-manifest SHA-256 excluding this plan `e53f38a7…24f7`; 29 diff units listed by `git diff --name-only`. Brief is the 901-byte focused-hardening text with final LF, SHA-256 `474873b0…051e`. The first predeclared `codex review --base … -` command exited before launch because this CLI forbids a selector plus custom prompt; it produced no reviewer result. Corrected exact command: `printf '%s\n' '<brief>' | codex review -c 'model="gpt-5.6-sol"' -c 'model_reasoning_effort="max"' -c 'sandbox_mode="read-only"' - | tee /home/caichenghang/.codex/happycodex-0.4.1-reviews/focused-943c47c.txt`; the brief itself binds the exact range. It is non-neutral, read-only, no-network, and cannot satisfy exact-final.
 - Focused review terminal receipt: native session `019faa2a-f31e-7ce1-824e-b2803c55bde3`, effective `gpt-5.6-sol/max`, approval `never`, read-only sandbox, output SHA-256 `bc541ae0…c7bc`. Verdict `NOT YET`: `F-CONV-001-S01`, `F-CONV-004`, `F-CONV-003-S01`, and `F-CONV-001-S02`. Root reproduced completion/mode disagreement, accepted `exact_final` plus active writes, rejected `closed`, absent 0.4.1 fixtures, and the constant-truth assertion.
@@ -269,9 +269,8 @@ this batch.
 - Owned mutable paths: only this current-index ExecPlan may change administratively while the exact product manifest remains fixed. External raw outputs remain read-only evidence and the active plugin/public 0.4.0 stay unchanged.
 - Goal: none.
 - Agents/reviewers: all focused reviewers are terminal and reconciled; no reviewer is active.
-- Pending gates: persist a fresh exact approval request for the frozen candidate and
-  obtain its canonical gate-scoped user authority; rerun the complete corpus and
-  holdout while capacity exists; then run three
+- Pending gates: commit the validated fresh exact authority; rerun the complete corpus
+  and holdout while capacity exists; then run three
   fresh exact-final reviews. Public release, personal upgrade, rollback, and downstream
   successor task creation remain later gates.
 
@@ -286,8 +285,10 @@ the canonical request SHA-256 is
 `f7185e8e0dc3c0071d0a3c41651cd7bae79d51c98bf7c3440aa96d4214fa7ae6`;
 and the canonical-response SHA-256 is
 `5a16b7f53f384fa0df1f89e7166608cf9a0118eabb20593b06cc4235ea74c138`.
-The intended authority source is
-`current-task/user/happycodex-0.4.1-live-cost-f7185e8e`; no authority is persisted.
+Authority source is `current-task/user/happycodex-0.4.1-live-cost-f7185e8e`. On
+2026-07-29 the user returned the exact canonical line with no surrounding prose; its
+bytes and digest are persisted in `evaluation/results/current.json` and validate GREEN
+under the pinned toolchain.
 
 The request binds candidate semantic/artifact identities `65f293e8…f4c6a` /
 `e8424dbd…ac89`, model `gpt-5.6-sol`, effort `high`, timeout 300 seconds, candidate
@@ -328,8 +329,8 @@ APPROVE HAPPYCODEX LIVE COST f7185e8e0dc3c0071d0a3c41651cd7bae79d51c98bf7c3440aa
 ```
 
 The prior `67704584…ca67` request was consumed only by the historical first corpus
-attempt and remains invalid. This fresh request is unconsumed and grants no source
-repair, release, installation, or activation.
+attempt and remains invalid. This fresh validated authority is unconsumed and grants
+no source repair, release, installation, or activation.
 
 ## Retrospective
 

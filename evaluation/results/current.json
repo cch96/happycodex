@@ -50,7 +50,124 @@
       }
     }
   },
-  "live_authority": null,
+  "live_authority": {
+    "approval_request_sha256": "f7185e8e0dc3c0071d0a3c41651cd7bae79d51c98bf7c3440aa96d4214fa7ae6",
+    "approval_response": "APPROVE HAPPYCODEX LIVE COST f7185e8e0dc3c0071d0a3c41651cd7bae79d51c98bf7c3440aa96d4214fa7ae6\n",
+    "approval_response_sha256": "5a16b7f53f384fa0df1f89e7166608cf9a0118eabb20593b06cc4235ea74c138",
+    "impact": {
+      "corpus_cases": [
+        "authorized-rebaseline",
+        "boundary-cutover",
+        "clean-qualifying-control",
+        "compaction-recovery",
+        "exact-final-ready",
+        "goal-divergence",
+        "midflight-escalation",
+        "multi-repo-submodule",
+        "no-commit-archive-recovery",
+        "no-commit-secret",
+        "no-commit-unselected",
+        "pre-freeze-compaction",
+        "receipt-mismatch",
+        "review-admin-cycle",
+        "review-inventory-gate",
+        "review-isolation",
+        "subthreshold-control"
+      ],
+      "cost": {
+        "basis": "HappyCodex 0.3 v21 candidate corpus and v23 adaptive holdout receipts; new 0.4.1 single-call controls conservatively use the prior maximum single-call token and wall envelopes",
+        "combined_tokens": {
+          "maximum": 770869,
+          "minimum": 719051
+        },
+        "provenance": {
+          "baseline_commit": "2836d7363db364807a2ec384dc1b6c2cc13df95e",
+          "baseline_plan_blob": "a5b16c5edb54324ee0a7a2efb17a7d7fdef3f207",
+          "baseline_plan_path": "docs/execplans/happycodex-0-3-cleanroom.md",
+          "corpus_receipt_sha256": "89b9760e08752dc9600f600268d447364970b89cb16d253e7a098b01f76fb56c",
+          "holdout_pair_receipt_sha256s": {
+            "authority-production-boundary": "18164c21533563b15bc483996e0f9a8db6c2080b7e3bf819dd2a003948395c82",
+            "destructive-migration-fallback": "10b6cf8a40bdb9d1097d287d80a9c7106686f6b6c19458984366994833f2c3a2",
+            "local-documentation-control": "27c1bcbf3566379b7c71255fadddcda5aa82509d3f01d15a170933a527de5f2c"
+          },
+          "holdout_run_receipt_sha256": "bb2fa16edfd82c3da004d630bcdc87a098488ae483a1026b012ce117447fd580",
+          "holdout_summary_sha256": "f301f23d0d841deaef538cf07d9fba36705ebb175a3a1e4f099bb68cfc91ea3d",
+          "selected_corpus_receipts_sha256": "5159899e8c950885b5c210921ff5b4738b5d81b17293e41a7df8c6b0efb33616"
+        },
+        "wall_seconds": {
+          "maximum": 4032.239,
+          "minimum": 3757.028
+        }
+      },
+      "gates": [
+        "corpus",
+        "holdout",
+        "review"
+      ],
+      "holdout_pairs": [
+        "authority-production-boundary",
+        "destructive-migration-fallback",
+        "local-documentation-control"
+      ],
+      "live_calls": {
+        "maximum": 25,
+        "minimum": 23
+      },
+      "reasons": [
+        "protocol_0_4_1_clean_break"
+      ],
+      "schema_version": 1
+    },
+    "impact_token": "9fdff8af1263920a2a6b83aa7ff1176125a62747bbaece50767aae8208e5463d",
+    "invocations": [
+      {
+        "arm": "candidate",
+        "cases": [
+          "authorized-rebaseline",
+          "boundary-cutover",
+          "clean-qualifying-control",
+          "compaction-recovery",
+          "exact-final-ready",
+          "goal-divergence",
+          "midflight-escalation",
+          "multi-repo-submodule",
+          "no-commit-archive-recovery",
+          "no-commit-secret",
+          "no-commit-unselected",
+          "pre-freeze-compaction",
+          "receipt-mismatch",
+          "review-admin-cycle",
+          "review-inventory-gate",
+          "review-isolation",
+          "subthreshold-control"
+        ],
+        "command": "corpus",
+        "effort": "high",
+        "model": "gpt-5.6-sol",
+        "package_artifact_sha256": "e8424dbdc56e576d9e31aaca4d548b8e792497ed298c56762a606ac3ccd0ac89",
+        "package_semantic_sha256": "65f293e8f432ad7643bdf40ba7fb96edef73f2e7f5c10aa062ef22aa122f4c6a",
+        "timeout_seconds": 300
+      },
+      {
+        "candidate_artifact_sha256": "e8424dbdc56e576d9e31aaca4d548b8e792497ed298c56762a606ac3ccd0ac89",
+        "candidate_semantic_sha256": "65f293e8f432ad7643bdf40ba7fb96edef73f2e7f5c10aa062ef22aa122f4c6a",
+        "command": "holdout",
+        "effort": "high",
+        "model": "gpt-5.6-sol",
+        "pairs": [
+          "authority-production-boundary",
+          "destructive-migration-fallback",
+          "local-documentation-control"
+        ],
+        "public_artifact_sha256": "ace7f39fd61341e5d4b1bc3b268fd89a1562acaaacb80d7456c2bb97fb9c497e",
+        "public_semantic_sha256": "c5030e99dd7cd1681148c069775671c5720bb8dd366930ff90f61cbc54cdfc05",
+        "timeout_seconds": 300
+      }
+    ],
+    "schema_version": 1,
+    "snapshot_sha256": "b976690786a84d493861833e4b99774312b640dfa00a91a590d40eddcce069f2",
+    "source": "current-task/user/happycodex-0.4.1-live-cost-f7185e8e"
+  },
   "pending": {
     "corpus_cases": [
       "authorized-rebaseline",
