@@ -32,7 +32,8 @@ MODULE_CATEGORIES = {
     "evaluation/holdout/engine.py": "harness",
     "evaluation/semantic/__init__.py": "semantic",
     "evaluation/semantic/canonical.py": "semantic",
-    "evaluation/semantic/schema.py": "semantic",
+    "evaluation/semantic/decide.py": "semantic",
+    "evaluation/semantic/parse.py": "semantic",
     "evaluation/semantic/types.py": "semantic",
 }
 

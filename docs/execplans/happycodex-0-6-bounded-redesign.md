@@ -2,9 +2,9 @@
 
 Protocol: `HappyCodex/0.5`
 
-Current index: independent 0.6 bounded-redesign contract plus the active
-source-derived command-schedule correction. Accepted G001 is the plan-only
-bootstrap source; no Batch 1 implementation claim is part of it.
+Current index: independent 0.6 bounded-redesign contract plus the active Batch 1
+kernel/Runtime grant. G001 and G002 are accepted source; G003 owns only the
+bounded first implementation batch.
 
 Restore guard: restore this entire ExecPlan, then reconcile the exact Git source,
 fixed Executor identity, three resource claims, external intent and receipts,
@@ -13,10 +13,10 @@ before any write, review, effect, or completion claim. Conversation summaries,
 copied handles, and another task's source do not reconstruct authority.
 
 Phase: `implementation`. Active grant:
-`HC06BR-G-002-command-schedule-correction`, sequence 2, plan-only. G001 is
-Root-accepted and `CLOSED`. G002 changes no Outcome, accepted baseline,
-allowed break, family, batch path inventory, or implementation authority. Batch 1
-remains unauthorized.
+`HC06BR-G-003-B1-kernel-runtime`, sequence 3. It binds accepted G002 commit
+`293f9ce34ffee0894fa889d9d3db9b441739b973`, tree
+`802a122b0761be2fae648e9d69ffce64ca353b0f`, the same fixed Executor, and only
+Batch 1 paths/operations. G001 and G002 are Root-accepted and `CLOSED`.
 
 ## Operative request and normalized Outcome
 
@@ -110,11 +110,13 @@ failure. This result is `candidate-new/open`, not baseline-accepted:
 - `BR-FIND-BASE-003`: the same import-policy test's second subtest failed for
   `evaluation/semantic/types.py`.
 
-Batch 1 must reproduce the exact failures from the immutable base, bind their
-actual test identities/output receipt, and repair them without weakening
-fail-closed inventory or import policy. If reproduction differs, the discrepancy
-is an open source/prestate finding returned to Root; it is never silently relabeled
-or accepted.
+The fixed Executor reproduced the same exact 195-test/three-failure set in 8.549
+seconds. External baseline receipt:
+`/home/caichenghang/.codex/happycodex-0.6-bounded-redesign-g003-b1-baseline.txt`,
+SHA-256
+`d6d7a7f3da1bf992382117a4511dc5120997f5ec5c928cad6c352e5fc1158f5a`.
+Batch 1 repairs all three without weakening fail-closed inventory or import
+policy; final focused/full GREEN is required before they become resolved.
 
 The earlier Fable 5 review performed through the Claude Code CLI remains retained
 design evidence. It established the need for structural action identity and
@@ -318,8 +320,8 @@ remain maintainer support and are never linked from Runtime Skill Markdown.
 
 | Family | Invariant | Six-surface closure | Status | Batch | Recurrence |
 | --- | --- | --- | --- | --- | --- |
-| `F-06BR-RUNTIME` | semantic progress and event correction prevent equivalent repeated work and false GREEN | source/identity; type/cardinality; order/terminal; alias/mutability/TOCTOU; serialization/replay; consumers/failure propagation all require RED/positive/N/A evidence | `open` | `RB-06BR-001/instance` | `0` |
-| `F-06BR-AUTHORITY` | exact `TaskBinding`, provenance, reducer action, capability, claim, authority, and attempt gate every effect | same six surfaces, including direct/delegated/spoofed/missing/destination/lineage and pre-effect ordering | `open` | `RB-06BR-002/instance` | `0` |
+| `F-06BR-RUNTIME` | semantic progress and event correction prevent equivalent repeated work and false GREEN | Batch 1 source/identity, type/cardinality, order, mutability, replay, and Runtime consumers have RED/positive evidence; later evaluator consumers remain separately open | `closed for Batch 1` | `RB-06BR-001/instance` | `0` |
+| `F-06BR-AUTHORITY` | exact `TaskBinding`, provenance, reducer action, capability, claim, authority, and attempt gate every effect | Batch 1 direct/delegated/spoofed/missing/destination/lineage/target/scope semantics have RED/positive evidence; imperative pre-effect integration remains later | `closed for Batch 1` | `RB-06BR-002/instance` | `0` |
 | `F-06BR-EVALUATOR` | terminal, identity, decision, ledger, and replay share strict parsing and exact recomputation | same six surfaces, including duplicate/order/terminal/path/key/raw-ledger divergence and consumer propagation | `open` | `RB-06BR-003/instance` | `0` |
 
 Holdout quality and cost comparison remain separate gated evidence. They do not
@@ -700,7 +702,7 @@ family, or claim change requires explicit user authority; Root cannot infer it.
 | ClaimId | Type | Claim and closure | State |
 | --- | --- | --- | --- |
 | `O-06BR-01` | outcome | four-module kernel plus three GREEN batches delivers the normalized Outcome; exact package/inventory/deletion checks and exact-final required | `open` |
-| `O-06BR-02` | outcome | event correction reduces repeated Runtime work without weakening progress, recurrence, or review gates; Runtime tests/budget required | `open` |
+| `O-06BR-02` | outcome | event correction reduces repeated Runtime work without weakening progress, recurrence, or review gates; Runtime tests/budget required | `verified for Batch 1 Runtime; final closure pending later integration` |
 | `P-06BR-01` | preservation | exact task authority, fixed writer, capabilities, attempts, resource claims, receipts, recovery, and false-GREEN repair remain fail-closed | `open` |
 | `P-06BR-02` | preservation | fresh ledger, cost gates, corpus/holdout controls, source/evidence ordering, exact-final isolation, install/release, and atomic rollback remain | `open` |
 | `A-06BR-01` | allowed break | old 9-module/8-slice/single-family topology and named wrappers/duplicates are removed with no compatibility path | `open` |
@@ -764,123 +766,101 @@ Only `python3 -m evaluation.cli` invokes evaluator behavior. Every dry-run must
 prove zero model, capability, attempt, fixture, output, workspace, and
 authority-consumption effect. No evaluator command runs during G001 or G002.
 
-## G002 monotonic command-schedule correction
+## Accepted source and resource binding
 
-Accepted G001 is commit
+G001 is accepted commit
 `39401d20ffa900f277a3317e0422a6d1c14f3ea2`, tree
-`14ab3b7279dacd6114ae66dc66164c83aa2ee9d2`. Root independently verified its
-plan/trailer/path inventory/claims and terminal receipt SHA-256
-`055564e7d593732080df6017ee59dc3d3472456a51291c67a8d8db7218f8e898`;
-G001 is `CLOSED` and non-renewable.
+`14ab3b7279dacd6114ae66dc66164c83aa2ee9d2`; its receipt SHA-256 is
+`055564e7d593732080df6017ee59dc3d3472456a51291c67a8d8db7218f8e898`.
+G002 is accepted commit
+`293f9ce34ffee0894fa889d9d3db9b441739b973`, tree
+`802a122b0761be2fae648e9d69ffce64ca353b0f`; its receipt SHA-256 is
+`7150690668e2525ae24596f1f9875ca5d75ed771b373c669710e8833cc5371e8`.
+Both carry the mandatory ExecPlan trailer and are closed/non-renewable.
 
-G002 binds that exact accepted prestate, the same fixed Executor, and the same
-one-token worktree/ref/ledger claim. Its only repository path is this ExecPlan.
-External durable intent:
-`/home/caichenghang/.codex/happycodex-0.6-bounded-redesign-g002-intent.json`;
-SHA-256
-`4de0f13919247ed03c5e5b7e3ac77d89e420bd77bfdb4813cb99acb15bc1560e`.
-The terminal receipt path is
-`/home/caichenghang/.codex/happycodex-0.6-bounded-redesign-g002-receipt.json`.
-G002 authorizes no test, evaluator, product, Runtime, model, network, live,
-install, release, marketplace, or activation action.
-
-## Bootstrap writer binding, claims, and receipt
-
-Installed helper:
+The installed claim helper remains:
 `/home/caichenghang/.codex/plugins/cache/personal/happycodex/0.5.0+codex.20260729104011/skills/happycodex/scripts/resource_claim.py`.
-
-External durable intent:
-`/home/caichenghang/.codex/happycodex-0.6-bounded-redesign-bootstrap-intent.json`;
+Private claim receipt
+`/tmp/happycodex-0.6-bounded-redesign-resource-claim.json` is mode `0600`,
 SHA-256
-`efa8821859c7060f147f69da03124f2a667a0c4d7cf7b73af5df61b74d004ec3`.
-It records fail-closed single-attempt idempotency and Root's correction: because
-the installed helper requires an existing Git worktree and an existing filesystem
-parent, exact branch/worktree creation is the one bootstrap infrastructure effect
-permitted before the atomic three-resource claim. An ambiguous effect is never
-retried. Claim failure after worktree creation requires reconciliation and no
-content/index/commit change.
-
-Private claim receipt:
-`/tmp/happycodex-0.6-bounded-redesign-resource-claim.json`, mode `0600`;
-SHA-256
-`7ca4471b7633ac6389b57011de429929638526f7746a602f8cf370382fa9c926`.
-Owner-token SHA-256:
+`7ca4471b7633ac6389b57011de429929638526f7746a602f8cf370382fa9c926`;
+owner-token SHA-256 is
 `7fb27f436e544db813365b6cfb974b8f8bf50e1e8893f5d4fc9e2d600bd90f4c`.
-The raw token is not copied here.
+One token claims exactly the bounded-redesign worktree, branch ref, and this
+ledger. Its adjacent untracked claim directory is private control state, excluded
+from product/commit content, and is not released automatically.
 
-The one token claims exactly, in canonical sorted order:
+## G003 Batch 1 grant and evidence
 
-- worktree:
-  `/home/caichenghang/projects/happycodex-worktrees/happycodex-0.6-bounded-redesign`;
-- ledger:
-  `/home/caichenghang/projects/happycodex-worktrees/happycodex-0.6-bounded-redesign/docs/execplans/happycodex-0-6-bounded-redesign.md`;
-- ref:
-  `/home/caichenghang/projects/happycodex::refs/heads/codex/happycodex-0.6-bounded-redesign`.
+Grant `HC06BR-G-003-B1-kernel-runtime`, sequence 3, binds the exact G002
+commit/tree, this fixed Executor and role configuration, the verified three-key
+claim, `RB-06BR-001/instance`, and `RB-06BR-002/instance`. Durable intent is
+`/home/caichenghang/.codex/happycodex-0.6-bounded-redesign-g003-b1-intent.json`,
+mode `0600`, SHA-256
+`27a22b563251f30eca3c8d9e94b70d898719ca78b736838e4c7dd0faba6b15ca`.
 
-The adjacent `.happycodex-resource-claims` path is private control state, remains
-untracked, and is not product or commit content. Claims remain active after this
-bootstrap. They are not automatically released or cleaned.
+Repository authority is the closed set:
 
-Bootstrap grant permits only branch/worktree construction, the plan path move and
-rewrite, staging the old deletion/new addition, one plan-only commit with trailer,
-read-only verification, and one external terminal receipt at:
-`/home/caichenghang/.codex/happycodex-0.6-bounded-redesign-bootstrap-receipt.json`.
-It permits no Batch 1 change or test/evaluator command.
+- final semantic package
+  `evaluation/semantic/{__init__,types,canonical,parse,decide}.py` and deletion
+  of `evaluation/semantic/schema.py`;
+- `evaluation/core/identity.py`;
+- `tests/{test_semantic_core,test_contracts,test_certification_engine}.py`;
+- `skills/happycodex/SKILL.md`,
+  `skills/happycodex/references/execplan.md`, and this ExecPlan.
 
-## Accepted bootstrap and current checkpoint
+It permits characterization/RED/GREEN, the exact Batch 1 terminal schedule,
+edits/staging, one reachable commit with subject
+`refactor: establish HappyCodex 0.6 bounded kernel` and mandatory ExecPlan
+trailer, post-commit verification, and one mode-`0600` receipt at
+`/home/caichenghang/.codex/happycodex-0.6-bounded-redesign-g003-b1-receipt.json`.
+It authorizes no other repository path, delegation, network/model/live call,
+executor command, install, release, marketplace/config mutation, activation,
+task migration, other-line inspection, or claim release.
 
-Post-commit verification must prove:
+Evidence before terminal freeze:
 
-- commit parent is exact base `96ac7563f22eb42d84c827717eba346ecfd80090`;
-- the base commit/tree/parent remain exact and the branch/worktree point to the
-  new plan-only successor;
-- committed path inventory is exactly deletion of
-  `docs/execplans/happycodex-0-6-semantic-core.md` and addition of
-  `docs/execplans/happycodex-0-6-bounded-redesign.md`;
-- only one active 0.6 bounded-redesign ExecPlan exists in the new branch;
-- mandatory trailer is exactly
-  `HappyCodex-ExecPlan: docs/execplans/happycodex-0-6-bounded-redesign.md`;
-- `git diff --check`, cached check, Git identity, claim identity, and final status
-  are exact;
-- plan line/word counts meet both target and hard maximum;
-- terminal receipt contains exact commit/tree/parent, changed paths, intent/claim/
-  owner-token/plan digests, grant/correction, claim verification, status, counts,
-  commands not run, and remaining gates;
-- the terminal receipt is mode `0600`, valid JSON, content-addressed, and read back
-  before stopping.
+- exact baseline receipt above: 195 tests, three expected failures, no drift;
+- stable RED:
+  `/home/caichenghang/.codex/happycodex-0.6-bounded-redesign-g003-b1-red.txt`,
+  mode `0600`, SHA-256
+  `6a66bc61d7abbfbca9d74063ff22c0b8501e1b416e083203cc537fd57d626462`,
+  81 tests with 52 failures and 18 errors hitting the named semantic/Runtime
+  boundaries before implementation;
+- stable focused GREEN:
+  `/home/caichenghang/.codex/happycodex-0.6-bounded-redesign-g003-b1-green.txt`,
+  mode `0600`, SHA-256
+  `120586f2a9a5bf6906e986a70a28a11e688a3e7bfdce79c115407df2fecdf03b`,
+  78 tests in 6.183 seconds, all passing;
+- the first focused integration run passed 77 tests and exposed only the stale
+  exact package-artifact digest caused by the authorized Runtime rewrite; the
+  source-derived oracle was updated in the authorized test and the identical
+  command then passed;
+- preliminary cumulative suite: 178 tests in 8.807 seconds, all passing;
+  preliminary `verify`, `corpus --dry-run`, and `holdout --dry-run` each exited
+  zero without live authority or model execution.
 
-Current checkpoint:
+The semantic package is the exact five-file surface, 771 production lines and 20
+exports. Runtime is 227 lines/1,919 words aggregate. The inventory/import-policy
+findings `BR-FIND-BASE-001..003` are resolved by exact focused/full checks.
+Total production Python is 8,900 lines, measured but nonblocking until Batch 3.
+No failure is accepted or relabeled. No Goal, model call, live authority,
+generation-6 evidence, install, release, or activation exists.
 
-- G001 is accepted/closed at its exact plan-only commit/tree; its intent, claim,
-  receipt, trailer, and add/delete inventory were independently verified;
-- G002 is active and plan-only at the exact accepted G001 prestate with its
-  external intent persisted and the same three-resource claim verified;
-- Root's 195-test/3-failure reproduction is open candidate-new evidence with the
-  exact inventory failure and two exact import-policy subtests above; no failure
-  is baseline-accepted, and Batch 1 owns repair;
-- accepted source confirms no `executor` CLI subcommand; Batch 1 omits it, Batch 2
-  owns its RED/GREEN addition, and Batch 2 onward uses all four evaluator terminal
-  commands;
-- semantic/public-export and Runtime budgets close in Batch 1; total evaluation
-  production LOC is measured each batch and closes in Batch 3;
-- phase remains `implementation`;
-- families `F-06BR-RUNTIME`, `F-06BR-AUTHORITY`, and
-  `F-06BR-EVALUATOR` are open at recurrence 0;
-- no accepted baseline, candidate, generation-6 evidence, Goal, model call,
-  evaluator run, live authority, install, release, or activation exists;
-- next action under G002 is plan checks/counts, one plan-only commit, verification,
-  terminal receipt, then STOP;
-- Batch 1 requires a new exact Root grant to this same fixed Executor.
+Current checkpoint: phase remains `implementation`; the Batch 1 portions of
+`F-06BR-RUNTIME` and `F-06BR-AUTHORITY` are closed at recurrence 0, while
+`F-06BR-EVALUATOR`, later imperative authority integration, the normalized
+Outcome, and all future cost/review/install/release/activation gates remain open.
+The final terminal schedule now repeats the cumulative/CLI/budget checks against
+this finalized index, then the Executor stages only the grant paths, commits,
+verifies commit/tree/status/claim/trailer, writes and reads back the external
+receipt, and stops for Root. Batch 2 requires a new exact grant.
 
-Uncertainty rule: a path outside the frozen batch inventory, changed prestate,
-unverified claim, ambiguous command effect, mismatched test reproduction, unknown
-input classification, identity/config drift, unexpected live side effect, or
-evidence that cannot be bound to its exact source is returned to Root before the
-next mutation. The Executor neither widens scope nor retries, cleans up, accepts,
-waives, substitutes, or decides completion. Partial effects remain in place for
-read-only reconciliation and are described exactly. Root may issue a narrower or
-corrected grant only after reproducing the durable facts; a conversational
-assurance alone cannot amend this index or reopen a consumed attempt.
+Uncertainty rule: an outside path, changed prestate, unverified claim, ambiguous
+or partial effect, reproduction mismatch, unknown input, identity/config drift,
+unexpected live effect, or unbound evidence returns to Root before mutation. The
+Executor never widens, retries, cleans up, accepts, waives, substitutes, releases,
+or decides completion.
 
 ## Retrospective
 

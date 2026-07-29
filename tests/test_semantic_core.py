@@ -1,909 +1,411 @@
 from __future__ import annotations
 
-from dataclasses import FrozenInstanceError, replace
+import copy
+from dataclasses import FrozenInstanceError
+from inspect import signature
+from pathlib import Path
 import unittest
+from unittest import mock
 
+import evaluation.semantic as semantic
 from evaluation.semantic import (
-    AdminFacts,
-    Arm,
-    AttemptKey,
-    AttemptScope,
-    AttemptTarget,
-    BaselineAcceptance,
-    CandidateIdentity,
+    ActionKind,
+    AuthorityProvenance,
     CapacityError,
-    CheckFact,
-    CheckId,
-    CheckState,
-    ClaimFact,
-    ClaimId,
-    ClaimState,
-    CompletionTag,
-    ControlBlocker,
-    Decision,
-    DecisionTarget,
-    DecisionTargetId,
-    DigestAnchor,
-    EvidenceKind,
-    EvidenceRef,
-    EvidenceSourceId,
-    ExecutorIdentity,
-    FalsifierId,
-    Finding,
-    FindingCatalog,
-    FindingId,
-    FindingStatus,
-    GateFact,
-    GateId,
-    GateState,
-    GateWorkId,
-    GitCommit,
-    GitTree,
-    GoalFact,
-    GoalState,
-    InfrastructureId,
-    InfrastructureTransition,
-    InfrastructureTransitionKind,
-    InvocationProfileIdentity,
-    MachineEnvelope,
-    Marker,
-    MarkerId,
-    ModelObservation,
-    ReceiptAnchor,
-    ReceiptKind,
-    ReceiptLink,
-    ReceiptLinkHash,
-    RepoPath,
-    RepositoryId,
-    ResolutionEvidence,
-    ResourceClaim,
-    ResourceId,
-    SafeText,
-    SemanticValidationError,
-    Sha256,
-    SourceIdentity,
-    StateKey,
-    StateProjection,
+    EffectDecision,
+    Id,
+    InfraKind,
+    ProvenanceKind,
+    SemanticError,
+    TaskBinding,
     canonical_bytes,
-    canonical_set,
-    canonical_sha256,
-    freeze_mapping,
+    enforce_effect,
     make_attempt_key,
-    make_receipt_link_hash,
-    make_state_key,
-    parse_model_observation,
-    parse_repo_path,
+    make_progress_key,
+    parse_facts,
+    reduce_facts,
+    replay_report,
 )
 
 
 HEX_A = "a" * 64
 HEX_B = "b" * 64
 HEX_C = "c" * 64
-GIT_A = "a" * 40
-GIT_B = "b" * 40
 
 
-class TypedStateTests(unittest.TestCase):
-    def evidence(
-        self,
-        identity: str = HEX_A,
-        *,
-        source: str = "source-main",
-        kind: EvidenceKind = EvidenceKind.SOURCE,
-    ) -> EvidenceRef:
-        return EvidenceRef(kind, Sha256(identity), EvidenceSourceId(source))
-
-    def finding(
-        self,
-        *,
-        status: FindingStatus = FindingStatus.OPEN,
-        claim_text: str = "typed progress exists",
-        falsifier_text: str = "an equivalent attempt is repeated",
-        claim_id: str = "claim-progress",
-        falsifier_id: str = "falsifier-repeat",
-        evidence: tuple[EvidenceRef, ...] = (),
-        anchors: tuple[object, ...] | None = None,
-    ) -> Finding:
-        if anchors is None:
-            anchors = (Marker(MarkerId("semantic-core")),)
-        return Finding.proposed(
-            finding_id=FindingId("finding-progress"),
-            claim_id=ClaimId(claim_id),
-            falsifier_id=FalsifierId(falsifier_id),
-            status=status,
-            anchors=anchors,
-            claim_text=SafeText(claim_text),
-            falsifier_text=SafeText(falsifier_text),
-            evidence=evidence,
-        )
-
-    def projection(self, **changes: object) -> StateProjection:
-        source = SourceIdentity(
-            commit=GitCommit(GIT_A),
-            tree=GitTree(GIT_B),
-            package_semantic=Sha256(HEX_A),
-            package_artifact=Sha256(HEX_B),
-            engine_manifest=Sha256(HEX_C),
-            config=Sha256("d" * 64),
-        )
-        executor = ExecutorIdentity(
-            provider="codex",
-            session="session-fixed",
-            thread="thread-fixed",
-            owner="executor-fixed",
-            role_config=Sha256("e" * 64),
-            actual_profile=Sha256("f" * 64),
-            permission_profile=Sha256("1" * 64),
-            write_scope=Sha256("2" * 64),
-        )
-        profile = InvocationProfileIdentity(
-            provider="codex",
-            binary=Sha256("3" * 64),
-            model="gpt-5.6-sol",
-            effort="high",
-            timeout_seconds=600,
-            tool_surface=Sha256("4" * 64),
-            network=False,
-            mcp=Sha256("5" * 64),
-            hooks=Sha256("6" * 64),
-            settings=Sha256("7" * 64),
-        )
-        values: dict[str, object] = {
-            "schema_generation": 6,
-            "source": source,
-            "candidate": None,
-            "executor": executor,
-            "invocation_profile": profile,
-            "claimed_resources": (
-                ResourceClaim(ResourceId("ledger"), Sha256("8" * 64)),
-            ),
-            "claims": (
-                ClaimFact(
-                    ClaimId("claim-progress"),
-                    "outcome",
-                    ClaimState.OPEN,
-                    (Marker(MarkerId("claim-anchor")),),
-                    (),
-                ),
-            ),
-            "goal": GoalFact(GoalState.NONE, None, True),
-            "gates": (
-                GateFact(
-                    GateId.IMPLEMENTATION,
-                    GateState.OPEN,
-                    GateWorkId("i-01"),
-                    (),
-                ),
-            ),
-            "checks": (
-                CheckFact(
-                    CheckId("typed-state-red"),
-                    Sha256("9" * 64),
-                    CheckState.FAIL,
-                    None,
-                    self.evidence("0" * 64, kind=EvidenceKind.CHECK),
-                ),
-            ),
-            "accepted_evidence": (self.evidence(),),
-            "infrastructure_replacements": (),
-            "findings": (self.finding(),),
-            "blockers": (
-                ControlBlocker(
-                    "implementation-open",
-                    GateId.IMPLEMENTATION,
-                    FindingId("finding-progress"),
-                    (Marker(MarkerId("blocker-anchor")),),
-                ),
-            ),
-            "decision_target": DecisionTarget(
-                Decision.IMPLEMENT_BATCH,
-                DecisionTargetId("i-01"),
-                AttemptScope("semantic-core"),
-            ),
-        }
-        values.update(changes)
-        return StateProjection(**values)
-
-    def envelope(self, projection: StateProjection | None = None, **admin: object) -> MachineEnvelope:
-        facts = {
-            "authority_receipts": (),
-            "approval_receipts": (),
-            "grant_lifecycle": (),
-            "receipt_lifecycle": (),
-            "receipt_head": None,
-            "cursor": None,
-            "consumed_attempts": (),
-            "timestamps": (),
-            "turn_ids": (),
-            "random_ids": (),
-        }
-        facts.update(admin)
-        return MachineEnvelope(projection or self.projection(), AdminFacts(**facts))
-
-    def test_tagged_scalars_are_validated_and_not_cross_type_equal(self) -> None:
-        self.assertNotEqual(FindingId("same"), ClaimId("same"))
-        self.assertNotEqual(ClaimId("same"), FalsifierId("same"))
-        self.assertNotEqual(FalsifierId("same"), EvidenceSourceId("same"))
-        exact_frozen = (
-            FindingId("MF-06-001"),
-            ClaimId("CL-06-STRUCTURAL-DECISION-TARGET"),
-            GateWorkId("I-01/types-and-keys"),
-            AttemptScope("RB-06-001/instance"),
-            EvidenceSourceId("current-task/user/happycodex-0.6"),
-            ResourceId(
-                "worktree:/home/caichenghang/projects/happycodex-worktrees/"
-                "happycodex-0.6-semantic-core"
-            ),
-            ResourceId(
-                "ref:/home/caichenghang/projects/happycodex::"
-                "refs/heads/codex/happycodex-0.6-semantic-core"
-            ),
-        )
-        self.assertEqual(
-            tuple(item.value for item in exact_frozen[:5]),
-            (
-                "MF-06-001",
-                "CL-06-STRUCTURAL-DECISION-TARGET",
-                "I-01/types-and-keys",
-                "RB-06-001/instance",
-                "current-task/user/happycodex-0.6",
-            ),
-        )
-        self.assertNotEqual(FindingId("MF-06-001"), FindingId("mf-06-001"))
-        exact_claim = ResourceClaim(exact_frozen[5], Sha256(HEX_A))
-        case_variant_claim = ResourceClaim(
-            ResourceId(
-                "worktree:/home/caichenghang/projects/happycodex-worktrees/"
-                "HappyCodex-0.6-semantic-core"
-            ),
-            Sha256(HEX_A),
-        )
-        self.assertNotEqual(exact_claim, case_variant_claim)
-        self.assertNotEqual(
-            make_state_key(self.projection(claimed_resources=(exact_claim,))),
-            make_state_key(self.projection(claimed_resources=(case_variant_claim,))),
-        )
-        for factory, bad in (
-            (FindingId, ""),
-            (ClaimId, " leading"),
-            (FalsifierId, "trailing "),
-            (EvidenceSourceId, "contains whitespace"),
-            (ResourceId, "resource\\alias"),
-            (ResourceId, "line\nfeed"),
-            (ResourceId, 1),
-            (Sha256, "A" * 64),
-            (Sha256, "a" * 63),
-            (GitCommit, "a" * 39),
-            (GitTree, "g" * 40),
-        ):
-            with self.subTest(factory=factory.__name__, bad=bad):
-                with self.assertRaises(SemanticValidationError):
-                    factory(bad)
-
-    def test_repo_path_is_exact_relative_case_sensitive_and_unaliased(self) -> None:
-        upper = RepoPath(RepositoryId("repo-main"), "Src/Thing.py")
-        lower = RepoPath(RepositoryId("repo-main"), "src/Thing.py")
-        self.assertNotEqual(upper, lower)
-        for path in (
-            "/absolute",
-            "../escape",
-            "a/../b",
-            "a/./b",
-            "a//b",
-            "a\\b",
-            "a/",
-            ".",
-            "",
-        ):
-            with self.subTest(path=path):
-                with self.assertRaises(SemanticValidationError):
-                    RepoPath(RepositoryId("repo-main"), path)
-
-        parsed = parse_repo_path(
-            {"tag": "RepoPath", "repository_id": "repo-main", "path": "Src/Thing.py"}
-        )
-        self.assertEqual(parsed, upper)
-        for malformed in (
-            {"tag": "repo_path", "repository_id": "repo-main", "path": "x"},
-            {"tag": "RepoPath", "repository_id": "repo-main", "path": "x", "extra": 1},
-            {"tag": "RepoPath", "repository_id": "repo-main"},
-        ):
-            with self.subTest(malformed=malformed):
-                with self.assertRaises(SemanticValidationError):
-                    parse_repo_path(malformed)
-
-    def test_frozen_records_tuples_and_mappings_cannot_mutate(self) -> None:
-        finding = self.finding()
-        with self.assertRaises(FrozenInstanceError):
-            finding.status = FindingStatus.RESOLVED  # type: ignore[misc]
-        frozen = freeze_mapping({"b": 2, "a": 1})
-        self.assertEqual(tuple(frozen), ("a", "b"))
-        with self.assertRaises(TypeError):
-            frozen["c"] = 3  # type: ignore[index]
-        projection = self.projection()
-        self.assertIsInstance(projection.findings, tuple)
-
-    def test_canonical_encoding_is_exact_ordered_and_fail_closed(self) -> None:
-        self.assertEqual(canonical_bytes({"b": 2, "a": 1}), b'{"a":1,"b":2}')
-        self.assertNotEqual(canonical_bytes(("a", "b")), canonical_bytes(("b", "a")))
-        self.assertEqual(
-            canonical_set((ClaimId("b"), ClaimId("a"))),
-            (ClaimId("a"), ClaimId("b")),
-        )
-        with self.assertRaisesRegex(SemanticValidationError, "duplicate"):
-            canonical_set((ClaimId("a"), ClaimId("a")))
-        for mutable in ({"a": 1}, ["a"], {"a"}, bytearray(b"a")):
-            with self.subTest(mutable=type(mutable).__name__):
-                with self.assertRaises(SemanticValidationError):
-                    canonical_set((mutable,))
-        self.assertEqual(canonical_bytes(True), b"true")
-        self.assertEqual(canonical_bytes(False), b"false")
-        for value in (float("nan"), 1.0, float("inf")):
-            with self.subTest(value=value):
-                with self.assertRaises(SemanticValidationError):
-                    canonical_bytes(value)
-        self.assertNotEqual(
-            canonical_sha256("domain-a", {"x": 1}),
-            canonical_sha256("domain-b", {"x": 1}),
-        )
-
-    def test_mapping_key_validation_precedes_sorting(self) -> None:
-        mixed = {"a": 1, 2: "b"}
-        for operation in (
-            lambda: canonical_bytes(mixed),
-            lambda: freeze_mapping(mixed),
-            lambda: parse_repo_path(
-                {"tag": "RepoPath", "repository_id": "repo-main", 2: "bad"}
-            ),
-        ):
-            with self.subTest(operation=operation):
-                with self.assertRaises(SemanticValidationError):
-                    operation()
-
-    def test_unknown_enum_and_bool_as_int_fail_closed(self) -> None:
-        with self.assertRaises(ValueError):
-            Decision("implement_batch")
-        with self.assertRaises(ValueError):
-            GateState("open")
-        with self.assertRaises(SemanticValidationError):
-            StateProjection(**{**self.projection().__dict__, "schema_generation": True})
-        with self.assertRaises(SemanticValidationError):
-            InvocationProfileIdentity(
-                provider="codex",
-                binary=Sha256(HEX_A),
-                model="model",
-                effort="high",
-                timeout_seconds=True,
-                tool_surface=Sha256(HEX_B),
-                network=False,
-                mcp=Sha256(HEX_C),
-                hooks=Sha256("d" * 64),
-                settings=Sha256("e" * 64),
-            )
-
-    def test_finding_semantic_identity_ignores_display_rewording(self) -> None:
-        first = self.finding()
-        second = self.finding(
-            claim_text="cosmetically rewritten claim",
-            falsifier_text="cosmetically rewritten falsifier",
-        )
-        self.assertEqual(first.semantic_identity(), second.semantic_identity())
-        self.assertEqual(
-            make_state_key(self.projection(findings=(first,))),
-            make_state_key(self.projection(findings=(second,))),
-        )
-
-    def test_finding_semantic_identity_changes_for_typed_semantics(self) -> None:
-        base = self.finding()
-        variants = (
-            self.finding(claim_id="claim-other"),
-            self.finding(falsifier_id="falsifier-other"),
-            self.finding(anchors=(Marker(MarkerId("other-anchor")),)),
-            self.finding(evidence=(self.evidence(HEX_B),)),
-        )
-        for variant in variants:
-            with self.subTest(variant=variant):
-                self.assertNotEqual(base.semantic_identity(), variant.semantic_identity())
-
-        resolution_evidence = self.evidence(HEX_B, kind=EvidenceKind.CHECK)
-        resolved = Finding.resolved(
-            finding_id=base.finding_id,
-            claim_id=base.claim_id,
-            falsifier_id=base.falsifier_id,
-            anchors=base.anchors,
-            claim_text=base.claim_text,
-            falsifier_text=base.falsifier_text,
-            evidence=(resolution_evidence,),
-            resolution=ResolutionEvidence(resolution_evidence),
-        )
-        self.assertNotEqual(base.semantic_identity(), resolved.semantic_identity())
-
-    def test_finding_resolution_and_baseline_acceptance_require_typed_proof(self) -> None:
-        base = self.finding()
-        with self.assertRaises(SemanticValidationError):
-            Finding(
-                base.finding_id,
-                base.claim_id,
-                base.falsifier_id,
-                FindingStatus.RESOLVED,
-                base.anchors,
-                base.claim_text,
-                base.falsifier_text,
-                (),
-            )
-        with self.assertRaises(SemanticValidationError):
-            Finding(
-                base.finding_id,
-                base.claim_id,
-                base.falsifier_id,
-                FindingStatus.BASELINE_ACCEPTED,
-                base.anchors,
-                base.claim_text,
-                base.falsifier_text,
-                (),
-            )
-        accepted = Finding.baseline_accepted(
-            finding_id=base.finding_id,
-            claim_id=base.claim_id,
-            falsifier_id=base.falsifier_id,
-            anchors=(*base.anchors, DigestAnchor("baseline", Sha256(HEX_C))),
-            claim_text=base.claim_text,
-            falsifier_text=base.falsifier_text,
-            evidence=(self.evidence(HEX_C),),
-            acceptance=BaselineAcceptance(
-                authority=self.evidence(HEX_B, kind=EvidenceKind.AUTHORITY),
-                baseline=Sha256(HEX_C),
-            ),
-        )
-        self.assertEqual(accepted.status, FindingStatus.BASELINE_ACCEPTED)
-
-    def test_finding_resolution_evidence_must_be_present_exactly(self) -> None:
-        base = self.finding()
-        resolution = ResolutionEvidence(self.evidence(HEX_B, kind=EvidenceKind.CHECK))
-        with self.assertRaises(SemanticValidationError):
-            Finding.resolved(
-                finding_id=base.finding_id,
-                claim_id=base.claim_id,
-                falsifier_id=base.falsifier_id,
-                anchors=base.anchors,
-                claim_text=base.claim_text,
-                falsifier_text=base.falsifier_text,
-                evidence=(self.evidence(HEX_B),),
-                resolution=resolution,
-            )
-        resolved = Finding.resolved(
-            finding_id=base.finding_id,
-            claim_id=base.claim_id,
-            falsifier_id=base.falsifier_id,
-            anchors=base.anchors,
-            claim_text=base.claim_text,
-            falsifier_text=base.falsifier_text,
-            evidence=(resolution.evidence,),
-            resolution=resolution,
-        )
-        self.assertIn(resolution.evidence, resolved.evidence)
-
-    def test_baseline_identity_is_semantic_but_authority_receipt_is_administrative(self) -> None:
-        base = self.finding()
-        baseline_a = Sha256(HEX_A)
-        baseline_b = Sha256(HEX_B)
-        authority_a = self.evidence("1" * 64, kind=EvidenceKind.AUTHORITY)
-        authority_b = self.evidence("2" * 64, kind=EvidenceKind.AUTHORITY)
-
-        def accepted(baseline: Sha256, authority: EvidenceRef) -> Finding:
-            return Finding.baseline_accepted(
-                finding_id=base.finding_id,
-                claim_id=base.claim_id,
-                falsifier_id=base.falsifier_id,
-                anchors=(*base.anchors, DigestAnchor("baseline", baseline)),
-                claim_text=base.claim_text,
-                falsifier_text=base.falsifier_text,
-                evidence=(self.evidence(HEX_C),),
-                acceptance=BaselineAcceptance(authority=authority, baseline=baseline),
-            )
-
-        first = accepted(baseline_a, authority_a)
-        same_baseline_new_authority = accepted(baseline_a, authority_b)
-        different_baseline = accepted(baseline_b, authority_b)
-        self.assertEqual(first.semantic_identity(), same_baseline_new_authority.semantic_identity())
-        self.assertNotEqual(first.semantic_identity(), different_baseline.semantic_identity())
-
-        invalid_anchors = (
-            base.anchors,
-            (*base.anchors, DigestAnchor("baseline", baseline_b)),
-        )
-        for anchors in invalid_anchors:
-            with self.subTest(anchors=anchors):
-                with self.assertRaises(SemanticValidationError):
-                    Finding.baseline_accepted(
-                        finding_id=base.finding_id,
-                        claim_id=base.claim_id,
-                        falsifier_id=base.falsifier_id,
-                        anchors=anchors,
-                        claim_text=base.claim_text,
-                        falsifier_text=base.falsifier_text,
-                        evidence=(self.evidence(HEX_C),),
-                        acceptance=BaselineAcceptance(
-                            authority=authority_a,
-                            baseline=baseline_a,
-                        ),
-                    )
-
-    def test_model_observation_accepts_only_new_open_or_unknown_catalog_entries(self) -> None:
-        catalog = FindingCatalog(
-            namespace="semantic-core",
-            existing_finding_ids=(FindingId("semantic-core.existing-finding"),),
-            claim_ids=(ClaimId("claim-progress"),),
-            falsifier_ids=(FalsifierId("falsifier-repeat"),),
-        )
-        raw = {
-            "observations": ["bounded observation"],
-            "proposed_findings": [
+def raw_envelope() -> dict[str, object]:
+    return {
+        "schema_generation": 6,
+        "task_binding": {
+            "task_id": "task-a",
+            "root_task_id": "root-a",
+            "executor_task_id": "executor-a",
+            "owner_label": "owner-a",
+            "destination_id": "destination-a",
+            "lineage_digest": HEX_A,
+            "role_config_digest": HEX_B,
+        },
+        "facts": {
+            "claims": [{"id": "claim-a", "state": "OPEN", "evidence": ["source-a"]}],
+            "findings": [
+                {"id": "finding-a", "state": "OPEN", "evidence": ["source-a"]}
+            ],
+            "gates": [{"id": "gate-a", "state": "OPEN", "evidence": ["source-a"]}],
+            "checks": [{"id": "check-a", "state": "PASS", "evidence": ["source-a"]}],
+            "families": [
+                {"id": "family-a", "state": "OPEN", "evidence": ["source-a"]}
+            ],
+            "pending": [
                 {
-                    "tag": "Finding",
-                    "finding_id": "semantic-core.finding-progress",
-                    "claim_id": "claim-progress",
-                    "falsifier_id": "falsifier-repeat",
-                    "status": "OPEN",
-                    "anchors": [
-                        {"tag": "Marker", "marker_id": "semantic-core"}
-                    ],
-                    "claim_text": "typed progress exists",
-                    "falsifier_text": "equivalent work repeats",
-                    "evidence": [],
+                    "id": "pending-a",
+                    "priority": 10,
+                    "kind": "IMPLEMENT_BATCH",
+                    "target": "kernel",
+                    "scope": "batch-1",
+                    "falsifier_id": "falsifier-a",
+                    "evidence_source_id": "source-a",
                 }
             ],
-        }
-        parsed = parse_model_observation(raw, catalog=catalog)
-        self.assertIsInstance(parsed, ModelObservation)
-        self.assertEqual(parsed.proposed_findings[0].status, FindingStatus.OPEN)
-        for status in ("RESOLVED", "BASELINE_ACCEPTED"):
-            malformed = {**raw, "proposed_findings": [{**raw["proposed_findings"][0], "status": status}]}
-            with self.subTest(status=status):
-                with self.assertRaises(SemanticValidationError):
-                    parse_model_observation(malformed, catalog=catalog)
-        for key, value in (
-            ("finding_id", "semantic-core.existing-finding"),
-            ("finding_id", "outside"),
-            ("claim_id", "claim-outside-catalog"),
-            ("falsifier_id", "falsifier-outside-catalog"),
-        ):
-            malformed = {**raw, "proposed_findings": [{**raw["proposed_findings"][0], key: value}]}
-            with self.subTest(key=key):
-                with self.assertRaises(SemanticValidationError):
-                    parse_model_observation(malformed, catalog=catalog)
-        with self.assertRaises(SemanticValidationError):
-            parse_model_observation({**raw, "decision": "CLOSE"}, catalog=catalog)
-        with self.assertRaises(SemanticValidationError):
-            parse_model_observation(
+            "replacements": [
                 {
-                    **raw,
-                    "proposed_findings": [
-                        raw["proposed_findings"][0],
-                        raw["proposed_findings"][0],
-                    ],
-                },
-                catalog=catalog,
-            )
-        duplicate_id_different_status = {
-            **raw,
-            "proposed_findings": [
-                raw["proposed_findings"][0],
-                {**raw["proposed_findings"][0], "status": "UNKNOWN"},
+                    "id": "infra-a",
+                    "kind": "REPLACED",
+                    "prior": HEX_A,
+                    "current": HEX_B,
+                    "evidence": ["source-a"],
+                }
             ],
-        }
-        with self.assertRaises(SemanticValidationError):
-            parse_model_observation(
-                duplicate_id_different_status,
-                catalog=catalog,
-            )
-        with self.assertRaises(SemanticValidationError):
-            parse_model_observation(
+            "paths": [
                 {
-                    **raw,
-                    "proposed_findings": [
-                        {**raw["proposed_findings"][0], "finding_id": "semantic-core."}
-                    ],
-                },
-                catalog=catalog,
-            )
+                    "id": "path-a",
+                    "repository_id": "repository-a",
+                    "path": "src/app.py",
+                }
+            ],
+            "markers": [{"id": "marker-a", "value": "MARKER-A"}],
+        },
+        "administration": {
+            "authority_receipts": [{"id": "authority-a", "value": HEX_A}],
+            "resource_claims": [{"id": "resource-a", "value": HEX_A}],
+            "receipts": [{"id": "receipt-a", "value": HEX_A}],
+            "cursors": [{"id": "cursor-a", "value": "offset-1"}],
+            "timestamps": [{"id": "timestamp-a", "value": 1}],
+            "consumptions": [{"id": "attempt-a", "value": HEX_A}],
+        },
+    }
 
-    def test_state_key_ignores_all_administrative_lifecycle_fields(self) -> None:
-        baseline = make_state_key(self.envelope())
-        variants = (
-            self.envelope(authority_receipts=(Sha256(HEX_A),)),
-            self.envelope(approval_receipts=(Sha256(HEX_B),)),
-            self.envelope(grant_lifecycle=("GRANTED", "RECEIPTED")),
-            self.envelope(receipt_lifecycle=("intent", "receipt")),
-            self.envelope(receipt_head=ReceiptLinkHash(HEX_A)),
-            self.envelope(cursor="object:12/20"),
-            self.envelope(consumed_attempts=(AttemptKey(HEX_B),)),
-            self.envelope(timestamps=("2026-07-29T13:00:00Z",)),
-            self.envelope(turn_ids=("turn-random",)),
-            self.envelope(random_ids=("attempt-random",)),
-        )
-        for variant in variants:
-            with self.subTest(admin=variant.admin):
-                self.assertEqual(baseline, make_state_key(variant))
 
-    def test_state_key_changes_for_each_semantic_projection_dimension(self) -> None:
-        base = self.projection()
-        base_key = make_state_key(base)
-        candidate = CandidateIdentity(
-            commit=GitCommit("c" * 40),
-            tree=GitTree("d" * 40),
-            package_semantic=base.source.package_semantic,
-            package_artifact=base.source.package_artifact,
-            engine_manifest=base.source.engine_manifest,
-            config=base.source.config,
-            snapshot=Sha256("e" * 64),
-        )
-        replacement = InfrastructureTransition(
-            InfrastructureTransitionKind.REPLACED,
-            InfrastructureId("runner"),
-            Sha256(HEX_A),
-            Sha256(HEX_B),
-            (self.evidence(HEX_C, kind=EvidenceKind.RECOVERY),),
-        )
-        variants = {
-            "candidate": replace(base, candidate=candidate),
-            "check": replace(
-                base,
-                checks=(replace(base.checks[0], state=CheckState.PASS),),
-            ),
-            "goal": replace(base, goal=GoalFact(GoalState.ACTIVE, Sha256(HEX_A), True)),
-            "gate": replace(
-                base,
-                gates=(replace(base.gates[0], state=GateState.SATISFIED),),
-            ),
-            "decision_target": replace(
-                base,
-                decision_target=DecisionTarget(
-                    Decision.VERIFY,
-                    DecisionTargetId("typed-state-check"),
-                    AttemptScope("semantic-core"),
-                ),
-            ),
-            "replacement": replace(base, infrastructure_replacements=(replacement,)),
-            "finding_status": replace(
-                base,
-                findings=(
-                    Finding.resolved(
-                        finding_id=base.findings[0].finding_id,
-                        claim_id=base.findings[0].claim_id,
-                        falsifier_id=base.findings[0].falsifier_id,
-                        anchors=base.findings[0].anchors,
-                        claim_text=base.findings[0].claim_text,
-                        falsifier_text=base.findings[0].falsifier_text,
-                        evidence=(self.evidence(HEX_B, kind=EvidenceKind.CHECK),),
-                        resolution=ResolutionEvidence(
-                            self.evidence(HEX_B, kind=EvidenceKind.CHECK)
-                        ),
-                    ),
-                ),
-            ),
-            "finding_anchor": replace(
-                base,
-                findings=(self.finding(anchors=(Marker(MarkerId("changed")),)),),
-            ),
-            "finding_evidence": replace(
-                base,
-                findings=(self.finding(evidence=(self.evidence(HEX_B),)),),
-            ),
-            "accepted_evidence": replace(
-                base,
-                accepted_evidence=(self.evidence(HEX_B),),
-            ),
-        }
-        for name, variant in variants.items():
-            with self.subTest(name=name):
-                self.assertNotEqual(base_key, make_state_key(variant))
+def adapter_authority(
+    binding: TaskBinding,
+    action: object,
+    *,
+    kind: ProvenanceKind = ProvenanceKind.DIRECT,
+    issuer: Id | None = None,
+    destination: Id | None = None,
+    lineage: Id | None = None,
+    target: Id | None = None,
+    scope: Id | None = None,
+) -> AuthorityProvenance:
+    return AuthorityProvenance.from_adapter(
+        kind=kind,
+        issuer=issuer or binding.root_task,
+        destination=destination or binding.destination,
+        lineage=lineage or binding.lineage,
+        source_event=Id("source_event", HEX_C),
+        target=target or action.target,
+        scope=scope or action.scope,
+    )
 
-    def test_transient_infrastructure_events_do_not_enter_state_projection(self) -> None:
-        for kind in (
-            InfrastructureTransitionKind.STARTED,
-            InfrastructureTransitionKind.FAILED,
-            InfrastructureTransitionKind.RECOVERED,
-        ):
-            with self.subTest(kind=kind):
-                with self.assertRaises(SemanticValidationError):
-                    StateProjection(
-                        **{
-                            **self.projection().__dict__,
-                            "infrastructure_replacements": (
-                                InfrastructureTransition(
-                                    kind,
-                                    InfrastructureId("runner"),
-                                    Sha256(HEX_A),
-                                    Sha256(HEX_B),
-                                    (),
-                                ),
-                            ),
-                        }
-                    )
 
-    def test_attempt_key_uses_only_typed_preimage(self) -> None:
-        state_key = make_state_key(self.envelope())
-        base = make_attempt_key(
-            state_key,
-            Decision.VERIFY,
-            AttemptTarget("typed-state-check"),
-            AttemptScope("semantic-core"),
-            FalsifierId("falsifier-repeat"),
-            EvidenceSourceId("source-main"),
-        )
-        reworded = make_attempt_key(
-            make_state_key(
-                self.envelope(
-                    replace(
-                        self.projection(),
-                        findings=(
-                            self.finding(
-                                claim_text="display rewrite",
-                                falsifier_text="another display rewrite",
-                            ),
-                        ),
-                    ),
-                    random_ids=("different",),
-                    turn_ids=("turn-2",),
-                )
-            ),
-            Decision.VERIFY,
-            AttemptTarget("typed-state-check"),
-            AttemptScope("semantic-core"),
-            FalsifierId("falsifier-repeat"),
-            EvidenceSourceId("source-main"),
-        )
-        self.assertEqual(base, reworded)
-        variants = (
-            make_attempt_key(
-                state_key,
-                Decision.IMPLEMENT_BATCH,
-                AttemptTarget("typed-state-check"),
-                AttemptScope("semantic-core"),
-                FalsifierId("falsifier-repeat"),
-                EvidenceSourceId("source-main"),
-            ),
-            make_attempt_key(
-                state_key,
-                Decision.VERIFY,
-                AttemptTarget("other-target"),
-                AttemptScope("semantic-core"),
-                FalsifierId("falsifier-repeat"),
-                EvidenceSourceId("source-main"),
-            ),
-            make_attempt_key(
-                state_key,
-                Decision.VERIFY,
-                AttemptTarget("typed-state-check"),
-                AttemptScope("other-scope"),
-                FalsifierId("other-falsifier"),
-                EvidenceSourceId("other-source"),
-            ),
-        )
-        for variant in variants:
-            self.assertNotEqual(base, variant)
-
-    def test_attempt_target_rejects_cross_tag_conversion(self) -> None:
-        self.assertEqual(AttemptTarget("typed-state-check").value, "typed-state-check")
-        for tagged in (
-            DecisionTargetId("typed-state-check"),
-            FalsifierId("typed-state-check"),
-            EvidenceSourceId("typed-state-check"),
-        ):
-            with self.subTest(tagged=type(tagged).__name__):
-                with self.assertRaises(SemanticValidationError):
-                    AttemptTarget(tagged)
-
-    def test_receipt_link_validates_sequence_and_never_feeds_state_key(self) -> None:
-        state_key = make_state_key(self.envelope())
-        attempt = make_attempt_key(
-            state_key,
-            Decision.VERIFY,
-            AttemptTarget("typed-state-check"),
-            AttemptScope("semantic-core"),
-            FalsifierId("falsifier-repeat"),
-            EvidenceSourceId("source-main"),
-        )
-        genesis = ReceiptLink(0, None, Sha256(HEX_A), attempt, EvidenceKind.CHECK)
-        genesis_hash = make_receipt_link_hash(genesis)
-        next_link = ReceiptLink(1, genesis_hash, Sha256(HEX_B), attempt, EvidenceKind.CHECK)
-        self.assertNotEqual(genesis_hash, make_receipt_link_hash(next_link))
-        with self.assertRaises(SemanticValidationError):
-            ReceiptLink(True, None, Sha256(HEX_A), attempt, EvidenceKind.CHECK)
-        with self.assertRaises(SemanticValidationError):
-            ReceiptLink(1, None, Sha256(HEX_A), attempt, EvidenceKind.CHECK)
-        with self.assertRaises(SemanticValidationError):
-            ReceiptLink(0, ReceiptLinkHash(HEX_A), Sha256(HEX_A), attempt, EvidenceKind.CHECK)
+class PublicSurfaceTests(unittest.TestCase):
+    def test_public_surface_is_closed_and_bounded(self) -> None:
         self.assertEqual(
-            state_key,
-            make_state_key(self.envelope(receipt_head=make_receipt_link_hash(next_link))),
+            semantic.__all__,
+            (
+                "ActionKind",
+                "AuthorityProvenance",
+                "CapacityError",
+                "EffectDecision",
+                "EffectGate",
+                "Facts",
+                "Id",
+                "InfraKind",
+                "NextAction",
+                "ProgressReport",
+                "ProvenanceKind",
+                "SemanticError",
+                "TaskBinding",
+                "canonical_bytes",
+                "enforce_effect",
+                "make_attempt_key",
+                "make_progress_key",
+                "parse_facts",
+                "reduce_facts",
+                "replay_report",
+            ),
         )
-
-    def test_capacity_overflow_rejects_without_truncation_or_eviction(self) -> None:
-        with self.assertRaises(CapacityError) as raised:
-            canonical_set(
-                (ClaimId("a"), ClaimId("b"), ClaimId("c")),
-                max_items=2,
-            )
-        self.assertEqual(raised.exception.limit, 2)
-        self.assertEqual(raised.exception.actual, 3)
-
-    def test_anchor_union_is_exact_and_case_sensitive(self) -> None:
-        anchors = (
-            RepoPath(RepositoryId("repo-main"), "Src/Thing.py"),
-            Marker(MarkerId("marker")),
-            DigestAnchor("config", Sha256(HEX_A)),
-            ReceiptAnchor(ReceiptKind("check"), Sha256(HEX_B)),
-        )
-        finding = self.finding(anchors=anchors)
-        self.assertEqual(len(finding.anchors), 4)
-        self.assertNotEqual(
-            finding.semantic_identity(),
-            self.finding(
-                anchors=(
-                    RepoPath(RepositoryId("repo-main"), "src/Thing.py"),
-                    *anchors[1:],
-                )
-            ).semantic_identity(),
-        )
-        for invalid in (
-            lambda: Marker("raw"),
-            lambda: DigestAnchor("config", "raw"),
-            lambda: ReceiptAnchor("check", "raw"),
-            lambda: DigestAnchor("config", StateKey(HEX_A)),
-            lambda: ReceiptAnchor(ReceiptKind("check"), AttemptKey(HEX_B)),
+        self.assertLessEqual(len(semantic.__all__), 20)
+        for retired in (
+            "AdminFacts",
+            "MachineEnvelope",
+            "StateProjection",
+            "canonical_set",
+            "make_state_key",
         ):
-            with self.subTest(invalid=invalid):
-                with self.assertRaises(SemanticValidationError):
-                    invalid()
+            self.assertFalse(hasattr(semantic, retired), retired)
 
-    def test_authority_evidence_is_rejected_from_every_state_bearing_position(self) -> None:
-        authority = self.evidence(HEX_B, kind=EvidenceKind.AUTHORITY)
-        base = self.projection()
-        checks = (
-            lambda: self.finding(evidence=(authority,)),
-            lambda: ClaimFact(
-                ClaimId("claim-authority-smuggle"),
-                "outcome",
-                ClaimState.OPEN,
-                (Marker(MarkerId("claim-anchor")),),
-                (authority,),
-            ),
-            lambda: GateFact(
-                GateId.IMPLEMENTATION,
-                GateState.OPEN,
-                GateWorkId("i-01"),
-                (authority,),
-            ),
-            lambda: CheckFact(
-                CheckId("authority-smuggle"),
-                Sha256(HEX_A),
-                CheckState.FAIL,
-                None,
-                authority,
-            ),
-            lambda: InfrastructureTransition(
-                InfrastructureTransitionKind.REPLACED,
-                InfrastructureId("runner"),
-                Sha256(HEX_A),
-                Sha256(HEX_C),
-                (authority,),
-            ),
-            lambda: replace(base, accepted_evidence=(authority,)),
+    def test_final_semantic_package_is_exact(self) -> None:
+        root = Path(semantic.__file__).parent
+        self.assertEqual(
+            {path.name for path in root.glob("*.py")},
+            {"__init__.py", "types.py", "canonical.py", "parse.py", "decide.py"},
         )
-        for index, constructor in enumerate(checks):
-            with self.subTest(position=index):
-                with self.assertRaises(SemanticValidationError):
-                    constructor()
 
-    def test_supporting_enums_are_exact(self) -> None:
-        self.assertEqual(Arm.CANDIDATE.value, "CANDIDATE")
-        self.assertEqual(CompletionTag.COMPLETE.value, "COMPLETE")
-        self.assertEqual(GateId.CANDIDATE_FREEZE.value, "CANDIDATE_FREEZE")
-        self.assertEqual(EvidenceKind.OFFLINE_SUMMARY.value, "OFFLINE_SUMMARY")
-        with self.assertRaises(ValueError):
-            CompletionTag("complete")
+
+class PrimaryKeyAndParseTests(unittest.TestCase):
+    def test_identical_primary_key_duplicates_reject_in_every_domain(self) -> None:
+        template = raw_envelope()
+        for section in ("facts", "administration"):
+            for domain, records in template[section].items():
+                candidate = copy.deepcopy(template)
+                candidate[section][domain].append(copy.deepcopy(records[0]))
+                with self.subTest(section=section, domain=domain):
+                    with self.assertRaisesRegex(SemanticError, "duplicate primary key"):
+                        parse_facts(candidate)
+
+    def test_conflicting_primary_key_duplicates_reject_in_every_domain(self) -> None:
+        template = raw_envelope()
+        for section in ("facts", "administration"):
+            for domain, records in template[section].items():
+                candidate = copy.deepcopy(template)
+                conflict = copy.deepcopy(records[0])
+                mutable = next(key for key in conflict if key != "id")
+                value = conflict[mutable]
+                if isinstance(value, list):
+                    conflict[mutable] = [*value, "different"]
+                elif isinstance(value, int):
+                    conflict[mutable] = value + 1
+                else:
+                    conflict[mutable] = f"{value}-different"
+                candidate[section][domain].append(conflict)
+                with self.subTest(section=section, domain=domain):
+                    with self.assertRaisesRegex(SemanticError, "duplicate primary key"):
+                        parse_facts(candidate)
+
+    def test_derived_state_and_authority_injection_reject(self) -> None:
+        for field in (
+            "next_action",
+            "phase",
+            "permission",
+            "projection",
+            "blocker",
+            "authority_provenance",
+        ):
+            candidate = raw_envelope()
+            candidate[field] = {}
+            with self.subTest(field=field):
+                with self.assertRaisesRegex(SemanticError, "unknown"):
+                    parse_facts(candidate)
+
+    def test_wrong_tags_and_deep_mutability_reject_or_freeze(self) -> None:
+        with self.assertRaisesRegex(SemanticError, "root_task"):
+            TaskBinding(
+                task=Id("task", "task-a"),
+                root_task=Id("task", "root-a"),
+                executor_task=Id("executor_task", "executor-a"),
+                owner=Id("owner", "owner-a"),
+                destination=Id("destination", "destination-a"),
+                lineage=Id("lineage", HEX_A),
+                role_config=Id("role_config", HEX_B),
+            )
+        raw = raw_envelope()
+        facts = parse_facts(raw)
+        before = make_progress_key(facts)
+        raw["facts"]["claims"][0]["state"] = "MUTATED"
+        self.assertEqual(make_progress_key(facts), before)
+        with self.assertRaises(TypeError):
+            facts.stable["claims"] = ()
+        with self.assertRaises(FrozenInstanceError):
+            facts.task = facts.task
+
+    def test_exact_paths_are_case_sensitive_and_unaliased(self) -> None:
+        lower = parse_facts(raw_envelope())
+        upper_raw = raw_envelope()
+        upper_raw["facts"]["paths"][0]["path"] = "Src/App.py"
+        upper = parse_facts(upper_raw)
+        self.assertNotEqual(make_progress_key(lower), make_progress_key(upper))
+        for path in ("/src/app.py", "src/../app.py", "src//app.py", "src/app.py/"):
+            candidate = raw_envelope()
+            candidate["facts"]["paths"][0]["path"] = path
+            with self.subTest(path=path):
+                with self.assertRaises(SemanticError):
+                    parse_facts(candidate)
+
+    def test_marker_capacity_overflow_rejects_without_truncation(self) -> None:
+        candidate = raw_envelope()
+        candidate["facts"]["markers"] = [
+            {"id": f"marker-{index}", "value": f"MARKER-{index}"}
+            for index in range(65)
+        ]
+        with self.assertRaisesRegex(CapacityError, "64"):
+            parse_facts(candidate)
+
+    def test_empty_replaced_evidence_rejects(self) -> None:
+        candidate = raw_envelope()
+        candidate["facts"]["replacements"][0]["evidence"] = []
+        with self.assertRaisesRegex(SemanticError, "REPLACED.*evidence"):
+            parse_facts(candidate)
+
+
+class ProgressAndReplayTests(unittest.TestCase):
+    def test_parse_reduce_serialize_replay_roundtrip(self) -> None:
+        report = reduce_facts(parse_facts(raw_envelope()))
+        replayed = replay_report(report.to_wire())
+        self.assertEqual(report, replayed)
+        self.assertEqual(report.progress_key, make_progress_key(report.facts))
+
+    def test_stored_progress_key_and_action_mismatch_reject(self) -> None:
+        report = reduce_facts(parse_facts(raw_envelope()))
+        wrong_key = report.to_wire()
+        wrong_key["progress_key"] = HEX_C
+        with self.assertRaisesRegex(SemanticError, "progress key mismatch"):
+            replay_report(wrong_key)
+        wrong_action = report.to_wire()
+        wrong_action["next_action"]["target"] = "different"
+        with self.assertRaisesRegex(SemanticError, "action mismatch"):
+            replay_report(wrong_action)
+
+    def test_attempt_key_accepts_only_reducer_report(self) -> None:
+        self.assertEqual(tuple(signature(make_attempt_key).parameters), ("report",))
+        report = reduce_facts(parse_facts(raw_envelope()))
+        first = make_attempt_key(report)
+        changed = raw_envelope()
+        changed["facts"]["pending"][0]["falsifier_id"] = "falsifier-b"
+        self.assertNotEqual(first, make_attempt_key(reduce_facts(parse_facts(changed))))
+
+    def test_admin_only_changes_do_not_change_progress_or_attempt(self) -> None:
+        baseline_report = reduce_facts(parse_facts(raw_envelope()))
+        for domain in raw_envelope()["administration"]:
+            candidate = raw_envelope()
+            candidate["administration"][domain][0]["value"] = (
+                2 if domain == "timestamps" else f"{HEX_B}-{domain}"
+            )
+            report = reduce_facts(parse_facts(candidate))
+            with self.subTest(domain=domain):
+                self.assertEqual(report.progress_key, baseline_report.progress_key)
+                self.assertEqual(make_attempt_key(report), make_attempt_key(baseline_report))
+
+    def test_only_evidenced_replacement_changes_progress(self) -> None:
+        first = reduce_facts(parse_facts(raw_envelope()))
+        changed = raw_envelope()
+        changed["facts"]["replacements"][0]["current"] = HEX_C
+        second = reduce_facts(parse_facts(changed))
+        self.assertNotEqual(first.progress_key, second.progress_key)
+
+    def test_canonical_encoder_is_single_exact_and_rejects_mutable_input(self) -> None:
+        self.assertEqual(canonical_bytes({"b": 2, "a": 1}), b'{"a":1,"b":2}')
+        with self.assertRaisesRegex(SemanticError, "mutable"):
+            canonical_bytes({"a": [1]})
+
+
+class AuthorityEnforcementTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.report = reduce_facts(parse_facts(raw_envelope()))
+        self.binding = self.report.facts.task
+
+    def test_direct_target_allows(self) -> None:
+        gate = enforce_effect(
+            self.report,
+            adapter_authority(self.binding, self.report.next_action),
+        )
+        self.assertIs(gate.decision, EffectDecision.ALLOW)
+
+    def test_legitimate_delegation_asks_user(self) -> None:
+        gate = enforce_effect(
+            self.report,
+            adapter_authority(
+                self.binding,
+                self.report.next_action,
+                kind=ProvenanceKind.DELEGATED,
+            ),
+        )
+        self.assertIs(gate.decision, EffectDecision.ASK_USER)
+
+    def test_missing_and_spoofed_authority_refuse(self) -> None:
+        self.assertIs(
+            enforce_effect(self.report, None).decision,
+            EffectDecision.REFUSE,
+        )
+        spoofed = AuthorityProvenance(
+            kind=ProvenanceKind.DIRECT,
+            issuer=self.binding.root_task,
+            destination=self.binding.destination,
+            lineage=self.binding.lineage,
+            source_event=Id("source_event", HEX_C),
+            target=self.report.next_action.target,
+            scope=self.report.next_action.scope,
+        )
+        gate = enforce_effect(self.report, spoofed)
+        self.assertIs(gate.decision, EffectDecision.REFUSE)
+        self.assertEqual(gate.reason, "spoofed")
+
+    def test_wrong_issuer_destination_lineage_target_or_scope_refuses(self) -> None:
+        variants = {
+            "issuer": {"issuer": Id("root_task", "root-other")},
+            "destination": {"destination": Id("destination", "destination-other")},
+            "lineage": {"lineage": Id("lineage", HEX_C)},
+            "target": {"target": Id("action_target", "target-other")},
+            "scope": {"scope": Id("action_scope", "scope-other")},
+        }
+        for reason, changes in variants.items():
+            gate = enforce_effect(
+                self.report,
+                adapter_authority(self.binding, self.report.next_action, **changes),
+            )
+            with self.subTest(reason=reason):
+                self.assertIs(gate.decision, EffectDecision.REFUSE)
+                self.assertEqual(gate.reason, f"wrong_{reason}")
+
+    def test_reduce_and_enforce_are_pure_and_side_effect_free(self) -> None:
+        facts = parse_facts(raw_envelope())
+        authority = adapter_authority(self.binding, self.report.next_action)
+        with (
+            mock.patch("builtins.open", side_effect=AssertionError("I/O forbidden")),
+            mock.patch("subprocess.run", side_effect=AssertionError("process forbidden")),
+        ):
+            self.assertEqual(reduce_facts(facts), reduce_facts(facts))
+            self.assertEqual(
+                enforce_effect(self.report, authority),
+                enforce_effect(self.report, authority),
+            )
+
+
+class EnumBoundaryTests(unittest.TestCase):
+    def test_exact_enums_are_closed(self) -> None:
+        self.assertEqual(
+            {item.value for item in ActionKind},
+            {
+                "DISCOVER",
+                "RECONCILE",
+                "IMPLEMENT_BATCH",
+                "VERIFY",
+                "FOCUSED_REVIEW",
+                "EXACT_FINAL",
+                "ASK_USER",
+                "FREEZE_CANDIDATE",
+                "CLOSE",
+                "REFUSE",
+            },
+        )
+        self.assertEqual(
+            {item.value for item in EffectDecision},
+            {"ALLOW", "ASK_USER", "REFUSE"},
+        )
+        self.assertEqual(
+            {item.value for item in ProvenanceKind},
+            {"DIRECT", "DELEGATED"},
+        )
+        self.assertEqual({item.value for item in InfraKind}, {"REPLACED"})
 
 
 if __name__ == "__main__":

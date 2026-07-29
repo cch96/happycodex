@@ -58,6 +58,11 @@ EXPECTED_MODULES = {
     "evaluation/holdout/blind.py",
     "evaluation/holdout/compare.py",
     "evaluation/holdout/engine.py",
+    "evaluation/semantic/__init__.py",
+    "evaluation/semantic/canonical.py",
+    "evaluation/semantic/decide.py",
+    "evaluation/semantic/parse.py",
+    "evaluation/semantic/types.py",
 }
 
 
@@ -289,7 +294,7 @@ class CertificationImpactTests(unittest.TestCase):
         self.assertEqual(len(snapshot["holdout"]["pairs"]), 3)
         self.assertEqual(
             snapshot["package"]["artifact_sha256"],
-            "9136accf970e97ce04b9aaa00210f73d2739b3cc9ae8d9f7e659b187033bfbf6",
+            "090e150fa7a6e6749f8d8d8dd81bda5aefa3dd5ae3a96c537cc8e01af788c980",
         )
         self.assertEqual(
             set(snapshot["settings"]["toolchain"]), {"python", "codex", "git", "rg"}
