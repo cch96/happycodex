@@ -3,7 +3,7 @@
 Protocol: `HappyCodex/0.3` (active 0.4.0 maintainer runtime)
 Invocation: `$happycodex:happycodex`
 Writer: Root only for the mutable resources listed below
-State: candidate_frozen
+State: focused_hardening
 Resume: restore this file and reconcile Git, tests, Goal, worktree, agents, and gates before any write, review, or completion.
 
 ## Outcome and baseline
@@ -111,7 +111,7 @@ task conversion enlarge the state space without helping convergence.
 | `C-02` | outcome | Family hardening and frozen repair batches precede exact-final certification. | Open-family, reviewer-union, recurrence, and source-drift tests. | protocol and cumulative offline tests GREEN | verified |
 | `C-03` | outcome | `protocol_may_review` is removed and receipts bind `none`, `focused_hardening`, or `exact_final`. | Shared schema, oracle, receipt, and ledger tests; no alias. | five-phase transition matrix and contradiction tests GREEN | verified |
 | `C-04` | outcome | ExecPlan is a bounded current index with fail-closed Git/archive recovery. | Size, tamper, no-commit, multi-repo, and compaction tests. | current-index, no-commit, multi-repo, tamper, and compaction tests GREEN | verified |
-| `C-05` | preservation | Public invocation stays `$happycodex:happycodex`; resource-scoped Root ownership and unrelated behavior remain. | Package/runtime tests and behavior comparison. | authority-bearing package and isolated install GREEN; live behavior comparison pending execution | open |
+| `C-05` | preservation | Public invocation stays `$happycodex:happycodex`; resource-scoped Root ownership and unrelated behavior remain. | Package/runtime tests and behavior comparison. | install GREEN; first live corpus 9/17 and exposed `RB-006`; holdout not run | open |
 | `C-06` | outcome | Exact 0.4.1 release, public install, personal upgrade, and 0.4.0 rollback are proven. | Fresh evidence, three GO reviews, install/readback, rollback rehearsal. | pending | open |
 | `C-07` | premise | No live evaluator call runs without a persisted exact impact receipt and direct gate-scoped user authority. | Ledger/CLI refusal and later authority receipt. | exact request and canonical 2026-07-29 authority are persisted and validate GREEN | verified |
 | `C-08` | constraint | Runtime/template report the amended 300/2,600 optimization target and never exceed the 340/3,000 hard ceiling. | Contract tests compute totals and fail at hard limits; simplification review explains any target excess. | 308 lines/2,686 words after resource-scoped discovery wording; 8/86 above target, 32/314 below hard ceiling | open |
@@ -120,12 +120,14 @@ task conversion enlarge the state space without helping convergence.
 
 | Family | Invariant / boundary | Members | Scan surfaces | Status | Repair batch | Evidence | Recurrence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `F-CONV-001` | Review eligibility is phase- and evidence-exact across Runtime, evaluator, receipts, recovery, and every consumer. | `protocol_may_review`, hardening/final distinction, source invalidation, `F-CONV-001-S01`, `F-CONV-001-S02`, exact-final checkpoint, oracle input validation, completion/write agreement | source/identity=clean-break enum; type/cardinality=three exact strings; order/terminal=one lifecycle transition table; alias/mutability/TOCTOU=no old key or stale review authority; serialization/replay=receipt and recovery; consumers/failure propagation=schema/oracle/ledger/cases | closed by focused confirmation | `RB-004` | three contradictory completion states RED then loader/matcher/receipt GREEN; focused GO | 0 |
+| `F-CONV-001` | Review eligibility is phase- and evidence-exact across Runtime, evaluator, receipts, recovery, and every consumer. | `protocol_may_review`, hardening/final distinction, source invalidation, `F-CONV-001-S01`, `F-CONV-001-S02`, exact-final checkpoint, oracle input validation, completion/write agreement, live phase projection | source/identity=clean-break enum; type/cardinality=three exact strings; order/terminal=one lifecycle transition table; alias/mutability/TOCTOU=no old key or stale review authority; serialization/replay=receipt and recovery; consumers/failure propagation=schema/oracle/ledger/cases | reopened for boundary strengthening | `RB-006` | live boundary-cutover/compaction/review-inventory results selected `none`/`exact_final` instead of the required hardening transition | 1 |
 | `F-CONV-002` | Writer uniqueness applies exactly to shared mutable resources, not globally to unrelated worktrees. | worktree, branch/ref, ledger, evidence output, activation target, paired overlap/disjoint oracles, Skill discovery metadata | source/identity=all five named; type/cardinality=one owner per overlap; order/terminal=ownership before writes; alias/mutability/TOCTOU=overlap rejects; serialization/replay=template; consumers/failure propagation=Runtime/AGENTS/public surfaces/paired behavior fixtures | closed by focused confirmation | `RB-003` | false-green/stale-frontmatter RED; anchored overlap, resolved disjoint, discovery, cumulative GREEN, and no recurrence in the next two focused scans | 0 |
 | `F-CONV-003` | Current-index recovery is bounded, complete, content-addressed, and fail closed. | checkpoint chain, no-commit ref/archive, compaction, multi-repo identity, `F-CONV-003-S01`, valid/tampered/unselected archive matrix | source/identity=checkpoint/ref/digest/selection; type/cardinality=one selected locator; order/terminal=select then persist then recover; alias/mutability/TOCTOU=tamper and bare object fail; serialization/replay=exact five-phase enum including `closed`; consumers/failure propagation=Runtime/template/ledger/cases | closed by focused confirmation | `RB-004` | missing-case RED then dedicated bare-object blocker and three-way matrix GREEN; focused GO | 0 |
 | `F-CONV-004` | The fresh 0.4.1 evidence inventory behaviorally exercises the new convergence protocol rather than relabeling 0.3 oracles. | protocol identity, family/repair batch, resource collision, current index, lifecycle transitions, sibling grouping | source/identity=0.4.1 corpus and holdout fixtures; type/cardinality=one owner and stable families; order/terminal=all five phases; alias/mutability/TOCTOU=collision and drift; serialization/replay=current index; consumers/failure propagation=fixed case/oracle inventory and genesis | closed by focused confirmation | `RB-004` | 17-case RED then inventory, coverage, dry-run, fresh genesis, and focused GO | 0 |
 | `F-CONV-005` | Live cost authority distinguishes observed receipts from conservative proxy estimates and binds the complete current inventory. | historical receipt provenance, proxy case envelopes, impact cost basis, impact token, approval digest | source/identity=0.3 receipt hashes plus named 0.4.1 proxies; type/cardinality=one envelope per case; order/terminal=impact before authority; alias/mutability/TOCTOU=source/tool drift invalidates; serialization/replay=historical-cost and impact receipts; consumers/failure propagation=impact/ledger/live authority/tests | closed by focused confirmation | `RB-004` | mislabeled-basis RED then exact basis, 23–25 calls, approval-bound impact, and focused GO | 0 |
 | `F-CONV-006` | The 0.4.1 behavior comparison and exact authority use public `v0.4.0`, never the inherited public 0.2 identity. | public artifact/semantic identity, arm names, blind mapping, receipts, CLI help, capability binding, cost comparison | source/identity=exact public 0.4.0 package; type/cardinality=one clean-break public arm; order/terminal=impact and authority precede dispatch; alias/mutability/TOCTOU=sealed mapping remains blinded; serialization/replay=authority/run/summary receipts; consumers/failure propagation=contract/corpus/live/holdout/ledger/CLI/tests | closed by focused confirmation | `RB-005` | second RED proved both focused findings; exact dual identity and `public_0_4_0` receipt shape, cumulative checks, and sixth focused GO | 0 |
+| `F-CONV-007` | Structured results classify every explicit durable marker and every staged, unstaged, or untracked recovery path without leaking hidden-oracle names. | positive disjoint/exact-final markers, sibling family member, dirty/index/untracked paths, bare-object receipt anchor | source/identity=repository labels and exact paths; type/cardinality=one stable finding per material item; order/terminal=inspect then classify; alias/mutability/TOCTOU=no paraphrase-only substitution; serialization/replay=schema result and recovery receipt; consumers/failure propagation=matcher and corpus cases | open | `RB-006` | live clean/exact-final/compaction/no-commit results omitted at least one required item or exact anchor | 0 |
+| `F-CONV-008` | Fixed oracles enforce the frozen protocol semantics, not one preferred label when several contract-valid projections exist. | hardening write permission, usable no-commit index with closed user gate, finding state and blocker-class alternatives | source/identity=contract-derived options; type/cardinality=explicit finite alternatives; order/terminal=user/control gates decide writes; alias/mutability/TOCTOU=no observed-output special casing; serialization/replay=case oracle validation; consumers/failure propagation=matcher, coverage, impact | open | `RB-006` | multi-repo correctly allowed the next hardening write; no-commit correctly kept a usable plan while stopping for user, but stale oracles rejected both | 0 |
 
 ## Implementation and verification boundary
 
@@ -183,9 +185,21 @@ and cost-gate summaries still emitted `public_0_2`. RED must now cover both exac
 semantic-plus-artifact validation and clean-break cost receipt serialization across
 all consumers. No live call or exact-final review runs in this batch.
 
+`RB-006` is frozen from the complete terminal first live-corpus union. It may modify
+only the central evaluator context/schema descriptions, shared phase projection and
+their consumers/tests, contract-derived case-oracle alternatives, fresh genesis, and
+this current index. It must not special-case an observed model string or weaken the
+positive-marker, exact-path, no-commit durability, reviewer-union, or lifecycle
+contracts. RED first proves the central instructions omit the exact five-phase review
+map, invalid exact-final fallback, explicit marker enumeration, and dirty-path
+classification; it also proves the multi-repo/no-commit oracles contradict existing
+permission semantics. The repair strengthens the abstraction boundary once, removes
+the stale oracle assumptions, resets consumed authority, and refreshes genesis after
+cumulative GREEN. No live call or exact-final review runs inside this batch.
+
 ## Checkpoint
 
-- Milestone: all families are closed and `RB-005` received focused `GO`; the canonical authority is persisted in exact source commit `4e25aa2703977717881aad743dd57bb1594e47eb`, tree `cb0d331b174d31b1ebad5c8fb1bc2b6c412f89e8`, and product manifest excluding this sole mutable plan `9dcb9157c86aa6bc7cdc0afe59cdbc5fcffddfacaec04ccc64c0dc3fa43e43a4`. Product writes are prohibited; a source change invalidates this candidate, authority, and evidence.
+- Milestone: first live corpus is terminal and `RB-006` is frozen. Source `4e25aa2…47eb`, authority `451dd0d3…275e`, install evidence `be0c810…622c`, and candidate manifest `9dcb9157…43a4` are historical and invalidated for future certification by the required repair. Product writes resume only inside `RB-006`.
 - Last green: 134/134 tests passed in 8.234s; Ruff check/format, diff/JSON checks, official Skill/plugin validators, and corpus/holdout list/dry-run passed. Runtime/template remain 308 lines/2,686 words: below 340/3,000 hard limits and 8/86 above the optimization target.
 - Fresh genesis: stored/current snapshots are exact for `0.4.1+codex.20260728205019`; `verify` reports `refresh_required`, engine `7358b775…b5f0`, snapshot `b6a29d4c…1c96`, ledger `7e6bc4a6…a414`; full 17-case/three-pair impact remains 23–25 calls, 719,051–770,869 combined tokens, and 3,757.028–4,032.239 seconds, with no authority. Impact token is `3a3ed677…3a6f`. The exact proposed holdout binds public artifact `ace7f39f…497e` and semantic identity `c5030e99…c05`; all active evaluator source and fresh serialization are clean of the old 0.2 arm. Origin remains `730c6a5:docs/execplans/happycodex-0-4-release.md`, never old `current.json`.
 - Isolated install: `/var/tmp/happycodex-041-rb003.oyKhro` installed `0.4.1+codex.dev`; source/cache Skill SHA-256 both `fd33e911…8d6c`, source/cache manifest SHA-256 both `430f9f11…77e`, byte comparisons equal.
@@ -209,12 +223,14 @@ all consumers. No live call or exact-final review runs in this batch.
 - Pre-authority source evidence: `b3ed5b3…0522` and install evidence `62972cf…8d3b` remain reachable historical facts but were invalidated when the approved authority entered exact source.
 - Authority-bearing isolated install: external root `/home/caichenghang/.codex/happycodex-release-installs/happycodex-041-source-4e25aa2-rLIFMV` contains a fresh isolated Codex home installed only from `4e25aa2…47eb`. Source and installed cache have identical semantic/artifact package SHA-256 `65f293e8…f4c6a` / `e8424dbd…ac89`, Skill SHA-256 `fd33e911…8d6c`, and plugin manifest bytes; the canonical install-result receipt SHA-256 is `1414e8d4…67bd`. It did not touch the active installation.
 - Authority-bearing post-source evidence: content-addressed `evaluation/results/evidence/offline-summary-0a1ab6937087f1ee0f6a96b4f26c5899715ad141eab499764f4ceb239c00ec4e.json` has the same file SHA-256, validates for `isolated_install`, and binds source ledger `022e9a10…7b24`, snapshot `b6a29d4c…1c96`, engine `7358b775…b5f0`, package identities, Skill bytes, and install receipt. It is reachable strictly after source at evidence commit `be0c8102f70a60f2af3a7841aeac455f4c01622c` and is not substituted for pending corpus, holdout, or exact-final evidence.
-- Owned mutable paths: this current-index plan and the authorized external raw-output namespace only; exact product candidate `4e25aa2…47eb` and evidence commit `be0c810…622c` are preserved.
+- First live corpus: external sanitized summary `/home/caichenghang/.codex/happycodex-0.4.1-live/67704584d312e4df/corpus/summary.json`, 339,246 bytes, SHA-256 `965e098e…11c4`, is terminal with 9/17 passing, 19 attempted corpus calls, 520,671 uncached input plus 80,152 output tokens, and 1,951.266 seconds. Seven model results have contract/oracle mismatches. `subthreshold-control` made no model completion: Codex returned usage-limit exit 1 at 2026-07-29 and reported retry availability at 2026-08-04 03:13 UTC, so its two derived failures remain external-infrastructure `unknown`. No holdout ran.
+- Owned mutable paths: this current-index plan until `RB-006` begins; then only the batch boundary above. External raw outputs remain read-only evidence and the active plugin/public 0.4.0 stay unchanged.
 - Goal: none.
 - Agents/reviewers: all focused reviewers are terminal and reconciled; no reviewer is active.
-- Pending gates: execute the now-authorized bounded corpus and holdout comparison,
-  validate and commit sanitized evidence strictly after source, then run three fresh
-  exact-final reviews. Public release, personal upgrade, rollback, and downstream
+- Pending gates: commit this corpus reconciliation; execute `RB-006` RED/GREEN and
+  focused review; freeze a new source, fresh genesis, impact and exact user authority;
+  rerun the complete corpus and holdout when account capacity exists; then run three
+  fresh exact-final reviews. Public release, personal upgrade, rollback, and downstream
   successor task creation remain later gates.
 
 ## Exact live-cost request
@@ -256,6 +272,10 @@ The bounded exposure is 23–25 calls, 719,051–770,869 combined tokens, and
 ```text
 APPROVE HAPPYCODEX LIVE COST 67704584d312e4df04f4d8ce1d03064511cf551967a5f4d0e74160ca10b3ca67
 ```
+
+This request was consumed only by the terminal first corpus attempt above. It granted
+no source repair or future live run; `RB-006` invalidates it and requires a fresh
+request after the next frozen genesis.
 
 ## Retrospective
 
