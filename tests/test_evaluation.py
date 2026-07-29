@@ -11,6 +11,7 @@ from unittest import mock
 
 from evaluation.core import ledger as ledger_engine
 from evaluation.core import receipt as receipt_engine
+from evaluation.corpus import contract
 from evaluation.corpus import engine as runner
 
 
@@ -156,6 +157,63 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                 "exact_final",
                 "closed",
             ],
+        )
+
+    def test_live_projection_contract_exposes_one_central_phase_boundary(self) -> None:
+        for phase, review_mode in contract.PHASE_REVIEW_MODE.items():
+            with self.subTest(phase=phase):
+                self.assertIn(
+                    f"{phase}={review_mode}",
+                    runner.EVALUATOR_CONTEXT,
+                )
+        self.assertIn(
+            "invalid exact-final evidence returns to focused_hardening",
+            runner.EVALUATOR_CONTEXT,
+        )
+        self.assertIn(
+            "every explicitly labeled durable marker",
+            runner.EVALUATOR_CONTEXT,
+        )
+        self.assertIn(
+            "every staged, unstaged, and untracked path",
+            runner.EVALUATOR_CONTEXT,
+        )
+
+    def test_live_oracles_follow_permission_and_classification_contracts(self) -> None:
+        multi_repo = self.cases["multi-repo-submodule"]["oracle"]
+        self.assertTrue(multi_repo["expected"]["protocol_may_product_write"])
+
+        unselected = self.cases["no-commit-unselected"]["oracle"]
+        self.assertEqual(unselected["expected"]["execplan_condition"], "usable")
+        bare_object = next(
+            finding
+            for finding in unselected["required_classifications"]
+            if finding["identity"] == "BARE-OBJECT-CHECKPOINT"
+        )
+        self.assertEqual(
+            bare_object["state"],
+            ["baseline_unchanged", "unknown"],
+        )
+        bare_object_blocker = next(
+            blocker
+            for blocker in unselected["required_anchored_blockers"]
+            if blocker["anchor"] == "1111111111111111111111111111111111111111"
+        )
+        self.assertEqual(
+            bare_object_blocker["class"],
+            ["safety_data_integrity", "production_condition"],
+        )
+
+        sibling = next(
+            blocker
+            for blocker in self.cases["compaction-recovery"]["oracle"][
+                "required_anchored_blockers"
+            ]
+            if blocker["anchor"] == "F-JOB-SIBLING-B"
+        )
+        self.assertEqual(
+            sibling["class"],
+            ["original_goal", "frozen_acceptance", "exhaustive_claim"],
         )
 
     def test_case_validation_rejects_invalid_permission_states(self) -> None:
