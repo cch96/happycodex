@@ -4,30 +4,31 @@ Protocol: `HappyCodex/0.5`
 
 Current index: Batch 1 is accepted at `27ea46e27254426ee5737078117d43f28c9df523`;
 Batch 2 at `788c42917bf1e1bcec2515a361ce68b32a25fb46`; G012R at
-`079b4565fd8ef063e8ff4e5b6815105fc14a2f7a`; and G014 at
-`0148ac5f7875856b427244972f7ecb3e0f3a028d`, tree
-`a6f5798d273efb61e3c1e077a01f9e8fd65263a1`. G009, G012, G013, and G013C
-remain rejected intermediates. Original G015 stopped as an unaccepted
-false-GREEN spike and supplies no source/evidence. G015C corrects only this
-plan. `HC06BR-G-015R-b3-source-repair`, G016 construction anchor, and every
-live/release gate remain future and ungranted.
+`079b4565fd8ef063e8ff4e5b6815105fc14a2f7a`; G014 at
+`0148ac5f7875856b427244972f7ecb3e0f3a028d`; and plan-only G015C at
+`deeb142c15f24f00645301a72b2c7df7f70fb179`, tree
+`1aa2733ef0a5ff6fbdfb9f347ccf65f98c7e7790`. G009, G012, G013, and G013C
+remain rejected. Original G015 is rejected; G015R is a paused, unaccepted
+design spike. Neither supplies source/evidence. G015D corrects only this plan.
+G015S, G016, and every live/release gate remain future and ungranted.
 
 Restore guard: restore this plan and reconcile source, fixed Executor, claims,
 receipts, grant, phase, checks, candidate, evidence, agents, and Goal before
 writing. Summaries, copied handles, or another task cannot reconstruct authority.
 
-Phase: `Batch 3 lifecycle-contract correction`. Active grant
-`HC06BR-G-015C-plan-contract-correction`, family `F-06BR-EVALUATOR`, batch
-`RB-06BR-005/plan-contract`, binds accepted prestate `0148ac5…028d` /
-`a6f5798…63a1`, fixed Executor/claim, this one ExecPlan path, one plan-only
-commit, and terminal receipt. The index began clean. The preserved 16-path
-spike has binary-diff SHA-256
-`d9bbb456e3d1d64d3657c1c6fce6aed96afc84aa445d03716e7350341980dc6c`,
-6,985 evaluation lines, and a non-probative 229/229 output SHA-256
-`16fb81e42f1e7ba615bf7996d8b16262ed7f6c4e303170ac5b6a6a2fe3a0a95f`.
-It must remain byte-identical, unstaged, and uncommitted. G015C authorizes no
-source/test/ledger mutation, model/live effect, or later gate. Verify the claim
-immediately before every edit, stage, commit, and terminal receipt.
+Phase: `Batch 3 structural-schema contract correction`. Active grant
+`HC06BR-G-015D-plan-schema-correction`, family `F-06BR-EVALUATOR`, batch
+`RB-06BR-005/plan-schema-contract`, binds accepted G015C prestate
+`deeb142c…179` / `1aa2733…790`, the fixed Executor/claim, this one ExecPlan,
+one plan-only commit, and terminal receipt. The index began clean. Excluding
+this plan, the preserved 16-path G015R spike has binary-diff SHA-256
+`8a03bf4797817330faebf221312caf0628cceb249e740894efe965b4f9f9ff82`
+and 7,163 production Python lines. Its addendum 12/12 and broader 194/194
+GREEN are design-spike evidence only: the spike is paused, unaccepted, and may
+not be committed or treated as `S2`, source, anchor, coverage, or evidence.
+Those bytes remain exact, unstaged, and uncommitted. G015D authorizes no
+source/test/ledger mutation, model/live effect, G015S, G016, or later gate.
+Verify claim, owner, prestate, dirt, and diff immediately before each effect.
 
 ## Operative request and normalized Outcome
 
@@ -319,7 +320,7 @@ remain maintainer support and are never linked from Runtime Skill Markdown.
 | `F-06BR-RUNTIME` | semantic progress and event correction prevent equivalent repeated work and false GREEN | sealed parse/reduction plus action recomputation at both consumers | `Batch 1 accepted` | `RB-06BR-001/instance` | `0` |
 | `F-06BR-AUTHORITY` | exact binding, provenance, reducer action, capability, claim, authority, and attempt gate every effect | private issuance, recomputation, and exact enforcement | `Batch 1 and G010 accepted` | `RB-06BR-002/instance` | `0` |
 | `F-06BR-EVALUATOR` | terminal, identity, decision, ledger, and replay share strict parsing and exact recomputation | duplicate/order/terminal/path/key/raw-ledger divergence and consumer propagation | `Batch 2 accepted at 788c429` | `RB-06BR-003/instance` | `0` |
-| `F-06BR-SEMANTIC-ACTION-BOUNDARY` | facts cannot inject actions and trustworthy metadata cannot be reclassified | parser/reducer/replay/authority/projection attack matrix | `G012/G013/G013C rejected; G012R/G014 accepted; G015 stopped; G015C plan-only active` | `RB-06BR-005/plan-contract` | `3` |
+| `F-06BR-SEMANTIC-ACTION-BOUNDARY` | facts cannot inject actions and trustworthy metadata cannot be reclassified | parser/reducer/replay/authority/projection attack matrix | `G012/G013/G013C rejected; G012R/G014/G015C accepted; G015R paused/unaccepted; G015D plan-only active` | `RB-06BR-005/plan-schema-contract` | `3` |
 
 Holdout quality and cost comparison remain separate gated evidence. They do not
 collapse into a family merely because their engines consume shared semantics.
@@ -335,29 +336,20 @@ post-freeze exact-final, within semantic/Runtime budgets and without live effect
 
 ## Batch 2: shared terminal, corpus, ledger, and replay semantics
 
-Existing `evaluation/cli.py`, `evaluation/live.py`,
-`evaluation/core/ledger.py`, corpus engine, holdout engine/blind/compare, impact,
-receipt, identity, and Git/filesystem code remain I/O/effect owners. No adapters
-directory is created. Imperative modules may acquire bytes and perform granted
-effects; they do not redefine semantic meaning.
-
-Batch 2 routes strict terminal parsing, identity, decision, and recompute replay
-through the kernel. One bound fact result/legal completion, one matching
-usage-only event, then EOF is exact; all provider/session/thread/turn/attempt/
-result fields match. Missing, duplicate, contradictory, late, unbound, semantic,
+CLI/live, core identity/impact/ledger/receipt, corpus, holdout
+engine/blind/compare, and Git/filesystem code remain I/O/effect owners; no adapter
+directory exists. Batch 2 routes strict terminal identity, decision, and replay
+through the kernel. Exact terminal form is one bound fact result/legal completion,
+one matching usage-only event, then EOF, with every provider/session/thread/turn/
+attempt/result field bound; missing, duplicate, contradictory, late, semantic,
 extra, trailing, or raw/ledger-divergent input refuses.
 
-Corpus retains 17 cases and holdout three pairs. Planning/execution/replay share
-strict loading and decisions. Batch 2 deletes `corpus/contract.py` and duplicate
-casefold/basename/suffix/alias/permutation/manual-sanitizer logic; paths are exact
-and repository-qualified. Receipt code only serializes sanitized projections.
-
-`evaluation/holdout/compare.py` stays in place. Blind randomness/sealing and engine
-I/O remain imperative; comparator decisions are exact and replayable. Phrase
-presence, negation-blind substring checks, or prose completion markers cannot
-prove behavior. Tests include pending-release plus `COMPLETE`, explicit negation,
-path alias/casefold/basename variants, extra terminal events, marker overflow, and
-raw versus ledger mismatch.
+Corpus retains 17 cases and holdout three pairs. `corpus/contract.py` and duplicate
+casefold/basename/suffix/alias/permutation/manual-sanitizer logic are deleted;
+paths are repository-qualified and receipt code emits sanitized projections only.
+`holdout/compare.py` remains in place; blind randomness/sealing and engine I/O stay
+imperative while comparator decisions are exact and replayable. Phrase presence,
+negation-blind substrings, or prose completion markers cannot prove behavior.
 
 The invocation profile—effective provider/binary/model/effort/timeout/tool/
 network/MCP/hook/session facts—is mandatory at executor-pilot, corpus, holdout,
@@ -468,12 +460,26 @@ no-follow dirfd operations or equally strong binding against replacement between
 check and use. No fixture, mapping, directory, workspace, output, or subprocess
 effect precedes full preflight and claims.
 
-Corpus producer owns `OUTPUT_SCHEMA` and one recursive raw-result validator;
-parse and semantic projection reuse it. Ledger has no shallow or duplicate result
-validator. Unknown or malformed nested fields, lists, classifications, gates, or
-evidence reject before projection. Canonical cost time is integer milliseconds.
-Replay is repository-aware and recomputes producer chain, terminal/oracle/ledger
-projection, coverage, receipt links, and exact Git evidence bytes.
+One new `evaluation/contracts-v6.json` holds only structural declarations and is
+wholly semantic, so every change invalidates semantic identity. It expects 520–650
+physical lines, hard maximum 750, at most 30 named schemas, 220 declared
+properties, and reference depth six; unknown/cyclic/deeper references fail closed.
+Its complete dialect is exact properties/required/`additionalProperties=false`,
+primitive types, arrays/items, enum, regex, length/range/cardinality, uniqueness,
+nullability, and named references. Conditionals, expressions, callbacks, digests,
+path access, and executable keywords are forbidden.
+
+The JSON covers model output/recovery, case/Recovery Manifest, invocation profile,
+gate plan/snapshot, planning/evidence/source-anchor/ledger records, and holdout
+manifest. A new stdlib-only `evaluation/core/schema.py` loads and recursively
+validates those declarations. It imports no evaluator owner. DAG/order, Git and
+bytes-to-digest proof, authority, effects/claims, cross-field relationships, and
+adaptive holdout policy remain executable Python in their current natural owners.
+`corpus.engine` still exports and owns model-facing `OUTPUT_SCHEMA`; its declaration
+bytes come from the semantic JSON. Parse/projection reuse it, ledger has no shallow
+duplicate result validator, and malformed nested input rejects before projection.
+Replay remains repository-aware and recomputes producer, terminal/oracle/ledger,
+coverage, receipt links, and exact Git evidence bytes.
 
 Recovery retains `pre-freeze-compaction`: native same-task compaction and a
 distinct no-summary/no-handle reconstruction both use current ExecPlan, Git,
@@ -481,18 +487,20 @@ external receipts, fixed claim, and durable facts. Copied handles, another
 Root/task, replacement writer, wrong role/config/session/thread/destination/
 lineage, concurrent resume, or mismatched claim refuse before effects.
 
-Future `HC06BR-G-015R-b3-source-repair` creates offline repaired `S2` and may
-edit at most these 17 paths:
+Future `HC06BR-G-015S-schema-consolidation-source` creates offline repaired `S2`
+and may edit at most these 19 tracked paths:
 
 ```text
 AGENTS.md
 docs/execplans/happycodex-0-6-bounded-redesign.md
 evaluation/README.md
+evaluation/contracts-v6.json
 evaluation/cli.py
 evaluation/live.py
 evaluation/core/identity.py
 evaluation/core/impact.py
 evaluation/core/ledger.py
+evaluation/core/schema.py
 evaluation/corpus/engine.py
 evaluation/holdout/blind.py
 evaluation/holdout/compare.py
@@ -505,20 +513,22 @@ tests/test_holdouts.py
 ```
 
 No Runtime Markdown, semantic module, case/pair/manifest, plugin manifest,
-external role config, receipt module, evidence artifact, package surface, or
-other path may change. G015R first persists an addendum RED receipt covering the
-new matrix while retaining the original 17 behaviors, then repairs source and
-ends at reachable full-offline-GREEN `S2`; `current.json` remains pre-anchor
-genesis. Future G016 may edit only this plan and `current.json` to create a
-construction anchor for `S2` with no plans, authorities, evidence, coverage,
-freeze, receipt head, or certification. Neither grant is active.
+external role config, receipt module, evidence artifact, package surface, adapters
+directory, relocation, or other path may change. G015S continues in this worktree
+from the 16-path G015R dirty spike; it neither rolls back nor redoes those bytes.
+The spike is implementation prestate, not accepted source/evidence/`S2`. With
+production bytes fixed, G015S first adds schema-specific RED/receipt, then
+consolidates structure, retains the 17 behaviors, and ends full-offline-GREEN
+`S2`. Fresh full GREEN re-proves all behavior;
+`current.json` remains pre-anchor genesis. Future G016 owns only this plan and
+`current.json` for an otherwise empty construction anchor. Neither grant is active.
 
-Original G015 intent SHA-256
-`e0c73a1f22eaf2888cdcbceaaedf0e73fdaa0fc38e4a5339be1a9b33a77b2de4`
-and RED receipt SHA-256
-`004b8e62ee7014ba2b8c6b9f7d69c0a038fbfef330abcdc6cab69f73998fdde4`
-remain history. Its 16 dirty source/test paths are an unaccepted spike, not
-evidence or `S2`, and G015C does not alter them.
+Original G015 intent/RED receipt remain rejected history. G015R intent SHA-256 is
+`7a10457bd2f7a4107696833375074f4aae2e2c3380d7c3ec54fb6f0f41839c3d`;
+its addendum RED receipt SHA-256 is
+`3c58064a6e9e13670bd66d56e787a2a6d588e428ed7f7a59461fe581800622b7`.
+Its 16 dirty source/test paths and GREEN results are unaccepted design-spike
+material, not source/evidence/`S2`; G015D preserves them byte-for-byte.
 
 ## Exact batch path and ownership inventory
 
@@ -527,14 +537,11 @@ path, combine a future live/release gate, or cross a batch boundary without Root
 first reconciling the contract. The ExecPlan is the only path common to every
 batch because it is the current index and receipt checkpoint.
 
-Batch 1 may own only the final semantic package, deletion of
-`evaluation/semantic/schema.py`, direct classification/import-policy repairs in
-`evaluation/core/identity.py`, semantic and contract/certification tests needed
-for its RED/GREEN, the two Runtime Markdown files, and this ExecPlan. If a direct
-caller outside that set cannot import the final package, the Executor returns its
-exact path and needed mechanical change to Root before editing it. Batch 1 does
-not migrate corpus, ledger, terminal, holdout, result, manifest, or evidence
-behavior opportunistically.
+Batch 1 owns only the final semantic package, deletion of
+`evaluation/semantic/schema.py`, identity classification/import-policy repair,
+its semantic/contract/certification tests, Runtime Markdown, and this plan. An
+outside caller is returned to Root before editing; corpus, ledger, terminal,
+holdout, result, manifest, and evidence behavior cannot migrate opportunistically.
 
 Its expected path set is therefore:
 
@@ -554,16 +561,15 @@ skills/happycodex/references/execplan.md
 docs/execplans/happycodex-0-6-bounded-redesign.md
 ```
 
-Batch 2 owns semantic consumers and their exact fixtures/tests:
+Batch 2 owns only semantic consumers and exact fixtures/tests:
 `evaluation/{cli,live}.py`, `evaluation/core/{identity,impact,ledger,receipt}.py`,
 `evaluation/corpus/{engine,contract}.py`,
 `evaluation/holdout/{blind,compare,engine}.py`, package `__init__.py` files as
-needed to close exports, the 17 case JSON files, the holdout manifest and three
-case JSON files, and `tests/{test_semantic_core,test_evaluation,test_holdouts,
-test_certification_engine}.py`. `corpus/contract.py` is deleted. The holdout
-comparator is edited only if shared exact types/replay require it; it is not moved
-or deleted. Any other consumer discovered by exact source search is an open
-inventory finding, not implied authority.
+needed, 17 case JSON files, the holdout manifest/three cases, and
+`tests/{test_semantic_core,test_evaluation,test_holdouts,
+test_certification_engine}.py`. `corpus/contract.py` is deleted;
+`holdout/compare.py` is never moved/deleted. Any other caller is an open inventory
+finding, not implied authority.
 
 The 17 corpus identities remain:
 `authorized-rebaseline`, `boundary-cutover`, `clean-qualifying-control`,
@@ -577,10 +583,11 @@ The three holdout identities remain `authority-production-boundary`,
 cardinality, and behavior are preservation claims; schema bytes may change only
 to generation 6.
 
-G009 owns the accepted minimal pre-anchor genesis. G014 is accepted; G015C owns
-only this plan. Future G015R owns the unchanged 17-path maximum; G016 owns only
-this plan and the excluded ledger anchor. No manifest/role edit authorizes
-installed bytes, personal marketplace/cache, external config, or a helper.
+G009 owns the accepted minimal pre-anchor genesis. G014 and plan-only G015C are
+accepted; G015D owns only this plan. Future G015S owns the 19-path maximum; G016
+owns only this plan and the excluded ledger anchor. No manifest/role edit
+authorizes installed bytes, personal marketplace/cache, external config, or a
+helper.
 
 Before each batch, the Executor records exact external intent and verifies the
 claim before every repository/index/commit effect. It then persists a complete
@@ -668,6 +675,8 @@ The following are behavior/state-transition oracles, not phrase checks:
 | raw/ledger | terminal/raw digest and ledger projection recompute identically; divergence refuses |
 | pre-effect | capability rebind, exact claim verification, authority and AttemptKey consumption all precede fixture/output/workspace/subprocess effect |
 | recovery | reuse `pre-freeze-compaction`: native same-task compaction and distinct no-summary/no-handle reconstruction pass; copied/serialized handle, cross-task/Root, replacement writer/Executor, wrong role/config/session/thread/destination/lineage/claim, and concurrent resume refuse before effects |
+| structural schema | recursively reject nested missing/extra fields, wrong primitives including bool-as-int, bad enum/pattern/range/cardinality, duplicate unique arrays, and unknown/cyclic/deeper-than-six references; exact valid parity passes |
+| schema identity | semantic JSON enters engine and corpus semantic hashes; unknown evaluator JSON fails closed; stdlib validator has no owner import cycle |
 | fresh evidence | old generation/evidence rejects; pre-source evidence rejects; offline summary remains noncertifying |
 | dry-run | every evaluator dry-run makes no model call, capability/attempt consumption, fixture, output, or workspace effect |
 
@@ -676,7 +685,7 @@ surfaces. A mock alone cannot prove an imperative seam. Effects require temporar
 fresh repositories/homes and explicit before/after manifests. Every coherent
 batch ends in full offline GREEN, not merely focused GREEN.
 
-Original G015 froze these 17 RED behaviors, which G015R preserves:
+Original G015 froze these 17 RED behaviors, which G015S must preserve:
 
 ```text
 test_public_02_archive_identity_and_surface_are_exact
@@ -704,8 +713,9 @@ injects arbitrary caller authority/attempt values, reuses a capability and prove
 no second claim, tries unclaimed fixture/output creation and direct subprocess
 bypass, mismatches holdout pairs, and supplies duplicate alias decisions.
 
-Before any further production mutation, G015R persists an addendum RED receipt
-for these exact tests:
+G015R's 12/12 and 194/194 GREEN plus the frozen original/addendum RED receipts are
+historical design boundaries, not substitutes for G015S schema RED or fresh full
+GREEN. These exact prior tests remain:
 
 ```text
 test_partial_dag_states_and_successor_are_exact
@@ -722,21 +732,20 @@ test_populated_replay_requires_repo
 test_release_reanchor_precedes_evidence_without_reuse
 ```
 
-Successor cases cover every partial state plus rollback/replace/delete/reorder.
-Cost cases reject source-derived corpus/holdout cost. Slot cases reject
-duplicates and every wrong kind/gate. Git tests use real commits and reject fake
-objects or altered paths/bytes. The action suite recomputes permission/claim
-digests and rejects arbitrary phase invocation. Preflight proves zero claim
-files on every mismatch. Adaptive tests prove first/mandatory-second/
-conditional-third execution and actual-transcript evidence.
+Schema RED mutates output, case, recovery, invocation, plan, snapshot, evidence,
+ledger, and holdout one unit at a time; valid parity remains exact. It proves
+semantic JSON hashing, unknown-JSON refusal, acyclic owner imports, and exact LOC
+limits. Cross-field, digest, Git, DAG, effect, authority, path, and adaptive
+negatives remain Python and GREEN.
+Successors cover partial states and rollback/replace/delete/reorder; Git uses real
+objects/bytes, preflight leaves zero claims on mismatch, and adaptive execution
+proves mandatory pairs/conditional third plus actual-transcript evidence.
 
-Root's concrete false-GREEN reproductions are frozen counterexamples: plan-only
-state rejected; later source-derived costs accepted; duplicate coverage and
-wrong evidence kind/gate accepted; arbitrary phase invocation accepted; an
-output/plan mismatch wrote four claims; malformed nested output accepted; and
-fake repo-less certification accepted. Adaptive overclaim, unlocked proof
-consumption, and output-path TOCTOU are additional required RED risks. Passing
-229/229 does not dispose them.
+Frozen false-GREEN counterexamples include plan-only state, later source-derived
+cost, duplicate/wrong evidence, arbitrary phase invocation, claims before full
+preflight, malformed nested output, and repo-less certification. Adaptive
+overclaim, unlocked proof consumption, and output TOCTOU remain required risks.
+Neither the G015 229/229 result nor G015R GREEN disposes them.
 
 ## Complexity and source budgets
 
@@ -745,8 +754,8 @@ consumption, and output-path TOCTOU are additional required RED risks. Passing
 - evaluation production Python LOC: at most 6,900 across `evaluation/**/*.py`;
 - aggregate Runtime: at most 262 lines, target at most 2,200 words, hard ceiling
   2,400 words;
-- this ExecPlan: target 6,000–6,500 words; HappyCodex protocol hard maximum
-  12,000 words.
+- this ExecPlan: 6,000–6,500 words, hard maximum 6,500; the wider HappyCodex
+  protocol limit cannot waive this task-specific ceiling.
 
 Comments/docstrings count as production LOC. Test LOC does not count toward the
 evaluation production limit. Generated evidence/output does not count as source
@@ -756,23 +765,20 @@ production Python LOC is measured after every batch but becomes a blocking closu
 gate only in Batch 3, after duplicate consumer semantics are deleted. A due budget
 miss blocks terminal GREEN and is not waived by passing tests.
 
-G015R freezes these natural per-module ceilings; the allocation remains 6,897
-and user hard limit remains 6,900:
+G015D freezes these revised natural ceilings. The allocation is 6,850, retaining
+50 lines of global headroom beneath the unchanged user hard limit of 6,900:
 
 | Production module | LOC | Production module | LOC |
 | --- | ---: | --- | ---: |
-| `evaluation/__init__.py` | 6 | `evaluation/cli.py` | 185 |
-| `evaluation/core/__init__.py` | 3 | `evaluation/core/identity.py` | 650 |
-| `evaluation/core/impact.py` | 530 | `evaluation/core/ledger.py` | 670 |
-| `evaluation/core/receipt.py` | 260 | `evaluation/corpus/__init__.py` | 3 |
-| `evaluation/corpus/engine.py` | 2,250 | `evaluation/holdout/__init__.py` | 3 |
-| `evaluation/holdout/blind.py` | 205 | `evaluation/holdout/compare.py` | 152 |
-| `evaluation/holdout/engine.py` | 355 | `evaluation/live.py` | 425 |
-| `evaluation/semantic/__init__.py` | 44 | `evaluation/semantic/canonical.py` | 111 |
-| `evaluation/semantic/decide.py` | 284 | `evaluation/semantic/parse.py` | 248 |
-| `evaluation/semantic/types.py` | 513 | **Total** | **6,897** |
+| package initializers (four total) | 15 | `evaluation/cli.py` | 185 |
+| `evaluation/live.py` | 470 | `evaluation/core/identity.py` | 630 |
+| `evaluation/core/impact.py` | 500 | `evaluation/core/ledger.py` | 665 |
+| `evaluation/core/receipt.py` | 260 | `evaluation/core/schema.py` | 55 |
+| `evaluation/corpus/engine.py` | 2,180 | `evaluation/holdout/blind.py` | 195 |
+| `evaluation/holdout/compare.py` | 155 | `evaluation/holdout/engine.py` | 340 |
+| semantic package (exact five files) | 1,200 | **Total** | **6,850** |
 
-The total leaves three lines beneath 6,900. Reductions physically delete legacy
+The total leaves 50 lines beneath 6,900. Reductions physically delete legacy
 validation and duplicate evidence/phase semantics; they cannot move behavior
 outside `evaluation`, hide it in generated files/tests, compress formatting, or
 waive a module ceiling.
@@ -781,7 +787,7 @@ waive a module ceiling.
 
 All steps are future, separate, and unauthorized:
 
-1. G015R produces offline-GREEN `S2`; G016 records its construction anchor with
+1. G015S produces offline-GREEN `S2`; G016 records its construction anchor with
    an otherwise empty ledger.
 2. A separate release-source grant runs the official cachebuster helper exactly
    once in an isolated temporary home, preserves active 0.4 state, and commits
@@ -879,40 +885,24 @@ owner-token SHA-256 is
 One token claims the worktree, ref, and this ledger. The adjacent untracked claim
 directory is private control state, excluded from commits and not auto-released.
 
-## Accepted Batch 1 and Batch 2
+## Accepted batches and current boundary
 
-Root accepted G003-G005 together as Batch 1 commit
-`27ea46e27254426ee5737078117d43f28c9df523`, tree
-`e4fd88e21d0b4190ccf407b082f6ba1cbe6af59f`. The accepted boundary removes
-public authority/report construction, rejects parser/type/duplicate bypasses,
-recomputes action at AttemptKey and enforcement, and never closes unresolved
-facts. Earlier invalidated intermediate receipts remain history, not evidence.
-
-G006-G008 build the combined evaluator seams and close the semantic inventory.
-G009 is retained as a rejected intermediate because legacy authority,
-approval-string, attempt, cost, and old-evidence surfaces remained. G010 removes
-those residuals and makes every non-dry executor/corpus/holdout path refuse before
-effects. Root independently reproduced 206/206 GREEN,
-refresh-required/noncertified verify, all three dry-runs, expected impact exit 2,
-old-field/generation rejection, pre-effect refusal, exact snapshot, zero legacy
-production hits, and diff/claim/hash checks.
-
-G011 commits and closes Batch 2 at
+Batch 1 is commit `27ea46e27254426ee5737078117d43f28c9df523`, tree
+`e4fd88e21d0b4190ccf407b082f6ba1cbe6af59f`. Batch 2 is commit
 `788c42917bf1e1bcec2515a361ce68b32a25fb46`, tree
-`c1e5ba545399ac4a3a37a1396f1fccb5f69534f8`. Its mode-`0600` terminal receipt
-SHA-256 is
+`c1e5ba545399ac4a3a37a1396f1fccb5f69534f8`; its terminal-receipt SHA-256 is
 `c843a2edc454a1e3fd4c1d59051e82672439977577c6a18813db11a4251de0fb`.
-Evaluation production Python was 8,667 lines there; G015R must close the
-6,897-line allocation without moving/compressing behavior. G015C changes no
-production bytes. The eventual pre-anchor ledger uses fixed null slots and
-derived pending/failed; historical cost/evidence and compatibility remain absent.
+Root reproduced 206/206, refresh-required/noncertified verify, three dry-runs,
+impact exit 2, old-generation rejection, pre-effect refusal, exact snapshot,
+zero legacy hits, and diff/claim/hash checks. Production Python was 8,667 lines.
 
-The semantic package remains five files, at most 1,200 lines/20 exports; Runtime
-bytes remain unchanged. G012R/G014 are accepted. G013/G013C and original G015
-source effects are rejected/unaccepted and cannot be reused. G015C is plan-only;
-G015R/G016 and all later gates remain ungranted. No Goal, model/network/live,
-authority/attempt consumption, cachebuster, install, release, marketplace,
-activation, delegation, or claim release is authorized.
+G015C is accepted plan-only at `deeb142c15f24f00645301a72b2c7df7f70fb179`,
+tree `1aa2733ef0a5ff6fbdfb9f347ccf65f98c7e7790`; production is unchanged.
+G015S must close 6,850 without moving/compressing behavior. G015D is plan-only;
+G015S/G016 and later gates are ungranted. Order remains
+`S2 -> separate cachebuster -> S_release -> empty-ledger reanchor -> separate
+impact/Executor/corpus/holdout/review/install/publication/activation gates`;
+nothing creates later evidence, plan, or authority early.
 
 Uncertainty rule: an outside path, changed prestate, unverified claim, ambiguous
 or partial effect, reproduction mismatch, unknown input, identity/config drift,
