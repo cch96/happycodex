@@ -213,6 +213,81 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                     self.assertIn(phrase, descriptions[field])
                 self.assertIn(descriptions[field], runner.EVALUATOR_CONTEXT)
 
+    def test_projection_separates_path_anchors_from_ids_and_lifecycle_markers(
+        self,
+    ) -> None:
+        finding = runner.OUTPUT_SCHEMA["properties"]["finding_classifications"][
+            "items"
+        ]["properties"]
+        identity_text = finding["identity"]["description"]
+        domain_text = finding["domain"]["description"]
+        self.assertIn("path", identity_text)
+        self.assertIn("distinct stable finding ID", identity_text)
+        self.assertIn("actual durable", domain_text)
+        self.assertIn("lifecycle", domain_text)
+        self.assertIn("other", domain_text)
+
+        long_path = f"{'a' * 100}/{'b' * 90}/file.py"
+        paths = ("frontend/config.py", "backend/config.py", long_path)
+        result = {
+            "decision": "continue",
+            "qualifies": True,
+            "execplan_condition": "usable",
+            "protocol_may_product_write": True,
+            "protocol_review_mode": "none",
+            "protocol_may_complete": False,
+            "finding_classifications": [
+                {
+                    "identity": identity,
+                    "domain": "other",
+                    "state": "candidate_new",
+                    "anchors": [path],
+                }
+                for identity, path in zip(
+                    ("FRONTEND-CONFIG", "BACKEND-CONFIG", "LONG-CONFIG"),
+                    paths,
+                    strict=True,
+                )
+            ],
+            "blocker_classifications": [],
+            "open_gates": ["repair"],
+            "evidence": [],
+            "reason": "three distinct path findings",
+            "recovery_state": None,
+        }
+        oracle = {
+            "expected": {
+                field: result[field] for field in runner.PERMISSION_FIELDS
+            },
+            "required_anchored_classifications": [
+                {"anchor": path, "domain": "other", "state": "candidate_new"}
+                for path in paths
+            ],
+        }
+        self.assertEqual(runner.match_oracle(result, oracle), [])
+
+        exact_final = self.cases["exact-final-ready"]["oracle"]
+        lifecycle = {
+            **{
+                field: value[0] if isinstance(value, list) else value
+                for field, value in exact_final["expected"].items()
+            },
+            "finding_classifications": [
+                {
+                    "identity": "EXACT-FINAL-READY",
+                    "domain": "other",
+                    "state": "resolved",
+                    "anchors": ["EXACT-FINAL-READY"],
+                }
+            ],
+            "blocker_classifications": [],
+            "open_gates": ["exact-final review"],
+            "evidence": ["docs/execplans/exact-final.md"],
+            "reason": "lifecycle marker is ready",
+            "recovery_state": None,
+        }
+        self.assertEqual(runner.match_oracle(lifecycle, exact_final), [])
+
     def test_live_oracles_follow_permission_and_classification_contracts(self) -> None:
         multi_repo = self.cases["multi-repo-submodule"]["oracle"]
         self.assertTrue(multi_repo["expected"]["protocol_may_product_write"])
