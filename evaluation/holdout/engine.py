@@ -165,7 +165,7 @@ def _validate_pair_capability(
 def _evaluate_pair_arms(
     evaluate_alias: Callable[[str], dict[str, Any]],
 ) -> dict[str, dict[str, Any]]:
-    """Evaluate each blinded arm once; any failure invalidates the pair."""
+    """Evaluate each arm once; exceptions abort, completed failures remain evidence."""
     with ThreadPoolExecutor(max_workers=HOLDOUT_ARM_WORKERS) as executor:
         results = executor.map(evaluate_alias, ALIASES)
         return dict(zip(ALIASES, results, strict=True))

@@ -105,15 +105,32 @@ python3 -m evaluation.cli holdout \
 Raw events and identity-bearing metadata stay external. Only sanitized summaries,
 digests, fixed fixtures, and the explicit ledger state may be tracked.
 
-A holdout arm contributes quality evidence only after a completed, exit-zero runner
-execution whose pass status agrees with its oracle failures. A timeout or nonzero exit
-is infrastructure failure and aborts the pair; it is never scored as candidate quality.
-The complete corpus runs once after the candidate and three-role exact-final union are
-frozen, using at most four workers with stable case-order projection. Holdout pairs stay
-serial and adaptive; only the current pair's two blinded arms overlap, with stable alias
-projection. Corpus and holdout never overlap. Neither behavior nor infrastructure
-failure is retried automatically: no summary or reveal is promoted, and any rerun needs
-a fresh empty output plus freshly validated authority.
+A completed exit-zero result with oracle failures is negative behavior evidence: corpus
+persists its failing summary, while holdout freezes the blind decision, reveals the
+mapping, and persists the regression receipt. Timeout, nonzero exit, or exception is
+infrastructure failure and aborts before summary or reveal promotion.
+
+This repository's maintainer release workflow—not ordinary HappyCodex Skill Runtime—
+uses three independent exact-final roles: correctness/QA `max`,
+release/preservation `max`, and simplification `high` (escalate for a large diff,
+recurrence, legacy bypass, or unresolved complexity). Give every role its own fresh
+session and durable output; only that role's two phases share a session. After their
+clean union, run the complete corpus once with at most four workers and stable
+case-order projection. Holdout pairs stay serial and adaptive; only the current pair's
+two blinded arms overlap, with stable alias projection. Corpus and holdout never
+overlap.
+Track unique simplification blockers per release. Only a later authorized amendment
+may merge roles, after three consecutive releases with no unique simplification blocker.
+
+Review identity binds product tree, reviewer role config, and review toolchain; its
+change invalidates exact review only. Behavior identity binds semantic package,
+evaluator semantic/harness inputs, settings, and evaluator toolchain. Artifact identity
+binds normalized package bytes and install receipt. Invalidate only evidence consuming
+the changed layer; ambiguity fails closed as semantic change.
+
+No call is retried automatically. Infrastructure failure ends the authorized attempt;
+this workflow authorizes no rerun. A later attempt requires a separately persisted exact
+invocation and a new canonical user cost approval; the prior grant cannot be reused.
 
 Historical per-call wall times imply a conservative 21–40 minute planning band for a
 complete corpus plus adaptive holdout under this schedule. This is not a live

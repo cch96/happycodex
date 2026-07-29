@@ -9,9 +9,8 @@ Persist a skeleton at the repository policy path or `docs/execplans/<task-slug>.
 Protocol/invocation: `HappyCodex/0.4.1`; `$happycodex:happycodex`; Root resources: worktree, branch/ref, ledger, output, activation; State/review: implementation / focused_hardening / candidate_frozen / exact_final / closed; `none | focused_hardening | exact_final`; restore this current index before write/review/completion.
 
 ### Outcome and baseline
-
 **Sources/outcome.** Requests/amendments hash; success, preservation, breaks, exclusions/stops; Goal divergence; waiver scope/reopen. **Amendment.** Change/reason; Authorization anchor/hash; Affected claims; Invalidated evidence; Required reruns. **Design/snapshot.** Options/challenge/rejections/saturation; namespaced revision/tree, worktree/owner/claims, baseline command/exit, structured failure identities/digest/acceptance.
-
+**Candidate identity.** Review: Git tree/config/toolchain. Behavior: semantic package/evaluator/settings/toolchain. Install: package artifact/receipt. Invalidate only bound consumers; ambiguity is semantic change.
 ### Claims Ledger
 
 Types: `outcome`, `preservation`, `allowed-break`, `premise`; states are only `open`, `verified`, or `N/A`; `N/A` requires path/search/command evidence. The contract-freeze revision freezes the user contract. Only entailed claims grow with provenance/reopened evidence; narrowing, widening, `N/A`, or baseline/Outcome change needs explicit user authorization.
@@ -39,6 +38,6 @@ Current index: target 8,000 words; hard limit 12,000. Keep evidence; compress cl
 
 Fill only after final completion; record lessons/risks, do not expose it to a reviewer, and never use it as evidence.
 ## Neutral review brief
-Focused defaults `high`; recurrence uses `max`. Exact-final: correctness/QA and release/preservation `max`; simplification `high`, escalating for risk. Freeze obligations, then map contract-only sources.
+Focused defaults `high`; recurrence uses `max`. Exact-final is fresh, neutral, and `max`: Phase 1 gets verbatim user text, accepted baseline failures, objective facts, and explicit exclusions; freeze obligations before evidence, then map contract-only sources.
 ## Coverage receipt
 Record review identity/output, mode/model/permissions, source/manifest, coverage/limits, contamination/dispositions; prove unchanged product-tree identity.

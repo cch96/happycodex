@@ -151,28 +151,33 @@ requested); an in-contract repair stays in the current task.
 
 ## Review the exact product
 
-Project every owned staged, unstaged, and untracked path into a clean review snapshot. Freeze source
-baseline/candidate IDs; build two neutral commits from product snapshots; exclude only the sole
-ExecPlan; prove manifest equality and a complete diff-unit inventory. The source range is
-authoritative; namespace repositories; include changed submodules or keep the gate open.
+Commit task changes or project every owned staged, unstaged, and untracked path into a clean review
+snapshot. Freeze source baseline/candidate IDs; build two neutral commits from complete product
+snapshots; exclude only the sole ExecPlan; prove manifest equality and a complete diff-unit inventory.
+The source range is authoritative. Freeze layered identities: review binds product tree, review
+configuration, and review toolchain; behavior binds semantic package/evaluator/settings/toolchain;
+artifact/install binds normalized package artifact and install receipt. Namespace repositories
+identically; changed submodules stay open until included.
 
 Any product-source change returns to focused_hardening and invalidates candidate evidence and
-all exact-final reviews. Before launch persist command, candidate, review mode, and durable output
-destination. A foreground buffer is not a receipt; after interruption, resolve its durable terminal
-record before rerun.
+all exact-final reviews. Invalidate behavior and artifact evidence only through their bound layers;
+ambiguity is a semantic product change. Before launch persist command, review identity, mode, and
+durable output. A foreground buffer is not a receipt; after interruption, resolve its durable
+terminal record before rerun.
 
 Exact-final reviewers must not see the Convergence Ledger, historical findings, counterexamples,
 repair story, or preferred verdict. Run dedicated native `codex review` in the same fresh reviewer
 session. It inherits the configured model; if unset, prefer `gpt-5.6-sol`. Request `max` and the
 strongest user/environment-authorized read-only profile; `ultra` requires explicit authorization.
-Keep selector flags separate from the stdin brief; disclose reroutes. Phase 1 gets user text, scope,
-accepted baseline failures, objective facts, and exclusions. Before candidate evidence
-it emits stable numbered obligation IDs and text. Contract-hidden, it runs correctness/adversarial
-checks for every independent obligation and diff unit. If inventory is absent, do not reveal the
-contract; allow one same-session receipt-only correction; incomplete correctness stops. Only then
-reveal the contract-only projection and map its independent inventory both ways. Exclude evidence,
-decisions, receipts, Retrospective, findings, writer narrative, prior findings, verdict, original Git
-metadata/worktree, and Root conversation. Declared dependency reads require purpose/digest.
+Keep selector flags separate from the stdin brief; disclose downgrades/reroutes. Phase 1 gets
+verbatim user text, scope, accepted baseline failures, objective verification facts, and explicit
+exclusions. Before candidate evidence it emits stable numbered obligation IDs and text; Root hashes
+them. Contract-hidden, it runs correctness/adversarial checks for every independent obligation and
+diff unit. If inventory is absent, do not reveal the contract; allow one same-session receipt-only
+correction. Incomplete correctness stops. Only then reveal the contract-only projection and map its
+independent inventory both ways. Exclude evidence, decisions, receipts, Retrospective, findings,
+writer narrative, prior findings, verdict, original Git metadata/worktree, and Root conversation.
+Declared dependency reads require purpose/digest.
 
 Require receipt identity/status, configured-model source, effective model/effort, effective permission
 profile/network/write access, authorization/degradation, every diff unit/obligation, queries/counts,
@@ -182,11 +187,11 @@ contamination, or unsupported evidence leaves review open; split correctness but
 completeness pass. A fresh detached Desktop review substitutes only with identical source range,
 isolation, neutral brief, model/effort disclosure, and complete receipt.
 
-Review product-tree identity excludes the ExecPlan. One administrative closure revision/no-commit
-snapshot appends receipts; prove the product tree is unchanged. Any product change invalidates
-review; a material evidence-only change invalidates affected review evidence. Only explicit user
-text waives a named gate. Record the exact waiver scope; a candidate or contract outside that scope
-reopens the gate; completion must disclose every unrun gate.
+The review product-tree identity excludes the ExecPlan. Append closure in one administrative closure
+revision or no-commit snapshot; prove the product tree is unchanged. Any product change invalidates
+review; a material evidence-only change invalidates affected review evidence; contract changes reopen
+dependent evidence. Only explicit user text waives a named gate. Record the exact waiver scope;
+outside that scope reopens the gate, and completion must disclose every unrun gate.
 
 A finding blocks only if it may violate the original request or frozen acceptance, behavior proven by
 the last accepted receipt, safety or data integrity, a production condition, or exhaustive

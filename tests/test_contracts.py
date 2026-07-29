@@ -17,6 +17,7 @@ OPENAI_YAML = SKILL_ROOT / "agents" / "openai.yaml"
 MANIFEST = ROOT / ".codex-plugin" / "plugin.json"
 MARKETPLACE = ROOT / ".agents" / "plugins" / "marketplace.json"
 README = ROOT / "README.md"
+EVALUATION_README = ROOT / "evaluation" / "README.md"
 
 EXPECTED_RUNTIME_FILES = {
     "skills/happycodex/SKILL.md",
@@ -191,10 +192,7 @@ class HappyCodexContractTests(unittest.TestCase):
             "focused reviewers may see",
             "focused hardening defaults to `high`",
             "use `max` only for a recurring family or unresolved material uncertainty",
-            "three exact-final roles",
-            "correctness/qa `max`",
-            "release/preservation `max`",
-            "simplification `high`",
+            "exact-final remains `max`",
             "exact-final reviewers must not see",
             "product-source change",
             "returns to focused_hardening",
@@ -246,18 +244,30 @@ class HappyCodexContractTests(unittest.TestCase):
         self.assertIn("exactly one authoritative checkpoint", text)
         self.assertNotIn("recover along the chain", text)
 
-    def test_runtime_freezes_validation_identity_and_failure_policy(self) -> None:
-        runtime = folded(SKILL) + " " + folded(EXECPLAN)
+    def test_maintainer_validation_workflow_is_layered_and_not_runtime(self) -> None:
+        runtime = folded(SKILL)
+        maintainer = folded(EVALUATION_README)
+        self.assertNotIn("three independent exact-final roles", runtime)
         for phrase in (
-            "product identity tuple",
-            "external role-config digest",
-            "any tuple change invalidates exact-final, corpus, and holdout",
-            "three releases without a unique simplification blocker",
-            "never overlap corpus and holdout",
-            "do not retry behavior or infrastructure failures automatically",
-            "freshly validated authority",
+            "not ordinary happycodex skill runtime",
+            "three independent exact-final roles",
+            "correctness/qa `max`",
+            "release/preservation `max`",
+            "simplification `high`",
+            "every role its own fresh session and durable output",
+            "only that role's two phases share a session",
+            "three consecutive releases with no unique simplification blocker",
+            "review identity binds",
+            "change invalidates exact review only",
+            "behavior identity binds",
+            "artifact identity binds",
+            "completed exit-zero result with oracle failures is negative behavior evidence",
+            "infrastructure failure and aborts before summary or reveal promotion",
+            "corpus and holdout never overlap",
+            "new canonical user cost approval",
+            "prior grant cannot be reused",
         ):
-            self.assertIn(phrase, runtime)
+            self.assertIn(phrase, maintainer)
 
     def test_skill_frontmatter_and_reference_graph_are_closed(self) -> None:
         text = read(SKILL)
@@ -576,7 +586,7 @@ class HappyCodexContractTests(unittest.TestCase):
             "rejected counter-evidence",
             "external backlog",
             "risk-bearing milestone",
-            "three exact-final roles",
+            "full final-candidate review",
             "durable output",
             "foreground buffer is not a receipt",
             "resolve its durable terminal record before rerun",

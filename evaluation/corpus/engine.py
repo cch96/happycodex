@@ -2333,7 +2333,7 @@ def _evaluate_cases_bounded(
     case_ids: list[str],
     evaluate: Callable[[str], dict[str, Any]],
 ) -> list[dict[str, Any]]:
-    """Evaluate once per case, preserving input order and propagating failures."""
+    """Evaluate each started case once; preserve order and propagate exceptions."""
     if not case_ids:
         return []
     with ThreadPoolExecutor(
