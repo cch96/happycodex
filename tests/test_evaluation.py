@@ -547,6 +547,29 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "permission state"):
                     runner.validate_case(case, Path(f"{name}.json"))
 
+    def test_case_validation_rejects_blank_expected_identities(self) -> None:
+        invalid_oracles = (
+            {"accepted_baseline_failures": [" \t "]},
+            {
+                "required_classifications": [
+                    {"identity": " \t ", "domain": "other", "state": "resolved"}
+                ]
+            },
+            {
+                "required_blocker_classifications": [
+                    {"identity": " \t ", "class": "original_goal"}
+                ]
+            },
+        )
+        for index, invalid_oracle in enumerate(invalid_oracles):
+            with self.subTest(oracle=next(iter(invalid_oracle))):
+                case = json.loads(
+                    json.dumps(self.cases["clean-qualifying-control"])
+                )
+                case["oracle"].update(invalid_oracle)
+                with self.assertRaisesRegex(ValueError, "invalid"):
+                    runner.validate_case(case, Path(f"blank-identity-{index}.json"))
+
     def test_shared_constraint_rejects_contradictory_completion_receipts(self) -> None:
         base = self.cases["clean-qualifying-control"]["oracle"]["expected"]
         contradictions = (
