@@ -351,13 +351,15 @@ REQUIRED_TAGS = {
     "no-commit-unselected",
 }
 IDENTITY_PROJECTION_TEXT = (
-    "For an explicitly labeled material marker, locator, digest, or recovery-affecting "
-    "path, use the exact literal as the stable identity; a paraphrase is not equivalent."
+    "For an explicitly labeled material marker, locator, or digest, use the exact literal "
+    "as the stable identity; a paraphrase is not equivalent. For a material path, create "
+    "a distinct stable finding ID and copy the exact path into anchors."
 )
 DOMAIN_PROJECTION_TEXT = (
-    "Use receipt domain for recovery, evidence, review, archive, checkpoint, ref, or "
-    "digest markers; use secret only for secret findings and baseline_failure only for "
-    "an explicitly recorded test/check failure identity, then use other otherwise."
+    "Use receipt only for an actual durable recovery/evidence/review receipt or an "
+    "archive, checkpoint, ref, or digest artifact or recorded fact. A lifecycle marker "
+    "that merely mentions review uses other; use secret only for secret findings and "
+    "baseline_failure only for an explicitly recorded test/check failure identity."
 )
 STATE_PROJECTION_TEXT = (
     "Use resolved only for a closed finding that is therefore never blocking; use "
@@ -476,7 +478,7 @@ OUTPUT_SCHEMA = {
                     "anchors": {
                         "type": "array",
                         "description": ANCHOR_PROJECTION_TEXT,
-                        "items": {"type": "string", "maxLength": 240},
+                        "items": {"type": "string", "maxLength": 4_096},
                     },
                 },
                 "required": ["identity", "domain", "state", "anchors"],

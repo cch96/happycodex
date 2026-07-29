@@ -260,9 +260,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             "recovery_state": None,
         }
         oracle = {
-            "expected": {
-                field: result[field] for field in runner.PERMISSION_FIELDS
-            },
+            "expected": {field: result[field] for field in runner.PERMISSION_FIELDS},
             "required_anchored_classifications": [
                 {"anchor": path, "domain": "other", "state": "candidate_new"}
                 for path in paths
