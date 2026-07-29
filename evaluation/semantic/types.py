@@ -49,7 +49,50 @@ class InfraKind(str, Enum):
 
 _ID_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:/=+@-]*")
 _TAG_PATTERN = re.compile(r"[a-z][a-z0-9_]*")
-_DIGEST_TAGS = {"lineage", "role_config", "progress_key", "attempt_key", "source_event"}
+_DIGEST_TAGS = frozenset(
+    {"lineage", "role_config", "progress_key", "attempt_key", "source_event"}
+)
+_STABLE_DOMAINS = (
+    "checks",
+    "claims",
+    "families",
+    "findings",
+    "gates",
+    "markers",
+    "paths",
+    "pending",
+    "replacements",
+)
+_ADMIN_DOMAINS = (
+    "authority_receipts",
+    "consumptions",
+    "cursors",
+    "receipts",
+    "resource_claims",
+    "timestamps",
+)
+_DOMAIN_ID_TAGS = MappingProxyType(
+    {
+        "checks": "check_id",
+        "claims": "claim_id",
+        "families": "family_id",
+        "findings": "finding_id",
+        "gates": "gate_id",
+        "markers": "marker_id",
+        "paths": "path_id",
+        "pending": "pending_id",
+        "replacements": "infrastructure_id",
+        "authority_receipts": "authority_receipt_id",
+        "consumptions": "consumption_id",
+        "cursors": "cursor_id",
+        "receipts": "receipt_id",
+        "resource_claims": "resource_claim_id",
+        "timestamps": "timestamp_id",
+    }
+)
+_FACTS_SEAL = object()
+_AUTHORITY_SEAL = object()
+_REPORT_SEAL = object()
 
 
 @dataclass(frozen=True, order=True)
@@ -58,9 +101,9 @@ class Id:
     value: str
 
     def __post_init__(self) -> None:
-        if not isinstance(self.tag, str) or _TAG_PATTERN.fullmatch(self.tag) is None:
+        if type(self.tag) is not str or _TAG_PATTERN.fullmatch(self.tag) is None:
             raise SemanticError("Id tag is invalid")
-        if not isinstance(self.value, str) or _ID_PATTERN.fullmatch(self.value) is None:
+        if type(self.value) is not str or _ID_PATTERN.fullmatch(self.value) is None:
             raise SemanticError(f"{self.tag} identity is invalid")
         if self.tag in _DIGEST_TAGS and re.fullmatch(r"[0-9a-f]{64}", self.value) is None:
             raise SemanticError(f"{self.tag} must be lowercase 64-hex")
@@ -109,15 +152,15 @@ class TaskBinding:
 
 def _freeze(value: Any) -> Any:
     if isinstance(value, Mapping):
-        if any(not isinstance(key, str) for key in value):
+        if any(type(key) is not str for key in value):
             raise SemanticError("mapping keys must be strings")
         return MappingProxyType({key: _freeze(value[key]) for key in sorted(value)})
-    if isinstance(value, list):
-        return tuple(_freeze(item) for item in value)
     if isinstance(value, tuple):
         return tuple(_freeze(item) for item in value)
-    if isinstance(value, (set, bytearray)):
+    if isinstance(value, (list, set, frozenset, bytearray)):
         raise SemanticError("mutable or unordered semantic value")
+    if type(value) is Id:
+        return value
     if value is None or type(value) in (str, int, bool):
         return value
     raise SemanticError(f"unsupported fact value: {type(value).__name__}")
@@ -128,6 +171,8 @@ def _thaw(value: Any) -> Any:
         return {key: _thaw(value[key]) for key in value}
     if isinstance(value, tuple):
         return [_thaw(item) for item in value]
+    if type(value) is Id:
+        return value.value
     return value
 
 
@@ -139,6 +184,8 @@ class _Record:
     def __post_init__(self) -> None:
         if type(self.primary_key) is not Id:
             raise SemanticError("record primary key must be tagged")
+        if not isinstance(self.payload, Mapping) or "id" in self.payload:
+            raise SemanticError("record payload cannot contain id")
         object.__setattr__(self, "payload", _freeze(self.payload))
 
     def to_value(self) -> Mapping[str, object]:
@@ -150,36 +197,16 @@ class _Record:
         return _thaw(self.to_value())
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, init=False)
 class Facts:
     schema_generation: int
     task: TaskBinding
     stable: Mapping[str, tuple[_Record, ...]]
     administration: Mapping[str, tuple[_Record, ...]]
+    _seal: object = field(repr=False, compare=False)
 
-    def __post_init__(self) -> None:
-        if type(self.schema_generation) is not int or self.schema_generation != 6:
-            raise SemanticError("schema_generation must equal 6")
-        if type(self.task) is not TaskBinding:
-            raise SemanticError("Facts.task must be TaskBinding")
-        normalized: list[Mapping[str, tuple[_Record, ...]]] = []
-        for name, source in (
-            ("stable", self.stable),
-            ("administration", self.administration),
-        ):
-            if not isinstance(source, Mapping):
-                raise SemanticError(f"Facts.{name} must be a mapping")
-            members: dict[str, tuple[_Record, ...]] = {}
-            for domain in sorted(source):
-                records = source[domain]
-                if not isinstance(records, tuple) or any(
-                    type(record) is not _Record for record in records
-                ):
-                    raise SemanticError(f"Facts.{name}.{domain} must be immutable records")
-                members[domain] = records
-            normalized.append(MappingProxyType(members))
-        object.__setattr__(self, "stable", normalized[0])
-        object.__setattr__(self, "administration", normalized[1])
+    def __init__(self) -> None:
+        raise SemanticError("Facts are parser-issued; use parse_facts")
 
     def stable_value(self) -> Mapping[str, object]:
         return MappingProxyType(
@@ -209,7 +236,91 @@ class Facts:
         }
 
 
-@dataclass(frozen=True)
+def _normalize_domains(
+    source: object,
+    expected: tuple[str, ...],
+    name: str,
+) -> Mapping[str, tuple[_Record, ...]]:
+    if not isinstance(source, Mapping) or any(type(key) is not str for key in source):
+        raise SemanticError(f"Facts.{name} must be a mapping")
+    if set(source) != set(expected):
+        raise SemanticError(f"Facts.{name} domains are invalid")
+    members: dict[str, tuple[_Record, ...]] = {}
+    for domain in expected:
+        records = source[domain]
+        if type(records) is not tuple:
+            raise SemanticError(f"Facts.{name}.{domain} must be immutable records")
+        seen: set[str] = set()
+        copied: list[_Record] = []
+        for record in records:
+            if type(record) is not _Record:
+                raise SemanticError(f"Facts.{name}.{domain} has invalid record type")
+            _require_id(record.primary_key, _DOMAIN_ID_TAGS[domain], f"{domain}.id")
+            if record.primary_key.value in seen:
+                raise SemanticError(
+                    f"duplicate primary key in {domain}: {record.primary_key.value}"
+                )
+            seen.add(record.primary_key.value)
+            copied.append(_Record(record.primary_key, record.payload))
+        members[domain] = tuple(
+            sorted(copied, key=lambda item: item.primary_key.value)
+        )
+    return MappingProxyType(members)
+
+
+def _make_facts(
+    *,
+    schema_generation: object,
+    task: object,
+    stable: object,
+    administration: object,
+) -> Facts:
+    if type(schema_generation) is not int or schema_generation != 6:
+        raise SemanticError("schema_generation must equal 6")
+    if type(task) is not TaskBinding:
+        raise SemanticError("Facts.task must be TaskBinding")
+    result = object.__new__(Facts)
+    object.__setattr__(result, "schema_generation", schema_generation)
+    object.__setattr__(result, "task", task)
+    object.__setattr__(
+        result, "stable", _normalize_domains(stable, _STABLE_DOMAINS, "stable")
+    )
+    object.__setattr__(
+        result,
+        "administration",
+        _normalize_domains(administration, _ADMIN_DOMAINS, "administration"),
+    )
+    object.__setattr__(result, "_seal", _FACTS_SEAL)
+    return result
+
+
+def _is_parsed_facts(value: object) -> bool:
+    return type(value) is Facts and getattr(value, "_seal", None) is _FACTS_SEAL
+
+
+def _validate_authority(
+    kind: object,
+    issuer: object,
+    destination: object,
+    lineage: object,
+    source_event: object,
+    target: object,
+    scope: object,
+) -> None:
+    if type(kind) is not ProvenanceKind:
+        raise SemanticError("provenance kind is invalid")
+    for name, value, tag in (
+        ("issuer", issuer, "root_task"),
+        ("destination", destination, "destination"),
+        ("lineage", lineage, "lineage"),
+        ("source_event", source_event, "source_event"),
+        ("target", target, "action_target"),
+        ("scope", scope, "action_scope"),
+    ):
+        _require_id(value, tag, name)
+
+
+@dataclass(frozen=True, init=False)
 class AuthorityProvenance:
     kind: ProvenanceKind
     issuer: Id
@@ -218,36 +329,43 @@ class AuthorityProvenance:
     source_event: Id
     target: Id
     scope: Id
-    _adapter_issued: bool = field(default=False, repr=False, compare=False)
+    _seal: object = field(repr=False, compare=False)
 
-    def __post_init__(self) -> None:
-        if not isinstance(self.kind, ProvenanceKind):
-            raise SemanticError("provenance kind is invalid")
-        for name, tag in (
-            ("issuer", "root_task"),
-            ("destination", "destination"),
-            ("lineage", "lineage"),
-            ("source_event", "source_event"),
-            ("target", "action_target"),
-            ("scope", "action_scope"),
-        ):
-            _require_id(getattr(self, name), tag, name)
-        if type(self._adapter_issued) is not bool:
-            raise SemanticError("adapter issuance marker is invalid")
+    def __init__(self) -> None:
+        raise SemanticError("AuthorityProvenance is adapter-issued")
 
-    @classmethod
-    def from_adapter(
-        cls,
-        *,
-        kind: ProvenanceKind,
-        issuer: Id,
-        destination: Id,
-        lineage: Id,
-        source_event: Id,
-        target: Id,
-        scope: Id,
-    ) -> AuthorityProvenance:
-        return cls(kind, issuer, destination, lineage, source_event, target, scope, True)
+
+def _issue_authority(
+    *,
+    kind: ProvenanceKind,
+    issuer: Id,
+    destination: Id,
+    lineage: Id,
+    source_event: Id,
+    target: Id,
+    scope: Id,
+) -> AuthorityProvenance:
+    _validate_authority(kind, issuer, destination, lineage, source_event, target, scope)
+    result = object.__new__(AuthorityProvenance)
+    for name, value in (
+        ("kind", kind),
+        ("issuer", issuer),
+        ("destination", destination),
+        ("lineage", lineage),
+        ("source_event", source_event),
+        ("target", target),
+        ("scope", scope),
+    ):
+        object.__setattr__(result, name, value)
+    object.__setattr__(result, "_seal", _AUTHORITY_SEAL)
+    return result
+
+
+def _is_issued_authority(value: object) -> bool:
+    return (
+        type(value) is AuthorityProvenance
+        and getattr(value, "_seal", None) is _AUTHORITY_SEAL
+    )
 
 
 @dataclass(frozen=True)
@@ -259,7 +377,7 @@ class NextAction:
     evidence_source: Id
 
     def __post_init__(self) -> None:
-        if not isinstance(self.kind, ActionKind):
+        if type(self.kind) is not ActionKind:
             raise SemanticError("action kind is invalid")
         for name, tag in (
             ("target", "action_target"),
@@ -287,22 +405,23 @@ class EffectGate:
     reason: str
 
     def __post_init__(self) -> None:
-        if not isinstance(self.decision, EffectDecision):
+        if type(self.decision) is not EffectDecision:
             raise SemanticError("effect decision is invalid")
         _require_id(self.target, "action_target", "target")
         _require_id(self.scope, "action_scope", "scope")
-        if not isinstance(self.reason, str) or not self.reason:
+        if type(self.reason) is not str or not self.reason:
             raise SemanticError("effect reason is invalid")
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, init=False)
 class ProgressReport:
     facts: Facts
     progress_key: Id
     next_action: NextAction
+    _seal: object = field(repr=False, compare=False)
 
-    def __post_init__(self) -> None:
-        _require_id(self.progress_key, "progress_key", "progress_key")
+    def __init__(self) -> None:
+        raise SemanticError("ProgressReport is reducer-issued")
 
     def to_wire(self) -> dict[str, object]:
         return {
@@ -310,6 +429,34 @@ class ProgressReport:
             "progress_key": self.progress_key.value,
             "next_action": self.next_action.to_wire(),
         }
+
+
+def _make_report(
+    *,
+    facts: Facts,
+    progress_key: Id,
+    next_action: NextAction,
+) -> ProgressReport:
+    if not _is_parsed_facts(facts):
+        raise SemanticError("reducer report requires parsed Facts")
+    _require_id(progress_key, "progress_key", "progress_key")
+    if type(next_action) is not NextAction:
+        raise SemanticError("reducer report requires NextAction")
+    result = object.__new__(ProgressReport)
+    object.__setattr__(result, "facts", facts)
+    object.__setattr__(result, "progress_key", progress_key)
+    object.__setattr__(result, "next_action", next_action)
+    object.__setattr__(result, "_seal", _REPORT_SEAL)
+    return result
+
+
+def _is_reducer_report(value: object) -> bool:
+    return (
+        type(value) is ProgressReport
+        and getattr(value, "_seal", None) is _REPORT_SEAL
+        and _is_parsed_facts(value.facts)
+        and type(value.next_action) is NextAction
+    )
 
 
 __all__ = (

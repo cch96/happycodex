@@ -1,109 +1,130 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from types import MappingProxyType
 from typing import Any
 
 from evaluation.semantic.types import (
+    ActionKind,
     CapacityError,
     Facts,
     Id,
     InfraKind,
     SemanticError,
     TaskBinding,
+    _ADMIN_DOMAINS,
+    _DOMAIN_ID_TAGS,
     _Record,
+    _STABLE_DOMAINS,
+    _make_facts,
 )
 
 
-_STABLE = (
-    "checks",
-    "claims",
-    "families",
-    "findings",
-    "gates",
-    "markers",
-    "paths",
-    "pending",
-    "replacements",
+_BINDING_FIELDS = frozenset(
+    {
+        "task_id",
+        "root_task_id",
+        "executor_task_id",
+        "owner_label",
+        "destination_id",
+        "lineage_digest",
+        "role_config_digest",
+    }
 )
-_ADMIN = (
-    "authority_receipts",
-    "consumptions",
-    "cursors",
-    "receipts",
-    "resource_claims",
-    "timestamps",
+_RECORD_FIELDS = MappingProxyType(
+    {
+        **{
+            domain: frozenset({"id", "state", "evidence"})
+            for domain in ("checks", "claims", "families", "findings", "gates")
+        },
+        "pending": frozenset(
+            {
+                "id",
+                "priority",
+                "kind",
+                "target",
+                "scope",
+                "falsifier_id",
+                "evidence_source_id",
+            }
+        ),
+        "replacements": frozenset(
+            {"id", "kind", "prior", "current", "evidence"}
+        ),
+        "paths": frozenset({"id", "repository_id", "path"}),
+        "markers": frozenset({"id", "value"}),
+        **{
+            domain: frozenset({"id", "value"})
+            for domain in _ADMIN_DOMAINS
+        },
+    }
 )
-_BINDING_FIELDS = {
-    "task_id",
-    "root_task_id",
-    "executor_task_id",
-    "owner_label",
-    "destination_id",
-    "lineage_digest",
-    "role_config_digest",
-}
-_RECORD_FIELDS = {
-    **{
-        domain: {"id", "state", "evidence"}
-        for domain in ("checks", "claims", "families", "findings", "gates")
-    },
-    "pending": {
-        "id",
-        "priority",
-        "kind",
-        "target",
-        "scope",
-        "falsifier_id",
-        "evidence_source_id",
-    },
-    "replacements": {"id", "kind", "prior", "current", "evidence"},
-    "paths": {"id", "repository_id", "path"},
-    "markers": {"id", "value"},
-    **{domain: {"id", "value"} for domain in _ADMIN},
-}
-_ID_TAGS = {
-    "checks": "check_id",
-    "claims": "claim_id",
-    "families": "family_id",
-    "findings": "finding_id",
-    "gates": "gate_id",
-    "markers": "marker_id",
-    "paths": "path_id",
-    "pending": "pending_id",
-    "replacements": "infrastructure_id",
-    "authority_receipts": "authority_receipt_id",
-    "consumptions": "consumption_id",
-    "cursors": "cursor_id",
-    "receipts": "receipt_id",
-    "resource_claims": "resource_claim_id",
-    "timestamps": "timestamp_id",
-}
+_STATE_VALUES = MappingProxyType(
+    {
+        "checks": frozenset({"PENDING", "PASS", "FAIL", "BASELINE_ACCEPTED"}),
+        "claims": frozenset({"OPEN", "VERIFIED", "N/A"}),
+        "families": frozenset({"OPEN", "BOUNDARY_REQUIRED", "CLOSED", "N/A"}),
+        "findings": frozenset(
+            {
+                "OPEN",
+                "BASELINE_UNCHANGED",
+                "CANDIDATE_NEW",
+                "UNKNOWN",
+                "RESOLVED",
+                "BASELINE_ACCEPTED",
+            }
+        ),
+        "gates": frozenset({"OPEN", "BLOCKED", "SATISFIED", "WAIVED"}),
+    }
+)
+_PENDING_ID_FIELDS = MappingProxyType(
+    {
+        "target": "action_target",
+        "scope": "action_scope",
+        "falsifier_id": "falsifier",
+        "evidence_source_id": "evidence_source",
+    }
+)
 
 
 def _mapping(value: object, name: str) -> Mapping[str, Any]:
-    if not isinstance(value, Mapping) or any(not isinstance(key, str) for key in value):
+    if not isinstance(value, Mapping) or any(type(key) is not str for key in value):
         raise SemanticError(f"{name} must be an object")
     return value
 
 
-def _exact_fields(value: Mapping[str, Any], expected: set[str], name: str) -> None:
+def _exact_fields(
+    value: Mapping[str, Any],
+    expected: frozenset[str] | set[str],
+    name: str,
+) -> None:
     actual = set(value)
-    if actual != expected:
-        unknown = sorted(actual - expected)
-        missing = sorted(expected - actual)
-        raise SemanticError(f"{name} fields mismatch: missing={missing}, unknown={unknown}")
+    if actual != set(expected):
+        unknown = sorted(actual - set(expected))
+        missing = sorted(set(expected) - actual)
+        raise SemanticError(
+            f"{name} fields mismatch: missing={missing}, unknown={unknown}"
+        )
 
 
 def _text(value: object, name: str) -> str:
-    if not isinstance(value, str) or not value:
+    if type(value) is not str or not value:
         raise SemanticError(f"{name} must be nonblank text")
     return value
 
 
-def _string_list(value: object, name: str) -> list[str]:
-    if not isinstance(value, list) or any(not isinstance(item, str) or not item for item in value):
+def _string_tuple(value: object, name: str) -> tuple[str, ...]:
+    if type(value) is not list:
         raise SemanticError(f"{name} must be an array of nonblank text")
-    return value
+    result: list[str] = []
+    seen: set[str] = set()
+    for item in value:
+        text = _text(item, name)
+        if text in seen:
+            raise SemanticError(f"duplicate value in {name}: {text}")
+        seen.add(text)
+        result.append(text)
+    return tuple(sorted(result))
 
 
 def _binding(raw: object) -> TaskBinding:
@@ -126,8 +147,90 @@ def _binding(raw: object) -> TaskBinding:
     )
 
 
+def _state_payload(
+    record: Mapping[str, Any],
+    domain: str,
+) -> dict[str, object]:
+    state = _text(record["state"], f"{domain}.state")
+    if state not in _STATE_VALUES[domain]:
+        raise SemanticError(f"{domain}.state is invalid")
+    return {
+        "state": state,
+        "evidence": _string_tuple(record["evidence"], f"{domain}.evidence"),
+    }
+
+
+def _pending_payload(record: Mapping[str, Any]) -> dict[str, object]:
+    if type(record["priority"]) is not int or record["priority"] < 0:
+        raise SemanticError("pending.priority must be a nonnegative integer")
+    kind = _text(record["kind"], "pending.kind")
+    try:
+        ActionKind(kind)
+    except ValueError as error:
+        raise SemanticError("pending.kind is invalid") from error
+    payload: dict[str, object] = {
+        "priority": record["priority"],
+        "kind": kind,
+    }
+    for field, tag in _PENDING_ID_FIELDS.items():
+        payload[field] = Id(tag, _text(record[field], f"pending.{field}"))
+    return payload
+
+
+def _replacement_payload(record: Mapping[str, Any]) -> dict[str, object]:
+    kind = _text(record["kind"], "replacements.kind")
+    if kind != InfraKind.REPLACED.value:
+        raise SemanticError("unknown infrastructure transition")
+    prior = _text(record["prior"], "replacements.prior")
+    current = _text(record["current"], "replacements.current")
+    evidence = _string_tuple(record["evidence"], "replacements.evidence")
+    if not evidence:
+        raise SemanticError("REPLACED requires nonempty evidence")
+    if prior == current:
+        raise SemanticError("REPLACED must change the infrastructure envelope")
+    return {
+        "kind": kind,
+        "prior": prior,
+        "current": current,
+        "evidence": evidence,
+    }
+
+
+def _path_payload(record: Mapping[str, Any]) -> dict[str, object]:
+    repository = _text(record["repository_id"], "paths.repository_id")
+    path = _text(record["path"], "paths.path")
+    if (
+        path.startswith("/")
+        or path.endswith("/")
+        or "\\" in path
+        or "//" in path
+        or any(part in ("", ".", "..") for part in path.split("/"))
+    ):
+        raise SemanticError("path must be exact root-relative POSIX identity")
+    return {"repository_id": repository, "path": path}
+
+
+def _payload(record: Mapping[str, Any], domain: str) -> dict[str, object]:
+    if domain in _STATE_VALUES:
+        return _state_payload(record, domain)
+    if domain == "pending":
+        return _pending_payload(record)
+    if domain == "replacements":
+        return _replacement_payload(record)
+    if domain == "paths":
+        return _path_payload(record)
+    if domain == "markers":
+        return {"value": _text(record["value"], "markers.value")}
+    if domain == "timestamps":
+        value = record["value"]
+        if type(value) is not int or value < 0:
+            raise SemanticError("timestamps.value must be a nonnegative integer")
+        return {"value": value}
+    return {"value": _text(record["value"], f"{domain}.value")}
+
+
 def _records(raw: object, domain: str) -> tuple[_Record, ...]:
-    if not isinstance(raw, list):
+    if type(raw) is not list:
         raise SemanticError(f"{domain} must be an array")
     if domain == "markers" and len(raw) > 64:
         raise CapacityError(64, len(raw))
@@ -140,46 +243,13 @@ def _records(raw: object, domain: str) -> tuple[_Record, ...]:
         if primary_key in primary_keys:
             raise SemanticError(f"duplicate primary key in {domain}: {primary_key}")
         primary_keys.add(primary_key)
-        if "evidence" in record:
-            evidence = _string_list(record["evidence"], f"{domain}.evidence")
-            if (
-                domain == "replacements"
-                and record["kind"] == InfraKind.REPLACED.value
-                and not evidence
-            ):
-                raise SemanticError("REPLACED requires nonempty evidence")
-        if domain == "replacements":
-            if record["kind"] != InfraKind.REPLACED.value:
-                raise SemanticError("unknown infrastructure transition")
-            if record["prior"] == record["current"]:
-                raise SemanticError("REPLACED must change the infrastructure envelope")
-        if domain == "pending":
-            if type(record["priority"]) is not int or record["priority"] < 0:
-                raise SemanticError("pending.priority must be a nonnegative integer")
-            try:
-                from evaluation.semantic.types import ActionKind
-
-                ActionKind(record["kind"])
-            except ValueError as error:
-                raise SemanticError("pending.kind is invalid") from error
-        if domain == "paths":
-            _text(record["repository_id"], "paths.repository_id")
-            path = _text(record["path"], "paths.path")
-            if (
-                path.startswith("/")
-                or path.endswith("/")
-                or "\\" in path
-                or "//" in path
-                or any(part in ("", ".", "..") for part in path.split("/"))
-            ):
-                raise SemanticError("path must be exact root-relative POSIX identity")
         result.append(
             _Record(
-                Id(_ID_TAGS[domain], primary_key),
-                {key: record[key] for key in record if key != "id"},
+                Id(_DOMAIN_ID_TAGS[domain], primary_key),
+                _payload(record, domain),
             )
         )
-    return tuple(sorted(result, key=lambda item: item.primary_key))
+    return tuple(sorted(result, key=lambda item: item.primary_key.value))
 
 
 def parse_facts(raw: object) -> Facts:
@@ -191,15 +261,19 @@ def parse_facts(raw: object) -> Facts:
     )
     stable_raw = _mapping(envelope["facts"], "facts")
     admin_raw = _mapping(envelope["administration"], "administration")
-    _exact_fields(stable_raw, set(_STABLE), "facts")
-    _exact_fields(admin_raw, set(_ADMIN), "administration")
-    stable = {domain: _records(stable_raw[domain], domain) for domain in _STABLE}
-    administration = {domain: _records(admin_raw[domain], domain) for domain in _ADMIN}
-    return Facts(
-        envelope["schema_generation"],
-        _binding(envelope["task_binding"]),
-        stable,
-        administration,
+    _exact_fields(stable_raw, set(_STABLE_DOMAINS), "facts")
+    _exact_fields(admin_raw, set(_ADMIN_DOMAINS), "administration")
+    stable = {
+        domain: _records(stable_raw[domain], domain) for domain in _STABLE_DOMAINS
+    }
+    administration = {
+        domain: _records(admin_raw[domain], domain) for domain in _ADMIN_DOMAINS
+    }
+    return _make_facts(
+        schema_generation=envelope["schema_generation"],
+        task=_binding(envelope["task_binding"]),
+        stable=stable,
+        administration=administration,
     )
 
 

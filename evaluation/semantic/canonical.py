@@ -7,7 +7,14 @@ import hashlib
 import json
 from typing import Any
 
-from evaluation.semantic.types import Facts, Id, ProgressReport, SemanticError
+from evaluation.semantic.types import (
+    Facts,
+    Id,
+    ProgressReport,
+    SemanticError,
+    _is_parsed_facts,
+    _is_reducer_report,
+)
 
 
 def _value(value: Any) -> Any:
@@ -18,7 +25,7 @@ def _value(value: Any) -> Any:
     if isinstance(value, Enum):
         return {"tag": type(value).__name__, "value": value.value}
     if isinstance(value, Mapping):
-        if any(not isinstance(key, str) for key in value):
+        if any(type(key) is not str for key in value):
             raise SemanticError("canonical mapping keys must be strings")
         return {key: _value(value[key]) for key in sorted(value)}
     if isinstance(value, tuple):
@@ -34,7 +41,11 @@ def _value(value: Any) -> Any:
     if is_dataclass(value) and not isinstance(value, type):
         return {
             "tag": type(value).__name__,
-            **{item.name: _value(getattr(value, item.name)) for item in fields(value)},
+            **{
+                item.name: _value(getattr(value, item.name))
+                for item in fields(value)
+                if not item.name.startswith("_")
+            },
         }
     raise SemanticError(f"unsupported canonical type: {type(value).__name__}")
 
@@ -50,7 +61,7 @@ def canonical_bytes(value: Any) -> bytes:
 
 
 def _digest(domain: str, value: Any) -> str:
-    if not isinstance(domain, str) or not domain or "\x00" in domain:
+    if type(domain) is not str or not domain or "\x00" in domain:
         raise SemanticError("hash domain is invalid")
     return hashlib.sha256(
         domain.encode("utf-8") + b"\0" + canonical_bytes(value)
@@ -58,8 +69,8 @@ def _digest(domain: str, value: Any) -> str:
 
 
 def make_progress_key(facts: Facts) -> Id:
-    if type(facts) is not Facts:
-        raise SemanticError("ProgressKey requires Facts")
+    if not _is_parsed_facts(facts):
+        raise SemanticError("ProgressKey requires parser-issued Facts")
     return Id(
         "progress_key",
         _digest(
@@ -73,8 +84,10 @@ def make_progress_key(facts: Facts) -> Id:
 
 
 def make_attempt_key(report: ProgressReport) -> Id:
-    if type(report) is not ProgressReport:
+    if not _is_reducer_report(report):
         raise SemanticError("AttemptKey requires a reducer report")
+    if report.progress_key != make_progress_key(report.facts):
+        raise SemanticError("reducer report progress key mismatch")
     action = report.next_action
     return Id(
         "attempt_key",

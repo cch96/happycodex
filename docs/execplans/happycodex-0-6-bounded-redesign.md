@@ -2,9 +2,9 @@
 
 Protocol: `HappyCodex/0.5`
 
-Current index: independent 0.6 bounded-redesign contract plus the active Batch 1
-kernel/Runtime grant. G001 and G002 are accepted source; G003 owns only the
-bounded first implementation batch.
+Current index: independent 0.6 bounded-redesign contract plus active same-batch
+boundary hardening. G001/G002 are accepted source. G003 is reachable but
+unaccepted; G004 owns only its four material Batch 1 sibling families.
 
 Restore guard: restore this entire ExecPlan, then reconcile the exact Git source,
 fixed Executor identity, three resource claims, external intent and receipts,
@@ -13,10 +13,11 @@ before any write, review, effect, or completion claim. Conversation summaries,
 copied handles, and another task's source do not reconstruct authority.
 
 Phase: `implementation`. Active grant:
-`HC06BR-G-003-B1-kernel-runtime`, sequence 3. It binds accepted G002 commit
-`293f9ce34ffee0894fa889d9d3db9b441739b973`, tree
-`802a122b0761be2fae648e9d69ffce64ca353b0f`, the same fixed Executor, and only
-Batch 1 paths/operations. G001 and G002 are Root-accepted and `CLOSED`.
+`HC06BR-G-004-B1-boundary-hardening`, sequence 4. It binds unaccepted G003 commit
+`f87b9dce68c88f537c0a18bd13da3d248248eebf`, tree
+`89944223582465667e84ea2982bd31e810f64a28`, the same fixed Executor/claim,
+recurrence 0, and only the seven exact G004 paths. G001/G002 are
+Root-accepted/`CLOSED`; G003 is not terminal evidence.
 
 ## Operative request and normalized Outcome
 
@@ -320,8 +321,8 @@ remain maintainer support and are never linked from Runtime Skill Markdown.
 
 | Family | Invariant | Six-surface closure | Status | Batch | Recurrence |
 | --- | --- | --- | --- | --- | --- |
-| `F-06BR-RUNTIME` | semantic progress and event correction prevent equivalent repeated work and false GREEN | Batch 1 source/identity, type/cardinality, order, mutability, replay, and Runtime consumers have RED/positive evidence; later evaluator consumers remain separately open | `closed for Batch 1` | `RB-06BR-001/instance` | `0` |
-| `F-06BR-AUTHORITY` | exact `TaskBinding`, provenance, reducer action, capability, claim, authority, and attempt gate every effect | Batch 1 direct/delegated/spoofed/missing/destination/lineage/target/scope semantics have RED/positive evidence; imperative pre-effect integration remains later | `closed for Batch 1` | `RB-06BR-002/instance` | `0` |
+| `F-06BR-RUNTIME` | semantic progress and event correction prevent equivalent repeated work and false GREEN | G003 false-close/report/parser siblings joined before acceptance; G004 RED/GREEN covers sealed reports, exact parse, terminal reduction, replay and consumers | `G004 GREEN; Root acceptance open` | `RB-06BR-001/instance` | `0` |
+| `F-06BR-AUTHORITY` | exact `TaskBinding`, provenance, reducer action, capability, claim, authority, and attempt gate every effect | G003 public-forge sibling joined before acceptance; G004 RED/GREEN covers private issuance plus direct/delegated/spoofed/missing/destination/lineage/target/scope | `G004 GREEN; Root acceptance open` | `RB-06BR-002/instance` | `0` |
 | `F-06BR-EVALUATOR` | terminal, identity, decision, ledger, and replay share strict parsing and exact recomputation | same six surfaces, including duplicate/order/terminal/path/key/raw-ledger divergence and consumer propagation | `open` | `RB-06BR-003/instance` | `0` |
 
 Holdout quality and cost comparison remain separate gated evidence. They do not
@@ -790,71 +791,79 @@ One token claims exactly the bounded-redesign worktree, branch ref, and this
 ledger. Its adjacent untracked claim directory is private control state, excluded
 from product/commit content, and is not released automatically.
 
-## G003 Batch 1 grant and evidence
+## Unaccepted G003 and G004 same-batch hardening
 
-Grant `HC06BR-G-003-B1-kernel-runtime`, sequence 3, binds the exact G002
-commit/tree, this fixed Executor and role configuration, the verified three-key
-claim, `RB-06BR-001/instance`, and `RB-06BR-002/instance`. Durable intent is
-`/home/caichenghang/.codex/happycodex-0.6-bounded-redesign-g003-b1-intent.json`,
+G003 produced reachable commit
+`f87b9dce68c88f537c0a18bd13da3d248248eebf`, tree
+`89944223582465667e84ea2982bd31e810f64a28`, with exact subject/trailer and
+mode-`0600` receipt SHA-256
+`2c6e288edfab2e1c5b981ddfb298b1111d17d335d1286a2d75dddb305cd0d18e`.
+Its recorded baseline/RED/focused/full checks remain historical characterization,
+but Root did not accept G003 or its terminal closure.
+
+Independent source review and executable probes on that exact commit confirmed
+four material same-batch sibling families:
+
+| Finding | Family | Exact reproduced G003 behavior | G004 boundary |
+| --- | --- | --- | --- |
+| `BR-FIND-B1-004` | `AUTHORITY-PUBLIC-FORGE` | public `from_adapter` and positional true marker each produced `ALLOW` | public construction/factory removed; only private issuance seam carries an identity seal; unissued authority refuses |
+| `BR-FIND-B1-005` | `REPORT-ACTION-FORGE` | caller-built report with arbitrary action produced an AttemptKey | public construction fails; reducer-only seal required; AttemptKey also recomputes ProgressKey |
+| `BR-FIND-B1-006` | `PARSER-TYPE-BYPASS` | duplicate evidence and a `str, Enum` identity were accepted; trusted Facts/record construction bypassed parse | exact string types, state/tag/domain/PK validation, duplicate rejection, canonical evidence order, immutable parser-issued Facts |
+| `BR-FIND-B1-007` | `FALSE-CLOSE` | unresolved facts with no pending action reduced to `CLOSE` | exact terminal sets; deterministic `RECONCILE` before any close while stable state is unresolved |
+
+All arrived before Root acceptance/terminal GREEN, join
+`RB-06BR-001/instance` or `RB-06BR-002/instance`, and keep recurrence at 0.
+No boundary-required recurrence or new repair wave is created.
+
+Grant `HC06BR-G-004-B1-boundary-hardening`, sequence 4, binds G003 as exact
+prestate, the same fixed Executor/role/owner and verified three-key claim, the
+same two repair waves, and no other family. Durable intent:
+`/home/caichenghang/.codex/happycodex-0.6-bounded-redesign-g004-b1-intent.json`,
 mode `0600`, SHA-256
-`27a22b563251f30eca3c8d9e94b70d898719ca78b736838e4c7dd0faba6b15ca`.
+`4b30bdea1aacbbefe5c5a640eca12b0beec29d2826c1e3449eb05b54d01e1ffb`.
+Its only repository paths are the five final semantic modules,
+`tests/test_semantic_core.py`, and this ExecPlan. Runtime, identity, other
+tests/consumers, package metadata, and later batches cannot change.
 
-Repository authority is the closed set:
+G004 permits RED/GREEN and public/import probes, the exact Batch 1 terminal
+schedule, staging only those seven paths, one commit with subject
+`fix: seal HappyCodex 0.6 semantic boundaries` and mandatory ExecPlan trailer,
+post-commit checks, and one mode-`0600` receipt at
+`/home/caichenghang/.codex/happycodex-0.6-bounded-redesign-g004-b1-receipt.json`.
+It permits no model/network/live call, executor command, install, release,
+activation, cross-line action, compatibility alias, delegation, or claim release.
 
-- final semantic package
-  `evaluation/semantic/{__init__,types,canonical,parse,decide}.py` and deletion
-  of `evaluation/semantic/schema.py`;
-- `evaluation/core/identity.py`;
-- `tests/{test_semantic_core,test_contracts,test_certification_engine}.py`;
-- `skills/happycodex/SKILL.md`,
-  `skills/happycodex/references/execplan.md`, and this ExecPlan.
+G004 evidence before final terminal schedule:
 
-It permits characterization/RED/GREEN, the exact Batch 1 terminal schedule,
-edits/staging, one reachable commit with subject
-`refactor: establish HappyCodex 0.6 bounded kernel` and mandatory ExecPlan
-trailer, post-commit verification, and one mode-`0600` receipt at
-`/home/caichenghang/.codex/happycodex-0.6-bounded-redesign-g003-b1-receipt.json`.
-It authorizes no other repository path, delegation, network/model/live call,
-executor command, install, release, marketplace/config mutation, activation,
-task migration, other-line inspection, or claim release.
-
-Evidence before terminal freeze:
-
-- exact baseline receipt above: 195 tests, three expected failures, no drift;
-- stable RED:
-  `/home/caichenghang/.codex/happycodex-0.6-bounded-redesign-g003-b1-red.txt`,
+- RED:
+  `/home/caichenghang/.codex/happycodex-0.6-bounded-redesign-g004-b1-red.txt`,
   mode `0600`, SHA-256
-  `6a66bc61d7abbfbca9d74063ff22c0b8501e1b416e083203cc537fd57d626462`,
-  81 tests with 52 failures and 18 errors hitting the named semantic/Runtime
-  boundaries before implementation;
-- stable focused GREEN:
-  `/home/caichenghang/.codex/happycodex-0.6-bounded-redesign-g003-b1-green.txt`,
+  `d75809838626d6aafca18fbaf2841fce519ea736fdecd1c40278bca68ce7a9c0`;
+  31 tests with 17 failures, directly reproducing all six Root probe outputs and
+  adjacent constructor/state/tag/sort/terminal boundaries;
+- focused GREEN plus authorized public/import probes:
+  `/home/caichenghang/.codex/happycodex-0.6-bounded-redesign-g004-b1-green.txt`,
   mode `0600`, SHA-256
-  `120586f2a9a5bf6906e986a70a28a11e688a3e7bfdce79c115407df2fecdf03b`,
-  78 tests in 6.183 seconds, all passing;
-- the first focused integration run passed 77 tests and exposed only the stale
-  exact package-artifact digest caused by the authorized Runtime rewrite; the
-  source-derived oracle was updated in the authorized test and the identical
-  command then passed;
-- preliminary cumulative suite: 178 tests in 8.807 seconds, all passing;
-  preliminary `verify`, `corpus --dry-run`, and `holdout --dry-run` each exited
-  zero without live authority or model execution.
+  `10e1064836c804c3fbf2424630e0c764e7f6684cd73cc875f09235986d26003b`;
+  31 tests pass; public factories/private seams/constructors are closed and
+  exports remain exactly 20;
+- preliminary cumulative suite: 188 tests in 8.472 seconds, all passing;
+  preliminary `verify`, `corpus --dry-run`, and `holdout --dry-run` exit zero.
 
-The semantic package is the exact five-file surface, 771 production lines and 20
-exports. Runtime is 227 lines/1,919 words aggregate. The inventory/import-policy
-findings `BR-FIND-BASE-001..003` are resolved by exact focused/full checks.
-Total production Python is 8,900 lines, measured but nonblocking until Batch 3.
-No failure is accepted or relabeled. No Goal, model call, live authority,
-generation-6 evidence, install, release, or activation exists.
+The semantic package remains exactly five files and is 1,087 production lines,
+below 1,200; Runtime bytes remain unchanged at 227 lines/1,919 words. Total
+production Python is 9,216 lines, measured/nonblocking until Batch 3. G003
+baseline findings `BR-FIND-BASE-001..003` remain resolved; G004 adds no accepted
+failure. No Goal, model call, live authority/attempt, generation-6 evidence,
+install, release, activation, or other-line action exists.
 
-Current checkpoint: phase remains `implementation`; the Batch 1 portions of
-`F-06BR-RUNTIME` and `F-06BR-AUTHORITY` are closed at recurrence 0, while
-`F-06BR-EVALUATOR`, later imperative authority integration, the normalized
-Outcome, and all future cost/review/install/release/activation gates remain open.
-The final terminal schedule now repeats the cumulative/CLI/budget checks against
-this finalized index, then the Executor stages only the grant paths, commits,
-verifies commit/tree/status/claim/trailer, writes and reads back the external
-receipt, and stops for Root. Batch 2 requires a new exact grant.
+Current checkpoint: phase remains `implementation`; both Batch 1 family portions
+are G004 GREEN at recurrence 0 but Root acceptance stays open.
+`F-06BR-EVALUATOR`, imperative capability integration, the normalized Outcome,
+and every future cost/review/install/release/activation gate remain open. The
+final terminal schedule now runs against this index; then the Executor stages
+only seven paths, commits, verifies source/status/claim/trailer, writes and reads
+back the external receipt, and stops for Root. Batch 2 requires a new exact grant.
 
 Uncertainty rule: an outside path, changed prestate, unverified claim, ambiguous
 or partial effect, reproduction mismatch, unknown input, identity/config drift,
