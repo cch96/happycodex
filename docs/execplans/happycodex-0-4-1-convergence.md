@@ -3,7 +3,7 @@
 Protocol: `HappyCodex/0.3` (active 0.4.0 maintainer runtime)
 Invocation: `$happycodex:happycodex`
 Writer: Root only for the mutable resources listed below
-State: candidate_frozen
+State: focused_hardening
 Resume: restore this file and reconcile Git, tests, Goal, worktree, agents, and gates before any write, review, or completion.
 
 ## Outcome and baseline
@@ -17,6 +17,12 @@ SHA-256 `653f3936eaf713b623af0018622509b65de17c776da7d9662b42c3c885b65ed7`;
 and direct continuation/amendment turn `019faa15-4a99-7283-9aee-06148df64285`,
 item `item-107`, SHA-256
 `3c0077c9863e135c710592c17be11511b5b335651d358b3c71e76ec015de4189`.
+The direct gate waiver `corpus/holdout 不用了`, received 2026-07-29 in the current
+task, has exact-text SHA-256
+`3c9083ac67b403ae56f4622124b6291d97d46950553ee941dac50eff3c50a0c2`.
+It waives only the named corpus and holdout gates for this unchanged 0.4.1 Outcome;
+it does not waive offline checks, exact-final review, release/install/readback,
+rollback, or honest disclosure of the two unrun gates.
 The amendment replaces the inherited Runtime budget with a 300-line target,
 340-line hard ceiling, 2,600-word target, and 3,000-word hard ceiling. It changes
 only the Runtime/template budget and its tests; no product or evidence existed to
@@ -111,9 +117,9 @@ task conversion enlarge the state space without helping convergence.
 | `C-02` | outcome | Family hardening and frozen repair batches precede exact-final certification. | Open-family, reviewer-union, recurrence, and source-drift tests. | protocol and cumulative offline tests GREEN | verified |
 | `C-03` | outcome | `protocol_may_review` is removed and receipts bind `none`, `focused_hardening`, or `exact_final`. | Shared schema, oracle, receipt, and ledger tests; no alias. | five-phase transition matrix and contradiction tests GREEN | verified |
 | `C-04` | outcome | ExecPlan is a bounded current index with fail-closed Git/archive recovery. | Size, tamper, no-commit, multi-repo, and compaction tests. | current-index, no-commit, multi-repo, tamper, and compaction tests GREEN | verified |
-| `C-05` | preservation | Public invocation stays `$happycodex:happycodex`; resource-scoped Root ownership and unrelated behavior remain. | Package/runtime tests and behavior comparison. | install GREEN; refreshed live corpus 6/17 exposed `F-CONV-009/010`; holdout paused | open |
+| `C-05` | preservation | Public invocation stays `$happycodex:happycodex`; resource-scoped Root ownership and unrelated behavior remain. | Package/runtime tests, exact-final review, and user-waived live comparison. | install/offline tests GREEN; corpus/holdout explicitly waived after diagnostic corpus; exact-final pending | open |
 | `C-06` | outcome | Exact 0.4.1 release, public install, personal upgrade, and 0.4.0 rollback are proven. | Fresh evidence, three GO reviews, install/readback, rollback rehearsal. | pending | open |
-| `C-07` | premise | No live evaluator call runs without a persisted exact impact receipt and direct gate-scoped user authority. | Ledger/CLI refusal and later authority receipt. | exact `f7185e8e…7ae6` request and canonical 2026-07-29 authority are persisted and validate GREEN | verified |
+| `C-07` | premise | No live evaluator call runs without a persisted exact impact receipt and direct gate-scoped user authority. | Ledger/CLI refusal and later authority receipt. | exact `f7185e8e…7ae6` historical authority was consumed only by its corpus; `34c96c56…2950` retired unconsumed by explicit waiver | verified |
 | `C-08` | constraint | Runtime/template report the amended 300/2,600 optimization target and never exceed the 340/3,000 hard ceiling. | Contract tests compute totals and fail at hard limits; simplification review explains any target excess. | 308 lines/2,686 words after resource-scoped discovery wording; 8/86 above target, 32/314 below hard ceiling | open |
 
 ## Convergence Ledger
@@ -243,7 +249,7 @@ must also advance past already completed work before another focused confirmatio
 
 ## Checkpoint
 
-- Milestone: `candidate_frozen`. All ten families and `RB-007` are closed at source `49fefed…5ed2`, manifest `791112c0…e3da`; no current live authority exists. Authority-bearing source `0b83be4c…926c`, manifest `cc402a61…d7fe`, and authority `f7185e8e…7ae6` remain diagnostic history; its holdout never ran. Earlier source `4e25aa2…47eb`, authority `451dd0d3…275e`, install evidence `be0c810…622c`, and manifest `9dcb9157…43a4` remain historical.
+- Milestone: explicit gate waiver is frozen and awaits projection into the sole active ledger. All ten families and `RB-007` remain closed at source `49fefed…5ed2`; manifest `791112c0…e3da` and request `34c96c56…2950` retire when the ledger changes. No current live authority exists. Historical authority-bearing source `0b83be4c…926c`, manifest `cc402a61…d7fe`, and authority `f7185e8e…7ae6` remain diagnostic history; its holdout never ran.
 - Last green: expanded RB-007 has 146/146 tests passed in 8.428s; Ruff check/format, diff/31-JSON/19-AST checks, official Skill/plugin validators, and corpus/holdout list/dry-run passed. Runtime/template remain 308 lines/2,686 words: below 340/3,000 hard limits and 8/86 above the optimization target.
 - Fresh genesis: stored/current snapshots are exact for expanded RB-007 and `0.4.1+codex.20260728205019`; pinned `0.145.0` verify reports `refresh_required`, engine `b6f98f53…b19e`, snapshot `30ac7904…baf`, ledger `14eb840b…440`, and no authority. Full 17-case/three-pair impact remains 23–25 calls, 719,051–770,869 combined tokens, and 3,757.028–4,032.239 seconds; impact token is `9ea685a6…c6e5`. The proposed holdout binds public artifact `ace7f39f…497e` and semantic identity `c5030e99…c05`; origin remains `730c6a5:docs/execplans/happycodex-0-4-release.md`, never old `current.json`.
 - Isolated install: `/var/tmp/happycodex-041-rb003.oyKhro` installed `0.4.1+codex.dev`; source/cache Skill SHA-256 both `fd33e911…8d6c`, source/cache manifest SHA-256 both `430f9f11…77e`, byte comparisons equal.
@@ -298,49 +304,27 @@ must also advance past already completed work before another focused confirmatio
 - Thirteenth focused-review prelaunch: exact repair range `7e4becfdcf089ffc3009491a68c3ade8b69d73e0..49fefed21e14cdd35633b75f865d7b7b7a735ed2`; history-aware brief `/home/caichenghang/.codex/happycodex-0.4.1-reviews/focused-49fefed.brief.txt` is 1,019 bytes/98 words with final LF, SHA-256 `505ed9abc2d47d39167a243a93bf0daa8ba3560340fd08cc69340906b1684c6f`; output is `/home/caichenghang/.codex/happycodex-0.4.1-reviews/focused-49fefed.txt`. Exact command: `set -o pipefail; /home/caichenghang/.codex/packages/standalone/releases/0.145.0-aarch64-unknown-linux-musl/bin/codex review -c 'model="gpt-5.6-sol"' -c 'model_reasoning_effort="max"' -c 'sandbox_mode="read-only"' - < /home/caichenghang/.codex/happycodex-0.4.1-reviews/focused-49fefed.brief.txt | tee /home/caichenghang/.codex/happycodex-0.4.1-reviews/focused-49fefed.txt`. It is non-neutral, read-only/no-network, cannot satisfy exact-final, and has not launched.
 - Thirteenth focused-review terminal receipt: native session `019fac76-c43d-70e3-9048-847093c18309`, effective `gpt-5.6-sol/max`, approval `never`, read-only sandbox, output 324 bytes/43 words, SHA-256 `e200a5fc7f671746ede0a58acf49cf60d5324928c4088d4a2400297157778921`; verdict `GO` for focused hardening only. It verified the exact range/tree/manifest, all four diff units and sibling raw/schema/receipt/ledger/holdout consumers, reproduced the RED/GREEN and path/domain/current-index counterexamples, pinned genesis with no authority, and static gates. Its read-only suite discovered all 146 tests and hit only the known temporary-directory limitation; the independent writable 146/146 receipt remains valid. No material finding remains, so `F-CONV-009/010` and `RB-007` close; this receipt cannot satisfy exact-final.
 - Toolchain drift: global Codex changed to `0.146.0` during hardening. This batch rejected the drift and retained the explicitly pinned Codex `0.145.0` plus `rg` 15.1 identities. Ruff is `/home/caichenghang/.local/bin/ruff`; the earlier `/usr/bin/python3 -m ruff` failure was an interpreter-selection error, and the exact Ruff check/format rerun is GREEN.
-- Owned mutable paths: only this current-index ExecPlan until focused confirmation; expanded RB-007 product source is frozen. External raw outputs remain read-only evidence and the active plugin/public 0.4.0 stay unchanged.
+- Owned mutable paths: this current-index ExecPlan and `evaluation/results/current.json` for the exact user waiver projection. Evaluator/runtime/package bytes, external raw outputs, and the active plugin/public 0.4.0 stay unchanged.
 - Goal: none.
 - Agents/reviewers: all focused reviewers are terminal and reconciled; no reviewer is active.
-- Pending gates: prepare and request new exact authority for the full 23–25-call
-  corpus/holdout refresh. Three
-  fresh exact-final reviews, public release, personal upgrade, rollback, and downstream
-  successor task creation remain later gates.
+- Pending gates: remove corpus/holdout from the active ledger, retain review, run
+  cumulative offline checks, and freeze the new exact source. Then run three fresh
+  exact-final reviews; public release, personal upgrade, rollback, and downstream
+  successor task creation remain later gates. Completion must disclose that corpus and
+  holdout were explicitly waived and not run for the final candidate.
 
-## Current live-cost request
+## Retired unconsumed live-cost request
 
-Pinned Codex `0.145.0` and pinned `rg` 15.1 recomputed the frozen candidate without
-writing source or evidence. Snapshot SHA-256 is
+Request `34c96c56f4753cb3484f295ed4d754c4c7ed3f9722e1349291d785a504352950`
+bound snapshot
 `30ac7904ad9e6ada10329bb3aa3fd3b16b61aea145f0b3bed1fe03b534caebaf`;
-impact token is
+impact
 `9ea685a67a9eacdddfe919c69e95e3f4afec62aa7ea14b71a7fb83cc1867c6e5`;
-and canonical approval-request SHA-256 is
-`34c96c56f4753cb3484f295ed4d754c4c7ed3f9722e1349291d785a504352950`.
-The request binds source `49fefed…5ed2`, product manifest `791112c0…e3da`,
+source `49fefed…5ed2`; product manifest `791112c0…e3da`;
 candidate semantic/artifact identities `65f293e8…f4c6a` / `e8424dbd…ac89`,
-public 0.4.0 identities `c5030e99…c05` / `ace7f39f…497e`, model
-`gpt-5.6-sol`, effort `high`, timeout 300 seconds, all 17 ordered corpus cases, and
-all three ordered adaptive holdout pairs.
-
-Raw outputs stay outside Git in task-owned namespace
-`/home/caichenghang/.codex/happycodex-0.4.1-live/34c96c56f4753cb3/`, with distinct
-`corpus/` and `holdout/` destinations. The candidate path is this worktree; the public
-path is `/home/caichenghang/.codex/happycodex-release-installs/public-xsZBGOfm/codex/plugins/cache/happycodex/happycodex/0.4.0+codex.20260720074523`.
-Bounded exposure is 23–25 calls, 719,051–770,869 combined tokens, and
-3,757.028–4,032.239 seconds. Exact invocations are:
-
-```text
-env PATH=/home/caichenghang/.codex/packages/standalone/releases/0.145.0-aarch64-unknown-linux-musl/bin:/home/caichenghang/.codex/packages/standalone/releases/0.144.4-aarch64-unknown-linux-musl/codex-path:/home/caichenghang/.local/bin:/usr/local/bin:/usr/bin:/bin /usr/bin/python3.10 -m evaluation.cli corpus --plugin /home/caichenghang/projects/happycodex-worktrees/happycodex-0.4.1-convergence --model gpt-5.6-sol --effort high --timeout 300 --arm candidate --output /home/caichenghang/.codex/happycodex-0.4.1-live/34c96c56f4753cb3/corpus --bind-impact 9ea685a67a9eacdddfe919c69e95e3f4afec62aa7ea14b71a7fb83cc1867c6e5
-env PATH=/home/caichenghang/.codex/packages/standalone/releases/0.145.0-aarch64-unknown-linux-musl/bin:/home/caichenghang/.codex/packages/standalone/releases/0.144.4-aarch64-unknown-linux-musl/codex-path:/home/caichenghang/.local/bin:/usr/local/bin:/usr/bin:/bin /usr/bin/python3.10 -m evaluation.cli holdout --candidate /home/caichenghang/projects/happycodex-worktrees/happycodex-0.4.1-convergence --public /home/caichenghang/.codex/happycodex-release-installs/public-xsZBGOfm/codex/plugins/cache/happycodex/happycodex/0.4.0+codex.20260720074523 --model gpt-5.6-sol --effort high --timeout 300 --output /home/caichenghang/.codex/happycodex-0.4.1-live/34c96c56f4753cb3/holdout --bind-impact 9ea685a67a9eacdddfe919c69e95e3f4afec62aa7ea14b71a7fb83cc1867c6e5
-```
-
-The only valid grant, with no surrounding prose, is:
-
-```text
-APPROVE HAPPYCODEX LIVE COST 34c96c56f4753cb3484f295ed4d754c4c7ed3f9722e1349291d785a504352950
-```
-
-This request grants only the exact corpus/holdout execution above. It grants no source
-repair, exact-final review, release, installation, activation, or reuse after drift.
+and public 0.4.0 identities `c5030e99…c05` / `ace7f39f…497e`. It was never
+authorized or executed. The explicit user waiver retires it permanently; a later
+matching approval line cannot revive it.
 
 ## Historical live-cost request
 
