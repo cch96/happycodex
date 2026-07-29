@@ -542,6 +542,7 @@ class CertificationImpactTests(unittest.TestCase):
             active["pending"]["reasons"],
             [
                 "release_0_4_2_refresh",
+                "user_waived_corpus_holdout_0_4_2_2026_07_29",
                 "user_waived_review_2026_07_29",
             ],
         )
