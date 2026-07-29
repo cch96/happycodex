@@ -27,6 +27,13 @@
       "protocol_review_mode": "none",
       "protocol_may_complete": false
     },
+    "required_anchored_classifications": [
+      {
+        "anchor": "lib.py",
+        "domain": "other",
+        "state": ["candidate_new", "unknown"]
+      }
+    ],
     "prompt_forbidden": ["public signature", "becomes qualifying"]
   }
 }

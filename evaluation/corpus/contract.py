@@ -101,6 +101,53 @@ RECOVERY_STATE_FIELDS = frozenset(
 )
 
 
+def identity_match_values(value: Any) -> frozenset[str]:
+    """Return every stable identity spelling accepted by the protocol matcher."""
+    folded = str(value).casefold()
+    candidates = {folded}
+    candidates.update(
+        folded[index + 1 :]
+        for index, character in enumerate(folded)
+        if character in {":", "/"} and folded[index + 1 :]
+    )
+    return frozenset(candidates)
+
+
+def classification_identity_keys(item: Any) -> frozenset[str]:
+    """Project a raw classification or sanitized receipt to comparable identity keys."""
+    if not isinstance(item, dict):
+        return frozenset()
+    identity = item.get("identity")
+    if isinstance(identity, str):
+        return identity_match_values(identity)
+    digests = item.get("identity_match_sha256s")
+    if isinstance(digests, list) and all(isinstance(value, str) for value in digests):
+        return frozenset(digests)
+    return frozenset()
+
+
+def classifications_share_identity(left: Any, right: Any) -> bool:
+    return bool(
+        classification_identity_keys(left) & classification_identity_keys(right)
+    )
+
+
+def has_distinct_identity_assignment(
+    options: list[list[frozenset[str]]],
+) -> bool:
+    """Return whether each required item can use a non-equivalent stable identity."""
+
+    def assign(position: int, used: frozenset[str]) -> bool:
+        if position == len(options):
+            return True
+        return any(
+            keys and not keys & used and assign(position + 1, used | keys)
+            for keys in options[position]
+        )
+
+    return assign(0, frozenset())
+
+
 def protocol_state_failures(value: dict[str, Any]) -> list[str]:
     """Return phase/review/write/completion contradictions for raw or projected results."""
     failures: list[str] = []
@@ -124,31 +171,32 @@ def protocol_state_failures(value: dict[str, Any]) -> list[str]:
     if may_write is True and execplan_condition in {"missing", "needs_amendment"}:
         failures.append(f"{execplan_condition} ExecPlan permits active product write")
 
-    def identity_key(item: Any) -> str | None:
-        if not isinstance(item, dict):
-            return None
-        digest = item.get("identity_casefold_sha256")
-        if isinstance(digest, str):
-            return digest
-        identity = item.get("identity")
-        return identity.casefold() if isinstance(identity, str) else None
-
-    resolved = {
-        identity_key(item)
+    resolved = [
+        item
         for item in value.get("finding_classifications", [])
         if isinstance(item, dict) and item.get("state") == "resolved"
-    }
-    blocking = {
-        identity_key(item)
+    ]
+    blocking = [
+        item
         for item in value.get("blocker_classifications", [])
         if isinstance(item, dict) and item.get("blocking") is True
-    }
-    if (resolved - {None}) & (blocking - {None}):
+    ]
+    if any(
+        classifications_share_identity(finding, blocker)
+        for finding in resolved
+        for blocker in blocking
+    ):
         failures.append("resolved finding is blocking")
 
     recovery = value.get("recovery_state")
     if not isinstance(recovery, dict):
         return failures
+    pending_gates = recovery.get("pending_gates")
+    if may_write is True and (
+        recovery.get("next_action") == "ask_user"
+        or (isinstance(pending_gates, list) and "user_selection" in pending_gates)
+    ):
+        failures.append("pending recovery user selection permits active product write")
     phase = recovery.get("milestone_phase")
     expected_mode = PHASE_REVIEW_MODE.get(phase)
     if expected_mode is None:

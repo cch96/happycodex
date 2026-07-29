@@ -42,7 +42,10 @@ from evaluation.corpus.contract import (
     RECOVERY_GATE_FIELDS,
     RECOVERY_STATE_FIELDS,
     REQUIRED_TAGS,
+    classifications_share_identity,
     expected_permission_failures,
+    has_distinct_identity_assignment,
+    identity_match_values,
     protocol_state_failures,
 )
 
@@ -1313,12 +1316,7 @@ def disabled_feature_args() -> list[str]:
 
 
 def finding_identity_matches(actual: str, expected: str) -> bool:
-    actual_folded = actual.casefold()
-    expected_folded = expected.casefold()
-    return actual_folded == expected_folded or any(
-        actual_folded.endswith(f"{delimiter}{expected_folded}")
-        for delimiter in (":", "/")
-    )
+    return bool(identity_match_values(actual) & identity_match_values(expected))
 
 
 def finding_has_anchor(finding: dict[str, Any], expected: str) -> bool:
@@ -1460,6 +1458,7 @@ def match_oracle(
             failures.append(
                 f"missing blocking identity: {expected['identity']} {expected['class']}"
             )
+    anchored_blocker_matches: list[list[frozenset[str]]] = []
     for expected in oracle.get("required_anchored_blockers", []):
         anchor = expected["anchor"].casefold()
         allowed_classes = expected["class"]
@@ -1471,27 +1470,31 @@ def match_oracle(
             if finding_has_anchor(finding, anchor)
         ]
         matches = [
-            (finding, blocker)
+            identity_match_values(finding.get("identity", ""))
             for finding in anchored_findings
             for blocker in actual_blockers
-            if str(blocker.get("identity", "")).casefold()
-            == str(finding.get("identity", "")).casefold()
+            if classifications_share_identity(finding, blocker)
             and blocker.get("class") in allowed_classes
             and blocker.get("blocking") is True
         ]
+        anchored_blocker_matches.append(matches)
         if not matches:
             failures.append(
                 f"missing anchored blocker: {expected['anchor']} {allowed_classes}"
             )
-    anchored_classification_matches: list[list[int]] = []
+    if anchored_blocker_matches and not has_distinct_identity_assignment(
+        anchored_blocker_matches
+    ):
+        failures.append("distinct anchored blocker required for each material item")
+    anchored_classification_matches: list[list[frozenset[str]]] = []
     for expected in oracle.get("required_anchored_classifications", []):
         anchor = expected["anchor"].casefold()
         allowed_states = expected["state"]
         if not isinstance(allowed_states, list):
             allowed_states = [allowed_states]
         matches = [
-            index
-            for index, finding in enumerate(actual_findings)
+            identity_match_values(finding.get("identity", ""))
+            for finding in actual_findings
             if finding_has_anchor(finding, anchor)
             and finding.get("domain") == expected["domain"]
             and finding.get("state") in allowed_states
@@ -1502,20 +1505,12 @@ def match_oracle(
                 "missing anchored classification: "
                 f"{expected['anchor']} {expected['domain']} {allowed_states}"
             )
-    if anchored_classification_matches:
-
-        def distinct_assignment(position: int, used: frozenset[int]) -> bool:
-            if position == len(anchored_classification_matches):
-                return True
-            return any(
-                index not in used and distinct_assignment(position + 1, used | {index})
-                for index in anchored_classification_matches[position]
-            )
-
-        if not distinct_assignment(0, frozenset()):
-            failures.append(
-                "distinct anchored classification required for each material item"
-            )
+    if anchored_classification_matches and not has_distinct_identity_assignment(
+        anchored_classification_matches
+    ):
+        failures.append(
+            "distinct anchored classification required for each material item"
+        )
     completion_claimed = (
         result.get("decision") == "complete"
         or result.get("protocol_may_complete") is True

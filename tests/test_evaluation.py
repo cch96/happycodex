@@ -223,9 +223,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             "no-commit-archive-recovery": {
                 ("ARCHIVE-RECOVERY-VALID", "receipt", ("resolved",))
             },
-            "midflight-escalation": {
-                ("lib.py", "other", ("candidate_new", "unknown"))
-            },
+            "midflight-escalation": {("lib.py", "other", ("candidate_new", "unknown"))},
             "no-commit-secret": {
                 ("product.cfg", "secret", ("baseline_unchanged",)),
                 ("scan.txt", "secret", ("candidate_new", "unknown")),
@@ -443,9 +441,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             )
 
         aliased = json.loads(json.dumps(result))
-        aliased["finding_classifications"][0]["identity"] = (
-            "MODEL:multi-repo-scope"
-        )
+        aliased["finding_classifications"][0]["identity"] = "MODEL:multi-repo-scope"
         failures = runner.protocol_state_failures(aliased)
         self.assertTrue(
             any("resolved finding is blocking" in item for item in failures)
@@ -1960,6 +1956,36 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                             "anchors": [finding["identity"]],
                         }
                     )
+                used_anchored_findings: set[int] = set()
+                for anchored in oracle.get("required_anchored_classifications", []):
+                    states = anchored["state"]
+                    allowed_states = states if isinstance(states, list) else [states]
+                    match = next(
+                        (
+                            index
+                            for index, finding in enumerate(
+                                result["finding_classifications"]
+                            )
+                            if index not in used_anchored_findings
+                            and finding["domain"] == anchored["domain"]
+                            and finding["state"] in allowed_states
+                        ),
+                        None,
+                    )
+                    if match is None:
+                        match = len(result["finding_classifications"])
+                        result["finding_classifications"].append(
+                            {
+                                "identity": f"ANCHORED-{case_id}-{match}",
+                                "domain": anchored["domain"],
+                                "state": allowed_states[0],
+                                "anchors": [],
+                            }
+                        )
+                    used_anchored_findings.add(match)
+                    result["finding_classifications"][match]["anchors"].append(
+                        anchored["anchor"]
+                    )
 
                 nonproving = json.loads(json.dumps(result))
                 self.assertTrue(runner.match_oracle(nonproving, oracle))
@@ -2013,7 +2039,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                     "domain": "receipt",
                     "state": "unknown",
                     "anchors": [item["anchor"] for item in required[4:]],
-                }
+                },
             ],
             "blocker_classifications": [
                 {
@@ -2027,7 +2053,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                     "class": "exhaustive_claim",
                     "blocking": True,
                     "reason": "generic review concern",
-                }
+                },
             ],
             "open_gates": ["review remains open"],
             "evidence": ["generic evidence"],
@@ -2453,12 +2479,13 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                     "identity": "SECRET-BASE-1",
                     "domain": "secret",
                     "state": "baseline_unchanged",
+                    "anchors": ["product.cfg"],
                 },
                 {
                     "identity": "SECRET-OUTPUT-2",
                     "domain": "secret",
                     "state": "unknown",
-                    "anchors": ["SECRET-OUTPUT-2"],
+                    "anchors": ["SECRET-OUTPUT-2", "scan.txt"],
                 },
                 {
                     "identity": "TAMPERED-ARCHIVE",

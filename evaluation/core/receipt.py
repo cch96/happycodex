@@ -7,7 +7,7 @@ import re
 from typing import Any
 
 from evaluation.core.identity import canonical_sha256, sha256_bytes
-from evaluation.corpus.contract import PERMISSION_FIELDS
+from evaluation.corpus.contract import PERMISSION_FIELDS, identity_match_values
 
 
 def text_sha256(value: Any) -> str:
@@ -19,14 +19,9 @@ def casefold_text_sha256(value: Any) -> str:
 
 
 def identity_match_sha256s(value: Any) -> list[str]:
-    folded = str(value).casefold()
-    candidates = {folded}
-    candidates.update(
-        folded[index + 1 :]
-        for index, character in enumerate(folded)
-        if character in {":", "/"} and folded[index + 1 :]
+    return sorted(
+        casefold_text_sha256(candidate) for candidate in identity_match_values(value)
     )
-    return sorted(casefold_text_sha256(candidate) for candidate in candidates)
 
 
 def member_sha256s(value: Any) -> list[str]:

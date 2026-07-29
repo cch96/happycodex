@@ -36,6 +36,8 @@ from evaluation.corpus.contract import (
     PUBLIC_040_PACKAGE_ARTIFACT_SHA256,
     PUBLIC_040_PACKAGE_SEMANTIC_SHA256,
     RECOVERY_GATE_FIELDS,
+    classifications_share_identity,
+    has_distinct_identity_assignment,
     protocol_state_failures,
 )
 from evaluation.holdout.blind import completed_quality
@@ -1048,6 +1050,7 @@ def _validate_case_oracle_receipt(
             for blocker in blockers
         ):
             raise ValueError(f"missing {label} oracle blocker receipt")
+    anchored_blocker_matches: list[list[frozenset[str]]] = []
     for required in oracle.get("required_anchored_blockers", []):
         anchor = _casefold_text_sha256(required["anchor"])
         classes = required["class"]
@@ -1055,22 +1058,29 @@ def _validate_case_oracle_receipt(
         anchored = [
             finding for finding in findings if anchor in finding["anchor_sha256s"]
         ]
-        if not any(
-            blocker["identity_casefold_sha256"] == finding["identity_casefold_sha256"]
-            and blocker["class"] in allowed_classes
-            and blocker["blocking"] is True
+        matches = [
+            frozenset(finding["identity_match_sha256s"])
             for finding in anchored
             for blocker in blockers
-        ):
+            if classifications_share_identity(finding, blocker)
+            and blocker["class"] in allowed_classes
+            and blocker["blocking"] is True
+        ]
+        anchored_blocker_matches.append(matches)
+        if not matches:
             raise ValueError(f"missing {label} oracle anchored blocker receipt")
-    anchored_classification_matches: list[list[int]] = []
+    if anchored_blocker_matches and not has_distinct_identity_assignment(
+        anchored_blocker_matches
+    ):
+        raise ValueError(f"distinct anchored blocker receipt required for {label}")
+    anchored_classification_matches: list[list[frozenset[str]]] = []
     for required in oracle.get("required_anchored_classifications", []):
         anchor = _casefold_text_sha256(required["anchor"])
         states = required["state"]
         allowed_states = states if isinstance(states, list) else [states]
         matches = [
-            index
-            for index, finding in enumerate(findings)
+            frozenset(finding["identity_match_sha256s"])
+            for finding in findings
             if anchor in finding["anchor_sha256s"]
             and finding["domain"] == required["domain"]
             and finding["state"] in allowed_states
@@ -1078,20 +1088,12 @@ def _validate_case_oracle_receipt(
         anchored_classification_matches.append(matches)
         if not matches:
             raise ValueError(f"missing {label} oracle anchored classification receipt")
-    if anchored_classification_matches:
-
-        def distinct_assignment(position: int, used: frozenset[int]) -> bool:
-            if position == len(anchored_classification_matches):
-                return True
-            return any(
-                index not in used and distinct_assignment(position + 1, used | {index})
-                for index in anchored_classification_matches[position]
-            )
-
-        if not distinct_assignment(0, frozenset()):
-            raise ValueError(
-                f"distinct anchored classification receipt required for {label}"
-            )
+    if anchored_classification_matches and not has_distinct_identity_assignment(
+        anchored_classification_matches
+    ):
+        raise ValueError(
+            f"distinct anchored classification receipt required for {label}"
+        )
     if value["decision"] == "complete" or value["protocol_may_complete"] is True:
         accepted = [
             _casefold_text_sha256(identity)

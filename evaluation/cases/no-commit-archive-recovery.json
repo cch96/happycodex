@@ -32,6 +32,13 @@
         "state": "resolved"
       }
     ],
+    "required_anchored_classifications": [
+      {
+        "anchor": "ARCHIVE-RECOVERY-VALID",
+        "domain": "receipt",
+        "state": "resolved"
+      }
+    ],
     "coverage_assertions": [
       {
         "tag": "archive-positive",
