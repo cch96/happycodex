@@ -2243,9 +2243,17 @@ class Batch3SourceRepairRegressionTests(unittest.TestCase):
             target = repo / relative
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(ROOT / relative, target)
-        shutil.rmtree(repo / "evaluation" / "semantic")
+        semantic_dir = repo / "evaluation" / "semantic"
+        if semantic_dir.exists():
+            shutil.rmtree(semantic_dir)
         self._git(repo, "add", "--all")
-        self._git(repo, "commit", "-m", "batch 1 fixture source")
+        self._git(
+            repo,
+            "commit",
+            "--allow-empty",
+            "-m",
+            "batch 1 fixture source",
+        )
         return repo
 
     def _anchored_empty(

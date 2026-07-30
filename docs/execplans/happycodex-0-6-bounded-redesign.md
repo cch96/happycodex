@@ -187,17 +187,27 @@ direct protocol interface or a non-controller content-binding seam. Deleting
 `TrustedHostContext`, the capability/claim/phase ladder, and changing any effect
 behavior remain exclusively Batch 2 work.
 
-Batch 1 is implemented and offline GREEN under grant
-`HC06BR-G-021-batch1-runtime-protocol`, pending its single reachable commit.
-Focused RED ran two public-behavior tests at source `70a858aa`, exited 1, and
-proved both the absent direct protocol module and old five-phase Runtime; output
-SHA-256 is `bbf1cf82`. The corrected eight-test focused set exited 0 with output
-SHA-256 `15d3cc86`. After the authorized archive-identity assertion, the final
-complete 221-test offline suite exited 0 with output SHA-256 `40896202`.
-Runtime/template are 235 lines and 1,689 words. The direct
-protocol owns exact result validation and sanitized canonical projection;
-corpus and receipt consumers use it, `live.py` remains standalone fail-closed,
-and the five semantic modules plus their internal-construction test are deleted.
+Batch 1 produced commit `99579b37`, but Root did not accept it after an
+independent full-suite run reproduced two errors: `_release_fixture`
+unconditionally removed the already-deleted semantic directory. This is a
+same-batch integration miss before acceptance, not recurrence. Repair grant
+`HC06BR-G-021R-fixture-repair` makes removal conditional and permits an empty
+commit only in the temporary fixture so an already-clean source still gains the
+distinct Git successor required by the test; it never recreates semantic files.
+The two focused tests moved from two errors, output SHA-256 `ff3496bd`, to GREEN,
+output SHA-256 `778bbcf9`; the complete 221-test suite is GREEN with output
+SHA-256 `ebafc4ff`. `verify` and existing Executor/corpus/holdout dry runs pass;
+`impact` remains expected `refresh_required`. `corpus --calibrate --dry-run`
+remains an explicitly Batch 2 command and its current unknown-argument result is
+not repaired under this test-only grant.
+
+The original focused RED at source `70a858aa` proved both the absent direct
+protocol module and old five-phase Runtime; output SHA-256 is `bbf1cf82`. The
+corrected eight-test focused set exited 0 with output SHA-256 `15d3cc86`.
+Runtime/template are 235 lines and 1,689 words. The direct protocol owns exact
+result validation and sanitized canonical projection; corpus and receipt
+consumers use it, `live.py` remains standalone fail-closed, and the five
+semantic modules plus their internal-construction test are deleted.
 Because Batch 1 cannot mutate `current.json`, `ARCHIVED_MODULE_CATEGORIES`
 temporarily classifies only the immutable still-anchored G019 source when
 `evaluation/protocol.py` is absent. It parses no old protocol, evidence, or
