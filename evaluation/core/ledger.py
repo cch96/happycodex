@@ -529,24 +529,17 @@ def derive_failed(ledger: dict[str, Any]) -> list[str]:
 
 
 def _empty_lifecycle(ledger: dict[str, Any]) -> bool:
+    null_fields = ("planned_impact", "receipt_head", "freeze", "certification")
+    slot_fields = ("planned_invocations", "cost", "authorities",
+                   "accepted_evidence")
     return (
-        ledger["planned_impact"] is None
-        and all(value is None for value in ledger["planned_invocations"].values())
-        and all(value is None for value in ledger["cost"].values())
-        and all(value is None for value in ledger["authorities"].values())
-        and all(value is None for value in ledger["accepted_evidence"].values())
+        all(ledger[field] is None for field in null_fields)
+        and all(value is None for field in slot_fields for value in ledger[field].values())
         and ledger["coverage"] == {}
-        and ledger["receipt_head"] is None
-        and ledger["freeze"] is None
-        and ledger["certification"] is None
     )
 
 
 def validate_ledger(ledger: dict[str, Any], *, repo: Path | None = None) -> None:
-    if not isinstance(ledger, dict) or set(ledger) != LEDGER_FIELDS or (
-        ledger.get("engine_generation") != "0.6"
-    ):
-        raise ValueError("invalid generation-6 ledger envelope")
     validate_named(CONTRACTS, "ledger", ledger)
     snapshot = ledger["snapshot"]
     validate_snapshot(snapshot)
@@ -572,6 +565,8 @@ def validate_ledger(ledger: dict[str, Any], *, repo: Path | None = None) -> None
     if impact is None:
         if not _empty_lifecycle({**ledger, "source_anchor": None}):
             raise ValueError("anchored empty state has dependent lifecycle data")
+        if ledger["state"] != "refresh_required":
+            raise ValueError("anchored empty state must remain refresh_required")
         return
     _validate_planning(ledger)
     records = sorted((item for item in evidence.values() if item), key=lambda item: item["sequence"])
@@ -643,13 +638,17 @@ def validate_ledger(ledger: dict[str, Any], *, repo: Path | None = None) -> None
 
 
 def validate_prior_git_successor(repo: Path, path: str, after: dict[str, Any]) -> None:
-    raw = _git(repo, "show", f"HEAD:{path}")
-    validate_successor(json.loads(raw), after, repo=repo)
+    before = json.loads(_git(repo, "show", f"HEAD:{path}"))
+    if before == after:
+        return
+    validate_successor(before, after, repo=repo)
+    if before["source_anchor"] != after["source_anchor"] and (
+        after["source_anchor"]["source_commit"] != _git(repo, "rev-parse", "HEAD^{commit}")
+    ):
+        raise ValueError("release reanchor must bind current HEAD")
 
 
 def replay_planned_lifecycle(ledger: dict[str, Any], *, repo: Path | None = None) -> dict[str, Any]:
-    if any(ledger["accepted_evidence"].values()) and repo is None:
-        raise ValueError("populated lifecycle replay requires repository")
     validate_ledger(ledger, repo=repo)
     if ledger["planned_impact"] is None:
         raise ValueError("refresh-required genesis has no persisted planned impact")
@@ -658,9 +657,11 @@ def replay_planned_lifecycle(ledger: dict[str, Any], *, repo: Path | None = None
 
 def load_ledger(path: Path) -> dict[str, Any]:
     value = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(value, dict):
-        raise ValueError("certification ledger must be an object")
-    validate_ledger(value, repo=path.resolve().parents[2])
+    repo = path.resolve().parents[2]
+    validate_ledger(value, repo=repo)
+    validate_prior_git_successor(
+        repo, path.resolve().relative_to(repo).as_posix(), value
+    )
     return value
 
 

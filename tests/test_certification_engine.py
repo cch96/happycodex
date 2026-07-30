@@ -27,6 +27,7 @@ from evaluation.core.identity import (
     engine_paths_sha256,
     invocation_profile,
     package_identities,
+    source_archive_identity,
 )
 from evaluation.core.impact import (
     CORPUS_MODEL_CALLS,
@@ -61,25 +62,19 @@ EXPECTED_MODULES = {
     "evaluation/semantic/parse.py",
     "evaluation/semantic/types.py",
 }
-CONSTRUCTION_SOURCE_ANCHOR = {
-    "source_commit": "11bf9f596eb95fdecfa14ea184e55125e5e594bc",
-    "source_tree": "62354be2be5d98f594bb59daa12bdc47891efda3",
-    "package_artifact_sha256": (
-        "0fe39460ad54c9d842d014f809019bb2e42ee4138173c32d2f490cba64171d83"
-    ),
-    "package_semantic_sha256": (
-        "b3326b911a3cd49e24ff0f8799ca53b54b4e62df3167267b5ad4129f6f5367f7"
-    ),
-    "engine_manifest_sha256": (
-        "1c2ee0166282e69ed6eb2b61ea62d04586e40a42bfaf80d358496fa31482f79b"
-    ),
-    "executor_role_sha256": (
-        "f1effcc84e7ed24f6d54c972e2e412db42a3e46a6d92565e6d61b358128305da"
-    ),
-    "public_baseline_sha256": (
-        "514cea60053bab5303e86e6cacaa0260e960b3fe1670a658e2df1a6965ce978c"
-    ),
-}
+def expected_source_anchor(
+    repo: Path, snapshot: dict[str, object], revision: str
+) -> dict[str, str]:
+    identity = source_archive_identity(repo, revision)
+    return {
+        "source_commit": identity["source_commit"],
+        "source_tree": identity["source_tree"],
+        "package_artifact_sha256": identity["package"]["artifact_sha256"],
+        "package_semantic_sha256": identity["package"]["semantic_sha256"],
+        "engine_manifest_sha256": identity["engine_manifest_sha256"],
+        "executor_role_sha256": identity["executor_role_sha256"],
+        "public_baseline_sha256": canonical_sha256(snapshot["public_baseline"]),
+    }
 
 
 def refreshed_coverage(snapshot: dict[str, object]) -> dict[str, object]:
@@ -315,7 +310,12 @@ class CertificationIdentityTests(unittest.TestCase):
         self.assertEqual(active["schema_version"], 1)
         self.assertEqual(active["engine_generation"], "0.6")
         self.assertEqual(active["state"], "refresh_required")
-        self.assertEqual(active["source_anchor"], CONSTRUCTION_SOURCE_ANCHOR)
+        self.assertEqual(
+            active["source_anchor"],
+            expected_source_anchor(
+                ROOT, active["snapshot"], active["source_anchor"]["source_commit"]
+            ),
+        )
         pending = ledger_engine.derive_pending(active)
         self.assertEqual(pending["gates"], list(ledger_engine.PENDING_GATES))
         self.assertEqual(pending["corpus_cases"], sorted(active["snapshot"]["corpus"]["cases"]))
@@ -345,7 +345,7 @@ class CertificationIdentityTests(unittest.TestCase):
         for generation in ("0.4", "0.5"):
             invalid = copy.deepcopy(active)
             invalid["engine_generation"] = generation
-            with self.assertRaisesRegex(ValueError, "generation|envelope"):
+            with self.assertRaisesRegex(ValueError, "generation|envelope|schema"):
                 validate_ledger(invalid, repo=ROOT)
         for legacy, value in (
             ("historical_cost", {}),
@@ -354,7 +354,7 @@ class CertificationIdentityTests(unittest.TestCase):
         ):
             invalid = copy.deepcopy(active)
             invalid[legacy] = value
-            with self.assertRaisesRegex(ValueError, "envelope"):
+            with self.assertRaisesRegex(ValueError, "envelope|schema"):
                 validate_ledger(invalid, repo=ROOT)
         self.assertTrue(all(value is None for value in active["accepted_evidence"].values()))
         self.assertFalse(
@@ -846,7 +846,7 @@ class CertificationImpactTests(unittest.TestCase):
 
         invalid = copy.deepcopy(ledger)
         invalid["historical_cost"] = {}
-        with self.assertRaisesRegex(ValueError, "envelope"):
+        with self.assertRaisesRegex(ValueError, "envelope|schema"):
             validate_ledger(invalid, repo=ROOT)
         self.assertTrue(all(value is None for value in ledger["accepted_evidence"].values()))
         self.assertEqual(
@@ -1445,7 +1445,12 @@ class G013SourceContractTests(unittest.TestCase):
             )
         )
         self.assertIn("source_anchor", active)
-        self.assertEqual(active["source_anchor"], CONSTRUCTION_SOURCE_ANCHOR)
+        self.assertEqual(
+            active["source_anchor"],
+            expected_source_anchor(
+                ROOT, active["snapshot"], active["source_anchor"]["source_commit"]
+            ),
+        )
         validate_ledger(active, repo=ROOT)
 
         invalid = copy.deepcopy(active)
@@ -1751,7 +1756,7 @@ class G013SourceContractTests(unittest.TestCase):
         )
         invalid = copy.deepcopy(active)
         invalid["engine_generation"] = "0.5"
-        with self.assertRaisesRegex(ValueError, "generation|envelope"):
+        with self.assertRaisesRegex(ValueError, "generation|envelope|schema"):
             validate_ledger(invalid, repo=ROOT)
         invalid = copy.deepcopy(active)
         invalid["accepted_evidence"] = [{"generation": "0.4"}]
@@ -2106,6 +2111,48 @@ class Batch3SourceRepairRegressionTests(unittest.TestCase):
             capture_output=True,
             text=True,
         ).stdout.strip()
+
+    def _release_fixture(self, raw: str) -> Path:
+        repo = Path(raw) / "repo"
+        subprocess.run(
+            ["git", "clone", "--quiet", str(ROOT), str(repo)],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        self._git(repo, "config", "user.name", "HappyCodex Release Test")
+        self._git(repo, "config", "user.email", "release@example.invalid")
+        return repo
+
+    def _anchored_empty(
+        self, repo: Path, *, revision: str = "HEAD"
+    ) -> dict[str, object]:
+        snapshot = build_snapshot(repo)
+        identity = source_archive_identity(repo, revision)
+        ledger, _current, _impact = full_live_test_state()
+        ledger["snapshot"] = snapshot
+        ledger["source_anchor"] = {
+            "source_commit": identity["source_commit"],
+            "source_tree": identity["source_tree"],
+            "package_artifact_sha256": identity["package"]["artifact_sha256"],
+            "package_semantic_sha256": identity["package"]["semantic_sha256"],
+            "engine_manifest_sha256": identity["engine_manifest_sha256"],
+            "executor_role_sha256": identity["executor_role_sha256"],
+            "public_baseline_sha256": canonical_sha256(
+                snapshot["public_baseline"]
+            ),
+        }
+        validate_ledger(ledger, repo=repo)
+        return ledger
+
+    @staticmethod
+    def _write_ledger(repo: Path, ledger: dict[str, object]) -> Path:
+        path = repo / "evaluation" / "results" / "current.json"
+        path.write_text(
+            json.dumps(ledger, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        return path
 
     def _repo(self, raw: str) -> tuple[Path, Path]:
         repo = Path(raw) / "repo"
@@ -2583,6 +2630,117 @@ class Batch3SourceRepairRegressionTests(unittest.TestCase):
         changed["source_anchor"]["source_tree"] = "e" * 40
         with self.assertRaisesRegex(ValueError, "reanchor|evidence|reset|successor"):
             ledger_engine.validate_successor(lifecycle, changed)
+
+    def test_release_reanchor_accepts_fresh_snapshot_and_exact_archive(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            repo = self._release_fixture(raw)
+            before = self._anchored_empty(repo)
+            manifest = repo / ".codex-plugin" / "plugin.json"
+            value = json.loads(manifest.read_text(encoding="utf-8"))
+            value["version"] = "0.6.0+codex.20990101000000"
+            manifest.write_text(
+                json.dumps(value, indent=2) + "\n", encoding="utf-8"
+            )
+            self._git(repo, "add", ".codex-plugin/plugin.json")
+            self._git(repo, "commit", "-m", "release source")
+            after = self._anchored_empty(repo)
+
+            ledger_engine.validate_successor(before, after, repo=repo)
+            with self.assertRaisesRegex(ValueError, "repository"):
+                ledger_engine.validate_successor(before, after)
+
+            empty, _current, _impact = full_live_test_state()
+            nonempty = self._plan_only()
+            for old, new in ((nonempty, empty), (empty, nonempty)):
+                with self.assertRaisesRegex(
+                    ValueError, "reanchor|evidence|reset"
+                ):
+                    ledger_engine.validate_successor(old, new)
+
+            removed = copy.deepcopy(after)
+            removed["source_anchor"] = None
+            with self.assertRaisesRegex(ValueError, "reanchor|anchor|reset"):
+                ledger_engine.validate_successor(after, removed, repo=repo)
+
+            mismatched = copy.deepcopy(after)
+            mismatched["snapshot"] = before["snapshot"]
+            with self.assertRaisesRegex(ValueError, "snapshot|anchor"):
+                ledger_engine.validate_successor(before, mismatched, repo=repo)
+
+    def test_anchored_empty_ledger_must_remain_refresh_required(self) -> None:
+        active = json.loads(
+            (ROOT / "evaluation" / "results" / "current.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        active["state"] = "certified"
+        self.assertIsNone(active["certification"])
+        with self.assertRaisesRegex(ValueError, "refresh_required|certification"):
+            validate_ledger(active, repo=ROOT)
+
+    def test_ledger_rejects_opaque_scope_slot_and_falsey_lifecycle_drift(
+        self,
+    ) -> None:
+        active = json.loads(
+            (ROOT / "evaluation" / "results" / "current.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        planned = self._plan_only()
+        planned["planned_impact"]["initial_scope"] = []
+        with self.assertRaisesRegex(ValueError, "planned impact|schema"):
+            validate_ledger(planned)
+
+        slot_fields = (
+            ("planned_invocations", "executor"),
+            ("cost", "executor"),
+            ("authorities", "executor"),
+            ("accepted_evidence", "receipt"),
+        )
+        for field, slot in slot_fields:
+            missing = copy.deepcopy(active)
+            del missing[field][slot]
+            with self.subTest(field=field, shape="missing"), self.assertRaisesRegex(
+                ValueError, "slots"
+            ):
+                validate_ledger(missing, repo=ROOT)
+
+            extra = copy.deepcopy(active)
+            extra[field]["unexpected"] = None
+            with self.subTest(field=field, shape="extra"), self.assertRaisesRegex(
+                ValueError, "slots"
+            ):
+                validate_ledger(extra, repo=ROOT)
+
+            falsey = copy.deepcopy(active)
+            falsey[field][slot] = {}
+            with self.subTest(field=field, shape="falsey"), self.assertRaisesRegex(
+                ValueError, "lifecycle|schema"
+            ):
+                validate_ledger(falsey, repo=ROOT)
+
+    def test_dirty_ledger_reanchor_rejects_old_ancestor_and_accepts_head(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            repo = self._release_fixture(raw)
+            old = self._anchored_empty(repo)
+            path = self._write_ledger(repo, old)
+            self._git(repo, "add", "evaluation/results/current.json")
+            self._git(repo, "commit", "-m", "anchor zero")
+
+            prior = self._anchored_empty(repo)
+            self._write_ledger(repo, prior)
+            self._git(repo, "add", "evaluation/results/current.json")
+            self._git(repo, "commit", "-m", "anchor one")
+
+            self._write_ledger(repo, old)
+            with self.assertRaisesRegex(ValueError, "HEAD|anchor|successor"):
+                ledger_engine.load_ledger(path)
+
+            current = self._anchored_empty(repo)
+            self._write_ledger(repo, current)
+            self.assertEqual(ledger_engine.load_ledger(path), current)
 
     def test_agents_and_evaluation_readme_match_executable_generation6_behavior(
         self,

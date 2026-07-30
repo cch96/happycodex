@@ -95,6 +95,17 @@ CORPUS_MODEL_CALLS = {
 }
 
 
+def _public_baseline() -> dict[str, Any]:
+    return {
+        "arm": PUBLIC_02_ARM,
+        "source_commit": PUBLIC_02_SOURCE_COMMIT,
+        "source_tree": PUBLIC_02_SOURCE_TREE,
+        "artifact_sha256": PUBLIC_02_PACKAGE_ARTIFACT_SHA256,
+        "semantic_sha256": PUBLIC_02_PACKAGE_SEMANTIC_SHA256,
+        "skill_entries": list(PUBLIC_02_SKILL_ENTRIES),
+    }
+
+
 def validate_gate_plan(value: Any) -> dict[str, Any]:
     validate_named(CONTRACTS, "gate_plan", value)
     repo, output = Path(str(value["repo"])), Path(str(value["output"]))
@@ -173,10 +184,6 @@ def build_snapshot(
             for item_id, item in sorted(values.items())
         }
 
-    categories = {
-        category: inventory["categories"][category]
-        for category in ENGINE_CATEGORY_FIELDS
-    }
     scopes = {
         "corpus_harness": engine_category_sha256(
             inventory, "harness", paths=CORPUS_HARNESS_PATHS
@@ -199,19 +206,12 @@ def build_snapshot(
         },
         "engine": {
             "manifest_sha256": inventory["manifest_sha256"],
-            "categories": categories,
+            "categories": inventory["categories"],
             "scopes": scopes,
         },
         "package": package,
         "role": {"executor_sha256": executor_role_identity(root)},
-        "public_baseline": {
-            "arm": PUBLIC_02_ARM,
-            "source_commit": PUBLIC_02_SOURCE_COMMIT,
-            "source_tree": PUBLIC_02_SOURCE_TREE,
-            "artifact_sha256": PUBLIC_02_PACKAGE_ARTIFACT_SHA256,
-            "semantic_sha256": PUBLIC_02_PACKAGE_SEMANTIC_SHA256,
-            "skill_entries": list(PUBLIC_02_SKILL_ENTRIES),
-        },
+        "public_baseline": _public_baseline(),
         "corpus": {"cases": identities(_load_cases(root), shared, "candidate")},
         "holdout": {"pairs": identities(pairs, holdout_shared, "blinded-pair")},
     }
@@ -234,8 +234,7 @@ def _digest_map(value: Any, fields: set[str] | None = None) -> bool:
 
 def validate_snapshot(snapshot: dict[str, Any]) -> None:
     validate_named(CONTRACTS, "snapshot", snapshot)
-    settings = snapshot["settings"]
-    toolchain = settings["toolchain"]
+    toolchain = snapshot["settings"]["toolchain"]
     for name, identity in toolchain.items():
         if (
             not isinstance(identity, dict)
@@ -252,19 +251,10 @@ def validate_snapshot(snapshot: dict[str, Any]) -> None:
         or not _digest_map(engine["scopes"], ENGINE_SCOPE_FIELDS)
     ):
         raise IdentityError("invalid engine identity")
-    public = snapshot["public_baseline"]
-    if public != {
-        "arm": PUBLIC_02_ARM,
-        "source_commit": PUBLIC_02_SOURCE_COMMIT,
-        "source_tree": PUBLIC_02_SOURCE_TREE,
-        "artifact_sha256": PUBLIC_02_PACKAGE_ARTIFACT_SHA256,
-        "semantic_sha256": PUBLIC_02_PACKAGE_SEMANTIC_SHA256,
-        "skill_entries": list(PUBLIC_02_SKILL_ENTRIES),
-    }:
+    if snapshot["public_baseline"] != _public_baseline():
         raise IdentityError("public-0.2 baseline identity is not exact")
     for envelope, field in (("corpus", "cases"), ("holdout", "pairs")):
-        value = snapshot[envelope]
-        if not _digest_map(value[field]):
+        if not _digest_map(snapshot[envelope][field]):
             raise IdentityError(f"invalid {envelope} identities")
     if len(snapshot["holdout"]["pairs"]) != 3:
         raise IdentityError("holdout identity requires exactly three pairs")
@@ -456,12 +446,23 @@ def validate_successor(before: dict[str, Any], after: dict[str, Any],
 
     validate_ledger(before, repo=repo)
     validate_ledger(after, repo=repo)
+    if before["source_anchor"] != after["source_anchor"]:
+        if after["source_anchor"] is None or not all(
+            _empty_lifecycle(item) for item in (before, after)
+        ):
+            raise ValueError("release reanchor must reset without evidence reuse")
+        if repo is None:
+            raise ValueError("release reanchor requires repository")
+        settings = after["snapshot"]["settings"]
+        expected = build_snapshot(
+            repo, model=settings["model"], effort=settings["effort"],
+            timeout=settings["timeout_seconds"],
+        )
+        if after["snapshot"] != expected:
+            raise ValueError("release reanchor snapshot does not match repository")
+        return
     if before["snapshot"] != after["snapshot"]:
         raise ValueError("successor snapshot is immutable")
-    if before["source_anchor"] != after["source_anchor"]:
-        if not _empty_lifecycle(before) or not _empty_lifecycle(after):
-            raise ValueError("release reanchor must reset without evidence reuse")
-        return
     for field in ("planned_impact", "freeze", "certification"):
         if before[field] is not None and before[field] != after[field]:
             raise ValueError(f"successor cannot rollback or replace {field}")
@@ -478,9 +479,9 @@ def validate_successor(before: dict[str, Any], after: dict[str, Any],
                 raise ValueError(f"successor cannot rollback, replace, or delete {field}.{name}")
     changed = {field for field in before if before[field] != after[field]}
     allowed = (
-        {"source_anchor"}, {"planned_impact"}, {"planned_invocations", "cost"},
-        {"authorities"}, {"accepted_evidence", "coverage", "receipt_head"},
-        {"freeze"}, {"certification", "state"},
+        {"planned_impact"}, {"planned_invocations", "cost"}, {"authorities"},
+        {"accepted_evidence", "coverage", "receipt_head"}, {"freeze"},
+        {"certification", "state"},
     )
     if changed not in allowed:
         raise ValueError("successor is not one coherent DAG-ready step")

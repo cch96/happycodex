@@ -34,11 +34,12 @@ semantic, harness, or artifact. Unknown inputs fail closed. Impact planning and
 execution use the same strict input schema from `evaluation.core.ledger`.
 
 `results/current.json` is the only active evidence ledger. Generation 6 is a
-fresh `refresh_required` genesis: all three authorities are null, calibration and
-accepted evidence are empty, receipt head and certification are null, and the
-pre-anchor source, planned impact, and planned invocations are null. G015U keeps
-that genesis in candidate `S2`; future G016 alone may anchor its reachable
-Git archive. Offline checks and summaries cannot promote it to `certified`.
+fresh `refresh_required` line: all three authorities are null, calibration and
+accepted evidence are empty, and receipt head and certification are null. G016
+accepted the construction archive anchor while planned impact and invocations
+remain null. The official helper next creates `S_release` without changing this
+ledger; a separate G019 then replaces it with a fresh empty snapshot and exact
+`S_release` anchor. Offline checks and summaries cannot promote it to `certified`.
 
 The comparison arm is exactly `public-0.2`: commit `3b9c11f`, tree `4708ebc`,
 the frozen artifact/semantic digests, and only `SKILL.md`,
@@ -113,5 +114,6 @@ and wall time must each remain within 25% of public 0.2.
 Release-source preparation, exact-final review, isolated install, release, and
 activation remain later separate gates. Release preparation uses the official
 plugin-creator cachebuster helper exactly once; isolated install never reruns it.
-Activation is atomic and retains the paired prior package/config/cache state for
-rollback.
+The helper-produced `S_release` precedes the separate fresh-empty ledger reanchor;
+neither is publication or activation. Activation is atomic and retains the paired
+prior package/config/cache state for rollback.

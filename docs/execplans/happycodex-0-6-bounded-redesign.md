@@ -19,14 +19,29 @@ current checkpoint.
 Restore guard: reconcile plan, source, Executor, controls, checks, candidate, and
 evidence before writing; summaries or copied handles cannot restore authority.
 
-Phase: `G017 release-source preparation contract freeze`. Current-task user text
+Phase: `G018 release-source preparation`. Current-task user text
 is exactly `授权release-source preparation` (UTF-8 SHA-256
 `88841f2e4f5a757ef0b541da1884410c19db8ddcd932a641360602787fd43511`),
-Root-normalized at `2026-07-30T02:19:19Z`. G017 is plan-only: it edits this
-ExecPlan and authorizes no helper, product, ledger, model/live, install,
-marketplace/config/cache, publication, or activation effect. The loaded plugin
-remains active 0.5 cache `0.5.0+codex.20260729104011`; quarantined bytes remain
-non-input.
+Root-normalized at `2026-07-30T02:19:19Z`. Root accepted G017 at
+`a15c13bda6e0f9407f5802c611317c406d48edbc`, tree
+`53079797cc1e0be6bb706e1194513bb337da3401`; private receipt SHA-256 is
+`6f46bf758051e465ffe01618117be86cad3ace31c9b80d15a03340739f236638`.
+G018 stops at `S_release`; G019 remains separately gated. The loaded plugin
+remains active 0.5 cache `0.5.0+codex.20260729104011`.
+
+G018 resumed under this exact current-task message:
+
+```text
+授权以当前 config SHA e729a47e8586c281399057f8fa97261db57cb983a256e20f8cac9e7e4856284b 重新绑定 G018 并继续；不授权修改 config。
+你先发布吧
+```
+
+The first-line UTF-8 SHA-256 is `c88cae7c4d791e1105720cb3b114d22264b227c713dbaaa550823cd593ddbf26`;
+the whole-message single-newline SHA-256 is
+`969c6d919a0ef15030154aa34a88438e46d34897c205b44c1d465e38b89ac73d`,
+Root-normalized at `2026-07-30T07:11:03Z`. The second line advances the
+already-scoped G018/G019 sequence only; it is not publication, activation,
+installation, live, evidence, cost, exact-final, or later-gate authority.
 
 ## Operative request and normalized Outcome
 
@@ -705,14 +720,15 @@ HOME="$release_home" CODEX_HOME="$release_codex_home" python3 /home/caichenghang
 
 The helper is the sole writer of source `.codex-plugin/plugin.json`; hand editing,
 a second call, override, or retry is forbidden. Failure, ambiguity, partial
-effect, or any other changed path returns to Root. The loaded state remains the
-active 0.5 cache recorded below. These bytes must remain identical before/after
-G018 and G019:
+effect, or any other changed path returns to Root. Marketplace and installed
+manifest bytes remain fixed. Config is foreign-claimed and non-writable: history
+is G017 `6998d7c8…`, first stop `e729a47e…`, resume `575ecece…`; immediately
+before/after helper its complete SHA/stat must be transactionally identical.
 
 | Protected path | SHA-256 / value |
 | --- | --- |
 | `/home/caichenghang/.agents/plugins/marketplace.json` | `752de5a68116a69025e6ac46e32e8e0a7512cf8e2f87078d53b719c4362dcbfe` |
-| `/home/caichenghang/.codex/config.toml` | `6998d7c8b477569df76840f220d4b62e4e8d2ae0ea778f838d82bf02438ed4b5` |
+| `/home/caichenghang/.codex/config.toml` | pre-helper observation only; resume SHA `575ececef691e8c3cc18e20ba40c648ce17d1b3a5a3cb9b02750e914e8f5344a`, mode `0600`, link `1`, size `4849`, mtime `2026-07-30T04:06:41.944048897Z` |
 | `/home/caichenghang/plugins/happycodex/.codex-plugin/plugin.json` | `1fb2d73ae9774ab99a78a3ae5d449493a5d19e77860fb6952abc9a09b5733990`; version `0.5.0+codex.20260729104011` |
 
 Acceptance freezes strict fullmatch
@@ -728,6 +744,22 @@ successors freeze snapshot. `load_ledger` compares a dirty working ledger with
 `source_commit` exactly to `HEAD^{commit}`. An unchanged at-rest ledger validates
 normally. CLI `verify` on dirty `current.json` must exercise this prior-Git path.
 Module and aggregate budgets remain, without formatting compression.
+
+G018 focused RED ran six named tests: the three manifest/version contract tests,
+`test_release_reanchor_accepts_fresh_snapshot_and_exact_archive`,
+`test_anchored_empty_ledger_must_remain_refresh_required`, and
+`test_dirty_ledger_reanchor_rejects_old_ancestor_and_accepts_head`. Result:
+five failures plus one snapshot-immutability error in 1.950 seconds, exit 1.
+The 4,693-byte log SHA-256 is
+`d835c9e79d94d3923d2608c4d4a9f87bf0def625200b6654cfb0f6a7e8ef1823`.
+No production file or source manifest changed before this RED.
+Resume pre-helper focused left only three intentional version REDs. The helper's
+sole call printed `Updated plugin version: 0.6.0 ->
+0.6.0+codex.20260730072310`; config SHA/stat were identical before/after.
+Validator call one, focused 9/9, full 259/259, and CLI
+verify/impact/executor/corpus/holdout `0/2/0/0/0` passed with zero effects.
+Runtime is 227 lines/1,919 words; semantic is 1,200 lines/19 exports; evaluator
+Python is 6,822 lines. `current.json` remains parent-identical. G019 is pending.
 
 After Root accepts G017, the sequence is exactly two commits:
 

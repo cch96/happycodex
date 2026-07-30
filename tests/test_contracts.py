@@ -38,6 +38,7 @@ FORBIDDEN_PLUGIN_SURFACES = (
     "scripts",
     "skills/happycodex/hooks",
 )
+RELEASE_VERSION = re.compile(r"^0\.6\.0\+codex\.[0-9]{14}$")
 
 
 def read(path: Path) -> str:
@@ -96,7 +97,7 @@ def section_rows(path: Path, heading: str) -> list[list[str]]:
 class HappyCodexContractTests(unittest.TestCase):
     def test_g013_manifest_and_executor_role_are_exact_artifacts(self) -> None:
         manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
-        self.assertEqual(manifest["version"], "0.6.0")
+        self.assertIsNotNone(RELEASE_VERSION.fullmatch(manifest["version"]))
         role = json.loads(EXECUTOR_ROLE.read_text(encoding="utf-8"))
         self.assertEqual(
             role,
@@ -281,7 +282,7 @@ class HappyCodexContractTests(unittest.TestCase):
 
     def test_manifest_and_public_install_surfaces_are_coherent(self) -> None:
         manifest = json.loads(read(MANIFEST))
-        self.assertEqual(manifest["version"], "0.6.0")
+        self.assertIsNotNone(RELEASE_VERSION.fullmatch(manifest["version"]))
         self.assertEqual(manifest["repository"], "https://github.com/cch96/happycodex")
         marketplace = json.loads(read(MARKETPLACE))
         self.assertEqual(marketplace["name"], "happycodex")
@@ -292,6 +293,17 @@ class HappyCodexContractTests(unittest.TestCase):
         self.assertEqual(entry["policy"]["installation"], "AVAILABLE")
         self.assertEqual(entry["policy"]["authentication"], "ON_INSTALL")
         self.assertIn("$happycodex:happycodex", read(README))
+
+    def test_release_version_requires_one_helper_cachebuster_suffix(self) -> None:
+        version = json.loads(read(MANIFEST))["version"]
+        self.assertIsNotNone(RELEASE_VERSION.fullmatch(version))
+        for invalid in (
+            "0.6.0",
+            "0.5.0+codex.20260730123456",
+            "0.6.0+codex.20260730123456+codex.20260730123457",
+        ):
+            with self.subTest(version=invalid):
+                self.assertIsNone(RELEASE_VERSION.fullmatch(invalid))
 
     def test_ui_metadata_is_namespaced_and_small(self) -> None:
         interface = parse_simple_yaml_mapping(read(OPENAI_YAML))["interface"]
