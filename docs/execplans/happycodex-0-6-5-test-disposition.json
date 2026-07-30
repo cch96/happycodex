@@ -10,11 +10,12 @@
   },
   "candidate_discovery": {
     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p 'test_*.py'",
-    "test_count": 183,
-    "sorted_test_ids_sha256_lf": "473d4f16c5fcb00239b19e00ce447b02b4382311ae65e3bb3b0f6c472e9df45a",
+    "test_count": 192,
+    "sorted_test_ids_sha256_lf": "68bd2feefe28a9cd713313fd3424ce2e3be175f1c572eb3a2280fb31fb54635e",
     "base_identities_retained": 159,
     "base_identities_replaced": 10,
-    "generation_7_invariants_added": 14
+    "generation_7_invariants_added": 14,
+    "release_hardening_invariants_added": 9
   },
   "rules": [
     {
@@ -29,8 +30,8 @@
     },
     {
       "prefix": "test_certification_engine.",
-      "count": 44,
-      "disposition": "REWRITE_GENERATION_7_PRESERVE_FALSIFIER"
+      "count": 53,
+      "disposition": "REWRITE_GENERATION_7_AND_ADD_RELEASE_HARDENING_INVARIANTS"
     },
     {
       "prefix": "test_contracts.",
@@ -115,11 +116,11 @@
     "sorted_active_test_ids_sha256_lf": "4ac14406aaccf7ef637bb12ad405a866c224e527cd4590006d27e34d352d5bac"
   },
   "candidate_result": {
-    "tests_run": 183,
+    "tests_run": 192,
     "failures": 0,
     "errors": 0,
     "skips": 0,
-    "meaning": "generation-7 candidate after exact replacement inventory and dead-code removal"
+    "meaning": "generation-7 candidate plus preflight, invocation, cadence, capability, request, replacement, and receipt hardening"
   },
   "replacement_policy": {
     "delete_without_exact_replacement": "FORBIDDEN",

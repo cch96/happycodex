@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `HARDENING`
+Status: `CANDIDATE_FROZEN`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -64,7 +64,7 @@ effect from a dirty worktree.
   `16888a91aaf89e007b8305b53c8828b0131e947de5d2a07c06590177f1dcd10d`.
 - Test disposition:
   `docs/execplans/happycodex-0-6-5-test-disposition.json`, SHA-256
-  `d84d7b4be1fc476f0802d25d6f6586f2e78dcf9c1d29f546c1d39bc7aa6b72dd`.
+  `3fd89ce7060f28439a206aa94e70fbaf35c324f7b296f3dfcecafa61f8e8af9d`.
 - Protected resources:
   `docs/execplans/happycodex-0-6-5-protected-resources.json`, SHA-256
   `4069f04e1f42c4cfb707dc6081ffb417b2649bd7ffd651fab1766d11138f79cd`.
@@ -201,8 +201,8 @@ in one process. Focused RED reproduced all four findings before implementation.
   `tests/test_evaluation.py` fell from 5,169 to 2,047 lines while retaining the
   same 86 active IDs and
   `4ac14406aaccf7ef637bb12ad405a866c224e527cd4590006d27e34d352d5bac`
-  sorted-ID digest. The final 183-test digest is
-  `473d4f16c5fcb00239b19e00ce447b02b4382311ae65e3bb3b0f6c472e9df45a`.
+  sorted-ID digest. The post-hardening 192-test digest is
+  `68bd2feefe28a9cd713313fd3424ce2e3be175f1c572eb3a2280fb31fb54635e`.
 - The frozen source tree is
   `799199be73b0d995fda2d52ee8b50bd92692efe1`. Its normalized package
   artifact is
@@ -210,11 +210,14 @@ in one process. Focused RED reproduced all four findings before implementation.
   semantic identity is
   `9cd5a507a8a9561c8af6751917b430b1cb29c238810b7c32bcff15c39044965a`,
   Executor role is
-  `f1effcc84e7ed24f6d54c972e2e412db42a3e46a6d92565e6d61b358128305da`,
-  evaluator manifest is
-  `f90189cc9ae4fb8f1b4e54af199a9a3cdcd8883852ddb4fe6decff69a23338a1`,
+  `f1effcc84e7ed24f6d54c972e2e412db42a3e46a6d92565e6d61b358128305da`.
+- Release-effect hardening is committed at
+  `52cc79a6239bb84485520cc0d6d79e50ba91748f`, tree
+  `bc7618f36ceb38120545e2bb58e6adfb611bda51`. Its full suite is
+  192/192 GREEN; current evaluator manifest is
+  `a14e68d73f3792dfe12a9e97acb8e161d2d8a04388e96d6704be872d7ff016ed`
   and snapshot is
-  `7276163b69bec9485daba543968be8570df2ba24657ad2c13db334ed057ff7ad`.
+  `fd82883281a720abbcff6bdf2967b222719854bf3e9f77f134b074465ca980a0`.
 - The sole generation-7 ReleaseCandidate is
   `908a926287fa01cb8e4b4cf591b2a90d108a0b9bfe3d39affa7f39e9908f187e`;
   current ledger identity is
@@ -224,7 +227,8 @@ in one process. Focused RED reproduced all four findings before implementation.
   exactly match the frozen P0 inventory.
 - No live model, network, install, activation, push, tag, GitHub Release, or
   publication effect has occurred.
-- Next action: commit this strictly post-source candidate/ledger evidence,
-  rerun every offline and artifact boundary, then prepare exact impact,
-  invocation, authority, and output identities for the still-pending
-  calibration, corpus, holdout, receipt, review, and isolated-install gates.
+- Next action: create private exact calibration claim/output/record roots, run
+  the offline request preflight, and present its one canonical line to the user.
+  Do not call a model until that exact line is returned. A successful
+  calibration receipt then supplies the cost basis for the corpus plan; no
+  future GatePlan is pre-authorized.
