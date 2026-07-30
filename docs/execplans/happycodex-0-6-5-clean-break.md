@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `CALIBRATION_AWAITING_EXACT_AUTHORITY`
+Status: `CALIBRATION_AUTHORIZED`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -257,9 +257,15 @@ digest. Focused RED reproduced all five findings before implementation.
   It created only the private plan file: zero launches, fixtures, workspaces,
   model calls, network calls, receipts, installs, or publications. The output
   root remains absent and the launch-claim root remains empty.
-- Requested canonical line (request only; not yet authority):
+- The current-task user returned the requested canonical line verbatim:
   `AUTHORIZE HappyCodex 0.6.5 gate calibration exactly once for request 0c528a98371fc7ddb9227aafa88b35edb2e84140954432afc74ca803b981a05b`.
-- Next action: wait for that exact line from the current-task user. Do not
-  apply the GatePlan or call a model before it is returned. A successful
-  calibration receipt supplies the cost basis for the later corpus plan; no
-  future GatePlan is pre-authorized.
+  Its UTF-8-plus-LF SHA-256 is
+  `b6936c738ef48995964abed40c1523c189b113763f2a8d9d7dcb97bc784d54c3`.
+- The exact GatePlan was atomically appended to the ledger; its predecessor was
+  `be4777979e04b4544623488f930192851b10f2bc32db2863faf706b5db1398e3`
+  and the resulting ledger is
+  `2c406458c85987d28f53f1d759b2291d0455bae7bca57bccf87d1e854141129d`.
+- Next action: commit this durable intent, then run `host-run` once with the
+  exact line and bound impact digest. A successful calibration receipt supplies
+  the cost basis for the later corpus plan; no future GatePlan is
+  pre-authorized.

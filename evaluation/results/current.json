@@ -10,7 +10,63 @@
     "source_commit": "3a8e7d7ed7697c53d4b9c574a5fec1031ca0cc19",
     "source_tree": "799199be73b0d995fda2d52ee8b50bd92692efe1"
   },
-  "plans": [],
+  "plans": [
+    {
+      "approval_content_sha256": "b6936c738ef48995964abed40c1523c189b113763f2a8d9d7dcb97bc784d54c3",
+      "approval_request_sha256": "0c528a98371fc7ddb9227aafa88b35edb2e84140954432afc74ca803b981a05b",
+      "candidate_sha256": "908a926287fa01cb8e4b4cf591b2a90d108a0b9bfe3d39affa7f39e9908f187e",
+      "cost_ceiling": {
+        "model_calls": 1,
+        "output_tokens": 10000,
+        "uncached_input_tokens": 100000,
+        "wall_milliseconds": 300000
+      },
+      "created_at": "2026-07-30T19:10:47Z",
+      "gate": "calibration",
+      "output": "/home/caichenghang/.codex/happycodex-0.6.5-release/outputs/calibration",
+      "plan_sha256": "bb5d518858d20cc38ed25a3b89b184f81740f17991721a9fa3719df9012fc89a",
+      "profile": {
+        "argv": [
+          "happycodex-host:run-authorized-v1",
+          "--gate",
+          "calibration",
+          "--repository",
+          "/home/caichenghang/projects/happycodex-worktrees/happycodex-0.6.5",
+          "--output",
+          "/home/caichenghang/.codex/happycodex-0.6.5-release/outputs/calibration",
+          "--claim-root",
+          "/home/caichenghang/.codex/happycodex-0.6.5-release/claims/calibration",
+          "--unit",
+          "{unit}"
+        ],
+        "arm": "candidate",
+        "cwd": "/home/caichenghang/projects/happycodex-worktrees/happycodex-0.6.5",
+        "effort": "high",
+        "env": {
+          "HAPPYCODEX_CLAIM_ROOT": "/home/caichenghang/.codex/happycodex-0.6.5-release/claims/calibration",
+          "HAPPYCODEX_CODEX_SHA256": "cb5e8cb8a333a408ce6adbe0d4fad1845c69772c2216af7c1f88c98a11460dc6",
+          "HAPPYCODEX_IMPACT_SHA256": "72ac0a00c98887b14a4dfeae68a55c83bd81332f4eb09180ac6542427c763dbe"
+        },
+        "model": "gpt-5.6-sol",
+        "timeout_ms": 300000
+      },
+      "record_type": "GatePlan",
+      "resource_digests": [
+        "10821e650fd1accbd290eba9e700f1e331aeaa2d79e611eee26c44a91fb1e76b",
+        "1e15ade132ea9107f54cd789ca0c2396e30fb70b6adf7249bc4ae9b9d97c37d9",
+        "65b7e7a01b86be8907060b368b355cdc2bd32dcd802a08b5064980769e141369",
+        "935456578c4eb0733eefa3bc848a8424c3ae27fe9c2e87312af453c65e6f875f",
+        "998984bf5367cb0a51675d4e87b8b0429a36c45a4a011aa9c2128ae86f9379b0",
+        "9c7829ae4898565e5ed3fa3c703053bfb783e96883498d39128ddf071fb0ff52",
+        "e26e799958e46db0041bd284380a12805bdb51927d872b8c5cad14a9c24adac9"
+      ],
+      "schema_version": 1,
+      "snapshot_sha256": "72b37d796b033fd146a1402620b8de90915f2bcafe5a24b577da9ca564b943b7",
+      "units": [
+        "subthreshold-control"
+      ]
+    }
+  ],
   "receipts": [],
   "schema_version": 1
 }
