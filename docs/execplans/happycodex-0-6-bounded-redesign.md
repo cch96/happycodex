@@ -165,6 +165,52 @@ docs/execplans/happycodex-0-6-bounded-redesign.md
 `tests/test_contracts.py` was authorized but not needed. Runtime Skill
 Markdown is unchanged.
 
+## G040 exact release and activation waivers
+
+The following current-task user messages are durable authority anchors. Their
+`captured_at` value is the exact durable capture time, not an inferred original
+transport timestamp, because no transport timestamp was supplied.
+
+Anchor 1, captured at `2026-07-30T16:28:06Z`, UTF-8 SHA-256
+`2fa3e89f09cf5cd000796bba0deba1807421b3424cb5c52bd9adec92df82da26`:
+
+```text
+豁免 calibration、corpus、holdout、receipt、review、isolated_install 六个 gate，授权合并 main 并创建 v0.6.0 tag 和 GitHub Release；接受未经认证发布的风险。， 本地也更新
+```
+
+Anchor 2, captured at `2026-07-30T16:28:06Z`, UTF-8 SHA-256
+`822f2f7174a7de22d17944510182dcce38df2f9fe5bc882f6440d40d5602e330`:
+
+```text
+不用保留0.5的回滚
+```
+
+The normalized effect is deliberately narrow:
+
+- `calibration`, `corpus`, `holdout`, `receipt`, `review`, and
+  `isolated_install` are explicitly waived only for one `v0.6.0` merge to
+  `main`, public tag/GitHub Release, and one local activation.
+- The user explicitly accepts the risk of that public release and local
+  activation without certification evidence from those six gates.
+- The ledger remains `refresh_required` with `plans=[]` and `receipts=[]`.
+  It is uncertified and must never be described as certified.
+- No dedicated 0.5 rollback source/config bundle must be created or retained
+  for this activation. This does not authorize destructive deletion of
+  existing Codex versioned caches or unrelated historical rollback directories.
+- The external Executor role config remains unchanged at SHA-256
+  `d98fac1a0fe1bcc3071eac89b7246bfeb59fb85a7040417d50d07c58d74d1275`.
+
+The exact release identity remains product source
+`825962522c8ba6abb8dea3f7f7f04b8029e339fe`, candidate
+`84e6c7f529dab0583b93bb74b0428027ceea83d986f56be9ed4d4086aaaa24fb`,
+package artifact
+`4e2b300bfc7c49c4eccad46a198e79f15c28680f2e4e6f041fabcc995ad3621e`,
+and version `0.6.0+codex.20260730115707`.
+
+G040 only persists these anchors, validates the unchanged source, and updates
+Draft PR #6. It does not merge, mark ready, create a tag or GitHub Release,
+perform local activation, modify config/cache, or exercise any waived gate.
+
 ## Acceptance and next gate
 
 Required offline checks are:
