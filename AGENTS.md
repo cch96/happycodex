@@ -1,53 +1,62 @@
 # HappyCodex maintainer protocol
 
-There is one Root owner for each shared mutable resource. Disjoint worktree, branch/ref,
-ledger, output namespace, and activation targets may run concurrently; overlap rejects
-a second writer. Repository-level evaluation files are maintenance support, not Skill
-runtime and must never be linked from `skills/happycodex/SKILL.md`.
+The current 0.4-to-0.5 source-construction task remains a Root-only writer task through
+closure under its frozen ExecPlan. Do not recursively apply candidate 0.5 ownership to
+this migration. After an authorized 0.5 activation, fresh HappyCodex/0.5 tasks use one
+fixed Executor as the sole authorized writer; Root reads, decides, grants, and verifies.
+Repository-level evaluation files are maintenance support, not Skill Runtime, and must
+never be linked from `skills/happycodex/SKILL.md`.
 
-- Runtime Markdown: target at most 300 lines; target at most 2,600 words. Hard
-  ceilings are 340 lines and 3,000 words.
-- The public and active 0.4.0 bytes remain unchanged until the separately authorized
-  0.4.1 cutover. The operative 0.4.1 Outcome excludes Fable as product evidence;
-  future tasks follow their own exact frozen review requirements.
-- Use only `python3 -m evaluation.cli`. Every evaluator Python/schema input must be
-  classified as semantic, harness, or artifact. Unknown inputs fail closed. The
-  read-only impact receipt and exact historical cost must be persisted before any
-  live corpus or holdout authorization. Its `impact_token` is only an identity
-  binding and never grants permission by itself: live CLI execution also requires a
-  current-task user authority persisted in `current.json`, bound to the exact token,
-  package identities, model, effort, timeout, arm, and complete invocation scope.
-  The response must be the canonical affirmative line derived from the exact approval
-  request digest; nonempty prose is not authority. The persisted historical-cost
-  envelope must equal the source-derived receipt exactly. The validator mints one
-  immutable process-local capability, and every model-reaching corpus/holdout helper
-  must require and rebind that capability before fixture, mapping, or subprocess work.
-- `evaluation/results/current.json` is the sole active evidence ledger. 0.4.1 starts
-  from a fresh full-refresh genesis: never promote `refresh_required` to `certified`
-  from offline checks, and do not reuse 0.4 coverage or add historical-result
-  compatibility readers, aliases, migrations, or dual writes. Certification additionally
-  requires a Git-reachable successor source whose normalized Git package artifact and
-  engine manifest match the snapshot and whose `current.json` already persists the
-  exact authority and pending-derived impact. Every evidence commit must strictly
-  postdate that source. The 0.4.1 coverage manifest marks every case and pair refreshed;
-  old 0.4 evidence is historical context only. Corpus and holdout input schema validation
-  must be shared by impact planning and execution. A zero-live `receipt` or
-  `isolated_install` gate
-  still requires strictly post-source, content-addressed `offline_summary` evidence:
-  receipt evidence binds the current artifact identity, and install evidence binds
-  the existing exact source/installed package receipt.
-- Store raw model events outside the repository. Track only sanitized summaries,
-  hashes, fixed fixtures, prompts, hidden oracles, and executable evaluation code.
-- Maintainer evaluation must prove native same-task compaction plus a distinct
-  no-summary/no-handle durable reconstruction; ordinary Skill runtime must not require
-  this control for each user task.
-- Behavior comparisons must use fresh isolated homes/tasks and identical model,
-  effort, fixture, prompt, timeout, and oracle. Reveal arm identities only after the
-  evaluator freezes its result.
-- Reject on the candidate's first completion-blocking holdout regression. After a
-  first success run a second distinct pair; use a third only for a split or uncertain
-  result. At equal quality, uncached input plus output tokens and wall time must each
-  stay within 25% of public 0.4.0.
-- Before release, use the plugin-creator cachebuster helper rather than hand-editing
-  marketplace state. Prove a fresh isolated install/invocation of that exact release,
-  then update the active plugin with the prior cache ready for rollback.
+- Keep Runtime Markdown at or below 262 lines. Target at most 2,200 words; 2,400 words
+  is the hard ceiling.
+- The active 0.4 installation, public package bytes, and rollback cache remain unchanged
+  until cutover is separately authorized. The operative 0.5 Outcome excludes Fable.
+  Existing 0.4 tasks finish under 0.4 or are abandoned; never migrate them into 0.5.
+- Use only `python3 -m evaluation.cli`. Every evaluator Python/schema input is
+  classified as semantic, harness, or artifact; unknown inputs fail closed.
+- `evaluation/results/current.json` is the sole active evidence ledger. 0.6 uses a
+  fresh full-refresh generation-6 genesis: add no 0.4 evidence reader, alias, migration, dual
+  write, prior-coverage reuse, or parser fallback. Offline checks never promote
+  `refresh_required` to `certified`.
+- The comparison baseline is exactly public-0.2 commit `3b9c11f`, tree `4708ebc`,
+  its frozen artifact/semantic digests, and four-file Skill surface. Never relabel
+  public-0.4 bytes, arms, or receipt fields as public-0.2.
+- Before any live corpus or holdout authorization, persist the read-only impact receipt
+  and exact source-derived historical-cost envelope. `impact_token` binds identity but
+  grants no permission. Live CLI execution additionally requires current-task user
+  authority in `current.json`, bound to the exact token, package/config identities,
+  model, effort, timeout, arm, and complete invocation. Only the canonical affirmative
+  line derived from the exact approval-request digest is authority; prose is not.
+- The new Executor pilot has no prior cost. First persist a conservative source-derived
+  envelope and complete exact invocation, then request separate exact authority for one
+  bounded calibration. Its sanitized successful actual cost becomes historical basis.
+  Executor pilot, corpus, and adaptive holdout are three separate authority gates.
+- The validator seals `GateCapability` only from the persisted plan, trusted
+  current-host authority, and reducer report. A namespace lock and complete preflight
+  precede its durable claims; `ClaimedCapability` and an exact unit claim precede every
+  fixture/mapping/workspace/output effect. `invoke_codex` accepts only a PID-bound,
+  nonserializable, one-shot `PhaseProof` for exact argv/cwd/env/timeout.
+- Certification requires a Git-reachable successor source whose normalized Git package
+  artifact and engine manifest match the snapshot. Its retained Executor authority and
+  calibration bind the exact external role-config digest; its ledger already persists
+  three gate-scoped authorities bound to the pending phase. Every evidence commit
+  strictly postdates that source. Shared schema validates inputs during both impact
+  planning and execution.
+- A zero-live `receipt` or `isolated_install` gate still requires strictly post-source,
+  content-addressed `offline_summary` evidence. Receipt evidence binds current artifact
+  identity; install evidence binds the existing exact source/installed-package/config
+  receipt.
+- Store raw model events outside the repository. Track only sanitized summaries, hashes,
+  fixed fixtures, prompts, hidden oracles, and executable evaluation code.
+- Maintainer evaluation proves native same-task compaction and a distinct
+  no-summary/no-handle reconstruction. It also proves writer identity cannot be replaced;
+  ordinary Runtime does not rerun that control for every user task.
+- Read-only behavior comparisons use fresh isolated homes/tasks and identical model,
+  effort, fixture, prompt, timeout, and oracle. Reveal arms only after results freeze.
+  Reject the first completion-blocking holdout regression; after first success run a
+  second distinct pair, using a third only for split/uncertain results. At equal quality,
+  uncached input plus output tokens and wall time each stay within 25% of public 0.2.
+- Before release, use the plugin-creator cachebuster helper instead of hand-editing
+  marketplace state. Prove a fresh isolated install/invocation of that exact release and
+  external role config, then update the active plugin atomically with the prior cache
+  ready for paired package/config rollback.

@@ -1,2196 +1,907 @@
 from __future__ import annotations
 
-import io
-from itertools import permutations
 import json
-import math
 import os
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 import re
+import stat
 import subprocess
-import tarfile
 import tempfile
 from typing import Any
 
 from evaluation.core.identity import (
-    canonical_json_bytes,
-    canonical_sha256,
-    case_semantic_sha256,
-    engine_category_sha256,
-    engine_inventory,
-    normalize_package_modes,
-    package_identities,
-    sha256_bytes,
-)
-from evaluation.core.impact import (
-    historical_cost_receipt,
-    impact_token,
-    plan_impact,
-    validate_impact,
-    validate_snapshot,
-)
-from evaluation.corpus.contract import (
     BLOCKER_CLASSES,
-    CONVERGENCE_PHASES,
-    FILESYSTEM_ISOLATION_POLICY,
     PERMISSION_FIELDS,
-    PUBLIC_040_PACKAGE_ARTIFACT_SHA256,
-    PUBLIC_040_PACKAGE_SEMANTIC_SHA256,
-    RECOVERY_ACTIONS,
-    RECOVERY_GATE_FIELDS,
-    RECOVERY_PENDING_GATES,
-    classifications_share_identity,
-    has_distinct_identity_assignment,
-    identity_match_values,
-    protocol_state_failures,
+    RECOVERY_MANIFEST_PATTERN,
+    RECOVERY_STATE_FIELDS,
+    canonical_sha256,
+    executor_role_identity,
+    package_identities,
+    permission_assertions_invalid,
+    sha256_bytes,
+    source_archive_identity,
 )
-from evaluation.holdout.blind import completed_quality
-from evaluation.holdout.compare import (
-    adaptive_next,
-    aggregate_quality,
-    cost_gate,
-    sum_metrics,
+from evaluation.core.schema import CONTRACTS, validate_named
+
+
+LEDGER_FIELDS = frozenset({"schema_version", "candidate", "plans", "receipts"})
+RECORD_TYPES = frozenset({"ReleaseCandidate", "GatePlan", "GateReceipt"})
+GATE_ORDER = (
+    "calibration",
+    "corpus",
+    "holdout",
+    "receipt",
+    "review",
+    "isolated_install",
 )
+MODEL_GATES = frozenset({"calibration", "corpus", "holdout"})
+_SHA256 = re.compile(r"^[0-9a-f]{64}$")
+_GIT_OBJECT = re.compile(r"^[0-9a-f]{40}$")
+_TIMESTAMP = re.compile(
+    r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$"
+)
+_CANDIDATE_FIELDS = frozenset(
+    {
+        "schema_version",
+        "record_type",
+        "source_commit",
+        "source_tree",
+        "package_artifact_sha256",
+        "package_semantic_sha256",
+        "executor_role_sha256",
+        "created_at",
+        "candidate_sha256",
+    }
+)
+_PLAN_FIELDS = frozenset(
+    {
+        "schema_version",
+        "record_type",
+        "candidate_sha256",
+        "snapshot_sha256",
+        "gate",
+        "created_at",
+        "profile",
+        "cost_ceiling",
+        "units",
+        "resource_digests",
+        "output",
+        "approval_request_sha256",
+        "approval_content_sha256",
+        "plan_sha256",
+    }
+)
+_PROFILE_FIELDS = frozenset(
+    {"argv", "cwd", "env", "timeout_ms", "model", "effort", "arm"}
+)
+_COST_FIELDS = frozenset(
+    {
+        "model_calls",
+        "uncached_input_tokens",
+        "output_tokens",
+        "wall_milliseconds",
+    }
+)
+_RECEIPT_FIELDS = frozenset(
+    {
+        "schema_version",
+        "record_type",
+        "candidate_sha256",
+        "plan_sha256",
+        "gate",
+        "sequence",
+        "created_at",
+        "evidence_commit",
+        "unit_results",
+        "result",
+        "output_sha256",
+        "parent_receipt_sha256",
+        "receipt_sha256",
+    }
+)
+_UNIT_RESULT_FIELDS = frozenset({"unit", "status", "result_sha256"})
+_RECOVERY_MANIFEST_PATH = "docs/execplans/recovery-manifest.json"
 
 
-LEDGER_FIELDS = {
-    "schema_version",
-    "state",
-    "snapshot",
-    "pending",
-    "live_attempts",
-    "historical_cost",
-    "live_authority",
-    "certification",
-}
-PENDING_FIELDS = {"reasons", "corpus_cases", "holdout_pairs", "review"}
-AUTHORITY_FIELDS = {
-    "schema_version",
-    "source",
-    "approval_request_sha256",
-    "approval_response",
-    "approval_response_sha256",
-    "snapshot_sha256",
-    "impact",
-    "impact_token",
-    "invocations",
-}
-CORPUS_INVOCATION_FIELDS = {
-    "command",
-    "attempt_id",
-    "package_semantic_sha256",
-    "package_artifact_sha256",
-    "model",
-    "effort",
-    "timeout_seconds",
-    "arm",
-    "cases",
-}
-HOLDOUT_INVOCATION_FIELDS = {
-    "command",
-    "attempt_id",
-    "candidate_semantic_sha256",
-    "candidate_artifact_sha256",
-    "public_semantic_sha256",
-    "public_artifact_sha256",
-    "model",
-    "effort",
-    "timeout_seconds",
-    "pairs",
-}
-CERTIFICATION_FIELDS = {
-    "schema_version",
-    "successor_source_commit",
-    "successor_source_tree",
-    "snapshot_sha256",
-    "engine_manifest_sha256",
-    "coverage",
-    "evidence",
-    "live_authority_sha256",
-}
-COVERAGE_FIELDS = {"corpus", "holdout"}
-EVIDENCE_LOCATOR_FIELDS = {"commit", "path", "git_blob", "sha256"}
-CORPUS_SUMMARY_FIELDS = {
-    "schema_version",
-    "engine_generation",
-    "impact_token",
-    "live_authority_sha256",
-    "arm",
-    "model",
-    "effort",
-    "timeout_seconds",
-    "passed",
-    "total",
-    "uncached_input_tokens",
-    "telemetry_complete",
-    "output_tokens",
-    "elapsed_seconds",
-    "cases",
-}
-CASE_RECEIPT_FIELDS = {
-    "schema_version",
-    "engine_generation",
-    "id",
-    "metadata_sha256",
-    "installation",
-    "model",
-    "effort",
-    "timeout_seconds",
-    "timed_out",
-    "elapsed_seconds",
-    "exit_code",
-    "semantic_input_sha256",
-    "identities",
-    "events_sha256",
-    "stderr_sha256",
-    "usage",
-    "usage_phases",
-    "uncached_input_tokens",
-    "passed",
-    "result",
-    "fresh_recovery_result",
-    "oracle_failures",
-    "native_compaction",
-    "thread_id_sha256",
-    "resume_thread_id_sha256",
-    "fresh_recovery_thread_id_sha256",
-    "filesystem_isolation",
-}
-HOLDOUT_RUN_FIELDS = {
-    "schema_version",
-    "engine_generation",
-    "impact_token",
-    "live_authority_sha256",
-    "manifest_sha256",
-    "identities",
-    "model",
-    "effort",
-    "timeout_seconds",
-    "pair_ids",
-    "case_sha256",
-}
-PAIR_RECEIPT_FIELDS = {
-    "schema_version",
-    "engine_generation",
-    "id",
-    "case_id",
-    "case_sha256",
-    "outside_diff_boundary",
-    "oracle_kind",
-    "mapping_commitment_file_sha256",
-    "pre_reveal_decision_file_sha256",
-    "mapping_reveal_file_sha256",
-    "pre_reveal_decision_sha256",
-    "mapping_commitment_sha256",
-    "outcome",
-    "metrics",
-    "arms",
-}
-HOLDOUT_SUMMARY_FIELDS = {
-    "schema_version",
-    "engine_generation",
-    "run_receipt_sha256",
-    "adaptive_history",
-    "adaptive_terminal_action",
-    "pairs_run",
-    "pair_receipts",
-    "cost_gate",
-}
-OFFLINE_GATES = frozenset({"receipt", "isolated_install"})
-OFFLINE_SUMMARY_FIELDS = {
-    "schema_version",
-    "engine_generation",
-    "source_commit",
-    "source_ledger_sha256",
-    "snapshot_sha256",
-    "engine_manifest_sha256",
-    "gates",
-    "receipt_artifact_sha256",
-    "isolated_installation",
-}
-
-INSTALLATION_RECEIPT_FIELDS = {
-    "source_skill_sha256",
-    "installed_skill_sha256",
-    "source_package_manifest_sha256",
-    "installed_package_manifest_sha256",
-    "plugin_sha256",
-}
-FILESYSTEM_RECEIPT_FIELDS = {
-    "mechanism",
-    "profile",
-    "default_access",
-    "workspace",
-    "nonworkspace",
-    "native_tools",
-    "network",
-    "selection",
-    "policy_sha256",
-}
-RESULT_RECEIPT_FIELDS = {
-    "result_sha256",
-    *PERMISSION_FIELDS,
-    "finding_classifications",
-    "blocker_classifications",
-    "open_gates_count",
-    "open_gates_sha256",
-    "repair_gate_present",
-    "user_gate_present",
-    "focused_review_gate_present",
-    "exact_final_review_gate_present",
-    "goal_pause_handoff_present",
-    "evidence_count",
-    "evidence_sha256",
-    "reason_sha256",
-    "recovery_state",
-}
-FINDING_RECEIPT_FIELDS = {
-    "identity_sha256",
-    "identity_casefold_sha256",
-    "identity_match_sha256s",
-    "identity_nonblank",
-    "domain",
-    "state",
-    "anchors_count",
-    "anchors_sha256",
-    "anchor_sha256s",
-}
-BLOCKER_RECEIPT_FIELDS = {
-    "identity_sha256",
-    "identity_casefold_sha256",
-    "identity_match_sha256s",
-    "identity_nonblank",
-    "class",
-    "blocking",
-    "reason_sha256",
-}
-RECOVERY_RECEIPT_FIELDS = {
-    "recovery_state_sha256",
-    "baseline_revision",
-    "baseline_tree",
-    "current_revision",
-    "current_tree",
-    "writer",
-    "milestone_phase",
-    "next_action",
-    "pending_gates",
-    "tests",
-    "worktree",
-    "live_agents",
-    "marker_ids_count",
-    "marker_ids_sha256",
-    "recovery_manifest_count",
-    "recovery_manifest_sha256",
-    "summary_consistent",
-}
-RECOVERY_TEST_FIELDS = {
-    "passed",
-    "failed",
-    "accepted_failures",
-    "marker_ids_count",
-    "marker_ids_sha256",
-}
-RECOVERY_AGENT_FIELDS = {"id_sha256", "status", "receipt_reproduced"}
-COMPACTION_PHASE_FIELDS = {
-    "phase_sha256",
-    "rollout_path_sha256",
-    "rollout_sha256",
-    "rollout_byte_count",
-    "rollout_prefix_sha256",
-    "compaction_event_count",
-    "context_compacted_marker_count",
-    "event_types",
-    "rollout_match_count",
-}
-NATIVE_COMPACTION_FIELDS = {
-    "native_compaction_sha256",
-    "auto_compact_token_limit",
-    "compaction_event_count",
-    "resumed_same_thread",
-    "before_resume",
-    "after_resume",
-    "post_compaction_transition_sha256",
-    "fresh_control",
-}
-FRESH_CONTROL_FIELDS = {
-    "fresh_control_sha256",
-    "thread_id_sha256",
-    "distinct_from_resumed_task",
-    "no_resume_handle",
-    "no_conversation_summary",
-    "prompt_sha256",
-    "equivalent_gate_fields",
-    "allowed_label_differences_sha256",
-}
-RECOVERY_WRITERS = {"Root", "unknown"}
-RECOVERY_PHASES = set(CONVERGENCE_PHASES)
-RECOVERY_WORKTREE_STATES = {"clean", "dirty", "unknown"}
-RECOVERY_AGENT_STATES = {"pending", "terminal", "missing"}
-COMPACTION_EVENT_TYPES = {"compacted", "context_compacted"}
-
-
-def _require_digest(value: Any, *, length: int, label: str) -> None:
-    if not isinstance(value, str) or not re.fullmatch(rf"[0-9a-f]{{{length}}}", value):
+def _unique_strings(value: Any, label: str) -> list[str]:
+    if (
+        not isinstance(value, list)
+        or any(type(item) is not str or not item.strip() for item in value)
+        or len(value) != len(set(value))
+    ):
         raise ValueError(f"invalid {label}")
-
-
-def _validate_ordered_names(value: Any, *, label: str) -> None:
-    if (
-        not isinstance(value, list)
-        or not value
-        or not all(isinstance(item, str) and item for item in value)
-        or value != sorted(set(value))
-    ):
-        raise ValueError(f"invalid authorized {label}")
-
-
-def _validate_invocation(invocation: Any) -> None:
-    if not isinstance(invocation, dict):
-        raise ValueError("invalid authorized invocation")
-    command = invocation.get("command")
-    fields = {
-        "corpus": CORPUS_INVOCATION_FIELDS,
-        "holdout": HOLDOUT_INVOCATION_FIELDS,
-    }.get(command)
-    if fields is None or set(invocation) != fields:
-        raise ValueError("invalid authorized invocation envelope")
-    _require_digest(invocation["attempt_id"], length=64, label="live attempt id")
-    for field in ("model", "effort"):
-        if not isinstance(invocation[field], str) or not invocation[field]:
-            raise ValueError(f"invalid authorized invocation field: {field}")
-    timeout = invocation["timeout_seconds"]
-    if not isinstance(timeout, int) or isinstance(timeout, bool) or timeout <= 0:
-        raise ValueError("invalid authorized invocation field: timeout_seconds")
-    if command == "corpus":
-        digest_fields = ("package_semantic_sha256", "package_artifact_sha256")
-        if invocation["arm"] != "candidate":
-            raise ValueError("authorized corpus invocation must use candidate arm")
-        _validate_ordered_names(invocation["cases"], label="corpus cases")
-    else:
-        digest_fields = (
-            "candidate_semantic_sha256",
-            "candidate_artifact_sha256",
-            "public_semantic_sha256",
-            "public_artifact_sha256",
-        )
-        _validate_ordered_names(invocation["pairs"], label="holdout pairs")
-        if (
-            invocation["public_semantic_sha256"],
-            invocation["public_artifact_sha256"],
-        ) != (
-            PUBLIC_040_PACKAGE_SEMANTIC_SHA256,
-            PUBLIC_040_PACKAGE_ARTIFACT_SHA256,
-        ):
-            raise ValueError("authorized holdout does not use frozen public-0.4.0")
-    for field in digest_fields:
-        _require_digest(invocation[field], length=64, label=field)
-
-
-def _expected_authority_commands(impact: dict[str, Any]) -> list[str]:
-    commands: list[str] = []
-    if impact["corpus_cases"]:
-        commands.append("corpus")
-    if impact["holdout_pairs"]:
-        commands.append("holdout")
-    return commands
-
-
-def affirmative_approval_response(approval_request_sha256: str) -> str:
-    _require_digest(
-        approval_request_sha256,
-        length=64,
-        label="approval request digest",
-    )
-    return f"APPROVE HAPPYCODEX LIVE COST {approval_request_sha256}\n"
-
-
-def validate_live_authority(authority: Any, *, snapshot: dict[str, Any]) -> None:
-    if not isinstance(authority, dict) or set(authority) != AUTHORITY_FIELDS:
-        raise ValueError("live authority is not persisted")
-    if authority.get("schema_version") != 1:
-        raise ValueError("invalid live authority schema")
-    validate_snapshot(snapshot)
-    if not isinstance(authority.get("source"), str) or not re.fullmatch(
-        r"current-task/user/[a-z0-9][a-z0-9._/-]*", authority["source"]
-    ):
-        raise ValueError("invalid live authority source")
-    response = authority.get("approval_response")
-    if not isinstance(response, str) or not response or len(response) > 10_000:
-        raise ValueError("invalid approval response")
-    if authority.get("approval_response_sha256") != sha256_bytes(response.encode()):
-        raise ValueError("approval response digest mismatch")
-    snapshot_sha256 = canonical_sha256(snapshot)
-    if authority.get("snapshot_sha256") != snapshot_sha256:
-        raise ValueError("live authority snapshot mismatch")
-    impact = authority.get("impact")
-    if not isinstance(impact, dict):
-        raise ValueError("invalid authorized impact")
-    validate_impact(impact, snapshot)
-    token = impact_token(snapshot, impact)
-    if authority.get("impact_token") != token:
-        raise ValueError("live authority impact token mismatch")
-    invocations = authority.get("invocations")
-    if not isinstance(invocations, list):
-        raise ValueError("live authority requires exact invocations")
-    expected_commands = _expected_authority_commands(impact)
-    if [
-        item.get("command") for item in invocations if isinstance(item, dict)
-    ] != expected_commands:
-        raise ValueError("live authority does not cover complete impact scope")
-    if not expected_commands:
-        raise ValueError("live authority cannot authorize a zero-call impact")
-    settings = snapshot["settings"]
-    package = snapshot["package"]
-    for invocation in invocations:
-        _validate_invocation(invocation)
-        if (
-            invocation["model"] != settings["model"]
-            or invocation["effort"] != settings["effort"]
-            or invocation["timeout_seconds"] != settings["timeout_seconds"]
-        ):
-            raise ValueError("authorized invocation settings mismatch")
-        if invocation["command"] == "corpus":
-            candidate = {
-                "semantic_sha256": invocation["package_semantic_sha256"],
-                "artifact_sha256": invocation["package_artifact_sha256"],
-            }
-            if invocation["cases"] != impact["corpus_cases"]:
-                raise ValueError("live authority does not cover complete impact scope")
-        else:
-            candidate = {
-                "semantic_sha256": invocation["candidate_semantic_sha256"],
-                "artifact_sha256": invocation["candidate_artifact_sha256"],
-            }
-            if invocation["pairs"] != impact["holdout_pairs"]:
-                raise ValueError("live authority does not cover complete impact scope")
-        if candidate != package:
-            raise ValueError("authorized invocation package mismatch")
-    request = {
-        "schema_version": 1,
-        "snapshot_sha256": snapshot_sha256,
-        "impact": impact,
-        "impact_token": token,
-        "invocations": invocations,
-    }
-    request_sha256 = canonical_sha256(request)
-    if authority.get("approval_request_sha256") != request_sha256:
-        raise ValueError("approval request digest mismatch")
-    if response != affirmative_approval_response(request_sha256):
-        raise ValueError("approval response is not the canonical affirmative grant")
-
-
-def _authorization_boundary() -> tuple[type[Any], Any]:
-    class AuthorizedInvocation:
-        """Immutable process-local proof of exact persisted authority validation."""
-
-        __slots__ = ("__payload_json",)
-
-        def __new__(cls, *_args: Any, **_kwargs: Any) -> Any:
-            raise TypeError("authorized invocation capabilities are validator-minted")
-
-        def __setattr__(self, _name: str, _value: Any) -> None:
-            raise AttributeError("authorized invocation capabilities are immutable")
-
-        @property
-        def authority_sha256(self) -> str:
-            return self._payload()["authority_sha256"]
-
-        @property
-        def command(self) -> str:
-            return self.descriptor()["command"]
-
-        @property
-        def impact_token(self) -> str:
-            return self._payload()["impact_token"]
-
-        def descriptor(self) -> dict[str, Any]:
-            return self._payload()["descriptor"]
-
-        def snapshot(self) -> dict[str, Any]:
-            return self._payload()["snapshot"]
-
-        def _payload(self) -> dict[str, Any]:
-            return json.loads(self.__payload_json)
-
-        def __copy__(self) -> Any:
-            raise TypeError("authorized invocation capabilities cannot be copied")
-
-        def __deepcopy__(self, _memo: dict[int, Any]) -> Any:
-            raise TypeError("authorized invocation capabilities cannot be copied")
-
-        def __reduce__(self) -> Any:
-            raise TypeError("authorized invocation capabilities cannot be serialized")
-
-    def mint(
-        *,
-        descriptor: dict[str, Any],
-        snapshot: dict[str, Any],
-        impact_token_value: str,
-        authority_sha256: str,
-    ) -> AuthorizedInvocation:
-        capability = object.__new__(AuthorizedInvocation)
-        object.__setattr__(
-            capability,
-            "_AuthorizedInvocation__payload_json",
-            canonical_json_bytes(
-                {
-                    "authority_sha256": authority_sha256,
-                    "descriptor": descriptor,
-                    "impact_token": impact_token_value,
-                    "snapshot": snapshot,
-                }
-            ),
-        )
-        return capability
-
-    def claim_authorized_invocation(
-        authority: Any,
-        *,
-        snapshot: dict[str, Any],
-        impact: dict[str, Any],
-        invocation: dict[str, Any],
-        attempt_root: Path,
-    ) -> AuthorizedInvocation:
-        validate_live_authority(authority, snapshot=snapshot)
-        validate_impact(impact, snapshot)
-        if authority["impact"] != impact:
-            raise ValueError("live authority does not match current impact")
-        _validate_invocation(invocation)
-        requested = canonical_sha256(invocation)
-        authorized = {canonical_sha256(item) for item in authority["invocations"]}
-        if requested not in authorized:
-            raise ValueError("invocation is not authorized")
-        attempt_id = invocation["attempt_id"]
-        attempt_root.mkdir(parents=True, exist_ok=True)
-        receipt_path = attempt_root / f"{attempt_id}.json"
-        receipt = {
-            "schema_version": 1,
-            "attempt_id": attempt_id,
-            "authority_sha256": canonical_sha256(authority),
-            "impact_token": authority["impact_token"],
-            "invocation_sha256": requested,
-        }
-        flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
-        if hasattr(os, "O_NOFOLLOW"):
-            flags |= os.O_NOFOLLOW
-        try:
-            descriptor = os.open(receipt_path, flags, 0o600)
-        except FileExistsError as exc:
-            raise ValueError("live invocation attempt is already consumed") from exc
-        try:
-            with os.fdopen(descriptor, "wb") as stream:
-                stream.write(canonical_json_bytes(receipt) + b"\n")
-                stream.flush()
-                os.fsync(stream.fileno())
-        except BaseException:
-            receipt_path.unlink(missing_ok=True)
-            raise
-        directory = os.open(attempt_root, os.O_RDONLY)
-        try:
-            os.fsync(directory)
-        finally:
-            os.close(directory)
-        return mint(
-            descriptor=invocation,
-            snapshot=snapshot,
-            impact_token_value=authority["impact_token"],
-            authority_sha256=canonical_sha256(authority),
-        )
-
-    return AuthorizedInvocation, claim_authorized_invocation
-
-
-AuthorizedInvocation, claim_authorized_invocation = _authorization_boundary()
-del _authorization_boundary
-
-
-def _run_git(repo: Path, *args: str) -> subprocess.CompletedProcess[bytes]:
-    return subprocess.run(
-        ["git", *args],
-        cwd=repo,
-        check=False,
-        capture_output=True,
-        stdin=subprocess.DEVNULL,
-    )
-
-
-def _require_reachable_commit(repo: Path, commit: str, *, label: str) -> None:
-    _require_digest(commit, length=40, label=label)
-    exists = _run_git(repo, "cat-file", "-e", f"{commit}^{{commit}}")
-    reachable = _run_git(repo, "merge-base", "--is-ancestor", commit, "HEAD")
-    if exists.returncode or reachable.returncode:
-        raise ValueError(f"reachable certification evidence missing: {label}")
-
-
-def _build_native_evidence_oracle(
-    case: dict[str, Any], *, scratch: Path
-) -> dict[str, Any] | None:
-    native = case["fixture"].get("native_compaction_resume")
-    if native is None:
-        return None
-    from evaluation.corpus.engine import (
-        apply_post_compaction_transition,
-        build_fixture,
-        expected_recovery_state,
-    )
-
-    fixture_repo = scratch / case["id"]
-    fixture = build_fixture(case, fixture_repo)
-    transition = apply_post_compaction_transition(
-        fixture_repo, native["post_compaction_transition"], fixture
-    )
-    return {
-        "recovery_state": expected_recovery_state(native, fixture, transition),
-        "post_compaction_transition_sha256": canonical_sha256(transition),
-    }
-
-
-def _validate_source_identity(
-    repo: Path,
-    commit: str,
-    snapshot: dict[str, Any],
-    live_authority: dict[str, Any] | None,
-) -> dict[str, Any]:
-    archive = _run_git(repo, "archive", "--format=tar", commit)
-    if archive.returncode:
-        raise ValueError("cannot read certification successor source")
-    with tempfile.TemporaryDirectory(prefix="happycodex-certified-source-") as raw:
-        root = Path(raw)
-        with tarfile.open(fileobj=io.BytesIO(archive.stdout), mode="r:") as source:
-            for member in source.getmembers():
-                path = PurePosixPath(member.name)
-                if path.is_absolute() or ".." in path.parts:
-                    raise ValueError("unsafe certification successor archive")
-                if member.issym() or member.islnk():
-                    target = PurePosixPath(member.linkname)
-                    if target.is_absolute() or ".." in target.parts:
-                        raise ValueError("unsafe certification successor archive link")
-            source.extractall(root)
-        try:
-            normalize_package_modes(root)
-            source_package = package_identities(root)
-            inventory = engine_inventory(root)
-        except (OSError, ValueError) as exc:
-            raise ValueError("invalid certification successor source") from exc
-        if source_package != snapshot["package"]:
-            raise ValueError("certification source package mismatch")
-        if inventory["manifest_sha256"] != snapshot["engine"]["manifest_sha256"]:
-            raise ValueError("certification successor engine mismatch")
-        source_ledger_path = root / "evaluation" / "results" / "current.json"
-        try:
-            source_ledger_bytes = source_ledger_path.read_bytes()
-            source_ledger = json.loads(source_ledger_bytes)
-        except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
-            raise ValueError("invalid certification source authority ledger") from exc
-        if (
-            not isinstance(source_ledger, dict)
-            or source_ledger.get("state") != "refresh_required"
-            or source_ledger.get("snapshot") != snapshot
-            or source_ledger.get("live_authority") != live_authority
-            or source_ledger.get("certification") is not None
-        ):
-            raise ValueError("certification source authority was not persisted")
-        try:
-            validate_ledger(source_ledger, repo=root)
-        except (OSError, ValueError) as exc:
-            raise ValueError("invalid certification source authority ledger") from exc
-        try:
-            from evaluation.corpus.engine import load_cases
-
-            corpus_cases = load_cases(root / "evaluation" / "cases")
-        except (OSError, ValueError) as exc:
-            raise ValueError("invalid certification successor corpus") from exc
-        if set(corpus_cases) != set(snapshot["corpus"]["cases"]):
-            raise ValueError("certification successor corpus scope mismatch")
-        manifest_path = root / "evaluation" / "holdouts" / "manifest.json"
-        try:
-            manifest = json.loads(manifest_path.read_bytes())
-        except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
-            raise ValueError(
-                "invalid certification successor holdout manifest"
-            ) from exc
-        rows = manifest.get("pairs") if isinstance(manifest, dict) else None
-        if (
-            not isinstance(manifest, dict)
-            or manifest.get("schema_version") != 1
-            or not isinstance(rows, list)
-        ):
-            raise ValueError("invalid certification successor holdout manifest")
-        descriptors: dict[str, dict[str, Any]] = {}
-        pair_order: list[str] = []
-        holdout_root = (root / "evaluation" / "holdouts").resolve()
-        for row in rows:
-            if not isinstance(row, dict) or not isinstance(row.get("id"), str):
-                raise ValueError("invalid certification successor holdout descriptor")
-            pair_id = row["id"]
-            relative = row.get("case_path")
-            if not isinstance(relative, str):
-                raise ValueError("invalid certification successor holdout case")
-            case_path = (root / relative).resolve()
-            if (
-                pair_id in descriptors
-                or not case_path.is_relative_to(holdout_root)
-                or not case_path.is_file()
-            ):
-                raise ValueError("invalid certification successor holdout case")
-            try:
-                case = json.loads(case_path.read_bytes())
-            except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
-                raise ValueError(
-                    "invalid certification successor holdout case"
-                ) from exc
-            if not isinstance(case, dict) or not isinstance(case.get("id"), str):
-                raise ValueError("invalid certification successor holdout case")
-            pair_order.append(pair_id)
-            descriptors[pair_id] = {
-                "case": case,
-                "case_sha256": sha256_bytes(case_path.read_bytes()),
-                "outside_diff_boundary": row.get("outside_diff_boundary"),
-                "oracle_kind": row.get("oracle_kind"),
-            }
-        if set(pair_order) != set(snapshot["holdout"]["pairs"]):
-            raise ValueError("certification successor holdout scope mismatch")
-        native_evidence_oracles: dict[str, dict[str, Any]] = {}
-        all_cases = [*corpus_cases.values()]
-        all_cases.extend(descriptor["case"] for descriptor in descriptors.values())
-        scratch = root / ".native-evidence"
-        for case in all_cases:
-            try:
-                expected = _build_native_evidence_oracle(case, scratch=scratch)
-            except (OSError, RuntimeError, ValueError) as exc:
-                raise ValueError(
-                    "invalid certification native evidence oracle"
-                ) from exc
-            if expected is None:
-                continue
-            case_id = case["id"]
-            prior = native_evidence_oracles.get(case_id)
-            if prior is not None and prior != expected:
-                raise ValueError("conflicting certification native evidence oracle")
-            native_evidence_oracles[case_id] = expected
-        return {
-            "ledger": source_ledger,
-            "ledger_sha256": sha256_bytes(source_ledger_bytes),
-            "engine": inventory,
-            "corpus_semantic_sha256": engine_category_sha256(
-                inventory,
-                "semantic",
-                paths={"evaluation/corpus/contract.py"},
-            ),
-            "corpus_cases": corpus_cases,
-            "native_evidence_oracles": native_evidence_oracles,
-            "holdout_manifest_sha256": sha256_bytes(manifest_path.read_bytes()),
-            "holdout_pair_order": pair_order,
-            "holdout_descriptors": descriptors,
-        }
-
-
-def _load_evidence(
-    repo: Path,
-    locator: Any,
-    *,
-    label: str,
-    source_commit: str,
-) -> tuple[dict[str, Any], str]:
-    if not isinstance(locator, dict) or set(locator) != EVIDENCE_LOCATOR_FIELDS:
-        raise ValueError(f"invalid certification evidence locator: {label}")
-    commit = locator["commit"]
-    _require_reachable_commit(repo, commit, label=f"{label} commit")
-    if commit == source_commit:
-        raise ValueError(
-            f"certification evidence must strictly postdate source: {label}"
-        )
-    after_source = _run_git(repo, "merge-base", "--is-ancestor", source_commit, commit)
-    if after_source.returncode:
-        raise ValueError(f"certification evidence predates source: {label}")
-    path = locator["path"]
-    if not isinstance(path, str):
-        raise ValueError(f"invalid certification evidence path: {label}")
-    relative = PurePosixPath(path)
-    if (
-        relative.is_absolute()
-        or ".." in relative.parts
-        or relative.parts[:3] != ("evaluation", "results", "evidence")
-        or relative.suffix != ".json"
-    ):
-        raise ValueError(f"unsafe certification evidence path: {label}")
-    blob = _run_git(repo, "rev-parse", f"{commit}:{path}")
-    content = _run_git(repo, "show", f"{commit}:{path}")
-    if blob.returncode or content.returncode:
-        raise ValueError(f"reachable certification evidence missing: {label}")
-    actual_blob = blob.stdout.decode().strip()
-    _require_digest(locator.get("git_blob"), length=40, label=f"{label} blob")
-    if locator["git_blob"] != actual_blob:
-        raise ValueError(f"certification evidence blob mismatch: {label}")
-    actual_sha256 = sha256_bytes(content.stdout)
-    _require_digest(locator.get("sha256"), length=64, label=f"{label} sha256")
-    if locator["sha256"] != actual_sha256:
-        raise ValueError(f"certification evidence digest mismatch: {label}")
-    try:
-        payload = json.loads(content.stdout)
-    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-        raise ValueError(f"certification evidence is not JSON: {label}") from exc
-    if not isinstance(payload, dict):
-        raise ValueError(f"certification evidence must be an object: {label}")
-    return payload, actual_sha256
-
-
-def _validate_coverage(
-    coverage: Any,
-    *,
-    snapshot: dict[str, Any],
-    impact: dict[str, Any],
-    corpus_holdout_waived: bool,
-) -> set[str]:
-    if not isinstance(coverage, dict) or set(coverage) != COVERAGE_FIELDS:
-        raise ValueError("invalid certification coverage manifest")
-    refreshed: dict[str, set[str]] = {}
-    required_disposition = "waived" if corpus_holdout_waived else "refreshed"
-    for label, available in (
-        ("corpus", set(snapshot["corpus"]["cases"])),
-        ("holdout", set(snapshot["holdout"]["pairs"])),
-    ):
-        values = coverage.get(label)
-        if (
-            not isinstance(values, dict)
-            or set(values) != available
-            or any(value != required_disposition for value in values.values())
-        ):
-            raise ValueError(f"invalid certification {label} coverage")
-        refreshed[label] = {
-            name for name, disposition in values.items() if disposition == "refreshed"
-        }
-    if refreshed["corpus"] != set(impact["corpus_cases"]):
-        raise ValueError("certification corpus coverage does not match impact")
-    if refreshed["holdout"] != set(impact["holdout_pairs"]):
-        raise ValueError("certification holdout coverage does not match impact")
-    evidence_fields: set[str] = set()
-    if refreshed["corpus"]:
-        evidence_fields.add("corpus_summary")
-    if refreshed["holdout"]:
-        evidence_fields.update({"holdout_run", "holdout_summary"})
-    return evidence_fields
-
-
-def _offline_gates(impact: dict[str, Any]) -> set[str]:
-    return set(impact["gates"]) & OFFLINE_GATES
-
-
-def _validate_offline_summary(
-    payload: Any,
-    *,
-    snapshot: dict[str, Any],
-    source_commit: str,
-    source_ledger_sha256: str,
-    gates: set[str],
-) -> None:
-    if not isinstance(payload, dict) or set(payload) != OFFLINE_SUMMARY_FIELDS:
-        raise ValueError("invalid offline certification evidence")
-    expected_gates = sorted(gates)
-    if (
-        not gates
-        or not gates.issubset(OFFLINE_GATES)
-        or payload.get("schema_version") != 1
-        or payload.get("engine_generation") != "0.4"
-        or payload.get("source_commit") != source_commit
-        or payload.get("source_ledger_sha256") != source_ledger_sha256
-        or payload.get("snapshot_sha256") != canonical_sha256(snapshot)
-        or payload.get("engine_manifest_sha256")
-        != snapshot["engine"]["manifest_sha256"]
-        or payload.get("gates") != expected_gates
-    ):
-        raise ValueError("offline certification evidence identity mismatch")
-    expected_receipt = (
-        snapshot["engine"]["categories"]["artifact"] if "receipt" in gates else None
-    )
-    if payload.get("receipt_artifact_sha256") != expected_receipt:
-        raise ValueError("offline receipt evidence mismatch")
-    installation = payload.get("isolated_installation")
-    if "isolated_install" in gates:
-        _validate_installation_receipt(
-            installation,
-            package=snapshot["package"],
-            case_id="offline certification",
-        )
-    elif installation is not None:
-        raise ValueError("unexpected offline installation evidence")
-
-
-def _nonnegative_int(value: Any) -> bool:
-    return isinstance(value, int) and not isinstance(value, bool) and value >= 0
-
-
-def _casefold_text_sha256(value: Any) -> str:
-    return sha256_bytes(str(value).casefold().encode())
-
-
-def _identity_match_sha256s(value: Any) -> frozenset[str]:
-    return frozenset(
-        _casefold_text_sha256(candidate) for candidate in identity_match_values(value)
-    )
-
-
-def _validate_digest_list(value: Any, *, label: str, required: bool) -> None:
-    if (
-        not isinstance(value, list)
-        or (required and not value)
-        or value != sorted(set(value))
-    ):
-        raise ValueError(f"invalid {label} digest list")
-    for item in value:
-        _require_digest(item, length=64, label=label)
-
-
-def _matches_unordered_list_digest(value: Any, expected: list[Any]) -> bool:
-    if len(expected) > 8:
-        raise ValueError("recovery marker set is too large to verify exactly")
-    expected_digests = {
-        canonical_sha256(list(order)) for order in set(permutations(expected))
-    }
-    return value in expected_digests
-
-
-def _validate_recovery_oracle_receipt(
-    value: dict[str, Any], *, oracle: dict[str, Any], label: str
-) -> None:
-    for field in (
-        "baseline_revision",
-        "baseline_tree",
-        "current_revision",
-        "current_tree",
-    ):
-        if field in oracle and value[field] != oracle[field]:
-            raise ValueError(f"invalid {label} recovery oracle receipt: {field}")
-    for field in (
-        "writer",
-        "milestone_phase",
-        "next_action",
-        "pending_gates",
-        "worktree",
-    ):
-        if value[field] != oracle[field]:
-            raise ValueError(f"invalid {label} recovery oracle receipt: {field}")
-    tests = value["tests"]
-    expected_tests = oracle["tests"]
-    for field in ("passed", "failed", "accepted_failures"):
-        if tests[field] != expected_tests[field]:
-            raise ValueError(f"invalid {label} recovery oracle tests: {field}")
-    expected_test_markers = expected_tests["marker_ids"]
-    if tests["marker_ids_count"] != len(
-        expected_test_markers
-    ) or not _matches_unordered_list_digest(
-        tests["marker_ids_sha256"], expected_test_markers
-    ):
-        raise ValueError(f"invalid {label} recovery oracle test markers")
-    expected_agents = [
-        {
-            "id_sha256": sha256_bytes(str(agent["id"]).encode()),
-            "status": agent["status"],
-            "receipt_reproduced": agent["receipt_reproduced"],
-        }
-        for agent in oracle["live_agents"]
-    ]
-    if sorted(value["live_agents"], key=canonical_sha256) != sorted(
-        expected_agents, key=canonical_sha256
-    ):
-        raise ValueError(f"invalid {label} recovery oracle agents")
-    expected_markers = oracle["marker_ids"]
-    if value["marker_ids_count"] != len(
-        expected_markers
-    ) or not _matches_unordered_list_digest(
-        value["marker_ids_sha256"], expected_markers
-    ):
-        raise ValueError(f"invalid {label} recovery oracle markers")
-
-
-def _validate_case_oracle_receipt(
-    value: dict[str, Any], *, case: dict[str, Any], label: str
-) -> None:
-    oracle = case["oracle"]
-    findings = value["finding_classifications"]
-    blockers = value["blocker_classifications"]
-    from evaluation.corpus.engine import fixture_requires_goal_pause_handoff
-
-    if (
-        fixture_requires_goal_pause_handoff(case["fixture"])
-        and value["decision"] == "stop_for_user"
-        and value["goal_pause_handoff_present"] is not True
-    ):
-        raise ValueError(f"missing {label} oracle Goal-pause handoff receipt")
-    for required in oracle.get("required_classifications", []):
-        states = required["state"]
-        allowed_states = states if isinstance(states, list) else [states]
-        identities = _identity_match_sha256s(required["identity"])
-        if not any(
-            identities & set(finding["identity_match_sha256s"])
-            and finding["domain"] == required["domain"]
-            and finding["state"] in allowed_states
-            for finding in findings
-        ):
-            raise ValueError(f"missing {label} oracle classification receipt")
-    for required_class in oracle.get("required_blocker_classes", []):
-        if not any(
-            blocker["class"] == required_class and blocker["blocking"] is True
-            for blocker in blockers
-        ):
-            raise ValueError(f"missing {label} oracle blocker-class receipt")
-    for required in oracle.get("required_blocker_classifications", []):
-        identities = _identity_match_sha256s(required["identity"])
-        if not any(
-            identities & set(blocker["identity_match_sha256s"])
-            and blocker["class"] == required["class"]
-            and blocker["blocking"] is True
-            for blocker in blockers
-        ):
-            raise ValueError(f"missing {label} oracle blocker receipt")
-    anchored_blocker_matches: list[list[frozenset[str]]] = []
-    for required in oracle.get("required_anchored_blockers", []):
-        anchor = _casefold_text_sha256(required["anchor"])
-        classes = required["class"]
-        allowed_classes = classes if isinstance(classes, list) else [classes]
-        anchored = [
-            finding for finding in findings if anchor in finding["anchor_sha256s"]
-        ]
-        matches = [
-            frozenset(finding["identity_match_sha256s"])
-            for finding in anchored
-            for blocker in blockers
-            if classifications_share_identity(finding, blocker)
-            and blocker["class"] in allowed_classes
-            and blocker["blocking"] is True
-        ]
-        anchored_blocker_matches.append(matches)
-        if not matches:
-            raise ValueError(f"missing {label} oracle anchored blocker receipt")
-    if anchored_blocker_matches and not has_distinct_identity_assignment(
-        anchored_blocker_matches
-    ):
-        raise ValueError(f"distinct anchored blocker receipt required for {label}")
-    anchored_classification_matches: list[list[frozenset[str]]] = []
-    for required in oracle.get("required_anchored_classifications", []):
-        anchor = _casefold_text_sha256(required["anchor"])
-        states = required["state"]
-        allowed_states = states if isinstance(states, list) else [states]
-        matches = [
-            frozenset(finding["identity_match_sha256s"])
-            for finding in findings
-            if anchor in finding["anchor_sha256s"]
-            and finding["domain"] == required["domain"]
-            and finding["state"] in allowed_states
-        ]
-        anchored_classification_matches.append(matches)
-        if not matches:
-            raise ValueError(f"missing {label} oracle anchored classification receipt")
-    if anchored_classification_matches and not has_distinct_identity_assignment(
-        anchored_classification_matches
-    ):
-        raise ValueError(
-            f"distinct anchored classification receipt required for {label}"
-        )
-    if value["decision"] == "complete" or value["protocol_may_complete"] is True:
-        accepted = [
-            (identity, _identity_match_sha256s(identity))
-            for identity in oracle.get("accepted_baseline_failures", [])
-        ]
-        for finding in findings:
-            if (
-                finding["domain"] == "baseline_failure"
-                and finding["state"] == "baseline_unchanged"
-                and sum(
-                    bool(identities & set(finding["identity_match_sha256s"]))
-                    for _, identities in accepted
-                )
-                != 1
-            ):
-                raise ValueError(
-                    f"invalid {label} accepted baseline classification receipt"
-                )
-
-
-def _validate_recovery_receipt(value: Any, *, label: str) -> None:
-    if not isinstance(value, dict) or set(value) != RECOVERY_RECEIPT_FIELDS:
-        raise ValueError(f"invalid {label} recovery receipt")
-    _require_digest(
-        value.get("recovery_state_sha256"), length=64, label=f"{label} recovery"
-    )
-    for field in (
-        "baseline_revision",
-        "baseline_tree",
-        "current_revision",
-        "current_tree",
-    ):
-        _require_digest(value.get(field), length=40, label=f"{label} recovery {field}")
-    pending_gates = value.get("pending_gates")
-    if (
-        value.get("writer") not in RECOVERY_WRITERS
-        or value.get("milestone_phase") not in RECOVERY_PHASES
-        or value.get("next_action") not in RECOVERY_ACTIONS
-        or value.get("worktree") not in RECOVERY_WORKTREE_STATES
-        or not isinstance(pending_gates, list)
-        or any(gate not in RECOVERY_PENDING_GATES for gate in pending_gates)
-    ):
-        raise ValueError(f"invalid {label} recovery receipt")
-    tests = value.get("tests")
-    if not isinstance(tests, dict) or set(tests) != RECOVERY_TEST_FIELDS:
-        raise ValueError(f"invalid {label} recovery tests receipt")
-    if any(
-        not _nonnegative_int(tests.get(field))
-        for field in ("passed", "failed", "accepted_failures", "marker_ids_count")
-    ):
-        raise ValueError(f"invalid {label} recovery tests receipt")
-    _require_digest(
-        tests.get("marker_ids_sha256"),
-        length=64,
-        label=f"{label} recovery test markers",
-    )
-    agents = value.get("live_agents")
-    if not isinstance(agents, list):
-        raise ValueError(f"invalid {label} recovery agents receipt")
-    for agent in agents:
-        if (
-            not isinstance(agent, dict)
-            or set(agent) != RECOVERY_AGENT_FIELDS
-            or agent.get("status") not in RECOVERY_AGENT_STATES
-            or not isinstance(agent.get("receipt_reproduced"), bool)
-        ):
-            raise ValueError(f"invalid {label} recovery agent receipt")
-        _require_digest(
-            agent.get("id_sha256"), length=64, label=f"{label} recovery agent"
-        )
-    if not _nonnegative_int(value.get("marker_ids_count")):
-        raise ValueError(f"invalid {label} recovery marker receipt")
-    _require_digest(
-        value.get("marker_ids_sha256"),
-        length=64,
-        label=f"{label} recovery markers",
-    )
-    if (
-        value.get("recovery_manifest_count") != 1
-        or value.get("summary_consistent") is not True
-    ):
-        raise ValueError(f"invalid {label} Recovery Manifest receipt")
-    _require_digest(
-        value.get("recovery_manifest_sha256"),
-        length=64,
-        label=f"{label} Recovery Manifest",
-    )
-
-
-def _validate_result_receipt(
-    value: Any,
-    *,
-    label: str,
-    required: bool,
-    recovery_required: bool | None,
-    expected_permissions: dict[str, Any] | None = None,
-) -> dict[str, Any] | None:
-    if value is None:
-        if required:
-            raise ValueError(f"missing {label} result receipt")
-        return None
-    if not isinstance(value, dict) or set(value) != RESULT_RECEIPT_FIELDS:
-        raise ValueError(f"invalid {label} result receipt")
-    for field in (
-        "result_sha256",
-        "open_gates_sha256",
-        "evidence_sha256",
-        "reason_sha256",
-    ):
-        _require_digest(value.get(field), length=64, label=f"{label} result {field}")
-    if (
-        value.get("decision")
-        not in {"continue", "stop_for_user", "complete", "incomplete"}
-        or not isinstance(value.get("qualifies"), bool)
-        or value.get("execplan_condition")
-        not in {"not_required", "missing", "usable", "needs_amendment"}
-        or any(
-            not isinstance(value.get(field), bool)
-            for field in (
-                "protocol_may_product_write",
-                "protocol_may_complete",
-            )
-        )
-        or value.get("protocol_review_mode")
-        not in {"none", "focused_hardening", "exact_final"}
-        or not _nonnegative_int(value.get("open_gates_count"))
-        or not _nonnegative_int(value.get("evidence_count"))
-        or not isinstance(value.get("goal_pause_handoff_present"), bool)
-        or any(
-            not isinstance(value.get(field), bool)
-            for field in (
-                "repair_gate_present",
-                "user_gate_present",
-                "focused_review_gate_present",
-                "exact_final_review_gate_present",
-            )
-        )
-    ):
-        raise ValueError(f"invalid {label} result receipt")
-    findings = value.get("finding_classifications")
-    blockers = value.get("blocker_classifications")
-    if not isinstance(findings, list) or not isinstance(blockers, list):
-        raise ValueError(f"invalid {label} result classifications")
-    for finding in findings:
-        if (
-            not isinstance(finding, dict)
-            or set(finding) != FINDING_RECEIPT_FIELDS
-            or finding.get("domain")
-            not in {"secret", "baseline_failure", "receipt", "other"}
-            or finding.get("state")
-            not in {"baseline_unchanged", "resolved", "candidate_new", "unknown"}
-            or not isinstance(finding.get("identity_nonblank"), bool)
-            or not _nonnegative_int(finding.get("anchors_count"))
-        ):
-            raise ValueError(f"invalid {label} result finding receipt")
-        for field in (
-            "identity_sha256",
-            "identity_casefold_sha256",
-            "anchors_sha256",
-        ):
-            _require_digest(
-                finding.get(field), length=64, label=f"{label} finding {field}"
-            )
-        if finding["identity_nonblank"] is not True:
-            raise ValueError(f"invalid {label} blank finding identity")
-        _validate_digest_list(
-            finding.get("identity_match_sha256s"),
-            label=f"{label} finding identity matches",
-            required=True,
-        )
-        if finding["identity_casefold_sha256"] not in finding["identity_match_sha256s"]:
-            raise ValueError(f"invalid {label} result finding identity matches")
-        _validate_digest_list(
-            finding.get("anchor_sha256s"),
-            label=f"{label} finding anchors",
-            required=finding["anchors_count"] > 0,
-        )
-        if finding["anchors_count"] == 0 and finding["anchor_sha256s"]:
-            raise ValueError(f"invalid {label} result finding anchors")
-    for blocker in blockers:
-        if (
-            not isinstance(blocker, dict)
-            or set(blocker) != BLOCKER_RECEIPT_FIELDS
-            or blocker.get("class") not in BLOCKER_CLASSES
-            or not isinstance(blocker.get("blocking"), bool)
-            or not isinstance(blocker.get("identity_nonblank"), bool)
-        ):
-            raise ValueError(f"invalid {label} result blocker receipt")
-        for field in (
-            "identity_sha256",
-            "identity_casefold_sha256",
-            "reason_sha256",
-        ):
-            _require_digest(
-                blocker.get(field), length=64, label=f"{label} blocker {field}"
-            )
-        if blocker["identity_nonblank"] is not True:
-            raise ValueError(f"invalid {label} blank blocker identity")
-        _validate_digest_list(
-            blocker.get("identity_match_sha256s"),
-            label=f"{label} blocker identity matches",
-            required=True,
-        )
-        if blocker["identity_casefold_sha256"] not in blocker["identity_match_sha256s"]:
-            raise ValueError(f"invalid {label} result blocker identity matches")
-    if expected_permissions is not None:
-        for field in PERMISSION_FIELDS:
-            allowed = expected_permissions.get(field)
-            allowed = allowed if isinstance(allowed, list) else [allowed]
-            if value.get(field) not in allowed:
-                raise ValueError(f"invalid {label} oracle permission receipt")
-    state_failures = protocol_state_failures(value)
-    if state_failures:
-        raise ValueError(
-            f"invalid {label} review mode state: {'; '.join(state_failures)}"
-        )
-    completion_claimed = (
-        value["decision"] == "complete" or value["protocol_may_complete"] is True
-    )
-    if completion_claimed and (
-        value["decision"] != "complete"
-        or value["protocol_may_complete"] is not True
-        or value["protocol_review_mode"] != "none"
-        or value["open_gates_count"] != 0
-        or any(item["blocking"] is True for item in blockers)
-        or any(item["state"] in {"candidate_new", "unknown"} for item in findings)
-    ):
-        raise ValueError(f"invalid {label} completion receipt")
-    recovery = value.get("recovery_state")
-    if recovery_required is True:
-        _validate_recovery_receipt(recovery, label=label)
-    elif recovery_required is False:
-        if recovery is not None:
-            raise ValueError(f"unexpected {label} recovery receipt")
-    elif recovery is not None:
-        _validate_recovery_receipt(recovery, label=label)
     return value
 
 
-def _validate_compaction_phase(value: Any, *, label: str) -> None:
-    if not isinstance(value, dict) or set(value) != COMPACTION_PHASE_FIELDS:
-        raise ValueError(f"invalid native compaction {label} receipt")
-    for field in ("phase_sha256", "rollout_path_sha256", "rollout_sha256"):
-        _require_digest(value.get(field), length=64, label=f"native {label} {field}")
-    prefix_sha256 = value.get("rollout_prefix_sha256")
-    if prefix_sha256 is not None:
-        _require_digest(
-            prefix_sha256,
-            length=64,
-            label=f"native {label} rollout_prefix_sha256",
-        )
-    event_types = value.get("event_types")
-    if (
-        any(
-            not _nonnegative_int(value.get(field))
-            for field in (
-                "compaction_event_count",
-                "context_compacted_marker_count",
-                "rollout_byte_count",
-                "rollout_match_count",
-            )
-        )
-        or not isinstance(event_types, list)
-        or any(event not in COMPACTION_EVENT_TYPES for event in event_types)
-        or value["compaction_event_count"] != event_types.count("compacted")
-        or value["context_compacted_marker_count"]
-        != event_types.count("context_compacted")
-        or value["rollout_match_count"] != 1
-        or value["compaction_event_count"] < 1
-    ):
-        raise ValueError(f"invalid native compaction {label} receipt")
-
-
-def _validate_native_compaction(
-    value: Any,
-    *,
-    case: dict[str, Any],
-    receipt: dict[str, Any],
-    result: dict[str, Any] | None,
-    fresh_result: dict[str, Any] | None,
-    native_evidence_oracle: dict[str, Any] | None,
-) -> None:
-    native = case["fixture"].get("native_compaction_resume")
-    if native is None:
-        if value is not None:
-            raise ValueError("unexpected native compaction receipt")
-        return
-    if not isinstance(value, dict) or set(value) != NATIVE_COMPACTION_FIELDS:
-        raise ValueError("missing or invalid native compaction receipt")
-    if not isinstance(native_evidence_oracle, dict) or set(native_evidence_oracle) != {
-        "recovery_state",
-        "post_compaction_transition_sha256",
-    }:
-        raise ValueError("missing native evidence oracle")
-    for field in (
-        "native_compaction_sha256",
-        "post_compaction_transition_sha256",
-    ):
-        _require_digest(value.get(field), length=64, label=f"native {field}")
-    if (
-        value["post_compaction_transition_sha256"]
-        != native_evidence_oracle["post_compaction_transition_sha256"]
-    ):
-        raise ValueError("invalid native post-compaction transition receipt")
-    if (
-        value.get("auto_compact_token_limit") != native["auto_compact_token_limit"]
-        or not _nonnegative_int(value.get("compaction_event_count"))
-        or value["compaction_event_count"] < 1
-        or value.get("resumed_same_thread") is not True
-    ):
-        raise ValueError("invalid native compaction receipt")
-    _validate_compaction_phase(value.get("before_resume"), label="before-resume")
-    _validate_compaction_phase(value.get("after_resume"), label="after-resume")
-    before = value["before_resume"]
-    after = value["after_resume"]
-    if (
-        value["compaction_event_count"] != before["compaction_event_count"]
-        or after["rollout_path_sha256"] != before["rollout_path_sha256"]
-        or after["rollout_sha256"] == before["rollout_sha256"]
-        or before["rollout_prefix_sha256"] is not None
-        or after["rollout_prefix_sha256"] != before["rollout_sha256"]
-        or after["rollout_byte_count"] <= before["rollout_byte_count"]
-        or after["event_types"][: len(before["event_types"])] != before["event_types"]
-    ):
-        raise ValueError("invalid native compaction rollout relationship")
-    fresh = value.get("fresh_control")
-    if not isinstance(fresh, dict) or set(fresh) != FRESH_CONTROL_FIELDS:
-        raise ValueError("missing or invalid native fresh-control receipt")
-    for field in (
-        "fresh_control_sha256",
-        "thread_id_sha256",
-        "prompt_sha256",
-        "allowed_label_differences_sha256",
-    ):
-        _require_digest(value=fresh.get(field), length=64, label=f"native {field}")
-    if (
-        fresh.get("distinct_from_resumed_task") is not True
-        or fresh.get("no_resume_handle") is not True
-        or fresh.get("no_conversation_summary") is not True
-        or fresh.get("equivalent_gate_fields")
-        != [*sorted(RECOVERY_GATE_FIELDS), "recovery_state"]
-    ):
-        raise ValueError("invalid native fresh-control receipt")
-    primary_thread = receipt["thread_id_sha256"]
-    resume_thread = receipt["resume_thread_id_sha256"]
-    fresh_thread = receipt["fresh_recovery_thread_id_sha256"]
-    missing_thread = sha256_bytes(b"None")
-    if (
-        primary_thread == missing_thread
-        or resume_thread != primary_thread
-        or fresh_thread == missing_thread
-        or fresh_thread == primary_thread
-        or fresh["thread_id_sha256"] != fresh_thread
-    ):
-        raise ValueError("invalid native thread-control receipt")
-    if (
-        result is None
-        or fresh_result is None
-        or any(result[field] != fresh_result[field] for field in RECOVERY_GATE_FIELDS)
-    ):
-        raise ValueError("invalid native recovery-control receipt")
-    allowed_differences = {
-        field: [result[field], fresh_result[field]]
-        for field in ("decision", "execplan_condition")
-        if result[field] != fresh_result[field]
-    }
-    if fresh["allowed_label_differences_sha256"] != canonical_sha256(
-        allowed_differences
-    ):
-        raise ValueError("invalid native recovery-control labels receipt")
-    recovery = result["recovery_state"]
-    fresh_recovery = fresh_result["recovery_state"]
-    if not isinstance(recovery, dict) or not isinstance(fresh_recovery, dict):
-        raise ValueError("invalid native recovery-control state receipt")
-    recovery_oracle = native_evidence_oracle["recovery_state"]
-    _validate_recovery_oracle_receipt(recovery, oracle=recovery_oracle, label="primary")
-    _validate_recovery_oracle_receipt(
-        fresh_recovery, oracle=recovery_oracle, label="fresh"
+def _validate_recovery_manifest(native: dict[str, Any], case_id: str) -> None:
+    markers = [
+        item
+        for item in native["recovery_oracle"].get("marker_ids", [])
+        if type(item) is str and RECOVERY_MANIFEST_PATTERN.fullmatch(item)
+    ]
+    if len(markers) != 1:
+        raise ValueError(f"invalid Recovery Manifest marker: {case_id}")
+    match = RECOVERY_MANIFEST_PATTERN.fullmatch(markers[0])
+    digest = match.group(1)
+    content = native["post_compaction_transition"]["files"].get(
+        _RECOVERY_MANIFEST_PATH
     )
-    for field in (
-        "baseline_revision",
-        "baseline_tree",
-        "current_revision",
-        "current_tree",
-    ):
-        if recovery[field] != fresh_recovery[field]:
-            raise ValueError(f"invalid native recovery-control state: {field}")
-
-
-def _validate_installation_receipt(
-    value: Any, *, package: dict[str, str], case_id: str
-) -> None:
-    if not isinstance(value, dict) or set(value) != INSTALLATION_RECEIPT_FIELDS:
-        raise ValueError(f"invalid corpus evidence installation: {case_id}")
-    for field in INSTALLATION_RECEIPT_FIELDS:
-        _require_digest(value.get(field), length=64, label=f"case installation {field}")
+    if type(content) is not str or sha256_bytes(content.encode()) != digest:
+        raise ValueError(f"Recovery Manifest digest mismatch: {case_id}")
+    manifest = json.loads(content)
+    validate_named(CONTRACTS, "recovery_manifest", manifest)
+    repositories = manifest["repositories"]
+    claim = manifest["resource_claim"]
+    resources = claim["resources"]
+    tests = manifest["tests"]
+    selected = manifest["selected_checkpoint"]
+    agents = manifest["agents"]
+    selected_ok = (
+        (
+            type(selected["ref"]) is str
+            and re.fullmatch(
+                r"refs/(?!.*(?:\.\.|//|@\{|\\))[A-Za-z0-9._/-]*[A-Za-z0-9_-]",
+                selected["ref"],
+            )
+            is not None
+        )
+        if selected["archive"] is None
+        else selected["ref"] is None
+        and type(selected["archive"]) is str
+        and re.fullmatch(r"sha256:[0-9a-f]{64}", selected["archive"]) is not None
+    )
     if (
-        value["source_skill_sha256"] != value["installed_skill_sha256"]
-        or value["source_package_manifest_sha256"] != package["artifact_sha256"]
-        or value["installed_package_manifest_sha256"] != package["artifact_sha256"]
+        len({item["namespace"] for item in repositories}) != len(repositories)
+        or {item.partition(":")[0] for item in resources}
+        != {"worktree", "ref", "ledger", "output", "activation"}
+        or not selected_ok
+        or tests["accepted_failures"] > tests["failed"]
+        or any(item["receipt_reproduced"] is not True for item in agents)
+        or len({item["id"] for item in agents}) != len(agents)
     ):
-        raise ValueError(f"corpus evidence installation mismatch: {case_id}")
-
-
-def _validate_isolation_receipt(value: Any, *, case_id: str) -> None:
-    if not isinstance(value, dict) or set(value) != FILESYSTEM_RECEIPT_FIELDS:
-        raise ValueError(f"invalid corpus evidence isolation: {case_id}")
-    expected = {
-        field: FILESYSTEM_ISOLATION_POLICY[field]
-        for field in FILESYSTEM_RECEIPT_FIELDS - {"policy_sha256"}
+        raise ValueError(f"invalid Recovery Manifest state: {case_id}")
+    oracle = native["recovery_oracle"]
+    oracle_tests = {
+        field: oracle["tests"][field]
+        for field in ("passed", "failed", "accepted_failures")
     }
-    if any(value.get(field) != expected[field] for field in expected):
-        raise ValueError(f"corpus evidence isolation mismatch: {case_id}")
-    expected_policy_sha256 = canonical_sha256(
-        {
-            **FILESYSTEM_ISOLATION_POLICY,
-            "workspace_root": "<case-temp>/repo",
-            "native_tool_root": "<case-temp>/bin",
+    if (
+        manifest["writer"] != oracle["writer"]
+        or manifest["gates"] != oracle["pending_gates"]
+        or tests != oracle_tests
+        or agents != oracle["live_agents"]
+    ):
+        raise ValueError(f"Recovery Manifest cross-binding mismatch: {case_id}")
+
+
+def validate_case_input(case: dict[str, Any], path: Path) -> None:
+    """Validate immutable behavior input without promoting its prose to state."""
+    validate_named(CONTRACTS, "case", case)
+    if "$happycodex:happycodex" not in case["prompt"]:
+        raise ValueError(f"invalid case envelope: {path}")
+    fixture, oracle = case["fixture"], case["oracle"]
+    if not fixture.get("commits"):
+        raise ValueError(f"case needs a commit: {case['id']}")
+    expected = oracle.get("expected", {})
+    if set(expected) != PERMISSION_FIELDS or permission_assertions_invalid(expected):
+        raise ValueError(f"invalid permission state: {case['id']}")
+    _unique_strings(
+        oracle.get("accepted_baseline_failures", []),
+        "accepted baseline failures",
+    )
+    prompts = [case["prompt"]]
+    native = fixture.get("native_compaction_resume")
+    if native is not None:
+        required = {
+            "prepare_prompt",
+            "fresh_recovery_prompt",
+            "auto_compact_token_limit",
+            "post_compaction_transition",
+            "recovery_oracle",
         }
-    )
-    if value.get("policy_sha256") != expected_policy_sha256:
-        raise ValueError(f"corpus evidence isolation policy mismatch: {case_id}")
-
-
-def _validate_case_identity(
-    receipt: Any,
-    snapshot: dict[str, Any],
-    case_id: str,
-    *,
-    case: dict[str, Any],
-    native_evidence_oracle: dict[str, Any] | None,
-    expected_passed: bool = True,
-    semantic_sha256: str,
-    package: dict[str, str],
-    engine: dict[str, Any],
-) -> None:
-    settings = snapshot["settings"]
-    if (
-        not isinstance(receipt, dict)
-        or set(receipt) != CASE_RECEIPT_FIELDS
-        or receipt.get("schema_version") != 1
-        or receipt.get("engine_generation") != "0.4"
-        or receipt.get("id") != case_id
-        or not isinstance(case, dict)
-        or case.get("id") != case_id
-    ):
-        raise ValueError("invalid corpus evidence case")
-    passed = receipt.get("passed")
-    timed_out = receipt.get("timed_out")
-    if (
-        not isinstance(passed, bool)
-        or not isinstance(timed_out, bool)
-        or receipt.get("model") != settings["model"]
-        or receipt.get("effort") != settings["effort"]
-        or receipt.get("timeout_seconds") != settings["timeout_seconds"]
-    ):
-        raise ValueError(f"corpus evidence case did not pass: {case_id}")
-    if receipt.get("semantic_input_sha256") != semantic_sha256:
-        raise ValueError(f"corpus evidence semantic identity mismatch: {case_id}")
-    identities = receipt.get("identities")
-    if not isinstance(identities, dict) or set(identities) != {
-        "engine",
-        "package",
-        "toolchain",
-    }:
-        raise ValueError(f"corpus evidence identities missing: {case_id}")
-    if identities.get("engine") != engine:
-        raise ValueError(f"corpus evidence engine mismatch: {case_id}")
-    if identities.get("package") != package:
-        raise ValueError(f"corpus evidence package mismatch: {case_id}")
-    if identities.get("toolchain") != snapshot["settings"]["toolchain"]:
-        raise ValueError(f"corpus evidence toolchain mismatch: {case_id}")
-    for field in (
-        "metadata_sha256",
-        "events_sha256",
-        "stderr_sha256",
-        "thread_id_sha256",
-        "resume_thread_id_sha256",
-        "fresh_recovery_thread_id_sha256",
-    ):
-        _require_digest(receipt.get(field), length=64, label=f"case {field}")
-    _validate_installation_receipt(
-        receipt.get("installation"), package=package, case_id=case_id
-    )
-    failures = receipt.get("oracle_failures")
-    if expected_passed:
-        if failures != {"count": 0, "sha256": canonical_sha256([])}:
-            raise ValueError(f"corpus evidence oracle failed: {case_id}")
-    elif (
-        not isinstance(failures, dict)
-        or set(failures) != {"count", "sha256"}
-        or not isinstance(failures.get("count"), int)
-        or isinstance(failures.get("count"), bool)
-        or failures["count"] <= 0
-        or failures.get("sha256") == canonical_sha256([])
-    ):
-        raise ValueError(f"invalid failed-arm oracle evidence: {case_id}")
-    else:
-        _require_digest(
-            failures.get("sha256"), length=64, label="failed-arm oracle failures"
-        )
-    quality = completed_quality(
-        passed=passed,
-        timed_out=timed_out,
-        exit_code=receipt.get("exit_code"),
-        oracle_failures_count=failures["count"],
-    )
-    if (quality == "pass") is not expected_passed:
-        raise ValueError(f"corpus evidence case outcome mismatch: {case_id}")
-    elapsed = receipt.get("elapsed_seconds")
-    uncached = receipt.get("uncached_input_tokens")
-    usage = receipt.get("usage")
-    phases = receipt.get("usage_phases")
-    required_usage = {"input_tokens", "cached_input_tokens", "output_tokens"}
-    native = case["fixture"].get("native_compaction_resume") is not None
-    expected_phases = 3 if native else 1
-    if (
-        not isinstance(usage, dict)
-        or not isinstance(phases, list)
-        or len(phases) != expected_phases
-        or any(
-            not isinstance(phase, dict)
-            or not required_usage.issubset(phase)
-            or any(
-                not isinstance(key, str)
-                or not isinstance(value, int)
-                or isinstance(value, bool)
-                or value < 0
-                for key, value in phase.items()
-            )
-            for phase in phases
-        )
-    ):
-        raise ValueError(f"invalid corpus evidence telemetry: {case_id}")
-    combined_usage = {
-        key: sum(phase.get(key, 0) for phase in phases)
-        for key in sorted({key for phase in phases for key in phase})
-    }
-    if (
-        usage != combined_usage
-        or usage["cached_input_tokens"] > usage["input_tokens"]
-        or uncached != usage["input_tokens"] - usage["cached_input_tokens"]
-    ):
-        raise ValueError(f"invalid corpus evidence telemetry: {case_id}")
-    expected_permissions = case["oracle"]["expected"] if expected_passed else None
-    result_receipt = _validate_result_receipt(
-        receipt.get("result"),
-        label=f"case {case_id}",
-        required=True,
-        recovery_required=True if native and expected_passed else None,
-        expected_permissions=expected_permissions,
-    )
-    if expected_passed:
-        _validate_case_oracle_receipt(
-            result_receipt, case=case, label=f"case {case_id}"
-        )
-    fresh_result_receipt = None
-    if native:
-        fresh_result_receipt = _validate_result_receipt(
-            receipt.get("fresh_recovery_result"),
-            label=f"case {case_id} fresh recovery",
-            required=expected_passed,
-            recovery_required=True if expected_passed else None,
-            expected_permissions=expected_permissions,
-        )
-        if expected_passed:
-            _validate_case_oracle_receipt(
-                fresh_result_receipt,
-                case=case,
-                label=f"case {case_id} fresh recovery",
-            )
-    elif receipt.get("fresh_recovery_result") is not None:
-        raise ValueError(f"unexpected fresh recovery result receipt: {case_id}")
-    _validate_native_compaction(
-        receipt.get("native_compaction"),
-        case=case,
-        receipt=receipt,
-        result=result_receipt,
-        fresh_result=fresh_result_receipt,
-        native_evidence_oracle=native_evidence_oracle,
-    )
-    _validate_isolation_receipt(receipt.get("filesystem_isolation"), case_id=case_id)
-    if (
-        not isinstance(receipt.get("exit_code"), int)
-        or isinstance(receipt.get("exit_code"), bool)
-        or not isinstance(elapsed, (int, float))
-        or isinstance(elapsed, bool)
-        or not math.isfinite(elapsed)
-        or elapsed < 0
-        or not isinstance(uncached, int)
-        or isinstance(uncached, bool)
-        or uncached < 0
-    ):
-        raise ValueError(f"invalid corpus evidence telemetry: {case_id}")
-
-
-def _validate_corpus_summary(
-    payload: dict[str, Any],
-    snapshot: dict[str, Any],
-    source: dict[str, Any],
-    live_authority: dict[str, Any],
-) -> None:
-    settings = snapshot["settings"]
-    cases = payload.get("cases")
-    if (
-        set(payload) != CORPUS_SUMMARY_FIELDS
-        or payload.get("schema_version") != 1
-        or payload.get("engine_generation") != "0.4"
-        or payload.get("impact_token") != live_authority["impact_token"]
-        or payload.get("live_authority_sha256") != canonical_sha256(live_authority)
-        or payload.get("arm") != "candidate"
-        or payload.get("model") != settings["model"]
-        or payload.get("effort") != settings["effort"]
-        or payload.get("timeout_seconds") != settings["timeout_seconds"]
-        or payload.get("telemetry_complete") is not True
-        or not isinstance(cases, list)
-    ):
-        raise ValueError("invalid corpus certification evidence")
-    by_id = {
-        item.get("id"): item
-        for item in cases
-        if isinstance(item, dict) and isinstance(item.get("id"), str)
-    }
-    expected = set(live_authority["impact"]["corpus_cases"])
-    if not expected:
-        raise ValueError("corpus certification evidence has no authorized scope")
-    if set(by_id) != expected or len(by_id) != len(cases):
-        raise ValueError("corpus certification evidence is incomplete")
-    if payload.get("total") != len(expected) or payload.get("passed") != len(expected):
-        raise ValueError("corpus certification evidence is not all-pass")
-    for case_id in sorted(expected):
-        _validate_case_identity(
-            by_id[case_id],
-            snapshot,
-            case_id,
-            case=source.get("corpus_cases", {}).get(case_id),
-            native_evidence_oracle=source.get("native_evidence_oracles", {}).get(
-                case_id
-            ),
-            semantic_sha256=snapshot["corpus"]["cases"][case_id],
-            package=snapshot["package"],
-            engine=source["engine"],
-        )
-    if (
-        payload.get("uncached_input_tokens")
-        != sum(item["uncached_input_tokens"] for item in cases)
-        or payload.get("output_tokens")
-        != sum(item["usage"]["output_tokens"] for item in cases)
-        or payload.get("elapsed_seconds")
-        != round(sum(item["elapsed_seconds"] for item in cases), 3)
-    ):
-        raise ValueError("corpus certification evidence telemetry mismatch")
-
-
-def _validate_holdout_run(
-    payload: dict[str, Any],
-    snapshot: dict[str, Any],
-    authority: dict[str, Any],
-    source: dict[str, Any],
-) -> tuple[list[str], dict[str, str]]:
-    settings = snapshot["settings"]
-    identities = payload.get("identities")
-    packages = identities.get("packages") if isinstance(identities, dict) else None
-    engine = identities.get("engine") if isinstance(identities, dict) else None
-    pair_ids = payload.get("pair_ids")
-    if (
-        set(payload) != HOLDOUT_RUN_FIELDS
-        or payload.get("schema_version") != 1
-        or payload.get("engine_generation") != "0.4"
-        or payload.get("impact_token") != authority["impact_token"]
-        or payload.get("live_authority_sha256") != canonical_sha256(authority)
-        or payload.get("manifest_sha256") != source["holdout_manifest_sha256"]
-        or payload.get("model") != settings["model"]
-        or payload.get("effort") != settings["effort"]
-        or payload.get("timeout_seconds") != settings["timeout_seconds"]
-        or engine != source["engine"]
-        or not isinstance(packages, dict)
-        or set(packages) != {"candidate", "public-0.4.0"}
-        or packages.get("candidate") != snapshot["package"]
-        or not isinstance(pair_ids, list)
-        or pair_ids != source["holdout_pair_order"]
-        or payload.get("case_sha256")
-        != {
-            pair_id: descriptor["case_sha256"]
-            for pair_id, descriptor in source["holdout_descriptors"].items()
-        }
-        or identities.get("toolchain") != snapshot["settings"]["toolchain"]
-    ):
-        raise ValueError("invalid holdout run certification evidence")
-    holdout_invocation = next(
-        (item for item in authority["invocations"] if item["command"] == "holdout"),
-        None,
-    )
-    public = packages.get("public-0.4.0")
-    if holdout_invocation is not None:
-        if not isinstance(public, dict) or public != {
-            "semantic_sha256": holdout_invocation["public_semantic_sha256"],
-            "artifact_sha256": holdout_invocation["public_artifact_sha256"],
-        }:
-            raise ValueError("holdout public evidence does not match authority")
-    elif (
-        not isinstance(public, dict)
-        or set(public) != {"semantic_sha256", "artifact_sha256"}
-        or public.get("semantic_sha256") != PUBLIC_040_PACKAGE_SEMANTIC_SHA256
-        or public.get("artifact_sha256") != PUBLIC_040_PACKAGE_ARTIFACT_SHA256
-    ):
-        raise ValueError("invalid holdout public evidence")
-    return pair_ids, public
-
-
-def _validate_arm_identity(
-    receipt: Any,
-    snapshot: dict[str, Any],
-    *,
-    arm: str,
-    expected_passed: bool,
-    descriptor: dict[str, Any],
-    package: dict[str, str],
-    source: dict[str, Any],
-) -> None:
-    settings = snapshot["settings"]
-    semantic_sha256 = case_semantic_sha256(
-        descriptor["case"],
-        shared_semantic_sha256=source["corpus_semantic_sha256"],
-        package_semantic_sha256=package["semantic_sha256"],
-        model=settings["model"],
-        effort=settings["effort"],
-        timeout=settings["timeout_seconds"],
-        arm=arm,
-    )
-    _validate_case_identity(
-        receipt,
-        snapshot,
-        descriptor["case"]["id"],
-        case=descriptor["case"],
-        native_evidence_oracle=source.get("native_evidence_oracles", {}).get(
-            descriptor["case"]["id"]
-        ),
-        expected_passed=expected_passed,
-        semantic_sha256=semantic_sha256,
-        package=package,
-        engine=source["engine"],
-    )
-
-
-def _validate_holdout_summary(
-    payload: dict[str, Any],
-    snapshot: dict[str, Any],
-    *,
-    run_pair_ids: list[str],
-    run_sha256: str,
-    public_package: dict[str, str],
-    source: dict[str, Any],
-) -> None:
-    receipts = payload.get("pair_receipts")
-    if (
-        set(payload) != HOLDOUT_SUMMARY_FIELDS
-        or payload.get("schema_version") != 1
-        or payload.get("engine_generation") != "0.4"
-        or payload.get("run_receipt_sha256") != run_sha256
-        or not isinstance(receipts, list)
-        or payload.get("pairs_run") != len(receipts)
-        or not receipts
-    ):
-        raise ValueError("invalid holdout summary certification evidence")
-    pair_ids = [item.get("id") for item in receipts if isinstance(item, dict)]
-    if pair_ids != run_pair_ids[: len(pair_ids)] or len(pair_ids) != len(receipts):
-        raise ValueError("holdout summary pair ordering mismatch")
-    outcomes = [item.get("outcome") for item in receipts]
-    if not all(isinstance(outcome, str) for outcome in outcomes):
-        raise ValueError("invalid holdout outcome evidence")
-    terminal_action = adaptive_next(outcomes)
-    if (
-        payload.get("adaptive_history") != outcomes
-        or payload.get("adaptive_terminal_action") != terminal_action
-    ):
-        raise ValueError("holdout adaptive evidence mismatch")
-    if terminal_action not in {"stop", "reject"}:
-        raise ValueError("holdout adaptive evidence is not terminal")
-    for receipt in receipts:
-        if not isinstance(receipt, dict) or set(receipt) != PAIR_RECEIPT_FIELDS:
-            raise ValueError("invalid holdout pair evidence")
-        descriptor = source["holdout_descriptors"].get(receipt["id"])
         if (
-            receipt.get("schema_version") != 1
-            or receipt.get("engine_generation") != "0.4"
-            or not isinstance(descriptor, dict)
-            or receipt.get("case_id") != descriptor["case"]["id"]
-            or receipt.get("case_sha256") != descriptor["case_sha256"]
-            or receipt.get("outside_diff_boundary")
-            is not descriptor["outside_diff_boundary"]
-            or receipt.get("oracle_kind") != descriptor["oracle_kind"]
-        ):
-            raise ValueError("holdout pair does not match source descriptor")
-        for field in (
-            "mapping_commitment_file_sha256",
-            "pre_reveal_decision_file_sha256",
-            "mapping_reveal_file_sha256",
-            "pre_reveal_decision_sha256",
-            "mapping_commitment_sha256",
-        ):
-            _require_digest(
-                receipt.get(field), length=64, label=f"holdout pair {field}"
-            )
-        arms = receipt.get("arms") if isinstance(receipt, dict) else None
-        if not isinstance(arms, dict) or set(arms) != {"candidate", "public-0.4.0"}:
-            raise ValueError("invalid holdout arm evidence")
-        candidate_passed = (
-            arms["candidate"].get("passed")
-            if isinstance(arms["candidate"], dict)
-            else None
-        )
-        public_passed = (
-            arms["public-0.4.0"].get("passed")
-            if isinstance(arms["public-0.4.0"], dict)
-            else None
-        )
-        if not isinstance(candidate_passed, bool) or not isinstance(
-            public_passed, bool
-        ):
-            raise ValueError("invalid holdout arm outcome evidence")
-        derived_outcome = (
-            "regression"
-            if not candidate_passed
-            else "better"
-            if not public_passed
-            else "equal"
-        )
-        if receipt.get("outcome") != derived_outcome:
-            raise ValueError("holdout outcome mismatch")
-        _validate_arm_identity(
-            arms["candidate"],
-            snapshot,
-            arm="candidate",
-            expected_passed=candidate_passed,
-            descriptor=descriptor,
-            package=snapshot["package"],
-            source=source,
-        )
-        _validate_arm_identity(
-            arms["public-0.4.0"],
-            snapshot,
-            arm="public-0.4.0",
-            expected_passed=public_passed,
-            descriptor=descriptor,
-            package=public_package,
-            source=source,
-        )
-        expected_metrics = {
-            arm: {
-                "uncached_input_tokens": arms[arm]["uncached_input_tokens"],
-                "output_tokens": arms[arm]["usage"]["output_tokens"],
-                "elapsed_seconds": arms[arm]["elapsed_seconds"],
+            not isinstance(native, dict)
+            or set(native) != required
+            or type(native["auto_compact_token_limit"]) is not int
+            or native["auto_compact_token_limit"] <= 0
+            or set(native["recovery_oracle"])
+            != RECOVERY_STATE_FIELDS
+            - {
+                "baseline_revision",
+                "baseline_tree",
+                "current_revision",
+                "current_tree",
             }
-            for arm in ("candidate", "public-0.4.0")
-        }
-        if receipt.get("metrics") != expected_metrics:
-            raise ValueError("holdout arm metrics mismatch")
-    quality = aggregate_quality(outcomes)
-    aggregate = {
-        arm: sum_metrics([receipt["metrics"][arm] for receipt in receipts])
-        for arm in ("candidate", "public-0.4.0")
-    }
-    expected_gate = cost_gate(
-        aggregate["candidate"], aggregate["public-0.4.0"], quality=quality
-    )
-    if (
-        payload.get("cost_gate") != expected_gate
-        or not expected_gate["release_permitted"]
-    ):
-        raise ValueError("holdout cost/quality evidence does not permit certification")
-
-
-def _validate_certification_receipt(
-    certification: Any,
-    *,
-    snapshot: dict[str, Any],
-    historical_cost: dict[str, Any],
-    live_authority: dict[str, Any] | None,
-    repo: Path | None,
-) -> None:
-    if (
-        not isinstance(certification, dict)
-        or set(certification) != CERTIFICATION_FIELDS
-    ):
-        raise ValueError("invalid certification receipt")
-    if certification.get("schema_version") != 1:
-        raise ValueError("invalid certification receipt schema")
-    snapshot_sha256 = canonical_sha256(snapshot)
-    if certification.get("snapshot_sha256") != snapshot_sha256:
-        raise ValueError("certification receipt snapshot mismatch")
-    if (
-        certification.get("engine_manifest_sha256")
-        != snapshot["engine"]["manifest_sha256"]
-    ):
-        raise ValueError("certification receipt engine manifest mismatch")
-    if certification.get("live_authority_sha256") != canonical_sha256(live_authority):
-        raise ValueError("certification receipt authority mismatch")
-    if live_authority is not None:
-        validate_live_authority(live_authority, snapshot=snapshot)
-    if repo is None or not (repo / ".git").exists():
-        raise ValueError("reachable certification evidence requires a Git repository")
-    repo = repo.resolve()
-    source_commit = certification.get("successor_source_commit")
-    _require_reachable_commit(repo, source_commit, label="successor source commit")
-    tree = _run_git(repo, "rev-parse", f"{source_commit}^{{tree}}")
-    if (
-        tree.returncode
-        or certification.get("successor_source_tree") != tree.stdout.decode().strip()
-    ):
-        raise ValueError("certification successor source tree mismatch")
-    source = _validate_source_identity(
-        repo,
-        source_commit,
-        snapshot,
-        live_authority,
-    )
-    if source["ledger"]["historical_cost"] != historical_cost:
-        raise ValueError("certification source historical cost mismatch")
-    source_pending = source["ledger"]["pending"]
-    if source_pending["review"] is not True:
-        raise ValueError("certification source must retain the external review gate")
-    corpus_holdout_waived = (
-        "user_waived_corpus_holdout_2026_07_29" in source_pending["reasons"]
-    )
-    for field, available in (
-        ("corpus_cases", set(snapshot["corpus"]["cases"])),
-        ("holdout_pairs", set(snapshot["holdout"]["pairs"])),
-    ):
-        required = set() if corpus_holdout_waived else available
-        if set(source_pending[field]) != required:
-            raise ValueError("fresh certification source scope is incomplete")
-    try:
-        expected_impact = plan_impact(
-            snapshot,
-            snapshot,
-            pending=source_pending,
-        )
-    except (OSError, ValueError) as exc:
-        raise ValueError("invalid certification source pending impact") from exc
-    live_required = expected_impact["live_calls"]["maximum"] > 0
-    if live_required:
-        if live_authority is None:
-            raise ValueError("nonzero certification impact requires live authority")
-        if expected_impact != live_authority["impact"]:
-            raise ValueError("certification source authority impact mismatch")
-    elif live_authority is not None:
-        raise ValueError("zero-live certification must not carry live authority")
-    evidence_fields = _validate_coverage(
-        certification.get("coverage"),
-        snapshot=snapshot,
-        impact=expected_impact,
-        corpus_holdout_waived=corpus_holdout_waived,
-    )
-    offline_gate_set = _offline_gates(expected_impact)
-    if offline_gate_set:
-        evidence_fields.add("offline_summary")
-    evidence = certification.get("evidence")
-    if not isinstance(evidence, dict) or set(evidence) != evidence_fields:
-        if offline_gate_set and (
-            not isinstance(evidence, dict) or "offline_summary" not in evidence
         ):
-            raise ValueError("offline certification evidence is required")
-        raise ValueError("invalid certification evidence envelope")
-    loaded: dict[str, dict[str, Any]] = {}
-    evidence_sha: dict[str, str] = {}
-    for label in sorted(evidence_fields):
-        loaded[label], evidence_sha[label] = _load_evidence(
-            repo,
-            evidence[label],
-            label=label,
-            source_commit=source_commit,
+            raise ValueError(f"invalid native compaction: {case['id']}")
+        _validate_recovery_manifest(native, case["id"])
+        prompts.extend(
+            [native["prepare_prompt"], native["fresh_recovery_prompt"]]
         )
-    if "corpus_summary" in loaded:
-        if live_authority is None:
-            raise AssertionError("corpus evidence cannot exist without live authority")
-        _validate_corpus_summary(
-            loaded["corpus_summary"],
-            snapshot,
-            source,
-            live_authority,
+    identities = set()
+    for key, item_fields, identity_field in (
+        ("required_classifications", {"identity", "domain", "state"}, "identity"),
+        (
+            "required_blocker_classifications",
+            {"identity", "class"},
+            "identity",
+        ),
+        ("required_anchored_blockers", {"anchor", "class"}, "anchor"),
+        (
+            "required_anchored_classifications",
+            {"anchor", "domain", "state"},
+            "anchor",
+        ),
+    ):
+        values = oracle.get(key, [])
+        if not isinstance(values, list):
+            raise ValueError(f"invalid {key}: {case['id']}")
+        for item in values:
+            identity = item.get(identity_field) if isinstance(item, dict) else None
+            if (
+                not isinstance(item, dict)
+                or set(item) != item_fields
+                or type(identity) is not str
+                or not identity.strip()
+            ):
+                raise ValueError(f"invalid {key}: {case['id']}")
+            identities.add(identity)
+    classes = oracle.get("required_blocker_classes", [])
+    if not isinstance(classes, list) or any(
+        item not in BLOCKER_CLASSES for item in classes
+    ):
+        raise ValueError(f"invalid blocker class: {case['id']}")
+    coverage = oracle.get("coverage_assertions")
+    if coverage is not None and (
+        not isinstance(coverage, list)
+        or len(coverage) != len(case["covers"])
+        or {item.get("tag") for item in coverage} != set(case["covers"])
+        or any(
+            item.get("kind") != "recovery"
+            and item.get("identity", item.get("anchor")) not in identities
+            for item in coverage
         )
-    if "holdout_run" in loaded:
-        if live_authority is None:
-            raise AssertionError("holdout evidence cannot exist without live authority")
-        pair_ids, public_package = _validate_holdout_run(
-            loaded["holdout_run"], snapshot, live_authority, source
-        )
-        _validate_holdout_summary(
-            loaded["holdout_summary"],
-            snapshot,
-            run_pair_ids=pair_ids,
-            run_sha256=evidence_sha["holdout_run"],
-            public_package=public_package,
-            source=source,
-        )
-    if "offline_summary" in loaded:
-        _validate_offline_summary(
-            loaded["offline_summary"],
-            snapshot=snapshot,
-            source_commit=source_commit,
-            source_ledger_sha256=source["ledger_sha256"],
-            gates=offline_gate_set,
-        )
+    ):
+        raise ValueError(f"invalid coverage assertions: {case['id']}")
+    prompt = " ".join(prompts).casefold()
+    if any(
+        item.casefold() in prompt
+        for item in oracle.get("prompt_forbidden", [])
+    ):
+        raise ValueError(f"prompt leaks oracle term: {case['id']}")
+
+
+validate_case = validate_case_input
+
+
+def _git(repo: Path, *args: str, check: bool = True) -> str:
+    result = subprocess.run(
+        ["git", "-C", str(repo), *args],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if check and result.returncode:
+        raise ValueError(result.stderr.strip() or "git command failed")
+    return result.stdout.strip()
+
+
+def _exact(value: Any, fields: frozenset[str], label: str) -> dict[str, Any]:
+    if not isinstance(value, dict) or set(value) != fields:
+        raise ValueError(f"invalid {label} fields")
+    return value
+
+
+def _digest(value: Any, label: str, *, nullable: bool = False) -> str | None:
+    if nullable and value is None:
+        return None
+    if type(value) is not str or _SHA256.fullmatch(value) is None:
+        raise ValueError(f"invalid {label} digest")
+    return value
+
+
+def _timestamp(value: Any, label: str) -> str:
+    if type(value) is not str or _TIMESTAMP.fullmatch(value) is None:
+        raise ValueError(f"invalid {label} timestamp")
+    return value
+
+
+def _sealed(record: dict[str, Any], field: str, label: str) -> None:
+    digest = _digest(record[field], label)
+    payload = dict(record)
+    payload.pop(field)
+    if digest != canonical_sha256(payload):
+        raise ValueError(f"invalid {label} seal")
+
+
+def validate_release_candidate(
+    value: Any, *, repo: Path | None = None
+) -> dict[str, Any]:
+    record = _exact(value, _CANDIDATE_FIELDS, "ReleaseCandidate")
+    if record["schema_version"] != 1 or record["record_type"] != "ReleaseCandidate":
+        raise ValueError("invalid ReleaseCandidate type")
+    for field in ("source_commit", "source_tree"):
+        if type(record[field]) is not str or _GIT_OBJECT.fullmatch(record[field]) is None:
+            raise ValueError(f"invalid ReleaseCandidate {field}")
+    for field in (
+        "package_artifact_sha256",
+        "package_semantic_sha256",
+        "executor_role_sha256",
+    ):
+        _digest(record[field], f"ReleaseCandidate {field}")
+    _timestamp(record["created_at"], "ReleaseCandidate")
+    _sealed(record, "candidate_sha256", "ReleaseCandidate")
+    if repo is not None:
+        from evaluation.core.impact import build_snapshot
+
+        repo = repo.resolve()
+        archived = source_archive_identity(repo, record["source_commit"])
+        expected = {
+            "source_commit": archived["source_commit"],
+            "source_tree": archived["source_tree"],
+            "package_artifact_sha256": archived["package"]["artifact_sha256"],
+            "package_semantic_sha256": archived["package"]["semantic_sha256"],
+            "executor_role_sha256": archived["executor_role_sha256"],
+        }
+        if any(record[field] != expected[field] for field in expected):
+            raise ValueError("ReleaseCandidate does not match Git archive")
+        if (
+            package_identities(repo)
+            != {
+                "artifact_sha256": record["package_artifact_sha256"],
+                "semantic_sha256": record["package_semantic_sha256"],
+            }
+            or executor_role_identity(repo) != record["executor_role_sha256"]
+        ):
+            raise ValueError("ReleaseCandidate product inputs drifted")
+        head = _git(repo, "rev-parse", "HEAD^{commit}")
+        if subprocess.run(
+            ["git", "-C", str(repo), "merge-base", "--is-ancestor",
+             record["source_commit"], head],
+            check=False,
+            capture_output=True,
+        ).returncode:
+            raise ValueError("ReleaseCandidate source is not reachable")
+    return record
+
+
+def validate_gate_plan(value: Any) -> dict[str, Any]:
+    record = _exact(value, _PLAN_FIELDS, "GatePlan")
+    if record["schema_version"] != 1 or record["record_type"] != "GatePlan":
+        raise ValueError("invalid GatePlan type")
+    _digest(record["candidate_sha256"], "GatePlan candidate")
+    _digest(record["snapshot_sha256"], "GatePlan snapshot")
+    if record["gate"] not in GATE_ORDER:
+        raise ValueError("invalid GatePlan gate")
+    _timestamp(record["created_at"], "GatePlan")
+    profile = _exact(record["profile"], _PROFILE_FIELDS, "GatePlan profile")
+    if (
+        not isinstance(profile["argv"], list)
+        or not profile["argv"]
+        or any(type(item) is not str or not item for item in profile["argv"])
+        or type(profile["cwd"]) is not str
+        or not Path(profile["cwd"]).is_absolute()
+        or not isinstance(profile["env"], dict)
+        or any(type(key) is not str or type(item) is not str
+               for key, item in profile["env"].items())
+        or type(profile["timeout_ms"]) is not int
+        or profile["timeout_ms"] <= 0
+        or any(type(profile[field]) is not str or not profile[field]
+               for field in ("model", "effort", "arm"))
+    ):
+        raise ValueError("invalid GatePlan profile")
+    cost = _exact(record["cost_ceiling"], _COST_FIELDS, "cost ceiling")
+    if any(type(value) is not int or value < 0 for value in cost.values()):
+        raise ValueError("invalid GatePlan cost ceiling")
+    units = _unique_strings(record["units"], "GatePlan units")
+    resources = _unique_strings(record["resource_digests"], "resource digests")
+    if (
+        not units
+        or not resources
+        or units != sorted(units)
+        or resources != sorted(resources)
+    ):
+        raise ValueError("GatePlan units and resources must be sorted")
+    if any(
+        unit != unit.strip()
+        or unit in {".", ".."}
+        or "/" in unit
+        or "\\" in unit
+        or Path(unit).is_absolute()
+        or len(Path(unit).parts) != 1
+        or any(ord(character) < 32 or ord(character) == 127 for character in unit)
+        for unit in units
+    ):
+        raise ValueError("GatePlan units must be safe single path components")
+    for digest in resources:
+        _digest(digest, "GatePlan resource")
+    output = Path(record["output"]) if type(record["output"]) is str else Path()
+    if (
+        type(record["output"]) is not str
+        or not output.is_absolute()
+        or ".." in output.parts
+        or output != Path(os.path.abspath(output))
+    ):
+        raise ValueError("invalid GatePlan output")
+    _digest(record["approval_request_sha256"], "approval request")
+    _digest(record["approval_content_sha256"], "approval content")
+    _sealed(record, "plan_sha256", "GatePlan")
+    return record
+
+
+def validate_gate_receipt(value: Any) -> dict[str, Any]:
+    record = _exact(value, _RECEIPT_FIELDS, "GateReceipt")
+    if record["schema_version"] != 1 or record["record_type"] != "GateReceipt":
+        raise ValueError("invalid GateReceipt type")
+    _digest(record["candidate_sha256"], "GateReceipt candidate")
+    _digest(record["plan_sha256"], "GateReceipt plan")
+    if record["gate"] not in GATE_ORDER:
+        raise ValueError("invalid GateReceipt gate")
+    if type(record["sequence"]) is not int or record["sequence"] < 0:
+        raise ValueError("invalid GateReceipt sequence")
+    _timestamp(record["created_at"], "GateReceipt")
+    if (
+        type(record["evidence_commit"]) is not str
+        or _GIT_OBJECT.fullmatch(record["evidence_commit"]) is None
+    ):
+        raise ValueError("invalid GateReceipt evidence commit")
+    if record["result"] not in {"succeeded", "failed"}:
+        raise ValueError("invalid GateReceipt result")
+    _digest(record["output_sha256"], "GateReceipt output", nullable=True)
+    _digest(
+        record["parent_receipt_sha256"],
+        "GateReceipt parent",
+        nullable=True,
+    )
+    if not isinstance(record["unit_results"], list) or not record["unit_results"]:
+        raise ValueError("invalid GateReceipt unit results")
+    units = []
+    for raw in record["unit_results"]:
+        item = _exact(raw, _UNIT_RESULT_FIELDS, "unit result")
+        if (
+            type(item["unit"]) is not str
+            or not item["unit"]
+            or item["status"] not in {"succeeded", "failed"}
+        ):
+            raise ValueError("invalid GateReceipt unit result")
+        _digest(item["result_sha256"], "unit result")
+        units.append(item["unit"])
+    if units != sorted(set(units)):
+        raise ValueError("GateReceipt units must be sorted and unique")
+    if record["result"] == "succeeded":
+        if record["output_sha256"] is None:
+            raise ValueError("successful GateReceipt needs an output digest")
+        if any(
+            item["status"] != "succeeded" for item in record["unit_results"]
+        ):
+            raise ValueError("successful GateReceipt contains a failed unit")
+    elif all(
+        item["status"] == "succeeded" for item in record["unit_results"]
+    ):
+        raise ValueError("failed GateReceipt needs a failed unit")
+    _sealed(record, "receipt_sha256", "GateReceipt")
+    return record
+
+
+def validate_evidence_commit(
+    repo: Path, *, source_commit: str, evidence_commit: str
+) -> None:
+    source = _git(repo, "rev-parse", "--verify", f"{source_commit}^{{commit}}")
+    evidence = _git(repo, "rev-parse", "--verify", f"{evidence_commit}^{{commit}}")
+    head = _git(repo, "rev-parse", "--verify", "HEAD^{commit}")
+    if source == evidence:
+        raise ValueError("evidence commit must strictly postdate source")
+    for ancestor, descendant, message in (
+        (source, evidence, "evidence commit does not descend from source"),
+        (evidence, head, "evidence commit is not reachable from HEAD"),
+    ):
+        if subprocess.run(
+            ["git", "-C", str(repo), "merge-base", "--is-ancestor",
+             ancestor, descendant],
+            check=False,
+            capture_output=True,
+        ).returncode:
+            raise ValueError(message)
 
 
 def validate_ledger(ledger: dict[str, Any], *, repo: Path | None = None) -> None:
-    if set(ledger) != LEDGER_FIELDS or ledger.get("schema_version") != 1:
-        raise ValueError("invalid certification ledger envelope")
-    state = ledger.get("state")
-    if state not in {"refresh_required", "certified"}:
-        raise ValueError("invalid certification ledger state")
-    snapshot = ledger.get("snapshot")
-    if not isinstance(snapshot, dict):
-        raise ValueError("invalid certification snapshot")
-    validate_snapshot(snapshot)
-    pending = ledger.get("pending")
-    if not isinstance(pending, dict) or set(pending) != PENDING_FIELDS:
-        raise ValueError("invalid pending refresh envelope")
-    if (
-        not isinstance(pending["reasons"], list)
-        or not all(isinstance(item, str) and item for item in pending["reasons"])
-        or pending["reasons"] != sorted(set(pending["reasons"]))
-    ):
-        raise ValueError("invalid pending reasons")
-    for field in ("corpus_cases", "holdout_pairs"):
-        value = pending[field]
-        if (
-            not isinstance(value, list)
-            or not all(isinstance(item, str) and item for item in value)
-            or value != sorted(set(value))
-        ):
-            raise ValueError(f"invalid pending scope: {field}")
-    if not isinstance(pending["review"], bool):
-        raise ValueError("invalid pending review gate")
-    live_attempts = ledger.get("live_attempts")
-    if not isinstance(live_attempts, dict):
-        raise ValueError("invalid live attempt envelope")
-    expected_attempts = {
-        command
-        for command, selected in (
-            ("corpus", pending["corpus_cases"]),
-            ("holdout", pending["holdout_pairs"]),
-        )
-        if selected
-    }
-    live_authority = ledger.get("live_authority")
-    if live_authority is not None:
-        invocations = live_authority.get("invocations")
-        if not isinstance(invocations, list):
-            raise ValueError("invalid live authority attempts")
-        expected_attempts = {
-            item.get("command") for item in invocations if isinstance(item, dict)
+    _exact(ledger, LEDGER_FIELDS, "ledger")
+    if ledger["schema_version"] != 1:
+        raise ValueError("invalid ledger schema version")
+    candidate = ledger["candidate"]
+    if candidate is not None:
+        validate_release_candidate(candidate, repo=repo)
+    if not isinstance(ledger["plans"], list) or not isinstance(ledger["receipts"], list):
+        raise ValueError("ledger containers must be arrays")
+    plans: dict[str, dict[str, Any]] = {}
+    for plan in ledger["plans"]:
+        validate_gate_plan(plan)
+        if candidate is None or plan["candidate_sha256"] != candidate["candidate_sha256"]:
+            raise ValueError("GatePlan does not bind the candidate")
+        if plan["gate"] in plans:
+            raise ValueError("duplicate GatePlan gate")
+        plans[plan["gate"]] = plan
+    if [gate for gate in GATE_ORDER if gate in plans] != [
+        plan["gate"] for plan in ledger["plans"]
+    ]:
+        raise ValueError("GatePlans are not in canonical gate order")
+    if repo is not None and candidate is not None:
+        from evaluation.core.impact import build_snapshot
+
+        snapshot = build_snapshot(repo)
+        snapshot_sha256 = canonical_sha256(snapshot)
+        expected_units = {
+            "calibration": ["subthreshold-control"],
+            "corpus": sorted(snapshot["corpus"]["cases"]),
+            "holdout": sorted(snapshot["holdout"]["pairs"]),
         }
-    if set(live_attempts) != expected_attempts:
-        raise ValueError("live attempt scope does not match pending invocations")
-    for command, attempt_id in live_attempts.items():
-        _require_digest(attempt_id, length=64, label=f"{command} live attempt id")
-    if len(set(live_attempts.values())) != len(live_attempts):
-        raise ValueError("live attempt ids must be unique")
-    if ledger.get("historical_cost") != historical_cost_receipt():
-        raise ValueError("invalid historical cost receipt")
-    if live_authority is not None:
-        validate_live_authority(live_authority, snapshot=snapshot)
-        for invocation in live_authority["invocations"]:
-            if live_attempts[invocation["command"]] != invocation["attempt_id"]:
-                raise ValueError("live authority attempt id mismatch")
-    certification = ledger.get("certification")
-    if state == "refresh_required":
-        if certification is not None:
-            raise ValueError("refresh-required ledger cannot carry certification")
-        if not (
-            pending["reasons"]
-            or pending["corpus_cases"]
-            or pending["holdout_pairs"]
-            or pending["review"]
-        ):
-            raise ValueError("refresh-required ledger must name a pending gate")
-    else:
+        expected_arms = {
+            "calibration": "candidate",
+            "corpus": "candidate",
+            "holdout": "blinded-pair",
+        }
+        settings = snapshot["settings"]
+        for plan in plans.values():
+            if plan["snapshot_sha256"] != snapshot_sha256:
+                raise ValueError(
+                    f"GatePlan {plan['gate']} does not bind the current snapshot"
+                )
+        for gate in MODEL_GATES & plans.keys():
+            plan = plans[gate]
+            profile = plan["profile"]
+            if (
+                plan["units"] != expected_units[gate]
+                or profile["model"] != settings["model"]
+                or profile["effort"] != settings["effort"]
+                or profile["timeout_ms"] != settings["timeout_seconds"] * 1000
+                or profile["arm"] != expected_arms[gate]
+            ):
+                raise ValueError(
+                    f"GatePlan {gate} does not match snapshot scope and settings"
+                )
+    parent = None
+    seen_gates = set()
+    previous_created_at = candidate["created_at"] if candidate is not None else None
+    for sequence, receipt in enumerate(ledger["receipts"]):
+        validate_gate_receipt(receipt)
+        plan = plans.get(receipt["gate"])
+        if plan is None or receipt["plan_sha256"] != plan["plan_sha256"]:
+            raise ValueError("GateReceipt does not bind an exact GatePlan")
+        if candidate is None or receipt["candidate_sha256"] != candidate["candidate_sha256"]:
+            raise ValueError("GateReceipt does not bind the candidate")
         if (
-            pending["reasons"]
-            or pending["corpus_cases"]
-            or pending["holdout_pairs"]
-            or pending["review"]
+            receipt["sequence"] != sequence
+            or receipt["parent_receipt_sha256"] != parent
+            or receipt["gate"] in seen_gates
         ):
-            raise ValueError("certified ledger cannot retain pending gates")
-        _validate_certification_receipt(
-            certification,
-            snapshot=snapshot,
-            historical_cost=ledger["historical_cost"],
-            live_authority=live_authority,
-            repo=repo,
-        )
+            raise ValueError("GateReceipt chain is not append-only and exact")
+        if (
+            previous_created_at is None
+            or receipt["created_at"] <= previous_created_at
+            or receipt["created_at"] <= plan["created_at"]
+        ):
+            raise ValueError("GateReceipt chronology is not strictly increasing")
+        receipt_units = [item["unit"] for item in receipt["unit_results"]]
+        if receipt["gate"] == "holdout" and repo is not None:
+            from evaluation.holdout.engine import load_manifest
 
-
-def load_ledger(path: Path) -> dict[str, Any]:
-    value = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(value, dict):
-        raise ValueError("certification ledger must be an object")
-    repo = path.resolve().parents[2]
-    validate_ledger(value, repo=repo)
-    return value
+            manifest = load_manifest(
+                repo / "evaluation" / "holdouts" / "manifest.json"
+            )
+            execution_order = [pair["id"] for pair in manifest["pairs"]]
+            valid_length = (
+                len(receipt_units) in {1, 2, 3}
+                if receipt["result"] == "failed"
+                else len(receipt_units) in {2, 3}
+            )
+            if (
+                sorted(execution_order) != plan["units"]
+                or not valid_length
+                or receipt_units
+                != sorted(execution_order[:len(receipt_units)])
+            ):
+                raise ValueError(
+                    "GateReceipt units do not equal an adaptive holdout prefix"
+                )
+        elif receipt_units != plan["units"]:
+            raise ValueError("GateReceipt units do not equal the GatePlan")
+        if repo is not None:
+            validate_evidence_commit(
+                repo,
+                source_commit=candidate["source_commit"],
+                evidence_commit=receipt["evidence_commit"],
+            )
+        parent = receipt["receipt_sha256"]
+        previous_created_at = receipt["created_at"]
+        seen_gates.add(receipt["gate"])
+    if [gate for gate in GATE_ORDER if gate in seen_gates] != [
+        receipt["gate"] for receipt in ledger["receipts"]
+    ]:
+        raise ValueError("GateReceipts are not in canonical gate order")
 
 
 def ledger_sha256(ledger: dict[str, Any], *, repo: Path | None = None) -> str:
     validate_ledger(ledger, repo=repo)
     return canonical_sha256(ledger)
+
+
+def derive_receipt_tip(ledger: dict[str, Any]) -> str | None:
+    validate_ledger(ledger)
+    return (
+        ledger["receipts"][-1]["receipt_sha256"]
+        if ledger["receipts"]
+        else None
+    )
+
+
+def derive_coverage(ledger: dict[str, Any]) -> dict[str, list[str]]:
+    validate_ledger(ledger)
+    return {
+        receipt["gate"]: [item["unit"] for item in receipt["unit_results"]]
+        for receipt in ledger["receipts"]
+        if receipt["result"] == "succeeded"
+    }
+
+
+def derive_failed(ledger: dict[str, Any]) -> list[str]:
+    validate_ledger(ledger)
+    return [
+        receipt["gate"]
+        for receipt in ledger["receipts"]
+        if receipt["result"] == "failed"
+    ]
+
+
+def derive_pending(ledger: dict[str, Any]) -> dict[str, Any]:
+    validate_ledger(ledger)
+    completed = {
+        receipt["gate"]
+        for receipt in ledger["receipts"]
+        if receipt["result"] == "succeeded"
+    }
+    plans = {plan["gate"]: plan for plan in ledger["plans"]}
+    return {
+        "gates": [gate for gate in GATE_ORDER if gate not in completed],
+        "corpus_cases": plans.get("corpus", {}).get("units", []),
+        "holdout_pairs": plans.get("holdout", {}).get("units", []),
+    }
+
+
+def derive_freeze_eligibility(
+    ledger: dict[str, Any], *, repo: Path | None = None
+) -> bool:
+    validate_ledger(ledger, repo=repo)
+    if repo is None:
+        return False
+    completed = set(derive_coverage(ledger))
+    return (
+        ledger["candidate"] is not None
+        and not derive_failed(ledger)
+        and {"calibration", "corpus", "holdout", "receipt"} <= completed
+    )
+
+
+def derive_certified(
+    ledger: dict[str, Any], *, repo: Path | None = None
+) -> bool:
+    validate_ledger(ledger, repo=repo)
+    return (
+        repo is not None
+        and derive_freeze_eligibility(ledger, repo=repo)
+        and set(derive_coverage(ledger)) == set(GATE_ORDER)
+    )
+
+
+def derive_status(
+    ledger: dict[str, Any], *, repo: Path | None = None
+) -> str:
+    return (
+        "certified"
+        if derive_certified(ledger, repo=repo)
+        else "refresh_required"
+    )
+
+
+def validate_successor(
+    before: dict[str, Any],
+    after: dict[str, Any],
+    *,
+    repo: Path | None = None,
+) -> None:
+    validate_ledger(before, repo=repo)
+    validate_ledger(after, repo=repo)
+    if before == after:
+        raise ValueError("ledger transition must append one record")
+    if before["candidate"] is None:
+        if (
+            after["candidate"] is None
+            or before["plans"] != after["plans"]
+            or before["receipts"] != after["receipts"]
+        ):
+            raise ValueError("first transition must append ReleaseCandidate only")
+        return
+    if before["candidate"] != after["candidate"]:
+        raise ValueError("ReleaseCandidate is immutable")
+    if before["receipts"] != after["receipts"]:
+        if before["plans"] != after["plans"]:
+            raise ValueError("receipt transition cannot change plans")
+        if after["receipts"][:-1] != before["receipts"]:
+            raise ValueError("GateReceipt must append exactly once")
+        return
+    if after["plans"][:-1] != before["plans"]:
+        raise ValueError("GatePlan must append exactly once")
+    if before["receipts"]:
+        raise ValueError("GatePlan cannot append after receipts begin")
+
+
+def append_record(
+    before: dict[str, Any],
+    record: dict[str, Any],
+    *,
+    repo: Path | None = None,
+) -> dict[str, Any]:
+    validate_ledger(before, repo=repo)
+    record_type = record.get("record_type") if isinstance(record, dict) else None
+    if record_type not in RECORD_TYPES:
+        raise ValueError("unknown release record type")
+    after = json.loads(json.dumps(before))
+    if record_type == "ReleaseCandidate":
+        if after["candidate"] is not None:
+            raise ValueError("ReleaseCandidate already exists")
+        after["candidate"] = record
+    elif record_type == "GatePlan":
+        after["plans"].append(record)
+    else:
+        after["receipts"].append(record)
+    validate_successor(before, after, repo=repo)
+    return after
+
+
+def _read_nofollow(path: Path) -> bytes:
+    descriptor = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+    try:
+        mode = os.fstat(descriptor).st_mode
+        if not stat.S_ISREG(mode):
+            raise ValueError("ledger path is not a regular file")
+        chunks = []
+        while chunk := os.read(descriptor, 65536):
+            chunks.append(chunk)
+        return b"".join(chunks)
+    finally:
+        os.close(descriptor)
+
+
+def _canonical_bytes(value: Any) -> bytes:
+    return (
+        json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2).encode()
+        + b"\n"
+    )
+
+
+def apply_record(
+    *,
+    repo: Path,
+    ledger_path: Path,
+    expected_predecessor_sha256: str,
+    record: dict[str, Any],
+) -> dict[str, Any]:
+    repo = repo.resolve()
+    candidate = ledger_path if ledger_path.is_absolute() else repo / ledger_path
+    candidate = candidate.absolute()
+    try:
+        relative = candidate.relative_to(repo).as_posix()
+    except ValueError as exc:
+        raise ValueError("ledger path must stay inside the repository") from exc
+    if candidate.is_symlink() or candidate.resolve() != candidate:
+        raise ValueError("ledger path drift or symlink refused")
+    raw = _read_nofollow(candidate)
+    prior_git = subprocess.run(
+        ["git", "-C", str(repo), "show", f"HEAD:{relative}"],
+        check=False,
+        capture_output=True,
+    )
+    if prior_git.returncode or prior_git.stdout != raw:
+        raise ValueError("worktree ledger differs from prior Git ledger")
+    before = json.loads(raw)
+    if canonical_sha256(before) != expected_predecessor_sha256:
+        raise ValueError("stale ledger predecessor digest")
+    after = append_record(before, record, repo=repo)
+    data = _canonical_bytes(after)
+    current = _read_nofollow(candidate)
+    if current != raw:
+        raise ValueError("ledger changed during transition")
+    descriptor, temporary = tempfile.mkstemp(
+        prefix=f".{candidate.name}.",
+        dir=candidate.parent,
+    )
+    try:
+        os.fchmod(descriptor, stat.S_IMODE(candidate.stat().st_mode))
+        os.write(descriptor, data)
+        os.fsync(descriptor)
+        os.close(descriptor)
+        descriptor = -1
+        if _read_nofollow(candidate) != raw:
+            raise ValueError("ledger changed before atomic replace")
+        os.replace(temporary, candidate)
+        directory = os.open(
+            candidate.parent,
+            os.O_RDONLY | getattr(os, "O_DIRECTORY", 0),
+        )
+        try:
+            os.fsync(directory)
+        finally:
+            os.close(directory)
+    finally:
+        if descriptor >= 0:
+            os.close(descriptor)
+        try:
+            os.unlink(temporary)
+        except FileNotFoundError:
+            pass
+    return after
+
+
+def load_ledger(path: Path) -> dict[str, Any]:
+    candidate = path.absolute()
+    if (
+        ".." in candidate.parts
+        or candidate != Path(os.path.abspath(candidate))
+    ):
+        raise ValueError("ledger path alias or drift refused")
+    chain = [candidate, *candidate.parents[:-1]]
+    for component in chain:
+        mode = component.lstat().st_mode
+        if stat.S_ISLNK(mode):
+            raise ValueError("ledger path symlink or alias refused")
+    repo = candidate.parents[2]
+    raw = _read_nofollow(candidate)
+    ledger = json.loads(raw)
+    validate_ledger(ledger, repo=repo)
+    relative = candidate.relative_to(repo).as_posix()
+    prior = subprocess.run(
+        ["git", "-C", str(repo), "show", f"HEAD:{relative}"],
+        check=False,
+        capture_output=True,
+    )
+    if prior.returncode or prior.stdout != raw:
+        raise ValueError("worktree ledger differs from prior Git ledger")
+    return ledger
+
+
+def replay_planned_lifecycle(
+    ledger: dict[str, Any], *, repo: Path | None = None
+) -> dict[str, Any]:
+    validate_ledger(ledger, repo=repo)
+    if ledger["candidate"] is None:
+        raise ValueError("refresh-required genesis has no ReleaseCandidate")
+    return {
+        "candidate": ledger["candidate"],
+        "plans": ledger["plans"],
+        "receipts": ledger["receipts"],
+    }
+
+
+__all__ = (
+    "GATE_ORDER",
+    "MODEL_GATES",
+    "append_record",
+    "apply_record",
+    "derive_certified",
+    "derive_coverage",
+    "derive_failed",
+    "derive_freeze_eligibility",
+    "derive_pending",
+    "derive_receipt_tip",
+    "derive_status",
+    "ledger_sha256",
+    "load_ledger",
+    "replay_planned_lifecycle",
+    "validate_case",
+    "validate_case_input",
+    "validate_evidence_commit",
+    "validate_gate_plan",
+    "validate_gate_receipt",
+    "validate_ledger",
+    "validate_release_candidate",
+    "validate_successor",
+)

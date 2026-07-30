@@ -1,36 +1,90 @@
-# HappyCodex 0.5 ExecPlan
+# HappyCodex ExecPlan
 
-## When to create it
-Persist a skeleton at the repository policy path or `docs/execplans/<task-slug>.md` before qualifying research or dispatch.
+Persist this current index before qualifying research or product work. Use the
+repository policy path when one exists, otherwise
+`docs/execplans/<task-slug>.md`. Keep one authoritative checkpoint and compress
+closed history into content-addressed receipts.
 
-## Template
-Protocol/invocation: `HappyCodex/0.5`; `$happycodex:happycodex`. Record current index, restore guard, and phase.
+## Contract
 
-### Outcome and baseline
-**Contract.** Request/amendment hashes; outcome, preservation, breaks, exclusions, Goal divergence, and waiver. Record authorization, invalidation/reruns, revision/tree/worktree, and baseline command/exit/failures. The revision freezes the user contract.
-**Roles/grant.** Root `gpt-5.6-sol/max`; Explorer `gpt-5.6-terra/high`; Challenger and fixed Executor `gpt-5.6-sol/high`; exact-final `gpt-5.6-sol/max`. Bind receipts, Executor thread/token, resources, prestate, operations, acceptance, and stops.
-**Candidate.** Bind Git tree/config/toolchain, semantic package/settings, and install artifact/receipt; ambiguity is change.
+- Record the protocol invocation, restore guard, one of `working`,
+  `candidate_frozen`, `exact_final`, or `closed`, the exact active grant, and
+  Goal state.
+- Freeze the verbatim request and amendments with anchors/digests; normalized
+  Outcome, preservation, exclusions, allowed breaks, waivers, and required
+  reruns.
+- Bind repositories, source revisions/trees, refs, worktrees, package/config
+  identities, baseline command/exit/failures, and accepted failure identities.
+- Record decision-changing designs, the selected boundary, rejection reasons,
+  and remaining uncertainty.
 
-### Claims Ledger
-Types: `outcome`, `preservation`, `allowed-break`, `premise`; states are only `open`, `verified`, or `N/A`; `N/A` requires evidence. Narrowing, widening, baseline, or Outcome change needs explicit user authorization.
+## Roles and authority
 
-| ID | Type | Claim | Closure | Falsifier / oracle | Evidence | State |
+Record Root, the fixed Executor, read-only agents, and reviewer with runtime task
+or session identity, effective model/effort, permissions, source, terminal
+status, and receipt. Bind the Executor owner-token digest and every resource
+claim.
+
+For each grant record its identifier and sequence; fixed Executor; exact
+commit/tree/status prestate; closed paths/resources; allowed operations/effects;
+acceptance checks; stop conditions; and active, consumed, or returned state.
+Persist an external intent before the first mutation and a terminal receipt
+after the last.
+
+Model, corpus, holdout, install, release, marketplace, and activation effects
+each need a separate source-derived impact envelope, complete invocation, exact
+user authority, current resource claim, and outcome receipt.
+
+## Obligations and evidence
+
+Use one current table. Each row follows only affected surfaces justified by
+actual risk; record `N/A` with evidence instead of manufacturing coverage.
+
+| Obligation | Type | Observable contract | Affected surfaces and callers | Falsifier/RED | Evidence and source identity | State |
 | --- | --- | --- | --- | --- | --- | --- |
-| `<ID>` | `<type>` | `<claim>` | `<proof>` | `<counterexample>` | `<fact>` | `open` |
+| `<exact ID>` | `outcome/preservation/allowed-break/premise/exclusion` | `<behavior>` | `<risk-based inventory>` | `<counterexample>` | `<digest/receipt>` | `open/verified/N/A` |
 
-### Convergence Ledger
-Root assigns `family_id`, freezes `repair_batch`, and disposes all six Skill surfaces before closure.
-| Family | Invariant / boundary | Members | Six surfaces | Status | Repair batch | Evidence | Recurrence |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| `<family_id>` | `<boundary>` | `<findings>` | `<proof/open>` | `open` | `<id>/instance` | `<digests>` | `0` |
+Material findings use one exact case-sensitive identity shared with any blocker.
+Classify each as baseline-unchanged, resolved, candidate-new, or unknown.
+Unknown stays open. Do not store a derived lifecycle action.
 
-### Checkpoint
-Record claims, fixed Executor, grant/batch/gates, candidate receipts, dirty paths, Recovery Manifest, agents, phase, and recurrence. Restore exactly one checkpoint.
+## Event state and checks
 
-### Retrospective
-Fill only after final completion; record lessons, do not expose it to a reviewer, and never use it as evidence.
+Record the current coherent diagnosis and repair wave, its new falsifiers,
+changed paths, real-path RED or characterization, focused command, cumulative
+offline command, exits, failures, output digests, and source tree. An unchanged
+failure cannot be retried. One post-GREEN recurrence may use one boundary-level
+alternative; record its falsifier and affected checks. Another unchanged failure
+or recurrence returns the decision to the user.
 
-## Neutral review brief
-Use fresh isolated read-only `gpt-5.6-sol/max`, not Root or Executor; provide neutral request, source, checks, failures, and exclusions.
-## Coverage receipt
-Record session, source/config, exact model/effort/permissions, coverage, paths, limits, findings, and dispositions.
+Corrections occur only on new evidence, check completion, source/config drift,
+pre-effect revalidation, candidate freeze, review findings, or explicit user
+authority. Administrative updates and elapsed time are not progress.
+
+## Candidate and review
+
+At `candidate_frozen`, bind the clean product snapshot, baseline/candidate
+identities, manifest equality, complete affected-diff inventory, package/config
+and toolchain, remaining dirt, obligations, checks, effects, and closed gates.
+
+At `exact_final`, bind the neutral brief and command, isolated read-only session,
+exact source/config/model/effort/permissions, external reads, diff and obligation
+coverage, truncation limits, terminal receipt, findings, Root reproduction, and
+dispositions. Any product change returns to `working`.
+
+## Recovery
+
+Bind task/root/executor identities, owner token and resource claims, selected ref
+or approved archive, source commit/tree/worktree, contract, active grant,
+obligations, current phase/gates, test receipts, agent receipts,
+candidate/review identities, effects, Goal state, and exactly one checkpoint.
+After resume, record fresh reads from the ExecPlan, Git, tests, claims, receipts,
+agents, and Goal. Unknown or mismatched facts remain open.
+
+## Closure
+
+Closure records the final reachable source and product tree, checks, review,
+evidence/effect receipts, exclusions, accepted baseline failures, owned status,
+install/release/activation state, any explicitly waived or unrun gate, and final
+Goal state. Retrospective text is not completion evidence and is never exposed
+to exact-final.

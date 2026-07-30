@@ -18,7 +18,7 @@ codex plugin add happycodex@happycodex
 ```
 
 Start a new Codex task after installation so it discovers the installed Skill.
-Version 0.5 targets Codex 0.145 or newer.
+Version 0.6 targets Codex 0.145 or newer.
 
 ## Use
 
@@ -32,7 +32,7 @@ For a qualifying task, HappyCodex separates three kinds of state:
 - Native Plan stores only the current execution cursor;
 - Git, tests, logs, and runtime observations store facts.
 
-For every qualifying task, 0.5 uses this fixed routing:
+For every qualifying task, 0.6 uses this fixed routing:
 
 - Explorer: `gpt-5.6-terra` at `high`, read-only.
 - Challenger: `gpt-5.6-sol` at `high`, read-only.
@@ -91,6 +91,18 @@ Version 0.5 is a narrow 0.4.2 successor. It fixes the GPT role matrix, makes one
 Executor the only writer, keeps Root on decision/reproduction, and requires exact-final
 review to use a different fresh session. It adds no compatibility reader, controller,
 daemon, or second protocol.
+
+## What's new in 0.6
+
+Version 0.6 contracts the evaluator to one direct terminal protocol, one fixed
+Executor, one audit-bound `EffectIntent` route, and a fresh ledger containing
+only candidate, plan, and receipt records. Root/Host orchestration owns actual
+authority; repository plans, approval digests, and intents bind exact content
+but cannot grant permission or authenticate provenance. Calibration, corpus,
+adaptive holdout, artifact receipt, exact-final review, isolated install,
+publication, and activation remain distinct gates. The standalone model routes
+are dry-run only unless the Host enters the authorized boundary with the exact
+current plan and intents.
 
 ## What's new in 0.3
 

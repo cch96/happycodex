@@ -4,19 +4,15 @@ from __future__ import annotations
 from concurrent.futures import ThreadPoolExecutor
 import json
 from pathlib import Path
-import re
-import tempfile
 from typing import Any, Callable
 
 from evaluation.core.identity import (
     canonical_sha256,
-    engine_inventory,
-    package_identities,
-    package_manifest_sha256,
+    invocation_profile,
     sha256_bytes,
-    toolchain_identity,
 )
 from evaluation.core.receipt import sanitized_case_receipt, write_new_json
+from evaluation.core.schema import CONTRACTS, validate_named
 from evaluation.corpus import engine as corpus_engine
 from evaluation.holdout.blind import (
     ACTUAL_ARMS,
@@ -29,11 +25,8 @@ from evaluation.holdout.blind import (
 )
 from evaluation.holdout.compare import (
     adaptive_next,
-    aggregate_quality,
     compare_pair,
-    cost_gate,
     decision_metrics,
-    sum_metrics,
 )
 
 
@@ -47,31 +40,25 @@ def file_sha256(path: Path) -> str:
     return sha256_bytes(path.read_bytes())
 
 
+def adaptive_frontier(pair_ids: list[str], outcomes: list[str]) -> list[str]:
+    action = adaptive_next(outcomes)
+    index = len(outcomes)
+    if action in {"run_first", "run_second", "run_third"} and index < len(pair_ids):
+        return [pair_ids[index]]
+    return []
+
+
 def load_manifest(path: Path = MANIFEST_PATH) -> dict[str, Any]:
     path = path.resolve()
     holdout_root = path.parent
     repo_root = holdout_root.parents[1]
     raw = json.loads(path.read_text(encoding="utf-8"))
-    if set(raw) != {"schema_version", "pairs"} or raw["schema_version"] != 1:
-        raise ValueError("invalid holdout manifest envelope")
-    pairs = raw["pairs"]
-    if not isinstance(pairs, list) or len(pairs) != 3:
-        raise ValueError("holdout manifest must freeze exactly three pairs")
+    validate_named(CONTRACTS, "holdout_manifest", raw)
     loaded: list[dict[str, Any]] = []
     pair_ids: set[str] = set()
     case_ids: set[str] = set()
-    expected_fields = {
-        "id",
-        "case_path",
-        "outside_diff_boundary",
-        "oracle_kind",
-    }
-    for raw_pair in pairs:
-        if not isinstance(raw_pair, dict) or set(raw_pair) != expected_fields:
-            raise ValueError("invalid holdout pair envelope")
+    for raw_pair in raw["pairs"]:
         pair_id = raw_pair["id"]
-        if not isinstance(pair_id, str) or not re.fullmatch(r"[a-z0-9-]+", pair_id):
-            raise ValueError(f"invalid holdout pair id: {pair_id!r}")
         if pair_id in pair_ids:
             raise ValueError(f"duplicate holdout pair id: {pair_id}")
         pair_ids.add(pair_id)
@@ -89,10 +76,6 @@ def load_manifest(path: Path = MANIFEST_PATH) -> dict[str, Any]:
         if case["id"] in case_ids:
             raise ValueError(f"duplicate holdout case id: {case['id']}")
         case_ids.add(case["id"])
-        if not isinstance(raw_pair["outside_diff_boundary"], bool):
-            raise ValueError(f"invalid boundary marker: {pair_id}")
-        if raw_pair["oracle_kind"] not in {"mechanical", "behavioral"}:
-            raise ValueError(f"invalid oracle kind: {pair_id}")
         loaded.append(
             {
                 **raw_pair,
@@ -103,19 +86,12 @@ def load_manifest(path: Path = MANIFEST_PATH) -> dict[str, Any]:
         )
     if not any(pair["outside_diff_boundary"] for pair in loaded[:2]):
         raise ValueError("first two holdouts need an outside-diff boundary")
-    if not any(
-        pair["oracle_kind"] in {"mechanical", "behavioral"} for pair in loaded[:2]
-    ):
-        raise ValueError("first two holdouts need a mechanical or behavioral oracle")
-    return {
-        "schema_version": 1,
-        "manifest_sha256": file_sha256(path),
-        "pairs": loaded,
-    }
+    return {"schema_version": 1, "manifest_sha256": file_sha256(path),
+            "pairs": loaded}
 
 
-def _validate_pair_capability(
-    authorization: Any,
+def _validate_pair_intent(
+    effect_intent: dict[str, Any],
     *,
     pair: dict[str, Any],
     candidate: Path,
@@ -124,42 +100,28 @@ def _validate_pair_capability(
     effort: str,
     timeout: int,
 ) -> None:
-    from evaluation.core.ledger import AuthorizedInvocation
+    from evaluation.live import validate_effect_intent
 
-    if not isinstance(authorization, AuthorizedInvocation):
-        raise ValueError("live holdout execution requires a validated capability")
-    descriptor = authorization.descriptor()
-    snapshot = authorization.snapshot()
-    settings = snapshot.get("settings")
-    current = next(
-        (item for item in load_manifest()["pairs"] if item["id"] == pair.get("id")),
-        None,
-    )
-    candidate_identity = {
-        "semantic_sha256": descriptor.get("candidate_semantic_sha256"),
-        "artifact_sha256": descriptor.get("candidate_artifact_sha256"),
-    }
-    public_identity = {
-        "semantic_sha256": descriptor.get("public_semantic_sha256"),
-        "artifact_sha256": descriptor.get("public_artifact_sha256"),
-    }
+    intent = validate_effect_intent(effect_intent, unit=pair["id"])
     if (
-        descriptor.get("command") != "holdout"
-        or pair.get("id") not in descriptor.get("pairs", [])
-        or pair.get("id") not in snapshot.get("holdout", {}).get("pairs", {})
-        or current != pair
-        or descriptor.get("model") != model
-        or descriptor.get("effort") != effort
-        or descriptor.get("timeout_seconds") != timeout
-        or not isinstance(settings, dict)
-        or settings.get("model") != model
-        or settings.get("effort") != effort
-        or settings.get("timeout_seconds") != timeout
-        or candidate_identity != snapshot.get("package")
-        or package_identities(candidate) != candidate_identity
-        or package_identities(public) != public_identity
+        intent["gate"] != "holdout"
+        or intent["invocation"]["model"] != model
+        or intent["invocation"]["effort"] != effort
+        or intent["invocation"]["timeout_ms"] != timeout * 1000
+        or intent["invocation"]["arm"] != "blinded-pair"
     ):
-        raise ValueError("holdout pair does not match the validated capability")
+        raise ValueError("EffectIntent does not bind holdout invocation")
+    if pair["case"]["id"] != f"holdout-{pair['id']}":
+        raise ValueError("holdout pair identity is invalid")
+    for plugin in (candidate, public):
+        if not plugin.resolve().is_dir():
+            raise ValueError("holdout plugin must be an existing directory")
+    invocation_profile(
+        model=model,
+        effort=effort,
+        timeout_seconds=timeout,
+        arm="blinded-pair",
+    )
 
 
 def _evaluate_pair_arms(
@@ -180,11 +142,11 @@ def run_pair(
     model: str,
     effort: str,
     timeout: int,
-    authorization: Any = None,
+    effect_intent: dict[str, Any],
     evaluator: Callable[..., dict[str, Any]] = corpus_engine.evaluate_case,
 ) -> dict[str, Any]:
-    _validate_pair_capability(
-        authorization,
+    _validate_pair_intent(
+        effect_intent,
         pair=pair,
         candidate=candidate,
         public=public,
@@ -193,12 +155,13 @@ def run_pair(
         timeout=timeout,
     )
     pair_output = output / pair["id"]
-    pair_output.mkdir(parents=True, exist_ok=False)
+    if pair_output.is_symlink() or not pair_output.is_dir():
+        raise ValueError("reserved holdout EffectIntent output is not a real directory")
     sealed = seal_mapping(pair["id"])
     commitment_sha = write_new_json(
         pair_output / "01-mapping-commitment.json", sealed.public_receipt()
     )
-    plugins = {"candidate": candidate, "public-0.4.0": public}
+    plugins = {"candidate": candidate, "public-0.2": public}
     inverse = {alias: arm for arm, alias in sealed._mapping.items()}
 
     def evaluate_alias(alias: str) -> dict[str, Any]:
@@ -211,8 +174,8 @@ def run_pair(
             effort=effort,
             timeout=timeout,
             arm=arm,
-            authorization=authorization,
-            authorization_unit=pair["id"],
+            effect_intent=effect_intent,
+            intent_unit=pair["id"],
         )
 
     raw = _evaluate_pair_arms(evaluate_alias)
@@ -237,7 +200,7 @@ def run_pair(
         )
     receipt = {
         "schema_version": 1,
-        "engine_generation": "0.4",
+        "engine_generation": "0.6",
         "id": pair["id"],
         "case_id": pair["case"]["id"],
         "case_sha256": pair["case_sha256"],
@@ -257,17 +220,17 @@ def run_pair(
 
 
 def resolve_output(requested: Path | None, *plugins: Path) -> Path:
-    output = (
-        requested.expanduser().resolve()
-        if requested is not None
-        else Path(tempfile.mkdtemp(prefix="happycodex-holdouts-")).resolve()
-    )
+    if requested is None or not requested.is_absolute():
+        raise ValueError("an explicit absolute raw output path is required")
+    if requested.is_symlink() or requested.exists():
+        raise ValueError("raw holdout output path must be absent and not a symlink")
+    parent = requested.parent
+    if parent.is_symlink() or not parent.is_dir():
+        raise ValueError("raw holdout output parent must be an existing real directory")
+    output = requested.resolve()
     for protected in (ROOT.resolve(), *(plugin.resolve() for plugin in plugins)):
         if output == protected or output.is_relative_to(protected):
             raise ValueError("raw holdout output must stay outside source and plugins")
-    output.mkdir(parents=True, exist_ok=True)
-    if any(output.iterdir()):
-        raise ValueError("raw holdout output directory must be empty")
     return output
 
 
@@ -279,76 +242,43 @@ def run_holdouts(
     model: str,
     effort: str,
     timeout: int,
-    authorization: Any,
+    effect_intents: dict[str, dict[str, Any]],
+    claim_root: Path,
 ) -> dict[str, Any]:
-    from evaluation.core.ledger import AuthorizedInvocation
+    from evaluation import live
 
-    if not isinstance(authorization, AuthorizedInvocation):
-        raise ValueError("live holdout execution requires a validated capability")
-    descriptor = authorization.descriptor()
-    if descriptor.get("command") != "holdout":
-        raise ValueError("invalid holdout execution capability")
+    if not isinstance(effect_intents, dict) or not effect_intents:
+        raise ValueError("authorized holdout run requires EffectIntents")
+    intents = {
+        key: live.validate_effect_intent(value, unit=key)
+        for key, value in effect_intents.items()
+    }
     manifest = load_manifest()
+    output = resolve_output(output, candidate, public)
     pair_ids = [pair["id"] for pair in manifest["pairs"]]
-    if (
-        descriptor.get("pairs") != sorted(pair_ids)
-        or descriptor.get("model") != model
-        or descriptor.get("effort") != effort
-        or descriptor.get("timeout_seconds") != timeout
-    ):
-        raise ValueError("holdout execution does not match the validated capability")
-    candidate_manifest = package_manifest_sha256(candidate)
-    public_manifest = package_manifest_sha256(public)
-    if public_manifest != corpus_engine.EXPECTED_PUBLIC_040_PACKAGE_MANIFEST_SHA256:
-        raise ValueError(
-            "public-0.4.0 package manifest mismatch: "
-            f"got {public_manifest}, expected "
-            f"{corpus_engine.EXPECTED_PUBLIC_040_PACKAGE_MANIFEST_SHA256}"
+    if set(intents) != set(pair_ids):
+        raise ValueError("EffectIntent units do not equal holdout pairs")
+    for pair_id in pair_ids:
+        intent = live.validate_effect_intent(
+            intents[pair_id],
+            unit=pair_id,
+            timeout_ms=timeout * 1000,
+            output=output / pair_id,
         )
-    package_manifests = {
-        "candidate": candidate_manifest,
-        "public-0.4.0": public_manifest,
-    }
-    package_identity = {
-        "candidate": package_identities(candidate),
-        "public-0.4.0": package_identities(public),
-    }
-    if package_identity != {
-        "candidate": {
-            "semantic_sha256": descriptor.get("candidate_semantic_sha256"),
-            "artifact_sha256": descriptor.get("candidate_artifact_sha256"),
-        },
-        "public-0.4.0": {
-            "semantic_sha256": descriptor.get("public_semantic_sha256"),
-            "artifact_sha256": descriptor.get("public_artifact_sha256"),
-        },
-    }:
-        raise ValueError("holdout packages do not match the validated capability")
-    run_receipt = {
-        "schema_version": 1,
-        "engine_generation": "0.4",
-        "impact_token": authorization.impact_token,
-        "live_authority_sha256": authorization.authority_sha256,
-        "manifest_sha256": manifest["manifest_sha256"],
-        "identities": {
-            "engine": engine_inventory(ROOT),
-            "packages": package_identity,
-            "toolchain": toolchain_identity(),
-        },
-        "model": model,
-        "effort": effort,
-        "timeout_seconds": timeout,
-        "pair_ids": pair_ids,
-        "case_sha256": {pair["id"]: pair["case_sha256"] for pair in manifest["pairs"]},
-    }
-    write_new_json(output / "00-run-receipt.json", run_receipt)
-    receipts: list[dict[str, Any]] = []
-    outcomes: list[str] = []
-    while True:
-        action = adaptive_next(outcomes)
-        if action in {"reject", "stop"}:
-            break
-        pair = manifest["pairs"][len(outcomes)]
+        if (
+            intent["gate"] != "holdout"
+            or intent["invocation"]["model"] != model
+            or intent["invocation"]["effort"] != effort
+            or intent["invocation"]["arm"] != "blinded-pair"
+        ):
+            raise ValueError("EffectIntent does not bind holdout invocation")
+    receipts = []
+    outcomes = []
+    by_id = {pair["id"]: pair for pair in manifest["pairs"]}
+    while frontier := adaptive_frontier(pair_ids, outcomes):
+        pair = by_id[frontier[0]]
+        intent = intents[pair["id"]]
+        live.reserve_effect(intent, claim_root)
         receipt = run_pair(
             pair,
             candidate=candidate,
@@ -357,33 +287,45 @@ def run_holdouts(
             model=model,
             effort=effort,
             timeout=timeout,
-            authorization=authorization,
+            effect_intent=intent,
         )
+        usage = {
+            "model_calls": sum(
+                len(arm["usage_phases"]) for arm in receipt["arms"].values()
+            ),
+            "uncached_input_tokens": sum(
+                arm["uncached_input_tokens"] for arm in receipt["arms"].values()
+            ),
+            "output_tokens": sum(
+                arm["usage"]["output_tokens"] for arm in receipt["arms"].values()
+            ),
+            "wall_milliseconds": round(
+                max(arm["elapsed_seconds"] for arm in receipt["arms"].values())
+                * 1000
+            ),
+        }
+        effect_result = {
+            "schema_version": 1,
+            "intent_digest": intent["intent_digest"],
+            "unit": intent["unit"],
+            "status": (
+                "failed" if receipt["outcome"] == "regression" else "succeeded"
+            ),
+            "output_sha256": canonical_sha256(receipt),
+            "usage": usage,
+        }
+        effect_result["result_sha256"] = canonical_sha256(effect_result)
+        live.write_effect_result(intent, claim_root, effect_result)
         receipts.append(receipt)
         outcomes.append(receipt["outcome"])
-    if {
-        arm: package_manifest_sha256(path)
-        for arm, path in (("candidate", candidate), ("public-0.4.0", public))
-    } != package_manifests:
-        raise RuntimeError("evaluated package changed during holdouts")
-    quality = aggregate_quality(outcomes)
-    aggregate = {
-        arm: sum_metrics([receipt["metrics"][arm] for receipt in receipts])
-        for arm in ACTUAL_ARMS
-    }
-    gate = cost_gate(aggregate["candidate"], aggregate["public-0.4.0"], quality=quality)
-    summary = {
+    return {
         "schema_version": 1,
-        "engine_generation": "0.4",
-        "run_receipt_sha256": file_sha256(output / "00-run-receipt.json"),
-        "adaptive_history": outcomes,
-        "adaptive_terminal_action": adaptive_next(outcomes),
-        "pairs_run": len(receipts),
-        "pair_receipts": receipts,
-        "cost_gate": gate,
+        "engine_generation": "0.6",
+        "manifest_sha256": manifest["manifest_sha256"],
+        "pairs": [receipt["id"] for receipt in receipts],
+        "outcomes": outcomes,
+        "receipts": [canonical_sha256(receipt) for receipt in receipts],
     }
-    write_new_json(output / "summary.json", summary)
-    return summary
 
 
 def run_command(args: Any) -> int:
@@ -414,6 +356,23 @@ def run_command(args: Any) -> int:
                         "otherwise second pair is mandatory",
                         "split or uncertainty runs the third pair",
                     ],
+                    "invocation_profile": invocation_profile(
+                        model=args.model,
+                        effort=args.effort,
+                        timeout_seconds=args.timeout,
+                        arm="blinded-pair",
+                    ),
+                    "effects": {
+                        "intents_created": 0,
+                        "units_consumed": 0,
+                        "fixtures_created": 0,
+                        "outputs_created": 0,
+                        "receipts_created": 0,
+                        "workspaces_created": 0,
+                        "subprocesses": 0,
+                        "model_calls": 0,
+                        "network_calls": 0,
+                    },
                 },
                 indent=2,
             )
@@ -422,27 +381,22 @@ def run_command(args: Any) -> int:
     raise SystemExit("live holdout execution is available only through evaluation.cli")
 
 
-def run_authorized(args: Any, authorization: Any) -> int:
-    from evaluation.core.ledger import AuthorizedInvocation
-
-    if not isinstance(authorization, AuthorizedInvocation):
-        raise SystemExit("live holdout execution requires a validated capability")
+def run_authorized(
+    args: Any,
+    effect_intents: dict[str, dict[str, Any]],
+    claim_root: Path,
+) -> int:
     if args.public is None:
-        raise SystemExit("--public is required for a live paired run")
-    candidate = args.candidate.expanduser().resolve()
-    public = args.public.expanduser().resolve()
-    try:
-        output = resolve_output(args.output, candidate, public)
-        summary = run_holdouts(
-            candidate=candidate,
-            public=public,
-            output=output,
-            model=args.model,
-            effort=args.effort,
-            timeout=args.timeout,
-            authorization=authorization,
-        )
-    except (OSError, RuntimeError, ValueError) as exc:
-        raise SystemExit(str(exc)) from exc
-    print(json.dumps(summary, indent=2))
-    return 0 if summary["cost_gate"]["release_permitted"] else 1
+        raise ValueError("exact public-0.2 package path is required")
+    result = run_holdouts(
+        candidate=args.candidate,
+        public=args.public,
+        output=args.output,
+        model=args.model,
+        effort=args.effort,
+        timeout=args.timeout,
+        effect_intents=effect_intents,
+        claim_root=claim_root,
+    )
+    print(json.dumps(result, sort_keys=True))
+    return 0
