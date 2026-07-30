@@ -1,0 +1,45 @@
+{
+  "format": "happycodex/protected-resources/1",
+  "observed_at_utc": "2026-07-30T17:22:16Z",
+  "mutation_policy": "READ_ONLY_UNTIL_SEPARATELY_AUTHORIZED_INSTALL_OR_CUTOVER",
+  "active_plugin": {
+    "version": "0.6.0+codex.20260730115707",
+    "source_path": "/home/caichenghang/plugins/happycodex",
+    "cache_path": "/home/caichenghang/.codex/plugins/cache/personal/happycodex/0.6.0+codex.20260730115707",
+    "normalized_file_manifest_sha256": "8b69be2632bf5c6f72736a09d1d3c815acf26ed7fcd4a9e6ed55e0092fcfbed0",
+    "plugin_json_sha256": "ab36ad0cd41843799dfe04e68724cc3d9269bc80a14ad64d5f3bbec83e123237",
+    "skill_sha256": "19145f8ab72ae1819f003311a1eef647bfc9f270885e1410a46adbc724ba239b"
+  },
+  "external_configuration": {
+    "/home/caichenghang/.agents/plugins/marketplace.json": "752de5a68116a69025e6ac46e32e8e0a7512cf8e2f87078d53b719c4362dcbfe",
+    "/home/caichenghang/.codex/config.toml": "86958236ab4f0c6228bcaa5e4750b4dc32cf69a87e16775bec404af609070af3"
+  },
+  "released_source": {
+    "path": "/home/caichenghang/projects/happycodex-worktrees/happycodex-0.5-main-release",
+    "commit": "e679c3d5cb83d6170fcd6f38f067892603c309da",
+    "tree": "ead6d31e8670118dfeb4a2f015a0a1d2c7ad8f28",
+    "tag_object": "a665dec9220d0065fdf34f375b937170222bee48"
+  },
+  "released_package": {
+    "artifact_sha256": "4e2b300bfc7c49c4eccad46a198e79f15c28680f2e4e6f041fabcc995ad3621e",
+    "semantic_sha256": "9cd5a507a8a9561c8af6751917b430b1cb29c238810b7c32bcff15c39044965a"
+  },
+  "released_ledger": {
+    "path": "evaluation/results/current.json",
+    "file_sha256": "83fabbf4227817caadc5eb272dd1dcb464c91e3beb4d746b09306b09c005fffd",
+    "canonical_sha256": "5329bb9e4cb76bef8005fb4387763648e94605a8f493349aa8984be2961a1f03",
+    "state": "refresh_required",
+    "certified": false
+  },
+  "superseded_line": {
+    "path": "/home/caichenghang/projects/happycodex-worktrees/happycodex-0.6.5-clean-break",
+    "branch": "codex/happycodex-0.6.5-clean-break",
+    "head": "570cd66",
+    "base": "ffd5f46542c303f9c99f5295af9112bd5c41d788",
+    "handling": "read-only; excluded from 0.6.5 ancestry and candidate identity"
+  },
+  "hash_method": {
+    "files": "raw SHA-256",
+    "directory_manifest": "sorted relative regular-file paths with each sha256sum line, then SHA-256 of the resulting stream"
+  }
+}

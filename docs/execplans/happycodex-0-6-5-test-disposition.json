@@ -1,0 +1,55 @@
+{
+  "format": "happycodex/test-disposition/1",
+  "base_commit": "e679c3d5cb83d6170fcd6f38f067892603c309da",
+  "discovery": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p 'test_*.py'",
+    "test_count": 169,
+    "sorted_test_ids_sha256_lf": "0d5bbcf5756e545f21ed4f6739dfd44a360fa4bf50eec0e21c8787cabab40359",
+    "rules_are_exhaustive": true,
+    "unmatched_or_multiply_matched_test": "FAIL"
+  },
+  "rules": [
+    {
+      "prefix": "test_resource_claim.",
+      "count": 6,
+      "disposition": "KEEP_AS_IS"
+    },
+    {
+      "prefix": "test_holdouts.",
+      "count": 17,
+      "disposition": "KEEP_BEHAVIOR_AND_INDEPENDENT_COMPARATOR"
+    },
+    {
+      "prefix": "test_certification_engine.",
+      "count": 44,
+      "disposition": "REWRITE_GENERATION_7_PRESERVE_FALSIFIER"
+    },
+    {
+      "prefix": "test_contracts.",
+      "count": 16,
+      "disposition": "REWRITE_0_6_5_RUNTIME_PRESERVE_FALSIFIER"
+    },
+    {
+      "prefix": "test_evaluation.",
+      "count": 86,
+      "disposition": "REWRITE_GENERATION_7_PRESERVE_FALSIFIER"
+    }
+  ],
+  "base_result": {
+    "tests_run": 169,
+    "failures": 0,
+    "errors": 0,
+    "skips": 0,
+    "meaning": "released v0.6.0 offline baseline"
+  },
+  "replacement_policy": {
+    "delete_without_exact_replacement": "FORBIDDEN",
+    "weaken_assertion_or_oracle": "FORBIDDEN",
+    "replacement_must_record": [
+      "old_test_id",
+      "new_test_id",
+      "preserved_falsifier"
+    ],
+    "batch_gate": "all 169 base identities are retained or exactly replaced, every added invariant seed is GREEN, and the complete offline suite is GREEN"
+  }
+}
