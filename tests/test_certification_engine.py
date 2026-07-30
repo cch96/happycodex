@@ -208,11 +208,30 @@ def _run_current_cli(*args: str, cwd: Path = ROOT) -> subprocess.CompletedProces
 
 
 class GenesisAndCliTests(unittest.TestCase):
-    def test_active_ledger_is_generation7_genesis(self) -> None:
+    def test_active_ledger_has_exact_generation7_candidate(self) -> None:
         active = json.loads(
             (ROOT / "evaluation/results/current.json").read_text(encoding="utf-8")
         )
-        self.assertEqual(active, GENESIS)
+        expected_candidate = {
+            "candidate_sha256": "908a926287fa01cb8e4b4cf591b2a90d108a0b9bfe3d39affa7f39e9908f187e",
+            "created_at": "2026-07-30T18:19:51Z",
+            "executor_role_sha256": "f1effcc84e7ed24f6d54c972e2e412db42a3e46a6d92565e6d61b358128305da",
+            "package_artifact_sha256": "bbc82a07445104820fb4e2108dde252fcce1883136e34e5ef1733eb3984b8b33",
+            "package_semantic_sha256": "9cd5a507a8a9561c8af6751917b430b1cb29c238810b7c32bcff15c39044965a",
+            "record_type": "ReleaseCandidate",
+            "schema_version": 1,
+            "source_commit": "3a8e7d7ed7697c53d4b9c574a5fec1031ca0cc19",
+            "source_tree": "799199be73b0d995fda2d52ee8b50bd92692efe1",
+        }
+        self.assertEqual(
+            active,
+            {
+                "schema_version": 1,
+                "candidate": expected_candidate,
+                "plans": [],
+                "receipts": [],
+            },
+        )
         validate_ledger(active, repo=ROOT)
         self.assertEqual(derive_status(active), "refresh_required")
         self.assertEqual(derive_pending(active)["gates"], list(GATE_ORDER))

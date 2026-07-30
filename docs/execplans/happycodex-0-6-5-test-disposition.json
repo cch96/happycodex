@@ -11,7 +11,7 @@
   "candidate_discovery": {
     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p 'test_*.py'",
     "test_count": 183,
-    "sorted_test_ids_sha256_lf": "1856da60f759102e5cd292ceff54bd1e0b4146e299131aecd59cd3b3c9a0a60d",
+    "sorted_test_ids_sha256_lf": "473d4f16c5fcb00239b19e00ce447b02b4382311ae65e3bb3b0f6c472e9df45a",
     "base_identities_retained": 159,
     "base_identities_replaced": 10,
     "generation_7_invariants_added": 14
@@ -93,8 +93,8 @@
     },
     {
       "old_test_id": "test_certification_engine.GenesisAndCliTests.test_active_ledger_has_exact_unplanned_product_candidate",
-      "new_test_id": "test_certification_engine.GenesisAndCliTests.test_active_ledger_is_generation7_genesis",
-      "preserved_falsifier": "active ledger must equal the sole clean-break genesis and remain refresh_required with every gate pending"
+      "new_test_id": "test_certification_engine.GenesisAndCliTests.test_active_ledger_has_exact_generation7_candidate",
+      "preserved_falsifier": "active ledger must equal the sole clean-break candidate, match its Git archive, and remain refresh_required with every gate pending"
     },
     {
       "old_test_id": "test_contracts.HappyCodexContractTests.test_release_version_requires_one_helper_cachebuster_suffix",

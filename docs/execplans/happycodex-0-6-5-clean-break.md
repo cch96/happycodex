@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `C_WORKING`
+Status: `CANDIDATE_FROZEN`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -167,7 +167,7 @@ push/main/tag/GitHub Release, or publication.
   official dry-runs, CLI verify, Skill validation, and plugin validation pass;
   it aligned Runtime policy, version/public metadata, the generation-7 genesis
   ledger, maintainer documentation, and launch terminology.
-- Batch C is the active dirty wave. The v0.6.0 baseline has 169 test identities;
+- Batch C source is committed at `3a8e7d7`. The v0.6.0 baseline has 169 test identities;
   the candidate has 159 unchanged identities, ten exact replacements, and 14
   added generation-7 invariants. The exact mapping is persisted in the test
   disposition inventory.
@@ -175,11 +175,30 @@ push/main/tag/GitHub Release, or publication.
   `tests/test_evaluation.py` fell from 5,169 to 2,047 lines while retaining the
   same 86 active IDs and
   `4ac14406aaccf7ef637bb12ad405a866c224e527cd4590006d27e34d352d5bac`
-  sorted-ID digest. The full 183-test digest remains
-  `1856da60f759102e5cd292ceff54bd1e0b4146e299131aecd59cd3b3c9a0a60d`.
+  sorted-ID digest. The final 183-test digest is
+  `473d4f16c5fcb00239b19e00ce447b02b4382311ae65e3bb3b0f6c472e9df45a`.
+- The frozen source tree is
+  `799199be73b0d995fda2d52ee8b50bd92692efe1`. Its normalized package
+  artifact is
+  `bbc82a07445104820fb4e2108dde252fcce1883136e34e5ef1733eb3984b8b33`,
+  semantic identity is
+  `9cd5a507a8a9561c8af6751917b430b1cb29c238810b7c32bcff15c39044965a`,
+  Executor role is
+  `f1effcc84e7ed24f6d54c972e2e412db42a3e46a6d92565e6d61b358128305da`,
+  evaluator manifest is
+  `f90189cc9ae4fb8f1b4e54af199a9a3cdcd8883852ddb4fe6decff69a23338a1`,
+  and snapshot is
+  `7276163b69bec9485daba543968be8570df2ba24657ad2c13db334ed057ff7ad`.
+- The sole generation-7 ReleaseCandidate is
+  `908a926287fa01cb8e4b4cf591b2a90d108a0b9bfe3d39affa7f39e9908f187e`;
+  current ledger identity is
+  `be4777979e04b4544623488f930192851b10f2bc32db2863faf706b5db1398e3`.
+  All six evidence gates remain pending and no old evidence is reused.
+- Protected active-plugin, cache, marketplace, and Codex configuration hashes
+  exactly match the frozen P0 inventory.
 - No live model, network, install, activation, push, tag, GitHub Release, or
   publication effect has occurred.
-- Next action: commit the inventoried Batch C cleanup, rerun every offline and
-  artifact boundary against that Git-reachable source, persist its exact
-  ReleaseCandidate record in a strictly post-source evidence commit, and freeze
-  the offline candidate if no material finding remains.
+- Next action: commit this strictly post-source candidate/ledger evidence,
+  rerun every offline and artifact boundary, then prepare exact impact,
+  invocation, authority, and output identities for the still-pending
+  calibration, corpus, holdout, receipt, review, and isolated-install gates.
