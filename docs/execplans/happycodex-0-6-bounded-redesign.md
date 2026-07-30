@@ -309,6 +309,7 @@ evaluation/core/impact.py
 evaluation/core/ledger.py
 evaluation/core/schema.py
 evaluation/contracts-v6.json
+evaluation/corpus/engine.py
 evaluation/executor-role.json
 evaluation/README.md
 README.md
@@ -318,6 +319,11 @@ tests/test_evaluation.py
 tests/test_holdouts.py
 docs/execplans/happycodex-0-6-bounded-redesign.md
 ```
+
+`evaluation/corpus/engine.py` directly consumes `CORPUS_SEMANTIC_PATHS`,
+`engine_paths_sha256`, and `toolchain_identity`, so Batch 3 must migrate it
+while deleting category/scope algebra and tool-path hashes. No other current
+production caller requires a signature change.
 
 Reduce identity to the retained release identities and live receipt model/Codex
 facts. Delete tool-path hashes, category/scope algebra, per-file LOC quotas,
