@@ -61,6 +61,25 @@ EXPECTED_MODULES = {
     "evaluation/semantic/parse.py",
     "evaluation/semantic/types.py",
 }
+CONSTRUCTION_SOURCE_ANCHOR = {
+    "source_commit": "11bf9f596eb95fdecfa14ea184e55125e5e594bc",
+    "source_tree": "62354be2be5d98f594bb59daa12bdc47891efda3",
+    "package_artifact_sha256": (
+        "0fe39460ad54c9d842d014f809019bb2e42ee4138173c32d2f490cba64171d83"
+    ),
+    "package_semantic_sha256": (
+        "b3326b911a3cd49e24ff0f8799ca53b54b4e62df3167267b5ad4129f6f5367f7"
+    ),
+    "engine_manifest_sha256": (
+        "1c2ee0166282e69ed6eb2b61ea62d04586e40a42bfaf80d358496fa31482f79b"
+    ),
+    "executor_role_sha256": (
+        "f1effcc84e7ed24f6d54c972e2e412db42a3e46a6d92565e6d61b358128305da"
+    ),
+    "public_baseline_sha256": (
+        "514cea60053bab5303e86e6cacaa0260e960b3fe1670a658e2df1a6965ce978c"
+    ),
+}
 
 
 def refreshed_coverage(snapshot: dict[str, object]) -> dict[str, object]:
@@ -268,7 +287,7 @@ class CertificationIdentityTests(unittest.TestCase):
         ):
             self.assertFalse(hasattr(ledger_engine, name), name)
 
-    def test_active_ledger_is_exact_fresh_generation_6_genesis(self) -> None:
+    def test_active_ledger_is_exact_anchored_empty_generation_6_state(self) -> None:
         active = json.loads(
             (ROOT / "evaluation" / "results" / "current.json").read_text(
                 encoding="utf-8"
@@ -296,7 +315,7 @@ class CertificationIdentityTests(unittest.TestCase):
         self.assertEqual(active["schema_version"], 1)
         self.assertEqual(active["engine_generation"], "0.6")
         self.assertEqual(active["state"], "refresh_required")
-        self.assertIsNone(active["source_anchor"])
+        self.assertEqual(active["source_anchor"], CONSTRUCTION_SOURCE_ANCHOR)
         pending = ledger_engine.derive_pending(active)
         self.assertEqual(pending["gates"], list(ledger_engine.PENDING_GATES))
         self.assertEqual(pending["corpus_cases"], sorted(active["snapshot"]["corpus"]["cases"]))
@@ -1417,7 +1436,7 @@ class G013SourceContractTests(unittest.TestCase):
             capability = live._authorize_effect(report, object())
         return capability, report, binding
 
-    def test_g013_source_anchor_is_null_preanchor_and_archive_bound(self) -> None:
+    def test_g013_active_source_anchor_is_archive_bound_and_tamper_rejected(self) -> None:
         from evaluation.core import identity as identity_engine
 
         active = json.loads(
@@ -1426,12 +1445,17 @@ class G013SourceContractTests(unittest.TestCase):
             )
         )
         self.assertIn("source_anchor", active)
-        self.assertIsNone(active["source_anchor"])
+        self.assertEqual(active["source_anchor"], CONSTRUCTION_SOURCE_ANCHOR)
         validate_ledger(active, repo=ROOT)
 
         invalid = copy.deepcopy(active)
         invalid["source_anchor"] = {}
         with self.assertRaisesRegex(ValueError, "source anchor|schema object mismatch"):
+            validate_ledger(invalid, repo=ROOT)
+
+        invalid = copy.deepcopy(active)
+        invalid["source_anchor"]["source_tree"] = "f" * 40
+        with self.assertRaisesRegex(ValueError, "source anchor does not match Git archive"):
             validate_ledger(invalid, repo=ROOT)
 
         with tempfile.TemporaryDirectory() as raw:
@@ -1737,7 +1761,9 @@ class G013SourceContractTests(unittest.TestCase):
             validate_ledger(invalid, repo=ROOT)
         invalid = copy.deepcopy(active)
         invalid["certification"] = {"offline": True}
-        with self.assertRaisesRegex(ValueError, "pre-anchor|certification"):
+        with self.assertRaisesRegex(
+            ValueError, "pre-anchor|anchored empty|certification"
+        ):
             validate_ledger(invalid, repo=ROOT)
 
 

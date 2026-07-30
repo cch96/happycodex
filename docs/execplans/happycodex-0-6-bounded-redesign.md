@@ -8,22 +8,24 @@ Batch 2 at `788c42917bf1e1bcec2515a361ce68b32a25fb46`; G012R at
 `0148ac5f7875856b427244972f7ecb3e0f3a028d`; and plan-only G015C at
 `deeb142c15f24f00645301a72b2c7df7f70fb179`, tree
 `1aa2733ef0a5ff6fbdfb9f347ccf65f98c7e7790`. G009, G012, G013, and G013C
-remain rejected. Original G015 and G015R remain rejected/unaccepted. G015D is
-accepted plan-only. G015T is accepted plan-only at
+remain rejected. Original G015 and G015R remain rejected/unaccepted. G015D/G015T
+are accepted plan-only; G015T is
 `4ec89c50a596aef3acb65ae49f22e9fad2294e55`, tree
-`34fca4c0cbc29b59bc172c93a6ed84fbfeec38fe`. G015U is active; G016 and every
-live/release gate remain ungranted.
+`34fca4c0cbc29b59bc172c93a6ed84fbfeec38fe`. G015U is accepted at
+`11bf9f596eb95fdecfa14ea184e55125e5e594bc`, tree
+`62354be2be5d98f594bb59daa12bdc47891efda3`; receipt SHA-256 is
+`16abf0466cefb773653d9f317dd42dadbb62f7821b85176dc66395c12fec69a8`.
+G016 is construction-anchor-only under
+`HC06BR-G-016-test-contract-addendum`; its one-test correction covers stale
+anchored-empty expectations. Every later gate remains ungranted.
 
 Restore guard: reconcile plan, source, Executor, controls, checks, candidate, and
 evidence before writing; summaries or copied handles cannot restore authority.
 
-Phase: `Batch 3 readable-schema source continuation`. G015U binds the fixed
-Executor/claim, G015S dirty prestate, and 19-path maximum. G015D/G015T are
-accepted plan-only; G015S RED/receipt is not rerun. R1 moved accidental bytes to
-`/tmp/happycodex-g015s-accidental-contracts-v6-5dca60ce.json` (mode `0600`,
-24,887 bytes, SHA-256 `5dca60ce49b7ec7e6fbb90f02c5ae4f6389adfb17c62aff95c64b41f41b15a5b`)
-and restored main clean. Quarantine is never input. G015U authorizes offline
-source/tests/docs, checks, one source commit, and its private receipt only.
+Phase: `Batch 3 construction anchor`. G016 binds the accepted G015U source in
+the otherwise empty ledger and reconciles this plan plus one stale-state test. It grants no release-source,
+model/live, install, release, publication, marketplace, cachebuster, or activation
+effect. Quarantined accidental bytes remain non-input.
 
 ## Operative request and normalized Outcome
 
@@ -519,16 +521,14 @@ tests/test_holdouts.py
 
 No Runtime Markdown, semantic module, case/pair/manifest, plugin manifest,
 external role config, receipt module, evidence artifact, package surface, adapters
-directory, relocation, or other path may change. G015S continues in this worktree
-from the 16-path G015R dirty spike; it neither rolls back nor redoes those bytes.
-The spike is implementation prestate, not accepted source/evidence/`S2`. G015S
-Phase A RED/receipt is retained and is not rerun. G015U repairs readability,
-consolidates structure without opaque duplication, changes new tracked source
-files to mode `0644`, retains the 17 behaviors, and obtains fresh focused plus
-full offline GREEN before one source commit. Private claims and quarantine stay
-`0600`. Fresh full GREEN re-proves all behavior;
-`current.json` remains pre-anchor genesis. Future G016 owns only this plan and
-`current.json` for an otherwise empty construction anchor. Neither grant is active.
+directory, relocation, or other path may change. G015U accepted the consolidated
+source after fresh focused/full GREEN. G016 owns only this plan, `current.json`,
+and the three stale assertions in `tests/test_certification_engine.py`; it replaces
+the null source with the exact construction anchor while every plan,
+cost, authority, evidence, coverage, receipt, freeze, and certification slot stays
+empty. The first full run was 251/254 because those assertions still required a
+null anchor; the test-contract addendum authorizes only that correction. This is
+not a release anchor or evidence.
 
 ## Exact batch path and ownership inventory
 
@@ -583,9 +583,9 @@ The three holdout identities remain `authority-production-boundary`,
 cardinality, and behavior are preservation claims; schema bytes may change only
 to generation 6.
 
-G009 owns the accepted minimal pre-anchor genesis. G014, G015C, G015D, and
-G015T are accepted; active G015U owns the 19-path maximum; G016
-owns only this plan and the excluded ledger anchor. No manifest/role edit
+G009 owns the accepted minimal pre-anchor genesis. G014, G015C, G015D, G015T,
+and G015U are accepted; G016 owns only this plan, the ledger construction anchor,
+and its single stale-state test correction. No manifest/role edit
 authorizes installed bytes, personal marketplace/cache, external config, or a
 helper.
 
@@ -780,10 +780,13 @@ formatting, or waive any ceiling. New tracked source is `0644` before commit.
 
 ## Future authority and release gates
 
-G015U produces the candidate offline-GREEN `S2`. All following steps are future,
-separate, and unauthorized:
+G015U `S2` is accepted. The commit containing this update is the candidate G016
+construction anchor, pending Root verification. All later steps are separate and
+unauthorized:
 
-1. G016 records the `S2` construction anchor with an otherwise empty ledger.
+1. G016 binds `S2` commit/tree, package artifact/semantic, engine manifest,
+   Executor role, and public-baseline digests. All lifecycle slots remain empty;
+   this is neither release anchor nor evidence.
 2. A separate release-source grant runs the official cachebuster helper exactly
    once in an isolated temporary home, preserves active 0.4 state, and commits
    actual release bytes as `S_release`.
@@ -894,12 +897,13 @@ zero legacy hits, and diff/claim/hash checks. Production Python was 8,667 lines.
 G015C is accepted plan-only at `deeb142c15f24f00645301a72b2c7df7f70fb179`,
 tree `1aa2733ef0a5ff6fbdfb9f347ccf65f98c7e7790`; production is unchanged.
 G015T is accepted plan-only at `4ec89c50a596aef3acb65ae49f22e9fad2294e55`,
-tree `34fca4c0cbc29b59bc172c93a6ed84fbfeec38fe`. G015U retained RED without
-rerun. Results are 13/13 focused, 34/34 Batch3, and 254/254 full; production is
-6,820 lines and the contract is 544 lines/15 schemas/204 properties. Verify is
-refresh-required/noncertified; impact exits 2; dry-runs exit 0 with unchanged
-file/mode/status manifests. This record belongs to candidate `S2`, pending Root;
-G016 remains ungranted. Order remains
+tree `34fca4c0cbc29b59bc172c93a6ed84fbfeec38fe`. G015U is accepted at
+`11bf9f596eb95fdecfa14ea184e55125e5e594bc`, tree
+`62354be2be5d98f594bb59daa12bdc47891efda3`, receipt
+`16abf0466cefb773653d9f317dd42dadbb62f7821b85176dc66395c12fec69a8`.
+The G016 anchor binds that source plus package `0fe3946…`/`b3326b9…`, engine
+`1c2ee01…`, role `f1effcc…`, and public baseline `514cea6…`; all dependent slots
+remain empty. It is construction-only and pending Root acceptance. Order remains
 `S2 -> separate cachebuster -> S_release -> empty-ledger reanchor -> separate
 impact/Executor/corpus/holdout/review/install/publication/activation gates`;
 nothing creates later evidence, plan, or authority early.
