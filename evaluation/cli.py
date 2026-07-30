@@ -262,6 +262,12 @@ def request_command(args: argparse.Namespace) -> int:
             public=public,
             public_identity=public_identity,
         )
+        for unit in plan["units"]:
+            live.validate_launch(
+                live.build_launch(plan, unit),
+                plan=plan,
+                unit=unit,
+            )
     append_record(ledger, plan, repo=repo)
     _write_private_json(args.record, plan)
     print(

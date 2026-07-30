@@ -905,6 +905,20 @@ class LaunchGateTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             live.validate_launch(changed)
 
+    def test_default_launch_reconstructs_exactly_against_its_plan(self) -> None:
+        plan, launch, _capability = self._authorized_launch(
+            gate="calibration",
+            unit="subthreshold-control",
+        )
+        self.assertEqual(
+            live.validate_launch(
+                launch,
+                plan=plan,
+                unit="subthreshold-control",
+            ),
+            launch,
+        )
+
     def test_model_gate_plan_binds_exact_host_profile_and_resources(self) -> None:
         candidate = json.loads(
             (ROOT / "evaluation/results/current.json").read_text(encoding="utf-8")

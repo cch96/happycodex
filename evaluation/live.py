@@ -382,6 +382,15 @@ def validate_model_gate_plan(
     return plan
 
 
+def _default_infrastructure_generation(plan: dict[str, Any]) -> str:
+    return canonical_sha256(
+        {
+            "snapshot_sha256": plan["snapshot_sha256"],
+            "profile": plan["profile"],
+        }
+    )
+
+
 def build_launch(
     plan: dict[str, Any],
     unit: str,
@@ -407,12 +416,7 @@ def build_launch(
     }
     state_key, action, action_key = _derive_action(plan, unit, invocation)
     infrastructure = (
-        canonical_sha256(
-            {
-                "snapshot_sha256": plan["snapshot_sha256"],
-                "profile": profile,
-            }
-        )
+        _default_infrastructure_generation(plan)
         if infrastructure_generation is None
         else infrastructure_generation
     )
@@ -575,12 +579,20 @@ def validate_launch(
         {"domain": "happycodex/schema7/launch-key", "launch": payload}
     ):
         raise ValueError("launch content changed")
-    if plan is not None and value != build_launch(
-        plan,
-        value["unit"],
-        infrastructure_generation=value["infrastructure_generation"],
-    ):
-        raise ValueError("launch does not match GatePlan")
+    if plan is not None:
+        plan = validate_gate_plan(plan)
+        generation = (
+            None
+            if value["infrastructure_generation"]
+            == _default_infrastructure_generation(plan)
+            else value["infrastructure_generation"]
+        )
+        if value != build_launch(
+            plan,
+            value["unit"],
+            infrastructure_generation=generation,
+        ):
+            raise ValueError("launch does not match GatePlan")
     checks = (
         (unit, value["unit"], "unit"),
         (argv, invocation["argv"], "argv"),

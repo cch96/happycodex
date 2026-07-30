@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `CALIBRATION_INFRASTRUCTURE_REPAIR`
+Status: `CALIBRATION_REPAIR_FOCUSED_GREEN`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -291,6 +291,28 @@ digest. Focused RED reproduced all five findings before implementation.
 - New findings `HC-065-LAUNCH-RECONSTRUCTION`,
   `HC-065-TRANSPORT-SCHEMA`, and `HC-065-MCP-CLOSURE` are candidate-new
   evaluator failures. The consumed ActionKey and approval are never retried or
-  transferred. Next action is one offline harness repair and full GREEN,
-  followed by a fresh successor candidate/genesis and a newly derived
-  calibration request.
+  transferred.
+- One coherent offline repair began with three focused RED invariants: a
+  default launch could not validate against its own GatePlan; projected
+  provider object schemas were not recursively closed; and the neutral profile
+  did not declare the complete disabled feature set. The repair now derives
+  one canonical default infrastructure generation, self-validates every
+  requested launch before writing its GatePlan, projects a provider-only
+  strict typed-anchor union, requires every provider object property, and
+  explicitly disables apps, MCP/browser/computer/image surfaces, hooks,
+  memories, goals, multi-agent, plugin sharing, remote plugins, and workspace
+  dependency installation.
+- A real isolated candidate-plugin probe reports an empty MCP list, contains
+  HappyCodex in the effective prompt, and contains neither Cloudflare nor app
+  instructions. The six-test repair slice is 6/6 GREEN in 2.484 seconds.
+  Shipped package identity remains
+  `bbc82a07445104820fb4e2108dde252fcce1883136e34e5ef1733eb3984b8b33`
+  and semantic identity remains
+  `9cd5a507a8a9561c8af6751917b430b1cb29c238810b7c32bcff15c39044965a`;
+  the repaired evaluator manifest is
+  `9efd480fbc65088bb0bd14e9cdd01f7801bf8579a27125faa733dcd44ef335f0`
+  and snapshot is
+  `62d501d7e9974cdf1b286be6587b1e67f6ada1dc73814141d195e03909f473ac`.
+- Next action is to commit this repair source, create a fresh successor
+  candidate/genesis with no transferred plan, receipt, authority, or evidence,
+  run the full offline suite, and derive a new calibration request.

@@ -1905,6 +1905,22 @@ class HappyCodexEvaluationTests(unittest.TestCase):
         self.assertGreater(key_count(runner.OUTPUT_SCHEMA, "$ref"), 0)
         self.assertEqual(key_count(first, "uniqueItems"), 0)
         self.assertEqual(key_count(first, "$ref"), 0)
+
+        def strict_objects(value: object) -> None:
+            if isinstance(value, dict):
+                if value.get("type") == "object":
+                    self.assertIs(value.get("additionalProperties"), False)
+                    self.assertEqual(
+                        set(value.get("required", [])),
+                        set(value.get("properties", {})),
+                    )
+                for item in value.values():
+                    strict_objects(item)
+            elif isinstance(value, list):
+                for item in value:
+                    strict_objects(item)
+
+        strict_objects(first)
         self.assertEqual(
             first["properties"]["reason"],
             {"type": "string", "minLength": 1},
@@ -1950,6 +1966,27 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             runner.validate_output_result(raw)
 
     def test_fresh_and_resume_argv_have_no_fake_mcp_override(self) -> None:
+        self.assertLessEqual(
+            {
+                "apps",
+                "auth_elicitation",
+                "browser_use",
+                "browser_use_external",
+                "browser_use_full_cdp_access",
+                "computer_use",
+                "enable_mcp_apps",
+                "image_generation",
+                "in_app_browser",
+                "mcp_2026_07_28",
+                "plugin_sharing",
+                "plugins",
+                "remote_plugin",
+                "skill_mcp_dependency_install",
+                "tool_call_mcp_elicitation",
+                "workspace_dependencies",
+            },
+            set(runner.DISABLED_FEATURES),
+        )
         config = ["-m", "gpt-5.6-sol", "-c", 'approval_policy="never"']
         for thread in (None, "thread-123"):
             with self.subTest(thread=thread):
@@ -1973,7 +2010,10 @@ class HappyCodexEvaluationTests(unittest.TestCase):
     ) -> None:
         with tempfile.TemporaryDirectory(prefix="happycodex-mcp-probe-") as raw:
             temp = Path(raw)
-            _home, env = runner.isolated_home(temp)
+            package = temp / "package"
+            runner.copy_plugin_package(ROOT, package)
+            home, env = runner.isolated_home(temp)
+            runner.install_plugin(package, home, env)
             binary = temp / "bin" / "codex"
             mcp_argv = [str(binary), "mcp", "list", "--json"]
             mcp = runner.run(mcp_argv, cwd=ROOT, env=env, timeout=30)
@@ -1991,6 +2031,8 @@ class HappyCodexEvaluationTests(unittest.TestCase):
         self.assertEqual(json.loads(mcp.stdout), [])
         self.assertEqual(completed.returncode, 0, completed.stderr)
         json.loads(completed.stdout)
+        self.assertIn("happycodex", completed.stdout.casefold())
+        self.assertNotIn("cloudflare", completed.stdout.casefold())
         self.assertNotIn("<apps_instructions>", completed.stdout)
         self.assertFalse(any("orchestrator.mcp" in item for item in argv))
 

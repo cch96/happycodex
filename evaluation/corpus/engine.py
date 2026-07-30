@@ -55,16 +55,75 @@ RECOVERY_MANIFEST_PATH = "docs/execplans/recovery-manifest.json"
 BASE_COMMAND_PATHS = ("/usr/local/bin", "/usr/bin", "/bin")
 DISABLED_FEATURES = (
     "apps",
+    "auth_elicitation",
+    "browser_use",
+    "browser_use_external",
+    "browser_use_full_cdp_access",
+    "computer_use",
+    "enable_mcp_apps",
     "goals",
     "hooks",
+    "image_generation",
+    "in_app_browser",
+    "mcp_2026_07_28",
     "memories",
-    "remote_plugin",
     "multi_agent",
+    "plugin_sharing",
+    "plugins",
+    "remote_plugin",
+    "skill_mcp_dependency_install",
+    "tool_call_mcp_elicitation",
+    "workspace_dependencies",
 )
 FIXED_GIT_DATE = "2000-01-01T00:00:00+00:00"
 
 
 OUTPUT_SCHEMA = CONTRACTS["schemas"]["model_observation"]
+PROVIDER_TYPED_ANCHOR_SCHEMA = {
+    "anyOf": [
+        {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                "kind": {"type": "string", "enum": ["path"]},
+                "repository": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/=+@-]*$",
+                },
+                "value": {"type": "string", "minLength": 1},
+            },
+            "required": ["kind", "repository", "value"],
+        },
+        {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                "kind": {"type": "string", "enum": ["marker"]},
+                "value": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/=+@-]*$",
+                },
+            },
+            "required": ["kind", "value"],
+        },
+        {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                "kind": {"type": "string", "enum": ["digest"]},
+                "label": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/=+@-]*$",
+                },
+                "value": {
+                    "type": "string",
+                    "pattern": "^([0-9a-f]{40}|[0-9a-f]{64})$",
+                },
+            },
+            "required": ["kind", "label", "value"],
+        },
+    ]
+}
 
 
 def provider_transport_schema(
@@ -73,6 +132,11 @@ def provider_transport_schema(
 ) -> Any:
     """Inline internal bare refs and omit provider-rejected uniqueness hints."""
     known = CONTRACTS["schemas"] if definitions is None else definitions
+    overrides = (
+        {"typed_anchor": PROVIDER_TYPED_ANCHOR_SCHEMA}
+        if definitions is None
+        else {}
+    )
 
     def project(item: Any, stack: tuple[str, ...]) -> Any:
         if isinstance(item, dict):
@@ -84,12 +148,27 @@ def provider_transport_schema(
                     raise ValueError(f"unknown provider schema reference: {name}")
                 if name in stack:
                     raise ValueError(f"cyclic provider schema reference: {name}")
-                return project(known[name], (*stack, name))
-            return {
+                return project(overrides.get(name, known[name]), (*stack, name))
+            projected = {
                 key: project(child, stack)
                 for key, child in item.items()
                 if key != "uniqueItems"
             }
+            if projected.get("type") == "object":
+                properties = projected.get("properties")
+                required = projected.get("required")
+                additional = projected.get("additionalProperties")
+                if (
+                    not isinstance(properties, dict)
+                    or not isinstance(required, list)
+                    or set(required) != set(properties)
+                    or (additional is not None and additional is not False)
+                ):
+                    raise ValueError(
+                        "provider object schema must require every closed property"
+                    )
+                projected["additionalProperties"] = False
+            return projected
         if isinstance(item, list):
             return [project(child, stack) for child in item]
         return item
