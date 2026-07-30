@@ -19,15 +19,13 @@ current checkpoint.
 Restore guard: reconcile plan, source, Executor, controls, checks, candidate, and
 evidence before writing; summaries or copied handles cannot restore authority.
 
-Phase: `G018 release-source preparation`. Current-task user text
-is exactly `授权release-source preparation` (UTF-8 SHA-256
-`88841f2e4f5a757ef0b541da1884410c19db8ddcd932a641360602787fd43511`),
-Root-normalized at `2026-07-30T02:19:19Z`. Root accepted G017 at
-`a15c13bda6e0f9407f5802c611317c406d48edbc`, tree
-`53079797cc1e0be6bb706e1194513bb337da3401`; private receipt SHA-256 is
-`6f46bf758051e465ffe01618117be86cad3ace31c9b80d15a03340739f236638`.
-G018 stops at `S_release`; G019 remains separately gated. The loaded plugin
-remains active 0.5 cache `0.5.0+codex.20260729104011`.
+Phase: `G019 release reanchor`. Root accepted G018 at
+`59fb8d5449991078bd27933e9bbf8f88c7b6f0cd`, tree
+`11fc85d4c5eb01a636c49b7d29530090e9eddc32`; private receipt SHA-256 is
+`74105caa6408e3b88bc7ea401d6682365e72f53e0eb411ae229ceef8b905821b`.
+Grant `HC06BR-G-019-release-reanchor` permits only `current.json`, this plan,
+and private controls. The loaded plugin remains active 0.5 cache
+`0.5.0+codex.20260729104011`.
 
 G018 resumed under this exact current-task message:
 
@@ -334,7 +332,7 @@ remain maintainer support and are never linked from Runtime Skill Markdown.
 | `F-06BR-AUTHORITY` | exact binding, provenance, reducer action, capability, claim, authority, and attempt gate every effect | private issuance, recomputation, and exact enforcement | `Batch 1 and G010 accepted` | `RB-06BR-002/instance` | `0` |
 | `F-06BR-EVALUATOR` | terminal, identity, decision, ledger, and replay share strict parsing and exact recomputation | duplicate/order/terminal/path/key/raw-ledger divergence and consumer propagation | `Batch 2 accepted at 788c429` | `RB-06BR-003/instance` | `0` |
 | `F-06BR-SEMANTIC-ACTION-BOUNDARY` | facts cannot inject actions and trustworthy metadata cannot be reclassified | parser/reducer/replay/authority/projection attack matrix | `G012/G013/G013C rejected; G012R/G014/G015C accepted; G015R paused/unaccepted; G015D plan-only active` | `RB-06BR-005/plan-schema-contract` | `3` |
-| `F-06BR-RELEASE-REANCHOR` | one helper-produced release source precedes one fresh empty exact reanchor; prior Git and current snapshot cannot be bypassed | G017 freezes R1–R4 across source/type/ordering/mutability/replay/consumers | `contract frozen; no GREEN claimed` | `RB-06BR-006/G018-G019` | `0` |
+| `F-06BR-RELEASE-REANCHOR` | one helper-produced release source precedes one fresh empty exact reanchor; prior Git and current snapshot cannot be bypassed | G017 freezes R1–R4 across source/type/ordering/mutability/replay/consumers | `G018 accepted; G019 active` | `RB-06BR-006/G018-G019` | `0` |
 
 Holdout quality and cost comparison remain separate gated evidence. They do not
 collapse into a family merely because their engines consume shared semantics.
@@ -759,19 +757,19 @@ sole call printed `Updated plugin version: 0.6.0 ->
 Validator call one, focused 9/9, full 259/259, and CLI
 verify/impact/executor/corpus/holdout `0/2/0/0/0` passed with zero effects.
 Runtime is 227 lines/1,919 words; semantic is 1,200 lines/19 exports; evaluator
-Python is 6,822 lines. `current.json` remains parent-identical. G019 is pending.
+Python is 6,822 lines. Root independently accepted exact seven-path G018
+`S_release` and unchanged external bytes.
 
 After Root accepts G017, the sequence is exactly two commits:
 
-1. **G018:** persist RED, repair R1–R4, run the helper once, and commit
-   `S_release` after full offline GREEN. `current.json` remains construction-empty.
-   Active-anchor tests derive identities dynamically; they never hardcode the
-   impossible self-referential `S_release` OID.
-2. **G019:** modify only `evaluation/results/current.json` and this ExecPlan
-   (plus private receipt) to a fresh empty `refresh_required` snapshot and anchor
-   pointing to the preceding `S_release`. Reuse no plan, cost, authority,
-   evidence, coverage, receipt, freeze, or certification. CLI `verify` validates
-   the dirty successor before commit. A reanchor never points to its own commit.
+1. **G018 accepted:** helper-produced `S_release` is commit `59fb8d5…`, tree
+   `11fc85d…`; `current.json` stayed construction-empty.
+2. **G019 active:** only `current.json`, this plan, and private receipt change.
+   The fresh `refresh_required` snapshot anchors that exact preceding source:
+   package artifact `2f8f32c…`, semantic `b3326b9…`, engine `8dc777c…`, role
+   `f1effcc…`, public baseline `514cea6…`. Every lifecycle/evidence slot is null,
+   coverage is `{}`, and dirty-successor CLI verify precedes commit. The reanchor
+   cannot point to its own commit.
 
 Unauthorized remain: a second helper, model calls, Executor pilot, corpus or
 holdout live execution, exact-final, install/reinstall, `codex plugin add`,
@@ -860,15 +858,12 @@ tree `34fca4c0cbc29b59bc172c93a6ed84fbfeec38fe`. G015U is accepted at
 `11bf9f596eb95fdecfa14ea184e55125e5e594bc`, tree
 `62354be2be5d98f594bb59daa12bdc47891efda3`, receipt
 `16abf0466cefb773653d9f317dd42dadbb62f7821b85176dc66395c12fec69a8`.
-G016 is accepted at `8aec1df3efa0dff5de5e0848635f81597127c9be`, tree
-`eb6a2a8792d20b010ef2e454cc59fcd0ca5e5a5f`. Its anchor binds `S2` plus package
-`0fe3946…`/`b3326b9…`, engine `1c2ee01…`, role `f1effcc…`, and public baseline
-`514cea6…`; all dependent slots remain empty. G017 owns only this plan and its
-private receipt; its commit is a plan-only contract-freeze candidate pending Root
-acceptance. Order remains `S2 -> G016 construction anchor -> G018 helper once ->
-S_release -> G019 fresh-empty reanchor -> separate
-impact/Executor/corpus/holdout/review/install/publication/activation gates`;
-nothing creates later evidence, plan, or authority early.
+G016 is accepted at `8aec1df3efa0dff5de5e0848635f81597127c9be`.
+G017 contract freeze and G018 `S_release` are accepted. G019 binds only the fresh
+empty exact release snapshot. Order remains `S2 -> construction anchor ->
+S_release -> fresh-empty reanchor -> separately authorized impact/Executor/
+corpus/holdout/review/install/publication/activation`; no later evidence, plan,
+or authority exists early.
 
 Uncertainty rule: an outside path, changed prestate, unverified claim, ambiguous
 or partial effect, reproduction mismatch, unknown input, identity/config drift,

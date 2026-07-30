@@ -30,11 +30,11 @@
   "receipt_head": null,
   "schema_version": 1,
   "source_anchor": {
-    "source_commit": "11bf9f596eb95fdecfa14ea184e55125e5e594bc",
-    "source_tree": "62354be2be5d98f594bb59daa12bdc47891efda3",
-    "package_artifact_sha256": "0fe39460ad54c9d842d014f809019bb2e42ee4138173c32d2f490cba64171d83",
+    "source_commit": "59fb8d5449991078bd27933e9bbf8f88c7b6f0cd",
+    "source_tree": "11fc85d4c5eb01a636c49b7d29530090e9eddc32",
+    "package_artifact_sha256": "2f8f32ca4514b0fee21f9d2a74ad944ad9f3349676ca468799b329fb0a4c058c",
     "package_semantic_sha256": "b3326b911a3cd49e24ff0f8799ca53b54b4e62df3167267b5ad4129f6f5367f7",
-    "engine_manifest_sha256": "1c2ee0166282e69ed6eb2b61ea62d04586e40a42bfaf80d358496fa31482f79b",
+    "engine_manifest_sha256": "8dc777cbfa873349e635f18a3dd4a1f88e37015457d970217aa75558d8a8cb8b",
     "executor_role_sha256": "f1effcc84e7ed24f6d54c972e2e412db42a3e46a6d92565e6d61b358128305da",
     "public_baseline_sha256": "514cea60053bab5303e86e6cacaa0260e960b3fe1670a658e2df1a6965ce978c"
   },
@@ -63,12 +63,12 @@
     "engine": {
       "categories": {
         "artifact": "a02699fe55d34fe8d1415189d11331aae8a9f196008f82700d43259274cc54df",
-        "harness": "879f037b6afb04de06622ff5152b816a45e6547a8b71a949eaf9f46c3ff944a7",
+        "harness": "04e3a9428cef19c80bb5a00a5d4ea06eab6d76d4a192f553abefbeaa2c963696",
         "semantic": "6afa2eee65ca39801d33b904a0b0849f9f6224b3b5a8b213d3bb3266f90da62b"
       },
-      "manifest_sha256": "1c2ee0166282e69ed6eb2b61ea62d04586e40a42bfaf80d358496fa31482f79b",
+      "manifest_sha256": "8dc777cbfa873349e635f18a3dd4a1f88e37015457d970217aa75558d8a8cb8b",
       "scopes": {
-        "corpus_harness": "e4c7a1e6ac5f65322705c54b7d2074293c6766139e6efb33f2e3d17ef73befc1",
+        "corpus_harness": "6813400046d4ae8ea35241577e66e64a0bc694fa573b2c3fb598aad048704984",
         "corpus_semantic": "eac15aaf706222c4cf6fdba1960dd6657430bc616ab1b04d51d81a17f805d7ac",
         "holdout_harness": "5ff774269dcbe5bff9ba45491a93296976ecd11365231f9b6e24bb51d70305da",
         "holdout_semantic": "425a7ddf3e3d46943bf7ee57131a0502fdf0ba43e237249e5b5a53f1879d5c54"
@@ -82,7 +82,7 @@
       }
     },
     "package": {
-      "artifact_sha256": "0fe39460ad54c9d842d014f809019bb2e42ee4138173c32d2f490cba64171d83",
+      "artifact_sha256": "2f8f32ca4514b0fee21f9d2a74ad944ad9f3349676ca468799b329fb0a4c058c",
       "semantic_sha256": "b3326b911a3cd49e24ff0f8799ca53b54b4e62df3167267b5ad4129f6f5367f7"
     },
     "public_baseline": {
