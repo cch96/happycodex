@@ -2,30 +2,31 @@
 
 Protocol: `HappyCodex/0.5`
 
-Current index: Batch 1 is accepted at `27ea46e27254426ee5737078117d43f28c9df523`;
-Batch 2 at `788c42917bf1e1bcec2515a361ce68b32a25fb46`; G012R at
-`079b4565fd8ef063e8ff4e5b6815105fc14a2f7a`; G014 at
-`0148ac5f7875856b427244972f7ecb3e0f3a028d`; and plan-only G015C at
-`deeb142c15f24f00645301a72b2c7df7f70fb179`, tree
-`1aa2733ef0a5ff6fbdfb9f347ccf65f98c7e7790`. G009, G012, G013, and G013C
-remain rejected. Original G015 and G015R remain rejected/unaccepted. G015D/G015T
-are accepted plan-only; G015T is
-`4ec89c50a596aef3acb65ae49f22e9fad2294e55`, tree
-`34fca4c0cbc29b59bc172c93a6ed84fbfeec38fe`. G015U is accepted at
+Current index: Batch 1 and Batch 2 are accepted at `27ea46e27254426ee5737078117d43f28c9df523`
+and `788c42917bf1e1bcec2515a361ce68b32a25fb46`. G015U is accepted at
 `11bf9f596eb95fdecfa14ea184e55125e5e594bc`, tree
 `62354be2be5d98f594bb59daa12bdc47891efda3`; receipt SHA-256 is
 `16abf0466cefb773653d9f317dd42dadbb62f7821b85176dc66395c12fec69a8`.
-G016 is construction-anchor-only under
-`HC06BR-G-016-test-contract-addendum`; its one-test correction covers stale
-anchored-empty expectations. Every later gate remains ungranted.
+G016 is accepted construction-anchor commit
+`8aec1df3efa0dff5de5e0848635f81597127c9be`, tree
+`eb6a2a8792d20b010ef2e454cc59fcd0ca5e5a5f`; receipt SHA-256 is
+`db8a45a6c7e0586ccaded2543effdb0e05556a6123f2d85d2493a36654df5b02`.
+G016-R1 private cleanup receipt SHA-256 is
+`6cae077cc97bc8c59d61d84fa1fadcc8a46b806cb8bcb54dbd2479244592e757`.
+Rejected and plan-only predecessor detail remains Git/receipt history, not the
+current checkpoint.
 
 Restore guard: reconcile plan, source, Executor, controls, checks, candidate, and
 evidence before writing; summaries or copied handles cannot restore authority.
 
-Phase: `Batch 3 construction anchor`. G016 binds the accepted G015U source in
-the otherwise empty ledger and reconciles this plan plus one stale-state test. It grants no release-source,
-model/live, install, release, publication, marketplace, cachebuster, or activation
-effect. Quarantined accidental bytes remain non-input.
+Phase: `G017 release-source preparation contract freeze`. Current-task user text
+is exactly `授权release-source preparation` (UTF-8 SHA-256
+`88841f2e4f5a757ef0b541da1884410c19db8ddcd932a641360602787fd43511`),
+Root-normalized at `2026-07-30T02:19:19Z`. G017 is plan-only: it edits this
+ExecPlan and authorizes no helper, product, ledger, model/live, install,
+marketplace/config/cache, publication, or activation effect. The loaded plugin
+remains active 0.5 cache `0.5.0+codex.20260729104011`; quarantined bytes remain
+non-input.
 
 ## Operative request and normalized Outcome
 
@@ -318,6 +319,7 @@ remain maintainer support and are never linked from Runtime Skill Markdown.
 | `F-06BR-AUTHORITY` | exact binding, provenance, reducer action, capability, claim, authority, and attempt gate every effect | private issuance, recomputation, and exact enforcement | `Batch 1 and G010 accepted` | `RB-06BR-002/instance` | `0` |
 | `F-06BR-EVALUATOR` | terminal, identity, decision, ledger, and replay share strict parsing and exact recomputation | duplicate/order/terminal/path/key/raw-ledger divergence and consumer propagation | `Batch 2 accepted at 788c429` | `RB-06BR-003/instance` | `0` |
 | `F-06BR-SEMANTIC-ACTION-BOUNDARY` | facts cannot inject actions and trustworthy metadata cannot be reclassified | parser/reducer/replay/authority/projection attack matrix | `G012/G013/G013C rejected; G012R/G014/G015C accepted; G015R paused/unaccepted; G015D plan-only active` | `RB-06BR-005/plan-schema-contract` | `3` |
+| `F-06BR-RELEASE-REANCHOR` | one helper-produced release source precedes one fresh empty exact reanchor; prior Git and current snapshot cannot be bypassed | G017 freezes R1–R4 across source/type/ordering/mutability/replay/consumers | `contract frozen; no GREEN claimed` | `RB-06BR-006/G018-G019` | `0` |
 
 Holdout quality and cost comparison remain separate gated evidence. They do not
 collapse into a family merely because their engines consume shared semantics.
@@ -457,78 +459,21 @@ no-follow dirfd operations or equally strong binding against replacement between
 check and use. No fixture, mapping, directory, workspace, output, or subprocess
 effect precedes full preflight and claims.
 
-One new `evaluation/contracts-v6.json` holds only structural declarations and is
-wholly semantic, so every change invalidates semantic identity. It expects 520–650
-physical lines, hard maximum 750, at most 30 named schemas, 220 declared
-properties, and reference depth six; unknown/cyclic/deeper references fail closed.
-Its complete dialect is exact properties/required/`additionalProperties=false`,
-primitive types and explicit type unions, arrays/items, enum, regex,
-length/range/cardinality, uniqueness, and named references. Conditionals,
-expressions, callbacks, digests, path access, executable keywords, and accepted
-but inert keywords are forbidden. Nullability uses only an implemented type union.
+The accepted generation-6 structural contract remains wholly semantic:
+`evaluation/contracts-v6.json` declares its closed supported dialect and
+`evaluation/core/schema.py` provides the sole stdlib recursive walker. Unknown,
+cyclic, unsupported, inert, or deeper-than-six declarations fail closed;
+cross-field, Git, authority, effect, and adaptive policy stay Python-owned.
+`corpus.engine` owns the one materialized model `OUTPUT_SCHEMA`, while replay
+remains repository-aware and recomputes exact terminal, evidence, coverage,
+receipt, and Git bytes. Historical G015U path and schema detail is frozen by its
+accepted commit/receipt rather than duplicated here.
 
-The JSON covers model output/recovery, case/Recovery Manifest, invocation profile,
-gate plan/snapshot, planning/evidence/source-anchor/ledger records, and holdout
-manifest. A new stdlib-only `evaluation/core/schema.py` has one small recursive
-walker, imports no evaluator owner, and eagerly validates every declared schema
-and reference graph at load. Unknown, cyclic, deeper-than-six, unsupported, or
-no-op dialect input fails closed. Its source uses normal independent imports,
-assignments, compound blocks, and reasonable blank lines. Semicolons,
-multiple statements per line, single-line compound/raise/loop forms, deleted
-spacing, and overlong minification used to meet LOC are blocking failures. A
-small `_require` helper is allowed. The old 55-line ceiling was a Root design
-defect because it induced unreadable compression; passing that number is not
-acceptance.
-
-Propertyless objects are allowed only at Python-owned opaque boundaries: case
-fixture/oracle, invocation environment, producer/subject, and dynamic digest/slot
-maps. They cannot conceal duplicate structural validation. Named validators
-recursively enter ledger source, planning, gate-plan, evidence, and slot records.
-References or one model-facing materialization may release the property budget;
-a second walker is forbidden. Cross-field/Git/authority/effect/adaptive policy
-stays Python-owned.
-`corpus.engine` still exports and owns model-facing `OUTPUT_SCHEMA`; its declaration
-bytes come from the semantic JSON. Parse/projection reuse it, ledger has no shallow
-duplicate result validator, and malformed nested input rejects before projection.
-Replay remains repository-aware and recomputes producer, terminal/oracle/ledger,
-coverage, receipt links, and exact Git evidence bytes.
-
-`HC06BR-G-015U-readable-schema-source-continuation` continues the exact
-paused G015S dirty state and creates offline repaired `S2`
-and may edit at most these 19 tracked paths:
-
-```text
-AGENTS.md
-docs/execplans/happycodex-0-6-bounded-redesign.md
-evaluation/README.md
-evaluation/contracts-v6.json
-evaluation/cli.py
-evaluation/live.py
-evaluation/core/identity.py
-evaluation/core/impact.py
-evaluation/core/ledger.py
-evaluation/core/schema.py
-evaluation/corpus/engine.py
-evaluation/holdout/blind.py
-evaluation/holdout/compare.py
-evaluation/holdout/engine.py
-evaluation/results/current.json
-tests/test_certification_engine.py
-tests/test_contracts.py
-tests/test_evaluation.py
-tests/test_holdouts.py
-```
-
-No Runtime Markdown, semantic module, case/pair/manifest, plugin manifest,
-external role config, receipt module, evidence artifact, package surface, adapters
-directory, relocation, or other path may change. G015U accepted the consolidated
-source after fresh focused/full GREEN. G016 owns only this plan, `current.json`,
-and the three stale assertions in `tests/test_certification_engine.py`; it replaces
-the null source with the exact construction anchor while every plan,
-cost, authority, evidence, coverage, receipt, freeze, and certification slot stays
-empty. The first full run was 251/254 because those assertions still required a
-null anchor; the test-contract addendum authorizes only that correction. This is
-not a release anchor or evidence.
+G015U produced accepted offline source `S2`. G016 then changed only this plan,
+`current.json`, and three stale test assertions, binding the exact construction
+anchor while plan, cost, authority, evidence, coverage, receipt, freeze, and
+certification remained empty. G016 is accepted, but its anchor is neither
+`S_release` nor evidence.
 
 ## Exact batch path and ownership inventory
 
@@ -685,67 +630,13 @@ surfaces. A mock alone cannot prove an imperative seam. Effects require temporar
 fresh repositories/homes and explicit before/after manifests. Every coherent
 batch ends in full offline GREEN, not merely focused GREEN.
 
-Original G015 froze these 17 RED behaviors, which G015U must preserve:
-
-```text
-test_public_02_archive_identity_and_surface_are_exact
-test_no_public_04_arm_or_receipt_field_survives
-test_anchored_refresh_accepts_exact_plans_costs_and_authorities
-test_certification_requires_exact_post_source_evidence
-test_impact_replays_persisted_plan_while_null_genesis_fails_closed
-test_claims_use_only_capability_derived_authority_and_attempt
-test_partial_or_reused_claim_set_stops_before_another_claim_or_effect
-test_unclaimed_capability_cannot_create_case_pair_mapping_fixture_or_output
-test_phase_proof_is_exact_one_shot_and_gate_capability_cannot_invoke
-test_executor_effect_order_in_fresh_temp_repo
-test_corpus_effect_order_in_fresh_temp_repo
-test_holdout_effect_order_in_fresh_temp_repo
-test_semantic_projection_rejects_unknown_top_level_result_fields
-test_offline_summary_requires_exact_gate_evidence_generation6
-test_corpus_summary_accepts_only_the_exact_authorized_subset_generation6
-test_coverage_is_derived_exactly_once_without_prior_or_waiver
-test_agents_and_evaluation_readme_match_executable_generation6_behavior
-```
-
-They use temporary repositories/homes, exact filesystem before/after manifests,
-fixed fixtures, and mocked subprocesses only. The negative matrix explicitly
-injects arbitrary caller authority/attempt values, reuses a capability and proves
-no second claim, tries unclaimed fixture/output creation and direct subprocess
-bypass, mismatches holdout pairs, and supplies duplicate alias decisions.
-
-G015R's 12/12 and 194/194 GREEN plus the frozen original/addendum RED receipts are
-historical design boundaries, not substitutes for G015U's fresh full
-GREEN. These exact prior tests remain:
-
-```text
-test_partial_dag_states_and_successor_are_exact
-test_executor_evidence_is_single_calibration_and_later_cost_basis
-test_evidence_slot_kind_coverage_sequence_and_chain_are_exact
-test_git_evidence_binds_commit_path_blob_bytes_content_producer_subject
-test_recursive_output_schema_rejects_nested_drift
-test_runtime_replays_action_permission_claim_and_persisted_authority
-test_preflight_mismatch_writes_zero_claim_files
-test_template_expansion_and_phase_proof_are_thread_one_shot
-test_holdout_pending_and_evidence_follow_adaptive_frontier
-test_output_creation_rejects_symlink_swap
-test_populated_replay_requires_repo
-test_release_reanchor_precedes_evidence_without_reuse
-```
-
-Schema RED mutates output, case, recovery, invocation, plan, snapshot, evidence,
-ledger, and holdout one unit at a time; valid parity remains exact. It proves
-semantic JSON hashing, unknown-JSON refusal, acyclic owner imports, and exact LOC
-limits. Cross-field, digest, Git, DAG, effect, authority, path, and adaptive
-negatives remain Python and GREEN.
-Successors cover partial states and rollback/replace/delete/reorder; Git uses real
-objects/bytes, preflight leaves zero claims on mismatch, and adaptive execution
-proves mandatory pairs/conditional third plus actual-transcript evidence.
-
-Frozen false-GREEN counterexamples include plan-only state, later source-derived
-cost, duplicate/wrong evidence, arbitrary phase invocation, claims before full
-preflight, malformed nested output, and repo-less certification. Adaptive
-overclaim, unlocked proof consumption, and output TOCTOU remain required risks.
-Neither the G015 229/229 result nor G015R GREEN disposes them.
+G015/G015R/G015U receipts freeze the historical behavior names, REDs, temporary
+Git/home fixtures, structural mutations, pre-effect ordering, exact DAG, adaptive
+frontier, and prior full GREEN. Those lists are not repeated here. Their retained
+false-GREEN counterexamples include plan-only state, later source-derived cost,
+wrong evidence, arbitrary phase invocation, claims before preflight, malformed
+nested output, repo-less certification, adaptive overclaim, proof reuse, and
+output TOCTOU. Historical GREEN does not dispose G017's newly frozen R1–R4.
 
 ## Complexity and source budgets
 
@@ -778,47 +669,83 @@ unchanged user hard limit remains `<=6,900`:
 Reductions delete legacy/duplicate behavior; they cannot move or hide it, compress
 formatting, or waive any ceiling. New tracked source is `0644` before commit.
 
-## Future authority and release gates
+## G017 release-source preparation contract freeze
 
-G015U `S2` is accepted. The commit containing this update is the candidate G016
-construction anchor, pending Root verification. All later steps are separate and
-unauthorized:
+G017 freezes one `F-06BR-RELEASE-REANCHOR` family from Root plus a fresh
+Challenger reproduction; it claims no repair or GREEN:
 
-1. G016 binds `S2` commit/tree, package artifact/semantic, engine manifest,
-   Executor role, and public-baseline digests. All lifecycle slots remain empty;
-   this is neither release anchor nor evidence.
-2. A separate release-source grant runs the official cachebuster helper exactly
-   once in an isolated temporary home, preserves active 0.4 state, and commits
-   actual release bytes as `S_release`.
-3. Reset/reanchor a fresh empty generation-6 ledger to `S_release` before any
-   impact, authority, calibration, or evidence. Nothing from the construction
-   anchor is reused.
-4. Persist immutable impact, conservative source-derived Executor cost, and its
-   complete one-call `subthreshold-control` plan; request exact Executor authority.
-   Only successful sanitized evidence becomes calibration.
-5. Accept receipt evidence. Persist corpus/holdout plans and calibrated costs;
-   request their independent authorities. Corpus runs 17 cases. Holdout rejects
-   first regression, requires a second after first success, and uses a third only
-   for split/uncertainty; equal quality stays within 125% public-0.2 token/time.
-6. Freeze the exact release after required evidence; under separate pre-effect
-   grant run one isolated neutral `gpt-5.6-sol/max` exact-final without original
-   worktree, writer narrative, ledger/history, network, tools, MCP, hooks, or write.
-7. After review, separately authorize isolated install of the same frozen release
-   and external role config. Do not rerun helper, mutate source, or reanchor.
-8. Certify only after install evidence. Publication and activation need later
-   exact grants; activation atomically retains paired package/config/cache rollback.
+| Finding | Frozen defect | Six-surface disposal (`source/type/ordering/mutability/replay/consumers`) |
+| --- | --- | --- |
+| `R1` | `tests/test_contracts.py` requires bare `0.6.0`, conflicting with official default `0.6.0+codex.<14 UTC digits>` | helper-only manifest source / strict version string / one call before `S_release` / only source manifest mutable / default invocation replay / contracts and README consumers |
+| `R2` | `impact.validate_successor` freezes snapshot before a legal empty-anchor transition | `impact.py` / snapshot-anchor pair / reanchor exception before ordinary freeze / after-snapshot recomputed / repository-required replay / CLI and successor tests |
+| `R3` | anchored-empty ledger can carry `certified` with null certification | `ledger.py` / exact state-certification relation / state checked after anchor / no dependent lifecycle mutation / at-rest and successor replay / verify and ledger tests |
+| `R4` | prior-Git successor comparison is unused, so an old reachable ancestor can masquerade as exact `S_release` | `load_ledger` plus ledger validation / exact commit OID / compare `HEAD:current.json` before dirty current / only dirty ledger changes / reject old ancestor / CLI verify and Git tests |
 
-No `impact_token`, persisted invocation, role-contract artifact, candidate,
-check, plan, JSON, environment value, argv string, or prose grants permission.
-Only private authenticated current-turn host metadata matching the exact persisted
-request can issue process-local provenance. Without that bridge, live execution
-fails closed. Implementation contains no live authority and performs no network
-action.
+The exact G018 tracked product set is only:
 
-Any post-release-anchor source/artifact/engine/role/config/package change resets
-the generation and all plans, authorities, evidence, coverage, freeze, and
-certification. There is no artifact-only or pre-reanchor evidence reuse. Outcome,
-baseline, allowed-break, family, or claim change requires explicit user authority.
+```text
+.codex-plugin/plugin.json
+evaluation/core/impact.py
+evaluation/core/ledger.py
+tests/test_contracts.py
+tests/test_certification_engine.py
+evaluation/README.md
+docs/execplans/happycodex-0-6-bounded-redesign.md
+```
+
+The official helper is
+`/home/caichenghang/.codex/skills/.system/plugin-creator/scripts/update_plugin_cachebuster.py`,
+SHA-256 `4fe3c5a49212f6e30a2306e245c460e01aaf5e36bc8ad3dd2852c199257eff89`.
+G018 must create isolated `HOME` and `CODEX_HOME` with `mktemp -d`, then invoke
+exactly once, without `--cachebuster`:
+
+```text
+HOME="$release_home" CODEX_HOME="$release_codex_home" python3 /home/caichenghang/.codex/skills/.system/plugin-creator/scripts/update_plugin_cachebuster.py /home/caichenghang/projects/happycodex-worktrees/happycodex-0.6-bounded-redesign
+```
+
+The helper is the sole writer of source `.codex-plugin/plugin.json`; hand editing,
+a second call, override, or retry is forbidden. Failure, ambiguity, partial
+effect, or any other changed path returns to Root. The loaded state remains the
+active 0.5 cache recorded below. These bytes must remain identical before/after
+G018 and G019:
+
+| Protected path | SHA-256 / value |
+| --- | --- |
+| `/home/caichenghang/.agents/plugins/marketplace.json` | `752de5a68116a69025e6ac46e32e8e0a7512cf8e2f87078d53b719c4362dcbfe` |
+| `/home/caichenghang/.codex/config.toml` | `6998d7c8b477569df76840f220d4b62e4e8d2ae0ea778f838d82bf02438ed4b5` |
+| `/home/caichenghang/plugins/happycodex/.codex-plugin/plugin.json` | `1fb2d73ae9774ab99a78a3ae5d449493a5d19e77860fb6952abc9a09b5733990`; version `0.5.0+codex.20260729104011` |
+
+Acceptance freezes strict fullmatch
+`^0\.6\.0\+codex\.[0-9]{14}$`; bare, double-suffix, and wrong-base versions
+reject. A real temporary Git sequence—old anchored-empty, release commit, fresh
+snapshot and exact anchor—must be RED before repair and GREEN after it. Negatives
+reject `repo=None`, either nonempty lifecycle, snapshot/archive mismatch,
+anchored-empty `certified` with null certification, and old-ancestor anchors.
+The reanchor branch requires a repository, both lifecycles empty, and an after
+snapshot recomputed from its own settings and current repository; non-reanchor
+successors freeze snapshot. `load_ledger` compares a dirty working ledger with
+`HEAD:evaluation/results/current.json`; an anchor change binds after
+`source_commit` exactly to `HEAD^{commit}`. An unchanged at-rest ledger validates
+normally. CLI `verify` on dirty `current.json` must exercise this prior-Git path.
+Module and aggregate budgets remain, without formatting compression.
+
+After Root accepts G017, the sequence is exactly two commits:
+
+1. **G018:** persist RED, repair R1–R4, run the helper once, and commit
+   `S_release` after full offline GREEN. `current.json` remains construction-empty.
+   Active-anchor tests derive identities dynamically; they never hardcode the
+   impossible self-referential `S_release` OID.
+2. **G019:** modify only `evaluation/results/current.json` and this ExecPlan
+   (plus private receipt) to a fresh empty `refresh_required` snapshot and anchor
+   pointing to the preceding `S_release`. Reuse no plan, cost, authority,
+   evidence, coverage, receipt, freeze, or certification. CLI `verify` validates
+   the dirty successor before commit. A reanchor never points to its own commit.
+
+Unauthorized remain: a second helper, model calls, Executor pilot, corpus or
+holdout live execution, exact-final, install/reinstall, `codex plugin add`,
+marketplace/config/cache mutation, publication, activation, claim release, and
+all cost/authority/evidence persistence. No plan, token, environment value,
+artifact, or prose self-authorizes a later gate.
 
 ## Claims Ledger
 
@@ -901,10 +828,13 @@ tree `34fca4c0cbc29b59bc172c93a6ed84fbfeec38fe`. G015U is accepted at
 `11bf9f596eb95fdecfa14ea184e55125e5e594bc`, tree
 `62354be2be5d98f594bb59daa12bdc47891efda3`, receipt
 `16abf0466cefb773653d9f317dd42dadbb62f7821b85176dc66395c12fec69a8`.
-The G016 anchor binds that source plus package `0fe3946…`/`b3326b9…`, engine
-`1c2ee01…`, role `f1effcc…`, and public baseline `514cea6…`; all dependent slots
-remain empty. It is construction-only and pending Root acceptance. Order remains
-`S2 -> separate cachebuster -> S_release -> empty-ledger reanchor -> separate
+G016 is accepted at `8aec1df3efa0dff5de5e0848635f81597127c9be`, tree
+`eb6a2a8792d20b010ef2e454cc59fcd0ca5e5a5f`. Its anchor binds `S2` plus package
+`0fe3946…`/`b3326b9…`, engine `1c2ee01…`, role `f1effcc…`, and public baseline
+`514cea6…`; all dependent slots remain empty. G017 owns only this plan and its
+private receipt; its commit is a plan-only contract-freeze candidate pending Root
+acceptance. Order remains `S2 -> G016 construction anchor -> G018 helper once ->
+S_release -> G019 fresh-empty reanchor -> separate
 impact/Executor/corpus/holdout/review/install/publication/activation gates`;
 nothing creates later evidence, plan, or authority early.
 
