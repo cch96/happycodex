@@ -26,10 +26,10 @@ and mode-`0600` terminal-receipt SHA-256 is
 Root then granted `HC06BR-G-030-fresh-candidate-after-path-repair`. Its
 mode-`0600` intent SHA-256 is
 `40bf06334af170266829811b794e96d900d705b8a80efb50195a2b80841a6e84`.
-G030 authorizes only one fresh `ReleaseCandidate`, the narrow active-state
-test, this index, and their direct-child commit. It grants no `GatePlan`,
-receipt, evidence, cost, model/provider work, live gate, install, publication,
-or activation effect.
+Its accepted commit is `5df7a0f6a25f9a04ae4681a84c63c719f490ac2c`,
+tree `bee94a346916fcd18592099d342337356172139d`, and mode-`0600`
+terminal-receipt SHA-256 is
+`0d8d41472a68bd5ded370bab635ddd505143204bb0db8a79972cfa380a0343a9`.
 
 ## Fresh candidate and one-shot transition
 
@@ -77,6 +77,93 @@ and file SHA-256 is
 It contains exactly this candidate, zero plans, and zero receipts. It derives
 `refresh_required`, all six pending gates, empty coverage/failures, and no
 certification. No old evidence was migrated or reused.
+
+## Fresh calibration GatePlan
+
+Root granted `HC06BR-G-031-fresh-calibration-gateplan-after-path-repair`.
+Its mode-`0600` intent SHA-256 is
+`2f761e9f1da330afd744e895f206a9da84194288ffe59d8e73e1bfa8b75663e4`.
+G031 authorizes only one calibration `GatePlan`, the narrow active-state test,
+this index, and their direct-child commit. It grants no approval, execution,
+`EffectIntent`, model/provider call, receipt, evidence, or later gate.
+
+The fresh private base and `calibration-claims` child are real mode-`0700`
+directories:
+
+```text
+/home/caichenghang/.codex/happycodex-0.6-calibration-12f7bce171d89f8e0f8da5d255872879048fa3e7ef6f8bb73f75005293516b85
+/home/caichenghang/.codex/happycodex-0.6-calibration-12f7bce171d89f8e0f8da5d255872879048fa3e7ef6f8bb73f75005293516b85/calibration-claims
+```
+
+Claims remain empty. `calibration-output` remains absent. The retired
+`d5e643...` base, consumed claim, and empty output are unchanged and never
+reused.
+
+The first private draft stopped before apply after a cross-check mismatch:
+it added candidate/unit assertions to the retired script and paraphrased an
+exact cost string. Its mode-`0600` SHA-256 was
+`d65e6277175843a61fdbcf17469efe59ce288fb43113e6a309b4f90a7b9c6958`.
+Root authorized replacement of that unapplied draft only. The corrected
+mode-`0600`, 3,040-byte input SHA-256 is
+`558bea141f32e5681d92cd7dc705103eda18bcf57321cf3604aa1aab9c7ea351`.
+
+The corrected profile preserves the retired strict script shape, replacing
+only fresh paths. It binds this exact worktree, only
+`PYTHONDONTWRITEBYTECODE=1`, `gpt-5.6-sol/high`, `300000` ms, arm `candidate`,
+and argv `python3 -c <strict script> corpus --calibrate --plugin <worktree>
+--output <fresh output> --model gpt-5.6-sol --effort high --timeout 300 --arm
+candidate`. The script rejects argv drift, loads the sole candidate-bound
+calibration plan, requires zero receipts, reconstructs every unit with
+`evaluation.live.build_effect_intent`, and routes only through
+`evaluation.cli.run_authorized` with the fresh claims root. It contains no
+plan/request digest and was not executed. Profile SHA-256 is
+`0cef1048b162f467858036c6a4dab9143606df372fbde2c9a900348d17c06831`.
+
+The compact resource-bundle canonical preimage is:
+
+```json
+{"candidate":{"candidate_sha256":"12f7bce171d89f8e0f8da5d255872879048fa3e7ef6f8bb73f75005293516b85","engine_manifest_sha256":"ffdc07be358c664d4c710e187350f3289c6e0b9f8321d77fa291a5465797c47d","executor_role_sha256":"f1effcc84e7ed24f6d54c972e2e412db42a3e46a6d92565e6d61b358128305da","package_artifact_sha256":"4e2b300bfc7c49c4eccad46a198e79f15c28680f2e4e6f041fabcc995ad3621e","package_semantic_sha256":"9cd5a507a8a9561c8af6751917b430b1cb29c238810b7c32bcff15c39044965a","snapshot_sha256":"68d17de6ffca4b4a3f6dc3a04c2d1d98f64ffb8eb6aed9c031a0171cdbe41bd1","source_commit":"91e72ba255f3e9e4b4e8746e859bb59357a12e09","source_tree":"ae276c2a0a1295647da0301a20043cfeb6d92bbf"},"codex":{"binary_sha256":"cb5e8cb8a333a408ce6adbe0d4fad1845c69772c2216af7c1f88c98a11460dc6","version":"codex-cli 0.146.0"},"external":{"executor_toml_sha256":"d98fac1a0fe1bcc3071eac89b7246bfeb59fb85a7040417d50d07c58d74d1275"},"host_route":"evaluation.cli.run_authorized","paths":{"claim_root":"/home/caichenghang/.codex/happycodex-0.6-calibration-12f7bce171d89f8e0f8da5d255872879048fa3e7ef6f8bb73f75005293516b85/calibration-claims","output_root":"/home/caichenghang/.codex/happycodex-0.6-calibration-12f7bce171d89f8e0f8da5d255872879048fa3e7ef6f8bb73f75005293516b85/calibration-output"},"profile_sha256":"0cef1048b162f467858036c6a4dab9143606df372fbde2c9a900348d17c06831","resource_bundle_type":"happycodex-0.6-calibration","schema_version":1,"unit":{"case_id":"subthreshold-control","semantic_input_sha256":"5b99166cb79ea9aa8eb3816a9fee0a7fa26473d027f5e458cbf8be1d5aebcf64","snapshot_case_sha256":"5b99166cb79ea9aa8eb3816a9fee0a7fa26473d027f5e458cbf8be1d5aebcf64"}}
+```
+
+Its SHA-256 is
+`7b2372c4fa49515659e915601ecfe033d2a06df5180655a137b62378091203f3`,
+the plan's sole resource digest. Global config and models cache are excluded:
+neither is an input.
+
+The canonical approval-request object is:
+
+```json
+{"allowed_effects":["one isolated temporary repository, home, and package install","one subthreshold-control Codex execution phase","external output, effect claim, and result artifacts under the bound roots"],"candidate_sha256":"12f7bce171d89f8e0f8da5d255872879048fa3e7ef6f8bb73f75005293516b85","cost_ceiling":{"model_calls":1,"output_tokens":100000,"uncached_input_tokens":1000000,"wall_milliseconds":360000},"cost_semantics":{"acceptance_limits":"token and wall ceilings are conservative post-run receipt acceptance limits, not an in-flight billing cutoff","historical_basis":"no accepted generation-6 historical cost exists","model_calls":"one external Codex execution phase, not internal provider turns","preemptive_bound":"the 300-second subprocess timeout is the only preemptive cost bound"},"exclusions":["all other live gates","active config, plugin, marketplace, and cache mutation","publication and activation"],"gate":"calibration","profile_sha256":"0cef1048b162f467858036c6a4dab9143606df372fbde2c9a900348d17c06831","request_type":"happycodex-0.6-calibration","resource_bundle_sha256":"7b2372c4fa49515659e915601ecfe033d2a06df5180655a137b62378091203f3","schema_version":1,"unit":"subthreshold-control"}
+```
+
+Its SHA-256 is
+`28a53f918bfe871542f3d92615bb085aca56f7e9a25625d598e04cd0662fe4e7`.
+The only future approval line, including its trailing LF, is:
+
+```text
+APPROVE HAPPYCODEX 0.6 CALIBRATION 28a53f918bfe871542f3d92615bb085aca56f7e9a25625d598e04cd0662fe4e7
+```
+
+Those bytes have SHA-256
+`519322cb579cd78aadf4fcf1c0f1ce5757b3a100cdcb17d3d0d9a6d0defdeb5d`.
+This line is not authorized and was not executed. The plan is an audit/cost
+binding, never permission. `model_calls=1` means one external Codex execution
+phase, not internal provider turns. The 300-second subprocess timeout is the
+only preemptive bound; the token and 360-second ceilings are conservative
+post-run acceptance limits. Generation 6 has no accepted historical cost.
+
+The corrected plan was schema/repo validated before the only apply. Its
+created-at is `2026-07-30T13:40:19Z` and seal is
+`e6ce69656e3ab0d3b22c3be5c47c9724d796aa22a91e4639e950088fc462d778`.
+The apply ran once from canonical predecessor
+`84c43fc00ae1d72b5626a163ef76d96ea003288ec4037d765908dfa19f8eb1c2`,
+exited zero, and was not retried. The ledger canonical SHA-256 is
+`e81a3262fa48b9c3e6f2d81018ef6cbb91e27943a6fe0d4aa555358fea19b956`;
+file SHA-256 is
+`f8a707c5bf4b0fd219cadf0194d7da1407b0877eca778b0803cffa636aa78ab1`.
+It contains the unchanged candidate, exactly this plan, and zero receipts;
+derived state remains `refresh_required`, six pending gates, empty
+coverage/failures, and uncertified.
 
 ## Frozen protocol and safety
 
@@ -196,10 +283,11 @@ tests/test_certification_engine.py
 docs/execplans/happycodex-0-6-bounded-redesign.md
 ```
 
-The active-ledger test asserts the exact fresh candidate and its seal, zero
-plans/receipts, `refresh_required`, all six pending gates, empty
-coverage/failures, and no certification. Isolated genesis, append, successor,
-schema, archive, and prior-Git drift tests remain unchanged.
+G031 changes exactly the same three tracked paths. The active-ledger test
+asserts the exact candidate, sole plan seal/resource/request/content/unit, zero
+receipts, `refresh_required`, all six pending gates, empty coverage/failures,
+and no certification. Isolated genesis, append, successor, schema, archive, and
+prior-Git drift tests remain unchanged.
 
 ## Acceptance and next gate
 
@@ -216,13 +304,14 @@ PYTHONDONTWRITEBYTECODE=1 python3 -m evaluation.cli holdout --dry-run
 git diff --check
 ```
 
-`verify` and `impact` must return zero on the candidate-only ledger. All four dry
+Before commit, `verify` and `impact` must exit two only for prior-Git ledger
+drift. After commit both must return zero on the one-plan ledger. All four dry
 runs must return zero with nine zero effect counters. Runtime/package/version,
-marketplace, active source/cache, old effect claim/output, evaluator inventory,
-budgets, and exact diff must remain protected. Global config and models cache
-are not inputs and must not be modified.
+marketplace, active source/cache, retired and fresh external states, evaluator
+inventory, budgets, and exact diff must remain protected. Global config and
+models cache are not inputs and must not be modified.
 
-After Root accepts this candidate-only commit, the next separately authorized
-gate is a fresh calibration `GatePlan` bound to candidate
-`12f7bce171d89f8e0f8da5d255872879048fa3e7ef6f8bb73f75005293516b85`.
-G030 stops before any `GatePlan` construction.
+After Root accepts this plan-only commit, calibration still requires separate
+exact current-task authority containing the future line above. Until then the
+persisted invocation is data only. G031 stops before `EffectIntent` creation,
+claim consumption, output creation, model/provider work, or any `GateReceipt`.
