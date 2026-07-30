@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `CANDIDATE_FROZEN`
+Status: `CALIBRATION_AWAITING_EXACT_AUTHORITY`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -233,8 +233,33 @@ digest. Focused RED reproduced all five findings before implementation.
   exactly match the frozen P0 inventory.
 - No live model, network, install, activation, push, tag, GitHub Release, or
   publication effect has occurred.
-- Next action: create private exact calibration claim/output/record roots, run
-  the offline request preflight, and present its one canonical line to the user.
-  Do not call a model until that exact line is returned. A successful
-  calibration receipt then supplies the cost basis for the corpus plan; no
+- The private calibration resource claim is
+  `/home/caichenghang/.codex/happycodex-0.6.5-calibration-resource-claim.json`,
+  SHA-256
+  `b39707bfe43103ded573ecbeb0b705d016a67239ff8e71a6a2de6c964d806064`;
+  it binds the exact claim, output, and record roots under one owner token.
+- The persisted source-derived calibration impact receipt is
+  `/home/caichenghang/.codex/happycodex-0.6.5-release/records/calibration/impact.json`,
+  SHA-256
+  `72ac0a00c98887b14a4dfeae68a55c83bd81332f4eb09180ac6542427c763dbe`.
+  It binds one `subthreshold-control` phase at `gpt-5.6-sol`/`high`, a
+  300-second timeout, and conservative ceilings of one evaluator process,
+  100,000 uncached-input tokens and 10,000 output tokens. It records no prior
+  candidate actual as historical basis.
+- Offline request preflight produced private GatePlan
+  `/home/caichenghang/.codex/happycodex-0.6.5-release/records/calibration/plan.json`,
+  file SHA-256
+  `68f0168cea501a8bbd368d301a7ed7bdf17738ef6a28083f454b397470e68538`,
+  plan SHA-256
+  `bb5d518858d20cc38ed25a3b89b184f81740f17991721a9fa3719df9012fc89a`,
+  and request SHA-256
+  `0c528a98371fc7ddb9227aafa88b35edb2e84140954432afc74ca803b981a05b`.
+  It created only the private plan file: zero launches, fixtures, workspaces,
+  model calls, network calls, receipts, installs, or publications. The output
+  root remains absent and the launch-claim root remains empty.
+- Requested canonical line (request only; not yet authority):
+  `AUTHORIZE HappyCodex 0.6.5 gate calibration exactly once for request 0c528a98371fc7ddb9227aafa88b35edb2e84140954432afc74ca803b981a05b`.
+- Next action: wait for that exact line from the current-task user. Do not
+  apply the GatePlan or call a model before it is returned. A successful
+  calibration receipt supplies the cost basis for the later corpus plan; no
   future GatePlan is pre-authorized.
