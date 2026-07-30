@@ -29,18 +29,23 @@ batches below. It does not authorize any model call, live calibration, corpus,
 holdout, exact-final review, install, publication, marketplace/config/cache
 mutation, or activation.
 
-Current grant `HC06BR-G-024-batch3-identity-docs-deletion` owns only:
+Batch 3 repair ownership consists only of:
 
 ```text
 evaluation/core/{identity,impact,ledger,schema}.py
 evaluation/contracts-v6.json
 evaluation/corpus/engine.py
 evaluation/executor-role.json
+evaluation/cases/pre-freeze-compaction.json
 evaluation/README.md
 README.md
 tests/{test_certification_engine,test_contracts,test_evaluation,test_holdouts}.py
 docs/execplans/happycodex-0-6-bounded-redesign.md
 ```
+
+Grant `HC06BR-G-024RP-recovery-boundary` is plan-only and may edit only this
+ExecPlan. It adds the case path above to the later narrow same-batch repair; it
+does not itself authorize product, schema, validator, fixture, or test changes.
 
 ## Frozen normalized Outcome
 
@@ -182,6 +187,45 @@ run, and holdout dry run all match their expected exits. Every dry run reports
 nine zero effect counters. Their output SHA-256 values are respectively
 `804ee1e1`, `a41780ae`, `e4713eb5`, `d3cf5dc6`, `375ab9a2`, and
 `d5cb2410`. The active ledger digest remains unchanged.
+
+Root independently reproduced 163/163 and the CLI matrix but did not accept
+commit `da5877727e3a595a9fe691c8936dcabaed5ae564`. Source inspection found that
+the `recovery_manifest` contract and `evaluation/core/ledger.py` still persist
+and enforce a nested convergence/family/status/repair-batch/recurrence state
+machine. That is active production schema and validation, not historical
+fixture prose, and it violates the frozen deletion boundary.
+
+The required same-batch correction is narrow. Recovery Manifest keeps
+repositories, the exact resource claim, exactly one selected safe ref or
+content-addressed archive, fixed writer, test counts, terminal agents whose
+receipts were reproduced, and gates. Delete the entire convergence object and
+all family, status, repair-batch, and recurrence fields from
+`contracts-v6.json`, the pre-freeze fixture payload, ledger validation, and
+behavioral tests. Do not reinterpret or retain those fields through an alias,
+derived fallback, renamed wrapper, or compatibility reader.
+
+`evaluation/cases/pre-freeze-compaction.json` is the only added corpus path.
+After canonicalizing its reduced manifest, recompute the embedded Recovery
+Manifest marker and every exact oracle anchor derived from those bytes.
+Historical prose in every other corpus or holdout case remains untouched.
+
+Also delete or behaviorally replace
+`tests/test_evaluation.py::test_fixed_behavior_inventory_exercises_041_convergence`.
+Its positive checks for legacy convergence wording are structure/phrase
+presence, not protocol evidence. Replacement coverage must validate the reduced
+Recovery Manifest's retained fields, reject removed fields through exact schema,
+exercise selected-checkpoint exclusivity and claim/test/terminal-agent
+invariants, and prove canonical content/marker/oracle rehashing. It must not
+require deleting historical prose elsewhere.
+
+The plan-only repair intent SHA-256 is
+`327cee26a16785728d9f9f91899a06ea6b240cb680a91d8866f491a2a47888b9`;
+its Root addendum SHA-256 is
+`0c32ca2e0695001ac55dc922682408a146561ff33c35f1897834452346993e99`.
+The prior terminal receipt remains evidence of the rejected checkpoint, not
+Batch 3 acceptance. Product repair requires a new exact Root grant, focused RED
+showing the active legacy boundary, focused GREEN, full post-commit offline
+GREEN, the same zero-effect CLI matrix, and a new terminal receipt.
 
 The closed inventory has sixteen declared Python modules plus fixed and dynamic
 JSON inputs. Discovery compares the real evaluator tree to that set: an
