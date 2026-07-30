@@ -461,7 +461,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                 }
                 for marker in (
                     "RECOVERY-MANIFEST-SHA256:"
-                    "113f8a757da2a5a4057c82c35696eed0407cc8f00585460f9e9ae3e961233d19",
+                    "1621ab9f934155f63aa3ce897065854e67805de0e38359e6451fa2e947ad5308",
                     "RECOVERY-GIT-6D91",
                     "RECOVERY-PLAN-47B2",
                     "RECOVERY-TEST-19C4",
@@ -493,6 +493,19 @@ class HappyCodexEvaluationTests(unittest.TestCase):
         ]
         manifest = json.loads(content)
         self.assertEqual(
+            set(manifest),
+            {
+                "schema_version",
+                "repositories",
+                "resource_claim",
+                "selected_checkpoint",
+                "writer",
+                "tests",
+                "agents",
+                "gates",
+            },
+        )
+        self.assertEqual(
             manifest["selected_checkpoint"],
             {
                 "archive": "sha256:" + "8" * 64,
@@ -520,17 +533,6 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                 for resource in manifest["resource_claim"]["resources"]
             },
             {"worktree", "ref", "ledger", "output", "activation"},
-        )
-        self.assertEqual(
-            manifest["convergence"]["families"],
-            [
-                {
-                    "family_id": "F-QUEUE",
-                    "recurrence": 1,
-                    "repair_batch": "RB-QUEUE/boundary",
-                    "status": "boundary_required",
-                }
-            ],
         )
         self.assertEqual(manifest["writer"], "Root")
         self.assertEqual(manifest["tests"]["failed"], 0)
@@ -606,8 +608,51 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             ),
             (
                 "claim",
-                lambda value: value["resource_claim"]["resources"].append(
-                    "output:review/other"
+                lambda value: value["resource_claim"]["resources"].__setitem__(
+                    4, "output:review/other"
+                ),
+            ),
+            (
+                "duplicate repository",
+                lambda value: value["repositories"][1].__setitem__(
+                    "namespace", "queue-primary"
+                ),
+            ),
+            (
+                "accepted failure overflow",
+                lambda value: value["tests"].update(
+                    accepted_failures=1,
+                    failed=0,
+                ),
+            ),
+            (
+                "unreproduced agent",
+                lambda value: value["agents"][0].__setitem__(
+                    "receipt_reproduced", False
+                ),
+            ),
+            (
+                "empty agents",
+                lambda value: value.__setitem__("agents", []),
+            ),
+            (
+                "duplicate agent",
+                lambda value: value["agents"].append(
+                    json.loads(json.dumps(value["agents"][0]))
+                ),
+            ),
+            (
+                "empty gates",
+                lambda value: value.__setitem__("gates", []),
+            ),
+            (
+                "duplicate gates",
+                lambda value: value["gates"].append("contract_freeze"),
+            ),
+            (
+                "two checkpoints",
+                lambda value: value["selected_checkpoint"].__setitem__(
+                    "ref", "refs/tasks/queue"
                 ),
             ),
         )
@@ -623,66 +668,16 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                         case_id=f"pre-freeze-compaction-{label}-tamper",
                     )
 
-        def before_terminal_sibling(value: dict[str, object]) -> None:
-            family = value["convergence"]["families"][0]
-            family.update(
-                recurrence=0,
-                repair_batch="RB-QUEUE/instance",
-                status="open",
-            )
+        def select_safe_ref(value: dict[str, object]) -> None:
+            value["selected_checkpoint"] = {
+                "archive": None,
+                "ref": "refs/tasks/queue",
+            }
 
-        def independent_family(value: dict[str, object]) -> None:
-            value["convergence"]["families"].append(
-                {
-                    "family_id": "F-INDEPENDENT",
-                    "recurrence": 0,
-                    "repair_batch": "RB-INDEPENDENT/instance",
-                    "status": "open",
-                }
-            )
-
-        def second_recurrence_user_gate(value: dict[str, object]) -> None:
-            value["convergence"]["phase"] = "focused_hardening"
-            value["convergence"]["families"][0].update(
-                recurrence=2,
-                status="open",
-            )
-            value["gates"] = ["user_selection"]
-
-        for label, mutator in (
-            ("before-terminal-sibling", before_terminal_sibling),
-            ("independent-family", independent_family),
-            ("second-recurrence-user-gate", second_recurrence_user_gate),
-        ):
-            with self.subTest(label=label):
-                validate_recovery_manifest(
-                    resigned(mutator),
-                    case_id=f"pre-freeze-compaction-{label}",
-                )
-
-        def recurrence_keeps_instance_batch(value: dict[str, object]) -> None:
-            value["convergence"]["families"][0]["repair_batch"] = "RB-QUEUE/instance"
-
-        def second_recurrence_without_user_gate(value: dict[str, object]) -> None:
-            value["convergence"]["phase"] = "focused_hardening"
-            value["convergence"]["families"][0].update(
-                recurrence=2,
-                status="open",
-            )
-
-        for label, mutator in (
-            ("recurrence-keeps-instance-batch", recurrence_keeps_instance_batch),
-            (
-                "second-recurrence-without-user-gate",
-                second_recurrence_without_user_gate,
-            ),
-        ):
-            with self.subTest(label=label):
-                with self.assertRaisesRegex(ValueError, "invalid Recovery Manifest state"):
-                    validate_recovery_manifest(
-                        resigned(mutator),
-                        case_id=f"pre-freeze-compaction-{label}",
-                    )
+        validate_recovery_manifest(
+            resigned(select_safe_ref),
+            case_id="pre-freeze-compaction-safe-ref",
+        )
 
     def test_live_oracle_alternatives_cannot_authorize_user_gated_writes(self) -> None:
         case = self.cases["multi-repo-submodule"]
@@ -1417,40 +1412,37 @@ class HappyCodexEvaluationTests(unittest.TestCase):
         ):
             self.assertIn(marker, rendered)
 
-    def test_fixed_behavior_inventory_exercises_041_convergence(self) -> None:
-        plans: list[str] = []
-        cases = list(self.cases.values())
-        cases.extend(
-            json.loads(path.read_text(encoding="utf-8"))
-            for path in sorted(
-                (ROOT / "evaluation" / "holdouts" / "cases").glob("*.json")
-            )
+    def test_recovery_manifest_rejects_removed_state_machine_fields(self) -> None:
+        from evaluation.core.schema import load_contracts, validate_named
+
+        contracts = load_contracts(ROOT / "evaluation" / "contracts-v6.json")
+        native = self.cases["pre-freeze-compaction"]["fixture"][
+            "native_compaction_resume"
+        ]
+        manifest = json.loads(
+            native["post_compaction_transition"]["files"][
+                "docs/execplans/recovery-manifest.json"
+            ]
         )
-        for case in cases:
-            for commit in case["fixture"].get("commits", []):
-                for relative, content in commit.get("files", {}).items():
-                    if isinstance(content, str) and (
-                        "execplan" in relative.casefold()
-                        or "Protocol: HappyCodex/" in content
-                    ):
-                        plans.append(content)
-        self.assertTrue(plans)
-        self.assertTrue(all("Protocol: HappyCodex/0.4.1" in plan for plan in plans))
-        inventory = "\n".join(plans).casefold()
-        for phrase in (
-            "convergence ledger",
-            "family_id",
-            "repair_batch",
-            "focused_hardening",
-            "candidate_frozen",
-            "exact_final",
-            "closed",
-            "shared mutable resource",
-            "output namespace",
-            "current index",
-            "content-addressed archive",
+        manifest.pop("convergence", None)
+        self.assertEqual(
+            validate_named(contracts, "recovery_manifest", manifest),
+            manifest,
+        )
+        for field, value in (
+            ("convergence", {"phase": "working", "families": []}),
+            ("family", "F-QUEUE"),
+            ("family_id", "F-QUEUE"),
+            ("status", "open"),
+            ("repair_batch", "RB-QUEUE/boundary"),
+            ("recurrence", 1),
         ):
-            self.assertIn(phrase, inventory)
+            invalid = json.loads(json.dumps(manifest))
+            invalid[field] = value
+            with self.subTest(field=field), self.assertRaisesRegex(
+                ValueError, "schema object mismatch"
+            ):
+                validate_named(contracts, "recovery_manifest", invalid)
 
     def test_positive_contract_fixtures_use_current_claim_states(self) -> None:
         plan_paths = {

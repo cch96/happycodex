@@ -160,28 +160,6 @@
           },
           "required": ["archive", "ref"]
         },
-        "convergence": {
-          "type": "object",
-          "additionalProperties": false,
-          "properties": {
-            "phase": {"$ref": "nonempty"},
-            "families": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "family_id": {"$ref": "nonempty"},
-                  "status": {"type": "string", "enum": ["open", "boundary_required", "closed"]},
-                  "repair_batch": {"type": "string", "pattern": "^.+/(instance|boundary)$"},
-                  "recurrence": {"type": "integer", "minimum": 0}
-                },
-                "required": ["family_id", "status", "repair_batch", "recurrence"]
-              }
-            }
-          },
-          "required": ["phase", "families"]
-        },
         "writer": {"type": "string", "enum": ["Root"]},
         "tests": {
           "type": "object",
@@ -195,6 +173,7 @@
         },
         "agents": {
           "type": "array",
+          "minItems": 1,
           "items": {
             "type": "object",
             "additionalProperties": false,
@@ -208,7 +187,7 @@
         },
         "gates": {"type": "array", "items": {"$ref": "nonempty"}, "minItems": 1, "uniqueItems": true}
       },
-      "required": ["schema_version", "repositories", "resource_claim", "selected_checkpoint", "convergence", "writer", "tests", "agents", "gates"]
+      "required": ["schema_version", "repositories", "resource_claim", "selected_checkpoint", "writer", "tests", "agents", "gates"]
     },
     "invocation_profile": {
       "type": "object",

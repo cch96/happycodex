@@ -135,8 +135,6 @@ def _validate_recovery_manifest(native: dict[str, Any], case_id: str) -> None:
     repositories = manifest["repositories"]
     claim = manifest["resource_claim"]
     resources = claim["resources"]
-    convergence = manifest["convergence"]
-    families = convergence["families"]
     tests = manifest["tests"]
     selected = manifest["selected_checkpoint"]
     agents = manifest["agents"]
@@ -159,23 +157,9 @@ def _validate_recovery_manifest(native: dict[str, Any], case_id: str) -> None:
         or {item.partition(":")[0] for item in resources}
         != {"worktree", "ref", "ledger", "output", "activation"}
         or not selected_ok
-        or len({item["family_id"] for item in families}) != len(families)
         or tests["accepted_failures"] > tests["failed"]
         or any(item["receipt_reproduced"] is not True for item in agents)
         or len({item["id"] for item in agents}) != len(agents)
-        or any(
-            (item["recurrence"] == 0 and not item["repair_batch"].endswith("/instance"))
-            or (item["recurrence"] > 0 and not item["repair_batch"].endswith("/boundary"))
-            or (item["status"] == "boundary_required" and item["recurrence"] != 1)
-            or (
-                item["recurrence"] >= 2
-                and (
-                    item["status"] != "open"
-                    or "user_selection" not in manifest["gates"]
-                )
-            )
-            for item in families
-        )
     ):
         raise ValueError(f"invalid Recovery Manifest state: {case_id}")
 

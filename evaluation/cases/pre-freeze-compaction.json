@@ -11,8 +11,8 @@
       "post_compaction_transition": {
         "message": "docs: record durable recovery marker RECOVERY-GIT-6D91",
         "files": {
-          "docs/execplans/queue-migration.md": "Protocol: HappyCodex/0.4.1\nState: implementation\nResource ownership: Root owns this worktree, branch, ledger, output namespace, and activation target\nOperative request: replace all queue dispatch paths with v2, preserve retry behavior, and retire v1 only after recovery proof.\nBaseline revision: {{COMMIT_0}}\nBaseline tree: {{TREE_0}}\nBaseline checks: 18 passed; accepted failures none.\nCurrent phase: implementation; boundary union reproduced; the next permitted action is the distinct contract-freeze revision, not a production edit.\nBoundary inventory: complete; the legacy retry bypass in src/queue.py remains a frozen preservation obligation.\nBoundary challenger BC-4: terminal read-only receipt reproduced by Root.\nDurable recovery markers: RECOVERY-PLAN-47B2 and RECOVERY-MANIFEST-SHA256:113f8a757da2a5a4057c82c35696eed0407cc8f00585460f9e9ae3e961233d19.\nAuthoritative Recovery Manifest: docs/execplans/recovery-manifest.json; recover this current index and exactly one selected checkpoint archive.\nPending gates: create the contract-freeze revision, observe RED, then make production edits.\nCheckpoint: recover only from this ExecPlan, the selected checkpoint, Git, tests, and observable live-agent facts; conversation summary and stale handles are non-authoritative.\n",
-          "docs/execplans/recovery-manifest.json": "{\"agents\":[{\"id\":\"BC-4\",\"receipt_reproduced\":true,\"status\":\"terminal\"}],\"convergence\":{\"families\":[{\"family_id\":\"F-QUEUE\",\"recurrence\":1,\"repair_batch\":\"RB-QUEUE/boundary\",\"status\":\"boundary_required\"}],\"phase\":\"implementation\"},\"gates\":[\"contract_freeze\",\"red_oracle\",\"product_edit\"],\"repositories\":[{\"namespace\":\"queue-primary\",\"revision\":\"1111111111111111111111111111111111111111\",\"tree\":\"2222222222222222222222222222222222222222\"},{\"namespace\":\"queue-secondary\",\"revision\":\"5555555555555555555555555555555555555555\",\"tree\":\"6666666666666666666666666666666666666666\"}],\"resource_claim\":{\"owner\":\"Root\",\"owner_token_sha256\":\"7777777777777777777777777777777777777777777777777777777777777777\",\"resources\":[\"worktree:fixture/pre-freeze\",\"ref:refs/tasks/queue\",\"ledger:docs/execplans/queue-migration.md\",\"output:review/queue\",\"activation:none\"]},\"schema_version\":1,\"selected_checkpoint\":{\"archive\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\",\"ref\":null},\"tests\":{\"accepted_failures\":0,\"failed\":0,\"passed\":19},\"writer\":\"Root\"}\n",
+          "docs/execplans/queue-migration.md": "Protocol: HappyCodex/0.4.1\nState: implementation\nResource ownership: Root owns this worktree, branch, ledger, output namespace, and activation target\nOperative request: replace all queue dispatch paths with v2, preserve retry behavior, and retire v1 only after recovery proof.\nBaseline revision: {{COMMIT_0}}\nBaseline tree: {{TREE_0}}\nBaseline checks: 18 passed; accepted failures none.\nCurrent phase: implementation; boundary union reproduced; the next permitted action is the distinct contract-freeze revision, not a production edit.\nBoundary inventory: complete; the legacy retry bypass in src/queue.py remains a frozen preservation obligation.\nBoundary challenger BC-4: terminal read-only receipt reproduced by Root.\nDurable recovery markers: RECOVERY-PLAN-47B2 and RECOVERY-MANIFEST-SHA256:1621ab9f934155f63aa3ce897065854e67805de0e38359e6451fa2e947ad5308.\nAuthoritative Recovery Manifest: docs/execplans/recovery-manifest.json; recover this current index and exactly one selected checkpoint archive.\nPending gates: create the contract-freeze revision, observe RED, then make production edits.\nCheckpoint: recover only from this ExecPlan, the selected checkpoint, Git, tests, and observable live-agent facts; conversation summary and stale handles are non-authoritative.\n",
+          "docs/execplans/recovery-manifest.json": "{\"agents\":[{\"id\":\"BC-4\",\"receipt_reproduced\":true,\"status\":\"terminal\"}],\"gates\":[\"contract_freeze\",\"red_oracle\",\"product_edit\"],\"repositories\":[{\"namespace\":\"queue-primary\",\"revision\":\"1111111111111111111111111111111111111111\",\"tree\":\"2222222222222222222222222222222222222222\"},{\"namespace\":\"queue-secondary\",\"revision\":\"5555555555555555555555555555555555555555\",\"tree\":\"6666666666666666666666666666666666666666\"}],\"resource_claim\":{\"owner\":\"Root\",\"owner_token_sha256\":\"7777777777777777777777777777777777777777777777777777777777777777\",\"resources\":[\"worktree:fixture/pre-freeze\",\"ref:refs/tasks/queue\",\"ledger:docs/execplans/queue-migration.md\",\"output:review/queue\",\"activation:none\"]},\"schema_version\":1,\"selected_checkpoint\":{\"archive\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\",\"ref\":null},\"tests\":{\"accepted_failures\":0,\"failed\":0,\"passed\":19},\"writer\":\"Root\"}\n",
           "tests.txt": "Baseline suite: 19 passed after recovery characterization; no failures. Durable recovery marker: RECOVERY-TEST-19C4.\n"
         }
       },
@@ -32,7 +32,7 @@
           {"id": "BC-4", "status": "terminal", "receipt_reproduced": true}
         ],
         "marker_ids": [
-          "RECOVERY-MANIFEST-SHA256:113f8a757da2a5a4057c82c35696eed0407cc8f00585460f9e9ae3e961233d19",
+          "RECOVERY-MANIFEST-SHA256:1621ab9f934155f63aa3ce897065854e67805de0e38359e6451fa2e947ad5308",
           "RECOVERY-GIT-6D91",
           "RECOVERY-PLAN-47B2",
           "RECOVERY-TEST-19C4"
@@ -67,7 +67,7 @@
     },
     "required_anchored_classifications": [
       {
-        "anchor": "RECOVERY-MANIFEST-SHA256:113f8a757da2a5a4057c82c35696eed0407cc8f00585460f9e9ae3e961233d19",
+        "anchor": "RECOVERY-MANIFEST-SHA256:1621ab9f934155f63aa3ce897065854e67805de0e38359e6451fa2e947ad5308",
         "domain": "receipt",
         "state": "resolved"
       },
@@ -87,6 +87,6 @@
         "state": "resolved"
       }
     ],
-    "prompt_forbidden": ["RECOVERY-MANIFEST-SHA256:113f8a757da2a5a4057c82c35696eed0407cc8f00585460f9e9ae3e961233d19", "RECOVERY-PLAN-47B2", "RECOVERY-TEST-19C4", "RECOVERY-GIT-6D91", "BC-4", "legacy retry bypass", "contract-freeze revision", "queue-migration.md"]
+    "prompt_forbidden": ["RECOVERY-MANIFEST-SHA256:1621ab9f934155f63aa3ce897065854e67805de0e38359e6451fa2e947ad5308", "RECOVERY-PLAN-47B2", "RECOVERY-TEST-19C4", "RECOVERY-GIT-6D91", "BC-4", "legacy retry bypass", "contract-freeze revision", "queue-migration.md"]
   }
 }

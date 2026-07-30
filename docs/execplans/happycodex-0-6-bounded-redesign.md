@@ -227,6 +227,35 @@ Batch 3 acceptance. Product repair requires a new exact Root grant, focused RED
 showing the active legacy boundary, focused GREEN, full post-commit offline
 GREEN, the same zero-effect CLI matrix, and a new terminal receipt.
 
+Root granted `HC06BR-G-024R-recovery-manifest-contraction` at baseline
+`4416258dca44178fdde24804eb07323b74e986c4`. Focused RED command was:
+
+```text
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest -v tests.test_evaluation.HappyCodexEvaluationTests.test_recovery_manifest_binds_current_index_and_one_checkpoint tests.test_evaluation.HappyCodexEvaluationTests.test_recovery_manifest_rejects_removed_state_machine_fields
+```
+
+It ran two tests with one failure and one error: the fixture still exposed
+`convergence`, while the current schema rejected the reduced manifest. Output
+SHA-256 is
+`f8c674dfa5328309018f478d70b449d9842cbb9a65afcee14561aba445439793`;
+the mode-`0600` RED receipt SHA-256 is
+`d30dd2f715e38c2a03bc2da07bec133e0b6be70d99b1fac485951a938e822fdc`.
+
+Focused GREEN is 2/2, output SHA-256
+`4e41ee0d288e23cd1809def95d77c0d8b023c42fee2095d6ea8fcc2b65f0b1d2`.
+Because certification tests clone committed `HEAD`, an ordinary dirty-tree full
+run correctly exposed the old committed fixture against the new loaded schema.
+A temporary Git-reachable snapshot of the exact five-file diff ran all 163
+tests GREEN, output SHA-256
+`3aa5148d71b00ef1c8ae809eba78cd4f3050a4584a16f1bc6d3915eb1142fb7b`.
+Post-commit reproduction on the real repair commit remains mandatory.
+
+Precommit CLI results are verify 0, impact 2 as expected, and all four dry runs
+0 with nine zero effect counters. Verify and impact output SHA-256 values are
+`c23a36d7` and `e574d468`; dry-run outputs remain `e4713eb5`,
+`d3cf5dc6`, `375ab9a2`, and `d5cb2410`. The active ledger digest remains
+unchanged.
+
 The closed inventory has sixteen declared Python modules plus fixed and dynamic
 JSON inputs. Discovery compares the real evaluator tree to that set: an
 unlisted Python module, an unknown JSON document, or a missing declared input
@@ -268,7 +297,7 @@ Runtime remains capped at 262 lines and 2,400 words, with 2,200 preferred.
 Current combined Runtime is 235 lines and 1,689 words. This plan stays between
 1,500 and 2,500 words.
 
-Evaluation production currently measures 6,077 Python lines across the exact 16
+Evaluation production currently measures 6,061 Python lines across the exact 16
 declared modules. The 4,000–4,500 target is directional, not an acceptance
 quota; this batch deletes identity and test semantic duplication but does not
 compress unrelated evaluator behavior merely to hit a number. The actual final
