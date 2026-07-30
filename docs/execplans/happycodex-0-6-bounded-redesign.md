@@ -248,13 +248,44 @@ run correctly exposed the old committed fixture against the new loaded schema.
 A temporary Git-reachable snapshot of the exact five-file diff ran all 163
 tests GREEN, output SHA-256
 `3aa5148d71b00ef1c8ae809eba78cd4f3050a4584a16f1bc6d3915eb1142fb7b`.
-Post-commit reproduction on the real repair commit remains mandatory.
+Repair commit `2313e47f9c1485dedefe256bccb7af32c6551edf` then reproduced
+163/163 GREEN, output SHA-256
+`b7328a35957d4dea882140010c74eb5a2a82b51fd0b043dccd6356d87c7efb17`.
 
 Precommit CLI results are verify 0, impact 2 as expected, and all four dry runs
 0 with nine zero effect counters. Verify and impact output SHA-256 values are
 `c23a36d7` and `e574d468`; dry-run outputs remain `e4713eb5`,
 `d3cf5dc6`, `375ab9a2`, and `d5cb2410`. The active ledger digest remains
 unchanged.
+
+Root withheld acceptance after independently re-signing three schema-valid
+manifest changes: gates to `user_selection`, passed tests to 20, and agent id to
+`OTHER`. Each remained accepted while the recovery oracle retained the original
+facts. Grant `HC06BR-G-024R2-recovery-cross-binding` therefore requires direct
+equality for writer, ordered gates/pending gates, the three test counters, and
+ordered agent objects; marker and schema validation remain unchanged.
+
+Focused RED command was:
+
+```text
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest -v tests.test_evaluation.HappyCodexEvaluationTests.test_recovery_manifest_cross_binds_oracle_facts
+```
+
+It ran one test with three subtest failures, proving all three mismatches were
+accepted. Output SHA-256 is
+`de7dfd31362923ed09359d99ba3a3e8993f46d709aa25f545366dcf7a20dcc22`;
+the mode-`0600` RED receipt SHA-256 is
+`dc4248d09cccfe2ba042c81c8ecbc3da43454045522698e11ea4091960175a88`.
+
+The cross-binding focused set is 2/2 GREEN, output SHA-256
+`fb803d54ebf5c063d543999bff2222b4cc9a62d76f33f218a5d15458611d5ec8`.
+Canonical discovery remains 163/163 GREEN, output SHA-256
+`415bbfd54c58903cf04abd74eb221ece0ff91899ed5891d166b546e5af1dd09f`.
+Precommit verify is 0, impact is expected exit 2, and all four dry runs are 0
+with nine zero effect counters. Their output SHA-256 values are respectively
+`17455511`, `bb08900b`, `e4713eb5`, `d3cf5dc6`, `375ab9a2`, and
+`d5cb2410`. The active ledger remains
+`b4e269d2c64fa0c4d246b1102aa4b366dd22afa250bc44089e7eda45a955228f`.
 
 The closed inventory has sixteen declared Python modules plus fixed and dynamic
 JSON inputs. Discovery compares the real evaluator tree to that set: an
@@ -297,7 +328,7 @@ Runtime remains capped at 262 lines and 2,400 words, with 2,200 preferred.
 Current combined Runtime is 235 lines and 1,689 words. This plan stays between
 1,500 and 2,500 words.
 
-Evaluation production currently measures 6,061 Python lines across the exact 16
+Evaluation production currently measures 6,073 Python lines across the exact 16
 declared modules. The 4,000–4,500 target is directional, not an acceptance
 quota; this batch deletes identity and test semantic duplication but does not
 compress unrelated evaluator behavior merely to hit a number. The actual final

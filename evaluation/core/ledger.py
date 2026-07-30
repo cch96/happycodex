@@ -162,6 +162,18 @@ def _validate_recovery_manifest(native: dict[str, Any], case_id: str) -> None:
         or len({item["id"] for item in agents}) != len(agents)
     ):
         raise ValueError(f"invalid Recovery Manifest state: {case_id}")
+    oracle = native["recovery_oracle"]
+    oracle_tests = {
+        field: oracle["tests"][field]
+        for field in ("passed", "failed", "accepted_failures")
+    }
+    if (
+        manifest["writer"] != oracle["writer"]
+        or manifest["gates"] != oracle["pending_gates"]
+        or tests != oracle_tests
+        or agents != oracle["live_agents"]
+    ):
+        raise ValueError(f"Recovery Manifest cross-binding mismatch: {case_id}")
 
 
 def validate_case_input(case: dict[str, Any], path: Path) -> None:

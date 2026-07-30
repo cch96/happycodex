@@ -484,7 +484,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                 )
             )
 
-    def test_recovery_manifest_binds_current_index_and_one_checkpoint(self) -> None:
+    def test_recovery_manifest_cross_binds_oracle_facts(self) -> None:
         native = self.cases["pre-freeze-compaction"]["fixture"][
             "native_compaction_resume"
         ]
@@ -667,6 +667,28 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                         resigned(mutator),
                         case_id=f"pre-freeze-compaction-{label}-tamper",
                     )
+
+        for label, mutator in (
+            (
+                "gates",
+                lambda value: value.__setitem__("gates", ["user_selection"]),
+            ),
+            (
+                "tests",
+                lambda value: value["tests"].__setitem__("passed", 20),
+            ),
+            (
+                "agents",
+                lambda value: value["agents"][0].__setitem__("id", "OTHER"),
+            ),
+        ):
+            with self.subTest(label=label), self.assertRaisesRegex(
+                ValueError, "Recovery Manifest cross-binding mismatch"
+            ):
+                validate_recovery_manifest(
+                    resigned(mutator),
+                    case_id=f"pre-freeze-compaction-{label}-mismatch",
+                )
 
         def select_safe_ref(value: dict[str, object]) -> None:
             value["selected_checkpoint"] = {
@@ -3136,9 +3158,36 @@ class HappyCodexEvaluationTests(unittest.TestCase):
         case = json.loads(json.dumps(self.cases["pre-freeze-compaction"]))
         case["oracle"]["expected"]["protocol_may_product_write"] = True
         case["oracle"]["expected"]["execplan_condition"] = "usable"
-        recovery = case["fixture"]["native_compaction_resume"]["recovery_oracle"]
+        native = case["fixture"]["native_compaction_resume"]
+        recovery = native["recovery_oracle"]
         recovery["next_action"] = "ask_user"
         recovery["pending_gates"] = ["user_selection"]
+        manifest = json.loads(
+            native["post_compaction_transition"]["files"][
+                runner.RECOVERY_MANIFEST_PATH
+            ]
+        )
+        manifest["gates"] = ["user_selection"]
+        content = (
+            json.dumps(
+                manifest,
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+            )
+            + "\n"
+        )
+        native["post_compaction_transition"]["files"][
+            runner.RECOVERY_MANIFEST_PATH
+        ] = content
+        marker = (
+            "RECOVERY-MANIFEST-SHA256:"
+            + hashlib.sha256(content.encode()).hexdigest()
+        )
+        recovery["marker_ids"] = [
+            marker if item.startswith("RECOVERY-MANIFEST-SHA256:") else item
+            for item in recovery["marker_ids"]
+        ]
         runner.validate_case(case, Path("recovery-permission.json"))
 
     def test_read_mode_oracle_requires_semantic_blocker_not_domain_label(self) -> None:
