@@ -4,7 +4,6 @@ import json
 import os
 from pathlib import Path
 import re
-import shutil
 import stat
 import subprocess
 import tempfile
@@ -16,7 +15,8 @@ from evaluation.core.identity import (
     RECOVERY_MANIFEST_PATTERN,
     RECOVERY_STATE_FIELDS,
     canonical_sha256,
-    normalize_package_modes,
+    executor_role_identity,
+    package_identities,
     permission_assertions_invalid,
     sha256_bytes,
     source_archive_identity,
@@ -48,10 +48,7 @@ _CANDIDATE_FIELDS = frozenset(
         "source_tree",
         "package_artifact_sha256",
         "package_semantic_sha256",
-        "engine_manifest_sha256",
         "executor_role_sha256",
-        "public_baseline_sha256",
-        "snapshot_sha256",
         "created_at",
         "candidate_sha256",
     }
@@ -61,6 +58,7 @@ _PLAN_FIELDS = frozenset(
         "schema_version",
         "record_type",
         "candidate_sha256",
+        "snapshot_sha256",
         "gate",
         "created_at",
         "profile",
@@ -316,34 +314,6 @@ def _sealed(record: dict[str, Any], field: str, label: str) -> None:
         raise ValueError(f"invalid {label} seal")
 
 
-def _source_snapshot(repo: Path, revision: str) -> dict[str, Any]:
-    from evaluation.core.impact import build_snapshot
-
-    with tempfile.TemporaryDirectory(prefix="happycodex-snapshot-") as raw:
-        archive = Path(raw) / "source.tar"
-        extracted = Path(raw) / "source"
-        extracted.mkdir()
-        result = subprocess.run(
-            [
-                "git",
-                "-C",
-                str(repo),
-                "archive",
-                "--format=tar",
-                "--output",
-                str(archive),
-                revision,
-            ],
-            check=False,
-            capture_output=True,
-        )
-        if result.returncode:
-            raise ValueError("cannot archive ReleaseCandidate source")
-        shutil.unpack_archive(str(archive), extracted)
-        normalize_package_modes(extracted)
-        return build_snapshot(extracted)
-
-
 def validate_release_candidate(
     value: Any, *, repo: Path | None = None
 ) -> dict[str, Any]:
@@ -356,10 +326,7 @@ def validate_release_candidate(
     for field in (
         "package_artifact_sha256",
         "package_semantic_sha256",
-        "engine_manifest_sha256",
         "executor_role_sha256",
-        "public_baseline_sha256",
-        "snapshot_sha256",
     ):
         _digest(record[field], f"ReleaseCandidate {field}")
     _timestamp(record["created_at"], "ReleaseCandidate")
@@ -374,28 +341,19 @@ def validate_release_candidate(
             "source_tree": archived["source_tree"],
             "package_artifact_sha256": archived["package"]["artifact_sha256"],
             "package_semantic_sha256": archived["package"]["semantic_sha256"],
-            "engine_manifest_sha256": archived["engine_manifest_sha256"],
             "executor_role_sha256": archived["executor_role_sha256"],
         }
         if any(record[field] != expected[field] for field in expected):
             raise ValueError("ReleaseCandidate does not match Git archive")
-        source_snapshot = _source_snapshot(repo, record["source_commit"])
-        settings = source_snapshot["settings"]
-        current_snapshot = build_snapshot(
-            repo,
-            model=settings["model"],
-            effort=settings["effort"],
-            timeout=settings["timeout_seconds"],
-        )
         if (
-            record["snapshot_sha256"] != canonical_sha256(source_snapshot)
-            or record["public_baseline_sha256"]
-            != canonical_sha256(source_snapshot["public_baseline"])
-            or current_snapshot != source_snapshot
+            package_identities(repo)
+            != {
+                "artifact_sha256": record["package_artifact_sha256"],
+                "semantic_sha256": record["package_semantic_sha256"],
+            }
+            or executor_role_identity(repo) != record["executor_role_sha256"]
         ):
-            raise ValueError(
-                "ReleaseCandidate snapshot, baseline, or current inputs drifted"
-            )
+            raise ValueError("ReleaseCandidate product inputs drifted")
         head = _git(repo, "rev-parse", "HEAD^{commit}")
         if subprocess.run(
             ["git", "-C", str(repo), "merge-base", "--is-ancestor",
@@ -412,6 +370,7 @@ def validate_gate_plan(value: Any) -> dict[str, Any]:
     if record["schema_version"] != 1 or record["record_type"] != "GatePlan":
         raise ValueError("invalid GatePlan type")
     _digest(record["candidate_sha256"], "GatePlan candidate")
+    _digest(record["snapshot_sha256"], "GatePlan snapshot")
     if record["gate"] not in GATE_ORDER:
         raise ValueError("invalid GatePlan gate")
     _timestamp(record["created_at"], "GatePlan")
@@ -570,6 +529,7 @@ def validate_ledger(ledger: dict[str, Any], *, repo: Path | None = None) -> None
         from evaluation.core.impact import build_snapshot
 
         snapshot = build_snapshot(repo)
+        snapshot_sha256 = canonical_sha256(snapshot)
         expected_units = {
             "calibration": ["subthreshold-control"],
             "corpus": sorted(snapshot["corpus"]["cases"]),
@@ -581,6 +541,11 @@ def validate_ledger(ledger: dict[str, Any], *, repo: Path | None = None) -> None
             "holdout": "blinded-pair",
         }
         settings = snapshot["settings"]
+        for plan in plans.values():
+            if plan["snapshot_sha256"] != snapshot_sha256:
+                raise ValueError(
+                    f"GatePlan {plan['gate']} does not bind the current snapshot"
+                )
         for gate in MODEL_GATES & plans.keys():
             plan = plans[gate]
             profile = plan["profile"]

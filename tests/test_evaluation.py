@@ -3740,37 +3740,53 @@ class HappyCodexEvaluationTests(unittest.TestCase):
         ):
             self.assertNotIn("maxItems", runner.OUTPUT_SCHEMA["properties"][field])
 
-    def test_provider_transport_schema_removes_only_unique_items(self) -> None:
+    def test_provider_transport_schema_inlines_refs_and_removes_unique_items(
+        self,
+    ) -> None:
         original = json.loads(json.dumps(runner.OUTPUT_SCHEMA))
 
-        def unique_items_count(value: object) -> int:
+        def key_count(value: object, target: str) -> int:
             if isinstance(value, dict):
-                return sum(key == "uniqueItems" for key in value) + sum(
-                    unique_items_count(item) for item in value.values()
+                return sum(key == target for key in value) + sum(
+                    key_count(item, target) for item in value.values()
                 )
             if isinstance(value, list):
-                return sum(unique_items_count(item) for item in value)
+                return sum(key_count(item, target) for item in value)
             return 0
-
-        def expected_projection(value: object) -> object:
-            if isinstance(value, dict):
-                return {
-                    key: expected_projection(item)
-                    for key, item in value.items()
-                    if key != "uniqueItems"
-                }
-            if isinstance(value, list):
-                return [expected_projection(item) for item in value]
-            return value
 
         first = runner.provider_transport_schema(runner.OUTPUT_SCHEMA)
         second = runner.provider_transport_schema(runner.OUTPUT_SCHEMA)
-        self.assertGreater(unique_items_count(runner.OUTPUT_SCHEMA), 0)
-        self.assertEqual(unique_items_count(first), 0)
-        self.assertEqual(first, expected_projection(original))
+        self.assertGreater(key_count(runner.OUTPUT_SCHEMA, "uniqueItems"), 0)
+        self.assertGreater(key_count(runner.OUTPUT_SCHEMA, "$ref"), 0)
+        self.assertEqual(key_count(first, "uniqueItems"), 0)
+        self.assertEqual(key_count(first, "$ref"), 0)
+        self.assertEqual(
+            first["properties"]["reason"],
+            {"type": "string", "minLength": 1},
+        )
         self.assertEqual(first, second)
         self.assertEqual(runner.OUTPUT_SCHEMA, original)
         self.assertIsNot(first, runner.OUTPUT_SCHEMA)
+
+    def test_provider_transport_schema_rejects_unknown_and_cyclic_refs(self) -> None:
+        with self.assertRaisesRegex(ValueError, "unknown"):
+            runner.provider_transport_schema(
+                {"$ref": "missing"},
+                {"known": {"type": "string"}},
+            )
+        with self.assertRaisesRegex(ValueError, "cyclic"):
+            runner.provider_transport_schema(
+                {"$ref": "first"},
+                {
+                    "first": {"$ref": "second"},
+                    "second": {"$ref": "first"},
+                },
+            )
+        with self.assertRaisesRegex(ValueError, "bare reference"):
+            runner.provider_transport_schema(
+                {"$ref": "known", "type": "string"},
+                {"known": {"type": "string"}},
+            )
 
     def test_internal_output_validation_still_rejects_duplicate_values(self) -> None:
         result = {
@@ -3790,7 +3806,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "schema array mismatch"):
             runner.validate_output_result(result)
 
-    def test_fresh_and_resume_argv_disable_mcp_exactly_once(self) -> None:
+    def test_fresh_and_resume_argv_have_no_fake_mcp_override(self) -> None:
         config = ["-m", "gpt-5.6-sol", "-c", 'approval_policy="never"']
         for thread in (None, "thread-123"):
             with self.subTest(thread=thread):
@@ -3801,33 +3817,39 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                     prompt="probe",
                     thread=thread,
                 )
-                self.assertEqual(argv.count(runner.MCP_DISABLED_CONFIG), 1)
-                index = argv.index(runner.MCP_DISABLED_CONFIG)
-                self.assertEqual(argv[index - 1], "-c")
+                self.assertFalse(
+                    any("orchestrator.mcp" in item for item in argv)
+                )
+                self.assertIn("apps", argv)
+                self.assertIn("remote_plugin", argv)
                 self.assertEqual(argv[0:2], ["codex", "exec"])
                 self.assertEqual("resume" in argv, thread is not None)
 
-    def test_real_isolated_codex_accepts_mcp_override_without_apps_context(
+    def test_real_isolated_codex_has_empty_mcp_list_and_no_apps_context(
         self,
     ) -> None:
         with tempfile.TemporaryDirectory(prefix="happycodex-mcp-probe-") as raw:
             temp = Path(raw)
             _home, env = runner.isolated_home(temp)
             binary = temp / "bin" / "codex"
+            mcp_argv = [str(binary), "mcp", "list", "--json"]
+            mcp = runner.run(mcp_argv, cwd=ROOT, env=env, timeout=30)
             argv = [
                 str(binary),
                 "debug",
                 "prompt-input",
                 "-c",
                 'model="gpt-5.6-sol"',
-                *runner.evaluator_mcp_args(),
-                "mcp-disabled-probe",
+                *runner.disabled_feature_args(),
+                "tool-surface-probe",
             ]
             completed = runner.run(argv, cwd=ROOT, env=env, timeout=30)
+        self.assertEqual(mcp.returncode, 0, mcp.stderr)
+        self.assertEqual(json.loads(mcp.stdout), [])
         self.assertEqual(completed.returncode, 0, completed.stderr)
         json.loads(completed.stdout)
         self.assertNotIn("<apps_instructions>", completed.stdout)
-        self.assertEqual(argv.count(runner.MCP_DISABLED_CONFIG), 1)
+        self.assertFalse(any("orchestrator.mcp" in item for item in argv))
 
     def test_dry_run_is_executable_and_has_no_model_side_effect(self) -> None:
         completed = subprocess.run(

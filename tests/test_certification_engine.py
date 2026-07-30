@@ -95,7 +95,6 @@ def _prepare_repo(raw: str) -> Path:
 
 def _candidate(repo: Path, *, created_at: str = "2026-07-30T00:00:00Z") -> dict:
     identity = source_archive_identity(repo, "HEAD")
-    snapshot = build_snapshot(repo)
     value = {
         "schema_version": 1,
         "record_type": "ReleaseCandidate",
@@ -103,10 +102,7 @@ def _candidate(repo: Path, *, created_at: str = "2026-07-30T00:00:00Z") -> dict:
         "source_tree": identity["source_tree"],
         "package_artifact_sha256": identity["package"]["artifact_sha256"],
         "package_semantic_sha256": identity["package"]["semantic_sha256"],
-        "engine_manifest_sha256": identity["engine_manifest_sha256"],
         "executor_role_sha256": identity["executor_role_sha256"],
-        "public_baseline_sha256": canonical_sha256(snapshot["public_baseline"]),
-        "snapshot_sha256": canonical_sha256(snapshot),
         "created_at": created_at,
     }
     value["candidate_sha256"] = canonical_sha256(value)
@@ -121,11 +117,13 @@ def _plan(
     units: tuple[str, ...] = ("unit",),
     created_at: str = "2026-07-30T00:01:00Z",
     arm: str | None = None,
+    repo: Path = ROOT,
 ) -> dict:
     value = {
         "schema_version": 1,
         "record_type": "GatePlan",
         "candidate_sha256": candidate["candidate_sha256"],
+        "snapshot_sha256": canonical_sha256(build_snapshot(repo)),
         "gate": gate,
         "created_at": created_at,
         "profile": {
@@ -210,52 +208,24 @@ def _run_current_cli(*args: str, cwd: Path = ROOT) -> subprocess.CompletedProces
 
 
 class GenesisAndCliTests(unittest.TestCase):
-    def test_active_ledger_has_exact_calibration_plan(self) -> None:
+    def test_active_ledger_has_exact_unplanned_product_candidate(self) -> None:
         active = json.loads(
             (ROOT / "evaluation/results/current.json").read_text(encoding="utf-8")
         )
         expected_candidate = {
-            "candidate_sha256": "704b3fb16008d7d527c4fab7328aa6d84717374884a9c62358c554dbccac9f6e",
-            "created_at": "2026-07-30T14:35:33Z",
-            "engine_manifest_sha256": "d0c505c8b7dc6b37b0bcf65c61137d90d640126bec55deea7792474fdf9528b6",
+            "candidate_sha256": "84e6c7f529dab0583b93bb74b0428027ceea83d986f56be9ed4d4086aaaa24fb",
+            "created_at": "2026-07-30T15:56:08Z",
             "executor_role_sha256": "f1effcc84e7ed24f6d54c972e2e412db42a3e46a6d92565e6d61b358128305da",
             "package_artifact_sha256": "4e2b300bfc7c49c4eccad46a198e79f15c28680f2e4e6f041fabcc995ad3621e",
             "package_semantic_sha256": "9cd5a507a8a9561c8af6751917b430b1cb29c238810b7c32bcff15c39044965a",
-            "public_baseline_sha256": "514cea60053bab5303e86e6cacaa0260e960b3fe1670a658e2df1a6965ce978c",
             "record_type": "ReleaseCandidate",
             "schema_version": 1,
-            "snapshot_sha256": "725624bb5b7243db7a52f05e68b6894973e30fa1e80b144137ef7a0730bb93dc",
             "source_commit": "825962522c8ba6abb8dea3f7f7f04b8029e339fe",
             "source_tree": "36aa681a5c7bd7ab5dd29e2df96d52d965c41fc2",
         }
         self.assertEqual(active["schema_version"], 1)
         self.assertEqual(active["candidate"], expected_candidate)
-        self.assertEqual(len(active["plans"]), 1)
-        plan = active["plans"][0]
-        self.assertEqual(
-            {
-                "candidate_sha256": plan["candidate_sha256"],
-                "gate": plan["gate"],
-                "units": plan["units"],
-                "resource_digests": plan["resource_digests"],
-                "profile_sha256": canonical_sha256(plan["profile"]),
-                "approval_request_sha256": plan["approval_request_sha256"],
-                "approval_content_sha256": plan["approval_content_sha256"],
-                "plan_sha256": plan["plan_sha256"],
-            },
-            {
-                "candidate_sha256": "704b3fb16008d7d527c4fab7328aa6d84717374884a9c62358c554dbccac9f6e",
-                "gate": "calibration",
-                "units": ["subthreshold-control"],
-                "resource_digests": [
-                    "23420aeb8a4ffb5ee5852ddef067e10028f8ed83ff987ab578f17dccb2d462d1"
-                ],
-                "profile_sha256": "e07856bb5af3cb0a98d519d2707648adde837dd49929b91a83b401f30cb7c915",
-                "approval_request_sha256": "87adab8557b37df8b8502acf552de47973d584f2324fec32ea985c9ee2ade93d",
-                "approval_content_sha256": "8f6d0ec79f7d35d9a2b6bcad52e360d13ed95a848d4a23fa598efc9456cf4606",
-                "plan_sha256": "265e4895a2ed896f31d20619bb106476211683b9c96ba75eec37ddaf329d4c55",
-            },
-        )
+        self.assertEqual(active["plans"], [])
         self.assertEqual(active["receipts"], [])
         validate_ledger(active, repo=ROOT)
         self.assertEqual(derive_status(active), "refresh_required")
@@ -378,6 +348,7 @@ class LedgerRecordTests(unittest.TestCase):
             "calibration",
             Path(self.raw.name) / "effects",
             units=("subthreshold-control",),
+            repo=self.repo,
         )
         ledger = append_record(ledger, plan, repo=self.repo)
         receipt = _receipt(self.candidate, plan, 0)
@@ -454,6 +425,7 @@ class LedgerRecordTests(unittest.TestCase):
             "calibration",
             Path(self.raw.name) / "effects",
             units=("subthreshold-control",),
+            repo=self.repo,
         )
         planned = append_record(candidate_only, plan, repo=self.repo)
         validate_successor(candidate_only, planned, repo=self.repo)
@@ -465,6 +437,7 @@ class LedgerRecordTests(unittest.TestCase):
                 Path(self.raw.name) / "corpus",
                 units=tuple(build_snapshot(self.repo)["corpus"]["cases"]),
                 created_at="2026-07-30T00:02:00Z",
+                repo=self.repo,
             )
         )
         with self.assertRaisesRegex(ValueError, "append exactly once"):
@@ -893,29 +866,73 @@ class FalseGreenBoundaryTests(unittest.TestCase):
                 with self.subTest(field=field), self.assertRaises(ValueError):
                     validate_gate_receipt(invalid)
 
-    def test_candidate_binds_exact_snapshot_public_and_current_inputs(self) -> None:
+    def test_evaluator_only_drift_preserves_candidate_but_invalidates_plan(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             repo = _prepare_repo(raw)
             candidate = _candidate(repo)
-            forged = copy.deepcopy(candidate)
-            forged["public_baseline_sha256"] = "0" * 64
-            forged["snapshot_sha256"] = "1" * 64
-            forged["candidate_sha256"] = canonical_sha256(
-                {
-                    key: value
-                    for key, value in forged.items()
-                    if key != "candidate_sha256"
-                }
+            plan = _plan(
+                candidate,
+                "calibration",
+                Path(raw) / "calibration",
+                units=("subthreshold-control",),
+                repo=repo,
             )
             from evaluation.core.ledger import validate_release_candidate
 
+            exact = {
+                "schema_version": 1,
+                "candidate": candidate,
+                "plans": [plan],
+                "receipts": [],
+            }
+            validate_ledger(exact, repo=repo)
+            protocol = repo / "evaluation/protocol.py"
+            protocol.write_text(
+                protocol.read_text(encoding="utf-8") + "\n# evaluator-only drift\n",
+                encoding="utf-8",
+            )
+            _git(repo, "add", "evaluation/protocol.py")
+            _git(repo, "commit", "--quiet", "-m", "test: change evaluator only")
+            validate_release_candidate(candidate, repo=repo)
             with self.assertRaises(ValueError):
-                validate_release_candidate(forged, repo=repo)
-            (repo / "README.md").write_text("changed after candidate\n", encoding="utf-8")
-            _git(repo, "add", "README.md")
-            _git(repo, "commit", "--quiet", "-m", "test: change candidate input")
-            with self.assertRaises(ValueError):
-                validate_release_candidate(candidate, repo=repo)
+                validate_ledger(exact, repo=repo)
+
+            refreshed = _plan(
+                candidate,
+                "calibration",
+                Path(raw) / "refreshed-calibration",
+                units=("subthreshold-control",),
+                repo=repo,
+            )
+            validate_ledger(
+                {**exact, "plans": [refreshed]},
+                repo=repo,
+            )
+
+    def test_product_package_or_executor_role_drift_invalidates_candidate(self) -> None:
+        from evaluation.core.ledger import validate_release_candidate
+
+        for relative in ("README.md", "evaluation/executor-role.json"):
+            with self.subTest(relative=relative), tempfile.TemporaryDirectory() as raw:
+                repo = _prepare_repo(raw)
+                candidate = _candidate(repo)
+                path = repo / relative
+                if relative == "README.md":
+                    path.write_text(
+                        path.read_text(encoding="utf-8") + "\nproduct drift\n",
+                        encoding="utf-8",
+                    )
+                else:
+                    role = json.loads(path.read_text(encoding="utf-8"))
+                    role["model"] = "other-model"
+                    path.write_text(
+                        json.dumps(role, sort_keys=True, indent=2) + "\n",
+                        encoding="utf-8",
+                    )
+                _git(repo, "add", relative)
+                _git(repo, "commit", "--quiet", "-m", "test: product drift")
+                with self.assertRaises(ValueError):
+                    validate_release_candidate(candidate, repo=repo)
 
     def test_repo_ledger_binds_full_model_scopes_and_settings(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
@@ -927,6 +944,7 @@ class FalseGreenBoundaryTests(unittest.TestCase):
                 "calibration",
                 Path(raw) / "calibration",
                 units=("subthreshold-control",),
+                repo=repo,
             )
             corpus = _plan(
                 candidate,
@@ -934,6 +952,7 @@ class FalseGreenBoundaryTests(unittest.TestCase):
                 Path(raw) / "corpus",
                 units=tuple(snapshot["corpus"]["cases"]),
                 created_at="2026-07-30T00:01:01Z",
+                repo=repo,
             )
             holdout = _plan(
                 candidate,
@@ -941,6 +960,7 @@ class FalseGreenBoundaryTests(unittest.TestCase):
                 Path(raw) / "holdout",
                 units=tuple(snapshot["holdout"]["pairs"]),
                 created_at="2026-07-30T00:01:02Z",
+                repo=repo,
             )
             exact = {
                 "schema_version": 1,
@@ -950,6 +970,7 @@ class FalseGreenBoundaryTests(unittest.TestCase):
             }
             validate_ledger(exact, repo=repo)
             mutations = (
+                ("snapshot", 0, "0" * 64),
                 ("calibration scope", 0, ["clean-qualifying-control"]),
                 ("corpus scope", 1, ["subthreshold-control"]),
                 ("holdout scope", 2, ["local-documentation-control"]),
@@ -1062,6 +1083,7 @@ class AdaptiveHoldoutReceiptTests(unittest.TestCase):
             Path(cls.raw.name) / "holdout",
             units=tuple(cls.snapshot["holdout"]["pairs"]),
             arm="blinded-pair",
+            repo=cls.repo,
         )
         manifest = holdout_engine.load_manifest(
             cls.repo / "evaluation/holdouts/manifest.json"
@@ -1171,6 +1193,7 @@ class AdaptiveHoldoutReceiptTests(unittest.TestCase):
                 gate,
                 Path(self.raw.name) / gate,
                 units=units,
+                repo=self.repo,
             )
             receipt = self._receipt_for(
                 plan,

@@ -201,11 +201,10 @@
         "arm": {"$ref": "nonempty"},
         "tools": {"type": "object"},
         "network": {"type": "string", "enum": ["disabled", "enabled"]},
-        "mcp": {"type": "string", "enum": ["disabled", "enabled"]},
         "hooks": {"type": "string", "enum": ["disabled", "enabled"]},
         "session": {"type": "object"}
       },
-      "required": ["provider", "binary", "model", "effort", "timeout_seconds", "arm", "tools", "network", "mcp", "hooks", "session"]
+      "required": ["provider", "binary", "model", "effort", "timeout_seconds", "arm", "tools", "network", "hooks", "session"]
     },
     "snapshot": {
       "type": "object",
@@ -248,14 +247,11 @@
         "source_tree": {"$ref": "git_oid"},
         "package_artifact_sha256": {"$ref": "sha256"},
         "package_semantic_sha256": {"$ref": "sha256"},
-        "engine_manifest_sha256": {"$ref": "sha256"},
         "executor_role_sha256": {"$ref": "sha256"},
-        "public_baseline_sha256": {"$ref": "sha256"},
-        "snapshot_sha256": {"$ref": "sha256"},
         "created_at": {"$ref": "nonempty"},
         "candidate_sha256": {"$ref": "sha256"}
       },
-      "required": ["schema_version", "record_type", "source_commit", "source_tree", "package_artifact_sha256", "package_semantic_sha256", "engine_manifest_sha256", "executor_role_sha256", "public_baseline_sha256", "snapshot_sha256", "created_at", "candidate_sha256"]
+      "required": ["schema_version", "record_type", "source_commit", "source_tree", "package_artifact_sha256", "package_semantic_sha256", "executor_role_sha256", "created_at", "candidate_sha256"]
     },
     "gate_plan": {
       "type": "object",
@@ -264,6 +260,7 @@
         "schema_version": {"type": "integer", "enum": [1]},
         "record_type": {"type": "string", "enum": ["GatePlan"]},
         "candidate_sha256": {"$ref": "sha256"},
+        "snapshot_sha256": {"$ref": "sha256"},
         "gate": {"type": "string", "enum": ["calibration", "corpus", "holdout", "receipt", "review", "isolated_install"]},
         "created_at": {"$ref": "nonempty"},
         "profile": {"type": "object"},
@@ -275,7 +272,7 @@
         "approval_content_sha256": {"$ref": "sha256"},
         "plan_sha256": {"$ref": "sha256"}
       },
-      "required": ["schema_version", "record_type", "candidate_sha256", "gate", "created_at", "profile", "cost_ceiling", "units", "resource_digests", "output", "approval_request_sha256", "approval_content_sha256", "plan_sha256"]
+      "required": ["schema_version", "record_type", "candidate_sha256", "snapshot_sha256", "gate", "created_at", "profile", "cost_ceiling", "units", "resource_digests", "output", "approval_request_sha256", "approval_content_sha256", "plan_sha256"]
     },
     "gate_receipt": {
       "type": "object",

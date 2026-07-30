@@ -275,7 +275,6 @@ def invocation_profile(
     binary_identity_sha256: str | None = None,
     allowed_tools: tuple[str, ...] = ("command_execution",),
     network: str = "disabled",
-    mcp: str = "disabled",
     hooks: str = "disabled",
     session_mode: str = "fresh-with-bounded-resume",
 ) -> dict[str, Any]:
@@ -296,7 +295,6 @@ def invocation_profile(
                 "event_item_types": sorted(_TOOL_EVENT_TYPES[item] for item in allowed),
             },
             "network": network,
-            "mcp": mcp,
             "hooks": hooks,
             "session": {"mode": session_mode, "history": "isolated"},
         }
@@ -432,7 +430,6 @@ def source_archive_identity(repo: Path, revision: str) -> dict[str, Any]:
             "source_commit": commit,
             "source_tree": _git(repo, "rev-parse", f"{commit}^{{tree}}"),
             "package": package_identities(extracted),
-            "engine_manifest_sha256": engine_inventory(extracted)["manifest_sha256"],
             "executor_role_sha256": executor_role_identity(extracted),
         }
 

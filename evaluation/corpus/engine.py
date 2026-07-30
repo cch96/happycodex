@@ -62,24 +62,40 @@ DISABLED_FEATURES = (
     "remote_plugin",
     "multi_agent",
 )
-MCP_DISABLED_CONFIG = "orchestrator.mcp.enabled=false"
 FIXED_GIT_DATE = "2000-01-01T00:00:00+00:00"
 
 
 OUTPUT_SCHEMA = CONTRACTS["schemas"]["output_result"]
 
 
-def provider_transport_schema(value: Any) -> Any:
-    """Deep-copy a schema while removing only provider-rejected uniqueness hints."""
-    if isinstance(value, dict):
-        return {
-            key: provider_transport_schema(item)
-            for key, item in value.items()
-            if key != "uniqueItems"
-        }
-    if isinstance(value, list):
-        return [provider_transport_schema(item) for item in value]
-    return value
+def provider_transport_schema(
+    value: Any,
+    definitions: dict[str, Any] | None = None,
+) -> Any:
+    """Inline internal bare refs and omit provider-rejected uniqueness hints."""
+    known = CONTRACTS["schemas"] if definitions is None else definitions
+
+    def project(item: Any, stack: tuple[str, ...]) -> Any:
+        if isinstance(item, dict):
+            if "$ref" in item:
+                if set(item) != {"$ref"} or type(item["$ref"]) is not str:
+                    raise ValueError("provider schema requires one bare reference")
+                name = item["$ref"]
+                if name not in known:
+                    raise ValueError(f"unknown provider schema reference: {name}")
+                if name in stack:
+                    raise ValueError(f"cyclic provider schema reference: {name}")
+                return project(known[name], (*stack, name))
+            return {
+                key: project(child, stack)
+                for key, child in item.items()
+                if key != "uniqueItems"
+            }
+        if isinstance(item, list):
+            return [project(child, stack) for child in item]
+        return item
+
+    return project(value, ())
 
 
 def validate_output_result(value: Any) -> dict[str, Any]:
@@ -1292,11 +1308,6 @@ def disabled_feature_args() -> list[str]:
     return [item for feature in DISABLED_FEATURES for item in ("--disable", feature)]
 
 
-def evaluator_mcp_args() -> list[str]:
-    """Return the one native override that mechanically disables evaluator MCP."""
-    return ["-c", MCP_DISABLED_CONFIG]
-
-
 def evaluator_codex_argv(
     *,
     repo: Path,
@@ -1314,15 +1325,12 @@ def evaluator_codex_argv(
         argv += ["--ephemeral", "-C", str(repo)]
     argv += [
         *config,
-        *evaluator_mcp_args(),
         "--output-schema",
         str(schema),
         *disabled_feature_args(),
         *([thread] if thread else []),
         prompt,
     ]
-    if argv.count(MCP_DISABLED_CONFIG) != 1:
-        raise AssertionError("evaluator MCP override must occur exactly once")
     return argv
 
 
