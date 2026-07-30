@@ -13,7 +13,60 @@
     "source_commit": "825962522c8ba6abb8dea3f7f7f04b8029e339fe",
     "source_tree": "36aa681a5c7bd7ab5dd29e2df96d52d965c41fc2"
   },
-  "plans": [],
+  "plans": [
+    {
+      "approval_content_sha256": "8f6d0ec79f7d35d9a2b6bcad52e360d13ed95a848d4a23fa598efc9456cf4606",
+      "approval_request_sha256": "87adab8557b37df8b8502acf552de47973d584f2324fec32ea985c9ee2ade93d",
+      "candidate_sha256": "704b3fb16008d7d527c4fab7328aa6d84717374884a9c62358c554dbccac9f6e",
+      "cost_ceiling": {
+        "model_calls": 1,
+        "output_tokens": 100000,
+        "uncached_input_tokens": 1000000,
+        "wall_milliseconds": 360000
+      },
+      "created_at": "2026-07-30T14:47:31Z",
+      "gate": "calibration",
+      "output": "/home/caichenghang/.codex/happycodex-0.6-calibration-704b3fb16008d7d527c4fab7328aa6d84717374884a9c62358c554dbccac9f6e/calibration-output",
+      "plan_sha256": "265e4895a2ed896f31d20619bb106476211683b9c96ba75eec37ddaf329d4c55",
+      "profile": {
+        "argv": [
+          "python3",
+          "-c",
+          "from pathlib import Path\nimport sys\nfrom evaluation import cli, live\nfrom evaluation.core.ledger import load_ledger\nexpected = ['corpus', '--calibrate', '--plugin', '/home/caichenghang/projects/happycodex-worktrees/happycodex-0.6-bounded-redesign', '--output', '/home/caichenghang/.codex/happycodex-0.6-calibration-704b3fb16008d7d527c4fab7328aa6d84717374884a9c62358c554dbccac9f6e/calibration-output', '--model', 'gpt-5.6-sol', '--effort', 'high', '--timeout', '300', '--arm', 'candidate']\nif sys.argv[1:] != expected:\n    raise SystemExit(\"unexpected calibration argv\")\nargs = cli.build_parser().parse_args(sys.argv[1:])\nledger = load_ledger(Path(args.plugin) / \"evaluation/results/current.json\")\nif (ledger[\"candidate\"] is None or len(ledger[\"plans\"]) != 1 or ledger[\"plans\"][0][\"gate\"] != \"calibration\" or ledger[\"plans\"][0][\"candidate_sha256\"] != ledger[\"candidate\"][\"candidate_sha256\"] or ledger[\"receipts\"]):\n    raise SystemExit(\"calibration GatePlan is not exact\")\nplan = ledger[\"plans\"][0]\neffect_intents = {unit: live.build_effect_intent(plan, unit) for unit in plan[\"units\"]}\nraise SystemExit(cli.run_authorized(args, effect_intents, Path('/home/caichenghang/.codex/happycodex-0.6-calibration-704b3fb16008d7d527c4fab7328aa6d84717374884a9c62358c554dbccac9f6e/calibration-claims')))",
+          "corpus",
+          "--calibrate",
+          "--plugin",
+          "/home/caichenghang/projects/happycodex-worktrees/happycodex-0.6-bounded-redesign",
+          "--output",
+          "/home/caichenghang/.codex/happycodex-0.6-calibration-704b3fb16008d7d527c4fab7328aa6d84717374884a9c62358c554dbccac9f6e/calibration-output",
+          "--model",
+          "gpt-5.6-sol",
+          "--effort",
+          "high",
+          "--timeout",
+          "300",
+          "--arm",
+          "candidate"
+        ],
+        "arm": "candidate",
+        "cwd": "/home/caichenghang/projects/happycodex-worktrees/happycodex-0.6-bounded-redesign",
+        "effort": "high",
+        "env": {
+          "PYTHONDONTWRITEBYTECODE": "1"
+        },
+        "model": "gpt-5.6-sol",
+        "timeout_ms": 300000
+      },
+      "record_type": "GatePlan",
+      "resource_digests": [
+        "23420aeb8a4ffb5ee5852ddef067e10028f8ed83ff987ab578f17dccb2d462d1"
+      ],
+      "schema_version": 1,
+      "units": [
+        "subthreshold-control"
+      ]
+    }
+  ],
   "receipts": [],
   "schema_version": 1
 }

@@ -210,7 +210,7 @@ def _run_current_cli(*args: str, cwd: Path = ROOT) -> subprocess.CompletedProces
 
 
 class GenesisAndCliTests(unittest.TestCase):
-    def test_active_ledger_has_exact_hardened_candidate(self) -> None:
+    def test_active_ledger_has_exact_calibration_plan(self) -> None:
         active = json.loads(
             (ROOT / "evaluation/results/current.json").read_text(encoding="utf-8")
         )
@@ -228,15 +228,35 @@ class GenesisAndCliTests(unittest.TestCase):
             "source_commit": "825962522c8ba6abb8dea3f7f7f04b8029e339fe",
             "source_tree": "36aa681a5c7bd7ab5dd29e2df96d52d965c41fc2",
         }
+        self.assertEqual(active["schema_version"], 1)
+        self.assertEqual(active["candidate"], expected_candidate)
+        self.assertEqual(len(active["plans"]), 1)
+        plan = active["plans"][0]
         self.assertEqual(
-            active,
             {
-                "candidate": expected_candidate,
-                "plans": [],
-                "receipts": [],
-                "schema_version": 1,
+                "candidate_sha256": plan["candidate_sha256"],
+                "gate": plan["gate"],
+                "units": plan["units"],
+                "resource_digests": plan["resource_digests"],
+                "profile_sha256": canonical_sha256(plan["profile"]),
+                "approval_request_sha256": plan["approval_request_sha256"],
+                "approval_content_sha256": plan["approval_content_sha256"],
+                "plan_sha256": plan["plan_sha256"],
+            },
+            {
+                "candidate_sha256": "704b3fb16008d7d527c4fab7328aa6d84717374884a9c62358c554dbccac9f6e",
+                "gate": "calibration",
+                "units": ["subthreshold-control"],
+                "resource_digests": [
+                    "23420aeb8a4ffb5ee5852ddef067e10028f8ed83ff987ab578f17dccb2d462d1"
+                ],
+                "profile_sha256": "e07856bb5af3cb0a98d519d2707648adde837dd49929b91a83b401f30cb7c915",
+                "approval_request_sha256": "87adab8557b37df8b8502acf552de47973d584f2324fec32ea985c9ee2ade93d",
+                "approval_content_sha256": "8f6d0ec79f7d35d9a2b6bcad52e360d13ed95a848d4a23fa598efc9456cf4606",
+                "plan_sha256": "265e4895a2ed896f31d20619bb106476211683b9c96ba75eec37ddaf329d4c55",
             },
         )
+        self.assertEqual(active["receipts"], [])
         validate_ledger(active, repo=ROOT)
         self.assertEqual(derive_status(active), "refresh_required")
         self.assertEqual(derive_pending(active)["gates"], list(GATE_ORDER))

@@ -4,10 +4,10 @@ Protocol: `HappyCodex/0.5`
 
 ## Checkpoint, authority, and current state
 
-G034 starts from hardened transport commit
-`825962522c8ba6abb8dea3f7f7f04b8029e339fe`, tree
-`36aa681a5c7bd7ab5dd29e2df96d52d965c41fc2`, direct child of
-`a0d21518e03fed80a960441b431d824bfdaef599`, on branch
+G035 starts from fresh candidate commit
+`0d5dba15013d760474d25292b9b12a81f1e92c00`, tree
+`ddd7f27763c9e9c73a77bd6319032739fcf7e940`, direct child of hardened
+transport commit `825962522c8ba6abb8dea3f7f7f04b8029e339fe`, on branch
 `codex/happycodex-0.6-bounded-redesign`. Fixed Executor
 `/root/bounded_redesign_executor`, role `happycodex_executor`,
 `gpt-5.6-sol/high`, remains the sole writer. The mode-`0600` task claim
@@ -29,6 +29,11 @@ G034 user authority reuses the exact repair authorization digest
 `2a8747b454439e3cd14ef3b845abc946a26406a70cedfaafa1abf6971cc8a016`;
 its mode-`0600` intent SHA-256 is
 `b08235cf146e8f4141bfafaf1d6009db8a1ca1be9f685f87dcdd3b6341b0fc6b`.
+Its terminal-receipt SHA-256 is
+`739c708786ab829c101a47420b13308d11b61065f0f84af653096b88423c2ac1`.
+Root then granted `HC06BR-G-035-fresh-calibration-gateplan-after-transport-repair`
+under the same exact user authority. G035 intent SHA-256 is
+`f73bcdc623dfb2379f5e611b6fca947b0acf939045bfc8407e5658c851e1fb11`.
 
 ## Fresh candidate and one-shot transition
 
@@ -77,36 +82,27 @@ It contains exactly this candidate, zero plans, and zero receipts. It derives
 `refresh_required`, all six pending gates, empty coverage/failures, and no
 certification. No old evidence was migrated or reused.
 
-## Retired calibration epoch
+## Fresh calibration GatePlan
 
-Root had granted `HC06BR-G-031-fresh-calibration-gateplan-after-path-repair`.
-Its mode-`0600` intent SHA-256 is
-`2f761e9f1da330afd744e895f206a9da84194288ffe59d8e73e1bfa8b75663e4`.
-G031 authorized only one calibration `GatePlan`, the narrow active-state test,
-this index, and their direct-child commit. It granted no approval, execution,
-`EffectIntent`, model/provider call, receipt, evidence, or later gate.
-
-The former base and `calibration-claims` child remain recovery anchors:
+G035 authorizes only one calibration `GatePlan`, the narrow active-state test,
+this index, and their direct-child commit. It grants no calibration approval,
+execution, `EffectIntent`, claim consumption, model/provider call, receipt,
+evidence, or later gate. The fresh base and claims child are mode `0700`; claims
+are empty and `calibration-output` is absent:
 
 ```text
-/home/caichenghang/.codex/happycodex-0.6-calibration-12f7bce171d89f8e0f8da5d255872879048fa3e7ef6f8bb73f75005293516b85
-/home/caichenghang/.codex/happycodex-0.6-calibration-12f7bce171d89f8e0f8da5d255872879048fa3e7ef6f8bb73f75005293516b85/calibration-claims
+/home/caichenghang/.codex/happycodex-0.6-calibration-704b3fb16008d7d527c4fab7328aa6d84717374884a9c62358c554dbccac9f6e
+/home/caichenghang/.codex/happycodex-0.6-calibration-704b3fb16008d7d527c4fab7328aa6d84717374884a9c62358c554dbccac9f6e/calibration-claims
 ```
 
-G032 later consumed exactly one claim and created one unit output there. Its
-claim, raw events, and stderr remain immutable. The older `d5e643...` base,
-consumed claim, and empty output are also unchanged and never reused.
+All earlier calibration bases, claims, outputs, and private records remain
+immutable recovery anchors and are never reused. The new private input
+`/tmp/happycodex-g035-calibration-gateplan.json` is mode `0600`, 3,040 bytes,
+file SHA-256
+`948ff939b2d005dfbd7084fc875c2581999ca55ccb7709585f198c7ecdb53f70`.
 
-The first private draft stopped before apply after a cross-check mismatch:
-it added candidate/unit assertions to the retired script and paraphrased an
-exact cost string. Its mode-`0600` SHA-256 was
-`d65e6277175843a61fdbcf17469efe59ce288fb43113e6a309b4f90a7b9c6958`.
-Root authorized replacement of that unapplied draft only. The corrected
-mode-`0600`, 3,040-byte input SHA-256 is
-`558bea141f32e5681d92cd7dc705103eda18bcf57321cf3604aa1aab9c7ea351`.
-
-The corrected profile preserves the retired strict script shape, replacing
-only fresh paths. It binds this exact worktree, only
+The profile preserves the retired strict script shape and changes only the
+candidate-derived external paths. It binds this exact worktree, only
 `PYTHONDONTWRITEBYTECODE=1`, `gpt-5.6-sol/high`, `300000` ms, arm `candidate`,
 and argv `python3 -c <strict script> corpus --calibrate --plugin <worktree>
 --output <fresh output> --model gpt-5.6-sol --effort high --timeout 300 --arm
@@ -114,51 +110,51 @@ candidate`. The script rejects argv drift, loads the sole candidate-bound
 calibration plan, requires zero receipts, reconstructs every unit with
 `evaluation.live.build_effect_intent`, and routes only through
 `evaluation.cli.run_authorized` with the fresh claims root. It contains no
-plan/request digest. G032 later executed it once without retry. Profile SHA-256 is
-`0cef1048b162f467858036c6a4dab9143606df372fbde2c9a900348d17c06831`.
+plan/request digest. Profile SHA-256 is
+`e07856bb5af3cb0a98d519d2707648adde837dd49929b91a83b401f30cb7c915`.
 
 The compact resource-bundle canonical preimage is:
 
 ```json
-{"candidate":{"candidate_sha256":"12f7bce171d89f8e0f8da5d255872879048fa3e7ef6f8bb73f75005293516b85","engine_manifest_sha256":"ffdc07be358c664d4c710e187350f3289c6e0b9f8321d77fa291a5465797c47d","executor_role_sha256":"f1effcc84e7ed24f6d54c972e2e412db42a3e46a6d92565e6d61b358128305da","package_artifact_sha256":"4e2b300bfc7c49c4eccad46a198e79f15c28680f2e4e6f041fabcc995ad3621e","package_semantic_sha256":"9cd5a507a8a9561c8af6751917b430b1cb29c238810b7c32bcff15c39044965a","snapshot_sha256":"68d17de6ffca4b4a3f6dc3a04c2d1d98f64ffb8eb6aed9c031a0171cdbe41bd1","source_commit":"91e72ba255f3e9e4b4e8746e859bb59357a12e09","source_tree":"ae276c2a0a1295647da0301a20043cfeb6d92bbf"},"codex":{"binary_sha256":"cb5e8cb8a333a408ce6adbe0d4fad1845c69772c2216af7c1f88c98a11460dc6","version":"codex-cli 0.146.0"},"external":{"executor_toml_sha256":"d98fac1a0fe1bcc3071eac89b7246bfeb59fb85a7040417d50d07c58d74d1275"},"host_route":"evaluation.cli.run_authorized","paths":{"claim_root":"/home/caichenghang/.codex/happycodex-0.6-calibration-12f7bce171d89f8e0f8da5d255872879048fa3e7ef6f8bb73f75005293516b85/calibration-claims","output_root":"/home/caichenghang/.codex/happycodex-0.6-calibration-12f7bce171d89f8e0f8da5d255872879048fa3e7ef6f8bb73f75005293516b85/calibration-output"},"profile_sha256":"0cef1048b162f467858036c6a4dab9143606df372fbde2c9a900348d17c06831","resource_bundle_type":"happycodex-0.6-calibration","schema_version":1,"unit":{"case_id":"subthreshold-control","semantic_input_sha256":"5b99166cb79ea9aa8eb3816a9fee0a7fa26473d027f5e458cbf8be1d5aebcf64","snapshot_case_sha256":"5b99166cb79ea9aa8eb3816a9fee0a7fa26473d027f5e458cbf8be1d5aebcf64"}}
+{"candidate":{"candidate_sha256":"704b3fb16008d7d527c4fab7328aa6d84717374884a9c62358c554dbccac9f6e","engine_manifest_sha256":"d0c505c8b7dc6b37b0bcf65c61137d90d640126bec55deea7792474fdf9528b6","executor_role_sha256":"f1effcc84e7ed24f6d54c972e2e412db42a3e46a6d92565e6d61b358128305da","package_artifact_sha256":"4e2b300bfc7c49c4eccad46a198e79f15c28680f2e4e6f041fabcc995ad3621e","package_semantic_sha256":"9cd5a507a8a9561c8af6751917b430b1cb29c238810b7c32bcff15c39044965a","snapshot_sha256":"725624bb5b7243db7a52f05e68b6894973e30fa1e80b144137ef7a0730bb93dc","source_commit":"825962522c8ba6abb8dea3f7f7f04b8029e339fe","source_tree":"36aa681a5c7bd7ab5dd29e2df96d52d965c41fc2"},"codex":{"binary_sha256":"cb5e8cb8a333a408ce6adbe0d4fad1845c69772c2216af7c1f88c98a11460dc6","version":"codex-cli 0.146.0"},"external":{"executor_toml_sha256":"d98fac1a0fe1bcc3071eac89b7246bfeb59fb85a7040417d50d07c58d74d1275"},"host_route":"evaluation.cli.run_authorized","paths":{"claim_root":"/home/caichenghang/.codex/happycodex-0.6-calibration-704b3fb16008d7d527c4fab7328aa6d84717374884a9c62358c554dbccac9f6e/calibration-claims","output_root":"/home/caichenghang/.codex/happycodex-0.6-calibration-704b3fb16008d7d527c4fab7328aa6d84717374884a9c62358c554dbccac9f6e/calibration-output"},"profile_sha256":"e07856bb5af3cb0a98d519d2707648adde837dd49929b91a83b401f30cb7c915","resource_bundle_type":"happycodex-0.6-calibration","schema_version":1,"unit":{"case_id":"subthreshold-control","semantic_input_sha256":"899234c5dd32e5330c1976c70e1ace63085ba36ef242a4f617c7304d9a900d7e","snapshot_case_sha256":"899234c5dd32e5330c1976c70e1ace63085ba36ef242a4f617c7304d9a900d7e"}}
 ```
 
 Its SHA-256 is
-`7b2372c4fa49515659e915601ecfe033d2a06df5180655a137b62378091203f3`,
+`23420aeb8a4ffb5ee5852ddef067e10028f8ed83ff987ab578f17dccb2d462d1`,
 the plan's sole resource digest. Global config and models cache are excluded:
 neither is an input.
 
 The canonical approval-request object is:
 
 ```json
-{"allowed_effects":["one isolated temporary repository, home, and package install","one subthreshold-control Codex execution phase","external output, effect claim, and result artifacts under the bound roots"],"candidate_sha256":"12f7bce171d89f8e0f8da5d255872879048fa3e7ef6f8bb73f75005293516b85","cost_ceiling":{"model_calls":1,"output_tokens":100000,"uncached_input_tokens":1000000,"wall_milliseconds":360000},"cost_semantics":{"acceptance_limits":"token and wall ceilings are conservative post-run receipt acceptance limits, not an in-flight billing cutoff","historical_basis":"no accepted generation-6 historical cost exists","model_calls":"one external Codex execution phase, not internal provider turns","preemptive_bound":"the 300-second subprocess timeout is the only preemptive cost bound"},"exclusions":["all other live gates","active config, plugin, marketplace, and cache mutation","publication and activation"],"gate":"calibration","profile_sha256":"0cef1048b162f467858036c6a4dab9143606df372fbde2c9a900348d17c06831","request_type":"happycodex-0.6-calibration","resource_bundle_sha256":"7b2372c4fa49515659e915601ecfe033d2a06df5180655a137b62378091203f3","schema_version":1,"unit":"subthreshold-control"}
+{"allowed_effects":["one isolated temporary repository, home, and package install","one subthreshold-control Codex execution phase","external output, effect claim, and result artifacts under the bound roots"],"candidate_sha256":"704b3fb16008d7d527c4fab7328aa6d84717374884a9c62358c554dbccac9f6e","cost_ceiling":{"model_calls":1,"output_tokens":100000,"uncached_input_tokens":1000000,"wall_milliseconds":360000},"cost_semantics":{"acceptance_limits":"token and wall ceilings are conservative post-run receipt acceptance limits, not an in-flight billing cutoff","historical_basis":"no accepted generation-6 historical cost exists","model_calls":"one external Codex execution phase, not internal provider turns","preemptive_bound":"the 300-second subprocess timeout is the only preemptive cost bound"},"exclusions":["all other live gates","active config, plugin, marketplace, and cache mutation","publication and activation"],"gate":"calibration","profile_sha256":"e07856bb5af3cb0a98d519d2707648adde837dd49929b91a83b401f30cb7c915","request_type":"happycodex-0.6-calibration","resource_bundle_sha256":"23420aeb8a4ffb5ee5852ddef067e10028f8ed83ff987ab578f17dccb2d462d1","schema_version":1,"unit":"subthreshold-control"}
 ```
 
 Its SHA-256 is
-`28a53f918bfe871542f3d92615bb085aca56f7e9a25625d598e04cd0662fe4e7`.
-The exact approval line, including its trailing LF, was:
+`87adab8557b37df8b8502acf552de47973d584f2324fec32ea985c9ee2ade93d`.
+The exact future approval line, including its trailing LF, is:
 
 ```text
-APPROVE HAPPYCODEX 0.6 CALIBRATION 28a53f918bfe871542f3d92615bb085aca56f7e9a25625d598e04cd0662fe4e7
+APPROVE HAPPYCODEX 0.6 CALIBRATION 87adab8557b37df8b8502acf552de47973d584f2324fec32ea985c9ee2ade93d
 ```
 
 Those bytes have SHA-256
-`519322cb579cd78aadf4fcf1c0f1ce5757b3a100cdcb17d3d0d9a6d0defdeb5d`.
-G032 consumed this authority exactly once; it cannot be reused. The plan was an
-audit/cost binding, never permission. `model_calls=1` means one external Codex execution
-phase, not internal provider turns. The 300-second subprocess timeout is the
-only preemptive bound; the token and 360-second ceilings are conservative
-post-run acceptance limits. Generation 6 has no accepted historical cost.
+`8f6d0ec79f7d35d9a2b6bcad52e360d13ed95a848d4a23fa598efc9456cf4606`.
+It is not yet authority. The plan is an audit/cost binding, never permission.
+`model_calls=1` means one external Codex execution phase, not internal provider
+turns. The 300-second subprocess timeout is the only preemptive bound; token
+and 360-second ceilings are conservative post-run acceptance limits.
+Generation 6 has no accepted historical cost.
 
-The corrected plan was schema/repo validated before the only apply. Its
-created-at is `2026-07-30T13:40:19Z` and seal is
-`e6ce69656e3ab0d3b22c3be5c47c9724d796aa22a91e4639e950088fc462d778`.
+The plan was schema/repo validated before the only apply. Its created-at is
+`2026-07-30T14:47:31Z` and seal is
+`265e4895a2ed896f31d20619bb106476211683b9c96ba75eec37ddaf329d4c55`.
 The apply ran once from canonical predecessor
-`84c43fc00ae1d72b5626a163ef76d96ea003288ec4037d765908dfa19f8eb1c2`,
+`b8df2ccff931fb0ea2dd542d85632929f23814d6095926d2d93bda241b319998`,
 exited zero, and was not retried. The ledger canonical SHA-256 is
-`e81a3262fa48b9c3e6f2d81018ef6cbb91e27943a6fe0d4aa555358fea19b956`;
+`403a33d817e574b453b67f6a1d09307395af05e20d29889a525620ec86b29fe1`;
 file SHA-256 is
-`f8a707c5bf4b0fd219cadf0194d7da1407b0877eca778b0803cffa636aa78ab1`.
+`70903e9511ff1539ddd147742743ecf48b22f8db07b68319f540a4f767ed436e`.
 It contained the unchanged candidate, exactly this plan, and zero receipts;
 derived state remains `refresh_required`, six pending gates, empty
 coverage/failures, and uncertified.
@@ -273,7 +269,7 @@ tests/test_certification_engine.py
 docs/execplans/happycodex-0-6-bounded-redesign.md
 ```
 
-G034 changes exactly:
+G035 changes exactly:
 
 ```text
 evaluation/results/current.json
@@ -281,10 +277,11 @@ tests/test_certification_engine.py
 docs/execplans/happycodex-0-6-bounded-redesign.md
 ```
 
-G031 changed exactly the same three tracked paths. G034 now asserts the exact
-hardened candidate and zero plans/receipts, `refresh_required`, all six pending
-gates, empty coverage/failures, and no certification. Isolated genesis, append,
-successor, schema, archive, and prior-Git drift tests remain unchanged.
+G031 and G034 changed exactly the same three tracked paths. G035 now asserts
+the exact hardened candidate and calibration plan, zero receipts,
+`refresh_required`, all six pending gates, empty coverage/failures, and no
+certification. Isolated genesis, append, successor, schema, archive, and
+prior-Git drift tests remain unchanged.
 
 ## G032 terminal and G033 repair
 
@@ -342,6 +339,7 @@ marketplace, active source/cache, retired and fresh external states, evaluator
 inventory, budgets, and exact diff must remain protected. Global config and
 models cache are not inputs and must not be modified.
 
-After Root accepts the G034 candidate commit, any GatePlan requires a separate
-grant. G034 stops without `EffectIntent`, claim consumption, model/provider
-work, GatePlan, evidence, or `GateReceipt`.
+After Root accepts the G035 plan commit, calibration execution requires the
+exact approval line above plus a separate bounded execution grant. G035 stops
+without `EffectIntent`, claim consumption, model/provider work, evidence, or
+`GateReceipt`.
