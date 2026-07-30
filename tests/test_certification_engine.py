@@ -376,6 +376,8 @@ class GenesisAndCliTests(unittest.TestCase):
                 str(root / "effects"),
                 "--claim-root",
                 str(claims),
+                "--impact-sha256",
+                "9" * 64,
                 "--record",
                 str(record),
                 "--model-calls",
@@ -436,6 +438,8 @@ class GenesisAndCliTests(unittest.TestCase):
                 str(root / "effects"),
                 "--claim-root",
                 str(claims),
+                "--impact-sha256",
+                "9" * 64,
                 "--record",
                 str(plan_record),
                 "--model-calls",
@@ -473,6 +477,8 @@ class GenesisAndCliTests(unittest.TestCase):
                 str(repo),
                 "--claim-root",
                 str(claims),
+                "--impact-sha256",
+                "9" * 64,
                 "--approval-content",
                 "wrong approval",
             )
@@ -498,6 +504,7 @@ class GenesisAndCliTests(unittest.TestCase):
                             repo=repo,
                             claim_root=claims,
                             public=None,
+                            impact_sha256="9" * 64,
                             approval_content=approval_line,
                             infrastructure_generation=None,
                         )
@@ -905,6 +912,19 @@ class LaunchGateTests(unittest.TestCase):
         snapshot = build_snapshot(ROOT)
         codex = codex_identity()
         output = self.root / "effects"
+        with self.assertRaisesRegex(ValueError, "impact receipt"):
+            live.model_gate_profile(
+                gate="calibration",
+                repo=ROOT,
+                output=output,
+                claim_root=self.claims,
+                model="gpt-5.6-sol",
+                effort="high",
+                timeout_ms=300000,
+                arm="candidate",
+                codex_sha256=codex["sha256"],
+                impact_sha256="unbound",
+            )
         profile = live.model_gate_profile(
             gate="calibration",
             repo=ROOT,
@@ -915,6 +935,7 @@ class LaunchGateTests(unittest.TestCase):
             timeout_ms=300000,
             arm="candidate",
             codex_sha256=codex["sha256"],
+            impact_sha256="9" * 64,
         )
         plan = _plan(
             candidate,
@@ -929,6 +950,7 @@ class LaunchGateTests(unittest.TestCase):
             snapshot=snapshot,
             profile=profile,
             codex=codex,
+            impact_sha256="9" * 64,
         )
         plan["plan_sha256"] = canonical_sha256(
             {key: value for key, value in plan.items() if key != "plan_sha256"}
@@ -945,6 +967,7 @@ class LaunchGateTests(unittest.TestCase):
             timeout_ms=300000,
             arm="candidate",
             codex=codex,
+            impact_sha256="9" * 64,
         )
         changed = copy.deepcopy(plan)
         changed["profile"]["argv"].append("--drift")
@@ -964,6 +987,7 @@ class LaunchGateTests(unittest.TestCase):
                 timeout_ms=300000,
                 arm="candidate",
                 codex=codex,
+                impact_sha256="9" * 64,
             )
 
     def test_host_capability_is_exact_immutable_and_process_local(self) -> None:

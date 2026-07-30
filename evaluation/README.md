@@ -83,7 +83,9 @@ requires an active nonfailed candidate and its next persisted plan, and
 reconstructs every exact launch. It also requires the plan's canonical Host
 descriptor and resource set to equal the actual repository, output and claim
 roots, model settings, package/baseline identities, evaluator snapshot, and
-Codex binary. `StateKey` binds the gate facts; reducer output plus exact
+Codex binary. Every model GatePlan also binds the persisted source-derived
+impact/cost receipt digest. `StateKey` binds the gate facts; reducer output plus
+exact
 target/scope/falsifier/evidence source derives `ActionKey`; `LaunchKey` binds
 the infrastructure generation, invocation, output, and approval content. The
 supplied launch set must equal the persisted plan exactly.

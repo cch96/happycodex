@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `CANDIDATE_FROZEN`
+Status: `HARDENING`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -153,7 +153,7 @@ push/main/tag/GitHub Release, or publication.
 ## Current checkpoint
 
 A release-preflight audit reopened the first frozen checkpoint without changing
-the product package. Root reproduced four material evaluator findings:
+the product package. Root reproduced five material evaluator findings:
 
 - `HC-065-PREFLIGHT`: corpus and holdout consumed `ActionKey` before local
   fixture, install, schema, and workspace preparation, so zero-model
@@ -167,6 +167,8 @@ the product package. Root reproduced four material evaluator findings:
 - `HC-065-HOST`: model-reaching helpers had no process-local capability and no
   supported exact request/run/receipt route under the mandated
   `python3 -m evaluation.cli` entrypoint.
+- `HC-065-IMPACT`: the exact Host profile/resource set did not bind the
+  persisted source-derived impact and cost-envelope receipt.
 
 The bounded hardening changes no Runtime or shipped package bytes. It moves
 ActionKey consumption to the exact provider edge after complete local
@@ -176,7 +178,8 @@ timeout/binary, and requires one open plan with strict
 `GatePlan -> GateReceipt -> next GatePlan` cadence. One immutable Host-minted
 capability now binds every live helper; offline `request` and `receipt` commands
 prepare but never apply records, while `host-run` mints and uses the capability
-in one process. Focused RED reproduced all four findings before implementation.
+in one process. Every model request additionally binds its impact receipt
+digest. Focused RED reproduced all five findings before implementation.
 
 - Corrected `v0.6.0` worktree/ref/ledger claim is verified.
 - P0 is committed at `b0ab3aa`; the initial generation-7 semantic core is

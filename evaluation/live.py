@@ -242,12 +242,14 @@ def model_gate_profile(
     timeout_ms: int,
     arm: str,
     codex_sha256: str,
+    impact_sha256: str,
     public: Path | None = None,
 ) -> dict[str, Any]:
     """Return the exact canonical Host descriptor for one model gate."""
     if gate not in {"calibration", "corpus", "holdout"}:
         raise ValueError("model gate profile requires a model-reaching gate")
     _digest(codex_sha256, "Codex binary")
+    _digest(impact_sha256, "impact receipt")
     repo = repo.resolve()
     output = output.absolute()
     claim_root = claim_root.resolve()
@@ -272,6 +274,7 @@ def model_gate_profile(
         "env": {
             "HAPPYCODEX_CLAIM_ROOT": str(claim_root),
             "HAPPYCODEX_CODEX_SHA256": codex_sha256,
+            "HAPPYCODEX_IMPACT_SHA256": impact_sha256,
         },
         "timeout_ms": timeout_ms,
         "model": model,
@@ -286,8 +289,10 @@ def model_gate_resource_digests(
     snapshot: dict[str, Any],
     profile: dict[str, Any],
     codex: dict[str, str],
+    impact_sha256: str,
     public_identity: dict[str, str] | None = None,
 ) -> list[str]:
+    _digest(impact_sha256, "impact receipt")
     resources: list[dict[str, Any]] = [
         {
             "kind": "release_candidate",
@@ -315,6 +320,10 @@ def model_gate_resource_digests(
             "kind": "host_profile",
             "sha256": canonical_sha256(profile),
         },
+        {
+            "kind": "impact_receipt",
+            "sha256": impact_sha256,
+        },
     ]
     if public_identity is not None:
         resources.append({"kind": "public_baseline", **public_identity})
@@ -334,6 +343,7 @@ def validate_model_gate_plan(
     timeout_ms: int,
     arm: str,
     codex: dict[str, str],
+    impact_sha256: str,
     public: Path | None = None,
     public_identity: dict[str, str] | None = None,
 ) -> dict[str, Any]:
@@ -350,6 +360,7 @@ def validate_model_gate_plan(
         timeout_ms=timeout_ms,
         arm=arm,
         codex_sha256=codex["sha256"],
+        impact_sha256=impact_sha256,
         public=public,
     )
     expected_resources = model_gate_resource_digests(
@@ -357,6 +368,7 @@ def validate_model_gate_plan(
         snapshot=snapshot,
         profile=expected_profile,
         codex=codex,
+        impact_sha256=impact_sha256,
         public_identity=public_identity,
     )
     if (

@@ -151,6 +151,8 @@ def request_command(args: argparse.Namespace) -> int:
     if args.gate in MODEL_GATES:
         from evaluation.corpus import engine as corpus_engine
 
+        if args.impact_sha256 is None:
+            raise ValueError("model GatePlan requires an impact receipt digest")
         codex = codex_identity()
         corpus_engine.provider_transport_schema(corpus_engine.OUTPUT_SCHEMA)
         if package_identities(repo) != {
@@ -189,6 +191,7 @@ def request_command(args: argparse.Namespace) -> int:
             timeout_ms=snapshot["settings"]["timeout_seconds"] * 1000,
             arm=arm,
             codex_sha256=codex["sha256"],
+            impact_sha256=args.impact_sha256,
             public=public,
         )
         resources = live.model_gate_resource_digests(
@@ -196,6 +199,7 @@ def request_command(args: argparse.Namespace) -> int:
             snapshot=snapshot,
             profile=profile,
             codex=codex,
+            impact_sha256=args.impact_sha256,
             public_identity=public_identity,
         )
     else:
@@ -254,6 +258,7 @@ def request_command(args: argparse.Namespace) -> int:
             timeout_ms=snapshot["settings"]["timeout_seconds"] * 1000,
             arm="blinded-pair" if args.gate == "holdout" else "candidate",
             codex=codex,
+            impact_sha256=args.impact_sha256,
             public=public,
             public_identity=public_identity,
         )
@@ -438,6 +443,7 @@ def build_parser() -> argparse.ArgumentParser:
     request.add_argument("--output", type=Path, required=True)
     request.add_argument("--claim-root", type=Path, required=True)
     request.add_argument("--public", type=Path)
+    request.add_argument("--impact-sha256")
     request.add_argument("--record", type=Path, required=True)
     request.add_argument("--profile", type=Path)
     request.add_argument("--unit", action="append")
@@ -502,6 +508,7 @@ def build_parser() -> argparse.ArgumentParser:
     host_run.add_argument("--repo", type=Path, default=Path.cwd())
     host_run.add_argument("--claim-root", type=Path, required=True)
     host_run.add_argument("--public", type=Path)
+    host_run.add_argument("--impact-sha256", required=True)
     host_run.add_argument("--approval-content", required=True)
     host_run.add_argument("--infrastructure-generation")
     return parser
@@ -576,6 +583,7 @@ def run_authorized(
         timeout_ms=args.timeout * 1000,
         arm="blinded-pair" if gate == "holdout" else args.arm,
         codex=codex,
+        impact_sha256=args.impact_sha256,
         public=public,
         public_identity=public_identity,
     )
@@ -634,6 +642,7 @@ def host_run_command(args: argparse.Namespace) -> int:
         "effort": profile["effort"],
         "timeout": profile["timeout_ms"] // 1000,
         "output": Path(plan["output"]),
+        "impact_sha256": args.impact_sha256,
     }
     if gate in {"calibration", "corpus"}:
         dispatched = argparse.Namespace(
