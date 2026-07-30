@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `HARDENING`
+Status: `CANDIDATE_FROZEN`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -216,11 +216,14 @@ digest. Focused RED reproduced all five findings before implementation.
   `f1effcc84e7ed24f6d54c972e2e412db42a3e46a6d92565e6d61b358128305da`.
 - Release-effect hardening is committed at
   `52cc79a6239bb84485520cc0d6d79e50ba91748f`, tree
-  `bc7618f36ceb38120545e2bb58e6adfb611bda51`. Its full suite is
+  `bc7618f36ceb38120545e2bb58e6adfb611bda51`; exact impact-receipt
+  binding is committed at
+  `b74aad6d6a572419ab6bf578f8a110ce48a38b12`, tree
+  `83eb141c7bbff74b3540891f6ff91f3131468dc3`. Its full suite is
   192/192 GREEN; current evaluator manifest is
-  `a14e68d73f3792dfe12a9e97acb8e161d2d8a04388e96d6704be872d7ff016ed`
+  `29f5bd7ea734641c3b9e8be4f4e041a0d55f569c2a5704f106c8dc667339babb`
   and snapshot is
-  `fd82883281a720abbcff6bdf2967b222719854bf3e9f77f134b074465ca980a0`.
+  `72b37d796b033fd146a1402620b8de90915f2bcafe5a24b577da9ca564b943b7`.
 - The sole generation-7 ReleaseCandidate is
   `908a926287fa01cb8e4b4cf591b2a90d108a0b9bfe3d39affa7f39e9908f187e`;
   current ledger identity is
