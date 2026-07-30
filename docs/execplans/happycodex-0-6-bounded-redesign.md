@@ -217,12 +217,15 @@ external prestate bytes:
 d98fac1a0fe1bcc3071eac89b7246bfeb59fb85a7040417d50d07c58d74d1275
 /home/caichenghang/plugins/happycodex/.codex-plugin/plugin.json
 1fb2d73ae9774ab99a78a3ae5d449493a5d19e77860fb6952abc9a09b5733990
+/home/caichenghang/.codex/plugins/cache/personal/happycodex/0.5.0+codex.20260729104011/.codex-plugin/plugin.json
+1fb2d73ae9774ab99a78a3ae5d449493a5d19e77860fb6952abc9a09b5733990
 ```
 
-Any drift stops. The `config.toml` digest is transaction prestate, not the
-repository `evaluation/executor-role.json` digest. A later calibration or
-install grant must separately bind the then-current external Executor config;
-this source step cannot pre-authorize it.
+The active source and loaded-cache manifests must remain byte-identical to each
+other and unchanged. Any drift stops. The `config.toml` digest is transaction
+prestate, not the repository `evaluation/executor-role.json` digest. A later
+calibration or install grant must separately bind the then-current external
+Executor config; this source step cannot pre-authorize it.
 
 Run the official plugin-creator helper exactly once, with its default UTC
 cachebuster:
