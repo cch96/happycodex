@@ -1,12 +1,20 @@
 {
   "format": "happycodex/test-disposition/1",
   "base_commit": "e679c3d5cb83d6170fcd6f38f067892603c309da",
-  "discovery": {
+  "base_discovery": {
     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p 'test_*.py'",
     "test_count": 169,
     "sorted_test_ids_sha256_lf": "0d5bbcf5756e545f21ed4f6739dfd44a360fa4bf50eec0e21c8787cabab40359",
     "rules_are_exhaustive": true,
     "unmatched_or_multiply_matched_test": "FAIL"
+  },
+  "candidate_discovery": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p 'test_*.py'",
+    "test_count": 183,
+    "sorted_test_ids_sha256_lf": "1856da60f759102e5cd292ceff54bd1e0b4146e299131aecd59cd3b3c9a0a60d",
+    "base_identities_retained": 159,
+    "base_identities_replaced": 10,
+    "generation_7_invariants_added": 14
   },
   "rules": [
     {
@@ -33,6 +41,11 @@
       "prefix": "test_evaluation.",
       "count": 86,
       "disposition": "REWRITE_GENERATION_7_PRESERVE_FALSIFIER"
+    },
+    {
+      "prefix": "test_generation7_contract.",
+      "count": 14,
+      "disposition": "ADD_GENERATION_7_INVARIANT"
     }
   ],
   "base_result": {
@@ -41,6 +54,72 @@
     "errors": 0,
     "skips": 0,
     "meaning": "released v0.6.0 offline baseline"
+  },
+  "exact_replacements": [
+    {
+      "old_test_id": "test_certification_engine.EffectIntentTests.test_authorized_entrypoints_accept_only_intents_and_claim_root",
+      "new_test_id": "test_certification_engine.LaunchGateTests.test_authorized_entrypoints_accept_only_launches_and_claim_root",
+      "preserved_falsifier": "authorized entrypoints reject any payload set that is not the exact persisted unit set plus private claim root"
+    },
+    {
+      "old_test_id": "test_certification_engine.EffectIntentTests.test_corpus_rejects_invalid_intent_before_fixture_or_output",
+      "new_test_id": "test_certification_engine.LaunchGateTests.test_corpus_rejects_invalid_launch_before_fixture_or_output",
+      "preserved_falsifier": "an invalid effect binding cannot reach corpus fixture or output creation"
+    },
+    {
+      "old_test_id": "test_certification_engine.EffectIntentTests.test_holdout_rejects_invalid_intent_before_mapping",
+      "new_test_id": "test_certification_engine.LaunchGateTests.test_holdout_rejects_invalid_launch_before_mapping",
+      "preserved_falsifier": "an invalid effect binding cannot reach holdout mapping"
+    },
+    {
+      "old_test_id": "test_certification_engine.EffectIntentTests.test_intent_exactly_expands_and_binds_one_unit",
+      "new_test_id": "test_certification_engine.LaunchGateTests.test_launch_exactly_expands_and_binds_one_unit",
+      "preserved_falsifier": "one prepared effect binds exactly one plan unit and rejects unit drift"
+    },
+    {
+      "old_test_id": "test_certification_engine.EffectIntentTests.test_reservation_is_durable_one_shot_before_output",
+      "new_test_id": "test_certification_engine.LaunchGateTests.test_reservation_is_durable_one_shot_before_output",
+      "preserved_falsifier": "reservation is durable and duplicate launch is rejected; one distinct replacement requires a NO_EFFECT receipt"
+    },
+    {
+      "old_test_id": "test_certification_engine.EffectIntentTests.test_reservation_refuses_symlink_and_path_drift",
+      "new_test_id": "test_certification_engine.LaunchGateTests.test_reservation_refuses_symlink_and_path_drift",
+      "preserved_falsifier": "symlinked or aliased output roots fail before a durable claim"
+    },
+    {
+      "old_test_id": "test_certification_engine.EffectIntentTests.test_result_is_immutable_bound_and_cost_checked",
+      "new_test_id": "test_certification_engine.LaunchGateTests.test_result_is_immutable_bound_and_cost_checked",
+      "preserved_falsifier": "provider-reaching result is immutable, launch-bound, ActionKey-consumed, and within its cost ceiling"
+    },
+    {
+      "old_test_id": "test_certification_engine.GenesisAndCliTests.test_active_ledger_has_exact_unplanned_product_candidate",
+      "new_test_id": "test_certification_engine.GenesisAndCliTests.test_active_ledger_is_generation7_genesis",
+      "preserved_falsifier": "active ledger must equal the sole clean-break genesis and remain refresh_required with every gate pending"
+    },
+    {
+      "old_test_id": "test_contracts.HappyCodexContractTests.test_release_version_requires_one_helper_cachebuster_suffix",
+      "new_test_id": "test_contracts.HappyCodexContractTests.test_public_release_version_is_exact",
+      "preserved_falsifier": "the source package exposes exactly the intended release version and rejects stale or multiply suffixed identities"
+    },
+    {
+      "old_test_id": "test_holdouts.HappyCodexHoldoutTests.test_pair_runner_requires_effect_intent",
+      "new_test_id": "test_holdouts.HappyCodexHoldoutTests.test_pair_runner_requires_launch",
+      "preserved_falsifier": "holdout execution cannot reach its live seam without the exact prepared effect binding"
+    }
+  ],
+  "dead_code_removal": {
+    "path": "tests/test_evaluation.py",
+    "before_lines": 5169,
+    "after_lines": 2047,
+    "active_test_count_before_and_after": 86,
+    "sorted_active_test_ids_sha256_lf": "4ac14406aaccf7ef637bb12ad405a866c224e527cd4590006d27e34d352d5bac"
+  },
+  "candidate_result": {
+    "tests_run": 183,
+    "failures": 0,
+    "errors": 0,
+    "skips": 0,
+    "meaning": "generation-7 candidate after exact replacement inventory and dead-code removal"
   },
   "replacement_policy": {
     "delete_without_exact_replacement": "FORBIDDEN",

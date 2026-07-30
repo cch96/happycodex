@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `B_WORKING`
+Status: `C_WORKING`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -163,10 +163,23 @@ push/main/tag/GitHub Release, or publication.
 - The complete Git-reachable offline suite is 183/183 GREEN at `ec6202f`;
   corpus, holdout, and Executor dry-runs report zero effects, and CLI verify is
   healthy with every evidence gate pending.
-- Batch B is the active dirty wave: align Runtime policy, version/public
-  metadata, generation-7 genesis ledger, maintainer documentation, and launch
-  terminology without changing the compact Runtime lifecycle.
+- Batch B is committed at `66ccebf`. Its complete suite is 183/183 GREEN; all
+  official dry-runs, CLI verify, Skill validation, and plugin validation pass;
+  it aligned Runtime policy, version/public metadata, the generation-7 genesis
+  ledger, maintainer documentation, and launch terminology.
+- Batch C is the active dirty wave. The v0.6.0 baseline has 169 test identities;
+  the candidate has 159 unchanged identities, ten exact replacements, and 14
+  added generation-7 invariants. The exact mapping is persisted in the test
+  disposition inventory.
+- Mechanical test flattening removed only overridden generation-6 bodies:
+  `tests/test_evaluation.py` fell from 5,169 to 2,047 lines while retaining the
+  same 86 active IDs and
+  `4ac14406aaccf7ef637bb12ad405a866c224e527cd4590006d27e34d352d5bac`
+  sorted-ID digest. The full 183-test digest remains
+  `1856da60f759102e5cd292ceff54bd1e0b4146e299131aecd59cd3b3c9a0a60d`.
 - No live model, network, install, activation, push, tag, GitHub Release, or
   publication effect has occurred.
-- Next action: finish Batch B public-surface alignment, run focused and full
-  offline checks, and commit one coherent Git-reachable checkpoint.
+- Next action: commit the inventoried Batch C cleanup, rerun every offline and
+  artifact boundary against that Git-reachable source, persist its exact
+  ReleaseCandidate record in a strictly post-source evidence commit, and freeze
+  the offline candidate if no material finding remains.
