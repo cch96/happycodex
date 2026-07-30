@@ -5,13 +5,18 @@ Protocol: `HappyCodex/0.5`
 ## Checkpoint and exact authority
 
 This plan is the durable current index for the 0.6 contraction. The accepted
-Batch 3 checkpoint is commit
-`183c91106260cca297f30ef344b457d8258c2afc`, tree
-`65b8210bb938f540f44b9348e58c91077080da1a`, on branch
-`codex/happycodex-0.6-bounded-redesign`. Its current offline baseline is
-163/163 GREEN. The active ledger SHA-256 remains
-`b4e269d2c64fa0c4d246b1102aa4b366dd22afa250bc44089e7eda45a955228f`;
-it is the empty generation-6 genesis and derives `refresh_required`.
+release source is `S_release` commit
+`b3b79dca1cb3c990ad0c849172ea24aed8c3cab9`, tree
+`20d039576d27d3ca927c0ade702131290eae948f`, on branch
+`codex/happycodex-0.6-bounded-redesign`. Its plugin version is
+`0.6.0+codex.20260730115707`; its accepted offline baseline is 163/163 GREEN.
+
+The fresh generation-6 ledger now contains exactly one `ReleaseCandidate`, no
+plans, and no receipts. Its canonical ledger SHA-256 is
+`6074d0d09626150da6e46451c28b693bae59f7d3553f5edffe1cd31c03a542ef`;
+it derives `refresh_required`, empty coverage and failures, and the six pending
+gates `calibration`, `corpus`, `holdout`, `receipt`, `review`, and
+`isolated_install`. It stores no derived state, live authority, or evidence.
 
 Root reads, decides, grants, and verifies. Fixed Executor
 `/root/bounded_redesign_executor`, role `happycodex_executor`,
@@ -21,12 +26,18 @@ Root reads, decides, grants, and verifies. Fixed Executor
 binds this worktree, ref, and plan. It stays held. No replacement writer,
 delegation, merge, cherry-pick, or cross-task grant is allowed.
 
-Grant `HC06BR-G-025-release-source-contract` is plan-only and authorizes only
-this ExecPlan. Its private intent SHA-256 is
-`92fa593a12105f9ebafa111340119e0c1fe16364c1fba99973a36a77d3da23c8`.
-It defines two future commits but authorizes neither. G025 permits no ledger,
-plugin, test, production, external configuration, installation, model, live,
-publication, activation, branch/worktree, or claim-release effect.
+Grant `HC06BR-G-027-fresh-release-candidate-reanchor` authorizes only
+`evaluation/results/current.json` and this ExecPlan. Its mode-`0600` private
+intent SHA-256 is
+`6e715b4aa232382434ac38459e2d93a4d0b9fe39b86d37f3f428d80b531eb70b`.
+Same-batch correction `HC06BR-G-027R-active-candidate-test`, addendum intent
+SHA-256
+`fdbcd9e57c2ed64a85880a4d67b869c703672170681952698233abc1659c95a7`,
+adds only `tests/test_certification_engine.py`. Together they permit one
+candidate append, one exact active-ledger test correction, and one direct-child
+commit from `S_release`; they permit no plan, receipt, plugin, production,
+external configuration, installation, model, live, publication, activation,
+branch/main, or claim-release effect.
 
 ## Frozen normalized Outcome
 
@@ -196,17 +207,10 @@ shape rather than accepting prose alone.
 
 ## Bounded release-source preparation
 
-The next two commits are separate Root acceptance boundaries. Neither may be
-started from G025 authority, and acceptance of the first does not authorize the
-second.
+### Accepted S_release source
 
-### S_release — cachebuster-only source
-
-After Root accepts the G025 plan commit, a new exact grant may prepare
-`S_release`. Its default tracked paths are only
-`.codex-plugin/plugin.json` and this ExecPlan. Before any mutation it rechecks
-the accepted Git baseline, held claim, clean index/worktree, and these protected
-external prestate bytes:
+`S_release` was prepared as a cachebuster-only source boundary. The protected
+external prestate bytes remain:
 
 ```text
 ~/.codex/config.toml
@@ -221,68 +225,61 @@ d98fac1a0fe1bcc3071eac89b7246bfeb59fb85a7040417d50d07c58d74d1275
 1fb2d73ae9774ab99a78a3ae5d449493a5d19e77860fb6952abc9a09b5733990
 ```
 
-The active source and loaded-cache manifests must remain byte-identical to each
-other and unchanged. Any drift stops. The `config.toml` digest is transaction
-prestate, not the repository `evaluation/executor-role.json` digest. A later
-calibration or install grant must separately bind the then-current external
-Executor config; this source step cannot pre-authorize it.
-
-Run the official plugin-creator helper exactly once, with its default UTC
-cachebuster:
-
-```text
-python3 /home/caichenghang/.codex/skills/.system/plugin-creator/scripts/update_plugin_cachebuster.py .
-```
-
-Do not hand-edit the version and do not invoke this or another cachebuster
-helper a second time. The result must differ from the prestate and match exactly
-`^0\.6\.0\+codex\.[0-9]{14}$`, with one `+codex.` suffix. Validate it with:
-
-```text
-python3 /home/caichenghang/.codex/skills/.system/plugin-creator/scripts/validate_plugin.py .
-```
-
-Then run the full 163-test offline suite, `verify`, expected-exit-2 `impact`,
-and the Executor, calibration, corpus, and holdout dry runs. Every dry run must
-retain all nine zero effect counters. Recheck Runtime and ExecPlan budgets,
-the exact closed evaluator and plugin inventories, the version regex, both
-protected repository and external prestate bytes, and `git diff --check`. The
-commit diff may contain only the two default paths. Tests or production files
-require a genuine behavioral RED against current `HEAD` plus a new Root
-path-correction grant before any such mutation. Root must independently
-reproduce and accept the resulting `S_release` commit.
+The active source and loaded-cache manifests remain byte-identical to each other
+and unchanged. The `config.toml` digest is transaction prestate, not the
+repository `evaluation/executor-role.json` digest. Any later calibration or
+install grant must separately bind the then-current external Executor config.
 
 ### Fresh reanchor — one candidate only
 
-Only after Root accepts `S_release` may a separate exact grant reanchor the
-fresh genesis. Its source commit is exactly the accepted `S_release`, and its
-only tracked paths are `evaluation/results/current.json` and this ExecPlan.
-Construct one complete `ReleaseCandidate` input outside tracked repository
-state. Recompute and exactly bind the reachable source commit/tree, normalized
-Git archive and package identities, closed engine manifest, repository
-Executor-role digest, frozen public baseline, and complete snapshot. No
-identity or digest may be copied from the pre-cachebuster candidate.
-
-With the worktree ledger still byte-equal to the Git genesis, append exactly
-that one record through:
+The candidate was recomputed from accepted `S_release`, not copied from an old
+candidate. It binds:
 
 ```text
-PYTHONDONTWRITEBYTECODE=1 python3 -m evaluation.cli apply \
-  --expected <exact-canonical-genesis-digest> \
-  --record <mode-0600-release-candidate-input-outside-repository>
+source commit
+b3b79dca1cb3c990ad0c849172ea24aed8c3cab9
+source tree
+20d039576d27d3ca927c0ade702131290eae948f
+package artifact
+4e2b300bfc7c49c4eccad46a198e79f15c28680f2e4e6f041fabcc995ad3621e
+package semantic
+9cd5a507a8a9561c8af6751917b430b1cb29c238810b7c32bcff15c39044965a
+engine manifest
+6ad3f01334725c83cc031ad9a9abfadf4922d62143e160e7defa4d37cf22a10a
+repository Executor role
+f1effcc84e7ed24f6d54c972e2e412db42a3e46a6d92565e6d61b358128305da
+public baseline
+514cea60053bab5303e86e6cacaa0260e960b3fe1670a658e2df1a6965ce978c
+snapshot
+e1f67f2bfcf1470a1c181a7e54fd4e318456c0dab2861a1b7e76d7443dba50fd
+candidate seal
+d5e64387acdadfc2cacff8a63be2f0fa237f0bbff4e020fabc6485f9ac9f4665
 ```
 
-The result must contain one candidate, zero plans, and zero receipts; derive
-`refresh_required`; retain all six pending gates; and contain no live
-authority, evidence, coverage reuse, or gate success. Commit only the ledger
-and this plan. The reanchor commit must strictly descend from `S_release`.
-Root acceptance of that commit is still not authority for any later gate.
+The private input was mode `0600`, SHA-256
+`fd0931ccc75608aea22c232ee2400e9243ba77f1e046ba200d19ccc6c34e3914`.
+The canonical genesis predecessor was
+`09fd486ca4b12699ef42c94e596d584b3ad527aa7ea3054dc0a7a2d674b34ebe`.
+The CLI append succeeded exactly once. Before commit, the ordinary verifier
+must fail closed because the worktree ledger differs from prior Git, while the
+direct repository-aware validator must pass. Commit only the ledger, this plan,
+and the exact active-ledger test correction as a direct child of `S_release`;
+after commit, the ordinary verifier and all zero-live checks must pass.
 
-G025 and both source-only boundaries forbid model/provider calls, Executor
-pilot, live corpus or holdout, exact-final review, install or reinstall,
-`codex plugin add`, marketplace/cache/config mutation, publication, push, tag,
-release, activation, claim release, and main/worktree switching. G025 itself
-also forbids every ledger mutation.
+The first full precommit run was 162/163 because the active-ledger test still
+required the empty genesis after this authorized append. Isolated genesis,
+apply, stale-predecessor, successor, schema, and archive tests already retain
+genesis semantics. The corrected active-ledger test now uses repository-aware
+validation and asserts one typed candidate, zero plans/receipts,
+`refresh_required`, the exact six pending gates, and empty coverage/failures.
+Its focused run and the full 163-test suite are GREEN.
+
+Calibration, corpus, adaptive holdout, artifact receipt, exact-final review,
+and isolated install each remain separate later authority gates. This reanchor
+forbids model/provider calls, Executor pilot, live corpus or holdout,
+exact-final review, install or reinstall, `codex plugin add`,
+marketplace/cache/config mutation, publication, push, tag, release, activation,
+claim release, and main/worktree switching.
 
 ## Budgets and final checks
 

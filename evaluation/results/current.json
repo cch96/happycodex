@@ -1,5 +1,18 @@
 {
-  "candidate": null,
+  "candidate": {
+    "candidate_sha256": "d5e64387acdadfc2cacff8a63be2f0fa237f0bbff4e020fabc6485f9ac9f4665",
+    "created_at": "2026-07-30T12:05:28Z",
+    "engine_manifest_sha256": "6ad3f01334725c83cc031ad9a9abfadf4922d62143e160e7defa4d37cf22a10a",
+    "executor_role_sha256": "f1effcc84e7ed24f6d54c972e2e412db42a3e46a6d92565e6d61b358128305da",
+    "package_artifact_sha256": "4e2b300bfc7c49c4eccad46a198e79f15c28680f2e4e6f041fabcc995ad3621e",
+    "package_semantic_sha256": "9cd5a507a8a9561c8af6751917b430b1cb29c238810b7c32bcff15c39044965a",
+    "public_baseline_sha256": "514cea60053bab5303e86e6cacaa0260e960b3fe1670a658e2df1a6965ce978c",
+    "record_type": "ReleaseCandidate",
+    "schema_version": 1,
+    "snapshot_sha256": "e1f67f2bfcf1470a1c181a7e54fd4e318456c0dab2861a1b7e76d7443dba50fd",
+    "source_commit": "b3b79dca1cb3c990ad0c849172ea24aed8c3cab9",
+    "source_tree": "20d039576d27d3ca927c0ade702131290eae948f"
+  },
   "plans": [],
   "receipts": [],
   "schema_version": 1

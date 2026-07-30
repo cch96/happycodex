@@ -210,14 +210,19 @@ def _run_current_cli(*args: str, cwd: Path = ROOT) -> subprocess.CompletedProces
 
 
 class GenesisAndCliTests(unittest.TestCase):
-    def test_active_ledger_is_fresh_three_family_genesis(self) -> None:
+    def test_active_ledger_is_candidate_only_reanchor(self) -> None:
         active = json.loads(
             (ROOT / "evaluation/results/current.json").read_text(encoding="utf-8")
         )
-        self.assertEqual(active, GENESIS)
-        validate_ledger(active)
+        validate_ledger(active, repo=ROOT)
+        self.assertIsNotNone(active["candidate"])
+        self.assertEqual(active["candidate"]["record_type"], "ReleaseCandidate")
+        self.assertEqual(active["plans"], [])
+        self.assertEqual(active["receipts"], [])
         self.assertEqual(derive_status(active), "refresh_required")
         self.assertEqual(derive_pending(active)["gates"], list(GATE_ORDER))
+        self.assertEqual(derive_coverage(active), {})
+        self.assertEqual(derive_failed(active), [])
 
     def test_real_cli_applies_current_source_to_isolated_repo(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
