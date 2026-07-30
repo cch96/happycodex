@@ -49,7 +49,7 @@ from evaluation.core.identity import (
 )
 from evaluation.core.ledger import validate_case_input as validate_case
 from evaluation.core.schema import CONTRACTS, validate_named
-from evaluation.semantic import make_attempt_key, parse_facts, reduce_facts
+from evaluation.protocol import project_result, validate_result as validate_protocol_result
 
 ROOT = Path(__file__).resolve().parents[2]
 CASES = ROOT / "evaluation" / "cases"
@@ -71,12 +71,13 @@ FIXED_GIT_DATE = "2000-01-01T00:00:00+00:00"
 OUTPUT_SCHEMA = CONTRACTS["schemas"]["output_result"]
 def validate_output_result(value: Any) -> dict[str, Any]:
     try:
-        return validate_named(CONTRACTS, "output_result", value)
+        validated = validate_named(CONTRACTS, "output_result", value)
     except ValueError as exc:
         required = set(OUTPUT_SCHEMA["required"])
         if isinstance(value, dict) and set(value) != required:
             raise ValueError("result top-level fields are invalid") from exc
         raise
+    return validate_protocol_result(validated)
 REQUIRED_TAGS = {
     "request-paraphrase", "unsupported-amendment", "uncertain-qualification",
     "midflight-escalation", "subthreshold-control", "clean-qualifying-control",
@@ -1082,34 +1083,6 @@ _RESULT_CONTEXT_FIELDS = frozenset(
         "accepted_baseline_failures",
     }
 )
-_FINDING_STATES = {
-    "baseline_unchanged": "BASELINE_ACCEPTED",
-    "resolved": "RESOLVED",
-    "candidate_new": "CANDIDATE_NEW",
-    "unknown": "UNKNOWN",
-}
-_ACTION_ASSERTIONS = {
-    "ASK_USER": ("stop_for_user", False, "none", False),
-    "CLOSE": ("complete", False, "none", True),
-    "EXACT_FINAL": ("continue", False, "exact_final", False),
-    "FOCUSED_REVIEW": ("continue", False, "focused_hardening", False),
-    "FREEZE_CANDIDATE": ("continue", False, "none", False),
-    "IMPLEMENT_BATCH": ("continue", True, "none", False),
-    "RECONCILE": ("incomplete", False, "none", False),
-    "VERIFY": ("continue", False, "none", False),
-}
-
-
-def _exact_nonblank_strings(value: Any, *, label: str) -> list[str]:
-    if (
-        not isinstance(value, list)
-        or any(type(item) is not str or not item.strip() for item in value)
-        or len(value) != len(set(value))
-    ):
-        raise ValueError(f"{label} must contain unique exact identities")
-    return value
-
-
 def _repository_binding_digest(
     case_id: str,
     baseline_revision: str,
@@ -1138,168 +1111,39 @@ def _outcome_binding_digest(operative_request: str) -> str:
     )
 
 
-def _validate_result_recovery(value: Any) -> None:
-    if value is None:
-        return
-    if value["writer"] != "Root" or value["worktree"] not in {"clean", "dirty"}:
-        raise ValueError("recovery identity or state is invalid")
-    if value["tests"]["failed"] != value["tests"]["accepted_failures"]:
-        raise ValueError("unaccepted failure in recovery tests")
-    for agent in value["live_agents"]:
-        if agent["status"] != "terminal" or agent["receipt_reproduced"] is not True:
-            raise ValueError("invalid recovery agent")
-    manifest = recovery_manifest_projection(value)
-    if (
-        manifest["recovery_manifest_count"] != 1
-        or type(manifest["recovery_manifest_sha256"]) is not str
-        or not recovery_summary_consistent(value)
-    ):
-        raise ValueError("invalid Recovery Manifest or summary")
-
-
-def semantic_result_projection(
+def protocol_result_projection(
     result: dict[str, Any],
     *,
     context: dict[str, Any],
 ) -> dict[str, Any]:
     validate_output_result(result)
     if not isinstance(context, dict) or set(context) != _RESULT_CONTEXT_FIELDS:
-        raise ValueError("semantic result context is invalid")
+        raise ValueError("protocol result context is invalid")
     profile = validate_invocation_profile(context["invocation_profile"])
     for field in _RESULT_CONTEXT_FIELDS - {
         "invocation_profile",
         "accepted_baseline_failures",
     }:
         if type(context[field]) is not str or not context[field]:
-            raise ValueError(f"semantic result context field is invalid: {field}")
+            raise ValueError(f"protocol result context field is invalid: {field}")
     accepted = context["accepted_baseline_failures"]
     if accepted != sorted(set(_unique_strings(accepted, "accepted baseline identities"))):
         raise ValueError("accepted baseline identities are invalid")
-    findings = result["finding_classifications"]
-    blockers = result["blocker_classifications"]
-    finding_ids = _exact_nonblank_strings(
-        [item.get("identity") for item in findings if isinstance(item, dict)],
-        label="finding identities",
+    projection = project_result(
+        result,
+        invocation_profile_sha256=canonical_sha256(profile),
+        accepted_baseline_failures=accepted,
     )
-    blocker_ids = _exact_nonblank_strings(
-        [item.get("identity") for item in blockers if isinstance(item, dict)],
-        label="blocker identities",
-    )
-    if len(findings) != len(finding_ids) or len(blockers) != len(blocker_ids):
-        raise ValueError("result classifications are invalid")
-    if any(identity not in finding_ids for identity in blocker_ids):
-        raise ValueError("blocker identity lacks an exact finding")
-    for item in findings:
-        if len(item["anchors"]) != len(set(item["anchors"])):
-            raise ValueError("finding classification is invalid")
-    for item in blockers:
-        finding = findings[finding_ids.index(item["identity"])]
-        if item["blocking"] and finding["state"] == "resolved":
-            raise ValueError("blocker classification is invalid")
-    _validate_result_recovery(result["recovery_state"])
-    open_gates = _exact_nonblank_strings(result["open_gates"], label="open gates")
-    raw_sha256 = canonical_sha256(result)
-    source = f"result:{raw_sha256}"
-    records = []
-    for item in findings:
-        state = _FINDING_STATES[item["state"]]
-        if state == "BASELINE_ACCEPTED" and item["identity"] not in accepted:
-            state = "UNKNOWN"
-        records.append(
-            {
-                "id": f"finding:{canonical_sha256(item['identity'])}",
-                "state": state,
-                "evidence": [source],
-            }
-        )
-    unresolved = any(item["blocking"] for item in blockers) or any(
-        item["state"] in {"CANDIDATE_NEW", "UNKNOWN"} for item in records
-    )
-    facts = {
-        "schema_generation": 6,
-        "task_binding": {
-            key: context[key]
-            for key in (
-                "task_id",
-                "root_task_id",
-                "executor_task_id",
-                "owner_label",
-                "destination_id",
-                "lineage_digest",
-                "role_config_digest",
-                "repository_digest",
-                "outcome_digest",
-            )
-        },
-        "facts": {
-            "checks": [
-                {"id": "result-schema", "state": "PASS", "evidence": [source]},
-                {
-                    "id": "execplan",
-                    "state": (
-                        "PASS"
-                        if result["execplan_condition"] in {"usable", "not_required"}
-                        else "FAIL"
-                    ),
-                    "evidence": [source],
-                },
-            ],
-            "claims": [{
-                "id": "qualification",
-                "state": "VERIFIED" if result["qualifies"] else "N/A",
-                "evidence": [source],
-            }],
-            "families": [{
-                "id": "evaluator",
-                "state": (
-                    "OPEN"
-                    if unresolved
-                    or result["execplan_condition"] in {"missing", "needs_amendment"}
-                    else "CLOSED"
-                ),
-                "evidence": [source],
-            }],
-            "findings": records,
-            "gates": [{
-                "id": gate,
-                "state": "OPEN",
-                "family_id": "evaluator",
-                "evidence": [source],
-            } for gate in open_gates],
-            "markers": [],
-            "paths": [],
-            "replacements": [],
-        },
-        "administration": {
-            "authority_receipts": [],
-            "consumptions": [],
-            "cursors": [],
-            "receipts": [{
-                "id": "invocation-profile",
-                "value": canonical_sha256(profile),
-            }],
-            "resource_claims": [],
-            "timestamps": [],
-        },
-    }
-    report = reduce_facts(parse_facts(facts))
-    expected = _ACTION_ASSERTIONS.get(report.next_action.kind.value)
-    assertions = (
-        result["decision"],
-        result["protocol_may_product_write"],
-        result["protocol_review_mode"],
-        result["protocol_may_complete"],
-    )
-    if assertions != expected:
-        raise ValueError("raw protocol assertions diverge from reducer action")
-    return {
-        "schema_generation": 6,
-        "raw_result_sha256": raw_sha256,
-        "invocation_profile_sha256": canonical_sha256(profile),
-        "accepted_baseline_sha256": canonical_sha256(accepted),
-        "report": report.to_wire(),
-        "attempt_key": make_attempt_key(report).value,
-    }
+    recovery = result["recovery_state"]
+    if recovery is not None:
+        manifest = recovery_manifest_projection(recovery)
+        if (
+            manifest["recovery_manifest_count"] != 1
+            or type(manifest["recovery_manifest_sha256"]) is not str
+            or not recovery_summary_consistent(recovery)
+        ):
+            raise ValueError("invalid Recovery Manifest or summary")
+    return projection
 
 
 def _validated_capability(authorization: Any, unit_id: str) -> Any:
@@ -1923,9 +1767,9 @@ def evaluate_case(
             "invocation_profile": profile,
             "accepted_baseline_failures": accepted,
         }
-        semantic = semantic_result_projection(result, context=context)
-        fresh_semantic = (
-            semantic_result_projection(
+        protocol = protocol_result_projection(result, context=context)
+        fresh_protocol = (
+            protocol_result_projection(
                 fresh_result,
                 context={**context, "task_id": context["task_id"] + ":fresh"},
             )
@@ -1971,9 +1815,9 @@ def evaluate_case(
             ),
             "native_compaction": native_receipt,
             "result": result,
-            "semantic_result": semantic,
+            "protocol_result": protocol,
             "fresh_recovery_result": fresh_result,
-            "fresh_recovery_semantic_result": fresh_semantic,
+            "fresh_recovery_protocol_result": fresh_protocol,
             "oracle_failures": failures,
             "passed": not failures,
             "command": phases[-1]["argv"],

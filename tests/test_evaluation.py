@@ -36,7 +36,7 @@ def product_entries(repo: Path, revision: str, excluded: str) -> list[str]:
     )
 
 
-def semantic_result_failures(result: dict[str, object]) -> list[str]:
+def protocol_result_failures(result: dict[str, object]) -> list[str]:
     context = {
         "task_id": "case:test",
         "root_task_id": "root:test",
@@ -56,7 +56,7 @@ def semantic_result_failures(result: dict[str, object]) -> list[str]:
         "accepted_baseline_failures": [],
     }
     try:
-        runner.semantic_result_projection(result, context=context)
+        runner.protocol_result_projection(result, context=context)
     except ValueError as exc:
         return [str(exc)]
     return []
@@ -73,6 +73,102 @@ class HappyCodexEvaluationTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.cases = runner.load_cases()
+
+    def test_batch1_direct_protocol_rejects_derived_and_contradictory_state(
+        self,
+    ) -> None:
+        from evaluation.protocol import project_result
+
+        result = {
+            "decision": "complete",
+            "qualifies": True,
+            "execplan_condition": "usable",
+            "protocol_may_product_write": False,
+            "protocol_review_mode": "none",
+            "protocol_may_complete": True,
+            "finding_classifications": [],
+            "blocker_classifications": [],
+            "open_gates": [],
+            "evidence": ["offline checks passed"],
+            "reason": "all direct protocol conditions are terminal",
+            "recovery_state": None,
+        }
+        projection = project_result(
+            result,
+            invocation_profile_sha256="a" * 64,
+            accepted_baseline_failures=[],
+        )
+        self.assertEqual(
+            set(projection),
+            {
+                "schema_generation",
+                "raw_result_sha256",
+                "invocation_profile_sha256",
+                "accepted_baseline_sha256",
+                "decision",
+                "qualifies",
+                "execplan_condition",
+                "protocol_may_product_write",
+                "protocol_review_mode",
+                "protocol_may_complete",
+                "finding_identities_sha256",
+                "blocker_identities_sha256",
+                "open_gates",
+                "recovery_state_sha256",
+            },
+        )
+        self.assertNotIn("report", projection)
+        self.assertNotIn("attempt_key", projection)
+
+        derived = {**result, "next_action": "close"}
+        with self.assertRaisesRegex(ValueError, "fields mismatch"):
+            project_result(
+                derived,
+                invocation_profile_sha256="a" * 64,
+                accepted_baseline_failures=[],
+            )
+
+        contradictory = json.loads(json.dumps(result))
+        contradictory.update(
+            decision="continue",
+            protocol_may_product_write=True,
+            protocol_may_complete=False,
+            finding_classifications=[
+                {
+                    "identity": "F-RESOLVED",
+                    "domain": "other",
+                    "state": "resolved",
+                    "anchors": ["app.py"],
+                }
+            ],
+            blocker_classifications=[
+                {
+                    "identity": "F-RESOLVED",
+                    "class": "safety_data_integrity",
+                    "blocking": True,
+                    "reason": "contradictory blocker",
+                }
+            ],
+            open_gates=["product_edit"],
+        )
+        with self.assertRaisesRegex(ValueError, "contradictory"):
+            project_result(
+                contradictory,
+                invocation_profile_sha256="a" * 64,
+                accepted_baseline_failures=[],
+            )
+
+        duplicate = json.loads(json.dumps(contradictory))
+        duplicate["finding_classifications"][0]["state"] = "unknown"
+        duplicate["finding_classifications"].append(
+            json.loads(json.dumps(duplicate["finding_classifications"][0]))
+        )
+        with self.assertRaisesRegex(ValueError, "duplicate finding identity"):
+            project_result(
+                duplicate,
+                invocation_profile_sha256="a" * 64,
+                accepted_baseline_failures=[],
+            )
 
     def test_corpus_is_complete_and_bidirectional(self) -> None:
         covered = {tag for case in self.cases.values() for tag in case["covers"]}
@@ -660,7 +756,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                 "marker_ids": [],
             },
         }
-        failures = semantic_result_failures(recovery_gated)
+        failures = protocol_result_failures(recovery_gated)
         self.assertTrue(failures)
 
     def test_required_anchor_members_and_items_are_distinct(self) -> None:
@@ -733,12 +829,12 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             "reason": "false green",
             "recovery_state": None,
         }
-        failures = semantic_result_failures(result)
+        failures = protocol_result_failures(result)
         self.assertTrue(failures)
 
         aliased = json.loads(json.dumps(result))
         aliased["finding_classifications"][0]["identity"] = "MODEL:multi-repo-scope"
-        failures = semantic_result_failures(aliased)
+        failures = protocol_result_failures(aliased)
         self.assertFalse(any("resolved finding is blocking" in item for item in failures))
         self.assertTrue(any("exact finding" in item for item in failures))
 
@@ -816,7 +912,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                     "reason": "",
                     "recovery_state": None,
                 }
-                self.assertTrue(semantic_result_failures(result))
+                self.assertTrue(protocol_result_failures(result))
 
     def test_fixed_convergence_cases_mechanically_bind_new_behavior(self) -> None:
         exact = self.cases["exact-final-ready"]
@@ -1032,7 +1128,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             }
         }
         self.assertTrue(
-            semantic_result_failures(contradictory)
+            protocol_result_failures(contradictory)
         )
 
     def test_receipt_projection_binds_review_mode_without_alias(self) -> None:
@@ -1142,17 +1238,17 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             "reason": "Focused review is the only next gate.",
             "recovery_state": None,
         }
-        self.assertEqual(semantic_result_failures(base), [])
+        self.assertEqual(protocol_result_failures(base), [])
 
         review_and_write = {**base, "protocol_may_product_write": True}
-        self.assertTrue(semantic_result_failures(review_and_write))
+        self.assertTrue(protocol_result_failures(review_and_write))
 
         stopped = {
             **base,
             "decision": "stop_for_user",
             "protocol_review_mode": "focused_hardening",
         }
-        self.assertTrue(semantic_result_failures(stopped))
+        self.assertTrue(protocol_result_failures(stopped))
 
     def test_unusable_execplan_cannot_review_or_complete_without_recovery(self) -> None:
         base = {
@@ -1169,14 +1265,14 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             "reason": "The plan is absent.",
             "recovery_state": None,
         }
-        self.assertTrue(semantic_result_failures(base))
+        self.assertTrue(protocol_result_failures(base))
         completing = {
             **base,
             "decision": "complete",
             "protocol_review_mode": "none",
             "protocol_may_complete": True,
         }
-        self.assertTrue(semantic_result_failures(completing))
+        self.assertTrue(protocol_result_failures(completing))
 
     def test_exact_final_rejects_open_findings_blockers_and_repair_gates(self) -> None:
         active = {
@@ -1206,9 +1302,9 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             "reason": "Invalid exact-final launch.",
             "recovery_state": None,
         }
-        failures = semantic_result_failures(result)
+        failures = protocol_result_failures(result)
         self.assertTrue(failures)
-        self.assertTrue(any("reducer action" in failure for failure in failures))
+        self.assertTrue(any("direct result state" in failure for failure in failures))
 
     def test_every_blocker_must_match_exactly_one_finding(self) -> None:
         result = {
@@ -1235,7 +1331,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
         self.assertTrue(
             any(
                 "exact finding" in failure
-                for failure in semantic_result_failures(result)
+                for failure in protocol_result_failures(result)
             )
         )
 
@@ -1273,7 +1369,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             "reason": "Resume the bounded repair.",
             "recovery_state": recovery,
         }
-        self.assertEqual(semantic_result_failures(result), [])
+        self.assertEqual(protocol_result_failures(result), [])
         receipt = receipt_engine.sanitized_result_receipt(result)
         self.assertEqual(
             receipt["recovery_state"]["recovery_manifest_sha256"],
@@ -1304,7 +1400,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             with self.subTest(expected=expected):
                 invalid = json.loads(json.dumps(result))
                 mutate(invalid["recovery_state"])
-                self.assertTrue(semantic_result_failures(invalid), expected)
+                self.assertTrue(protocol_result_failures(invalid), expected)
 
     def test_exact_final_fixture_is_reachable_evidence_not_plan_prose(self) -> None:
         case = self.cases["exact-final-ready"]
@@ -1807,7 +1903,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                 },
             },
             "fresh_recovery_result": None,
-            "fresh_recovery_semantic_result": None,
+            "fresh_recovery_protocol_result": None,
             "terminal_projections": [],
             "oracle_failures": ["SECRET-CANARY-VALUE /tmp/private/mismatch"],
             "native_compaction": {
@@ -1838,7 +1934,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                 },
             },
         }
-        result["semantic_result"] = runner.semantic_result_projection(
+        result["protocol_result"] = runner.protocol_result_projection(
             result["result"],
             context={
                 "task_id": "case:sanitizer",
@@ -2685,7 +2781,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             "reason": "duplicate blocker identity",
             "recovery_state": None,
         }
-        failures = semantic_result_failures(result)
+        failures = protocol_result_failures(result)
         self.assertTrue(
             any("blocker identities" in item for item in failures)
         )
@@ -2725,7 +2821,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
         )
         result["finding_classifications"][1]["identity"] = "ARCHIVE-RECOVERY-VALID"
         self.assertTrue(
-            any("finding identities" in item for item in semantic_result_failures(result))
+            any("finding identities" in item for item in protocol_result_failures(result))
         )
 
         midflight = self.cases["midflight-escalation"]
@@ -2769,12 +2865,12 @@ class HappyCodexEvaluationTests(unittest.TestCase):
         )
         result["blocker_classifications"][1]["identity"] = "MODEL:X"
         self.assertTrue(
-            any("blocker identities" in item for item in semantic_result_failures(result))
+            any("blocker identities" in item for item in protocol_result_failures(result))
         )
 
         result["finding_classifications"][0]["identity"] = " \t"
         result["blocker_classifications"] = []
-        self.assertTrue(semantic_result_failures(result))
+        self.assertTrue(protocol_result_failures(result))
         result["finding_classifications"][0]["identity"] = "MODEL:X"
         result["blocker_classifications"] = [
             {
@@ -2784,7 +2880,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                 "reason": "blank blocker",
             }
         ]
-        self.assertTrue(semantic_result_failures(result))
+        self.assertTrue(protocol_result_failures(result))
         identity_schema = runner.OUTPUT_SCHEMA["properties"]["finding_classifications"][
             "items"
         ]["properties"]["identity"]
@@ -2996,44 +3092,19 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             "accepted_baseline_failures": [],
         }
         with self.assertRaisesRegex(ValueError, "raw protocol assertions diverge"):
-            runner.semantic_result_projection(result, context=context)
+            runner.protocol_result_projection(result, context=context)
         result["decision"] = "continue"
         result["protocol_may_complete"] = False
-        projection = runner.semantic_result_projection(result, context=context)
+        projection = runner.protocol_result_projection(result, context=context)
         self.assertEqual(projection["schema_generation"], 6)
         self.assertEqual(
             projection["raw_result_sha256"],
             runner.canonical_sha256(result),
         )
-        self.assertNotEqual(
-            projection["report"]["next_action"]["kind"],
-            "CLOSE",
-        )
-        self.assertEqual(
-            projection["report"]["next_action"]["target"],
-            "gate:release",
-        )
-        self.assertNotIn(
-            "pending",
-            projection["report"]["facts"]["facts"],
-        )
-        self.assertEqual(
-            projection["report"]["facts"]["facts"]["gates"],
-            [
-                {
-                    "id": "release",
-                    "state": "OPEN",
-                    "family_id": "evaluator",
-                    "evidence": [
-                        f"result:{runner.canonical_sha256(result)}",
-                    ],
-                }
-            ],
-        )
-        self.assertEqual(
-            projection["report"]["next_action"]["family_id"],
-            "evaluator",
-        )
+        self.assertEqual(projection["decision"], "continue")
+        self.assertEqual(projection["open_gates"], ["release"])
+        self.assertNotIn("report", projection)
+        self.assertNotIn("attempt_key", projection)
         receipt_engine._validated_projection(
             projection,
             raw=result,
@@ -3041,11 +3112,11 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             accepted=[],
         )
 
-        wrong_action = json.loads(json.dumps(projection))
-        wrong_action["report"]["next_action"]["target"] = "gate:forged"
-        with self.assertRaisesRegex(ValueError, "action mismatch"):
+        wrong_gate = json.loads(json.dumps(projection))
+        wrong_gate["open_gates"] = ["checks"]
+        with self.assertRaisesRegex(ValueError, "does not replay"):
             receipt_engine._validated_projection(
-                wrong_action,
+                wrong_gate,
                 raw=result,
                 profile=context["invocation_profile"],
                 accepted=[],
@@ -3689,7 +3760,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             "recovery_state": None,
         }
         validate_named(contracts, "output_result", result)
-        self.assertTrue(semantic_result_failures(result))
+        self.assertTrue(protocol_result_failures(result))
 
         recovery = {
             "baseline_revision": "1" * 40,
@@ -3714,7 +3785,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
         result["blocker_classifications"] = []
         result["recovery_state"] = recovery
         validate_named(contracts, "output_result", result)
-        self.assertTrue(semantic_result_failures(result))
+        self.assertTrue(protocol_result_failures(result))
 
 
 if __name__ == "__main__":

@@ -19,7 +19,6 @@ from evaluation.core.impact import (
     validate_gate_plan,
 )
 from evaluation.core.ledger import derive_pending, load_ledger
-from evaluation.semantic import EffectDecision, enforce_effect, make_attempt_key
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -160,18 +159,52 @@ def _authorize_effect(report: object, args: object) -> object:
         or getattr(context, "_seal", None) is not _HOST_SEAL
     ):
         raise ValueError("trusted host context is required")
-    gate = enforce_effect(report, context.authority)
-    if gate.decision is not EffectDecision.ALLOW:
-        raise ValueError(f"effect authority refused: {gate.reason}")
     binding = dict(context.binding)
+    try:
+        task_binding = dict(report.facts.task.to_value())
+        action = report.to_wire()["next_action"]
+        authority_values = {
+            name: getattr(context.authority, name).value
+            for name in (
+                "root_task",
+                "source_task",
+                "target_task",
+                "executor_task",
+                "destination",
+                "lineage",
+                "message_id",
+                "turn_id",
+                "content_digest",
+                "target",
+                "scope",
+            )
+        }
+    except (AttributeError, KeyError, TypeError, ValueError) as exc:
+        raise ValueError("effect content binding is invalid") from exc
+    if (
+        context.authority.channel != "current_task_user"
+        or authority_values["source_task"] != authority_values["target_task"]
+        or authority_values["target"] != action["target"]
+        or authority_values["scope"] != action["scope"]
+    ):
+        raise ValueError("effect authority refused: wrong content binding")
     expected = {
-        **dict(report.facts.task.to_value()),
-        "message_id": context.authority.message_id.value,
-        "turn_id": context.authority.turn_id.value,
-        "content_digest": context.authority.content_digest.value,
+        **task_binding,
+        "message_id": authority_values["message_id"],
+        "turn_id": authority_values["turn_id"],
+        "content_digest": authority_values["content_digest"],
     }
     if any(binding[field] != value for field, value in expected.items()):
-        raise ValueError("capability binding does not match reducer authority")
+        raise ValueError("capability binding does not match direct content authority")
+    for authority_field, task_field in (
+        ("root_task", "root_task_id"),
+        ("target_task", "task_id"),
+        ("executor_task", "executor_task_id"),
+        ("destination", "destination_id"),
+        ("lineage", "lineage_digest"),
+    ):
+        if authority_values[authority_field] != task_binding[task_field]:
+            raise ValueError("effect authority refused: wrong content binding")
     if (
         binding["permission_digest"]
         != _permission_digest(report, context.authority, context.plan)
@@ -196,7 +229,9 @@ def _authorize_effect(report: object, args: object) -> object:
     capability._plan = context.plan
     capability._pid = os.getpid()
     capability._seal = _CAPABILITY_SEAL
-    capability._attempt_key = make_attempt_key(report).value
+    capability._attempt_key = canonical_sha256(
+        {"task_binding": task_binding, "action": action}
+    )
     capability._authority, capability._report = context.authority, report
     capability.authority_sha256 = record["authority_sha256"]
     return capability

@@ -36,7 +36,6 @@ from evaluation.core.impact import (
 )
 from evaluation.core.ledger import ledger_sha256, validate_ledger
 from evaluation.corpus import engine as corpus_engine
-from evaluation.semantic import make_attempt_key, parse_facts, reduce_facts
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -44,6 +43,7 @@ EXPECTED_MODULES = {
     "evaluation/__init__.py",
     "evaluation/cli.py",
     "evaluation/live.py",
+    "evaluation/protocol.py",
     "evaluation/core/__init__.py",
     "evaluation/core/identity.py",
     "evaluation/core/impact.py",
@@ -56,12 +56,76 @@ EXPECTED_MODULES = {
     "evaluation/holdout/blind.py",
     "evaluation/holdout/compare.py",
     "evaluation/holdout/engine.py",
-    "evaluation/semantic/__init__.py",
-    "evaluation/semantic/canonical.py",
-    "evaluation/semantic/decide.py",
-    "evaluation/semantic/parse.py",
-    "evaluation/semantic/types.py",
 }
+
+
+class _FixtureIdentity:
+    def __init__(self, value: str) -> None:
+        self.value = value
+
+
+class _FixtureBinding:
+    _VALUES = {
+        "task_id": "task-a",
+        "root_task_id": "root-a",
+        "executor_task_id": "executor-a",
+        "owner_label": "owner-a",
+        "destination_id": "destination-a",
+        "lineage_digest": "a" * 64,
+        "role_config_digest": "b" * 64,
+        "repository_digest": "b" * 64,
+        "outcome_digest": "c" * 64,
+    }
+
+    def __init__(self) -> None:
+        for attribute, field in (
+            ("task", "task_id"),
+            ("root_task", "root_task_id"),
+            ("executor_task", "executor_task_id"),
+            ("owner", "owner_label"),
+            ("destination", "destination_id"),
+            ("lineage", "lineage_digest"),
+            ("role_config", "role_config_digest"),
+            ("repository", "repository_digest"),
+            ("outcome", "outcome_digest"),
+        ):
+            setattr(self, attribute, _FixtureIdentity(self._VALUES[field]))
+
+    def to_value(self) -> dict[str, str]:
+        return dict(self._VALUES)
+
+
+class _FixtureReport:
+    def __init__(self) -> None:
+        self.facts = type("_FixtureContext", (), {"task": _FixtureBinding()})()
+        self._action = {
+            "kind": "RECONCILE",
+            "target": "gate:gate-a",
+            "scope": "family:family-a",
+            "family_id": "family-a",
+            "falsifier_id": "gate:gate-a:open",
+            "evidence_source_id": "evidence:fixture",
+        }
+
+    def to_wire(self) -> dict[str, object]:
+        return {"progress_key": "1" * 64, "next_action": dict(self._action)}
+
+
+class _FixtureAuthority:
+    def __init__(self, report: _FixtureReport) -> None:
+        task = report.facts.task
+        self.channel = "current_task_user"
+        self.root_task = task.root_task
+        self.source_task = task.task
+        self.target_task = task.task
+        self.executor_task = task.executor_task
+        self.destination = task.destination
+        self.lineage = task.lineage
+        self.message_id = _FixtureIdentity("message-a")
+        self.turn_id = _FixtureIdentity("turn-a")
+        self.content_digest = _FixtureIdentity("d" * 64)
+        self.target = _FixtureIdentity(report._action["target"])
+        self.scope = _FixtureIdentity(report._action["scope"])
 def expected_source_anchor(
     repo: Path, snapshot: dict[str, object], revision: str
 ) -> dict[str, str]:
@@ -123,10 +187,8 @@ def full_live_test_state() -> tuple[
 
 
 def g013_authority_fixture() -> tuple[object, object, dict[str, str]]:
-    from tests.test_semantic_core import adapter_authority, raw_envelope
-
-    report = reduce_facts(parse_facts(raw_envelope()))
-    authority = adapter_authority(report.facts.task, report.next_action)
+    report = _FixtureReport()
+    authority = _FixtureAuthority(report)
     binding = {
         "task_id": report.facts.task.task.value,
         "root_task_id": report.facts.task.root_task.value,
@@ -163,7 +225,12 @@ def runtime_records(
         "target": next_action["target"],
         "scope": next_action["scope"],
         "progress_key": report.to_wire()["progress_key"],
-        "attempt_key": make_attempt_key(report).value,
+        "attempt_key": canonical_sha256(
+            {
+                "task_binding": dict(report.facts.task.to_value()),
+                "action": next_action,
+            }
+        ),
     }
     plan = {
         "schema_version": 1,
@@ -491,10 +558,40 @@ class CertificationIdentityTests(unittest.TestCase):
         categories = {item["path"]: item["category"] for item in first["entries"]}
         self.assertEqual(categories["evaluation/cli.py"], "harness")
         self.assertEqual(categories["evaluation/live.py"], "harness")
+        self.assertEqual(categories["evaluation/protocol.py"], "semantic")
         self.assertEqual(categories["evaluation/core/impact.py"], "harness")
         self.assertEqual(categories["evaluation/core/ledger.py"], "harness")
         self.assertEqual(categories["evaluation/core/receipt.py"], "artifact")
         self.assertEqual(categories["evaluation/holdout/compare.py"], "semantic")
+
+    def test_batch1_archive_classifier_is_exact_and_inactive_for_current_source(
+        self,
+    ) -> None:
+        from evaluation.core import identity as identity_engine
+
+        legacy = {
+            "evaluation/semantic/__init__.py",
+            "evaluation/semantic/canonical.py",
+            "evaluation/semantic/decide.py",
+            "evaluation/semantic/parse.py",
+            "evaluation/semantic/types.py",
+        }
+        self.assertEqual(
+            identity_engine.ARCHIVED_MODULE_CATEGORIES,
+            {path: "semantic" for path in legacy},
+        )
+        current_paths = {
+            item["path"] for item in engine_inventory(ROOT)["entries"]
+        }
+        self.assertIn("evaluation/protocol.py", current_paths)
+        self.assertTrue(legacy.isdisjoint(current_paths))
+        active = json.loads(
+            (ROOT / "evaluation" / "results" / "current.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(active["state"], "refresh_required")
+        self.assertIsNone(active["certification"])
 
     def test_sanitizers_live_only_in_the_artifact_module(self) -> None:
         engine = (ROOT / "evaluation/corpus/engine.py").read_text(encoding="utf-8")
@@ -662,7 +759,16 @@ class CertificationImpactTests(unittest.TestCase):
 
         self.assertIs(corpus_engine.CORPUS_SEMANTIC_PATHS, CORPUS_SEMANTIC_PATHS)
         self.assertIs(impact_engine.CORPUS_SEMANTIC_PATHS, CORPUS_SEMANTIC_PATHS)
-        self.assertEqual(len(CORPUS_SEMANTIC_PATHS), 7)
+        self.assertEqual(
+            CORPUS_SEMANTIC_PATHS,
+            frozenset(
+                {
+                    "evaluation/contracts-v6.json",
+                    "evaluation/corpus/engine.py",
+                    "evaluation/protocol.py",
+                }
+            ),
+        )
         inventory = engine_inventory(ROOT)
         expected = {
             item["path"]
@@ -1494,10 +1600,11 @@ class G013SourceContractTests(unittest.TestCase):
                 identity,
             )
 
-    def test_g013_private_host_context_is_the_only_positive_authority_path(
+    def test_g013_private_host_fixture_does_not_open_standalone_runtime(
         self,
     ) -> None:
         report, authority, binding = g013_authority_fixture()
+        self.assertIsNone(live._trusted_host_context(report, object()))
         with (
             mock.patch.dict(
                 os.environ,
@@ -1515,6 +1622,8 @@ class G013SourceContractTests(unittest.TestCase):
             report, authority, binding, ROOT
         )
         context = issue(authority, binding, plan, record)
+        # This private unit fixture exercises retained Batch 2 machinery; it is
+        # not evidence of a production positive path.
         with mock.patch.object(live, "_trusted_host_context", return_value=context):
             capability = live._authorize_effect(report, object())
         self.assertIs(live._rebind_capability(capability, binding), capability)
@@ -2122,6 +2231,21 @@ class Batch3SourceRepairRegressionTests(unittest.TestCase):
         )
         self._git(repo, "config", "user.name", "HappyCodex Release Test")
         self._git(repo, "config", "user.email", "release@example.invalid")
+        for relative in (
+            "evaluation/core/identity.py",
+            "evaluation/core/receipt.py",
+            "evaluation/corpus/engine.py",
+            "evaluation/live.py",
+            "evaluation/protocol.py",
+            "skills/happycodex/SKILL.md",
+            "skills/happycodex/references/execplan.md",
+        ):
+            target = repo / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(ROOT / relative, target)
+        shutil.rmtree(repo / "evaluation" / "semantic")
+        self._git(repo, "add", "--all")
+        self._git(repo, "commit", "-m", "batch 1 fixture source")
         return repo
 
     def _anchored_empty(
@@ -2294,7 +2418,7 @@ class Batch3SourceRepairRegressionTests(unittest.TestCase):
     def test_holdout_effect_order_in_fresh_temp_repo(self) -> None:
         self._assert_effect_order("holdout")
 
-    def test_semantic_projection_rejects_unknown_top_level_result_fields(self) -> None:
+    def test_protocol_projection_rejects_unknown_top_level_result_fields(self) -> None:
         result = {
             "decision": "continue",
             "qualifies": False,

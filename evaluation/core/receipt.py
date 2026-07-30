@@ -13,7 +13,7 @@ from evaluation.core.identity import (
     recovery_summary_consistent,
     sha256_bytes,
 )
-from evaluation.semantic import make_attempt_key, replay_report
+from evaluation.protocol import replay_projection
 
 
 def text_sha256(value: Any) -> str:
@@ -147,28 +147,12 @@ def _validated_projection(
     profile: Any,
     accepted: Any,
 ) -> dict[str, Any]:
-    fields = {
-        "schema_generation",
-        "raw_result_sha256",
-        "invocation_profile_sha256",
-        "accepted_baseline_sha256",
-        "report",
-        "attempt_key",
-    }
-    if not isinstance(value, dict) or set(value) != fields:
-        raise ValueError("invalid semantic result projection")
-    report = replay_report(value["report"])
-    expected = {
-        "schema_generation": 6,
-        "raw_result_sha256": canonical_sha256(raw),
-        "invocation_profile_sha256": canonical_sha256(profile),
-        "accepted_baseline_sha256": canonical_sha256(accepted),
-        "report": report.to_wire(),
-        "attempt_key": make_attempt_key(report).value,
-    }
-    if value != expected:
-        raise ValueError("semantic result projection does not replay")
-    return value
+    return replay_projection(
+        value,
+        raw_result=raw,
+        invocation_profile_sha256=canonical_sha256(profile),
+        accepted_baseline_failures=accepted,
+    )
 
 
 def sanitized_case_receipt(
@@ -176,14 +160,14 @@ def sanitized_case_receipt(
 ) -> dict[str, Any]:
     profile = result.get("invocation_profile")
     accepted = result.get("accepted_baseline_failures", [])
-    semantic = _validated_projection(
-        result.get("semantic_result"),
+    protocol = _validated_projection(
+        result.get("protocol_result"),
         raw=result.get("result"),
         profile=profile,
         accepted=accepted,
     )
     fresh_raw = result.get("fresh_recovery_result")
-    fresh = result.get("fresh_recovery_semantic_result")
+    fresh = result.get("fresh_recovery_protocol_result")
     if fresh_raw is not None:
         fresh = _validated_projection(
             fresh, raw=fresh_raw, profile=profile, accepted=accepted
@@ -226,9 +210,9 @@ def sanitized_case_receipt(
             )
         },
         "result": sanitized_result_receipt(result.get("result")),
-        "semantic_result": semantic,
+        "protocol_result": protocol,
         "fresh_recovery_result": sanitized_result_receipt(fresh_raw),
-        "fresh_recovery_semantic_result": fresh,
+        "fresh_recovery_protocol_result": fresh,
         "terminal_projections": result.get("terminal_projections", []),
         "oracle_failures_sha256": canonical_sha256(result.get("oracle_failures", [])),
         "native_compaction": sanitized_native_compaction_receipt(

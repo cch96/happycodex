@@ -18,17 +18,14 @@ CORPUS_SEMANTIC_PATHS = frozenset(
     {
         "evaluation/corpus/engine.py",
         "evaluation/contracts-v6.json",
-        "evaluation/semantic/__init__.py",
-        "evaluation/semantic/types.py",
-        "evaluation/semantic/canonical.py",
-        "evaluation/semantic/parse.py",
-        "evaluation/semantic/decide.py",
+        "evaluation/protocol.py",
     }
 )
 MODULE_CATEGORIES = {
     "evaluation/__init__.py": "harness",
     "evaluation/cli.py": "harness",
     "evaluation/live.py": "harness",
+    "evaluation/protocol.py": "semantic",
     "evaluation/core/__init__.py": "harness",
     "evaluation/core/identity.py": "harness",
     "evaluation/core/impact.py": "harness",
@@ -41,6 +38,8 @@ MODULE_CATEGORIES = {
     "evaluation/holdout/blind.py": "harness",
     "evaluation/holdout/compare.py": "semantic",
     "evaluation/holdout/engine.py": "harness",
+}
+ARCHIVED_MODULE_CATEGORIES = {
     "evaluation/semantic/__init__.py": "semantic",
     "evaluation/semantic/canonical.py": "semantic",
     "evaluation/semantic/decide.py": "semantic",
@@ -517,8 +516,20 @@ def engine_inventory(root: Path) -> dict[str, Any]:
         for path in evaluation.rglob("*.py")
         if "__pycache__" not in path.parts
     }
-    unknown = sorted(modules - set(MODULE_CATEGORIES))
-    missing = sorted(set(MODULE_CATEGORIES) - modules)
+    module_categories = (
+        MODULE_CATEGORIES
+        if "evaluation/protocol.py" in modules
+        else {
+            **{
+                path: category
+                for path, category in MODULE_CATEGORIES.items()
+                if path != "evaluation/protocol.py"
+            },
+            **ARCHIVED_MODULE_CATEGORIES,
+        }
+    )
+    unknown = sorted(modules - set(module_categories))
+    missing = sorted(set(module_categories) - modules)
     if unknown or missing:
         detail = unknown or missing
         label = "unclassified" if unknown else "missing classified"
@@ -538,7 +549,7 @@ def engine_inventory(root: Path) -> dict[str, Any]:
     unknown_json = sorted(discovered_json - set(schemas) - outputs)
     if unknown_json:
         raise IdentityError(f"unclassified engine input: {', '.join(unknown_json)}")
-    classified = {**MODULE_CATEGORIES, **schemas}
+    classified = {**module_categories, **schemas}
     entries = []
     for relative, category in sorted(classified.items()):
         path = root / relative

@@ -187,6 +187,24 @@ direct protocol interface or a non-controller content-binding seam. Deleting
 `TrustedHostContext`, the capability/claim/phase ladder, and changing any effect
 behavior remain exclusively Batch 2 work.
 
+Batch 1 is implemented and offline GREEN under grant
+`HC06BR-G-021-batch1-runtime-protocol`, pending its single reachable commit.
+Focused RED ran two public-behavior tests at source `70a858aa`, exited 1, and
+proved both the absent direct protocol module and old five-phase Runtime; output
+SHA-256 is `bbf1cf82`. The corrected eight-test focused set exited 0 with output
+SHA-256 `15d3cc86`. After the authorized archive-identity assertion, the final
+complete 221-test offline suite exited 0 with output SHA-256 `40896202`.
+Runtime/template are 235 lines and 1,689 words. The direct
+protocol owns exact result validation and sanitized canonical projection;
+corpus and receipt consumers use it, `live.py` remains standalone fail-closed,
+and the five semantic modules plus their internal-construction test are deleted.
+Because Batch 1 cannot mutate `current.json`, `ARCHIVED_MODULE_CATEGORIES`
+temporarily classifies only the immutable still-anchored G019 source when
+`evaluation/protocol.py` is absent. It parses no old protocol, evidence, or
+schema, imports no semantic code, accepts no prior evidence or coverage, never
+classifies current source, and leaves the ledger `refresh_required` and
+noncertifying. Root authorized this narrow verification bridge explicitly.
+
 ### Batch 2 — Effect and release persistence
 
 Owned paths:
@@ -209,6 +227,12 @@ tests/test_evaluation.py
 tests/test_holdouts.py
 docs/execplans/happycodex-0-6-bounded-redesign.md
 ```
+
+Batch 2 must delete `ARCHIVED_MODULE_CATEGORIES` immediately after replacing
+`current.json` with the fresh candidate/plan/receipt genesis. Acceptance must
+prove that identifier and every legacy `evaluation/semantic/` path are absent
+from production and tests; no archive alias, fallback, reader, evidence reuse,
+or coverage reuse may replace them.
 
 Replace the capability ladder and cached DAG with `ReleaseCandidate`,
 `GatePlan`, `GateReceipt`, and `EffectIntent`. Provide one real CLI writer and a
@@ -290,14 +314,12 @@ output, authority, or receipt. Unknown commands or schema inputs fail closed.
 | `N-AUTH` | repository content never claims host provenance or self-authorizes an effect |
 | `N-MIGRATION` | old ledger, semantic controller, hashes, evidence, and cached status are not reused |
 
-Expected RED/unknowns at this freeze are deliberate: current production still
-has the generic semantic package, capability ladder, unreachable trusted-host
-positive path, cached evidence DAG, heavy identity algebra, structural tests,
-and 6,822 evaluation Python lines. The exact deletion total and final production
-LOC remain measurements, not predeclared file quotas. Batch 1 must discover all
-semantic consumers before deletion. Batch 2 must prove the CLI writer and atomic
-effect path without live execution. Any outside path, identity drift, incomplete
-consumer migration, or effect returns to Root.
+Remaining known work is deliberately outside Batch 1: the capability ladder,
+unreachable trusted-host positive path, cached evidence DAG, heavy identity
+algebra, and structural toolchain remain for later batches. Final production LOC
+is a measurement, not a per-file quota. Batch 2 must prove the CLI writer and
+atomic effect path without live execution. Any outside path, identity drift,
+incomplete consumer migration, or effect returns to Root.
 
 After all three product batches are accepted, this amendment permits a new,
 separately scoped candidate-source preparation and fresh reanchor. That step
