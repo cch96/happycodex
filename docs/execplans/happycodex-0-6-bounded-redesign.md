@@ -268,7 +268,11 @@ consumption/result path. Recovery Manifest, holdout, and model-result structure
 remain fail-closed. The real CLI test uses current evaluator source against an
 isolated Git repo without a trust monkeypatch. All 149 offline tests are GREEN,
 output `992850a6`; four dry-run routes report nine effect counters all zero. No
-live effect ran.
+live effect ran. After commit `54b3b7a`, Root reproduced 11 errors because the
+synthetic genesis already matched HEAD and its required successor commit was
+empty. This is the same pre-acceptance integration miss. Repair grant
+`HC06BR-G-023R-postcommit-fixture` adds only `--allow-empty`; the affected 11
+tests are GREEN, output `e003e893`.
 
 ### Batch 3 — Identity, documentation, and deletion proof
 

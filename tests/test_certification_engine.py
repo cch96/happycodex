@@ -82,7 +82,14 @@ def _prepare_repo(raw: str) -> Path:
         encoding="utf-8",
     )
     _git(repo, "add", "evaluation/results/current.json")
-    _git(repo, "commit", "--quiet", "-m", "test: install clean genesis")
+    _git(
+        repo,
+        "commit",
+        "--quiet",
+        "--allow-empty",
+        "-m",
+        "test: install clean genesis",
+    )
     return repo
 
 
