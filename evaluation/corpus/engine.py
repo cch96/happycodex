@@ -62,10 +62,26 @@ DISABLED_FEATURES = (
     "remote_plugin",
     "multi_agent",
 )
+MCP_DISABLED_CONFIG = "orchestrator.mcp.enabled=false"
 FIXED_GIT_DATE = "2000-01-01T00:00:00+00:00"
 
 
 OUTPUT_SCHEMA = CONTRACTS["schemas"]["output_result"]
+
+
+def provider_transport_schema(value: Any) -> Any:
+    """Deep-copy a schema while removing only provider-rejected uniqueness hints."""
+    if isinstance(value, dict):
+        return {
+            key: provider_transport_schema(item)
+            for key, item in value.items()
+            if key != "uniqueItems"
+        }
+    if isinstance(value, list):
+        return [provider_transport_schema(item) for item in value]
+    return value
+
+
 def validate_output_result(value: Any) -> dict[str, Any]:
     try:
         validated = validate_named(CONTRACTS, "output_result", value)
@@ -1276,6 +1292,40 @@ def disabled_feature_args() -> list[str]:
     return [item for feature in DISABLED_FEATURES for item in ("--disable", feature)]
 
 
+def evaluator_mcp_args() -> list[str]:
+    """Return the one native override that mechanically disables evaluator MCP."""
+    return ["-c", MCP_DISABLED_CONFIG]
+
+
+def evaluator_codex_argv(
+    *,
+    repo: Path,
+    schema: Path,
+    config: list[str],
+    prompt: str,
+    thread: str | None = None,
+) -> list[str]:
+    """Build both fresh and resume evaluator invocations through one path."""
+    argv = ["codex", "exec"]
+    if thread is not None:
+        argv.append("resume")
+    argv += ["--json", "--ignore-rules"]
+    if thread is None:
+        argv += ["--ephemeral", "-C", str(repo)]
+    argv += [
+        *config,
+        *evaluator_mcp_args(),
+        "--output-schema",
+        str(schema),
+        *disabled_feature_args(),
+        *([thread] if thread else []),
+        prompt,
+    ]
+    if argv.count(MCP_DISABLED_CONFIG) != 1:
+        raise AssertionError("evaluator MCP override must occur exactly once")
+    return argv
+
+
 def finding_identity_matches(actual: str, expected: str) -> bool:
     return type(actual) is str and type(expected) is str and actual == expected
 
@@ -1645,7 +1695,10 @@ def evaluate_case(
         tool_bin = temp / "bin"
         installation = install_plugin(package, home, env)
         schema = temp / "response-schema.json"
-        schema.write_text(json.dumps(OUTPUT_SCHEMA), encoding="utf-8")
+        schema.write_text(
+            json.dumps(provider_transport_schema(OUTPUT_SCHEMA)),
+            encoding="utf-8",
+        )
         config = [
             "-m",
             model,
@@ -1668,20 +1721,13 @@ def evaluate_case(
         def execute(
             name: str, prompt: str, thread: str | None = None
         ) -> tuple[dict[str, Any], str]:
-            argv = ["codex", "exec"]
-            if thread is not None:
-                argv += ["resume"]
-            argv += ["--json", "--ignore-rules"]
-            if thread is None:
-                argv += ["--ephemeral", "-C", str(repo)]
-            argv += [
-                *config,
-                "--output-schema",
-                str(schema),
-                *disabled_feature_args(),
-                *([thread] if thread else []),
-                prompt,
-            ]
+            argv = evaluator_codex_argv(
+                repo=repo,
+                schema=schema,
+                config=config,
+                prompt=prompt,
+                thread=thread,
+            )
             completed, timed_out, elapsed = invoke_codex(
                 effect_intent,
                 argv=argv,

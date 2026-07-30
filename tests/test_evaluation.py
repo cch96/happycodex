@@ -3740,6 +3740,95 @@ class HappyCodexEvaluationTests(unittest.TestCase):
         ):
             self.assertNotIn("maxItems", runner.OUTPUT_SCHEMA["properties"][field])
 
+    def test_provider_transport_schema_removes_only_unique_items(self) -> None:
+        original = json.loads(json.dumps(runner.OUTPUT_SCHEMA))
+
+        def unique_items_count(value: object) -> int:
+            if isinstance(value, dict):
+                return sum(key == "uniqueItems" for key in value) + sum(
+                    unique_items_count(item) for item in value.values()
+                )
+            if isinstance(value, list):
+                return sum(unique_items_count(item) for item in value)
+            return 0
+
+        def expected_projection(value: object) -> object:
+            if isinstance(value, dict):
+                return {
+                    key: expected_projection(item)
+                    for key, item in value.items()
+                    if key != "uniqueItems"
+                }
+            if isinstance(value, list):
+                return [expected_projection(item) for item in value]
+            return value
+
+        first = runner.provider_transport_schema(runner.OUTPUT_SCHEMA)
+        second = runner.provider_transport_schema(runner.OUTPUT_SCHEMA)
+        self.assertGreater(unique_items_count(runner.OUTPUT_SCHEMA), 0)
+        self.assertEqual(unique_items_count(first), 0)
+        self.assertEqual(first, expected_projection(original))
+        self.assertEqual(first, second)
+        self.assertEqual(runner.OUTPUT_SCHEMA, original)
+        self.assertIsNot(first, runner.OUTPUT_SCHEMA)
+
+    def test_internal_output_validation_still_rejects_duplicate_values(self) -> None:
+        result = {
+            "decision": "continue",
+            "qualifies": True,
+            "execplan_condition": "usable",
+            "protocol_may_product_write": False,
+            "protocol_review_mode": "none",
+            "protocol_may_complete": False,
+            "finding_classifications": [],
+            "blocker_classifications": [],
+            "open_gates": ["product_edit", "product_edit"],
+            "evidence": [],
+            "reason": "duplicate gate probe",
+            "recovery_state": None,
+        }
+        with self.assertRaisesRegex(ValueError, "schema array mismatch"):
+            runner.validate_output_result(result)
+
+    def test_fresh_and_resume_argv_disable_mcp_exactly_once(self) -> None:
+        config = ["-m", "gpt-5.6-sol", "-c", 'approval_policy="never"']
+        for thread in (None, "thread-123"):
+            with self.subTest(thread=thread):
+                argv = runner.evaluator_codex_argv(
+                    repo=ROOT,
+                    schema=ROOT / "response-schema.json",
+                    config=config,
+                    prompt="probe",
+                    thread=thread,
+                )
+                self.assertEqual(argv.count(runner.MCP_DISABLED_CONFIG), 1)
+                index = argv.index(runner.MCP_DISABLED_CONFIG)
+                self.assertEqual(argv[index - 1], "-c")
+                self.assertEqual(argv[0:2], ["codex", "exec"])
+                self.assertEqual("resume" in argv, thread is not None)
+
+    def test_real_isolated_codex_accepts_mcp_override_without_apps_context(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory(prefix="happycodex-mcp-probe-") as raw:
+            temp = Path(raw)
+            _home, env = runner.isolated_home(temp)
+            binary = temp / "bin" / "codex"
+            argv = [
+                str(binary),
+                "debug",
+                "prompt-input",
+                "-c",
+                'model="gpt-5.6-sol"',
+                *runner.evaluator_mcp_args(),
+                "mcp-disabled-probe",
+            ]
+            completed = runner.run(argv, cwd=ROOT, env=env, timeout=30)
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        json.loads(completed.stdout)
+        self.assertNotIn("<apps_instructions>", completed.stdout)
+        self.assertEqual(argv.count(runner.MCP_DISABLED_CONFIG), 1)
+
     def test_dry_run_is_executable_and_has_no_model_side_effect(self) -> None:
         completed = subprocess.run(
             ["python3", "-m", "evaluation.cli", "corpus", "--dry-run"],

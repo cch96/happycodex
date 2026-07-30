@@ -4,10 +4,10 @@ Protocol: `HappyCodex/0.5`
 
 ## Checkpoint, authority, and current state
 
-The accepted repair source is commit
-`91e72ba255f3e9e4b4e8746e859bb59357a12e09`, tree
-`ae276c2a0a1295647da0301a20043cfeb6d92bbf`, direct child of
-`c587f8e9ee4a07b34fcba00e7a1ae0fe3fe299eb`, on branch
+G033 starts from accepted commit
+`a0d21518e03fed80a960441b431d824bfdaef599`, tree
+`a0b5fe6c1faddd78359d5dd5ccffe804427e70ff`, direct child of
+`5df7a0f6a25f9a04ae4681a84c63c719f490ac2c`, on branch
 `codex/happycodex-0.6-bounded-redesign`. Fixed Executor
 `/root/bounded_redesign_executor`, role `happycodex_executor`,
 `gpt-5.6-sol/high`, remains the sole writer. The mode-`0600` task claim
@@ -289,6 +289,37 @@ receipts, `refresh_required`, all six pending gates, empty coverage/failures,
 and no certification. Isolated genesis, append, successor, schema, archive, and
 prior-Git drift tests remain unchanged.
 
+## G032 terminal and G033 repair
+
+G032 approval request
+`28a53f918bfe871542f3d92615bb085aca56f7e9a25625d598e04cd0662fe4e7`
+was consumed exactly once. The provider returned HTTP 400
+`invalid_json_schema`: `properties.open_gates.uniqueItems` is not permitted.
+A Cloudflare MCP invalid-token warning independently exposed that the declared
+disabled profile did not mechanically disable orchestrator MCP. The stored
+command exited one after one attempted Codex phase, with zero successful model
+completions and zero observed token usage. No metadata, result, GateReceipt,
+retry, or historical calibration basis exists. Its Git source, private receipt,
+and external claim/output remain immutable recovery anchors.
+
+G033 user repair authority, UTF-8 plus one LF, has SHA-256
+`2a8747b454439e3cd14ef3b845abc946a26406a70cedfaafa1abf6971cc8a016`.
+It permits only `evaluation/corpus/engine.py`, `tests/test_evaluation.py`,
+`evaluation/results/current.json`, `tests/test_certification_engine.py`, and
+this ExecPlan. It permits no model/provider call, install, live gate, effect
+reservation, retry, active configuration/package/cache change, or release.
+
+The repair retains `OUTPUT_SCHEMA` as the strict internal contract and adds one
+pure recursive provider projection that deep-copies it while removing only
+keys named `uniqueItems`. Only `response-schema.json` uses that projection;
+Python validation still rejects duplicates. One evaluator argv builder serves
+fresh and resume phases and obtains exactly one native
+`-c orchestrator.mcp.enabled=false` override from one helper. A real isolated
+`codex debug prompt-input` regression proves the CLI accepts that override and
+omits `<apps_instructions>` without `codex exec`, provider contact, or install.
+The consumed epoch is Git-recoverably retired to exact fresh genesis; G033
+appends no candidate, plan, receipt, or evidence.
+
 ## Acceptance and next gate
 
 Required offline checks are:
@@ -304,14 +335,16 @@ PYTHONDONTWRITEBYTECODE=1 python3 -m evaluation.cli holdout --dry-run
 git diff --check
 ```
 
-Before commit, `verify` and `impact` must exit two only for prior-Git ledger
-drift. After commit both must return zero on the one-plan ledger. All four dry
-runs must return zero with nine zero effect counters. Runtime/package/version,
+Before commit, `verify` and `impact` must each return two with empty stdout and
+the sole exact error `worktree ledger differs from prior Git ledger`; no other
+error is accepted. After commit, `verify` returns zero and `impact` returns the
+expected two solely because fresh genesis has no candidate and source refresh
+is required. Full tests run both before and after commit. All four dry runs must
+return zero with nine zero effect counters. Runtime/package/version,
 marketplace, active source/cache, retired and fresh external states, evaluator
 inventory, budgets, and exact diff must remain protected. Global config and
 models cache are not inputs and must not be modified.
 
-After Root accepts this plan-only commit, calibration still requires separate
-exact current-task authority containing the future line above. Until then the
-persisted invocation is data only. G031 stops before `EffectIntent` creation,
-claim consumption, output creation, model/provider work, or any `GateReceipt`.
+After Root accepts the G033 repair commit, a fresh candidate requires a
+separate grant. G033 stops at genesis without `EffectIntent`, claim consumption,
+model/provider work, candidate, GatePlan, evidence, or `GateReceipt`.

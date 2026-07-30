@@ -210,51 +210,11 @@ def _run_current_cli(*args: str, cwd: Path = ROOT) -> subprocess.CompletedProces
 
 
 class GenesisAndCliTests(unittest.TestCase):
-    def test_active_ledger_has_exact_calibration_plan(self) -> None:
+    def test_active_ledger_is_exact_genesis(self) -> None:
         active = json.loads(
             (ROOT / "evaluation/results/current.json").read_text(encoding="utf-8")
         )
-        expected_candidate = {
-            "candidate_sha256": "12f7bce171d89f8e0f8da5d255872879048fa3e7ef6f8bb73f75005293516b85",
-            "created_at": "2026-07-30T13:24:47Z",
-            "engine_manifest_sha256": "ffdc07be358c664d4c710e187350f3289c6e0b9f8321d77fa291a5465797c47d",
-            "executor_role_sha256": "f1effcc84e7ed24f6d54c972e2e412db42a3e46a6d92565e6d61b358128305da",
-            "package_artifact_sha256": "4e2b300bfc7c49c4eccad46a198e79f15c28680f2e4e6f041fabcc995ad3621e",
-            "package_semantic_sha256": "9cd5a507a8a9561c8af6751917b430b1cb29c238810b7c32bcff15c39044965a",
-            "public_baseline_sha256": "514cea60053bab5303e86e6cacaa0260e960b3fe1670a658e2df1a6965ce978c",
-            "record_type": "ReleaseCandidate",
-            "schema_version": 1,
-            "snapshot_sha256": "68d17de6ffca4b4a3f6dc3a04c2d1d98f64ffb8eb6aed9c031a0171cdbe41bd1",
-            "source_commit": "91e72ba255f3e9e4b4e8746e859bb59357a12e09",
-            "source_tree": "ae276c2a0a1295647da0301a20043cfeb6d92bbf",
-        }
-        self.assertEqual(active["schema_version"], 1)
-        self.assertEqual(active["candidate"], expected_candidate)
-        self.assertEqual(len(active["plans"]), 1)
-        plan = active["plans"][0]
-        self.assertEqual(
-            {
-                "candidate_sha256": plan["candidate_sha256"],
-                "gate": plan["gate"],
-                "units": plan["units"],
-                "resource_digests": plan["resource_digests"],
-                "approval_request_sha256": plan["approval_request_sha256"],
-                "approval_content_sha256": plan["approval_content_sha256"],
-                "plan_sha256": plan["plan_sha256"],
-            },
-            {
-                "candidate_sha256": "12f7bce171d89f8e0f8da5d255872879048fa3e7ef6f8bb73f75005293516b85",
-                "gate": "calibration",
-                "units": ["subthreshold-control"],
-                "resource_digests": [
-                    "7b2372c4fa49515659e915601ecfe033d2a06df5180655a137b62378091203f3"
-                ],
-                "approval_request_sha256": "28a53f918bfe871542f3d92615bb085aca56f7e9a25625d598e04cd0662fe4e7",
-                "approval_content_sha256": "519322cb579cd78aadf4fcf1c0f1ce5757b3a100cdcb17d3d0d9a6d0defdeb5d",
-                "plan_sha256": "e6ce69656e3ab0d3b22c3be5c47c9724d796aa22a91e4639e950088fc462d778",
-            },
-        )
-        self.assertEqual(active["receipts"], [])
+        self.assertEqual(active, GENESIS)
         validate_ledger(active, repo=ROOT)
         self.assertEqual(derive_status(active), "refresh_required")
         self.assertEqual(derive_pending(active)["gates"], list(GATE_ORDER))
