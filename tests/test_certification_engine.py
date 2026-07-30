@@ -210,16 +210,39 @@ def _run_current_cli(*args: str, cwd: Path = ROOT) -> subprocess.CompletedProces
 
 
 class GenesisAndCliTests(unittest.TestCase):
-    def test_active_ledger_is_fresh_genesis(self) -> None:
+    def test_active_ledger_has_exact_repaired_candidate(self) -> None:
         active = json.loads(
             (ROOT / "evaluation/results/current.json").read_text(encoding="utf-8")
         )
-        self.assertEqual(active, GENESIS)
+        expected_candidate = {
+            "candidate_sha256": "12f7bce171d89f8e0f8da5d255872879048fa3e7ef6f8bb73f75005293516b85",
+            "created_at": "2026-07-30T13:24:47Z",
+            "engine_manifest_sha256": "ffdc07be358c664d4c710e187350f3289c6e0b9f8321d77fa291a5465797c47d",
+            "executor_role_sha256": "f1effcc84e7ed24f6d54c972e2e412db42a3e46a6d92565e6d61b358128305da",
+            "package_artifact_sha256": "4e2b300bfc7c49c4eccad46a198e79f15c28680f2e4e6f041fabcc995ad3621e",
+            "package_semantic_sha256": "9cd5a507a8a9561c8af6751917b430b1cb29c238810b7c32bcff15c39044965a",
+            "public_baseline_sha256": "514cea60053bab5303e86e6cacaa0260e960b3fe1670a658e2df1a6965ce978c",
+            "record_type": "ReleaseCandidate",
+            "schema_version": 1,
+            "snapshot_sha256": "68d17de6ffca4b4a3f6dc3a04c2d1d98f64ffb8eb6aed9c031a0171cdbe41bd1",
+            "source_commit": "91e72ba255f3e9e4b4e8746e859bb59357a12e09",
+            "source_tree": "ae276c2a0a1295647da0301a20043cfeb6d92bbf",
+        }
+        self.assertEqual(
+            active,
+            {
+                "schema_version": 1,
+                "candidate": expected_candidate,
+                "plans": [],
+                "receipts": [],
+            },
+        )
         validate_ledger(active, repo=ROOT)
         self.assertEqual(derive_status(active), "refresh_required")
         self.assertEqual(derive_pending(active)["gates"], list(GATE_ORDER))
         self.assertEqual(derive_coverage(active), {})
         self.assertEqual(derive_failed(active), [])
+        self.assertFalse(derive_certified(active, repo=ROOT))
 
     def test_real_cli_applies_current_source_to_isolated_repo(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
