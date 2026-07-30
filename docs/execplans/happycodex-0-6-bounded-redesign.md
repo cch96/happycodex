@@ -4,10 +4,10 @@ Protocol: `HappyCodex/0.5`
 
 ## Checkpoint, authority, and current state
 
-G033 starts from accepted commit
-`a0d21518e03fed80a960441b431d824bfdaef599`, tree
-`a0b5fe6c1faddd78359d5dd5ccffe804427e70ff`, direct child of
-`5df7a0f6a25f9a04ae4681a84c63c719f490ac2c`, on branch
+G034 starts from hardened transport commit
+`825962522c8ba6abb8dea3f7f7f04b8029e339fe`, tree
+`36aa681a5c7bd7ab5dd29e2df96d52d965c41fc2`, direct child of
+`a0d21518e03fed80a960441b431d824bfdaef599`, on branch
 `codex/happycodex-0.6-bounded-redesign`. Fixed Executor
 `/root/bounded_redesign_executor`, role `happycodex_executor`,
 `gpt-5.6-sol/high`, remains the sole writer. The mode-`0600` task claim
@@ -23,13 +23,12 @@ intent SHA-256 is
 and mode-`0600` terminal-receipt SHA-256 is
 `45ad30d093cb0da0dd5e97b0417de7e3ecbb2e8abf04893c13982e398d6b16df`.
 
-Root then granted `HC06BR-G-030-fresh-candidate-after-path-repair`. Its
-mode-`0600` intent SHA-256 is
-`40bf06334af170266829811b794e96d900d705b8a80efb50195a2b80841a6e84`.
-Its accepted commit is `5df7a0f6a25f9a04ae4681a84c63c719f490ac2c`,
-tree `bee94a346916fcd18592099d342337356172139d`, and mode-`0600`
-terminal-receipt SHA-256 is
-`0d8d41472a68bd5ded370bab635ddd505143204bb0db8a79972cfa380a0343a9`.
+G033 terminal receipt is mode `0600`, SHA-256
+`25fbf4da1acafe135db817fe3af4e6bce74249a23eae70975c6706253a20fad4`.
+G034 user authority reuses the exact repair authorization digest
+`2a8747b454439e3cd14ef3b845abc946a26406a70cedfaafa1abf6971cc8a016`;
+its mode-`0600` intent SHA-256 is
+`b08235cf146e8f4141bfafaf1d6009db8a1ca1be9f685f87dcdd3b6341b0fc6b`.
 
 ## Fresh candidate and one-shot transition
 
@@ -37,67 +36,66 @@ The candidate was recomputed from the exact committed repair source:
 
 ```text
 source commit
-91e72ba255f3e9e4b4e8746e859bb59357a12e09
+825962522c8ba6abb8dea3f7f7f04b8029e339fe
 source tree
-ae276c2a0a1295647da0301a20043cfeb6d92bbf
+36aa681a5c7bd7ab5dd29e2df96d52d965c41fc2
 package artifact
 4e2b300bfc7c49c4eccad46a198e79f15c28680f2e4e6f041fabcc995ad3621e
 package semantic
 9cd5a507a8a9561c8af6751917b430b1cb29c238810b7c32bcff15c39044965a
 engine manifest
-ffdc07be358c664d4c710e187350f3289c6e0b9f8321d77fa291a5465797c47d
+d0c505c8b7dc6b37b0bcf65c61137d90d640126bec55deea7792474fdf9528b6
 Executor role
 f1effcc84e7ed24f6d54c972e2e412db42a3e46a6d92565e6d61b358128305da
 public baseline
 514cea60053bab5303e86e6cacaa0260e960b3fe1670a658e2df1a6965ce978c
 snapshot
-68d17de6ffca4b4a3f6dc3a04c2d1d98f64ffb8eb6aed9c031a0171cdbe41bd1
+725624bb5b7243db7a52f05e68b6894973e30fa1e80b144137ef7a0730bb93dc
 created_at
-2026-07-30T13:24:47Z
+2026-07-30T14:35:33Z
 candidate seal
-12f7bce171d89f8e0f8da5d255872879048fa3e7ef6f8bb73f75005293516b85
+704b3fb16008d7d527c4fab7328aa6d84717374884a9c62358c554dbccac9f6e
 ```
 
-The private input `/tmp/happycodex-g030-release-candidate.json` is mode `0600`,
+The private input `/tmp/happycodex-g034-release-candidate.json` is mode `0600`,
 886 bytes, file SHA-256
-`e3bc0eb81be8659054f973c99ee898d566683164ebc41a074cc2604b1c3766a3`.
+`e20e4458b963df5d6667445c54e2dceaa5642eba08ebea5735b43e265a32bdb6`.
 It passed repository-aware validation before the only apply:
 
 ```text
 PYTHONDONTWRITEBYTECODE=1 python3 -m evaluation.cli apply \
   --expected 09fd486ca4b12699ef42c94e596d584b3ad527aa7ea3054dc0a7a2d674b34ebe \
-  --record /tmp/happycodex-g030-release-candidate.json
+  --record /tmp/happycodex-g034-release-candidate.json
 ```
 
 The command ran once, exited zero, and was not retried. The resulting ledger
 canonical SHA-256 is
-`84c43fc00ae1d72b5626a163ef76d96ea003288ec4037d765908dfa19f8eb1c2`
+`b8df2ccff931fb0ea2dd542d85632929f23814d6095926d2d93bda241b319998`
 and file SHA-256 is
-`2710cc09be6985ab9827267d26c130e63821a5675f02e8bb8dc3aac40197c429`.
+`f8a03a8a3c2b5c8fa2063400df40e4d53b458d44b191145c298c5f4ffcb55022`.
 It contains exactly this candidate, zero plans, and zero receipts. It derives
 `refresh_required`, all six pending gates, empty coverage/failures, and no
 certification. No old evidence was migrated or reused.
 
-## Fresh calibration GatePlan
+## Retired calibration epoch
 
-Root granted `HC06BR-G-031-fresh-calibration-gateplan-after-path-repair`.
+Root had granted `HC06BR-G-031-fresh-calibration-gateplan-after-path-repair`.
 Its mode-`0600` intent SHA-256 is
 `2f761e9f1da330afd744e895f206a9da84194288ffe59d8e73e1bfa8b75663e4`.
-G031 authorizes only one calibration `GatePlan`, the narrow active-state test,
-this index, and their direct-child commit. It grants no approval, execution,
+G031 authorized only one calibration `GatePlan`, the narrow active-state test,
+this index, and their direct-child commit. It granted no approval, execution,
 `EffectIntent`, model/provider call, receipt, evidence, or later gate.
 
-The fresh private base and `calibration-claims` child are real mode-`0700`
-directories:
+The former base and `calibration-claims` child remain recovery anchors:
 
 ```text
 /home/caichenghang/.codex/happycodex-0.6-calibration-12f7bce171d89f8e0f8da5d255872879048fa3e7ef6f8bb73f75005293516b85
 /home/caichenghang/.codex/happycodex-0.6-calibration-12f7bce171d89f8e0f8da5d255872879048fa3e7ef6f8bb73f75005293516b85/calibration-claims
 ```
 
-Claims remain empty. `calibration-output` remains absent. The retired
-`d5e643...` base, consumed claim, and empty output are unchanged and never
-reused.
+G032 later consumed exactly one claim and created one unit output there. Its
+claim, raw events, and stderr remain immutable. The older `d5e643...` base,
+consumed claim, and empty output are also unchanged and never reused.
 
 The first private draft stopped before apply after a cross-check mismatch:
 it added candidate/unit assertions to the retired script and paraphrased an
@@ -116,7 +114,7 @@ candidate`. The script rejects argv drift, loads the sole candidate-bound
 calibration plan, requires zero receipts, reconstructs every unit with
 `evaluation.live.build_effect_intent`, and routes only through
 `evaluation.cli.run_authorized` with the fresh claims root. It contains no
-plan/request digest and was not executed. Profile SHA-256 is
+plan/request digest. G032 later executed it once without retry. Profile SHA-256 is
 `0cef1048b162f467858036c6a4dab9143606df372fbde2c9a900348d17c06831`.
 
 The compact resource-bundle canonical preimage is:
@@ -138,7 +136,7 @@ The canonical approval-request object is:
 
 Its SHA-256 is
 `28a53f918bfe871542f3d92615bb085aca56f7e9a25625d598e04cd0662fe4e7`.
-The only future approval line, including its trailing LF, is:
+The exact approval line, including its trailing LF, was:
 
 ```text
 APPROVE HAPPYCODEX 0.6 CALIBRATION 28a53f918bfe871542f3d92615bb085aca56f7e9a25625d598e04cd0662fe4e7
@@ -146,8 +144,8 @@ APPROVE HAPPYCODEX 0.6 CALIBRATION 28a53f918bfe871542f3d92615bb085aca56f7e9a2562
 
 Those bytes have SHA-256
 `519322cb579cd78aadf4fcf1c0f1ce5757b3a100cdcb17d3d0d9a6d0defdeb5d`.
-This line is not authorized and was not executed. The plan is an audit/cost
-binding, never permission. `model_calls=1` means one external Codex execution
+G032 consumed this authority exactly once; it cannot be reused. The plan was an
+audit/cost binding, never permission. `model_calls=1` means one external Codex execution
 phase, not internal provider turns. The 300-second subprocess timeout is the
 only preemptive bound; the token and 360-second ceilings are conservative
 post-run acceptance limits. Generation 6 has no accepted historical cost.
@@ -161,7 +159,7 @@ exited zero, and was not retried. The ledger canonical SHA-256 is
 `e81a3262fa48b9c3e6f2d81018ef6cbb91e27943a6fe0d4aa555358fea19b956`;
 file SHA-256 is
 `f8a707c5bf4b0fd219cadf0194d7da1407b0877eca778b0803cffa636aa78ab1`.
-It contains the unchanged candidate, exactly this plan, and zero receipts;
+It contained the unchanged candidate, exactly this plan, and zero receipts;
 derived state remains `refresh_required`, six pending gates, empty
 coverage/failures, and uncertified.
 
@@ -275,7 +273,7 @@ tests/test_certification_engine.py
 docs/execplans/happycodex-0-6-bounded-redesign.md
 ```
 
-G030 changes exactly:
+G034 changes exactly:
 
 ```text
 evaluation/results/current.json
@@ -283,11 +281,10 @@ tests/test_certification_engine.py
 docs/execplans/happycodex-0-6-bounded-redesign.md
 ```
 
-G031 changes exactly the same three tracked paths. The active-ledger test
-asserts the exact candidate, sole plan seal/resource/request/content/unit, zero
-receipts, `refresh_required`, all six pending gates, empty coverage/failures,
-and no certification. Isolated genesis, append, successor, schema, archive, and
-prior-Git drift tests remain unchanged.
+G031 changed exactly the same three tracked paths. G034 now asserts the exact
+hardened candidate and zero plans/receipts, `refresh_required`, all six pending
+gates, empty coverage/failures, and no certification. Isolated genesis, append,
+successor, schema, archive, and prior-Git drift tests remain unchanged.
 
 ## G032 terminal and G033 repair
 
@@ -338,13 +335,13 @@ git diff --check
 Before commit, `verify` and `impact` must each return two with empty stdout and
 the sole exact error `worktree ledger differs from prior Git ledger`; no other
 error is accepted. After commit, `verify` returns zero and `impact` returns the
-expected two solely because fresh genesis has no candidate and source refresh
-is required. Full tests run both before and after commit. All four dry runs must
-return zero with nine zero effect counters. Runtime/package/version,
+expected zero because the exact candidate is committed. Full tests run both
+before and after commit. All four dry runs must return zero with nine zero
+effect counters. Runtime/package/version,
 marketplace, active source/cache, retired and fresh external states, evaluator
 inventory, budgets, and exact diff must remain protected. Global config and
 models cache are not inputs and must not be modified.
 
-After Root accepts the G033 repair commit, a fresh candidate requires a
-separate grant. G033 stops at genesis without `EffectIntent`, claim consumption,
-model/provider work, candidate, GatePlan, evidence, or `GateReceipt`.
+After Root accepts the G034 candidate commit, any GatePlan requires a separate
+grant. G034 stops without `EffectIntent`, claim consumption, model/provider
+work, GatePlan, evidence, or `GateReceipt`.

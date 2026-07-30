@@ -210,11 +210,33 @@ def _run_current_cli(*args: str, cwd: Path = ROOT) -> subprocess.CompletedProces
 
 
 class GenesisAndCliTests(unittest.TestCase):
-    def test_active_ledger_is_exact_genesis(self) -> None:
+    def test_active_ledger_has_exact_hardened_candidate(self) -> None:
         active = json.loads(
             (ROOT / "evaluation/results/current.json").read_text(encoding="utf-8")
         )
-        self.assertEqual(active, GENESIS)
+        expected_candidate = {
+            "candidate_sha256": "704b3fb16008d7d527c4fab7328aa6d84717374884a9c62358c554dbccac9f6e",
+            "created_at": "2026-07-30T14:35:33Z",
+            "engine_manifest_sha256": "d0c505c8b7dc6b37b0bcf65c61137d90d640126bec55deea7792474fdf9528b6",
+            "executor_role_sha256": "f1effcc84e7ed24f6d54c972e2e412db42a3e46a6d92565e6d61b358128305da",
+            "package_artifact_sha256": "4e2b300bfc7c49c4eccad46a198e79f15c28680f2e4e6f041fabcc995ad3621e",
+            "package_semantic_sha256": "9cd5a507a8a9561c8af6751917b430b1cb29c238810b7c32bcff15c39044965a",
+            "public_baseline_sha256": "514cea60053bab5303e86e6cacaa0260e960b3fe1670a658e2df1a6965ce978c",
+            "record_type": "ReleaseCandidate",
+            "schema_version": 1,
+            "snapshot_sha256": "725624bb5b7243db7a52f05e68b6894973e30fa1e80b144137ef7a0730bb93dc",
+            "source_commit": "825962522c8ba6abb8dea3f7f7f04b8029e339fe",
+            "source_tree": "36aa681a5c7bd7ab5dd29e2df96d52d965c41fc2",
+        }
+        self.assertEqual(
+            active,
+            {
+                "candidate": expected_candidate,
+                "plans": [],
+                "receipts": [],
+                "schema_version": 1,
+            },
+        )
         validate_ledger(active, repo=ROOT)
         self.assertEqual(derive_status(active), "refresh_required")
         self.assertEqual(derive_pending(active)["gates"], list(GATE_ORDER))
