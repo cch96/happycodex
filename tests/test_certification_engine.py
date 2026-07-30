@@ -332,6 +332,7 @@ class LedgerRecordTests(unittest.TestCase):
             self.candidate,
             "calibration",
             Path(self.raw.name) / "effects",
+            units=("subthreshold-control",),
         )
         ledger = append_record(ledger, plan, repo=self.repo)
         receipt = _receipt(self.candidate, plan, 0)
@@ -407,6 +408,7 @@ class LedgerRecordTests(unittest.TestCase):
             self.candidate,
             "calibration",
             Path(self.raw.name) / "effects",
+            units=("subthreshold-control",),
         )
         planned = append_record(candidate_only, plan, repo=self.repo)
         validate_successor(candidate_only, planned, repo=self.repo)
@@ -416,6 +418,7 @@ class LedgerRecordTests(unittest.TestCase):
                 self.candidate,
                 "corpus",
                 Path(self.raw.name) / "corpus",
+                units=tuple(build_snapshot(self.repo)["corpus"]["cases"]),
                 created_at="2026-07-30T00:02:00Z",
             )
         )
@@ -496,9 +499,9 @@ class LedgerRecordTests(unittest.TestCase):
         self.assertEqual(set(derive_coverage(ledger)), set(GATE_ORDER))
         self.assertEqual(derive_pending(ledger)["gates"], [])
         self.assertEqual(derive_receipt_tip(ledger), parent)
-        self.assertTrue(derive_freeze_eligibility(ledger))
-        self.assertTrue(derive_certified(ledger))
-        self.assertEqual(derive_status(ledger), "certified")
+        self.assertFalse(derive_freeze_eligibility(ledger))
+        self.assertFalse(derive_certified(ledger))
+        self.assertEqual(derive_status(ledger), "refresh_required")
         self.assertEqual(derive_failed(ledger), [])
 
     def test_first_failed_receipt_blocks_certification(self) -> None:
@@ -745,6 +748,263 @@ class ContractProtocolAndImpactTests(unittest.TestCase):
         self.assertIn("generation_6_genesis", impact["reasons"])
         self.assertIsNone(impact["live_calls"])
         self.assertIsNone(impact["cost"])
+
+
+class FalseGreenBoundaryTests(unittest.TestCase):
+    def test_empty_gate_plans_and_receipts_cannot_certify(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            repo = _prepare_repo(raw)
+            candidate = _candidate(repo)
+            plans = []
+            receipts = []
+            parent = None
+            for index, gate in enumerate(GATE_ORDER):
+                plan = _plan(
+                    candidate,
+                    gate,
+                    Path(raw) / gate,
+                    units=(),
+                    created_at=f"2026-07-30T00:01:{index:02d}Z",
+                )
+                plan["resource_digests"] = []
+                plan["plan_sha256"] = canonical_sha256(
+                    {
+                        key: value
+                        for key, value in plan.items()
+                        if key != "plan_sha256"
+                    }
+                )
+                plans.append(plan)
+                receipt = _receipt(
+                    candidate,
+                    plan,
+                    index,
+                    created_at=f"2026-07-30T00:02:{index:02d}Z",
+                    parent=parent,
+                )
+                receipt["output_sha256"] = None
+                receipt["receipt_sha256"] = canonical_sha256(
+                    {
+                        key: value
+                        for key, value in receipt.items()
+                        if key != "receipt_sha256"
+                    }
+                )
+                receipts.append(receipt)
+                parent = receipt["receipt_sha256"]
+            ledger = {
+                "schema_version": 1,
+                "candidate": candidate,
+                "plans": plans,
+                "receipts": receipts,
+            }
+            with self.assertRaises(ValueError):
+                validate_ledger(ledger)
+
+    def test_gate_plan_units_are_safe_single_path_components(self) -> None:
+        candidate = {"candidate_sha256": "a" * 64}
+        with tempfile.TemporaryDirectory() as raw:
+            for unit in (
+                "/tmp/escaped-unit",
+                "nested/unit",
+                r"nested\unit",
+                ".",
+                "..",
+                " unit",
+                "unit ",
+                "unit\nalias",
+                "unit\x00alias",
+            ):
+                with self.subTest(unit=repr(unit)):
+                    plan = _plan(
+                        candidate,
+                        "corpus",
+                        Path(raw) / "effects",
+                        units=(unit,),
+                    )
+                    with self.assertRaises(ValueError):
+                        validate_gate_plan(plan)
+
+    def test_success_receipt_requires_units_and_output_digest(self) -> None:
+        candidate = {"candidate_sha256": "a" * 64}
+        with tempfile.TemporaryDirectory() as raw:
+            plan = _plan(candidate, "receipt", Path(raw) / "effects")
+            receipt = _receipt(
+                candidate,
+                plan,
+                0,
+                created_at="2026-07-30T00:02:00Z",
+            )
+            for field, value in (
+                ("unit_results", []),
+                ("output_sha256", None),
+            ):
+                invalid = copy.deepcopy(receipt)
+                invalid[field] = value
+                invalid["receipt_sha256"] = canonical_sha256(
+                    {
+                        key: item
+                        for key, item in invalid.items()
+                        if key != "receipt_sha256"
+                    }
+                )
+                with self.subTest(field=field), self.assertRaises(ValueError):
+                    validate_gate_receipt(invalid)
+
+    def test_candidate_binds_exact_snapshot_public_and_current_inputs(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            repo = _prepare_repo(raw)
+            candidate = _candidate(repo)
+            forged = copy.deepcopy(candidate)
+            forged["public_baseline_sha256"] = "0" * 64
+            forged["snapshot_sha256"] = "1" * 64
+            forged["candidate_sha256"] = canonical_sha256(
+                {
+                    key: value
+                    for key, value in forged.items()
+                    if key != "candidate_sha256"
+                }
+            )
+            from evaluation.core.ledger import validate_release_candidate
+
+            with self.assertRaises(ValueError):
+                validate_release_candidate(forged, repo=repo)
+            (repo / "README.md").write_text("changed after candidate\n", encoding="utf-8")
+            _git(repo, "add", "README.md")
+            _git(repo, "commit", "--quiet", "-m", "test: change candidate input")
+            with self.assertRaises(ValueError):
+                validate_release_candidate(candidate, repo=repo)
+
+    def test_repo_ledger_binds_full_model_scopes_and_settings(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            repo = _prepare_repo(raw)
+            candidate = _candidate(repo)
+            snapshot = build_snapshot(repo)
+            calibration = _plan(
+                candidate,
+                "calibration",
+                Path(raw) / "calibration",
+                units=("subthreshold-control",),
+            )
+            corpus = _plan(
+                candidate,
+                "corpus",
+                Path(raw) / "corpus",
+                units=tuple(snapshot["corpus"]["cases"]),
+                created_at="2026-07-30T00:01:01Z",
+            )
+            holdout = _plan(
+                candidate,
+                "holdout",
+                Path(raw) / "holdout",
+                units=tuple(snapshot["holdout"]["pairs"]),
+                created_at="2026-07-30T00:01:02Z",
+            )
+            exact = {
+                "schema_version": 1,
+                "candidate": candidate,
+                "plans": [calibration, corpus, holdout],
+                "receipts": [],
+            }
+            validate_ledger(exact, repo=repo)
+            mutations = (
+                ("calibration scope", 0, ["clean-qualifying-control"]),
+                ("corpus scope", 1, ["subthreshold-control"]),
+                ("holdout scope", 2, ["local-documentation-control"]),
+                ("model", 1, "other-model"),
+                ("effort", 1, "low"),
+                ("timeout", 1, 1),
+                ("arm", 2, "candidate"),
+            )
+            for label, index, value in mutations:
+                invalid = copy.deepcopy(exact)
+                plan = invalid["plans"][index]
+                if label.endswith("scope"):
+                    plan["units"] = value
+                else:
+                    field = "timeout_ms" if label == "timeout" else label
+                    plan["profile"][field] = value
+                plan["plan_sha256"] = canonical_sha256(
+                    {
+                        key: item
+                        for key, item in plan.items()
+                        if key != "plan_sha256"
+                    }
+                )
+                with self.subTest(label=label), self.assertRaises(ValueError):
+                    validate_ledger(invalid, repo=repo)
+
+    def test_repo_less_certification_fails_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            repo = _prepare_repo(raw)
+            candidate = _candidate(repo)
+            plans = [
+                _plan(
+                    candidate,
+                    gate,
+                    Path(raw) / gate,
+                    created_at=f"2026-07-30T00:01:{index:02d}Z",
+                )
+                for index, gate in enumerate(GATE_ORDER)
+            ]
+            receipts = []
+            parent = None
+            for index, plan in enumerate(plans):
+                receipt = _receipt(
+                    candidate,
+                    plan,
+                    index,
+                    created_at=f"2026-07-30T00:02:{index:02d}Z",
+                    parent=parent,
+                )
+                receipts.append(receipt)
+                parent = receipt["receipt_sha256"]
+            ledger = {
+                "schema_version": 1,
+                "candidate": candidate,
+                "plans": plans,
+                "receipts": receipts,
+            }
+            self.assertFalse(derive_certified(ledger))
+
+    def test_cli_refuses_unpersisted_intent_before_runner(self) -> None:
+        from argparse import Namespace
+        from evaluation import cli
+
+        candidate = {"candidate_sha256": "a" * 64}
+        with tempfile.TemporaryDirectory() as raw:
+            plan = _plan(
+                candidate,
+                "corpus",
+                Path(raw) / "effects",
+                units=("subthreshold-control",),
+            )
+            intent = live.build_effect_intent(plan, "subthreshold-control")
+            args = Namespace(command="corpus", plugin=ROOT)
+            with mock.patch.object(corpus_engine, "run_authorized") as runner:
+                with self.assertRaises(ValueError):
+                    cli.run_authorized(
+                        args,
+                        {"subthreshold-control": intent},
+                        Path(raw),
+                    )
+            runner.assert_not_called()
+
+    def test_load_ledger_refuses_symlink_and_parent_alias(self) -> None:
+        from evaluation.core.ledger import load_ledger
+
+        with tempfile.TemporaryDirectory() as raw:
+            repo = _prepare_repo(raw)
+            ledger = repo / "evaluation/results/current.json"
+            target = repo / "evaluation/results/real-current.json"
+            ledger.rename(target)
+            ledger.symlink_to(target.name)
+            with self.assertRaisesRegex(ValueError, "symlink|alias|drift"):
+                load_ledger(ledger)
+            alias = Path(raw) / "repo-alias"
+            alias.symlink_to(repo, target_is_directory=True)
+            with self.assertRaisesRegex(ValueError, "symlink|alias|drift"):
+                load_ledger(alias / "evaluation/results/real-current.json")
 
 
 if __name__ == "__main__":

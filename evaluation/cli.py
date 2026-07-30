@@ -15,7 +15,13 @@ from evaluation.core.identity import (
     package_identities,
 )
 from evaluation.core.impact import DEFAULT_EFFORT, DEFAULT_MODEL, DEFAULT_TIMEOUT
-from evaluation.core.ledger import apply_record, ledger_sha256
+from evaluation.core.ledger import (
+    apply_record,
+    derive_failed,
+    derive_pending,
+    ledger_sha256,
+    load_ledger,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -24,7 +30,7 @@ ROOT = Path(__file__).resolve().parents[1]
 def verify_command() -> int:
     ledger, current, _impact = live.load_state()
     inventory = engine_inventory(ROOT)
-    derived = live.derived_release_state(ledger)
+    derived = live.derived_release_state(ledger, repo=ROOT)
     payload = {
         "schema_version": 1,
         "status": "ok",
@@ -57,7 +63,7 @@ def impact_command(public: Path | None = None) -> int:
                 "impact": impact,
                 "candidate": ledger["candidate"],
                 "plans": ledger["plans"],
-                "derived": live.derived_release_state(ledger),
+                "derived": live.derived_release_state(ledger, repo=ROOT),
             },
             sort_keys=True,
             indent=2,
@@ -82,7 +88,7 @@ def apply_command(args: argparse.Namespace) -> int:
                 "status": "applied",
                 "record_type": record.get("record_type"),
                 "ledger_sha256": canonical_sha256(after),
-                "derived": live.derived_release_state(after),
+                "derived": live.derived_release_state(after, repo=repo),
             },
             sort_keys=True,
             indent=2,
@@ -197,16 +203,47 @@ def run_authorized(
     claim_root: Path,
 ) -> int:
     """Host-only dispatch; validated content is not provenance or permission."""
-    from evaluation.corpus import engine as corpus_engine
-    from evaluation.holdout import engine as holdout_engine
+    if args.command in {"executor", "corpus"}:
+        repo = args.plugin.absolute()
+    elif args.command == "holdout":
+        repo = args.candidate.absolute()
+    else:
+        raise ValueError("authorized dispatch requires a model-reaching gate")
+    ledger = load_ledger(repo / "evaluation" / "results" / "current.json")
+    if ledger["candidate"] is None or derive_failed(ledger):
+        raise ValueError("authorized dispatch requires an active clean candidate")
+    gate = (
+        "calibration"
+        if args.command == "executor"
+        or (args.command == "corpus" and getattr(args, "calibrate", False))
+        else args.command
+    )
+    pending = derive_pending(ledger)["gates"]
+    if not pending or gate != pending[0]:
+        raise ValueError("authorized dispatch is not the next pending gate")
+    plan = next(
+        (item for item in ledger["plans"] if item["gate"] == gate),
+        None,
+    )
+    if plan is None:
+        raise ValueError("authorized dispatch has no persisted GatePlan")
+    expected_intents = {
+        unit: live.build_effect_intent(plan, unit)
+        for unit in plan["units"]
+    }
+    if effect_intents != expected_intents:
+        raise ValueError("EffectIntents do not equal the persisted GatePlan")
 
-    if args.command == "executor":
-        args.cases = ["subthreshold-control"]
-        args.calibrate = True
+    if gate in {"calibration", "corpus"}:
+        from evaluation.corpus import engine as corpus_engine
+
+        if gate == "calibration":
+            args.cases = ["subthreshold-control"]
+            args.calibrate = True
         return corpus_engine.run_authorized(args, effect_intents, claim_root)
-    if args.command == "corpus":
-        return corpus_engine.run_authorized(args, effect_intents, claim_root)
-    if args.command == "holdout":
+    if gate == "holdout":
+        from evaluation.holdout import engine as holdout_engine
+
         return holdout_engine.run_authorized(args, effect_intents, claim_root)
     raise ValueError("authorized dispatch requires a model-reaching gate")
 

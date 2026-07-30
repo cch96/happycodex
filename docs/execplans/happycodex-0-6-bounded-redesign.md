@@ -274,6 +274,22 @@ empty. This is the same pre-acceptance integration miss. Repair grant
 `HC06BR-G-023R-postcommit-fixture` adds only `--allow-empty`; the affected 11
 tests are GREEN, output `e003e893`.
 
+Root then rejected four reproducible release false greens. Grant
+`HC06BR-G-023F-false-green-boundary` made plans and successful receipts
+nonempty, constrained units to safe direct-child names, rebound candidates to
+their exact source snapshot/public baseline/current inputs, required exact
+snapshot-derived model scopes and settings, made repo-less certification fail
+closed, bound authorized dispatch to the current persisted next plan, and made
+ledger loading refuse symlink or parent aliases. Its 8-test RED had 23 failures
+and output SHA-256 `3a4e4719`; focused GREEN output is `00b7fa55`, and the full
+157-test GREEN output is `481de8ea`. Verify and all four dry-run routes remain
+zero-live; `impact` remains expected `refresh_required`. The active
+`current.json` is unchanged. Root explicitly deferred two pre-existing Batch 3
+cleanup surfaces: legacy prose at `evaluation/README.md:65,71`, and negative
+oracle literals at `tests/test_contracts.py:106-107`. They are not G-023F
+production-code/schema/ledger failures and must not be forgotten or edited
+under this repair.
+
 ### Batch 3 — Identity, documentation, and deletion proof
 
 Owned paths:

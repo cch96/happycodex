@@ -112,7 +112,11 @@ def build_effect_intent(plan: dict[str, Any], unit: str) -> dict[str, Any]:
         "effort": profile["effort"],
         "arm": profile["arm"],
     }
-    output = str((Path(plan["output"]) / unit).absolute())
+    output_root = Path(plan["output"]).absolute()
+    output_path = (output_root / unit).absolute()
+    if output_path.parent != output_root:
+        raise ValueError("EffectIntent output must be a direct GatePlan child")
+    output = str(output_path)
     payload = {
         "schema_version": 1,
         "candidate_sha256": plan["candidate_sha256"],
@@ -355,15 +359,17 @@ def load_state() -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
     return ledger, current, impact
 
 
-def derived_release_state(ledger: dict[str, Any]) -> dict[str, Any]:
+def derived_release_state(
+    ledger: dict[str, Any], *, repo: Path | None = None
+) -> dict[str, Any]:
     return {
-        "state": derive_status(ledger),
+        "state": derive_status(ledger, repo=repo),
         "pending_gates": derive_pending(ledger)["gates"],
         "coverage": derive_coverage(ledger),
         "receipt_tip": derive_receipt_tip(ledger),
-        "freeze_eligibility": derive_freeze_eligibility(ledger),
+        "freeze_eligibility": derive_freeze_eligibility(ledger, repo=repo),
         "failed": derive_failed(ledger),
-        "certified": derive_certified(ledger),
+        "certified": derive_certified(ledger, repo=repo),
     }
 
 

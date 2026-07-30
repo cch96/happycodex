@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import stat
 import subprocess
 import tempfile
@@ -15,6 +16,7 @@ from evaluation.core.identity import (
     RECOVERY_MANIFEST_PATTERN,
     RECOVERY_STATE_FIELDS,
     canonical_sha256,
+    normalize_package_modes,
     permission_assertions_invalid,
     sha256_bytes,
     source_archive_identity,
@@ -318,6 +320,34 @@ def _sealed(record: dict[str, Any], field: str, label: str) -> None:
         raise ValueError(f"invalid {label} seal")
 
 
+def _source_snapshot(repo: Path, revision: str) -> dict[str, Any]:
+    from evaluation.core.impact import build_snapshot
+
+    with tempfile.TemporaryDirectory(prefix="happycodex-snapshot-") as raw:
+        archive = Path(raw) / "source.tar"
+        extracted = Path(raw) / "source"
+        extracted.mkdir()
+        result = subprocess.run(
+            [
+                "git",
+                "-C",
+                str(repo),
+                "archive",
+                "--format=tar",
+                "--output",
+                str(archive),
+                revision,
+            ],
+            check=False,
+            capture_output=True,
+        )
+        if result.returncode:
+            raise ValueError("cannot archive ReleaseCandidate source")
+        shutil.unpack_archive(str(archive), extracted)
+        normalize_package_modes(extracted)
+        return build_snapshot(extracted)
+
+
 def validate_release_candidate(
     value: Any, *, repo: Path | None = None
 ) -> dict[str, Any]:
@@ -339,6 +369,9 @@ def validate_release_candidate(
     _timestamp(record["created_at"], "ReleaseCandidate")
     _sealed(record, "candidate_sha256", "ReleaseCandidate")
     if repo is not None:
+        from evaluation.core.impact import build_snapshot
+
+        repo = repo.resolve()
         archived = source_archive_identity(repo, record["source_commit"])
         expected = {
             "source_commit": archived["source_commit"],
@@ -350,6 +383,23 @@ def validate_release_candidate(
         }
         if any(record[field] != expected[field] for field in expected):
             raise ValueError("ReleaseCandidate does not match Git archive")
+        source_snapshot = _source_snapshot(repo, record["source_commit"])
+        settings = source_snapshot["settings"]
+        current_snapshot = build_snapshot(
+            repo,
+            model=settings["model"],
+            effort=settings["effort"],
+            timeout=settings["timeout_seconds"],
+        )
+        if (
+            record["snapshot_sha256"] != canonical_sha256(source_snapshot)
+            or record["public_baseline_sha256"]
+            != canonical_sha256(source_snapshot["public_baseline"])
+            or current_snapshot != source_snapshot
+        ):
+            raise ValueError(
+                "ReleaseCandidate snapshot, baseline, or current inputs drifted"
+            )
         head = _git(repo, "rev-parse", "HEAD^{commit}")
         if subprocess.run(
             ["git", "-C", str(repo), "merge-base", "--is-ancestor",
@@ -390,11 +440,33 @@ def validate_gate_plan(value: Any) -> dict[str, Any]:
         raise ValueError("invalid GatePlan cost ceiling")
     units = _unique_strings(record["units"], "GatePlan units")
     resources = _unique_strings(record["resource_digests"], "resource digests")
-    if units != sorted(units) or resources != sorted(resources):
+    if (
+        not units
+        or not resources
+        or units != sorted(units)
+        or resources != sorted(resources)
+    ):
         raise ValueError("GatePlan units and resources must be sorted")
+    if any(
+        unit != unit.strip()
+        or unit in {".", ".."}
+        or "/" in unit
+        or "\\" in unit
+        or Path(unit).is_absolute()
+        or len(Path(unit).parts) != 1
+        or any(ord(character) < 32 or ord(character) == 127 for character in unit)
+        for unit in units
+    ):
+        raise ValueError("GatePlan units must be safe single path components")
     for digest in resources:
         _digest(digest, "GatePlan resource")
-    if type(record["output"]) is not str or not Path(record["output"]).is_absolute():
+    output = Path(record["output"]) if type(record["output"]) is str else Path()
+    if (
+        type(record["output"]) is not str
+        or not output.is_absolute()
+        or ".." in output.parts
+        or output != Path(os.path.abspath(output))
+    ):
         raise ValueError("invalid GatePlan output")
     _digest(record["approval_request_sha256"], "approval request")
     _digest(record["approval_content_sha256"], "approval content")
@@ -426,7 +498,7 @@ def validate_gate_receipt(value: Any) -> dict[str, Any]:
         "GateReceipt parent",
         nullable=True,
     )
-    if not isinstance(record["unit_results"], list):
+    if not isinstance(record["unit_results"], list) or not record["unit_results"]:
         raise ValueError("invalid GateReceipt unit results")
     units = []
     for raw in record["unit_results"]:
@@ -441,10 +513,17 @@ def validate_gate_receipt(value: Any) -> dict[str, Any]:
         units.append(item["unit"])
     if units != sorted(set(units)):
         raise ValueError("GateReceipt units must be sorted and unique")
-    if record["result"] == "succeeded" and any(
-        item["status"] != "succeeded" for item in record["unit_results"]
+    if record["result"] == "succeeded":
+        if record["output_sha256"] is None:
+            raise ValueError("successful GateReceipt needs an output digest")
+        if any(
+            item["status"] != "succeeded" for item in record["unit_results"]
+        ):
+            raise ValueError("successful GateReceipt contains a failed unit")
+    elif all(
+        item["status"] == "succeeded" for item in record["unit_results"]
     ):
-        raise ValueError("successful GateReceipt contains a failed unit")
+        raise ValueError("failed GateReceipt needs a failed unit")
     _sealed(record, "receipt_sha256", "GateReceipt")
     return record
 
@@ -491,6 +570,34 @@ def validate_ledger(ledger: dict[str, Any], *, repo: Path | None = None) -> None
         plan["gate"] for plan in ledger["plans"]
     ]:
         raise ValueError("GatePlans are not in canonical gate order")
+    if repo is not None and candidate is not None:
+        from evaluation.core.impact import build_snapshot
+
+        snapshot = build_snapshot(repo)
+        expected_units = {
+            "calibration": ["subthreshold-control"],
+            "corpus": sorted(snapshot["corpus"]["cases"]),
+            "holdout": sorted(snapshot["holdout"]["pairs"]),
+        }
+        expected_arms = {
+            "calibration": "candidate",
+            "corpus": "candidate",
+            "holdout": "blinded-pair",
+        }
+        settings = snapshot["settings"]
+        for gate in MODEL_GATES & plans.keys():
+            plan = plans[gate]
+            profile = plan["profile"]
+            if (
+                plan["units"] != expected_units[gate]
+                or profile["model"] != settings["model"]
+                or profile["effort"] != settings["effort"]
+                or profile["timeout_ms"] != settings["timeout_seconds"] * 1000
+                or profile["arm"] != expected_arms[gate]
+            ):
+                raise ValueError(
+                    f"GatePlan {gate} does not match snapshot scope and settings"
+                )
     parent = None
     seen_gates = set()
     previous_created_at = candidate["created_at"] if candidate is not None else None
@@ -577,8 +684,12 @@ def derive_pending(ledger: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def derive_freeze_eligibility(ledger: dict[str, Any]) -> bool:
-    validate_ledger(ledger)
+def derive_freeze_eligibility(
+    ledger: dict[str, Any], *, repo: Path | None = None
+) -> bool:
+    validate_ledger(ledger, repo=repo)
+    if repo is None:
+        return False
     completed = set(derive_coverage(ledger))
     return (
         ledger["candidate"] is not None
@@ -587,16 +698,25 @@ def derive_freeze_eligibility(ledger: dict[str, Any]) -> bool:
     )
 
 
-def derive_certified(ledger: dict[str, Any]) -> bool:
-    validate_ledger(ledger)
+def derive_certified(
+    ledger: dict[str, Any], *, repo: Path | None = None
+) -> bool:
+    validate_ledger(ledger, repo=repo)
     return (
-        derive_freeze_eligibility(ledger)
+        repo is not None
+        and derive_freeze_eligibility(ledger, repo=repo)
         and set(derive_coverage(ledger)) == set(GATE_ORDER)
     )
 
 
-def derive_status(ledger: dict[str, Any]) -> str:
-    return "certified" if derive_certified(ledger) else "refresh_required"
+def derive_status(
+    ledger: dict[str, Any], *, repo: Path | None = None
+) -> str:
+    return (
+        "certified"
+        if derive_certified(ledger, repo=repo)
+        else "refresh_required"
+    )
 
 
 def validate_successor(
@@ -739,11 +859,22 @@ def apply_record(
 
 
 def load_ledger(path: Path) -> dict[str, Any]:
-    repo = path.resolve().parents[2]
-    raw = _read_nofollow(path.resolve())
+    candidate = path.absolute()
+    if (
+        ".." in candidate.parts
+        or candidate != Path(os.path.abspath(candidate))
+    ):
+        raise ValueError("ledger path alias or drift refused")
+    chain = [candidate, *candidate.parents[:-1]]
+    for component in chain:
+        mode = component.lstat().st_mode
+        if stat.S_ISLNK(mode):
+            raise ValueError("ledger path symlink or alias refused")
+    repo = candidate.parents[2]
+    raw = _read_nofollow(candidate)
     ledger = json.loads(raw)
     validate_ledger(ledger, repo=repo)
-    relative = path.resolve().relative_to(repo).as_posix()
+    relative = candidate.relative_to(repo).as_posix()
     prior = subprocess.run(
         ["git", "-C", str(repo), "show", f"HEAD:{relative}"],
         check=False,
