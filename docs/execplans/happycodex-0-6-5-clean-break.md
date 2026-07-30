@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `CALIBRATION_AUTHORIZED`
+Status: `CALIBRATION_INFRASTRUCTURE_REPAIR`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -265,7 +265,32 @@ digest. Focused RED reproduced all five findings before implementation.
   `be4777979e04b4544623488f930192851b10f2bc32db2863faf706b5db1398e3`
   and the resulting ledger is
   `2c406458c85987d28f53f1d759b2291d0455bae7bca57bccf87d1e854141129d`.
-- Next action: commit this durable intent, then run `host-run` once with the
-  exact line and bound impact digest. A successful calibration receipt supplies
-  the cost basis for the later corpus plan; no future GatePlan is
-  pre-authorized.
+- The default Host launch stopped before reservation because
+  `validate_launch(..., plan=plan)` reconstructed the default infrastructure
+  digest as a replacement launch. Private NO_EFFECT record
+  `preflight-no-effect.json`, SHA-256
+  `60b2b2871f1856472200798a9f244d2401bf1819f775fb9e03e7bf40916c98da`,
+  became the one distinct infrastructure generation. It preserved the
+  ActionKey, provider invocation, candidate, impact, and cost ceiling.
+- That launch reached the provider once, which consumed ActionKey
+  `02091acd8ad5ec02b2929006e21f88421c7d3057517d5c4542d0a926ec0711f9`.
+  The provider rejected the structured-output request with HTTP 400
+  `invalid_json_schema`: nested anchor objects lacked required
+  `additionalProperties:false`. No terminal usage event exists, so immutable
+  result
+  `ebc6a8946f94ba646febbda8f22698fa72e8da12840e6126fca1003cb9d25476`
+  conservatively records the full approved ceiling rather than claiming zero
+  cost. The same stderr also shows an attempted Cloudflare MCP OAuth worker,
+  reopening closed-tool-surface proof.
+- Failed calibration receipt
+  `783d983c23b4bf625badf7c506fda3cc15eb08e1ffc8c15d831d3485b776b118`
+  binds the consumed result. Its private file SHA-256 is
+  `d374f242a229794ebf8af735c379636519d49af719cb2fb32d8cfa48d1e26ec6`;
+  the failed terminal ledger is
+  `73b9300bc1a63c0006b7c8fdd6fc707a977327a763eb7ceef120171fe4210874`.
+- New findings `HC-065-LAUNCH-RECONSTRUCTION`,
+  `HC-065-TRANSPORT-SCHEMA`, and `HC-065-MCP-CLOSURE` are candidate-new
+  evaluator failures. The consumed ActionKey and approval are never retried or
+  transferred. Next action is one offline harness repair and full GREEN,
+  followed by a fresh successor candidate/genesis and a newly derived
+  calibration request.
