@@ -85,19 +85,24 @@ class HappyCodexHoldoutTests(unittest.TestCase):
             with mock.patch.object(
                 holdout_engine, "_validate_pair_launch", return_value=None
             ):
-                with self.assertRaisesRegex(RuntimeError, "infra failure"):
-                    holdout_engine.run_pair(
-                        pair,
-                        candidate=root / "candidate",
-                        public=root / "public",
-                        output=root / "output",
-                        model="test-model",
-                        effort="high",
-                        timeout=10,
-                        launch={},
-                        claim_root=root,
-                        evaluator=evaluate,
-                    )
+                with mock.patch(
+                    "evaluation.live.validate_capability",
+                    return_value=None,
+                ):
+                    with self.assertRaisesRegex(RuntimeError, "infra failure"):
+                        holdout_engine.run_pair(
+                            pair,
+                            candidate=root / "candidate",
+                            public=root / "public",
+                            output=root / "output",
+                            model="test-model",
+                            effort="high",
+                            timeout=10,
+                            launch={"output": str(pair_output)},
+                            claim_root=root,
+                            capability=None,
+                            evaluator=evaluate,
+                        )
 
             self.assertTrue((pair_output / "01-mapping-commitment.json").is_file())
             for name in (
@@ -293,6 +298,7 @@ class HappyCodexHoldoutTests(unittest.TestCase):
                         timeout=300,
                         launch={},
                         claim_root=root,
+                        capability=None,
                     )
             mapping.assert_not_called()
 

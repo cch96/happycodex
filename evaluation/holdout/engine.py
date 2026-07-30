@@ -144,6 +144,7 @@ def run_pair(
     timeout: int,
     launch: dict[str, Any],
     claim_root: Path,
+    capability: object,
     evaluator: Callable[..., dict[str, Any]] = corpus_engine.evaluate_case,
 ) -> dict[str, Any]:
     _validate_pair_launch(
@@ -155,8 +156,15 @@ def run_pair(
         effort=effort,
         timeout=timeout,
     )
-    pair_output = output / pair["id"]
-    if pair_output.is_symlink() or not pair_output.is_dir():
+    from evaluation.live import validate_capability
+
+    validate_capability(capability, launch=launch)
+    pair_output = Path(launch["output"])
+    if (
+        pair_output.parent != output.absolute()
+        or pair_output.is_symlink()
+        or not pair_output.is_dir()
+    ):
         raise ValueError("reserved holdout launch output is not a real directory")
     sealed = seal_mapping(pair["id"])
     commitment_sha = write_new_json(
@@ -177,6 +185,7 @@ def run_pair(
             arm=arm,
             launch=launch,
             claim_root=claim_root,
+            capability=capability,
             launch_unit=pair["id"],
         )
 
@@ -221,10 +230,20 @@ def run_pair(
     return receipt
 
 
-def resolve_output(requested: Path | None, *plugins: Path) -> Path:
+def resolve_output(
+    requested: Path | None,
+    *plugins: Path,
+    allow_existing: bool = False,
+) -> Path:
     if requested is None or not requested.is_absolute():
         raise ValueError("an explicit absolute raw output path is required")
-    if requested.is_symlink() or requested.exists():
+    if requested.is_symlink():
+        raise ValueError("raw holdout output path must be absent and not a symlink")
+    if requested.exists() and (
+        not allow_existing
+        or not requested.is_dir()
+        or requested.stat().st_mode & 0o777 != 0o700
+    ):
         raise ValueError("raw holdout output path must be absent and not a symlink")
     parent = requested.parent
     if parent.is_symlink() or not parent.is_dir():
@@ -246,6 +265,7 @@ def run_holdouts(
     timeout: int,
     launches: dict[str, dict[str, Any]],
     claim_root: Path,
+    capability: object,
 ) -> dict[str, Any]:
     from evaluation import live
 
@@ -256,7 +276,12 @@ def run_holdouts(
         for key, value in launches.items()
     }
     manifest = load_manifest()
-    output = resolve_output(output, candidate, public)
+    output = resolve_output(
+        output,
+        candidate,
+        public,
+        allow_existing=True,
+    )
     pair_ids = [pair["id"] for pair in manifest["pairs"]]
     if set(prepared) != set(pair_ids):
         raise ValueError("launch units do not equal holdout pairs")
@@ -265,15 +290,16 @@ def run_holdouts(
             prepared[pair_id],
             unit=pair_id,
             timeout_ms=timeout * 1000,
-            output=output / pair_id,
         )
         if (
             launch["gate"] != "holdout"
+            or Path(launch["output"]).parent != output
             or launch["invocation"]["model"] != model
             or launch["invocation"]["effort"] != effort
             or launch["invocation"]["arm"] != "blinded-pair"
         ):
             raise ValueError("launch does not bind holdout invocation")
+        live.validate_capability(capability, launch=launch)
     corpus_engine.provider_transport_schema(corpus_engine.OUTPUT_SCHEMA)
     corpus_engine.codex_identity()
     for plugin in (candidate, public):
@@ -285,18 +311,22 @@ def run_holdouts(
         pair = by_id[frontier[0]]
         launch = prepared[pair["id"]]
         live.reserve_launch(launch, claim_root)
-        live.consume_action(launch, claim_root)
-        receipt = run_pair(
-            pair,
-            candidate=candidate,
-            public=public,
-            output=output,
-            model=model,
-            effort=effort,
-            timeout=timeout,
-            launch=launch,
-            claim_root=claim_root,
-        )
+        try:
+            receipt = run_pair(
+                pair,
+                candidate=candidate,
+                public=public,
+                output=output,
+                model=model,
+                effort=effort,
+                timeout=timeout,
+                launch=launch,
+                claim_root=claim_root,
+                capability=capability,
+            )
+        except BaseException as exc:
+            live.write_launch_failure(launch, claim_root, exc)
+            raise
         usage = {
             "model_calls": sum(
                 len(arm["usage_phases"]) for arm in receipt["arms"].values()
@@ -395,6 +425,7 @@ def run_authorized(
     args: Any,
     launches: dict[str, dict[str, Any]],
     claim_root: Path,
+    capability: object,
 ) -> int:
     if args.public is None:
         raise ValueError("exact public-0.2 package path is required")
@@ -407,6 +438,7 @@ def run_authorized(
         timeout=args.timeout,
         launches=launches,
         claim_root=claim_root,
+        capability=capability,
     )
     print(json.dumps(result, sort_keys=True))
     return 0

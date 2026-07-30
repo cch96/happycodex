@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from argparse import Namespace
 import copy
 import inspect
 import json
@@ -15,7 +16,9 @@ from unittest import mock
 from evaluation import live
 from evaluation.core.identity import (
     canonical_sha256,
+    codex_identity,
     engine_inventory,
+    sha256_bytes,
     source_archive_identity,
 )
 from evaluation.core.impact import build_snapshot, plan_impact
@@ -336,6 +339,214 @@ class GenesisAndCliTests(unittest.TestCase):
         self.assertTrue(calibration["calibrate"])
         self.assertEqual(calibration["cases"], ["subthreshold-control"])
 
+    def test_request_builds_exact_plan_without_persisting_or_running(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            repo = _prepare_repo(raw)
+            candidate = _candidate(repo)
+            ledger = repo / "evaluation/results/current.json"
+            ledger.write_text(
+                json.dumps(
+                    {
+                        "schema_version": 1,
+                        "candidate": candidate,
+                        "plans": [],
+                        "receipts": [],
+                    },
+                    sort_keys=True,
+                    indent=2,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            _git(repo, "add", "evaluation/results/current.json")
+            _git(repo, "commit", "--quiet", "-m", "test: add candidate")
+            claims = root / "claims"
+            claims.mkdir(mode=0o700)
+            records = root / "records"
+            records.mkdir(mode=0o700)
+            record = records / "calibration.json"
+            completed = _run_current_cli(
+                "request",
+                "--repo",
+                str(repo),
+                "--gate",
+                "calibration",
+                "--output",
+                str(root / "effects"),
+                "--claim-root",
+                str(claims),
+                "--record",
+                str(record),
+                "--model-calls",
+                "3",
+                "--uncached-input-tokens",
+                "100000",
+                "--output-tokens",
+                "10000",
+                "--wall-milliseconds",
+                "900000",
+            )
+            self.assertEqual(completed.returncode, 0, completed.stderr)
+            payload = json.loads(completed.stdout)
+            plan = json.loads(record.read_text(encoding="utf-8"))
+            self.assertEqual(payload["status"], "approval_required")
+            self.assertEqual(
+                sha256_bytes((payload["approval_line"] + "\n").encode()),
+                plan["approval_content_sha256"],
+            )
+            self.assertEqual(stat.S_IMODE(record.stat().st_mode), 0o600)
+            self.assertFalse((root / "effects").exists())
+            self.assertEqual(list(claims.iterdir()), [])
+            self.assertEqual(
+                json.loads(ledger.read_text(encoding="utf-8"))["plans"],
+                [],
+            )
+
+    def test_model_result_prepares_exact_receipt_without_applying_it(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            repo = _prepare_repo(raw)
+            candidate = _candidate(repo)
+            ledger_path = repo / "evaluation/results/current.json"
+            candidate_ledger = {
+                "schema_version": 1,
+                "candidate": candidate,
+                "plans": [],
+                "receipts": [],
+            }
+            ledger_path.write_text(
+                json.dumps(candidate_ledger, sort_keys=True, indent=2) + "\n",
+                encoding="utf-8",
+            )
+            _git(repo, "add", "evaluation/results/current.json")
+            _git(repo, "commit", "--quiet", "-m", "test: add candidate")
+            claims = root / "claims"
+            claims.mkdir(mode=0o700)
+            records = root / "records"
+            records.mkdir(mode=0o700)
+            plan_record = records / "calibration.json"
+            requested = _run_current_cli(
+                "request",
+                "--repo",
+                str(repo),
+                "--gate",
+                "calibration",
+                "--output",
+                str(root / "effects"),
+                "--claim-root",
+                str(claims),
+                "--record",
+                str(plan_record),
+                "--model-calls",
+                "3",
+                "--uncached-input-tokens",
+                "100000",
+                "--output-tokens",
+                "10000",
+                "--wall-milliseconds",
+                "900000",
+            )
+            self.assertEqual(requested.returncode, 0, requested.stderr)
+            applied = _run_current_cli(
+                "apply",
+                "--repo",
+                str(repo),
+                "--ledger",
+                "evaluation/results/current.json",
+                "--expected",
+                canonical_sha256(candidate_ledger),
+                "--record",
+                str(plan_record),
+            )
+            self.assertEqual(applied.returncode, 0, applied.stderr)
+            _git(repo, "add", "evaluation/results/current.json")
+            _git(repo, "commit", "--quiet", "-m", "test: persist GatePlan")
+            evidence_commit = _git(repo, "rev-parse", "HEAD")
+            plan = json.loads(plan_record.read_text(encoding="utf-8"))
+            from evaluation import cli
+
+            approval_line = json.loads(requested.stdout)["approval_line"]
+            refused = _run_current_cli(
+                "host-run",
+                "--repo",
+                str(repo),
+                "--claim-root",
+                str(claims),
+                "--approval-content",
+                "wrong approval",
+            )
+            self.assertNotEqual(refused.returncode, 0)
+            self.assertIn("approval content", refused.stderr)
+            self.assertEqual(list(claims.iterdir()), [])
+
+            def dispatch(
+                _args: Namespace,
+                launches: dict[str, dict],
+                claim_root: Path,
+                capability: object,
+            ) -> int:
+                self.assertEqual(set(launches), {"subthreshold-control"})
+                self.assertEqual(claim_root, claims)
+                live.validate_capability(capability, plan=plan)
+                return 0
+
+            with mock.patch.object(cli, "run_authorized", side_effect=dispatch):
+                self.assertEqual(
+                    cli.host_run_command(
+                        Namespace(
+                            repo=repo,
+                            claim_root=claims,
+                            public=None,
+                            approval_content=approval_line,
+                            infrastructure_generation=None,
+                        )
+                    ),
+                    0,
+                )
+            launch = live.build_launch(plan, "subthreshold-control")
+            live.reserve_launch(launch, claims)
+            live.consume_action(launch, claims)
+            result = {
+                "schema_generation": 7,
+                "action_key": launch["action_key"],
+                "launch_key": launch["launch_key"],
+                "unit": launch["unit"],
+                "status": "succeeded",
+                "effect": "provider_reached",
+                "output_sha256": canonical_sha256({"result": "ok"}),
+                "usage": {
+                    "model_calls": 1,
+                    "uncached_input_tokens": 100,
+                    "output_tokens": 10,
+                    "wall_milliseconds": 1000,
+                },
+            }
+            result["result_sha256"] = canonical_sha256(result)
+            live.write_launch_result(launch, claims, result)
+            receipt_record = records / "receipt.json"
+            prepared = _run_current_cli(
+                "receipt",
+                "--repo",
+                str(repo),
+                "--claim-root",
+                str(claims),
+                "--evidence-commit",
+                evidence_commit,
+                "--record",
+                str(receipt_record),
+            )
+            self.assertEqual(prepared.returncode, 0, prepared.stderr)
+            receipt = json.loads(receipt_record.read_text(encoding="utf-8"))
+            self.assertEqual(receipt["gate"], "calibration")
+            self.assertEqual(receipt["result"], "succeeded")
+            self.assertEqual(receipt["unit_results"][0]["result_sha256"],
+                             result["result_sha256"])
+            self.assertEqual(
+                json.loads(ledger_path.read_text(encoding="utf-8"))["receipts"],
+                [],
+            )
+
 
 class LedgerRecordTests(unittest.TestCase):
     def setUp(self) -> None:
@@ -402,7 +613,7 @@ class LedgerRecordTests(unittest.TestCase):
     def test_receipt_binds_plan_units_and_parent_chain(self) -> None:
         plan = _plan(
             self.candidate,
-            "corpus",
+            "calibration",
             Path(self.raw.name) / "effects",
             units=("a", "b"),
         )
@@ -445,8 +656,79 @@ class LedgerRecordTests(unittest.TestCase):
                 repo=self.repo,
             )
         )
-        with self.assertRaisesRegex(ValueError, "append exactly once"):
+        with self.assertRaises(ValueError):
             validate_successor(candidate_only, invalid, repo=self.repo)
+
+    def test_gate_plans_interleave_with_receipts(self) -> None:
+        candidate_only = append_record(GENESIS, self.candidate, repo=self.repo)
+        calibration = _plan(
+            self.candidate,
+            "calibration",
+            Path(self.raw.name) / "calibration",
+            units=("subthreshold-control",),
+            repo=self.repo,
+        )
+        planned = append_record(candidate_only, calibration, repo=self.repo)
+        _git(
+            self.repo,
+            "commit",
+            "--quiet",
+            "--allow-empty",
+            "-m",
+            "test: add calibration evidence",
+        )
+        evidence_commit = _git(self.repo, "rev-parse", "HEAD")
+        receipt = _receipt(
+            self.candidate,
+            calibration,
+            0,
+            evidence_commit=evidence_commit,
+        )
+        completed = append_record(planned, receipt, repo=self.repo)
+        corpus = _plan(
+            self.candidate,
+            "corpus",
+            Path(self.raw.name) / "corpus",
+            units=tuple(build_snapshot(self.repo)["corpus"]["cases"]),
+            created_at="2026-07-30T00:03:00Z",
+            repo=self.repo,
+        )
+        successor = append_record(completed, corpus, repo=self.repo)
+        self.assertEqual(
+            [plan["gate"] for plan in successor["plans"]],
+            ["calibration", "corpus"],
+        )
+        self.assertEqual(
+            [item["gate"] for item in successor["receipts"]],
+            ["calibration"],
+        )
+
+    def test_gate_plan_cannot_get_ahead_of_receipts(self) -> None:
+        calibration = _plan(
+            self.candidate,
+            "calibration",
+            Path(self.raw.name) / "calibration",
+            units=("subthreshold-control",),
+            repo=self.repo,
+        )
+        corpus = _plan(
+            self.candidate,
+            "corpus",
+            Path(self.raw.name) / "corpus",
+            units=tuple(build_snapshot(self.repo)["corpus"]["cases"]),
+            created_at="2026-07-30T00:02:00Z",
+            repo=self.repo,
+        )
+        with self.assertRaisesRegex(ValueError, "one open GatePlan"):
+            validate_ledger(
+                {
+                    "schema_version": 1,
+                    "candidate": self.candidate,
+                    "plans": [calibration, corpus],
+                    "receipts": [],
+                },
+                repo=self.repo,
+            )
 
     def test_receipts_follow_canonical_gate_and_strict_time_order(self) -> None:
         plans = [
@@ -454,7 +736,7 @@ class LedgerRecordTests(unittest.TestCase):
                 self.candidate,
                 gate,
                 Path(self.raw.name) / gate,
-                created_at=f"2026-07-30T00:01:{index:02d}Z",
+                created_at=f"2026-07-30T00:00:{index * 2 + 1:02d}Z",
             )
             for index, gate in enumerate(GATE_ORDER)
         ]
@@ -465,7 +747,7 @@ class LedgerRecordTests(unittest.TestCase):
                 self.candidate,
                 plan,
                 index,
-                created_at=f"2026-07-30T00:02:{index:02d}Z",
+                created_at=f"2026-07-30T00:00:{index * 2 + 2:02d}Z",
                 parent=parent,
             )
             receipts.append(receipt)
@@ -498,8 +780,13 @@ class LedgerRecordTests(unittest.TestCase):
 
     def test_derived_state_has_no_cached_lifecycle_fields(self) -> None:
         plans = [
-            _plan(self.candidate, gate, Path(self.raw.name) / gate)
-            for gate in GATE_ORDER
+            _plan(
+                self.candidate,
+                gate,
+                Path(self.raw.name) / gate,
+                created_at=f"2026-07-30T00:00:{index * 2 + 1:02d}Z",
+            )
+            for index, gate in enumerate(GATE_ORDER)
         ]
         receipts = []
         parent = None
@@ -508,7 +795,7 @@ class LedgerRecordTests(unittest.TestCase):
                 self.candidate,
                 plan,
                 index,
-                created_at=f"2026-07-30T00:02:{index:02d}Z",
+                created_at=f"2026-07-30T00:00:{index * 2 + 2:02d}Z",
                 parent=parent,
             )
             receipts.append(receipt)
@@ -576,6 +863,29 @@ class LaunchGateTests(unittest.TestCase):
             infrastructure_generation=infrastructure,
         )
 
+    def _authorized_launch(
+        self,
+        *,
+        gate: str,
+        unit: str,
+        output: str = "effects",
+    ) -> tuple[dict, dict, object]:
+        plan = _plan(
+            self.candidate,
+            gate,
+            self.root / output,
+            units=(unit,),
+        )
+        approval = f"authorize {gate} {unit} once"
+        plan["approval_content_sha256"] = sha256_bytes(
+            (approval + "\n").encode()
+        )
+        plan["plan_sha256"] = canonical_sha256(
+            {key: value for key, value in plan.items() if key != "plan_sha256"}
+        )
+        launch = live.build_launch(plan, unit)
+        return plan, launch, live.mint_host_capability(plan, approval)
+
     def test_launch_exactly_expands_and_binds_one_unit(self) -> None:
         launch = self._launch()
         self.assertEqual(launch["unit"], "unit")
@@ -587,6 +897,94 @@ class LaunchGateTests(unittest.TestCase):
         changed["unit"] = "other"
         with self.assertRaises(ValueError):
             live.validate_launch(changed)
+
+    def test_model_gate_plan_binds_exact_host_profile_and_resources(self) -> None:
+        candidate = json.loads(
+            (ROOT / "evaluation/results/current.json").read_text(encoding="utf-8")
+        )["candidate"]
+        snapshot = build_snapshot(ROOT)
+        codex = codex_identity()
+        output = self.root / "effects"
+        profile = live.model_gate_profile(
+            gate="calibration",
+            repo=ROOT,
+            output=output,
+            claim_root=self.claims,
+            model="gpt-5.6-sol",
+            effort="high",
+            timeout_ms=300000,
+            arm="candidate",
+            codex_sha256=codex["sha256"],
+        )
+        plan = _plan(
+            candidate,
+            "calibration",
+            output,
+            units=("subthreshold-control",),
+            repo=ROOT,
+        )
+        plan["profile"] = profile
+        plan["resource_digests"] = live.model_gate_resource_digests(
+            candidate=candidate,
+            snapshot=snapshot,
+            profile=profile,
+            codex=codex,
+        )
+        plan["plan_sha256"] = canonical_sha256(
+            {key: value for key, value in plan.items() if key != "plan_sha256"}
+        )
+        live.validate_model_gate_plan(
+            plan,
+            candidate=candidate,
+            snapshot=snapshot,
+            repo=ROOT,
+            output=output,
+            claim_root=self.claims,
+            model="gpt-5.6-sol",
+            effort="high",
+            timeout_ms=300000,
+            arm="candidate",
+            codex=codex,
+        )
+        changed = copy.deepcopy(plan)
+        changed["profile"]["argv"].append("--drift")
+        changed["plan_sha256"] = canonical_sha256(
+            {key: value for key, value in changed.items() if key != "plan_sha256"}
+        )
+        with self.assertRaisesRegex(ValueError, "exact Host invocation"):
+            live.validate_model_gate_plan(
+                changed,
+                candidate=candidate,
+                snapshot=snapshot,
+                repo=ROOT,
+                output=output,
+                claim_root=self.claims,
+                model="gpt-5.6-sol",
+                effort="high",
+                timeout_ms=300000,
+                arm="candidate",
+                codex=codex,
+            )
+
+    def test_host_capability_is_exact_immutable_and_process_local(self) -> None:
+        plan, launch, capability = self._authorized_launch(
+            gate="corpus",
+            unit="unit",
+        )
+        self.assertIs(
+            live.validate_capability(capability, plan=plan),
+            capability,
+        )
+        self.assertIs(
+            live.validate_capability(capability, launch=launch),
+            capability,
+        )
+        with self.assertRaisesRegex(ValueError, "approval content"):
+            live.mint_host_capability(plan, "different approval")
+        with self.assertRaises(TypeError):
+            capability.gate = "holdout"
+        with self.assertRaisesRegex(ValueError, "Host capability"):
+            live.validate_capability(object(), launch=launch)
 
     def test_reservation_is_durable_one_shot_before_output(self) -> None:
         launch = self._launch(infrastructure="1" * 64)
@@ -627,6 +1025,60 @@ class LaunchGateTests(unittest.TestCase):
         )
         with self.assertRaisesRegex(ValueError, "exhausted"):
             live.reserve_launch(exhausted, self.claims)
+
+    def test_receipt_collection_uses_one_no_effect_replacement(self) -> None:
+        plan = _plan(
+            self.candidate,
+            "corpus",
+            self.root / "effects",
+        )
+        initial = live.build_launch(plan, "unit")
+        live.reserve_launch(initial, self.claims)
+        no_effect = {
+            "schema_generation": 7,
+            "action_key": initial["action_key"],
+            "launch_key": initial["launch_key"],
+            "unit": initial["unit"],
+            "status": "failed",
+            "effect": "no_effect",
+            "output_sha256": None,
+            "usage": {
+                "model_calls": 0,
+                "uncached_input_tokens": 0,
+                "output_tokens": 0,
+                "wall_milliseconds": 0,
+            },
+        }
+        no_effect["result_sha256"] = canonical_sha256(no_effect)
+        live.write_launch_result(initial, self.claims, no_effect)
+        replacement = live.build_launch(
+            plan,
+            "unit",
+            infrastructure_generation="2" * 64,
+        )
+        live.reserve_launch(replacement, self.claims)
+        live.consume_action(replacement, self.claims)
+        succeeded = {
+            "schema_generation": 7,
+            "action_key": replacement["action_key"],
+            "launch_key": replacement["launch_key"],
+            "unit": replacement["unit"],
+            "status": "succeeded",
+            "effect": "provider_reached",
+            "output_sha256": canonical_sha256({"result": "ok"}),
+            "usage": {
+                "model_calls": 1,
+                "uncached_input_tokens": 10,
+                "output_tokens": 2,
+                "wall_milliseconds": 20,
+            },
+        }
+        succeeded["result_sha256"] = canonical_sha256(succeeded)
+        live.write_launch_result(replacement, self.claims, succeeded)
+        self.assertEqual(
+            live.collect_plan_results(plan, self.claims),
+            [succeeded],
+        )
 
     def test_reservation_refuses_symlink_and_path_drift(self) -> None:
         launch = self._launch()
@@ -671,6 +1123,146 @@ class LaunchGateTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "cost ceiling"):
             live.write_launch_result(launch, self.claims, excessive)
 
+    def test_pre_provider_failure_does_not_consume_action(self) -> None:
+        _plan_value, launch, capability = self._authorized_launch(
+            gate="calibration",
+            unit="subthreshold-control",
+        )
+        args = Namespace(
+            calibrate=True,
+            cases=["subthreshold-control"],
+            plugin=ROOT,
+            output=self.root / "effects",
+            model="gpt-5.6-sol",
+            effort="high",
+            timeout=300,
+            arm="candidate",
+        )
+        with mock.patch.object(
+            corpus_engine,
+            "evaluate_case",
+            side_effect=RuntimeError("local preflight failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "local preflight failed"):
+                corpus_engine.run_authorized(
+                    args,
+                    {"subthreshold-control": launch},
+                    self.claims,
+                    capability,
+                )
+        action = self.claims / f"action-{launch['action_key']}.json"
+        self.assertFalse(action.exists())
+        result = json.loads(
+            (Path(launch["output"]) / "result.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(result["effect"], "no_effect")
+        self.assertTrue(all(value == 0 for value in result["usage"].values()))
+
+    def test_provider_edge_rejects_drift_then_consumes_once(self) -> None:
+        codex = codex_identity()
+        plan = _plan(
+            self.candidate,
+            "corpus",
+            self.root / "effects",
+        )
+        plan["profile"]["env"] = {
+            "HAPPYCODEX_CODEX_SHA256": codex["sha256"],
+        }
+        approval = "authorize exact provider edge once"
+        plan["approval_content_sha256"] = sha256_bytes(
+            (approval + "\n").encode()
+        )
+        plan["plan_sha256"] = canonical_sha256(
+            {key: value for key, value in plan.items() if key != "plan_sha256"}
+        )
+        launch = live.build_launch(plan, "unit")
+        capability = live.mint_host_capability(plan, approval)
+        live.reserve_launch(launch, self.claims)
+        repo = self.root / "repo"
+        repo.mkdir()
+        home = self.root / "codex-home"
+        home.mkdir()
+        user_home = self.root / "user-home"
+        user_home.mkdir()
+        tool_bin = corpus_engine.prepare_native_tool_bin(self.root)
+        schema = self.root / "response-schema.json"
+        schema.write_text(
+            json.dumps(
+                corpus_engine.provider_transport_schema(
+                    corpus_engine.OUTPUT_SCHEMA
+                )
+            ),
+            encoding="utf-8",
+        )
+        env = {
+            "HOME": str(user_home),
+            "CODEX_HOME": str(home),
+            "PATH": os.pathsep.join(
+                (str(tool_bin), *corpus_engine.BASE_COMMAND_PATHS)
+            ),
+            "LC_ALL": "C.UTF-8",
+        }
+        config = corpus_engine.evaluator_codex_config(
+            model="gpt-5.6-sol",
+            effort="high",
+            tool_bin=tool_bin,
+            user_home=user_home,
+        )
+        argv = corpus_engine.evaluator_codex_argv(
+            repo=repo,
+            schema=schema,
+            config=config,
+            prompt="bounded prompt",
+        )
+        with self.assertRaisesRegex(ValueError, "exact provider invocation"):
+            corpus_engine.validate_provider_invocation(
+                launch,
+                argv=[*argv, "--drift"],
+                repo=repo,
+                schema=schema,
+                prompt="bounded prompt",
+                thread=None,
+                env=env,
+                timeout=300,
+                home=home,
+                tool_bin=tool_bin,
+                user_home=user_home,
+                auto_compact_token_limit=None,
+            )
+        self.assertFalse(live.action_is_consumed(launch, self.claims))
+
+        def completed(
+            actual: list[str],
+            *,
+            cwd: Path,
+            env: dict[str, str],
+            timeout: int,
+            **_kwargs: object,
+        ) -> subprocess.CompletedProcess[str]:
+            self.assertTrue(live.action_is_consumed(launch, self.claims))
+            self.assertEqual(cwd, repo)
+            return subprocess.CompletedProcess(actual, 0, "", "")
+
+        with mock.patch.object(corpus_engine, "run", side_effect=completed):
+            result, timed_out, _elapsed = corpus_engine.invoke_codex(
+                launch,
+                self.claims,
+                capability,
+                repo=repo,
+                schema=schema,
+                prompt="bounded prompt",
+                thread=None,
+                env=env,
+                timeout=300,
+                home=home,
+                tool_bin=tool_bin,
+                user_home=user_home,
+                auto_compact_token_limit=None,
+            )
+        self.assertEqual(result.returncode, 0)
+        self.assertFalse(timed_out)
+        self.assertTrue(live.action_is_consumed(launch, self.claims))
+
     def test_corpus_rejects_invalid_launch_before_fixture_or_output(self) -> None:
         case = corpus_engine.load_cases()["subthreshold-control"]
         output = self.root / "raw"
@@ -686,6 +1278,7 @@ class LaunchGateTests(unittest.TestCase):
                     arm="candidate",
                     launch={},
                     claim_root=self.claims,
+                    capability=None,
                 )
         fixture.assert_not_called()
         self.assertFalse(output.exists())
@@ -704,17 +1297,18 @@ class LaunchGateTests(unittest.TestCase):
                     timeout=300,
                     launch={},
                     claim_root=self.claims,
+                    capability=None,
                 )
         mapping.assert_not_called()
 
     def test_authorized_entrypoints_accept_only_launches_and_claim_root(self) -> None:
         self.assertEqual(
             tuple(inspect.signature(corpus_engine.run_authorized).parameters),
-            ("args", "launches", "claim_root"),
+            ("args", "launches", "claim_root", "capability"),
         )
         self.assertEqual(
             tuple(inspect.signature(holdout_engine.run_authorized).parameters),
-            ("args", "launches", "claim_root"),
+            ("args", "launches", "claim_root", "capability"),
         )
 
 
@@ -936,6 +1530,7 @@ class FalseGreenBoundaryTests(unittest.TestCase):
                 "calibration",
                 Path(raw) / "calibration",
                 units=("subthreshold-control",),
+                created_at="2026-07-30T00:00:01Z",
                 repo=repo,
             )
             from evaluation.core.ledger import validate_release_candidate
@@ -1005,6 +1600,7 @@ class FalseGreenBoundaryTests(unittest.TestCase):
                 "calibration",
                 Path(raw) / "calibration",
                 units=("subthreshold-control",),
+                created_at="2026-07-30T00:00:01Z",
                 repo=repo,
             )
             corpus = _plan(
@@ -1012,7 +1608,7 @@ class FalseGreenBoundaryTests(unittest.TestCase):
                 "corpus",
                 Path(raw) / "corpus",
                 units=tuple(snapshot["corpus"]["cases"]),
-                created_at="2026-07-30T00:01:01Z",
+                created_at="2026-07-30T00:00:03Z",
                 repo=repo,
             )
             holdout = _plan(
@@ -1020,14 +1616,38 @@ class FalseGreenBoundaryTests(unittest.TestCase):
                 "holdout",
                 Path(raw) / "holdout",
                 units=tuple(snapshot["holdout"]["pairs"]),
-                created_at="2026-07-30T00:01:02Z",
+                created_at="2026-07-30T00:00:05Z",
                 repo=repo,
+            )
+            _git(
+                repo,
+                "commit",
+                "--quiet",
+                "--allow-empty",
+                "-m",
+                "test: add model-gate evidence",
+            )
+            evidence_commit = _git(repo, "rev-parse", "HEAD")
+            calibration_receipt = _receipt(
+                candidate,
+                calibration,
+                0,
+                evidence_commit=evidence_commit,
+                created_at="2026-07-30T00:00:02Z",
+            )
+            corpus_receipt = _receipt(
+                candidate,
+                corpus,
+                1,
+                evidence_commit=evidence_commit,
+                created_at="2026-07-30T00:00:04Z",
+                parent=calibration_receipt["receipt_sha256"],
             )
             exact = {
                 "schema_version": 1,
                 "candidate": candidate,
                 "plans": [calibration, corpus, holdout],
-                "receipts": [],
+                "receipts": [calibration_receipt, corpus_receipt],
             }
             validate_ledger(exact, repo=repo)
             mutations = (
@@ -1043,7 +1663,9 @@ class FalseGreenBoundaryTests(unittest.TestCase):
             for label, index, value in mutations:
                 invalid = copy.deepcopy(exact)
                 plan = invalid["plans"][index]
-                if label.endswith("scope"):
+                if label == "snapshot":
+                    plan["snapshot_sha256"] = value
+                elif label.endswith("scope"):
                     plan["units"] = value
                 else:
                     field = "timeout_ms" if label == "timeout" else label
@@ -1067,7 +1689,7 @@ class FalseGreenBoundaryTests(unittest.TestCase):
                     candidate,
                     gate,
                     Path(raw) / gate,
-                    created_at=f"2026-07-30T00:01:{index:02d}Z",
+                    created_at=f"2026-07-30T00:00:{index * 2 + 1:02d}Z",
                 )
                 for index, gate in enumerate(GATE_ORDER)
             ]
@@ -1078,7 +1700,7 @@ class FalseGreenBoundaryTests(unittest.TestCase):
                     candidate,
                     plan,
                     index,
-                    created_at=f"2026-07-30T00:02:{index:02d}Z",
+                    created_at=f"2026-07-30T00:00:{index * 2 + 2:02d}Z",
                     parent=parent,
                 )
                 receipts.append(receipt)
@@ -1111,6 +1733,7 @@ class FalseGreenBoundaryTests(unittest.TestCase):
                         args,
                         {"subthreshold-control": launch},
                         Path(raw),
+                        None,
                     )
             runner.assert_not_called()
 
@@ -1138,11 +1761,28 @@ class AdaptiveHoldoutReceiptTests(unittest.TestCase):
         cls.repo = _prepare_repo(cls.raw.name)
         cls.candidate = _candidate(cls.repo)
         cls.snapshot = build_snapshot(cls.repo)
+        cls.calibration_plan = _plan(
+            cls.candidate,
+            "calibration",
+            Path(cls.raw.name) / "calibration",
+            units=("subthreshold-control",),
+            created_at="2026-07-30T00:00:01Z",
+            repo=cls.repo,
+        )
+        cls.corpus_plan = _plan(
+            cls.candidate,
+            "corpus",
+            Path(cls.raw.name) / "corpus",
+            units=tuple(cls.snapshot["corpus"]["cases"]),
+            created_at="2026-07-30T00:00:03Z",
+            repo=cls.repo,
+        )
         cls.plan = _plan(
             cls.candidate,
             "holdout",
             Path(cls.raw.name) / "holdout",
             units=tuple(cls.snapshot["holdout"]["pairs"]),
+            created_at="2026-07-30T00:00:05Z",
             arm="blinded-pair",
             repo=cls.repo,
         )
@@ -1159,6 +1799,21 @@ class AdaptiveHoldoutReceiptTests(unittest.TestCase):
             "test: add holdout evidence",
         )
         cls.evidence_commit = _git(cls.repo, "rev-parse", "HEAD")
+        cls.calibration_receipt = _receipt(
+            cls.candidate,
+            cls.calibration_plan,
+            0,
+            evidence_commit=cls.evidence_commit,
+            created_at="2026-07-30T00:00:02Z",
+        )
+        cls.corpus_receipt = _receipt(
+            cls.candidate,
+            cls.corpus_plan,
+            1,
+            evidence_commit=cls.evidence_commit,
+            created_at="2026-07-30T00:00:04Z",
+            parent=cls.calibration_receipt["receipt_sha256"],
+        )
 
     @classmethod
     def tearDownClass(cls) -> None:
@@ -1174,9 +1829,11 @@ class AdaptiveHoldoutReceiptTests(unittest.TestCase):
         receipt = _receipt(
             self.candidate,
             plan,
-            0,
+            2,
             evidence_commit=self.evidence_commit,
+            created_at="2026-07-30T00:00:06Z",
             result=result,
+            parent=self.corpus_receipt["receipt_sha256"],
         )
         selected = set(units)
         receipt["unit_results"] = [
@@ -1195,8 +1852,12 @@ class AdaptiveHoldoutReceiptTests(unittest.TestCase):
         return {
             "schema_version": 1,
             "candidate": self.candidate,
-            "plans": [plan],
-            "receipts": [receipt],
+            "plans": [self.calibration_plan, self.corpus_plan, plan],
+            "receipts": [
+                self.calibration_receipt,
+                self.corpus_receipt,
+                receipt,
+            ],
         }
 
     def test_one_result_failed_holdout_prefix_is_valid(self) -> None:
@@ -1243,26 +1904,61 @@ class AdaptiveHoldoutReceiptTests(unittest.TestCase):
 
     def test_every_non_holdout_partial_receipt_is_invalid(self) -> None:
         for gate in (item for item in GATE_ORDER if item != "holdout"):
-            if gate == "calibration":
-                units = ("subthreshold-control",)
-            elif gate == "corpus":
-                units = tuple(self.snapshot["corpus"]["cases"])
-            else:
-                units = ("unit-a", "unit-b")
-            plan = _plan(
-                self.candidate,
-                gate,
-                Path(self.raw.name) / gate,
-                units=units,
-                repo=self.repo,
-            )
-            receipt = self._receipt_for(
-                plan,
-                list(plan["units"][:-1]),
-                result="succeeded",
+            target_index = GATE_ORDER.index(gate)
+            plans = []
+            receipts = []
+            parent = None
+            for index, current_gate in enumerate(GATE_ORDER[:target_index + 1]):
+                if current_gate == "calibration":
+                    units = ("subthreshold-control",)
+                elif current_gate == "corpus":
+                    units = tuple(self.snapshot["corpus"]["cases"])
+                elif current_gate == "holdout":
+                    units = tuple(self.snapshot["holdout"]["pairs"])
+                else:
+                    units = ("unit-a", "unit-b")
+                plan = _plan(
+                    self.candidate,
+                    current_gate,
+                    Path(self.raw.name) / f"{gate}-{current_gate}",
+                    units=units,
+                    created_at=(
+                        f"2026-07-30T00:00:{index * 2 + 1:02d}Z"
+                    ),
+                    repo=self.repo,
+                )
+                plans.append(plan)
+                receipt = _receipt(
+                    self.candidate,
+                    plan,
+                    index,
+                    evidence_commit=self.evidence_commit,
+                    created_at=(
+                        f"2026-07-30T00:00:{index * 2 + 2:02d}Z"
+                    ),
+                    parent=parent,
+                )
+                parent = receipt["receipt_sha256"]
+                receipts.append(receipt)
+            partial = receipts[-1]
+            partial["unit_results"] = partial["unit_results"][:-1]
+            partial["receipt_sha256"] = canonical_sha256(
+                {
+                    key: value
+                    for key, value in partial.items()
+                    if key != "receipt_sha256"
+                }
             )
             with self.subTest(gate=gate), self.assertRaises(ValueError):
-                validate_ledger(self._ledger(plan, receipt), repo=self.repo)
+                validate_ledger(
+                    {
+                        "schema_version": 1,
+                        "candidate": self.candidate,
+                        "plans": plans,
+                        "receipts": receipts,
+                    },
+                    repo=self.repo,
+                )
 
 
 class Batch3IdentityContractionTests(unittest.TestCase):

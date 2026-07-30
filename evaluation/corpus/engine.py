@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import re
 import shutil
+import stat
 import subprocess
 import tempfile
 import threading
@@ -52,7 +53,6 @@ CASES = ROOT / "evaluation" / "cases"
 CORPUS_MAX_WORKERS = 4
 RECOVERY_MANIFEST_PATH = "docs/execplans/recovery-manifest.json"
 BASE_COMMAND_PATHS = ("/usr/local/bin", "/usr/bin", "/bin")
-PARENT_CONTEXT_ENV = ("CODEX_REMOTE_PAYLOAD", "CODEX_THREAD_ID", "PWD", "OLDPWD")
 DISABLED_FEATURES = (
     "apps",
     "goals",
@@ -307,6 +307,39 @@ def permission_profile_args(
         )
     )
     return args
+
+
+def evaluator_codex_config(
+    *,
+    model: str,
+    effort: str,
+    tool_bin: Path,
+    user_home: Path,
+    auto_compact_token_limit: int | None = None,
+) -> list[str]:
+    config = [
+        "-m",
+        model,
+        "-c",
+        f'model_reasoning_effort="{effort}"',
+        "-c",
+        'approval_policy="never"',
+        *permission_profile_args(
+            tool_bin=tool_bin,
+            user_home=user_home,
+        ),
+    ]
+    if auto_compact_token_limit is not None:
+        if (
+            type(auto_compact_token_limit) is not int
+            or auto_compact_token_limit <= 0
+        ):
+            raise ValueError("invalid auto-compaction limit")
+        config += [
+            "-c",
+            f"model_auto_compact_token_limit={auto_compact_token_limit}",
+        ]
+    return config
 
 
 def deterministic_git_env() -> dict[str, str]:
@@ -854,12 +887,12 @@ def isolated_home(
     auth = home / "auth.json"
     shutil.copyfile(source_auth, auth)
     auth.chmod(0o600)
-    env = os.environ.copy()
-    for key in PARENT_CONTEXT_ENV:
-        env.pop(key, None)
-    env["HOME"] = str(user_home)
-    env["CODEX_HOME"] = str(home)
-    env["PATH"] = os.pathsep.join((str(tool_bin), *BASE_COMMAND_PATHS))
+    env = {
+        "HOME": str(user_home),
+        "CODEX_HOME": str(home),
+        "PATH": os.pathsep.join((str(tool_bin), *BASE_COMMAND_PATHS)),
+        "LC_ALL": "C.UTF-8",
+    }
     return home, env
 
 
@@ -1183,28 +1216,111 @@ def canonical_report_from_result(
     return report_to_raw(build_report(facts, observation))
 
 
+def validate_provider_invocation(
+    launch: dict[str, Any],
+    *,
+    argv: list[str],
+    repo: Path,
+    schema: Path,
+    prompt: str,
+    thread: str | None,
+    env: dict[str, str],
+    timeout: int,
+    home: Path,
+    tool_bin: Path,
+    user_home: Path,
+    auto_compact_token_limit: int | None,
+) -> list[str]:
+    from evaluation.live import validate_launch
+
+    launch = validate_launch(launch)
+    config = evaluator_codex_config(
+        model=launch["invocation"]["model"],
+        effort=launch["invocation"]["effort"],
+        tool_bin=tool_bin,
+        user_home=user_home,
+        auto_compact_token_limit=auto_compact_token_limit,
+    )
+    expected_argv = evaluator_codex_argv(
+        repo=repo,
+        schema=schema,
+        config=config,
+        prompt=prompt,
+        thread=thread,
+    )
+    expected_env = {
+        "HOME": str(user_home),
+        "CODEX_HOME": str(home),
+        "PATH": os.pathsep.join((str(tool_bin), *BASE_COMMAND_PATHS)),
+        "LC_ALL": "C.UTF-8",
+    }
+    binary = shutil.which("codex", path=env.get("PATH"))
+    binary_path = Path(binary).resolve() if binary else None
+    if (
+        argv != expected_argv
+        or env != expected_env
+        or launch["invocation"]["timeout_ms"] != timeout * 1000
+        or binary_path is None
+        or not binary_path.is_file()
+        or sha256_bytes(binary_path.read_bytes())
+        != launch["invocation"]["env"].get("HAPPYCODEX_CODEX_SHA256")
+        or json.loads(schema.read_text(encoding="utf-8"))
+        != provider_transport_schema(OUTPUT_SCHEMA)
+    ):
+        raise ValueError("launch does not bind the exact provider invocation")
+    return argv
+
+
 def invoke_codex(
     launch: dict[str, Any],
     claim_root: Path,
+    capability: object,
     *,
-    argv: list[str],
-    cwd: Path,
+    repo: Path,
+    schema: Path,
+    prompt: str,
+    thread: str | None,
     env: dict[str, str],
     timeout: int,
+    home: Path,
+    tool_bin: Path,
+    user_home: Path,
+    auto_compact_token_limit: int | None,
 ) -> tuple[subprocess.CompletedProcess[str], bool, float]:
-    from evaluation.live import validate_consumed_action, validate_launch
+    from evaluation.live import enter_provider_call
 
-    launch = validate_launch(launch)
-    validate_consumed_action(launch, claim_root)
-    if (
-        launch["invocation"]["model"] not in argv
-        or launch["invocation"]["effort"] not in " ".join(argv)
-        or launch["invocation"]["timeout_ms"] != timeout * 1000
-    ):
-        raise ValueError("launch invocation does not bind model execution")
+    config = evaluator_codex_config(
+        model=launch["invocation"]["model"],
+        effort=launch["invocation"]["effort"],
+        tool_bin=tool_bin,
+        user_home=user_home,
+        auto_compact_token_limit=auto_compact_token_limit,
+    )
+    argv = evaluator_codex_argv(
+        repo=repo,
+        schema=schema,
+        config=config,
+        prompt=prompt,
+        thread=thread,
+    )
+    validate_provider_invocation(
+        launch,
+        argv=argv,
+        repo=repo,
+        schema=schema,
+        prompt=prompt,
+        thread=thread,
+        env=env,
+        timeout=timeout,
+        home=home,
+        tool_bin=tool_bin,
+        user_home=user_home,
+        auto_compact_token_limit=auto_compact_token_limit,
+    )
+    enter_provider_call(launch, claim_root, capability)
     started = time.monotonic()
     try:
-        completed = run(argv, cwd=cwd, env=env, timeout=timeout)
+        completed = run(argv, cwd=repo, env=env, timeout=timeout)
         timed_out = False
     except subprocess.TimeoutExpired as exc:
         stdout = (
@@ -1653,6 +1769,7 @@ def evaluate_case(
     arm: str,
     launch: dict[str, Any],
     claim_root: Path,
+    capability: object,
     launch_unit: str | None = None,
 ) -> dict[str, Any]:
     _validate_case_launch(
@@ -1665,12 +1782,16 @@ def evaluate_case(
         arm=arm,
         launch_unit=launch_unit,
     )
-    case_output = output / case["id"]
-    if case_output.exists():
-        if case_output.is_symlink() or not case_output.is_dir():
-            raise ValueError("reserved launch output is not a real directory")
-    else:
-        case_output.mkdir(parents=True, exist_ok=False)
+    from evaluation.live import validate_capability
+
+    validate_capability(capability, launch=launch)
+    case_output = Path(launch["output"])
+    if (
+        case_output.parent != output.absolute()
+        or case_output.is_symlink()
+        or not case_output.is_dir()
+    ):
+        raise ValueError("reserved launch output is not a real directory")
     with tempfile.TemporaryDirectory(prefix=f"happycodex-{case['id']}-") as raw:
         temp = Path(raw)
         repo = temp / "repo"
@@ -1720,49 +1841,37 @@ def evaluate_case(
         }
         home, env = isolated_home(temp)
         tool_bin = temp / "bin"
+        user_home = temp / "user-home"
         installation = install_plugin(package, home, env)
         schema = temp / "response-schema.json"
         schema.write_text(
             json.dumps(provider_transport_schema(OUTPUT_SCHEMA)),
             encoding="utf-8",
         )
-        config = [
-            "-m",
-            model,
-            "-c",
-            f'model_reasoning_effort="{effort}"',
-            "-c",
-            'approval_policy="never"',
-            *permission_profile_args(
-                tool_bin=tool_bin,
-                user_home=temp / "user-home",
-            ),
-        ]
-        if native:
-            config += [
-                "-c",
-                f"model_auto_compact_token_limit={native['auto_compact_token_limit']}",
-            ]
+        auto_compact_token_limit = (
+            native["auto_compact_token_limit"] if native else None
+        )
         phases: list[dict[str, Any]] = []
 
         def execute(
             name: str, prompt: str, thread: str | None = None
         ) -> tuple[dict[str, Any], str]:
-            argv = evaluator_codex_argv(
-                repo=repo,
-                schema=schema,
-                config=config,
-                prompt=prompt,
-                thread=thread,
-            )
             completed, timed_out, elapsed = invoke_codex(
                 launch,
                 claim_root,
-                argv=argv,
-                cwd=repo,
+                capability,
+                repo=repo,
+                schema=schema,
+                prompt=prompt,
+                thread=thread,
                 env=env,
                 timeout=timeout,
+                home=home,
+                tool_bin=tool_bin,
+                user_home=user_home,
+                auto_compact_token_limit=auto_compact_token_limit,
             )
+            argv = list(completed.args)
             _persist_phase_raw(case_output, name, completed)
             _require_model_phase_success(completed, timed_out=timed_out, phase=name)
             binding, bound_profile = _phase_event_binding(
@@ -1913,10 +2022,21 @@ def evaluate_case(
         return metadata
 
 
-def resolve_output_path(requested: Path | None, *, plugin: Path) -> Path:
+def resolve_output_path(
+    requested: Path | None,
+    *,
+    plugin: Path,
+    allow_existing: bool = False,
+) -> Path:
     if requested is None or not requested.is_absolute():
         raise ValueError("an explicit absolute raw output path is required")
-    if requested.is_symlink() or requested.exists():
+    if requested.is_symlink():
+        raise ValueError("raw output path must be absent and not a symlink")
+    if requested.exists() and (
+        not allow_existing
+        or not requested.is_dir()
+        or stat.S_IMODE(requested.stat().st_mode) != 0o700
+    ):
         raise ValueError("raw output path must be absent and not a symlink")
     parent = requested.parent
     if parent.is_symlink() or not parent.is_dir():
@@ -2059,6 +2179,7 @@ def run_authorized(
     args: Any,
     launches: dict[str, dict[str, Any]],
     claim_root: Path,
+    capability: object,
 ) -> int:
     from evaluation import live
 
@@ -2080,22 +2201,27 @@ def run_authorized(
         raise ValueError(f"unknown cases: {sorted(unknown)}")
     if set(prepared) != set(selected):
         raise ValueError("launch units do not equal selected corpus cases")
-    output = resolve_output_path(args.output, plugin=args.plugin)
+    output = resolve_output_path(
+        args.output,
+        plugin=args.plugin,
+        allow_existing=True,
+    )
     gate = "calibration" if calibrate else "corpus"
     for case_id in selected:
         launch = live.validate_launch(
             prepared[case_id],
             unit=case_id,
             timeout_ms=args.timeout * 1000,
-            output=output / case_id,
         )
         if (
             launch["gate"] != gate
+            or Path(launch["output"]).parent != output
             or launch["invocation"]["model"] != args.model
             or launch["invocation"]["effort"] != args.effort
             or launch["invocation"]["arm"] != args.arm
         ):
             raise ValueError("launch does not bind corpus invocation")
+        live.validate_capability(capability, launch=launch)
     provider_transport_schema(OUTPUT_SCHEMA)
     codex_identity()
     package_identities(args.plugin)
@@ -2103,19 +2229,23 @@ def run_authorized(
     def evaluate_authorized(case_id: str) -> dict[str, Any]:
         launch = prepared[case_id]
         live.reserve_launch(launch, claim_root)
-        live.consume_action(launch, claim_root)
-        metadata = evaluate_case(
-            cases[case_id],
-            plugin=args.plugin,
-            output=output,
-            model=args.model,
-            effort=args.effort,
-            timeout=args.timeout,
-            arm=args.arm,
-            launch=launch,
-            claim_root=claim_root,
-            launch_unit=case_id,
-        )
+        try:
+            metadata = evaluate_case(
+                cases[case_id],
+                plugin=args.plugin,
+                output=output,
+                model=args.model,
+                effort=args.effort,
+                timeout=args.timeout,
+                arm=args.arm,
+                launch=launch,
+                claim_root=claim_root,
+                capability=capability,
+                launch_unit=case_id,
+            )
+        except BaseException as exc:
+            live.write_launch_failure(launch, claim_root, exc)
+            raise
         live.write_launch_result(
             launch,
             claim_root,

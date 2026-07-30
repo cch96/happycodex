@@ -8,7 +8,7 @@ import re
 import stat
 from typing import Any
 
-from evaluation.core.identity import canonical_sha256
+from evaluation.core.identity import canonical_sha256, sha256_bytes
 from evaluation.core.impact import build_snapshot, plan_impact
 from evaluation.core.ledger import (
     GATE_ORDER,
@@ -75,6 +75,44 @@ _USAGE_FIELDS = frozenset(
         "wall_milliseconds",
     }
 )
+_CAPABILITY_SECRET = object()
+
+
+class _LiveCapability:
+    __slots__ = (
+        "_secret",
+        "candidate_sha256",
+        "plan_sha256",
+        "gate",
+        "approval_content_sha256",
+    )
+
+    def __init__(
+        self,
+        secret: object,
+        *,
+        candidate_sha256: str,
+        plan_sha256: str,
+        gate: str,
+        approval_content_sha256: str,
+    ) -> None:
+        if secret is not _CAPABILITY_SECRET:
+            raise TypeError("live capability is Host-minted only")
+        object.__setattr__(self, "_secret", secret)
+        object.__setattr__(self, "candidate_sha256", candidate_sha256)
+        object.__setattr__(self, "plan_sha256", plan_sha256)
+        object.__setattr__(self, "gate", gate)
+        object.__setattr__(
+            self,
+            "approval_content_sha256",
+            approval_content_sha256,
+        )
+
+    def __setattr__(self, _name: str, _value: object) -> None:
+        raise TypeError("live capability is immutable")
+
+    def __reduce__(self) -> None:
+        raise TypeError("live capability cannot be serialized")
 
 
 def _digest(value: Any, label: str, *, nullable: bool = False) -> str | None:
@@ -148,6 +186,190 @@ def _derive_action(
     return state_key, action, action_key
 
 
+def mint_host_capability(
+    plan: dict[str, Any],
+    approval_content: str,
+) -> _LiveCapability:
+    """Mint one process-local capability after Host authenticates the user line."""
+    plan = validate_gate_plan(plan)
+    if (
+        type(approval_content) is not str
+        or "\n" in approval_content
+        or "\r" in approval_content
+        or sha256_bytes((approval_content + "\n").encode())
+        != plan["approval_content_sha256"]
+    ):
+        raise ValueError("approval content does not match GatePlan")
+    return _LiveCapability(
+        _CAPABILITY_SECRET,
+        candidate_sha256=plan["candidate_sha256"],
+        plan_sha256=plan["plan_sha256"],
+        gate=plan["gate"],
+        approval_content_sha256=plan["approval_content_sha256"],
+    )
+
+
+def validate_capability(
+    capability: object,
+    *,
+    plan: dict[str, Any] | None = None,
+    launch: dict[str, Any] | None = None,
+) -> _LiveCapability:
+    if type(capability) is not _LiveCapability or capability._secret is not _CAPABILITY_SECRET:
+        raise ValueError("model-reaching work requires a Host capability")
+    expected = plan if plan is not None else launch
+    if expected is None:
+        raise ValueError("capability validation requires a plan or launch")
+    fields = (
+        "candidate_sha256",
+        "plan_sha256",
+        "gate",
+        "approval_content_sha256",
+    )
+    if any(getattr(capability, field) != expected[field] for field in fields):
+        raise ValueError("Host capability does not bind this exact effect")
+    return capability
+
+
+def model_gate_profile(
+    *,
+    gate: str,
+    repo: Path,
+    output: Path,
+    claim_root: Path,
+    model: str,
+    effort: str,
+    timeout_ms: int,
+    arm: str,
+    codex_sha256: str,
+    public: Path | None = None,
+) -> dict[str, Any]:
+    """Return the exact canonical Host descriptor for one model gate."""
+    if gate not in {"calibration", "corpus", "holdout"}:
+        raise ValueError("model gate profile requires a model-reaching gate")
+    _digest(codex_sha256, "Codex binary")
+    repo = repo.resolve()
+    output = output.absolute()
+    claim_root = claim_root.resolve()
+    argv = [
+        "happycodex-host:run-authorized-v1",
+        "--gate",
+        gate,
+        "--repository",
+        str(repo),
+        "--output",
+        str(output),
+        "--claim-root",
+        str(claim_root),
+        "--unit",
+        "{unit}",
+    ]
+    if public is not None:
+        argv.extend(("--public", str(public.resolve())))
+    return {
+        "argv": argv,
+        "cwd": str(repo),
+        "env": {
+            "HAPPYCODEX_CLAIM_ROOT": str(claim_root),
+            "HAPPYCODEX_CODEX_SHA256": codex_sha256,
+        },
+        "timeout_ms": timeout_ms,
+        "model": model,
+        "effort": effort,
+        "arm": arm,
+    }
+
+
+def model_gate_resource_digests(
+    *,
+    candidate: dict[str, Any],
+    snapshot: dict[str, Any],
+    profile: dict[str, Any],
+    codex: dict[str, str],
+    public_identity: dict[str, str] | None = None,
+) -> list[str]:
+    resources: list[dict[str, Any]] = [
+        {
+            "kind": "release_candidate",
+            "candidate_sha256": candidate["candidate_sha256"],
+        },
+        {
+            "kind": "candidate_package",
+            "artifact_sha256": candidate["package_artifact_sha256"],
+            "semantic_sha256": candidate["package_semantic_sha256"],
+        },
+        {
+            "kind": "executor_role",
+            "sha256": candidate["executor_role_sha256"],
+        },
+        {
+            "kind": "evaluator_snapshot",
+            "sha256": canonical_sha256(snapshot),
+        },
+        {
+            "kind": "codex_binary",
+            "version": codex["version"],
+            "sha256": codex["sha256"],
+        },
+        {
+            "kind": "host_profile",
+            "sha256": canonical_sha256(profile),
+        },
+    ]
+    if public_identity is not None:
+        resources.append({"kind": "public_baseline", **public_identity})
+    return sorted(canonical_sha256(resource) for resource in resources)
+
+
+def validate_model_gate_plan(
+    plan: dict[str, Any],
+    *,
+    candidate: dict[str, Any],
+    snapshot: dict[str, Any],
+    repo: Path,
+    output: Path,
+    claim_root: Path,
+    model: str,
+    effort: str,
+    timeout_ms: int,
+    arm: str,
+    codex: dict[str, str],
+    public: Path | None = None,
+    public_identity: dict[str, str] | None = None,
+) -> dict[str, Any]:
+    """Bind a persisted plan to the actual Host inputs before any launch."""
+    plan = validate_gate_plan(plan)
+    _real_private_directory(claim_root, "launch claim root")
+    expected_profile = model_gate_profile(
+        gate=plan["gate"],
+        repo=repo,
+        output=output,
+        claim_root=claim_root,
+        model=model,
+        effort=effort,
+        timeout_ms=timeout_ms,
+        arm=arm,
+        codex_sha256=codex["sha256"],
+        public=public,
+    )
+    expected_resources = model_gate_resource_digests(
+        candidate=candidate,
+        snapshot=snapshot,
+        profile=expected_profile,
+        codex=codex,
+        public_identity=public_identity,
+    )
+    if (
+        plan["candidate_sha256"] != candidate["candidate_sha256"]
+        or plan["snapshot_sha256"] != canonical_sha256(snapshot)
+        or plan["output"] != str(output.absolute())
+        or plan["profile"] != expected_profile
+        or plan["resource_digests"] != expected_resources
+    ):
+        raise ValueError("GatePlan does not bind the exact Host invocation")
+    return plan
+
+
 def build_launch(
     plan: dict[str, Any],
     unit: str,
@@ -171,11 +393,6 @@ def build_launch(
         "effort": profile["effort"],
         "arm": profile["arm"],
     }
-    output_root = Path(plan["output"]).absolute()
-    output_path = (output_root / unit).absolute()
-    if output_path.parent != output_root:
-        raise ValueError("launch output must be a direct GatePlan child")
-    output = str(output_path)
     state_key, action, action_key = _derive_action(plan, unit, invocation)
     infrastructure = (
         canonical_sha256(
@@ -188,6 +405,19 @@ def build_launch(
         else infrastructure_generation
     )
     _digest(infrastructure, "launch infrastructure generation")
+    output_root = Path(plan["output"]).absolute()
+    child = (
+        unit
+        if infrastructure_generation is None
+        else "replacement-"
+        + canonical_sha256(
+            {"unit": unit, "infrastructure_generation": infrastructure}
+        )
+    )
+    output_path = (output_root / child).absolute()
+    if output_path.parent != output_root:
+        raise ValueError("launch output must be a direct GatePlan child")
+    output = str(output_path)
     payload = {
         "schema_generation": 7,
         "candidate_sha256": plan["candidate_sha256"],
@@ -538,15 +768,50 @@ def validate_consumed_action(
     return action_claim
 
 
-def write_launch_result(
+def action_is_consumed(
     launch: dict[str, Any],
     claim_root: Path,
-    result: dict[str, Any],
-) -> str:
+) -> bool:
     launch = validate_launch(launch)
     root = _real_private_directory(claim_root, "launch claim root")
-    _load_claim(_launch_claim_path(launch, root))
-    output = _real_private_directory(Path(launch["output"]), "launch output")
+    path = _action_claim_path(launch, root)
+    if path.is_symlink():
+        raise ValueError("ActionKey claim is not a real file")
+    if not path.exists():
+        return False
+    validate_consumed_action(launch, root)
+    return True
+
+
+def enter_provider_call(
+    launch: dict[str, Any],
+    claim_root: Path,
+    capability: object,
+) -> dict[str, Any]:
+    """Consume once at the provider edge; rebind later phases of that launch."""
+    launch = validate_launch(launch)
+    validate_capability(capability, launch=launch)
+    root = _real_private_directory(claim_root, "launch claim root")
+    lock_path = root / f"lock-{launch['action_key']}"
+    lock = os.open(lock_path, os.O_RDWR | os.O_CREAT, 0o600)
+    try:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        result_path = Path(launch["output"]) / "result.json"
+        if result_path.exists() or result_path.is_symlink():
+            raise ValueError("completed launch cannot reach the provider again")
+        if action_is_consumed(launch, root):
+            return validate_consumed_action(launch, root)
+        consume_action(launch, root)
+        return validate_consumed_action(launch, root)
+    finally:
+        os.close(lock)
+
+
+def _validate_launch_result(
+    launch: dict[str, Any],
+    root: Path,
+    result: dict[str, Any],
+) -> dict[str, Any]:
     if not isinstance(result, dict) or set(result) != _RESULT_FIELDS:
         raise ValueError("invalid immutable launch result")
     if (
@@ -572,11 +837,19 @@ def write_launch_result(
         raise ValueError("launch result seal is invalid")
     action_claim = _action_claim_path(launch, root)
     if result["effect"] == "no_effect":
+        consumed_by = (
+            _load_claim(action_claim)
+            if action_claim.exists() or action_claim.is_symlink()
+            else None
+        )
         if (
             result["status"] != "failed"
             or result["output_sha256"] is not None
             or any(result["usage"].values())
-            or action_claim.exists()
+            or (
+                consumed_by is not None
+                and consumed_by.get("launch_key") == launch["launch_key"]
+            )
         ):
             raise ValueError("NO_EFFECT result cannot consume ActionKey")
     elif action_claim.is_symlink() or not action_claim.is_file():
@@ -585,6 +858,31 @@ def write_launch_result(
         actual = result["usage"].get(field)
         if type(actual) is not int or actual < 0 or actual > ceiling:
             raise ValueError("launch result exceeds cost ceiling")
+    return result
+
+
+def load_launch_result(
+    launch: dict[str, Any],
+    claim_root: Path,
+) -> dict[str, Any]:
+    launch = validate_launch(launch)
+    root = _real_private_directory(claim_root, "launch claim root")
+    _load_claim(_launch_claim_path(launch, root))
+    output = _real_private_directory(Path(launch["output"]), "launch output")
+    result = _load_claim(output / "result.json")
+    return _validate_launch_result(launch, root, result)
+
+
+def write_launch_result(
+    launch: dict[str, Any],
+    claim_root: Path,
+    result: dict[str, Any],
+) -> str:
+    launch = validate_launch(launch)
+    root = _real_private_directory(claim_root, "launch claim root")
+    _load_claim(_launch_claim_path(launch, root))
+    output = _real_private_directory(Path(launch["output"]), "launch output")
+    _validate_launch_result(launch, root, result)
     path = output / "result.json"
     flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
     descriptor = os.open(path, flags, 0o600)
@@ -595,6 +893,95 @@ def write_launch_result(
     finally:
         os.close(descriptor)
     return canonical_sha256(result)
+
+
+def collect_plan_results(
+    plan: dict[str, Any],
+    claim_root: Path,
+) -> list[dict[str, Any]]:
+    """Collect the one provider-reaching terminal result for each reached unit."""
+    plan = validate_gate_plan(plan)
+    root = _real_private_directory(claim_root, "launch claim root")
+    collected = []
+    for unit in plan["units"]:
+        default = build_launch(plan, unit)
+        claims = _prior_launches(default, root)
+        terminals = []
+        for claim in claims:
+            launch = (
+                default
+                if claim["launch_key"] == default["launch_key"]
+                else build_launch(
+                    plan,
+                    unit,
+                    infrastructure_generation=claim[
+                        "infrastructure_generation"
+                    ],
+                )
+            )
+            if any(
+                claim[field] != launch[field]
+                for field in (
+                    "action_key",
+                    "launch_key",
+                    "infrastructure_generation",
+                    "unit",
+                    "output",
+                )
+            ):
+                raise ValueError("launch claim does not reconstruct exactly")
+            result_path = Path(launch["output"]) / "result.json"
+            if result_path.exists() or result_path.is_symlink():
+                result = load_launch_result(launch, root)
+                if result["effect"] != "no_effect":
+                    terminals.append(result)
+        if len(terminals) > 1:
+            raise ValueError("unit has multiple provider-reaching results")
+        if terminals:
+            collected.append(terminals[0])
+        elif plan["gate"] != "holdout":
+            raise ValueError("planned unit lacks a provider-reaching result")
+    if not collected:
+        raise ValueError("GatePlan has no provider-reaching results")
+    return collected
+
+
+def write_launch_failure(
+    launch: dict[str, Any],
+    claim_root: Path,
+    error: BaseException,
+) -> str:
+    """Persist a fail-closed result without turning local failure into authority."""
+    launch = validate_launch(launch)
+    consumed = action_is_consumed(launch, claim_root)
+    effect = "ambiguous" if consumed else "no_effect"
+    usage = (
+        dict(launch["cost_ceiling"])
+        if consumed
+        else {field: 0 for field in _USAGE_FIELDS}
+    )
+    result = {
+        "schema_generation": 7,
+        "action_key": launch["action_key"],
+        "launch_key": launch["launch_key"],
+        "unit": launch["unit"],
+        "status": "failed",
+        "effect": effect,
+        "output_sha256": (
+            canonical_sha256(
+                {
+                    "domain": "happycodex/schema7/ambiguous-failure",
+                    "launch_key": launch["launch_key"],
+                    "error_type": type(error).__name__,
+                }
+            )
+            if consumed
+            else None
+        ),
+        "usage": usage,
+    }
+    result["result_sha256"] = canonical_sha256(result)
+    return write_launch_result(launch, claim_root, result)
 
 
 def load_state() -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
@@ -637,12 +1024,22 @@ def derived_release_state(
 __all__ = (
     "LEDGER_PATH",
     "ROOT",
+    "action_is_consumed",
     "build_launch",
+    "collect_plan_results",
     "consume_action",
     "derived_release_state",
+    "enter_provider_call",
     "load_state",
+    "load_launch_result",
+    "mint_host_capability",
+    "model_gate_profile",
+    "model_gate_resource_digests",
     "reserve_launch",
     "validate_consumed_action",
+    "validate_capability",
     "validate_launch",
+    "validate_model_gate_plan",
+    "write_launch_failure",
     "write_launch_result",
 )

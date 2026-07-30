@@ -499,6 +499,12 @@ def validate_ledger(ledger: dict[str, Any], *, repo: Path | None = None) -> None
         plan["gate"] for plan in ledger["plans"]
     ]:
         raise ValueError("GatePlans are not in canonical gate order")
+    plan_gates = [plan["gate"] for plan in ledger["plans"]]
+    if plan_gates != list(GATE_ORDER[:len(plan_gates)]):
+        raise ValueError("GatePlans must form a canonical prefix")
+    receipt_count = len(ledger["receipts"])
+    if len(ledger["plans"]) not in {receipt_count, receipt_count + 1}:
+        raise ValueError("ledger must have at most one open GatePlan")
     if repo is not None and candidate is not None:
         from evaluation.core.impact import build_snapshot
 
@@ -551,6 +557,7 @@ def validate_ledger(ledger: dict[str, Any], *, repo: Path | None = None) -> None
             raise ValueError("GateReceipt chain is not append-only and exact")
         if (
             previous_created_at is None
+            or plan["created_at"] <= previous_created_at
             or receipt["created_at"] <= previous_created_at
             or receipt["created_at"] <= plan["created_at"]
         ):
@@ -592,6 +599,25 @@ def validate_ledger(ledger: dict[str, Any], *, repo: Path | None = None) -> None
         receipt["gate"] for receipt in ledger["receipts"]
     ]:
         raise ValueError("GateReceipts are not in canonical gate order")
+    failed_receipts = [
+        receipt["gate"]
+        for receipt in ledger["receipts"]
+        if receipt["result"] == "failed"
+    ]
+    if failed_receipts:
+        if (
+            len(failed_receipts) != 1
+            or ledger["receipts"][-1]["gate"] != failed_receipts[0]
+            or len(ledger["plans"]) != len(ledger["receipts"])
+        ):
+            raise ValueError("a failed GateReceipt is terminal")
+    if len(ledger["plans"]) == receipt_count + 1:
+        open_plan = ledger["plans"][-1]
+        if (
+            previous_created_at is None
+            or open_plan["created_at"] <= previous_created_at
+        ):
+            raise ValueError("open GatePlan chronology is not strictly increasing")
 
 
 def ledger_sha256(ledger: dict[str, Any], *, repo: Path | None = None) -> str:
@@ -704,8 +730,10 @@ def validate_successor(
         return
     if after["plans"][:-1] != before["plans"]:
         raise ValueError("GatePlan must append exactly once")
-    if before["receipts"]:
-        raise ValueError("GatePlan cannot append after receipts begin")
+    if derive_failed(before):
+        raise ValueError("GatePlan cannot append after a failed receipt")
+    if len(before["plans"]) != len(before["receipts"]):
+        raise ValueError("GatePlan requires the prior receipt")
 
 
 def append_record(
