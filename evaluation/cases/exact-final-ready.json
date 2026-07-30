@@ -1,7 +1,9 @@
 {
-  "schema_version": 1,
+  "schema_generation": 7,
   "id": "exact-final-ready",
-  "covers": ["exact-final-positive"],
+  "covers": [
+    "exact-final-positive"
+  ],
   "prompt": "Use $happycodex:happycodex. Work read-only. Inspect the durable checkpoint and its reachable evidence, then decide the exact review permission now available. Classify the recorded lifecycle control marker from repository evidence. Do not edit, delegate, invoke review, or use the network. Return only the required JSON object.",
   "fixture": {
     "product_exclude": "docs/execplans/exact-final.md",
@@ -66,35 +68,43 @@
     ]
   },
   "oracle": {
-    "expected": {
-      "decision": "continue",
+    "expected_action": "EXACT_FINAL",
+    "required_observation": {
       "qualifies": true,
-      "execplan_condition": "usable",
-      "protocol_may_product_write": false,
-      "protocol_review_mode": "exact_final",
-      "protocol_may_complete": false
+      "execplan_conditions": [
+        "usable"
+      ]
     },
-    "required_classifications": [
+    "required_findings": [
       {
-        "identity": "EXACT-FINAL-READY",
+        "id": "EXACT-FINAL-READY",
         "domain": "other",
-        "state": "resolved"
+        "statuses": [
+          "resolved"
+        ]
       }
     ],
-    "required_anchored_classifications": [
+    "required_anchored_findings": [
       {
-        "anchor": "EXACT-FINAL-READY",
+        "anchor": {
+          "kind": "marker",
+          "value": "EXACT-FINAL-READY"
+        },
         "domain": "other",
-        "state": "resolved"
+        "statuses": [
+          "resolved"
+        ]
       }
     ],
     "coverage_assertions": [
       {
         "tag": "exact-final-positive",
         "kind": "finding",
-        "identity": "EXACT-FINAL-READY"
+        "finding_id": "EXACT-FINAL-READY"
       }
     ],
-    "prompt_forbidden": ["EXACT-FINAL-READY"]
+    "prompt_forbidden": [
+      "EXACT-FINAL-READY"
+    ]
   }
 }

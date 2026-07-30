@@ -1,7 +1,10 @@
 {
-  "schema_version": 1,
+  "schema_generation": 7,
   "id": "midflight-escalation",
-  "covers": ["midflight-escalation", "uncertain-qualification"],
+  "covers": [
+    "midflight-escalation",
+    "uncertain-qualification"
+  ],
   "prompt": "Use $happycodex:happycodex. Work read-only. The task began under Native Plan; inspect current facts and decide the next permitted action. Do not edit, delegate, review, or use the network. Return only the required JSON object.",
   "fixture": {
     "commits": [
@@ -19,21 +22,30 @@
     }
   },
   "oracle": {
-    "expected": {
-      "decision": ["continue", "incomplete"],
+    "expected_action": "RECONCILE",
+    "required_observation": {
       "qualifies": true,
-      "execplan_condition": "missing",
-      "protocol_may_product_write": false,
-      "protocol_review_mode": "none",
-      "protocol_may_complete": false
+      "execplan_conditions": [
+        "missing"
+      ]
     },
-    "required_anchored_classifications": [
+    "required_anchored_findings": [
       {
-        "anchor": "lib.py",
+        "anchor": {
+          "kind": "path",
+          "repository": "fixture",
+          "value": "lib.py"
+        },
         "domain": "other",
-        "state": ["candidate_new", "unknown"]
+        "statuses": [
+          "candidate_new",
+          "unknown"
+        ]
       }
     ],
-    "prompt_forbidden": ["public signature", "becomes qualifying"]
+    "prompt_forbidden": [
+      "public signature",
+      "becomes qualifying"
+    ]
   }
 }

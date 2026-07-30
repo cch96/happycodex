@@ -90,8 +90,8 @@ def load_manifest(path: Path = MANIFEST_PATH) -> dict[str, Any]:
             "pairs": loaded}
 
 
-def _validate_pair_intent(
-    effect_intent: dict[str, Any],
+def _validate_pair_launch(
+    launch: dict[str, Any],
     *,
     pair: dict[str, Any],
     candidate: Path,
@@ -100,17 +100,17 @@ def _validate_pair_intent(
     effort: str,
     timeout: int,
 ) -> None:
-    from evaluation.live import validate_effect_intent
+    from evaluation.live import validate_launch
 
-    intent = validate_effect_intent(effect_intent, unit=pair["id"])
+    launch = validate_launch(launch, unit=pair["id"])
     if (
-        intent["gate"] != "holdout"
-        or intent["invocation"]["model"] != model
-        or intent["invocation"]["effort"] != effort
-        or intent["invocation"]["timeout_ms"] != timeout * 1000
-        or intent["invocation"]["arm"] != "blinded-pair"
+        launch["gate"] != "holdout"
+        or launch["invocation"]["model"] != model
+        or launch["invocation"]["effort"] != effort
+        or launch["invocation"]["timeout_ms"] != timeout * 1000
+        or launch["invocation"]["arm"] != "blinded-pair"
     ):
-        raise ValueError("EffectIntent does not bind holdout invocation")
+        raise ValueError("launch does not bind holdout invocation")
     if pair["case"]["id"] != f"holdout-{pair['id']}":
         raise ValueError("holdout pair identity is invalid")
     for plugin in (candidate, public):
@@ -142,11 +142,12 @@ def run_pair(
     model: str,
     effort: str,
     timeout: int,
-    effect_intent: dict[str, Any],
+    launch: dict[str, Any],
+    claim_root: Path,
     evaluator: Callable[..., dict[str, Any]] = corpus_engine.evaluate_case,
 ) -> dict[str, Any]:
-    _validate_pair_intent(
-        effect_intent,
+    _validate_pair_launch(
+        launch,
         pair=pair,
         candidate=candidate,
         public=public,
@@ -156,7 +157,7 @@ def run_pair(
     )
     pair_output = output / pair["id"]
     if pair_output.is_symlink() or not pair_output.is_dir():
-        raise ValueError("reserved holdout EffectIntent output is not a real directory")
+        raise ValueError("reserved holdout launch output is not a real directory")
     sealed = seal_mapping(pair["id"])
     commitment_sha = write_new_json(
         pair_output / "01-mapping-commitment.json", sealed.public_receipt()
@@ -174,8 +175,9 @@ def run_pair(
             effort=effort,
             timeout=timeout,
             arm=arm,
-            effect_intent=effect_intent,
-            intent_unit=pair["id"],
+            launch=launch,
+            claim_root=claim_root,
+            launch_unit=pair["id"],
         )
 
     raw = _evaluate_pair_arms(evaluate_alias)
@@ -200,7 +202,7 @@ def run_pair(
         )
     receipt = {
         "schema_version": 1,
-        "engine_generation": "0.6",
+        "engine_generation": "0.6.5",
         "id": pair["id"],
         "case_id": pair["case"]["id"],
         "case_sha256": pair["case_sha256"],
@@ -242,43 +244,48 @@ def run_holdouts(
     model: str,
     effort: str,
     timeout: int,
-    effect_intents: dict[str, dict[str, Any]],
+    launches: dict[str, dict[str, Any]],
     claim_root: Path,
 ) -> dict[str, Any]:
     from evaluation import live
 
-    if not isinstance(effect_intents, dict) or not effect_intents:
-        raise ValueError("authorized holdout run requires EffectIntents")
-    intents = {
-        key: live.validate_effect_intent(value, unit=key)
-        for key, value in effect_intents.items()
+    if not isinstance(launches, dict) or not launches:
+        raise ValueError("authorized holdout run requires launches")
+    prepared = {
+        key: live.validate_launch(value, unit=key)
+        for key, value in launches.items()
     }
     manifest = load_manifest()
     output = resolve_output(output, candidate, public)
     pair_ids = [pair["id"] for pair in manifest["pairs"]]
-    if set(intents) != set(pair_ids):
-        raise ValueError("EffectIntent units do not equal holdout pairs")
+    if set(prepared) != set(pair_ids):
+        raise ValueError("launch units do not equal holdout pairs")
     for pair_id in pair_ids:
-        intent = live.validate_effect_intent(
-            intents[pair_id],
+        launch = live.validate_launch(
+            prepared[pair_id],
             unit=pair_id,
             timeout_ms=timeout * 1000,
             output=output / pair_id,
         )
         if (
-            intent["gate"] != "holdout"
-            or intent["invocation"]["model"] != model
-            or intent["invocation"]["effort"] != effort
-            or intent["invocation"]["arm"] != "blinded-pair"
+            launch["gate"] != "holdout"
+            or launch["invocation"]["model"] != model
+            or launch["invocation"]["effort"] != effort
+            or launch["invocation"]["arm"] != "blinded-pair"
         ):
-            raise ValueError("EffectIntent does not bind holdout invocation")
+            raise ValueError("launch does not bind holdout invocation")
+    corpus_engine.provider_transport_schema(corpus_engine.OUTPUT_SCHEMA)
+    corpus_engine.codex_identity()
+    for plugin in (candidate, public):
+        corpus_engine.package_identities(plugin)
     receipts = []
     outcomes = []
     by_id = {pair["id"]: pair for pair in manifest["pairs"]}
     while frontier := adaptive_frontier(pair_ids, outcomes):
         pair = by_id[frontier[0]]
-        intent = intents[pair["id"]]
-        live.reserve_effect(intent, claim_root)
+        launch = prepared[pair["id"]]
+        live.reserve_launch(launch, claim_root)
+        live.consume_action(launch, claim_root)
         receipt = run_pair(
             pair,
             candidate=candidate,
@@ -287,7 +294,8 @@ def run_holdouts(
             model=model,
             effort=effort,
             timeout=timeout,
-            effect_intent=intent,
+            launch=launch,
+            claim_root=claim_root,
         )
         usage = {
             "model_calls": sum(
@@ -305,22 +313,24 @@ def run_holdouts(
             ),
         }
         effect_result = {
-            "schema_version": 1,
-            "intent_digest": intent["intent_digest"],
-            "unit": intent["unit"],
+            "schema_generation": 7,
+            "action_key": launch["action_key"],
+            "launch_key": launch["launch_key"],
+            "unit": launch["unit"],
             "status": (
                 "failed" if receipt["outcome"] == "regression" else "succeeded"
             ),
+            "effect": "provider_reached",
             "output_sha256": canonical_sha256(receipt),
             "usage": usage,
         }
         effect_result["result_sha256"] = canonical_sha256(effect_result)
-        live.write_effect_result(intent, claim_root, effect_result)
+        live.write_launch_result(launch, claim_root, effect_result)
         receipts.append(receipt)
         outcomes.append(receipt["outcome"])
     return {
         "schema_version": 1,
-        "engine_generation": "0.6",
+        "engine_generation": "0.6.5",
         "manifest_sha256": manifest["manifest_sha256"],
         "pairs": [receipt["id"] for receipt in receipts],
         "outcomes": outcomes,
@@ -363,8 +373,8 @@ def run_command(args: Any) -> int:
                         arm="blinded-pair",
                     ),
                     "effects": {
-                        "intents_created": 0,
-                        "units_consumed": 0,
+                        "launches_created": 0,
+                        "actions_consumed": 0,
                         "fixtures_created": 0,
                         "outputs_created": 0,
                         "receipts_created": 0,
@@ -383,7 +393,7 @@ def run_command(args: Any) -> int:
 
 def run_authorized(
     args: Any,
-    effect_intents: dict[str, dict[str, Any]],
+    launches: dict[str, dict[str, Any]],
     claim_root: Path,
 ) -> int:
     if args.public is None:
@@ -395,7 +405,7 @@ def run_authorized(
         model=args.model,
         effort=args.effort,
         timeout=args.timeout,
-        effect_intents=effect_intents,
+        launches=launches,
         claim_root=claim_root,
     )
     print(json.dumps(result, sort_keys=True))

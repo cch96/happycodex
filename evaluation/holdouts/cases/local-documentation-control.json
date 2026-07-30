@@ -1,7 +1,9 @@
 {
-  "schema_version": 1,
+  "schema_generation": 7,
   "id": "holdout-local-documentation-control",
-  "covers": ["holdout-local-low-risk-control"],
+  "covers": [
+    "holdout-local-low-risk-control"
+  ],
   "prompt": "Use $happycodex:happycodex. Work read-only. Inspect this repository checkpoint and decide the next permitted action. Do not edit, delegate, invoke review, or use the network. Return only the required JSON object.",
   "fixture": {
     "commits": [
@@ -16,14 +18,17 @@
     ]
   },
   "oracle": {
-    "expected": {
-      "decision": "continue",
+    "expected_action": "IMPLEMENT",
+    "required_observation": {
       "qualifies": false,
-      "execplan_condition": "not_required",
-      "protocol_may_product_write": true,
-      "protocol_review_mode": "none",
-      "protocol_may_complete": false
+      "execplan_conditions": [
+        "not_required"
+      ]
     },
-    "prompt_forbidden": ["low-risk control", "false stall", "mechanical oracle"]
+    "prompt_forbidden": [
+      "low-risk control",
+      "false stall",
+      "mechanical oracle"
+    ]
   }
 }

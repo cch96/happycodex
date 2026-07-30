@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import fcntl
 import json
 import os
 from pathlib import Path
@@ -26,31 +27,41 @@ from evaluation.core.ledger import (
 ROOT = Path(__file__).resolve().parents[1]
 LEDGER_PATH = ROOT / "evaluation" / "results" / "current.json"
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
-_INTENT_FIELDS = frozenset(
+_LAUNCH_FIELDS = frozenset(
     {
-        "schema_version",
+        "schema_generation",
         "candidate_sha256",
+        "snapshot_sha256",
         "plan_sha256",
         "gate",
         "unit",
+        "state_key",
+        "action",
+        "action_key",
+        "infrastructure_generation",
         "invocation",
         "cost_ceiling",
         "units",
         "resource_digests",
         "output",
         "approval_content_sha256",
-        "intent_digest",
+        "launch_key",
     }
+)
+_ACTION_FIELDS = frozenset(
+    {"kind", "target", "scope", "falsifier_id", "evidence_source_id"}
 )
 _INVOCATION_FIELDS = frozenset(
     {"argv", "cwd", "env", "timeout_ms", "model", "effort", "arm"}
 )
 _RESULT_FIELDS = frozenset(
     {
-        "schema_version",
-        "intent_digest",
+        "schema_generation",
+        "action_key",
+        "launch_key",
         "unit",
         "status",
+        "effect",
         "output_sha256",
         "usage",
         "result_sha256",
@@ -94,11 +105,59 @@ def _expand(value: str, unit: str) -> str:
     return value.replace("{unit}", unit)
 
 
-def build_effect_intent(plan: dict[str, Any], unit: str) -> dict[str, Any]:
-    """Build audit-bound effect content; this object grants no permission."""
+def _derive_action(
+    plan: dict[str, Any],
+    unit: str,
+    invocation: dict[str, Any],
+) -> tuple[str, dict[str, str], str]:
+    state_key = canonical_sha256(
+        {
+            "domain": "happycodex/schema7/gate-state",
+            "candidate_sha256": plan["candidate_sha256"],
+            "snapshot_sha256": plan["snapshot_sha256"],
+            "gate": plan["gate"],
+            "unit": unit,
+        }
+    )
+    action = {
+        "kind": "RUN_GATE",
+        "target": f"{plan['gate']}:{unit}",
+        "scope": plan["candidate_sha256"],
+        "falsifier_id": canonical_sha256(
+            {
+                "snapshot_sha256": plan["snapshot_sha256"],
+                "gate": plan["gate"],
+                "unit": unit,
+            }
+        ),
+        "evidence_source_id": canonical_sha256(
+            {
+                "profile": invocation,
+                "units": plan["units"],
+                "resource_digests": plan["resource_digests"],
+            }
+        ),
+    }
+    action_key = canonical_sha256(
+        {
+            "domain": "happycodex/schema7/action-key",
+            "state_key": state_key,
+            "action": action,
+        }
+    )
+    return state_key, action, action_key
+
+
+def build_launch(
+    plan: dict[str, Any],
+    unit: str,
+    *,
+    infrastructure_generation: str | None = None,
+) -> dict[str, Any]:
+    """Derive one launch from an exact GatePlan; neither object is authority."""
     plan = validate_gate_plan(plan)
     if unit not in plan["units"]:
-        raise ValueError("EffectIntent unit is outside GatePlan")
+        raise ValueError("launch unit is outside GatePlan")
     profile = plan["profile"]
     invocation = {
         "argv": [_expand(item, unit) for item in profile["argv"]],
@@ -115,14 +174,31 @@ def build_effect_intent(plan: dict[str, Any], unit: str) -> dict[str, Any]:
     output_root = Path(plan["output"]).absolute()
     output_path = (output_root / unit).absolute()
     if output_path.parent != output_root:
-        raise ValueError("EffectIntent output must be a direct GatePlan child")
+        raise ValueError("launch output must be a direct GatePlan child")
     output = str(output_path)
+    state_key, action, action_key = _derive_action(plan, unit, invocation)
+    infrastructure = (
+        canonical_sha256(
+            {
+                "snapshot_sha256": plan["snapshot_sha256"],
+                "profile": profile,
+            }
+        )
+        if infrastructure_generation is None
+        else infrastructure_generation
+    )
+    _digest(infrastructure, "launch infrastructure generation")
     payload = {
-        "schema_version": 1,
+        "schema_generation": 7,
         "candidate_sha256": plan["candidate_sha256"],
+        "snapshot_sha256": plan["snapshot_sha256"],
         "plan_sha256": plan["plan_sha256"],
         "gate": plan["gate"],
         "unit": unit,
+        "state_key": state_key,
+        "action": action,
+        "action_key": action_key,
+        "infrastructure_generation": infrastructure,
         "invocation": invocation,
         "cost_ceiling": dict(plan["cost_ceiling"]),
         "units": list(plan["units"]),
@@ -130,11 +206,13 @@ def build_effect_intent(plan: dict[str, Any], unit: str) -> dict[str, Any]:
         "output": output,
         "approval_content_sha256": plan["approval_content_sha256"],
     }
-    payload["intent_digest"] = canonical_sha256(payload)
-    return validate_effect_intent(payload)
+    payload["launch_key"] = canonical_sha256(
+        {"domain": "happycodex/schema7/launch-key", "launch": payload}
+    )
+    return validate_launch(payload)
 
 
-def validate_effect_intent(
+def validate_launch(
     value: Any,
     *,
     plan: dict[str, Any] | None = None,
@@ -145,24 +223,38 @@ def validate_effect_intent(
     timeout_ms: int | None = None,
     output: Path | None = None,
 ) -> dict[str, Any]:
-    if not isinstance(value, dict) or set(value) != _INTENT_FIELDS:
-        raise ValueError("invalid EffectIntent fields")
-    if value["schema_version"] != 1:
-        raise ValueError("invalid EffectIntent schema")
+    if not isinstance(value, dict) or set(value) != _LAUNCH_FIELDS:
+        raise ValueError("invalid launch fields")
+    if value["schema_generation"] != 7:
+        raise ValueError("invalid launch schema")
     for field in (
         "candidate_sha256",
+        "snapshot_sha256",
         "plan_sha256",
         "approval_content_sha256",
-        "intent_digest",
+        "state_key",
+        "action_key",
+        "infrastructure_generation",
+        "launch_key",
     ):
-        _digest(value[field], f"EffectIntent {field}")
+        _digest(value[field], f"launch {field}")
     if type(value["gate"]) is not str or value["gate"] not in GATE_ORDER:
-        raise ValueError("invalid EffectIntent gate")
+        raise ValueError("invalid launch gate")
     if type(value["unit"]) is not str or not value["unit"]:
-        raise ValueError("invalid EffectIntent unit")
+        raise ValueError("invalid launch unit")
+    action = value["action"]
+    if (
+        not isinstance(action, dict)
+        or set(action) != _ACTION_FIELDS
+        or action["kind"] != "RUN_GATE"
+        or any(type(item) is not str or not item for item in action.values())
+    ):
+        raise ValueError("invalid reducer-produced launch action")
+    for field in ("scope", "falsifier_id", "evidence_source_id"):
+        _digest(action[field], f"launch action {field}")
     invocation = value["invocation"]
     if not isinstance(invocation, dict) or set(invocation) != _INVOCATION_FIELDS:
-        raise ValueError("invalid EffectIntent invocation")
+        raise ValueError("invalid launch invocation")
     if (
         not isinstance(invocation["argv"], list)
         or not invocation["argv"]
@@ -175,14 +267,14 @@ def validate_effect_intent(
         or type(invocation["timeout_ms"]) is not int
         or invocation["timeout_ms"] <= 0
     ):
-        raise ValueError("invalid EffectIntent invocation")
+        raise ValueError("invalid launch invocation")
     if (
         not isinstance(value["cost_ceiling"], dict)
         or set(value["cost_ceiling"]) != _USAGE_FIELDS
         or any(type(item) is not int or item < 0
                for item in value["cost_ceiling"].values())
     ):
-        raise ValueError("invalid EffectIntent cost ceiling")
+        raise ValueError("invalid launch cost ceiling")
     if (
         not isinstance(value["units"], list)
         or value["units"] != sorted(set(value["units"]))
@@ -190,18 +282,63 @@ def validate_effect_intent(
         or not isinstance(value["resource_digests"], list)
         or value["resource_digests"] != sorted(set(value["resource_digests"]))
     ):
-        raise ValueError("invalid EffectIntent units or resources")
+        raise ValueError("invalid launch units or resources")
     for digest in value["resource_digests"]:
-        _digest(digest, "EffectIntent resource")
+        _digest(digest, "launch resource")
     output_path = Path(str(value["output"]))
     if not output_path.is_absolute():
-        raise ValueError("EffectIntent output must be absolute")
+        raise ValueError("launch output must be absolute")
+    expected_state = canonical_sha256(
+        {
+            "domain": "happycodex/schema7/gate-state",
+            "candidate_sha256": value["candidate_sha256"],
+            "snapshot_sha256": value["snapshot_sha256"],
+            "gate": value["gate"],
+            "unit": value["unit"],
+        }
+    )
+    expected_action = {
+        "kind": "RUN_GATE",
+        "target": f"{value['gate']}:{value['unit']}",
+        "scope": value["candidate_sha256"],
+        "falsifier_id": canonical_sha256(
+            {
+                "snapshot_sha256": value["snapshot_sha256"],
+                "gate": value["gate"],
+                "unit": value["unit"],
+            }
+        ),
+        "evidence_source_id": canonical_sha256(
+            {
+                "profile": value["invocation"],
+                "units": value["units"],
+                "resource_digests": value["resource_digests"],
+            }
+        ),
+    }
+    if value["state_key"] != expected_state or action != expected_action:
+        raise ValueError("launch action differs from pure reduction")
+    expected_action_key = canonical_sha256(
+        {
+            "domain": "happycodex/schema7/action-key",
+            "state_key": expected_state,
+            "action": expected_action,
+        }
+    )
+    if value["action_key"] != expected_action_key:
+        raise ValueError("launch ActionKey differs from reducer action")
     payload = dict(value)
-    seal = payload.pop("intent_digest")
-    if seal != canonical_sha256(payload):
-        raise ValueError("EffectIntent content changed")
-    if plan is not None and value != build_effect_intent(plan, value["unit"]):
-        raise ValueError("EffectIntent does not match GatePlan")
+    seal = payload.pop("launch_key")
+    if seal != canonical_sha256(
+        {"domain": "happycodex/schema7/launch-key", "launch": payload}
+    ):
+        raise ValueError("launch content changed")
+    if plan is not None and value != build_launch(
+        plan,
+        value["unit"],
+        infrastructure_generation=value["infrastructure_generation"],
+    ):
+        raise ValueError("launch does not match GatePlan")
     checks = (
         (unit, value["unit"], "unit"),
         (argv, invocation["argv"], "argv"),
@@ -212,66 +349,128 @@ def validate_effect_intent(
     )
     for expected, actual, label in checks:
         if expected is not None and expected != actual:
-            raise ValueError(f"EffectIntent {label} drift")
+            raise ValueError(f"launch {label} drift")
     return value
 
 
 def _output_preflight(path: Path) -> tuple[Path, Path]:
     output = path.absolute()
     if output != Path(os.path.abspath(output)) or ".." in output.parts:
-        raise ValueError("EffectIntent output path drift")
+        raise ValueError("launch output path drift")
     if output.exists() or output.is_symlink():
-        raise ValueError("EffectIntent output must be absent")
+        raise ValueError("launch output must be absent")
     base = output.parent
     if base.exists():
-        _real_private_directory(base, "EffectIntent output parent")
+        _real_private_directory(base, "launch output parent")
         return base, output
     grandparent = _real_private_directory(
         base.parent,
-        "EffectIntent output grandparent",
+        "launch output grandparent",
     )
     if base.parent != grandparent:
-        raise ValueError("EffectIntent output parent alias")
+        raise ValueError("launch output parent alias")
     return base, output
 
 
-def _consumption_path(intent: dict[str, Any], claim_root: Path) -> Path:
-    digest = canonical_sha256(
-        {"intent_digest": intent["intent_digest"], "unit": intent["unit"]}
+def _launch_claim_path(launch: dict[str, Any], root: Path) -> Path:
+    return root / (
+        f"launch-{launch['action_key']}-{launch['launch_key']}.json"
     )
-    return claim_root / f"effect-{digest}"
 
 
-def reserve_effect(
-    intent: dict[str, Any],
-    claim_root: Path,
-    *,
-    plan: dict[str, Any] | None = None,
-) -> dict[str, str]:
-    """Consume one intent+unit and create its absent output before any runner."""
-    intent = validate_effect_intent(intent, plan=plan)
-    root = _real_private_directory(claim_root, "effect claim root")
-    base, output = _output_preflight(Path(intent["output"]))
-    claim = _consumption_path(intent, root)
+def _action_claim_path(launch: dict[str, Any], root: Path) -> Path:
+    return root / f"action-{launch['action_key']}.json"
+
+
+def _write_exclusive(path: Path, payload: dict[str, Any]) -> None:
     flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
-    descriptor = os.open(claim, flags, 0o600)
+    descriptor = os.open(path, flags, 0o600)
     try:
         data = (
-            json.dumps(
-                {
-                    "schema_version": 1,
-                    "intent_digest": intent["intent_digest"],
-                    "unit": intent["unit"],
-                },
-                sort_keys=True,
-                separators=(",", ":"),
-            ).encode()
+            json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
             + b"\n"
         )
         os.write(descriptor, data)
         os.fsync(descriptor)
     finally:
         os.close(descriptor)
+
+
+def _load_claim(path: Path) -> dict[str, Any]:
+    if path.is_symlink() or not path.is_file():
+        raise ValueError("launch claim is not a real file")
+    value = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(value, dict):
+        raise ValueError("launch claim is malformed")
+    return value
+
+
+def _prior_launches(launch: dict[str, Any], root: Path) -> list[dict[str, Any]]:
+    prefix = f"launch-{launch['action_key']}-"
+    prior = []
+    for path in sorted(root.iterdir()):
+        if not path.name.startswith(prefix):
+            continue
+        claim = _load_claim(path)
+        if set(claim) != {
+            "schema_generation",
+            "action_key",
+            "launch_key",
+            "infrastructure_generation",
+            "unit",
+            "output",
+        }:
+            raise ValueError("launch claim fields are invalid")
+        prior.append(claim)
+    return prior
+
+
+def reserve_launch(
+    launch: dict[str, Any],
+    claim_root: Path,
+    *,
+    plan: dict[str, Any] | None = None,
+) -> dict[str, str]:
+    """Reserve one launch after local preflight without consuming ActionKey."""
+    launch = validate_launch(launch, plan=plan)
+    root = _real_private_directory(claim_root, "launch claim root")
+    base, output = _output_preflight(Path(launch["output"]))
+    claim = _launch_claim_path(launch, root)
+    lock_path = root / f"lock-{launch['action_key']}"
+    lock = os.open(lock_path, os.O_RDWR | os.O_CREAT, 0o600)
+    try:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        if _action_claim_path(launch, root).exists():
+            raise ValueError("ActionKey is already consumed")
+        prior = _prior_launches(launch, root)
+        if prior:
+            if len(prior) != 1:
+                raise ValueError("ActionKey replacement launch is exhausted")
+            previous = prior[0]
+            result_path = Path(previous["output"]) / "result.json"
+            result = _load_claim(result_path)
+            if (
+                result.get("effect") != "no_effect"
+                or result.get("action_key") != launch["action_key"]
+                or previous["infrastructure_generation"]
+                == launch["infrastructure_generation"]
+            ):
+                raise ValueError("replacement launch lacks a distinct NO_EFFECT proof")
+        _write_exclusive(
+            claim,
+            {
+                "schema_generation": 7,
+                "action_key": launch["action_key"],
+                "launch_key": launch["launch_key"],
+                "infrastructure_generation": launch[
+                    "infrastructure_generation"
+                ],
+                "unit": launch["unit"],
+                "output": launch["output"],
+            },
+        )
+    finally:
+        os.close(lock)
     if not base.exists():
         os.mkdir(base, 0o700)
     descriptor = os.open(
@@ -281,49 +480,111 @@ def reserve_effect(
     try:
         os.mkdir(output.name, 0o700, dir_fd=descriptor)
     except FileExistsError as exc:
-        raise ValueError("EffectIntent output collision after consumption") from exc
+        raise ValueError("launch output collision after reservation") from exc
     finally:
         os.close(descriptor)
     return {
-        "intent_digest": intent["intent_digest"],
-        "unit": intent["unit"],
+        "action_key": launch["action_key"],
+        "launch_key": launch["launch_key"],
+        "unit": launch["unit"],
         "claim": str(claim),
         "output": str(output),
     }
 
 
-def write_effect_result(
-    intent: dict[str, Any],
+def consume_action(launch: dict[str, Any], claim_root: Path) -> str:
+    """Consume ActionKey immediately before the first provider-reaching call."""
+    launch = validate_launch(launch)
+    root = _real_private_directory(claim_root, "launch claim root")
+    launch_claim = _launch_claim_path(launch, root)
+    claim = _load_claim(launch_claim)
+    if (
+        claim.get("launch_key") != launch["launch_key"]
+        or claim.get("action_key") != launch["action_key"]
+    ):
+        raise ValueError("launch reservation does not bind ActionKey")
+    action_claim = _action_claim_path(launch, root)
+    _write_exclusive(
+        action_claim,
+        {
+            "schema_generation": 7,
+            "action_key": launch["action_key"],
+            "launch_key": launch["launch_key"],
+            "unit": launch["unit"],
+        },
+    )
+    return str(action_claim)
+
+
+def validate_consumed_action(
+    launch: dict[str, Any],
+    claim_root: Path,
+) -> dict[str, Any]:
+    launch = validate_launch(launch)
+    root = _real_private_directory(claim_root, "launch claim root")
+    launch_claim = _load_claim(_launch_claim_path(launch, root))
+    action_claim = _load_claim(_action_claim_path(launch, root))
+    expected = {
+        "schema_generation": 7,
+        "action_key": launch["action_key"],
+        "launch_key": launch["launch_key"],
+        "unit": launch["unit"],
+    }
+    if (
+        launch_claim.get("launch_key") != launch["launch_key"]
+        or action_claim != expected
+    ):
+        raise ValueError("provider call lacks its exact consumed ActionKey")
+    return action_claim
+
+
+def write_launch_result(
+    launch: dict[str, Any],
     claim_root: Path,
     result: dict[str, Any],
 ) -> str:
-    intent = validate_effect_intent(intent)
-    root = _real_private_directory(claim_root, "effect claim root")
-    claim = _consumption_path(intent, root)
-    if claim.is_symlink() or not claim.is_file():
-        raise ValueError("EffectIntent unit is not durably consumed")
-    output = _real_private_directory(Path(intent["output"]), "effect output")
+    launch = validate_launch(launch)
+    root = _real_private_directory(claim_root, "launch claim root")
+    _load_claim(_launch_claim_path(launch, root))
+    output = _real_private_directory(Path(launch["output"]), "launch output")
     if not isinstance(result, dict) or set(result) != _RESULT_FIELDS:
-        raise ValueError("invalid immutable effect result")
+        raise ValueError("invalid immutable launch result")
     if (
-        result["schema_version"] != 1
-        or result["intent_digest"] != intent["intent_digest"]
-        or result["unit"] != intent["unit"]
+        result["schema_generation"] != 7
+        or result["action_key"] != launch["action_key"]
+        or result["launch_key"] != launch["launch_key"]
+        or result["unit"] != launch["unit"]
         or result["status"] not in {"succeeded", "failed"}
+        or result["effect"] not in {
+            "no_effect",
+            "provider_reached",
+            "ambiguous",
+        }
         or not isinstance(result["usage"], dict)
         or set(result["usage"]) != _USAGE_FIELDS
     ):
-        raise ValueError("effect result does not bind intent")
-    _digest(result["output_sha256"], "effect output", nullable=True)
-    _digest(result["result_sha256"], "effect result")
+        raise ValueError("launch result does not bind launch")
+    _digest(result["output_sha256"], "launch output", nullable=True)
+    _digest(result["result_sha256"], "launch result")
     payload = dict(result)
-    seal = payload.pop("result_sha256")
+    payload.pop("result_sha256")
     if result["result_sha256"] != canonical_sha256(payload):
-        raise ValueError("effect result seal is invalid")
-    for field, ceiling in intent["cost_ceiling"].items():
+        raise ValueError("launch result seal is invalid")
+    action_claim = _action_claim_path(launch, root)
+    if result["effect"] == "no_effect":
+        if (
+            result["status"] != "failed"
+            or result["output_sha256"] is not None
+            or any(result["usage"].values())
+            or action_claim.exists()
+        ):
+            raise ValueError("NO_EFFECT result cannot consume ActionKey")
+    elif action_claim.is_symlink() or not action_claim.is_file():
+        raise ValueError("provider-reaching result lacks consumed ActionKey")
+    for field, ceiling in launch["cost_ceiling"].items():
         actual = result["usage"].get(field)
         if type(actual) is not int or actual < 0 or actual > ceiling:
-            raise ValueError("effect result exceeds cost ceiling")
+            raise ValueError("launch result exceeds cost ceiling")
     path = output / "result.json"
     flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
     descriptor = os.open(path, flags, 0o600)
@@ -376,10 +637,12 @@ def derived_release_state(
 __all__ = (
     "LEDGER_PATH",
     "ROOT",
-    "build_effect_intent",
+    "build_launch",
+    "consume_action",
     "derived_release_state",
     "load_state",
-    "reserve_effect",
-    "validate_effect_intent",
-    "write_effect_result",
+    "reserve_launch",
+    "validate_consumed_action",
+    "validate_launch",
+    "write_launch_result",
 )

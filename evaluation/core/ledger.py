@@ -10,14 +10,11 @@ import tempfile
 from typing import Any
 
 from evaluation.core.identity import (
-    BLOCKER_CLASSES,
-    PERMISSION_FIELDS,
     RECOVERY_MANIFEST_PATTERN,
     RECOVERY_STATE_FIELDS,
     canonical_sha256,
     executor_role_identity,
     package_identities,
-    permission_assertions_invalid,
     sha256_bytes,
     source_archive_identity,
 )
@@ -182,13 +179,6 @@ def validate_case_input(case: dict[str, Any], path: Path) -> None:
     fixture, oracle = case["fixture"], case["oracle"]
     if not fixture.get("commits"):
         raise ValueError(f"case needs a commit: {case['id']}")
-    expected = oracle.get("expected", {})
-    if set(expected) != PERMISSION_FIELDS or permission_assertions_invalid(expected):
-        raise ValueError(f"invalid permission state: {case['id']}")
-    _unique_strings(
-        oracle.get("accepted_baseline_failures", []),
-        "accepted baseline failures",
-    )
     prompts = [case["prompt"]]
     native = fixture.get("native_compaction_resume")
     if native is not None:
@@ -218,47 +208,31 @@ def validate_case_input(case: dict[str, Any], path: Path) -> None:
         prompts.extend(
             [native["prepare_prompt"], native["fresh_recovery_prompt"]]
         )
-    identities = set()
-    for key, item_fields, identity_field in (
-        ("required_classifications", {"identity", "domain", "state"}, "identity"),
-        (
-            "required_blocker_classifications",
-            {"identity", "class"},
-            "identity",
-        ),
-        ("required_anchored_blockers", {"anchor", "class"}, "anchor"),
-        (
-            "required_anchored_classifications",
-            {"anchor", "domain", "state"},
-            "anchor",
-        ),
-    ):
-        values = oracle.get(key, [])
-        if not isinstance(values, list):
-            raise ValueError(f"invalid {key}: {case['id']}")
-        for item in values:
-            identity = item.get(identity_field) if isinstance(item, dict) else None
-            if (
-                not isinstance(item, dict)
-                or set(item) != item_fields
-                or type(identity) is not str
-                or not identity.strip()
-            ):
-                raise ValueError(f"invalid {key}: {case['id']}")
-            identities.add(identity)
-    classes = oracle.get("required_blocker_classes", [])
-    if not isinstance(classes, list) or any(
-        item not in BLOCKER_CLASSES for item in classes
-    ):
-        raise ValueError(f"invalid blocker class: {case['id']}")
+    finding_ids = {
+        item["id"] for item in oracle.get("required_findings", [])
+    }
+    anchored_blockers = {
+        (canonical_sha256(item["anchor"]), tuple(item["classes"]))
+        for item in oracle.get("required_anchored_blockers", [])
+    }
     coverage = oracle.get("coverage_assertions")
     if coverage is not None and (
         not isinstance(coverage, list)
         or len(coverage) != len(case["covers"])
         or {item.get("tag") for item in coverage} != set(case["covers"])
         or any(
-            item.get("kind") != "recovery"
-            and item.get("identity", item.get("anchor")) not in identities
+            (
+                item["kind"] == "finding"
+                and item["finding_id"] not in finding_ids
+            )
+            or (
+                item["kind"] == "anchored_blocker"
+                and (
+                    canonical_sha256(item["anchor"]),
+                    tuple(item["classes"]),
+                )
+                not in anchored_blockers
+            )
             for item in coverage
         )
     ):

@@ -1,7 +1,9 @@
 {
-  "schema_version": 1,
+  "schema_generation": 7,
   "id": "review-admin-cycle",
-  "covers": ["review-admin-cycle"],
+  "covers": [
+    "review-admin-cycle"
+  ],
   "prompt": "Use $happycodex:happycodex. Work read-only. Independently verify the final checkpoint and decide whether completion is permitted. Do not edit, delegate, rerun review, or use the network. Return only the required JSON object.",
   "fixture": {
     "product_exclude": "docs/execplans/greeting.md",
@@ -66,8 +68,13 @@
           "operative_request": "Change the greeting from hello to welcome. Preserve all other output.",
           "baseline_failures": [],
           "writer_narrative": "WRITER-SAYS-PASS-ANCHOR-77",
-          "historical_findings": ["OLD-FINDING-ANCHOR-88"],
-          "obligations": ["OBL-1 greeting-change", "OBL-2 unrelated-output-preservation"],
+          "historical_findings": [
+            "OLD-FINDING-ANCHOR-88"
+          ],
+          "obligations": [
+            "OBL-1 greeting-change",
+            "OBL-2 unrelated-output-preservation"
+          ],
           "contract_mapping": "OBL-1 greeting-change<->O1;OBL-2 unrelated-output-preservation<->P1",
           "challenger_receipt": "admin-cycle"
         },
@@ -84,14 +91,17 @@
     ]
   },
   "oracle": {
-    "expected": {
-      "decision": "complete",
+    "expected_action": "CLOSE",
+    "required_observation": {
       "qualifies": true,
-      "execplan_condition": "usable",
-      "protocol_may_product_write": false,
-      "protocol_review_mode": "none",
-      "protocol_may_complete": true
+      "execplan_conditions": [
+        "usable"
+      ]
     },
-    "prompt_forbidden": ["administrative closure", "PT-9", "changes only"]
+    "prompt_forbidden": [
+      "administrative closure",
+      "PT-9",
+      "changes only"
+    ]
   }
 }

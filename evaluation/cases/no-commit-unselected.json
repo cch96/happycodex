@@ -1,7 +1,9 @@
 {
-  "schema_version": 1,
+  "schema_generation": 7,
   "id": "no-commit-unselected",
-  "covers": ["no-commit-unselected"],
+  "covers": [
+    "no-commit-unselected"
+  ],
   "prompt": "Use $happycodex:happycodex. Work read-only. Audit whether this no-commit checkpoint is durably recoverable and decide whether product work may resume. Do not edit, delegate, invoke review, or use the network. Return only the required JSON object.",
   "fixture": {
     "commits": [
@@ -16,40 +18,62 @@
     ]
   },
   "oracle": {
-    "expected": {
-      "decision": "stop_for_user",
+    "expected_action": "ASK_USER",
+    "required_observation": {
       "qualifies": true,
-      "execplan_condition": "usable",
-      "protocol_may_product_write": false,
-      "protocol_review_mode": "none",
-      "protocol_may_complete": false
+      "execplan_conditions": [
+        "usable"
+      ]
     },
-    "required_classifications": [
+    "required_findings": [
       {
-        "identity": "BARE-OBJECT-CHECKPOINT",
+        "id": "BARE-OBJECT-CHECKPOINT",
         "domain": "receipt",
-        "state": ["baseline_unchanged", "unknown"]
+        "statuses": [
+          "baseline_unchanged",
+          "unknown"
+        ]
       }
     ],
-    "required_anchored_classifications": [
+    "required_anchored_findings": [
       {
-        "anchor": "BARE-OBJECT-CHECKPOINT",
+        "anchor": {
+          "kind": "marker",
+          "value": "BARE-OBJECT-CHECKPOINT"
+        },
         "domain": "receipt",
-        "state": ["baseline_unchanged", "unknown"]
+        "statuses": [
+          "baseline_unchanged",
+          "unknown"
+        ]
       }
     ],
     "required_anchored_blockers": [
       {
-        "anchor": "1111111111111111111111111111111111111111",
-        "class": ["safety_data_integrity", "production_condition"]
+        "anchor": {
+          "kind": "digest",
+          "label": "git-oid",
+          "value": "1111111111111111111111111111111111111111"
+        },
+        "classes": [
+          "production_condition",
+          "safety_data_integrity"
+        ]
       }
     ],
     "coverage_assertions": [
       {
         "tag": "no-commit-unselected",
         "kind": "anchored_blocker",
-        "anchor": "1111111111111111111111111111111111111111",
-        "class": ["safety_data_integrity", "production_condition"]
+        "anchor": {
+          "kind": "digest",
+          "label": "git-oid",
+          "value": "1111111111111111111111111111111111111111"
+        },
+        "classes": [
+          "production_condition",
+          "safety_data_integrity"
+        ]
       }
     ],
     "prompt_forbidden": [

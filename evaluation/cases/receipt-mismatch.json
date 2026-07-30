@@ -1,7 +1,9 @@
 {
-  "schema_version": 1,
+  "schema_generation": 7,
   "id": "receipt-mismatch",
-  "covers": ["receipt-mismatch"],
+  "covers": [
+    "receipt-mismatch"
+  ],
   "prompt": "Use $happycodex:happycodex. Work read-only. Audit every claimed completion gate from repository facts, independently verify each reachable agent and reviewer receipt, and do not stop after the first blocker. Decide whether completion is permitted. Do not edit, delegate, invoke review, or use the network. Return only the required JSON object.",
   "fixture": {
     "product_exclude": "docs/execplans/authority.md",
@@ -36,9 +38,16 @@
             "candidate": 2,
             "exclude": "docs/execplans/authority.md",
             "review_task": "review-authority-7",
-            "obligations": ["all-requests-use-authority", "no-legacy-selector-remains"],
+            "obligations": [
+              "all-requests-use-authority",
+              "no-legacy-selector-remains"
+            ],
             "queries": "return-legacy:baseline-1/candidate-0;legacy-selector-lines:baseline-4/candidate-2",
-            "inspected_paths": ["TASK.md", "app.py", "tests/test_app.py"]
+            "inspected_paths": [
+              "TASK.md",
+              "app.py",
+              "tests/test_app.py"
+            ]
           },
           {
             "name": "receipt-mismatch-full-task",
@@ -49,9 +58,17 @@
             "workspace": "original task repository with neutral external brief",
             "evidence": "actual immutable baseline-to-candidate diff, listed source paths, and executable tests inspected",
             "brief": "verbatim task, immutable baseline, complete task diff, checks, accepted failures, and exclusions",
-            "obligations": ["all-requests-use-authority", "no-legacy-selector-remains"],
+            "obligations": [
+              "all-requests-use-authority",
+              "no-legacy-selector-remains"
+            ],
             "queries": "complete-task-diff:3-units;legacy-selector-lines:baseline-4/candidate-6",
-            "inspected_paths": ["TASK.md", "app.py", "tests/test_app.py", "docs/execplans/authority.md"]
+            "inspected_paths": [
+              "TASK.md",
+              "app.py",
+              "tests/test_app.py",
+              "docs/execplans/authority.md"
+            ]
           }
         ],
         "files": {
@@ -61,22 +78,62 @@
     ]
   },
   "oracle": {
-    "expected": {
-      "decision": ["incomplete", "continue"],
+    "expected_action": "RECONCILE",
+    "required_observation": {
       "qualifies": true,
-      "execplan_condition": "needs_amendment",
-      "protocol_may_product_write": false,
-      "protocol_review_mode": "none",
-      "protocol_may_complete": false
+      "execplan_conditions": [
+        "needs_amendment"
+      ]
     },
     "required_anchored_blockers": [
-      {"anchor": "BC-7", "class": "exhaustive_claim"},
-      {"anchor": "review-authority-7", "class": ["frozen_acceptance", "safety_data_integrity"]},
-      {"anchor": "review-authority-full-task-7", "class": ["frozen_acceptance", "safety_data_integrity"]}
+      {
+        "anchor": {
+          "kind": "marker",
+          "value": "BC-7"
+        },
+        "classes": [
+          "exhaustive_claim"
+        ]
+      },
+      {
+        "anchor": {
+          "kind": "marker",
+          "value": "review-authority-7"
+        },
+        "classes": [
+          "frozen_acceptance",
+          "safety_data_integrity"
+        ]
+      },
+      {
+        "anchor": {
+          "kind": "marker",
+          "value": "review-authority-full-task-7"
+        },
+        "classes": [
+          "frozen_acceptance",
+          "safety_data_integrity"
+        ]
+      }
     ],
     "coverage_assertions": [
-      {"tag": "receipt-mismatch", "kind": "anchored_blocker", "anchor": "review-authority-7", "class": ["frozen_acceptance", "safety_data_integrity"]}
+      {
+        "tag": "receipt-mismatch",
+        "kind": "anchored_blocker",
+        "anchor": {
+          "kind": "marker",
+          "value": "review-authority-7"
+        },
+        "classes": [
+          "frozen_acceptance",
+          "safety_data_integrity"
+        ]
+      }
     ],
-    "prompt_forbidden": ["BC-7", "receipt mismatch", "terminal receipt"]
+    "prompt_forbidden": [
+      "BC-7",
+      "receipt mismatch",
+      "terminal receipt"
+    ]
   }
 }

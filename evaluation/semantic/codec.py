@@ -9,7 +9,6 @@ from .model import (
     Anchor,
     CanonicalReport,
     ControlBlocker,
-    CorpusCase,
     Finding,
     FrozenMap,
     MachineFacts,
@@ -24,19 +23,23 @@ _GIT_OID = re.compile(r"^[0-9a-f]{40}$")
 _IDENTIFIER = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:/=+@-]*$")
 _DOMAIN = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 _EXECPLAN = frozenset({"not_required", "missing", "usable", "needs_amendment"})
+_EXECPLAN_ORDER = ("not_required", "missing", "usable", "needs_amendment")
 _FINDING_DOMAINS = frozenset({"secret", "baseline_failure", "receipt", "other"})
-_FINDING_STATES = frozenset(
-    {"baseline_unchanged", "resolved", "candidate_new", "unknown"}
+_FINDING_STATE_ORDER = (
+    "baseline_unchanged",
+    "resolved",
+    "candidate_new",
+    "unknown",
 )
-_BLOCKER_CLASSES = frozenset(
-    {
-        "exhaustive_claim",
-        "frozen_acceptance",
-        "original_goal",
-        "production_condition",
-        "safety_data_integrity",
-    }
+_FINDING_STATES = frozenset(_FINDING_STATE_ORDER)
+_BLOCKER_CLASS_ORDER = (
+    "exhaustive_claim",
+    "frozen_acceptance",
+    "original_goal",
+    "production_condition",
+    "safety_data_integrity",
 )
+_BLOCKER_CLASSES = frozenset(_BLOCKER_CLASS_ORDER)
 _GATES = (
     "user_selection",
     "contract_freeze",
@@ -47,6 +50,38 @@ _GATES = (
     "candidate_freeze",
     "exact_final_review",
     "release",
+)
+_ACTIONS = frozenset(
+    {
+        "ASK_USER",
+        "RECONCILE",
+        "IMPLEMENT",
+        "CHECK",
+        "FREEZE",
+        "EXACT_FINAL",
+        "RELEASE",
+        "CLOSE",
+    }
+)
+_MILESTONE_PHASES = frozenset(
+    {"working", "candidate_frozen", "exact_final", "closed"}
+)
+_RECOVERY_ACTIONS = frozenset(
+    {
+        "ask_user",
+        "create_execplan",
+        "complete_boundary_union",
+        "create_contract_freeze_revision",
+        "observe_red",
+        "implement",
+        "run_checks",
+        "reconciliation",
+        "freeze_candidate",
+        "exact_final_review",
+        "release",
+        "none",
+        "unknown",
+    }
 )
 _RECOVERY_FIELDS = (
     "baseline_revision",
@@ -375,6 +410,16 @@ def _recovery(value: object) -> FrozenMap | None:
             raise SemanticError(f"recovery.{field} must be a Git oid")
     if record["writer"] != "Root" or record["worktree"] not in {"clean", "dirty"}:
         raise SemanticError("recovery writer or worktree state is invalid")
+    _enum(
+        record["milestone_phase"],
+        _MILESTONE_PHASES,
+        name="recovery.milestone_phase",
+    )
+    _enum(
+        record["next_action"],
+        _RECOVERY_ACTIONS,
+        name="recovery.next_action",
+    )
     _texts(
         record["pending_gates"],
         name="recovery.pending_gates",
@@ -564,51 +609,6 @@ def parse_report(value: object) -> CanonicalReport:
     return report
 
 
-def parse_corpus_case(value: object) -> CorpusCase:
-    record = _mapping(
-        value,
-        name="CorpusCase",
-        fields=(
-            "schema_generation",
-            "id",
-            "covers",
-            "prompt",
-            "fixture",
-            "oracle",
-        ),
-    )
-    generation = _int(record["schema_generation"], name="schema_generation")
-    if generation != 7:
-        raise SemanticError("only schema generation 7 cases are accepted")
-    fixture = _freeze(
-        _mapping(record["fixture"], name="fixture"), name="fixture"
-    )
-    oracle = _freeze(_mapping(record["oracle"], name="oracle"), name="oracle")
-    if type(fixture) is not FrozenMap or type(oracle) is not FrozenMap:
-        raise AssertionError("case freeze failed")
-    return CorpusCase(
-        schema_generation=generation,
-        case_id=_text(record["id"], name="id", identifier=True),
-        covers=_texts(record["covers"], name="covers", identifier=True),
-        prompt=_text(record["prompt"], name="prompt", maximum=32768),
-        fixture=fixture,
-        oracle=oracle,
-    )
-
-
-def corpus_case_to_raw(value: CorpusCase) -> dict[str, object]:
-    if type(value) is not CorpusCase:
-        raise SemanticError("exact CorpusCase required")
-    return {
-        "schema_generation": value.schema_generation,
-        "id": value.case_id,
-        "covers": list(value.covers),
-        "prompt": value.prompt,
-        "fixture": _thaw(value.fixture),
-        "oracle": _thaw(value.oracle),
-    }
-
-
 def _canonical_value(value: object) -> object:
     if value is None or type(value) in (bool, int, str):
         return value
@@ -636,8 +636,6 @@ def _canonical_value(value: object) -> object:
         return _canonical_value(_observation_raw(value))
     if type(value) is CanonicalReport:
         return _canonical_value(report_to_raw(value))
-    if type(value) is CorpusCase:
-        return _canonical_value(corpus_case_to_raw(value))
     raise SemanticError("canonical encoding rejects untrusted or mutable values")
 
 
@@ -663,8 +661,6 @@ def semantic_digest(kind: str, value: object) -> str:
 
 __all__ = (
     "canonical_bytes",
-    "corpus_case_to_raw",
-    "parse_corpus_case",
     "parse_machine_facts",
     "parse_model_observation",
     "parse_report",

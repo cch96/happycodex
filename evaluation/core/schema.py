@@ -61,7 +61,7 @@ def _walk(value, schema, definitions, refs=(), check=False):
             _walk(item, schema["items"], definitions, refs)
     return value
 
-def load_contracts(path=Path(__file__).resolve().parents[1] / "contracts-v6.json"):
+def load_contracts(path=Path(__file__).resolve().parents[1] / "contracts-v7.json"):
     value = json.loads(path.read_text(encoding="utf-8"))
     _require(isinstance(value, dict) and set(value) == {"schema_version", "schemas"}
              and value["schema_version"] == 1 and isinstance(value["schemas"], dict), "invalid schema contract envelope")

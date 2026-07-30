@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_generation": 7,
   "id": "holdout-authority-production-boundary",
   "covers": [
     "holdout-outside-diff-boundary",
@@ -27,28 +27,134 @@
     ]
   },
   "oracle": {
-    "expected": {
-      "decision": ["incomplete", "continue", "stop_for_user"],
+    "expected_action": "RECONCILE",
+    "required_observation": {
       "qualifies": true,
-      "execplan_condition": "needs_amendment",
-      "protocol_may_product_write": false,
-      "protocol_review_mode": "none",
-      "protocol_may_complete": false
+      "execplan_conditions": [
+        "needs_amendment"
+      ]
     },
     "required_anchored_blockers": [
-      {"anchor": "docs/execplans/coordinator-cutover.md", "class": "frozen_acceptance"},
-      {"anchor": "gateway/dispatch.py", "class": "exhaustive_claim"},
-      {"anchor": "queue/intents.py", "class": ["original_goal", "production_condition"]},
-      {"anchor": "ops/prod.env", "class": "production_condition"},
-      {"anchor": "legacy/classic_runner.py", "class": "exhaustive_claim"}
+      {
+        "anchor": {
+          "kind": "path",
+          "repository": "fixture",
+          "value": "docs/execplans/coordinator-cutover.md"
+        },
+        "classes": [
+          "frozen_acceptance"
+        ]
+      },
+      {
+        "anchor": {
+          "kind": "path",
+          "repository": "fixture",
+          "value": "gateway/dispatch.py"
+        },
+        "classes": [
+          "exhaustive_claim"
+        ]
+      },
+      {
+        "anchor": {
+          "kind": "path",
+          "repository": "fixture",
+          "value": "queue/intents.py"
+        },
+        "classes": [
+          "original_goal",
+          "production_condition"
+        ]
+      },
+      {
+        "anchor": {
+          "kind": "path",
+          "repository": "fixture",
+          "value": "ops/prod.env"
+        },
+        "classes": [
+          "production_condition"
+        ]
+      },
+      {
+        "anchor": {
+          "kind": "path",
+          "repository": "fixture",
+          "value": "legacy/classic_runner.py"
+        },
+        "classes": [
+          "exhaustive_claim"
+        ]
+      }
     ],
     "coverage_assertions": [
-      {"tag": "holdout-outside-diff-boundary", "kind": "anchored_blocker", "anchor": "docs/execplans/coordinator-cutover.md", "class": "frozen_acceptance"},
-      {"tag": "holdout-persisted-routing", "kind": "anchored_blocker", "anchor": "gateway/dispatch.py", "class": "exhaustive_claim"},
-      {"tag": "holdout-missing-consumer", "kind": "anchored_blocker", "anchor": "queue/intents.py", "class": ["original_goal", "production_condition"]},
-      {"tag": "holdout-production-configuration", "kind": "anchored_blocker", "anchor": "ops/prod.env", "class": "production_condition"},
-      {"tag": "holdout-legacy-bypass", "kind": "anchored_blocker", "anchor": "legacy/classic_runner.py", "class": "exhaustive_claim"}
+      {
+        "tag": "holdout-outside-diff-boundary",
+        "kind": "anchored_blocker",
+        "anchor": {
+          "kind": "path",
+          "repository": "fixture",
+          "value": "docs/execplans/coordinator-cutover.md"
+        },
+        "classes": [
+          "frozen_acceptance"
+        ]
+      },
+      {
+        "tag": "holdout-persisted-routing",
+        "kind": "anchored_blocker",
+        "anchor": {
+          "kind": "path",
+          "repository": "fixture",
+          "value": "gateway/dispatch.py"
+        },
+        "classes": [
+          "exhaustive_claim"
+        ]
+      },
+      {
+        "tag": "holdout-missing-consumer",
+        "kind": "anchored_blocker",
+        "anchor": {
+          "kind": "path",
+          "repository": "fixture",
+          "value": "queue/intents.py"
+        },
+        "classes": [
+          "original_goal",
+          "production_condition"
+        ]
+      },
+      {
+        "tag": "holdout-production-configuration",
+        "kind": "anchored_blocker",
+        "anchor": {
+          "kind": "path",
+          "repository": "fixture",
+          "value": "ops/prod.env"
+        },
+        "classes": [
+          "production_condition"
+        ]
+      },
+      {
+        "tag": "holdout-legacy-bypass",
+        "kind": "anchored_blocker",
+        "anchor": {
+          "kind": "path",
+          "repository": "fixture",
+          "value": "legacy/classic_runner.py"
+        },
+        "classes": [
+          "exhaustive_claim"
+        ]
+      }
     ],
-    "prompt_forbidden": ["stored_executor", "HANDLERS", "prod.env", "classic_runner.py"]
+    "prompt_forbidden": [
+      "stored_executor",
+      "HANDLERS",
+      "prod.env",
+      "classic_runner.py"
+    ]
   }
 }

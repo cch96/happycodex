@@ -83,7 +83,7 @@ class HappyCodexHoldoutTests(unittest.TestCase):
             pair_output = root / "output" / pair["id"]
             pair_output.mkdir(parents=True)
             with mock.patch.object(
-                holdout_engine, "_validate_pair_intent", return_value=None
+                holdout_engine, "_validate_pair_launch", return_value=None
             ):
                 with self.assertRaisesRegex(RuntimeError, "infra failure"):
                     holdout_engine.run_pair(
@@ -94,7 +94,8 @@ class HappyCodexHoldoutTests(unittest.TestCase):
                         model="test-model",
                         effort="high",
                         timeout=10,
-                        effect_intent={},
+                        launch={},
+                        claim_root=root,
                         evaluator=evaluate,
                     )
 
@@ -281,7 +282,7 @@ class HappyCodexHoldoutTests(unittest.TestCase):
                 "seal_mapping",
                 side_effect=AssertionError("holdout live seam reached"),
             ) as mapping:
-                with self.assertRaisesRegex(ValueError, "EffectIntent"):
+                with self.assertRaisesRegex(ValueError, "launch"):
                     holdout_engine.run_pair(
                         pair,
                         candidate=root / "candidate",
@@ -290,7 +291,8 @@ class HappyCodexHoldoutTests(unittest.TestCase):
                         model="gpt-5.6-sol",
                         effort="high",
                         timeout=300,
-                        effect_intent={},
+                        launch={},
+                        claim_root=root,
                     )
             mapping.assert_not_called()
 
@@ -407,7 +409,7 @@ class HappyCodexHoldoutTests(unittest.TestCase):
         from evaluation.core.schema import load_contracts, validate_named
 
         contracts = load_contracts(
-            Path(__file__).resolve().parents[1] / "evaluation" / "contracts-v6.json"
+            Path(__file__).resolve().parents[1] / "evaluation" / "contracts-v7.json"
         )
         manifest = json.loads(
             holdout_engine.MANIFEST_PATH.read_text(encoding="utf-8")

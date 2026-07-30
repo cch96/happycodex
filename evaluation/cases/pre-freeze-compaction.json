@@ -1,12 +1,14 @@
 {
-  "schema_version": 1,
+  "schema_generation": 7,
   "id": "pre-freeze-compaction",
-  "covers": ["pre-freeze-compaction"],
+  "covers": [
+    "pre-freeze-compaction"
+  ],
   "prompt": "Use $happycodex:happycodex. Context was compacted before contract freeze. Work read-only and reconstruct the exact next permitted action from durable repository facts. Include every durable recovery marker ID explicitly labeled in the ExecPlan, Git commit messages, and test evidence. Do not edit, delegate, invoke review, or use the network. Return only the required JSON object.",
   "fixture": {
     "native_compaction_resume": {
       "prepare_prompt": "Use $happycodex:happycodex. Work read-only. Inspect this pre-freeze checkpoint, establish the current durable recovery state, and return only the required JSON object. Do not edit, delegate, invoke review, or use the network.",
-      "fresh_recovery_prompt": "Use $happycodex:happycodex as the fresh no-summary/no-handle phase of the runner's native compaction recovery control. This phase has no prior conversation summary or task handle, but it must return the full structured recovery_state reconstructed only from durable repository facts, not null. Work read-only and reconstruct the exact next permitted action. Include every durable recovery marker ID explicitly labeled in the ExecPlan, Git commit messages, and test evidence. Do not edit, delegate, invoke review, or use the network. Return only the required JSON object.",
+      "fresh_recovery_prompt": "Use $happycodex:happycodex as the fresh no-summary/no-handle phase of the runner's native compaction recovery control. This phase has no prior conversation summary or task handle, but it must return the full structured recovery object reconstructed only from durable repository facts, not null. Work read-only and reconstruct the exact next permitted action. Include every durable recovery marker ID explicitly labeled in the ExecPlan, Git commit messages, and test evidence. Do not edit, delegate, invoke review, or use the network. Return only the required JSON object.",
       "auto_compact_token_limit": 1000,
       "post_compaction_transition": {
         "message": "docs: record durable recovery marker RECOVERY-GIT-6D91",
@@ -20,16 +22,26 @@
         "writer": "Root",
         "milestone_phase": "implementation",
         "next_action": "create_contract_freeze_revision",
-        "pending_gates": ["contract_freeze", "red_oracle", "product_edit"],
+        "pending_gates": [
+          "contract_freeze",
+          "red_oracle",
+          "product_edit"
+        ],
         "tests": {
           "passed": 19,
           "failed": 0,
           "accepted_failures": 0,
-          "marker_ids": ["RECOVERY-TEST-19C4"]
+          "marker_ids": [
+            "RECOVERY-TEST-19C4"
+          ]
         },
         "worktree": "clean",
         "live_agents": [
-          {"id": "BC-4", "status": "terminal", "receipt_reproduced": true}
+          {
+            "id": "BC-4",
+            "status": "terminal",
+            "receipt_reproduced": true
+          }
         ],
         "marker_ids": [
           "RECOVERY-MANIFEST-SHA256:1621ab9f934155f63aa3ce897065854e67805de0e38359e6451fa2e947ad5308",
@@ -57,36 +69,65 @@
     ]
   },
   "oracle": {
-    "expected": {
-      "decision": ["continue", "incomplete"],
+    "expected_action": "FREEZE",
+    "required_observation": {
       "qualifies": true,
-      "execplan_condition": ["usable", "needs_amendment"],
-      "protocol_may_product_write": false,
-      "protocol_review_mode": "none",
-      "protocol_may_complete": false
+      "execplan_conditions": [
+        "usable",
+        "needs_amendment"
+      ]
     },
-    "required_anchored_classifications": [
+    "required_anchored_findings": [
       {
-        "anchor": "RECOVERY-MANIFEST-SHA256:1621ab9f934155f63aa3ce897065854e67805de0e38359e6451fa2e947ad5308",
+        "anchor": {
+          "kind": "marker",
+          "value": "RECOVERY-MANIFEST-SHA256:1621ab9f934155f63aa3ce897065854e67805de0e38359e6451fa2e947ad5308"
+        },
         "domain": "receipt",
-        "state": "resolved"
+        "statuses": [
+          "resolved"
+        ]
       },
       {
-        "anchor": "RECOVERY-GIT-6D91",
+        "anchor": {
+          "kind": "marker",
+          "value": "RECOVERY-GIT-6D91"
+        },
         "domain": "receipt",
-        "state": "resolved"
+        "statuses": [
+          "resolved"
+        ]
       },
       {
-        "anchor": "RECOVERY-PLAN-47B2",
+        "anchor": {
+          "kind": "marker",
+          "value": "RECOVERY-PLAN-47B2"
+        },
         "domain": "receipt",
-        "state": "resolved"
+        "statuses": [
+          "resolved"
+        ]
       },
       {
-        "anchor": "RECOVERY-TEST-19C4",
+        "anchor": {
+          "kind": "marker",
+          "value": "RECOVERY-TEST-19C4"
+        },
         "domain": "receipt",
-        "state": "resolved"
+        "statuses": [
+          "resolved"
+        ]
       }
     ],
-    "prompt_forbidden": ["RECOVERY-MANIFEST-SHA256:1621ab9f934155f63aa3ce897065854e67805de0e38359e6451fa2e947ad5308", "RECOVERY-PLAN-47B2", "RECOVERY-TEST-19C4", "RECOVERY-GIT-6D91", "BC-4", "legacy retry bypass", "contract-freeze revision", "queue-migration.md"]
+    "prompt_forbidden": [
+      "RECOVERY-MANIFEST-SHA256:1621ab9f934155f63aa3ce897065854e67805de0e38359e6451fa2e947ad5308",
+      "RECOVERY-PLAN-47B2",
+      "RECOVERY-TEST-19C4",
+      "RECOVERY-GIT-6D91",
+      "BC-4",
+      "legacy retry bypass",
+      "contract-freeze revision",
+      "queue-migration.md"
+    ]
   }
 }

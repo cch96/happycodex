@@ -17,7 +17,6 @@ EVALUATOR_PYTHON_INPUTS = frozenset(
         "evaluation/__init__.py",
         "evaluation/cli.py",
         "evaluation/live.py",
-        "evaluation/protocol.py",
         "evaluation/semantic/__init__.py",
         "evaluation/semantic/codec.py",
         "evaluation/semantic/model.py",
@@ -38,7 +37,7 @@ EVALUATOR_PYTHON_INPUTS = frozenset(
     }
 )
 EVALUATOR_FIXED_JSON_INPUTS = frozenset(
-    {"evaluation/contracts-v6.json", "evaluation/executor-role.json"}
+    {"evaluation/contracts-v7.json", "evaluation/executor-role.json"}
 )
 _TOOL_EVENT_TYPES = {
     "collaboration": "collab_tool_call",
@@ -47,66 +46,6 @@ _TOOL_EVENT_TYPES = {
     "web_search": "web_search",
 }
 PERMISSION_PROFILE = "happycodex-evaluator"
-PROTOCOL_REVIEW_MODES = ("none", "exact_final")
-PERMISSION_VALUES = {
-    "decision": frozenset({"continue", "stop_for_user", "complete", "incomplete"}),
-    "qualifies": frozenset({True, False}),
-    "execplan_condition": frozenset(
-        {"not_required", "missing", "usable", "needs_amendment"}
-    ),
-    "protocol_may_product_write": frozenset({True, False}),
-    "protocol_review_mode": frozenset(PROTOCOL_REVIEW_MODES),
-    "protocol_may_complete": frozenset({True, False}),
-}
-PERMISSION_FIELDS = frozenset(PERMISSION_VALUES)
-
-
-def permission_assertions_invalid(expected: dict[str, Any]) -> bool:
-    for field, allowed in PERMISSION_VALUES.items():
-        raw = expected.get(field)
-        values = raw if isinstance(raw, list) else [raw]
-        expected_type = type(next(iter(allowed)))
-        if (
-            not values
-            or len({(type(item), item) for item in values}) != len(values)
-            or any(type(item) is not expected_type or item not in allowed for item in values)
-        ):
-            return True
-    return False
-RECOVERY_ACTIONS = (
-    "ask_user",
-    "create_execplan",
-    "complete_boundary_union",
-    "create_contract_freeze_revision",
-    "observe_red",
-    "implement",
-    "run_checks",
-    "reconciliation",
-    "freeze_candidate",
-    "exact_final_review",
-    "release",
-    "none",
-    "unknown",
-)
-RECOVERY_PENDING_GATES = (
-    "user_selection",
-    "contract_freeze",
-    "red_oracle",
-    "product_edit",
-    "checks",
-    "reconciliation",
-    "candidate_freeze",
-    "exact_final_review",
-    "release",
-)
-RECOVERY_GATE_FIELDS = frozenset(
-    {
-        "qualifies",
-        "protocol_may_product_write",
-        "protocol_review_mode",
-        "protocol_may_complete",
-    }
-)
 RECOVERY_STATE_FIELDS = frozenset(
     {
         "baseline_revision",
@@ -126,15 +65,6 @@ RECOVERY_STATE_FIELDS = frozenset(
 RECOVERY_MANIFEST_PREFIX = "RECOVERY-MANIFEST-SHA256:"
 RECOVERY_MANIFEST_PATTERN = re.compile(
     rf"^{re.escape(RECOVERY_MANIFEST_PREFIX)}([0-9a-f]{{64}})$"
-)
-BLOCKER_CLASSES = frozenset(
-    {
-        "original_goal",
-        "frozen_acceptance",
-        "safety_data_integrity",
-        "production_condition",
-        "exhaustive_claim",
-    }
 )
 PUBLIC_02_ARM = "public-0.2"
 PUBLIC_02_SOURCE_COMMIT = "3b9c11fac1f97df75263e0bfc6421c575e04e8b2"
@@ -171,18 +101,6 @@ EXECUTOR_ROLE = {
     "repository_effects": "exact_grant_and_resource_claim",
     "external_effects": "separate_exact_user_authority",
 }
-
-
-def classifications_share_identity(left: Any, right: Any) -> bool:
-    return (
-        isinstance(left, dict)
-        and isinstance(right, dict)
-        and type(left.get("identity")) is str
-        and bool(left["identity"].strip())
-        and left["identity"] == right.get("identity")
-    )
-
-
 def recovery_manifest_projection(value: Any) -> dict[str, Any]:
     markers = value.get("marker_ids", []) if isinstance(value, dict) else []
     candidates = [

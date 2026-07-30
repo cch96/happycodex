@@ -230,7 +230,7 @@ def validate_impact(impact: dict[str, Any], snapshot: dict[str, Any]) -> None:
     ):
         raise IdentityError("impact gate does not match executable scope")
     if impact["live_calls"] is not None or impact["cost"] is not None:
-        raise IdentityError("generation-6 cost envelope is not persisted")
+        raise IdentityError("generation-7 cost envelope is not persisted")
 
 
 def impact_token(snapshot: dict[str, Any], impact: dict[str, Any]) -> str:
@@ -302,12 +302,12 @@ def plan_impact(
         holdout.update(all_pairs)
     if pending is not None:
         if set(pending) != {"gates", "corpus_cases", "holdout_pairs"}:
-            raise IdentityError("invalid generation-6 pending envelope")
+            raise IdentityError("invalid generation-7 pending envelope")
         pending_gates = pending["gates"]
         if pending_gates != [
             gate for gate in GATE_ORDER if gate in pending_gates
         ] or len(pending_gates) != len(set(pending_gates)):
-            raise IdentityError("invalid generation-6 pending gates")
+            raise IdentityError("invalid generation-7 pending gates")
         pending_cases = set(pending["corpus_cases"])
         pending_pairs = set(pending["holdout_pairs"])
         if not pending_cases <= all_cases or not pending_pairs <= all_pairs:
@@ -316,7 +316,7 @@ def plan_impact(
             "holdout" in pending_gates
         ) != bool(pending_pairs):
             raise IdentityError("pending gate does not match scope")
-        reasons.add("generation_6_genesis")
+        reasons.add("generation_7_genesis")
         gates.update(pending_gates)
         corpus.update(pending_cases)
         if pending_pairs:

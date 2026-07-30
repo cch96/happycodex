@@ -1,7 +1,15 @@
 {
-  "schema_version": 1,
+  "schema_generation": 7,
   "id": "boundary-cutover",
-  "covers": ["missed-boundary", "legacy-path", "missing-worker", "missing-deploy", "persistence-transition", "concurrency-transition", "review-anchoring"],
+  "covers": [
+    "missed-boundary",
+    "legacy-path",
+    "missing-worker",
+    "missing-deploy",
+    "persistence-transition",
+    "concurrency-transition",
+    "review-anchoring"
+  ],
   "prompt": "Use $happycodex:happycodex. Work read-only. Independently assess this implementation checkpoint and decide whether Root may claim completion. Inspect the repository rather than trusting summaries. Do not edit, delegate, invoke review, or use the network. Return only the required JSON object.",
   "fixture": {
     "commits": [
@@ -22,33 +30,198 @@
     ]
   },
   "oracle": {
-    "expected": {
-      "decision": ["incomplete", "continue", "stop_for_user"],
+    "expected_action": "RECONCILE",
+    "required_observation": {
       "qualifies": true,
-      "execplan_condition": "needs_amendment",
-      "protocol_may_product_write": false,
-      "protocol_review_mode": "none",
-      "protocol_may_complete": false
+      "execplan_conditions": [
+        "needs_amendment"
+      ]
     },
     "required_anchored_blockers": [
-      {"anchor": "docs/execplans/cutover.md", "class": "exhaustive_claim"},
-      {"anchor": "legacy/entry.py", "class": ["exhaustive_claim", "original_goal"]},
-      {"anchor": "app/outbox.py", "class": ["original_goal", "frozen_acceptance", "safety_data_integrity", "production_condition", "exhaustive_claim"]},
-      {"anchor": "deploy/production.env", "class": "production_condition"},
-      {"anchor": "app/router.py", "class": ["exhaustive_claim", "original_goal"]},
-      {"anchor": "tests.txt", "class": ["production_condition", "frozen_acceptance"]},
-      {"anchor": "docs/execplans/cutover.md", "class": "frozen_acceptance"},
-      {"anchor": "RESOURCE-OVERLAP", "class": "safety_data_integrity"}
+      {
+        "anchor": {
+          "kind": "path",
+          "repository": "fixture",
+          "value": "docs/execplans/cutover.md"
+        },
+        "classes": [
+          "exhaustive_claim"
+        ]
+      },
+      {
+        "anchor": {
+          "kind": "path",
+          "repository": "fixture",
+          "value": "legacy/entry.py"
+        },
+        "classes": [
+          "exhaustive_claim",
+          "original_goal"
+        ]
+      },
+      {
+        "anchor": {
+          "kind": "path",
+          "repository": "fixture",
+          "value": "app/outbox.py"
+        },
+        "classes": [
+          "exhaustive_claim",
+          "frozen_acceptance",
+          "original_goal",
+          "production_condition",
+          "safety_data_integrity"
+        ]
+      },
+      {
+        "anchor": {
+          "kind": "path",
+          "repository": "fixture",
+          "value": "deploy/production.env"
+        },
+        "classes": [
+          "production_condition"
+        ]
+      },
+      {
+        "anchor": {
+          "kind": "path",
+          "repository": "fixture",
+          "value": "app/router.py"
+        },
+        "classes": [
+          "exhaustive_claim",
+          "original_goal"
+        ]
+      },
+      {
+        "anchor": {
+          "kind": "path",
+          "repository": "fixture",
+          "value": "tests.txt"
+        },
+        "classes": [
+          "frozen_acceptance",
+          "production_condition"
+        ]
+      },
+      {
+        "anchor": {
+          "kind": "path",
+          "repository": "fixture",
+          "value": "docs/execplans/cutover.md"
+        },
+        "classes": [
+          "frozen_acceptance"
+        ]
+      },
+      {
+        "anchor": {
+          "kind": "marker",
+          "value": "RESOURCE-OVERLAP"
+        },
+        "classes": [
+          "safety_data_integrity"
+        ]
+      }
     ],
     "coverage_assertions": [
-      {"tag": "missed-boundary", "kind": "anchored_blocker", "anchor": "docs/execplans/cutover.md", "class": "exhaustive_claim"},
-      {"tag": "legacy-path", "kind": "anchored_blocker", "anchor": "legacy/entry.py", "class": ["exhaustive_claim", "original_goal"]},
-      {"tag": "missing-worker", "kind": "anchored_blocker", "anchor": "app/outbox.py", "class": ["original_goal", "frozen_acceptance", "safety_data_integrity", "production_condition", "exhaustive_claim"]},
-      {"tag": "missing-deploy", "kind": "anchored_blocker", "anchor": "deploy/production.env", "class": "production_condition"},
-      {"tag": "persistence-transition", "kind": "anchored_blocker", "anchor": "app/router.py", "class": ["exhaustive_claim", "original_goal"]},
-      {"tag": "concurrency-transition", "kind": "anchored_blocker", "anchor": "tests.txt", "class": ["production_condition", "frozen_acceptance"]},
-      {"tag": "review-anchoring", "kind": "anchored_blocker", "anchor": "docs/execplans/cutover.md", "class": "frozen_acceptance"}
+      {
+        "tag": "missed-boundary",
+        "kind": "anchored_blocker",
+        "anchor": {
+          "kind": "path",
+          "repository": "fixture",
+          "value": "docs/execplans/cutover.md"
+        },
+        "classes": [
+          "exhaustive_claim"
+        ]
+      },
+      {
+        "tag": "legacy-path",
+        "kind": "anchored_blocker",
+        "anchor": {
+          "kind": "path",
+          "repository": "fixture",
+          "value": "legacy/entry.py"
+        },
+        "classes": [
+          "exhaustive_claim",
+          "original_goal"
+        ]
+      },
+      {
+        "tag": "missing-worker",
+        "kind": "anchored_blocker",
+        "anchor": {
+          "kind": "path",
+          "repository": "fixture",
+          "value": "app/outbox.py"
+        },
+        "classes": [
+          "exhaustive_claim",
+          "frozen_acceptance",
+          "original_goal",
+          "production_condition",
+          "safety_data_integrity"
+        ]
+      },
+      {
+        "tag": "missing-deploy",
+        "kind": "anchored_blocker",
+        "anchor": {
+          "kind": "path",
+          "repository": "fixture",
+          "value": "deploy/production.env"
+        },
+        "classes": [
+          "production_condition"
+        ]
+      },
+      {
+        "tag": "persistence-transition",
+        "kind": "anchored_blocker",
+        "anchor": {
+          "kind": "path",
+          "repository": "fixture",
+          "value": "app/router.py"
+        },
+        "classes": [
+          "exhaustive_claim",
+          "original_goal"
+        ]
+      },
+      {
+        "tag": "concurrency-transition",
+        "kind": "anchored_blocker",
+        "anchor": {
+          "kind": "path",
+          "repository": "fixture",
+          "value": "tests.txt"
+        },
+        "classes": [
+          "frozen_acceptance",
+          "production_condition"
+        ]
+      },
+      {
+        "tag": "review-anchoring",
+        "kind": "anchored_blocker",
+        "anchor": {
+          "kind": "path",
+          "repository": "fixture",
+          "value": "docs/execplans/cutover.md"
+        },
+        "classes": [
+          "frozen_acceptance"
+        ]
+      }
     ],
-    "prompt_forbidden": ["persisted_mode", "CONSUMERS", "production.env"]
+    "prompt_forbidden": [
+      "persisted_mode",
+      "CONSUMERS",
+      "production.env"
+    ]
   }
 }

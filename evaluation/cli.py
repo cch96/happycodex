@@ -99,8 +99,8 @@ def apply_command(args: argparse.Namespace) -> int:
 
 def _zero_effects() -> dict[str, int]:
     return {
-        "intents_created": 0,
-        "units_consumed": 0,
+        "launches_created": 0,
+        "actions_consumed": 0,
         "fixtures_created": 0,
         "outputs_created": 0,
         "receipts_created": 0,
@@ -115,7 +115,7 @@ def executor_command(args: argparse.Namespace) -> int:
     if not args.dry_run:
         raise ValueError("live calibration requires Root/Host effect orchestration")
     payload = {
-        "schema_generation": 6,
+        "schema_generation": 7,
         "command": "executor",
         "dry_run": True,
         "calibration_route": "corpus --calibrate",
@@ -199,7 +199,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 def run_authorized(
     args: argparse.Namespace,
-    effect_intents: dict[str, dict[str, Any]],
+    launches: dict[str, dict[str, Any]],
     claim_root: Path,
 ) -> int:
     """Host-only dispatch; validated content is not provenance or permission."""
@@ -227,12 +227,12 @@ def run_authorized(
     )
     if plan is None:
         raise ValueError("authorized dispatch has no persisted GatePlan")
-    expected_intents = {
-        unit: live.build_effect_intent(plan, unit)
+    expected_launches = {
+        unit: live.build_launch(plan, unit)
         for unit in plan["units"]
     }
-    if effect_intents != expected_intents:
-        raise ValueError("EffectIntents do not equal the persisted GatePlan")
+    if launches != expected_launches:
+        raise ValueError("launches do not equal the persisted GatePlan")
 
     if gate in {"calibration", "corpus"}:
         from evaluation.corpus import engine as corpus_engine
@@ -240,11 +240,11 @@ def run_authorized(
         if gate == "calibration":
             args.cases = ["subthreshold-control"]
             args.calibrate = True
-        return corpus_engine.run_authorized(args, effect_intents, claim_root)
+        return corpus_engine.run_authorized(args, launches, claim_root)
     if gate == "holdout":
         from evaluation.holdout import engine as holdout_engine
 
-        return holdout_engine.run_authorized(args, effect_intents, claim_root)
+        return holdout_engine.run_authorized(args, launches, claim_root)
     raise ValueError("authorized dispatch requires a model-reaching gate")
 
 
@@ -270,7 +270,7 @@ def main(argv: list[str] | None = None) -> int:
                     "holdout": holdout_engine.run_command,
                 }[args.command](args)
             raise ValueError(
-                "live execution requires Root/Host EffectIntent orchestration"
+                "live execution requires Root/Host launch orchestration"
             )
     except (OSError, RuntimeError, ValueError) as exc:
         parser.error(str(exc))

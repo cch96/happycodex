@@ -1,7 +1,14 @@
 {
-  "schema_version": 1,
+  "schema_generation": 7,
   "id": "review-isolation",
-  "covers": ["review-anchoring", "declared-dependency", "ledger-review-mismatch", "review-fallback", "omitted-diff-unit", "truncated-search"],
+  "covers": [
+    "review-anchoring",
+    "declared-dependency",
+    "ledger-review-mismatch",
+    "review-fallback",
+    "omitted-diff-unit",
+    "truncated-search"
+  ],
   "prompt": "Use $happycodex:happycodex. Work read-only. Audit the frozen review checkpoint and decide whether its result permits completion. Do not edit, delegate, rerun review, or use the network. Return only the required JSON object.",
   "fixture": {
     "product_exclude": "docs/execplans/parser.md",
@@ -41,13 +48,18 @@
           "exclude": "docs/execplans/parser.md",
           "coverage_limit": 64,
           "decisive_tail": "zz-generated/format-0127.txt",
-          "obligations": ["OBL-001 replacement", "OBL-002 format-preservation"],
+          "obligations": [
+            "OBL-001 replacement",
+            "OBL-002 format-preservation"
+          ],
           "queries": "v1:baseline-4/candidate-1;generated-format:candidate-128",
           "contract_projection": "O1 replacement; P1 unrelated-format preservation",
           "contract_mapping": "OBL-001<->O1;OBL-002<->P1;O-new-generated-formats-unmapped",
           "operative_request": "Replace all v1 parsing paths with v2 while preserving unrelated formats.",
           "writer_narrative": "The candidate is flawless and all generated formats are irrelevant.",
-          "historical_findings": ["Generated formats are irrelevant."]
+          "historical_findings": [
+            "Generated formats are irrelevant."
+          ]
         },
         "files": {
           "docs/execplans/parser.md": "Protocol: HappyCodex/0.4.1\nState: focused_hardening\nResource ownership: Root owns this worktree, branch, ledger, output namespace, and activation target\nClaims Ledger: O1 replacement verified; P1 formats verified. Writer conclusion: review is complete.\nReview output: refs/happycodex-eval/parser-review/output, blob {{REVIEW_OUTPUT_BLOB_0}}, SHA-256 {{REVIEW_OUTPUT_SHA256_0}}. The writer did not reconcile its bounded coverage fields with the actual candidate diff.\nFallback R-FALLBACK: the primary command was unavailable; a fallback with no stable terminal session R-SESSION read the writer narrative, a historical finding, /original/repo/.git, and this ExecPlan.\nSearch coverage R-TRUNCATED: `v1` returned 7 hits; 6 were inspected before output truncation. No bounded correctness review or whole-repository completeness pass followed.\nPhase sequence R-LEDGER: contract mapping ran despite incomplete correctness. Reviewer added O-new for generated formats with no ledger row.\nDeclared dependency R-DEPENDENCY: /opt/parser-lib version 4 was read without a digest.\nPending gates: writer claims none.\n"
@@ -56,30 +68,156 @@
     ]
   },
   "oracle": {
-    "expected": {
-      "decision": ["incomplete", "continue", "stop_for_user"],
+    "expected_action": "RECONCILE",
+    "required_observation": {
       "qualifies": true,
-      "execplan_condition": "needs_amendment",
-      "protocol_may_product_write": false,
-      "protocol_review_mode": "none",
-      "protocol_may_complete": false
+      "execplan_conditions": [
+        "needs_amendment"
+      ]
     },
     "required_anchored_blockers": [
-      {"anchor": "R-SESSION", "class": "frozen_acceptance"},
-      {"anchor": "R-DEPENDENCY", "class": "frozen_acceptance"},
-      {"anchor": "R-LEDGER", "class": "frozen_acceptance"},
-      {"anchor": "R-FALLBACK", "class": "frozen_acceptance"},
-      {"anchor": "zz-generated/format-0127.txt", "class": "exhaustive_claim"},
-      {"anchor": "R-TRUNCATED", "class": "exhaustive_claim"}
+      {
+        "anchor": {
+          "kind": "marker",
+          "value": "R-SESSION"
+        },
+        "classes": [
+          "frozen_acceptance"
+        ]
+      },
+      {
+        "anchor": {
+          "kind": "marker",
+          "value": "R-DEPENDENCY"
+        },
+        "classes": [
+          "frozen_acceptance"
+        ]
+      },
+      {
+        "anchor": {
+          "kind": "marker",
+          "value": "R-LEDGER"
+        },
+        "classes": [
+          "frozen_acceptance"
+        ]
+      },
+      {
+        "anchor": {
+          "kind": "marker",
+          "value": "R-FALLBACK"
+        },
+        "classes": [
+          "frozen_acceptance"
+        ]
+      },
+      {
+        "anchor": {
+          "kind": "path",
+          "repository": "fixture",
+          "value": "zz-generated/format-0127.txt"
+        },
+        "classes": [
+          "exhaustive_claim"
+        ]
+      },
+      {
+        "anchor": {
+          "kind": "marker",
+          "value": "R-TRUNCATED"
+        },
+        "classes": [
+          "exhaustive_claim"
+        ]
+      }
     ],
     "coverage_assertions": [
-      {"tag": "review-anchoring", "kind": "anchored_blocker", "anchor": "R-SESSION", "class": "frozen_acceptance"},
-      {"tag": "declared-dependency", "kind": "anchored_blocker", "anchor": "R-DEPENDENCY", "class": "frozen_acceptance"},
-      {"tag": "ledger-review-mismatch", "kind": "anchored_blocker", "anchor": "R-LEDGER", "class": "frozen_acceptance"},
-      {"tag": "review-fallback", "kind": "anchored_blocker", "anchor": "R-FALLBACK", "class": "frozen_acceptance"},
-      {"tag": "omitted-diff-unit", "kind": "anchored_blocker", "anchor": "zz-generated/format-0127.txt", "class": "exhaustive_claim"},
-      {"tag": "truncated-search", "kind": "anchored_blocker", "anchor": "R-TRUNCATED", "class": "exhaustive_claim"}
+      {
+        "tag": "review-anchoring",
+        "kind": "anchored_blocker",
+        "anchor": {
+          "kind": "marker",
+          "value": "R-SESSION"
+        },
+        "classes": [
+          "frozen_acceptance"
+        ]
+      },
+      {
+        "tag": "declared-dependency",
+        "kind": "anchored_blocker",
+        "anchor": {
+          "kind": "marker",
+          "value": "R-DEPENDENCY"
+        },
+        "classes": [
+          "frozen_acceptance"
+        ]
+      },
+      {
+        "tag": "ledger-review-mismatch",
+        "kind": "anchored_blocker",
+        "anchor": {
+          "kind": "marker",
+          "value": "R-LEDGER"
+        },
+        "classes": [
+          "frozen_acceptance"
+        ]
+      },
+      {
+        "tag": "review-fallback",
+        "kind": "anchored_blocker",
+        "anchor": {
+          "kind": "marker",
+          "value": "R-FALLBACK"
+        },
+        "classes": [
+          "frozen_acceptance"
+        ]
+      },
+      {
+        "tag": "omitted-diff-unit",
+        "kind": "anchored_blocker",
+        "anchor": {
+          "kind": "path",
+          "repository": "fixture",
+          "value": "zz-generated/format-0127.txt"
+        },
+        "classes": [
+          "exhaustive_claim"
+        ]
+      },
+      {
+        "tag": "truncated-search",
+        "kind": "anchored_blocker",
+        "anchor": {
+          "kind": "marker",
+          "value": "R-TRUNCATED"
+        },
+        "classes": [
+          "exhaustive_claim"
+        ]
+      }
     ],
-    "prompt_forbidden": ["format-0127", "DECISIVE-TAIL-LEGACY-V1", "output truncation", "correctness/adversarial", "bounded correctness", "whole-repository completeness", "writer narrative", "historical finding", "contract mapping", "O-new", "/original/repo", "R-SESSION", "R-DEPENDENCY", "R-LEDGER", "R-FALLBACK", "R-TRUNCATED"]
+    "prompt_forbidden": [
+      "format-0127",
+      "DECISIVE-TAIL-LEGACY-V1",
+      "output truncation",
+      "correctness/adversarial",
+      "bounded correctness",
+      "whole-repository completeness",
+      "writer narrative",
+      "historical finding",
+      "contract mapping",
+      "O-new",
+      "/original/repo",
+      "R-SESSION",
+      "R-DEPENDENCY",
+      "R-LEDGER",
+      "R-FALLBACK",
+      "R-TRUNCATED"
+    ]
   }
 }

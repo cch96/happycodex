@@ -85,6 +85,11 @@ def _next_action(
         in {"product_edit", "candidate_freeze", "exact_final_review", "release"}
     ):
         kind, target = "RECONCILE", f"execplan:{observation.execplan_condition}"
+    elif (
+        observation.execplan_condition in {"missing", "needs_amendment"}
+        and selected is None
+    ):
+        kind, target = "RECONCILE", f"execplan:{observation.execplan_condition}"
     elif blockers and selected in {
         None,
         "candidate_freeze",

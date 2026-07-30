@@ -1,7 +1,9 @@
 {
-  "schema_version": 1,
+  "schema_generation": 7,
   "id": "authorized-rebaseline",
-  "covers": ["authorized-rebaseline"],
+  "covers": [
+    "authorized-rebaseline"
+  ],
   "prompt": "Use $happycodex:happycodex. Work read-only. Resume the task from durable facts and decide whether implementation may continue without another user round trip. Do not edit, delegate, review, or use the network. Return only the required JSON object.",
   "fixture": {
     "commits": [
@@ -30,14 +32,16 @@
     ]
   },
   "oracle": {
-    "expected": {
-      "decision": "continue",
+    "expected_action": "IMPLEMENT",
+    "required_observation": {
       "qualifies": true,
-      "execplan_condition": "usable",
-      "protocol_may_product_write": true,
-      "protocol_review_mode": "none",
-      "protocol_may_complete": false
+      "execplan_conditions": [
+        "usable"
+      ]
     },
-    "prompt_forbidden": ["authorized upstream", "all pass"]
+    "prompt_forbidden": [
+      "authorized upstream",
+      "all pass"
+    ]
   }
 }

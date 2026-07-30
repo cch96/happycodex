@@ -1,7 +1,9 @@
 {
-  "schema_version": 1,
+  "schema_generation": 7,
   "id": "no-commit-archive-recovery",
-  "covers": ["archive-positive"],
+  "covers": [
+    "archive-positive"
+  ],
   "prompt": "Use $happycodex:happycodex. Context was compacted. Work read-only and verify whether the selected no-commit checkpoint can be recovered from the current index. Classify its durable recovery marker from repository evidence. Do not edit, delegate, invoke review, or use the network. Return only the required JSON object.",
   "fixture": {
     "commits": [
@@ -17,35 +19,44 @@
     ]
   },
   "oracle": {
-    "expected": {
-      "decision": "continue",
+    "expected_action": "IMPLEMENT",
+    "required_observation": {
       "qualifies": true,
-      "execplan_condition": "usable",
-      "protocol_may_product_write": true,
-      "protocol_review_mode": "none",
-      "protocol_may_complete": false
+      "execplan_conditions": [
+        "usable"
+      ]
     },
-    "required_classifications": [
+    "required_findings": [
       {
-        "identity": "ARCHIVE-RECOVERY-VALID",
+        "id": "ARCHIVE-RECOVERY-VALID",
         "domain": "receipt",
-        "state": "resolved"
+        "statuses": [
+          "resolved"
+        ]
       }
     ],
-    "required_anchored_classifications": [
+    "required_anchored_findings": [
       {
-        "anchor": "ARCHIVE-RECOVERY-VALID",
+        "anchor": {
+          "kind": "marker",
+          "value": "ARCHIVE-RECOVERY-VALID"
+        },
         "domain": "receipt",
-        "state": "resolved"
+        "statuses": [
+          "resolved"
+        ]
       }
     ],
     "coverage_assertions": [
       {
         "tag": "archive-positive",
         "kind": "finding",
-        "identity": "ARCHIVE-RECOVERY-VALID"
+        "finding_id": "ARCHIVE-RECOVERY-VALID"
       }
     ],
-    "prompt_forbidden": ["ARCHIVE-RECOVERY-VALID", "530760cf4af6"]
+    "prompt_forbidden": [
+      "ARCHIVE-RECOVERY-VALID",
+      "530760cf4af6"
+    ]
   }
 }

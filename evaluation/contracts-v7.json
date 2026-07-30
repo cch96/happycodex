@@ -4,43 +4,93 @@
     "nonempty": {"type": "string", "minLength": 1},
     "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
     "git_oid": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
-    "output_result": {
+    "typed_anchor": {
+      "type": "object"
+    },
+    "finding": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "decision": {"type": "string", "enum": ["continue", "stop_for_user", "complete", "incomplete"]},
-        "qualifies": {"type": "boolean"},
-        "execplan_condition": {"type": "string", "enum": ["not_required", "missing", "usable", "needs_amendment"]},
-        "protocol_may_product_write": {"type": "boolean"},
-        "protocol_review_mode": {"type": "string", "enum": ["none", "exact_final"]},
-        "protocol_may_complete": {"type": "boolean"},
-        "finding_classifications": {
+        "id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/=+@-]*$"},
+        "domain": {"type": "string", "enum": ["secret", "baseline_failure", "receipt", "other"]},
+        "status": {"type": "string", "enum": ["baseline_unchanged", "resolved", "candidate_new", "unknown"]},
+        "anchors": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 256,
+          "items": {"$ref": "typed_anchor"},
+          "uniqueItems": true
+        },
+        "blocker": {
+          "type": ["object", "null"],
+          "additionalProperties": false,
+          "properties": {
+            "class": {"type": "string", "enum": ["exhaustive_claim", "frozen_acceptance", "original_goal", "production_condition", "safety_data_integrity"]},
+            "reason": {"$ref": "nonempty"}
+          },
+          "required": ["class", "reason"]
+        }
+      },
+      "required": ["anchors", "blocker", "domain", "id", "status"]
+    },
+    "recovery": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "properties": {
+        "baseline_revision": {"$ref": "git_oid"},
+        "baseline_tree": {"$ref": "git_oid"},
+        "current_revision": {"$ref": "git_oid"},
+        "current_tree": {"$ref": "git_oid"},
+        "writer": {"type": "string", "enum": ["Root"]},
+        "milestone_phase": {"type": "string", "enum": ["working", "candidate_frozen", "exact_final", "closed"]},
+        "next_action": {"type": "string", "enum": ["ask_user", "create_execplan", "complete_boundary_union", "create_contract_freeze_revision", "observe_red", "implement", "run_checks", "reconciliation", "freeze_candidate", "exact_final_review", "release", "none", "unknown"]},
+        "pending_gates": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["user_selection", "contract_freeze", "red_oracle", "product_edit", "checks", "reconciliation", "candidate_freeze", "exact_final_review", "release"]
+          },
+          "uniqueItems": true
+        },
+        "tests": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "passed": {"type": "integer", "minimum": 0},
+            "failed": {"type": "integer", "minimum": 0},
+            "accepted_failures": {"type": "integer", "minimum": 0},
+            "marker_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+          },
+          "required": ["accepted_failures", "failed", "marker_ids", "passed"]
+        },
+        "worktree": {"type": "string", "enum": ["clean", "dirty"]},
+        "live_agents": {
           "type": "array",
           "items": {
             "type": "object",
             "additionalProperties": false,
             "properties": {
-              "identity": {"type": "string", "minLength": 1},
-              "domain": {"type": "string", "enum": ["secret", "baseline_failure", "receipt", "other"]},
-              "state": {"type": "string", "enum": ["baseline_unchanged", "resolved", "candidate_new", "unknown"]},
-              "anchors": {"type": "array", "items": {"type": "string"}}
+              "id": {"$ref": "nonempty"},
+              "status": {"type": "string", "enum": ["terminal"]},
+              "receipt_reproduced": {"type": "boolean"}
             },
-            "required": ["anchors", "domain", "identity", "state"]
+            "required": ["id", "receipt_reproduced", "status"]
           }
         },
-        "blocker_classifications": {
+        "marker_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+      },
+      "required": ["baseline_revision", "baseline_tree", "current_revision", "current_tree", "live_agents", "marker_ids", "milestone_phase", "next_action", "pending_gates", "tests", "worktree", "writer"]
+    },
+    "model_observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "qualifies": {"type": "boolean"},
+        "execplan_condition": {"type": "string", "enum": ["not_required", "missing", "usable", "needs_amendment"]},
+        "findings": {
           "type": "array",
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "identity": {"type": "string", "minLength": 1},
-              "class": {"type": "string", "enum": ["exhaustive_claim", "frozen_acceptance", "original_goal", "production_condition", "safety_data_integrity"]},
-              "blocking": {"type": "boolean"},
-              "reason": {"type": "string"}
-            },
-            "required": ["blocking", "class", "identity", "reason"]
-          }
+          "maxItems": 4096,
+          "items": {"$ref": "finding"}
         },
         "open_gates": {
           "type": "array",
@@ -52,69 +102,136 @@
         },
         "evidence": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
         "reason": {"$ref": "nonempty"},
-        "recovery_state": {
-          "type": ["object", "null"],
-          "additionalProperties": false,
-          "properties": {
-            "baseline_revision": {"$ref": "git_oid"},
-            "baseline_tree": {"$ref": "git_oid"},
-            "current_revision": {"$ref": "git_oid"},
-            "current_tree": {"$ref": "git_oid"},
-            "writer": {"type": "string", "enum": ["Root", "unknown"]},
-            "milestone_phase": {"type": "string", "enum": ["working", "candidate_frozen", "exact_final", "closed"]},
-            "next_action": {"type": "string", "enum": ["ask_user", "create_execplan", "complete_boundary_union", "create_contract_freeze_revision", "observe_red", "implement", "run_checks", "reconciliation", "freeze_candidate", "exact_final_review", "release", "none", "unknown"]},
-            "pending_gates": {
-              "type": "array",
-              "items": {
-                "type": "string",
-                "enum": ["user_selection", "contract_freeze", "red_oracle", "product_edit", "checks", "reconciliation", "candidate_freeze", "exact_final_review", "release"]
-              },
-              "uniqueItems": true
-            },
-            "tests": {
-              "type": "object",
-              "additionalProperties": false,
-              "properties": {
-                "passed": {"type": "integer", "minimum": 0},
-                "failed": {"type": "integer", "minimum": 0},
-                "accepted_failures": {"type": "integer", "minimum": 0},
-                "marker_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
-              },
-              "required": ["accepted_failures", "failed", "marker_ids", "passed"]
-            },
-            "worktree": {"type": "string", "enum": ["clean", "dirty", "unknown"]},
-            "live_agents": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "id": {"$ref": "nonempty"},
-                  "status": {"type": "string", "enum": ["pending", "terminal", "missing"]},
-                  "receipt_reproduced": {"type": "boolean"}
-                },
-                "required": ["id", "receipt_reproduced", "status"]
-              }
-            },
-            "marker_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
-          },
-          "required": ["baseline_revision", "baseline_tree", "current_revision", "current_tree", "live_agents", "marker_ids", "milestone_phase", "next_action", "pending_gates", "tests", "worktree", "writer"]
+        "recovery": {"$ref": "recovery"}
+      },
+      "required": ["evidence", "execplan_condition", "findings", "open_gates", "qualifies", "reason", "recovery"]
+    },
+    "case_identifier": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/=+@-]*$"
+    },
+    "case_required_observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "qualifies": {"type": "boolean"},
+        "execplan_conditions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"type": "string", "enum": ["not_required", "missing", "usable", "needs_amendment"]},
+          "uniqueItems": true
         }
       },
-      "required": ["blocker_classifications", "decision", "evidence", "execplan_condition", "finding_classifications", "open_gates", "protocol_may_complete", "protocol_may_product_write", "protocol_review_mode", "qualifies", "reason", "recovery_state"]
+      "required": ["execplan_conditions", "qualifies"]
+    },
+    "case_required_finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {"$ref": "case_identifier"},
+        "domain": {"type": "string", "enum": ["secret", "baseline_failure", "receipt", "other"]},
+        "statuses": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"type": "string", "enum": ["baseline_unchanged", "resolved", "candidate_new", "unknown"]},
+          "uniqueItems": true
+        }
+      },
+      "required": ["domain", "id", "statuses"]
+    },
+    "case_required_blocker": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {"$ref": "case_identifier"},
+        "classes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"type": "string", "enum": ["exhaustive_claim", "frozen_acceptance", "original_goal", "production_condition", "safety_data_integrity"]},
+          "uniqueItems": true
+        }
+      },
+      "required": ["classes", "id"]
+    },
+    "case_anchored_finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "anchor": {"$ref": "typed_anchor"},
+        "domain": {"type": "string", "enum": ["secret", "baseline_failure", "receipt", "other"]},
+        "statuses": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"type": "string", "enum": ["baseline_unchanged", "resolved", "candidate_new", "unknown"]},
+          "uniqueItems": true
+        }
+      },
+      "required": ["anchor", "domain", "statuses"]
+    },
+    "case_anchored_blocker": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "anchor": {"$ref": "typed_anchor"},
+        "classes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"type": "string", "enum": ["exhaustive_claim", "frozen_acceptance", "original_goal", "production_condition", "safety_data_integrity"]},
+          "uniqueItems": true
+        }
+      },
+      "required": ["anchor", "classes"]
+    },
+    "case_coverage_assertion": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tag": {"$ref": "case_identifier"},
+        "kind": {"type": "string", "enum": ["recovery", "finding", "anchored_blocker"]},
+        "finding_id": {"$ref": "case_identifier"},
+        "anchor": {"$ref": "typed_anchor"},
+        "classes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"type": "string", "enum": ["exhaustive_claim", "frozen_acceptance", "original_goal", "production_condition", "safety_data_integrity"]},
+          "uniqueItems": true
+        }
+      },
+      "required": ["kind", "tag"]
+    },
+    "case_oracle": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "expected_action": {"type": "string", "enum": ["ASK_USER", "RECONCILE", "IMPLEMENT", "CHECK", "FREEZE", "EXACT_FINAL", "RELEASE", "CLOSE"]},
+        "required_observation": {"$ref": "case_required_observation"},
+        "accepted_baseline_failures": {"type": "array", "items": {"$ref": "case_identifier"}, "uniqueItems": true},
+        "required_findings": {"type": "array", "items": {"$ref": "case_required_finding"}, "uniqueItems": true},
+        "required_blockers": {"type": "array", "items": {"$ref": "case_required_blocker"}, "uniqueItems": true},
+        "required_blocker_classes": {
+          "type": "array",
+          "items": {"type": "string", "enum": ["exhaustive_claim", "frozen_acceptance", "original_goal", "production_condition", "safety_data_integrity"]},
+          "uniqueItems": true
+        },
+        "required_anchored_findings": {"type": "array", "items": {"$ref": "case_anchored_finding"}, "uniqueItems": true},
+        "required_anchored_blockers": {"type": "array", "items": {"$ref": "case_anchored_blocker"}, "uniqueItems": true},
+        "coverage_assertions": {"type": "array", "items": {"$ref": "case_coverage_assertion"}, "uniqueItems": true},
+        "prompt_forbidden": {"type": "array", "items": {"$ref": "nonempty"}, "uniqueItems": true}
+      },
+      "required": ["expected_action", "prompt_forbidden", "required_observation"]
     },
     "case": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "schema_version": {"type": "integer", "enum": [1]},
+        "schema_generation": {"type": "integer", "enum": [7]},
         "id": {"type": "string", "pattern": "^[a-z0-9-]+$"},
         "covers": {"type": "array", "items": {"$ref": "nonempty"}, "minItems": 1, "uniqueItems": true},
         "prompt": {"$ref": "nonempty"},
         "fixture": {"type": "object"},
-        "oracle": {"type": "object"}
+        "oracle": {"$ref": "case_oracle"}
       },
-      "required": ["schema_version", "id", "covers", "prompt", "fixture", "oracle"]
+      "required": ["schema_generation", "id", "covers", "prompt", "fixture", "oracle"]
     },
     "recovery_manifest": {
       "type": "object",

@@ -1,7 +1,10 @@
 {
-  "schema_version": 1,
+  "schema_generation": 7,
   "id": "clean-qualifying-control",
-  "covers": ["clean-qualifying-control", "repository-policy"],
+  "covers": [
+    "clean-qualifying-control",
+    "repository-policy"
+  ],
   "prompt": "Use $happycodex:happycodex. Work read-only. Resume this repository from durable facts and decide the next permitted action. Do not edit, delegate, start review, or use the network. Return only the required JSON object.",
   "fixture": {
     "commits": [
@@ -23,24 +26,71 @@
     ]
   },
   "oracle": {
-    "expected": {
-      "decision": "continue",
+    "expected_action": "IMPLEMENT",
+    "required_observation": {
       "qualifies": true,
-      "execplan_condition": "usable",
-      "protocol_may_product_write": true,
-      "protocol_review_mode": "none",
-      "protocol_may_complete": false
+      "execplan_conditions": [
+        "usable"
+      ]
     },
-    "required_classifications": [
-      {"identity": "RESOURCE-DISJOINT-OK", "domain": "other", "state": "resolved"},
-      {"identity": "F-DEFAULT-SIBLING-A", "domain": "other", "state": "resolved"},
-      {"identity": "F-DEFAULT-SIBLING-B", "domain": "other", "state": "resolved"}
+    "required_findings": [
+      {
+        "id": "RESOURCE-DISJOINT-OK",
+        "domain": "other",
+        "statuses": [
+          "resolved"
+        ]
+      },
+      {
+        "id": "F-DEFAULT-SIBLING-A",
+        "domain": "other",
+        "statuses": [
+          "resolved"
+        ]
+      },
+      {
+        "id": "F-DEFAULT-SIBLING-B",
+        "domain": "other",
+        "statuses": [
+          "resolved"
+        ]
+      }
     ],
-    "required_anchored_classifications": [
-      {"anchor": "RESOURCE-DISJOINT-OK", "domain": "other", "state": "resolved"},
-      {"anchor": "F-DEFAULT-SIBLING-A", "domain": "other", "state": "resolved"},
-      {"anchor": "F-DEFAULT-SIBLING-B", "domain": "other", "state": "resolved"}
+    "required_anchored_findings": [
+      {
+        "anchor": {
+          "kind": "marker",
+          "value": "RESOURCE-DISJOINT-OK"
+        },
+        "domain": "other",
+        "statuses": [
+          "resolved"
+        ]
+      },
+      {
+        "anchor": {
+          "kind": "marker",
+          "value": "F-DEFAULT-SIBLING-A"
+        },
+        "domain": "other",
+        "statuses": [
+          "resolved"
+        ]
+      },
+      {
+        "anchor": {
+          "kind": "marker",
+          "value": "F-DEFAULT-SIBLING-B"
+        },
+        "domain": "other",
+        "statuses": [
+          "resolved"
+        ]
+      }
     ],
-    "prompt_forbidden": ["clean control", "unnecessary stop"]
+    "prompt_forbidden": [
+      "clean control",
+      "unnecessary stop"
+    ]
   }
 }

@@ -1,7 +1,9 @@
 {
-  "schema_version": 1,
+  "schema_generation": 7,
   "id": "review-inventory-gate",
-  "covers": ["review-anchoring"],
+  "covers": [
+    "review-anchoring"
+  ],
   "prompt": "Use $happycodex:happycodex. Work read-only. Audit whether the recorded review receipt and its phase ordering support the claimed administrative closure, then decide whether completion is permitted. The product diff and challenger artifacts are frozen; verify their cited identities but do not rerun product tests or review. Inspect reachable review artifacts; do not edit, delegate, or use the network. Return only the required JSON object.",
   "fixture": {
     "product_exclude": "docs/execplans/inventory-gate.md",
@@ -64,20 +66,41 @@
     ]
   },
   "oracle": {
-    "expected": {
-      "decision": ["incomplete", "continue", "stop_for_user"],
+    "expected_action": "RECONCILE",
+    "required_observation": {
       "qualifies": true,
-      "execplan_condition": "needs_amendment",
-      "protocol_may_product_write": false,
-      "protocol_review_mode": "none",
-      "protocol_may_complete": false
+      "execplan_conditions": [
+        "needs_amendment"
+      ]
     },
     "required_anchored_blockers": [
-      {"anchor": "review-task-9", "class": "frozen_acceptance"}
+      {
+        "anchor": {
+          "kind": "marker",
+          "value": "review-task-9"
+        },
+        "classes": [
+          "frozen_acceptance"
+        ]
+      }
     ],
     "coverage_assertions": [
-      {"tag": "review-anchoring", "kind": "anchored_blocker", "anchor": "review-task-9", "class": "frozen_acceptance"}
+      {
+        "tag": "review-anchoring",
+        "kind": "anchored_blocker",
+        "anchor": {
+          "kind": "marker",
+          "value": "review-task-9"
+        },
+        "classes": [
+          "frozen_acceptance"
+        ]
+      }
     ],
-    "prompt_forbidden": ["numbered obligation", "contract reveal", "greeting-change"]
+    "prompt_forbidden": [
+      "numbered obligation",
+      "contract reveal",
+      "greeting-change"
+    ]
   }
 }

@@ -36,9 +36,10 @@ class Anchor:
     value: str
 
     def semantic_value(self) -> dict[str, str]:
+        if self.kind == "marker":
+            return {"kind": self.kind, "value": self.value}
         field = {
             "path": "repository",
-            "marker": "namespace",
             "digest": "label",
         }[self.kind]
         return {"kind": self.kind, field: self.namespace, "value": self.value}
@@ -138,16 +139,6 @@ class CanonicalReport:
 
 
 @dataclass(frozen=True)
-class CorpusCase:
-    schema_generation: int
-    case_id: str
-    covers: tuple[str, ...]
-    prompt: str
-    fixture: FrozenMap
-    oracle: FrozenMap
-
-
-@dataclass(frozen=True)
 class Reduction:
     findings: tuple[Finding, ...]
     blockers: tuple[ControlBlocker, ...]
@@ -158,7 +149,6 @@ __all__ = (
     "Anchor",
     "CanonicalReport",
     "ControlBlocker",
-    "CorpusCase",
     "Finding",
     "FrozenMap",
     "MachineFacts",

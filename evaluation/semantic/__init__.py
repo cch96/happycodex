@@ -2,8 +2,6 @@
 
 from .codec import (
     canonical_bytes,
-    corpus_case_to_raw,
-    parse_corpus_case,
     parse_machine_facts,
     parse_model_observation,
     parse_report,
@@ -13,7 +11,6 @@ from .codec import (
 from .model import (
     CanonicalReport,
     ControlBlocker,
-    CorpusCase,
     Finding,
     MachineFacts,
     ModelObservation,
@@ -32,12 +29,9 @@ __all__ = (
     "ControlBlocker",
     "NextAction",
     "CanonicalReport",
-    "CorpusCase",
     "parse_machine_facts",
     "parse_model_observation",
-    "parse_corpus_case",
     "parse_report",
-    "corpus_case_to_raw",
     "report_to_raw",
     "canonical_bytes",
     "semantic_digest",

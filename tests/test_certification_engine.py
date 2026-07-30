@@ -47,8 +47,8 @@ GENESIS = {
     "receipts": [],
 }
 ZERO_EFFECT_FIELDS = {
-    "intents_created",
-    "units_consumed",
+    "launches_created",
+    "actions_consumed",
     "fixtures_created",
     "outputs_created",
     "receipts_created",
@@ -551,53 +551,100 @@ class EffectIntentTests(unittest.TestCase):
     def tearDown(self) -> None:
         self.raw.cleanup()
 
-    def _intent(self, *, gate: str = "corpus", unit: str = "unit") -> dict:
+    def _launch(
+        self,
+        *,
+        gate: str = "corpus",
+        unit: str = "unit",
+        output: str = "effects",
+        infrastructure: str | None = None,
+    ) -> dict:
         plan = _plan(
             self.candidate,
             gate,
-            self.root / "effects",
+            self.root / output,
             units=(unit,),
         )
-        return live.build_effect_intent(plan, unit)
+        return live.build_launch(
+            plan,
+            unit,
+            infrastructure_generation=infrastructure,
+        )
 
     def test_intent_exactly_expands_and_binds_one_unit(self) -> None:
-        intent = self._intent()
-        self.assertEqual(intent["unit"], "unit")
-        self.assertEqual(Path(intent["output"]), self.root / "effects" / "unit")
-        self.assertIn("unit", intent["invocation"]["argv"])
-        live.validate_effect_intent(intent, unit="unit")
-        changed = copy.deepcopy(intent)
+        launch = self._launch()
+        self.assertEqual(launch["unit"], "unit")
+        self.assertEqual(Path(launch["output"]), self.root / "effects" / "unit")
+        self.assertIn("unit", launch["invocation"]["argv"])
+        self.assertRegex(launch["action_key"], r"^[0-9a-f]{64}$")
+        live.validate_launch(launch, unit="unit")
+        changed = copy.deepcopy(launch)
         changed["unit"] = "other"
         with self.assertRaises(ValueError):
-            live.validate_effect_intent(changed)
+            live.validate_launch(changed)
 
     def test_reservation_is_durable_one_shot_before_output(self) -> None:
-        intent = self._intent()
-        reservation = live.reserve_effect(intent, self.claims)
+        launch = self._launch(infrastructure="1" * 64)
+        reservation = live.reserve_launch(launch, self.claims)
         self.assertTrue(Path(reservation["claim"]).is_file())
         output = Path(reservation["output"])
         self.assertTrue(output.is_dir())
         self.assertEqual(stat.S_IMODE(output.stat().st_mode), 0o700)
         with self.assertRaisesRegex(ValueError, "absent"):
-            live.reserve_effect(intent, self.claims)
+            live.reserve_launch(launch, self.claims)
+
+        no_effect = {
+            "schema_generation": 7,
+            "action_key": launch["action_key"],
+            "launch_key": launch["launch_key"],
+            "unit": launch["unit"],
+            "status": "failed",
+            "effect": "no_effect",
+            "output_sha256": None,
+            "usage": {
+                "model_calls": 0,
+                "uncached_input_tokens": 0,
+                "output_tokens": 0,
+                "wall_milliseconds": 0,
+            },
+        }
+        no_effect["result_sha256"] = canonical_sha256(no_effect)
+        live.write_launch_result(launch, self.claims, no_effect)
+        replacement = self._launch(
+            output="replacement",
+            infrastructure="2" * 64,
+        )
+        self.assertEqual(replacement["action_key"], launch["action_key"])
+        live.reserve_launch(replacement, self.claims)
+        exhausted = self._launch(
+            output="exhausted",
+            infrastructure="3" * 64,
+        )
+        with self.assertRaisesRegex(ValueError, "exhausted"):
+            live.reserve_launch(exhausted, self.claims)
 
     def test_reservation_refuses_symlink_and_path_drift(self) -> None:
-        intent = self._intent()
+        launch = self._launch()
         target = self.root / "target"
         target.mkdir(mode=0o700)
         (self.root / "effects").symlink_to(target, target_is_directory=True)
         with self.assertRaisesRegex(ValueError, "private real directory"):
-            live.reserve_effect(intent, self.claims)
-        self.assertEqual(list(self.claims.iterdir()), [])
+            live.reserve_launch(launch, self.claims)
+        self.assertFalse(
+            any(path.name.startswith("launch-") for path in self.claims.iterdir())
+        )
 
     def test_result_is_immutable_bound_and_cost_checked(self) -> None:
-        intent = self._intent()
-        live.reserve_effect(intent, self.claims)
+        launch = self._launch()
+        live.reserve_launch(launch, self.claims)
+        live.consume_action(launch, self.claims)
         result = {
-            "schema_version": 1,
-            "intent_digest": intent["intent_digest"],
-            "unit": intent["unit"],
+            "schema_generation": 7,
+            "action_key": launch["action_key"],
+            "launch_key": launch["launch_key"],
+            "unit": launch["unit"],
             "status": "succeeded",
+            "effect": "provider_reached",
             "output_sha256": canonical_sha256({"output": "ok"}),
             "usage": {
                 "model_calls": 1,
@@ -607,23 +654,23 @@ class EffectIntentTests(unittest.TestCase):
             },
         }
         result["result_sha256"] = canonical_sha256(result)
-        live.write_effect_result(intent, self.claims, result)
+        live.write_launch_result(launch, self.claims, result)
         with self.assertRaises(FileExistsError):
-            live.write_effect_result(intent, self.claims, result)
+            live.write_launch_result(launch, self.claims, result)
         excessive = copy.deepcopy(result)
         excessive["usage"]["model_calls"] = 11
         excessive["result_sha256"] = canonical_sha256(
             {key: value for key, value in excessive.items() if key != "result_sha256"}
         )
-        (Path(intent["output"]) / "result.json").unlink()
+        (Path(launch["output"]) / "result.json").unlink()
         with self.assertRaisesRegex(ValueError, "cost ceiling"):
-            live.write_effect_result(intent, self.claims, excessive)
+            live.write_launch_result(launch, self.claims, excessive)
 
     def test_corpus_rejects_invalid_intent_before_fixture_or_output(self) -> None:
         case = corpus_engine.load_cases()["subthreshold-control"]
         output = self.root / "raw"
         with mock.patch.object(corpus_engine, "build_fixture") as fixture:
-            with self.assertRaisesRegex(ValueError, "EffectIntent"):
+            with self.assertRaisesRegex(ValueError, "launch"):
                 corpus_engine.evaluate_case(
                     case,
                     plugin=ROOT,
@@ -632,7 +679,8 @@ class EffectIntentTests(unittest.TestCase):
                     effort="high",
                     timeout=300,
                     arm="candidate",
-                    effect_intent={},
+                    launch={},
+                    claim_root=self.claims,
                 )
         fixture.assert_not_called()
         self.assertFalse(output.exists())
@@ -640,7 +688,7 @@ class EffectIntentTests(unittest.TestCase):
     def test_holdout_rejects_invalid_intent_before_mapping(self) -> None:
         pair = holdout_engine.load_manifest()["pairs"][0]
         with mock.patch.object(holdout_engine, "seal_mapping") as mapping:
-            with self.assertRaisesRegex(ValueError, "EffectIntent"):
+            with self.assertRaisesRegex(ValueError, "launch"):
                 holdout_engine.run_pair(
                     pair,
                     candidate=ROOT,
@@ -649,18 +697,19 @@ class EffectIntentTests(unittest.TestCase):
                     model="gpt-5.6-sol",
                     effort="high",
                     timeout=300,
-                    effect_intent={},
+                    launch={},
+                    claim_root=self.claims,
                 )
         mapping.assert_not_called()
 
     def test_authorized_entrypoints_accept_only_intents_and_claim_root(self) -> None:
         self.assertEqual(
             tuple(inspect.signature(corpus_engine.run_authorized).parameters),
-            ("args", "effect_intents", "claim_root"),
+            ("args", "launches", "claim_root"),
         )
         self.assertEqual(
             tuple(inspect.signature(holdout_engine.run_authorized).parameters),
-            ("args", "effect_intents", "claim_root"),
+            ("args", "launches", "claim_root"),
         )
 
 
@@ -687,29 +736,24 @@ class ContractProtocolAndImpactTests(unittest.TestCase):
         validate_named(CONTRACTS, "ledger", GENESIS)
 
     def test_protocol_rejects_removed_phase_review_and_gate_values(self) -> None:
-        from evaluation.protocol import validate_result
+        from evaluation.semantic import SemanticError, parse_model_observation
 
-        phases = CONTRACTS["schemas"]["output_result"]["properties"][
-            "recovery_state"
-        ]["properties"]["milestone_phase"]["enum"]
+        phases = CONTRACTS["schemas"]["recovery"]["properties"][
+            "milestone_phase"
+        ]["enum"]
         self.assertEqual(
             phases,
             ["working", "candidate_frozen", "exact_final", "closed"],
         )
         self.assertLessEqual(len(phases), 4)
         base = {
-            "decision": "complete",
             "qualifies": True,
             "execplan_condition": "usable",
-            "protocol_may_product_write": False,
-            "protocol_review_mode": "none",
-            "protocol_may_complete": True,
-            "finding_classifications": [],
-            "blocker_classifications": [],
+            "findings": [],
             "open_gates": [],
             "evidence": ["fixture"],
             "reason": "fixture",
-            "recovery_state": {
+            "recovery": {
                 "baseline_revision": "a" * 40,
                 "baseline_tree": "b" * 40,
                 "current_revision": "c" * 40,
@@ -729,27 +773,39 @@ class ContractProtocolAndImpactTests(unittest.TestCase):
                 "marker_ids": [],
             },
         }
-        validate_result(base)
+        parse_model_observation(base)
         for path, value in (
             (("protocol_review_mode",), "focused_hardening"),
-            (("recovery_state", "milestone_phase"), "implementation"),
-            (("recovery_state", "next_action"), "focused_review"),
-            (("recovery_state", "pending_gates"), ["boundary_repair"]),
+            (("recovery", "milestone_phase"), "implementation"),
+            (("recovery", "next_action"), "focused_review"),
+            (("recovery", "pending_gates"), ["boundary_repair"]),
         ):
             invalid = copy.deepcopy(base)
             cursor = invalid
             for component in path[:-1]:
                 cursor = cursor[component]
             cursor[path[-1]] = value
-            with self.assertRaises(ValueError):
-                validate_result(invalid)
+            with self.assertRaises(SemanticError):
+                parse_model_observation(invalid)
 
     def test_engine_inventory_has_no_archived_semantic_fallback(self) -> None:
         inventory = engine_inventory(ROOT)
         paths = {entry["path"] for entry in inventory["entries"]}
-        self.assertIn("evaluation/protocol.py", paths)
-        retired_prefix = "/".join(("evaluation", "semantic")) + "/"
-        self.assertFalse(any(path.startswith(retired_prefix) for path in paths))
+        self.assertNotIn("evaluation/protocol.py", paths)
+        self.assertEqual(
+            {
+                path
+                for path in paths
+                if path.startswith("evaluation/semantic/")
+            },
+            {
+                "evaluation/semantic/__init__.py",
+                "evaluation/semantic/codec.py",
+                "evaluation/semantic/model.py",
+                "evaluation/semantic/reducer.py",
+                "evaluation/semantic/replay.py",
+            },
+        )
 
     def test_genesis_impact_requires_full_fresh_gate_set(self) -> None:
         snapshot = build_snapshot(ROOT)
@@ -760,7 +816,7 @@ class ContractProtocolAndImpactTests(unittest.TestCase):
         }
         impact = plan_impact(snapshot, snapshot, pending=pending)
         self.assertEqual(impact["gates"], list(GATE_ORDER))
-        self.assertIn("generation_6_genesis", impact["reasons"])
+        self.assertIn("generation_7_genesis", impact["reasons"])
         self.assertIsNone(impact["live_calls"])
         self.assertIsNone(impact["cost"])
 
@@ -886,12 +942,12 @@ class FalseGreenBoundaryTests(unittest.TestCase):
                 "receipts": [],
             }
             validate_ledger(exact, repo=repo)
-            protocol = repo / "evaluation/protocol.py"
-            protocol.write_text(
-                protocol.read_text(encoding="utf-8") + "\n# evaluator-only drift\n",
+            reducer = repo / "evaluation/semantic/reducer.py"
+            reducer.write_text(
+                reducer.read_text(encoding="utf-8") + "\n# evaluator-only drift\n",
                 encoding="utf-8",
             )
-            _git(repo, "add", "evaluation/protocol.py")
+            _git(repo, "add", "evaluation/semantic/reducer.py")
             _git(repo, "commit", "--quiet", "-m", "test: change evaluator only")
             validate_release_candidate(candidate, repo=repo)
             with self.assertRaises(ValueError):
@@ -1042,13 +1098,13 @@ class FalseGreenBoundaryTests(unittest.TestCase):
                 Path(raw) / "effects",
                 units=("subthreshold-control",),
             )
-            intent = live.build_effect_intent(plan, "subthreshold-control")
+            launch = live.build_launch(plan, "subthreshold-control")
             args = Namespace(command="corpus", plugin=ROOT)
             with mock.patch.object(corpus_engine, "run_authorized") as runner:
                 with self.assertRaises(ValueError):
                     cli.run_authorized(
                         args,
-                        {"subthreshold-control": intent},
+                        {"subthreshold-control": launch},
                         Path(raw),
                     )
             runner.assert_not_called()
@@ -1271,9 +1327,9 @@ class Batch3IdentityContractionTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as raw:
             repo = _prepare_repo(raw)
             baseline = build_snapshot(repo)
-            protocol = repo / "evaluation/protocol.py"
-            protocol.write_text(
-                protocol.read_text(encoding="utf-8") + "\n# evaluator change\n",
+            reducer = repo / "evaluation/semantic/reducer.py"
+            reducer.write_text(
+                reducer.read_text(encoding="utf-8") + "\n# evaluator change\n",
                 encoding="utf-8",
             )
             current = build_snapshot(repo)

@@ -1,8 +1,15 @@
 {
-  "schema_version": 1,
+  "schema_generation": 7,
   "id": "compaction-recovery",
-  "covers": ["request-paraphrase", "unsupported-amendment", "post-freeze-compaction", "lost-scout", "dirty-untracked", "baseline-failure"],
-  "prompt": "Use $happycodex:happycodex. Context was compacted. The Skill is already loaded; do not read plugin caches, inspect unrelated history, or repeat equivalent searches. Inspect the bounded fixture once, then work read-only and reconstruct the exact next permitted action from durable repository facts. A candidate test failure that replaces a recorded baseline test failure remains in the baseline_failure domain even when its identity changed. For a replacement with a different durable identity, emit separate finding_classifications for both identities: classify the recorded identity as resolved and the replacement identity as candidate_new; do not collapse them under the shared test name. When an unsupported post-freeze amendment or unmet production prerequisite is recorded in a durable plan, emit a blocker_classifications entry classified as frozen_acceptance or production_condition and ensure its corresponding finding anchors that durable plan. Do not edit, delegate, invoke review, or use the network. Return only the required JSON object.",
+  "covers": [
+    "request-paraphrase",
+    "unsupported-amendment",
+    "post-freeze-compaction",
+    "lost-scout",
+    "dirty-untracked",
+    "baseline-failure"
+  ],
+  "prompt": "Use $happycodex:happycodex. Context was compacted. The Skill is already loaded; do not read plugin caches, inspect unrelated history, or repeat equivalent searches. Inspect the bounded fixture once, then work read-only and reconstruct the exact next permitted action from durable repository facts. A candidate test failure that replaces a recorded baseline test failure remains in the baseline_failure domain even when its id changed. For a replacement with a different durable id, emit separate findings for both ids: classify the recorded id as resolved and the replacement id as candidate_new; do not collapse them under the shared test name. When an unsupported post-freeze amendment or unmet production prerequisite is recorded in a durable plan, embed a frozen_acceptance or production_condition blocker in its corresponding finding and anchor that finding to the durable plan. Do not edit, delegate, invoke review, or use the network. Return only the required JSON object.",
   "fixture": {
     "commits": [
       {
@@ -26,40 +33,219 @@
     }
   },
   "oracle": {
-    "expected": {
-      "decision": ["incomplete", "continue", "stop_for_user"],
+    "expected_action": "RECONCILE",
+    "required_observation": {
       "qualifies": true,
-      "execplan_condition": "needs_amendment",
-      "protocol_may_product_write": false,
-      "protocol_review_mode": "none",
-      "protocol_may_complete": false
+      "execplan_conditions": [
+        "needs_amendment"
+      ]
     },
-    "required_classifications": [
-      {"identity": "fixture-17", "domain": "baseline_failure", "state": "resolved"},
-      {"identity": "fixture-18", "domain": "baseline_failure", "state": "candidate_new"}
+    "required_findings": [
+      {
+        "id": "fixture-17",
+        "domain": "baseline_failure",
+        "statuses": [
+          "resolved"
+        ]
+      },
+      {
+        "id": "fixture-18",
+        "domain": "baseline_failure",
+        "statuses": [
+          "candidate_new"
+        ]
+      }
     ],
-    "required_anchored_classifications": [
-      {"anchor": "S-2", "domain": "receipt", "state": ["baseline_unchanged", "unknown"]},
-      {"anchor": "src/job.py", "domain": "other", "state": ["baseline_unchanged", "candidate_new", "unknown"]},
-      {"anchor": "staged-review.txt", "domain": "other", "state": ["baseline_unchanged", "candidate_new", "unknown"]},
-      {"anchor": "scratch-recovery.txt", "domain": "other", "state": ["baseline_unchanged", "candidate_new", "unknown"]}
+    "required_anchored_findings": [
+      {
+        "anchor": {
+          "kind": "marker",
+          "value": "S-2"
+        },
+        "domain": "receipt",
+        "statuses": [
+          "baseline_unchanged",
+          "unknown"
+        ]
+      },
+      {
+        "anchor": {
+          "kind": "path",
+          "repository": "fixture",
+          "value": "src/job.py"
+        },
+        "domain": "other",
+        "statuses": [
+          "baseline_unchanged",
+          "candidate_new",
+          "unknown"
+        ]
+      },
+      {
+        "anchor": {
+          "kind": "path",
+          "repository": "fixture",
+          "value": "staged-review.txt"
+        },
+        "domain": "other",
+        "statuses": [
+          "baseline_unchanged",
+          "candidate_new",
+          "unknown"
+        ]
+      },
+      {
+        "anchor": {
+          "kind": "path",
+          "repository": "fixture",
+          "value": "scratch-recovery.txt"
+        },
+        "domain": "other",
+        "statuses": [
+          "baseline_unchanged",
+          "candidate_new",
+          "unknown"
+        ]
+      }
     ],
     "required_anchored_blockers": [
-      {"anchor": "docs/execplans/jobs.md", "class": "original_goal"},
-      {"anchor": "docs/execplans/jobs.md", "class": ["frozen_acceptance", "production_condition"]},
-      {"anchor": "S-2", "class": ["original_goal", "frozen_acceptance", "safety_data_integrity", "production_condition", "exhaustive_claim"]},
-      {"anchor": "scratch-recovery.txt", "class": ["safety_data_integrity", "frozen_acceptance"]},
-      {"anchor": "test_read_mode", "class": "original_goal"},
-      {"anchor": "F-JOB-SIBLING-B", "class": ["original_goal", "frozen_acceptance", "exhaustive_claim"]}
+      {
+        "anchor": {
+          "kind": "path",
+          "repository": "fixture",
+          "value": "docs/execplans/jobs.md"
+        },
+        "classes": [
+          "original_goal"
+        ]
+      },
+      {
+        "anchor": {
+          "kind": "path",
+          "repository": "fixture",
+          "value": "docs/execplans/jobs.md"
+        },
+        "classes": [
+          "frozen_acceptance",
+          "production_condition"
+        ]
+      },
+      {
+        "anchor": {
+          "kind": "marker",
+          "value": "S-2"
+        },
+        "classes": [
+          "exhaustive_claim",
+          "frozen_acceptance",
+          "original_goal",
+          "production_condition",
+          "safety_data_integrity"
+        ]
+      },
+      {
+        "anchor": {
+          "kind": "path",
+          "repository": "fixture",
+          "value": "scratch-recovery.txt"
+        },
+        "classes": [
+          "frozen_acceptance",
+          "safety_data_integrity"
+        ]
+      },
+      {
+        "anchor": {
+          "kind": "marker",
+          "value": "test_read_mode"
+        },
+        "classes": [
+          "original_goal"
+        ]
+      },
+      {
+        "anchor": {
+          "kind": "marker",
+          "value": "F-JOB-SIBLING-B"
+        },
+        "classes": [
+          "exhaustive_claim",
+          "frozen_acceptance",
+          "original_goal"
+        ]
+      }
     ],
     "coverage_assertions": [
-      {"tag": "request-paraphrase", "kind": "anchored_blocker", "anchor": "docs/execplans/jobs.md", "class": "original_goal"},
-      {"tag": "unsupported-amendment", "kind": "anchored_blocker", "anchor": "docs/execplans/jobs.md", "class": ["frozen_acceptance", "production_condition"]},
-      {"tag": "post-freeze-compaction", "kind": "recovery"},
-      {"tag": "lost-scout", "kind": "anchored_blocker", "anchor": "S-2", "class": ["original_goal", "frozen_acceptance", "safety_data_integrity", "production_condition", "exhaustive_claim"]},
-      {"tag": "dirty-untracked", "kind": "anchored_blocker", "anchor": "scratch-recovery.txt", "class": ["safety_data_integrity", "frozen_acceptance"]},
-      {"tag": "baseline-failure", "kind": "finding", "identity": "fixture-18"}
+      {
+        "tag": "request-paraphrase",
+        "kind": "anchored_blocker",
+        "anchor": {
+          "kind": "path",
+          "repository": "fixture",
+          "value": "docs/execplans/jobs.md"
+        },
+        "classes": [
+          "original_goal"
+        ]
+      },
+      {
+        "tag": "unsupported-amendment",
+        "kind": "anchored_blocker",
+        "anchor": {
+          "kind": "path",
+          "repository": "fixture",
+          "value": "docs/execplans/jobs.md"
+        },
+        "classes": [
+          "frozen_acceptance",
+          "production_condition"
+        ]
+      },
+      {
+        "tag": "post-freeze-compaction",
+        "kind": "recovery"
+      },
+      {
+        "tag": "lost-scout",
+        "kind": "anchored_blocker",
+        "anchor": {
+          "kind": "marker",
+          "value": "S-2"
+        },
+        "classes": [
+          "exhaustive_claim",
+          "frozen_acceptance",
+          "original_goal",
+          "production_condition",
+          "safety_data_integrity"
+        ]
+      },
+      {
+        "tag": "dirty-untracked",
+        "kind": "anchored_blocker",
+        "anchor": {
+          "kind": "path",
+          "repository": "fixture",
+          "value": "scratch-recovery.txt"
+        },
+        "classes": [
+          "frozen_acceptance",
+          "safety_data_integrity"
+        ]
+      },
+      {
+        "tag": "baseline-failure",
+        "kind": "finding",
+        "finding_id": "fixture-18"
+      }
     ],
-    "prompt_forbidden": ["staged-review", "scratch-recovery", "fixture-18", "read mode omitted", "S-3", "delegate a child"]
+    "prompt_forbidden": [
+      "staged-review",
+      "scratch-recovery",
+      "fixture-18",
+      "read mode omitted",
+      "S-3",
+      "delegate a child"
+    ]
   }
 }

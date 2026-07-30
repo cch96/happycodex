@@ -15,23 +15,16 @@ import time
 from typing import Any, Callable
 
 from evaluation.core.identity import (
-    BLOCKER_CLASSES,
     FILESYSTEM_ISOLATION_POLICY,
     PACKAGE_PATHS,
-    PERMISSION_FIELDS,
     PERMISSION_PROFILE,
-    PERMISSION_VALUES,
     PUBLIC_02_ARM,
     PUBLIC_02_PACKAGE_ARTIFACT_SHA256,
     PUBLIC_02_SKILL_ENTRIES,
-    RECOVERY_ACTIONS,
-    RECOVERY_GATE_FIELDS,
     RECOVERY_MANIFEST_PATTERN,
-    RECOVERY_PENDING_GATES,
     RECOVERY_STATE_FIELDS,
     canonical_sha256,
     case_semantic_sha256,
-    classifications_share_identity,
     codex_identity,
     engine_inventory,
     invocation_profile,
@@ -46,7 +39,13 @@ from evaluation.core.identity import (
 )
 from evaluation.core.ledger import validate_case_input as validate_case
 from evaluation.core.schema import CONTRACTS, validate_named
-from evaluation.protocol import project_result, validate_result as validate_protocol_result
+from evaluation.semantic import (
+    build_report,
+    parse_machine_facts,
+    parse_model_observation,
+    parse_report,
+    report_to_raw,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
 CASES = ROOT / "evaluation" / "cases"
@@ -65,7 +64,7 @@ DISABLED_FEATURES = (
 FIXED_GIT_DATE = "2000-01-01T00:00:00+00:00"
 
 
-OUTPUT_SCHEMA = CONTRACTS["schemas"]["output_result"]
+OUTPUT_SCHEMA = CONTRACTS["schemas"]["model_observation"]
 
 
 def provider_transport_schema(
@@ -100,13 +99,14 @@ def provider_transport_schema(
 
 def validate_output_result(value: Any) -> dict[str, Any]:
     try:
-        validated = validate_named(CONTRACTS, "output_result", value)
+        validated = validate_named(CONTRACTS, "model_observation", value)
     except ValueError as exc:
         required = set(OUTPUT_SCHEMA["required"])
         if isinstance(value, dict) and set(value) != required:
             raise ValueError("result top-level fields are invalid") from exc
         raise
-    return validate_protocol_result(validated)
+    parse_model_observation(validated)
+    return validated
 REQUIRED_TAGS = {
     "request-paraphrase", "unsupported-amendment", "uncertain-qualification",
     "midflight-escalation", "subthreshold-control", "clean-qualifying-control",
@@ -126,32 +126,17 @@ IDENTITY_PROJECTION_TEXT = (
 )
 EVALUATOR_CONTEXT = (
     "This invocation is an observational checkpoint only. RED-test edits are product "
-    "writes. Raw permission fields are assertions checked against the semantic reducer, "
-    "not authority. Put every material finding and blocker under one exact shared "
-    f"identity. {IDENTITY_PROJECTION_TEXT} Use open_gates only from the closed control "
-    "gate vocabulary and copy recovery pending_gates in checkpoint order without "
-    "inferring downstream gates. Recovery controls must include every durable Git, "
-    "plan, test, worktree, delegated-agent, and Recovery Manifest fact; live_agents "
-    "contains delegated receipts, never the Root writer. Do not inspect evaluator "
-    "code or hidden oracles."
+    "writes. Report observations only; the evaluator derives the sole NextAction. "
+    "Put every material finding and its optional blocker in one finding with one exact "
+    f"shared id. {IDENTITY_PROJECTION_TEXT} Encode each anchor as exactly one typed "
+    "object: repository-relative path, lifecycle marker, or labeled Git/SHA-256 "
+    "digest. Use repository `fixture` for fixture paths. Use open_gates only from the "
+    "closed control gate vocabulary and copy recovery.pending_gates in checkpoint "
+    "order without inferring downstream gates. Recovery controls must include every "
+    "durable Git, plan, test, worktree, delegated-agent, and Recovery Manifest fact; "
+    "live_agents contains delegated receipts, never the Root writer. Do not inspect "
+    "evaluator code or hidden oracles."
 )
-def expected_permission_failures(
-    expected: dict[str, Any], *, recovery_state: dict[str, Any] | None = None
-) -> list[str]:
-    """Validate only the closed raw assertion vocabulary; reducer owns semantics."""
-    del recovery_state
-    failures: list[str] = []
-    for field, allowed in PERMISSION_VALUES.items():
-        raw = expected.get(field)
-        values = raw if isinstance(raw, list) else [raw]
-        if (
-            not values
-            or len({(type(value), value) for value in values}) != len(values)
-            or any(value not in allowed or type(value) is not type(next(iter(allowed)))
-                   for value in values)
-        ):
-            failures.append(f"invalid {field}: {raw!r}")
-    return failures
 EXPECTED_CANDIDATE_SKILL_ENTRIES = frozenset(
     {
         "SKILL.md",
@@ -1119,7 +1104,7 @@ def _repository_binding_digest(
 ) -> str:
     return canonical_sha256(
         {
-            "domain": "happycodex/0.6/repository",
+            "domain": "happycodex/0.6.5/repository",
             "repositories": [
                 {
                     "namespace": f"case:{case_id}",
@@ -1134,36 +1119,59 @@ def _repository_binding_digest(
 def _outcome_binding_digest(operative_request: str) -> str:
     return canonical_sha256(
         {
-            "domain": "happycodex/0.6/outcome",
+            "domain": "happycodex/0.6.5/outcome",
             "operative_request": operative_request,
         }
     )
 
 
-def protocol_result_projection(
+def canonical_report_from_result(
     result: dict[str, Any],
     *,
     context: dict[str, Any],
 ) -> dict[str, Any]:
-    validate_output_result(result)
+    observation = parse_model_observation(validate_output_result(result))
     if not isinstance(context, dict) or set(context) != _RESULT_CONTEXT_FIELDS:
-        raise ValueError("protocol result context is invalid")
+        raise ValueError("canonical report context is invalid")
     profile = validate_invocation_profile(context["invocation_profile"])
     for field in _RESULT_CONTEXT_FIELDS - {
         "invocation_profile",
         "accepted_baseline_failures",
     }:
         if type(context[field]) is not str or not context[field]:
-            raise ValueError(f"protocol result context field is invalid: {field}")
+            raise ValueError(f"canonical report context field is invalid: {field}")
     accepted = context["accepted_baseline_failures"]
     if accepted != sorted(set(_unique_strings(accepted, "accepted baseline identities"))):
         raise ValueError("accepted baseline identities are invalid")
-    projection = project_result(
-        result,
-        invocation_profile_sha256=canonical_sha256(profile),
-        accepted_baseline_failures=accepted,
+    facts = parse_machine_facts(
+        {
+            "schema_generation": 7,
+            "task_binding": {
+                "task_id": context["task_id"],
+                "root_task_id": context["root_task_id"],
+                "executor_task_id": context["executor_task_id"],
+                "owner_label": context["owner_label"],
+                "destination_id": context["destination_id"],
+                "lineage_digest": context["lineage_digest"],
+                "role_config_digest": context["role_config_digest"],
+                "repository_digest": context["repository_digest"],
+                "outcome_digest": context["outcome_digest"],
+                "invocation_profile_digest": canonical_sha256(profile),
+            },
+            "accepted_baseline_failures": accepted,
+            "infrastructure_generation": canonical_sha256(
+                {
+                    "domain": "happycodex/0.6.5/infrastructure",
+                    "binary": profile["binary"],
+                    "tools": profile["tools"],
+                    "network": profile["network"],
+                    "hooks": profile["hooks"],
+                    "role_config_digest": context["role_config_digest"],
+                }
+            ),
+        }
     )
-    recovery = result["recovery_state"]
+    recovery = result["recovery"]
     if recovery is not None:
         manifest = recovery_manifest_projection(recovery)
         if (
@@ -1172,26 +1180,28 @@ def protocol_result_projection(
             or not recovery_summary_consistent(recovery)
         ):
             raise ValueError("invalid Recovery Manifest or summary")
-    return projection
+    return report_to_raw(build_report(facts, observation))
 
 
 def invoke_codex(
-    effect_intent: dict[str, Any],
+    launch: dict[str, Any],
+    claim_root: Path,
     *,
     argv: list[str],
     cwd: Path,
     env: dict[str, str],
     timeout: int,
 ) -> tuple[subprocess.CompletedProcess[str], bool, float]:
-    from evaluation.live import validate_effect_intent
+    from evaluation.live import validate_consumed_action, validate_launch
 
-    intent = validate_effect_intent(effect_intent)
+    launch = validate_launch(launch)
+    validate_consumed_action(launch, claim_root)
     if (
-        intent["invocation"]["model"] not in argv
-        or intent["invocation"]["effort"] not in " ".join(argv)
-        or intent["invocation"]["timeout_ms"] != timeout * 1000
+        launch["invocation"]["model"] not in argv
+        or launch["invocation"]["effort"] not in " ".join(argv)
+        or launch["invocation"]["timeout_ms"] != timeout * 1000
     ):
-        raise ValueError("EffectIntent invocation does not bind model execution")
+        raise ValueError("launch invocation does not bind model execution")
     started = time.monotonic()
     try:
         completed = run(argv, cwd=cwd, env=env, timeout=timeout)
@@ -1338,10 +1348,9 @@ def finding_identity_matches(actual: str, expected: str) -> bool:
     return type(actual) is str and type(expected) is str and actual == expected
 
 
-def finding_has_anchor(finding: dict[str, Any], expected: str) -> bool:
+def finding_has_anchor(finding: Any, expected: dict[str, Any]) -> bool:
     return any(
-        type(item) is str and item == expected
-        for item in finding.get("anchors", [])
+        anchor.semantic_value() == expected for anchor in finding.anchors
     )
 
 
@@ -1399,67 +1408,77 @@ def recovery_state_failures(
 
 
 def match_oracle(
-    result: dict[str, Any],
+    report: dict[str, Any],
     oracle: dict[str, Any],
     *,
     expected_recovery_state: dict[str, Any] | None = None,
     fixture: dict[str, Any] | None = None,
 ) -> list[str]:
-    failures = [
-        f"{field}: got {result.get(field)!r}, expected {allowed!r}"
-        for field, expected in oracle["expected"].items()
-        for allowed in [expected if isinstance(expected, list) else [expected]]
-        if result.get(field) not in allowed
-    ]
+    parsed = parse_report(report)
+    observation = parsed.observation
+    failures: list[str] = []
+    if parsed.next_action.kind != oracle["expected_action"]:
+        failures.append(
+            "next_action: got "
+            f"{parsed.next_action.kind!r}, expected {oracle['expected_action']!r}"
+        )
+    required_observation = oracle["required_observation"]
+    if observation.qualifies is not required_observation["qualifies"]:
+        failures.append(
+            "qualifies: got "
+            f"{observation.qualifies!r}, expected "
+            f"{required_observation['qualifies']!r}"
+        )
+    if (
+        observation.execplan_condition
+        not in required_observation["execplan_conditions"]
+    ):
+        failures.append(
+            "execplan_condition: got "
+            f"{observation.execplan_condition!r}, expected one of "
+            f"{required_observation['execplan_conditions']!r}"
+        )
+    raw_observation = report["observation"]
     if expected_recovery_state is not None:
         failures += recovery_state_failures(
-            "recovery_state", result.get("recovery_state"), expected_recovery_state
+            "recovery",
+            raw_observation.get("recovery"),
+            expected_recovery_state,
         )
-    findings = result.get("finding_classifications", [])
-    blockers = result.get("blocker_classifications", [])
+    findings = parsed.findings
+    blockers = parsed.blockers
     if (
         fixture is not None
         and fixture_requires_goal_pause_handoff(fixture)
-        and result.get("decision") == "stop_for_user"
-        and "user_selection" not in result.get("open_gates", [])
+        and parsed.next_action.kind == "ASK_USER"
+        and "user_selection" not in observation.open_gates
     ):
         failures.append("active Goal lacks explicit pause handoff")
-    for expected in oracle.get("required_classifications", []):
-        states = expected["state"]
-        states = states if isinstance(states, list) else [states]
+    for expected in oracle.get("required_findings", []):
         if not any(
-            finding_identity_matches(item.get("identity", ""), expected["identity"])
-            and item.get("domain") == expected["domain"]
-            and item.get("state") in states
+            finding_identity_matches(item.finding_id, expected["id"])
+            and item.domain == expected["domain"]
+            and item.status in expected["statuses"]
             for item in findings
         ):
-            failures.append(f"missing classification: {expected['identity']}")
-    for expected in oracle.get("required_blocker_classifications", []):
+            failures.append(f"missing finding: {expected['id']}")
+    for expected in oracle.get("required_blockers", []):
         if not any(
-            finding_identity_matches(item.get("identity", ""), expected["identity"])
-            and item.get("class") == expected["class"]
-            and item.get("blocking") is True
+            finding_identity_matches(item.finding_id, expected["id"])
+            and item.blocker_class in expected["classes"]
             for item in blockers
         ):
-            failures.append(f"missing blocking identity: {expected['identity']}")
+            failures.append(f"missing blocker: {expected['id']}")
     for blocker_class in oracle.get("required_blocker_classes", []):
-        if not any(
-            item.get("class") == blocker_class and item.get("blocking") is True
-            for item in blockers
-        ):
+        if not any(item.blocker_class == blocker_class for item in blockers):
             failures.append(f"missing blocking class: {blocker_class}")
     used_blockers: set[str] = set()
     for expected in oracle.get("required_anchored_blockers", []):
-        classes = expected["class"]
-        classes = classes if isinstance(classes, list) else [classes]
         matches = {
-            finding["identity"]
-            for finding in findings
+            blocker.finding_id
             for blocker in blockers
-            if finding_has_anchor(finding, expected["anchor"])
-            and classifications_share_identity(finding, blocker)
-            and blocker.get("class") in classes
-            and blocker.get("blocking") is True
+            if finding_has_anchor(blocker, expected["anchor"])
+            and blocker.blocker_class in expected["classes"]
         }
         if not matches:
             failures.append(f"missing anchored blocker: {expected['anchor']}")
@@ -1467,52 +1486,19 @@ def match_oracle(
             failures.append("distinct anchored blocker required")
         used_blockers |= matches
     used_findings: set[str] = set()
-    for expected in oracle.get("required_anchored_classifications", []):
-        states = expected["state"]
-        states = states if isinstance(states, list) else [states]
+    for expected in oracle.get("required_anchored_findings", []):
         matches = {
-            item["identity"]
+            item.finding_id
             for item in findings
             if finding_has_anchor(item, expected["anchor"])
-            and item.get("domain") == expected["domain"]
-            and item.get("state") in states
+            and item.domain == expected["domain"]
+            and item.status in expected["statuses"]
         }
         if not matches:
-            failures.append(f"missing anchored classification: {expected['anchor']}")
+            failures.append(f"missing anchored finding: {expected['anchor']}")
         elif len(matches) != 1 or used_findings & matches:
-            failures.append("distinct anchored classification required")
+            failures.append("distinct anchored finding required")
         used_findings |= matches
-    complete = (
-        result.get("decision") == "complete"
-        or result.get("protocol_may_complete") is True
-    )
-    if complete:
-        if (
-            result.get("decision") != "complete"
-            or result.get("protocol_may_complete") is not True
-            or result.get("open_gates")
-        ):
-            failures.append("completion permission or gates are inconsistent")
-        accepted = oracle.get("accepted_baseline_failures", [])
-        for item in findings:
-            identity, state = item.get("identity", ""), item.get("state")
-            if state in {"candidate_new", "unknown"}:
-                failures.append(f"completion has {state} finding: {identity}")
-            if (
-                item.get("domain") == "baseline_failure"
-                and state == "baseline_unchanged"
-                and sum(
-                    finding_identity_matches(identity, expected)
-                    for expected in accepted
-                )
-                != 1
-            ):
-                failures.append(f"completion has unaccepted baseline failure: {identity}")
-        failures += [
-            f"completion has blocking finding: {item.get('identity', '<missing>')}"
-            for item in blockers
-            if item.get("blocking") is True
-        ]
     return failures
 
 
@@ -1524,34 +1510,46 @@ def recovery_control_failures(
     fresh_thread_id: str | None,
     expected_state: dict[str, Any] | None = None,
 ) -> list[str]:
+    primary_report = parse_report(primary)
+    fresh_report = parse_report(fresh)
     failures: list[str] = []
     if not fresh_thread_id:
         failures.append("fresh recovery control emitted no thread id")
     elif fresh_thread_id == primary_thread_id:
         failures.append("fresh recovery control reused the resumed task")
-    for field in sorted(RECOVERY_GATE_FIELDS):
-        if fresh.get(field) != primary.get(field):
+    for field in ("qualifies", "execplan_condition", "open_gates"):
+        fresh_value = getattr(fresh_report.observation, field)
+        primary_value = getattr(primary_report.observation, field)
+        if fresh_value != primary_value:
             failures.append(
                 f"fresh recovery control disagrees on {field}: "
-                f"{fresh.get(field)!r} != {primary.get(field)!r}"
+                f"{fresh_value!r} != {primary_value!r}"
             )
-    primary_state = primary.get("recovery_state")
-    fresh_state = fresh.get("recovery_state")
+    if (
+        fresh_report.next_action.kind,
+        fresh_report.next_action.target,
+    ) != (
+        primary_report.next_action.kind,
+        primary_report.next_action.target,
+    ):
+        failures.append("fresh recovery control disagrees on NextAction")
+    primary_state = primary["observation"].get("recovery")
+    fresh_state = fresh["observation"].get("recovery")
     if isinstance(primary_state, dict) and isinstance(fresh_state, dict):
         for field in sorted(RECOVERY_STATE_FIELDS):
             if normalized_recovery_value(
                 field, fresh_state.get(field)
             ) != normalized_recovery_value(field, primary_state.get(field)):
                 failures.append(
-                    f"fresh recovery control disagrees on recovery_state.{field}"
+                    f"fresh recovery control disagrees on recovery.{field}"
                 )
     elif fresh_state != primary_state:
-        failures.append("fresh recovery control disagrees on recovery_state")
+        failures.append("fresh recovery control disagrees on recovery")
     if expected_state is not None:
         for label, state in (("primary", primary_state), ("fresh", fresh_state)):
             failures.extend(
                 recovery_state_failures(
-                    f"{label} recovery_state", state, expected_state
+                    f"{label} recovery", state, expected_state
                 )
             )
     return failures
@@ -1572,8 +1570,8 @@ def expected_recovery_state(
     }
 
 
-def _validate_case_intent(
-    effect_intent: dict[str, Any],
+def _validate_case_launch(
+    launch: dict[str, Any],
     *,
     case: dict[str, Any],
     plugin: Path,
@@ -1581,22 +1579,22 @@ def _validate_case_intent(
     effort: str,
     timeout: int,
     arm: str,
-    unit_id: str | None,
+    launch_unit: str | None,
 ) -> None:
-    if unit_id is not None and unit_id != case["id"]:
-        expected_unit = unit_id
+    if launch_unit is not None and launch_unit != case["id"]:
+        expected_unit = launch_unit
     else:
         expected_unit = case["id"]
-    from evaluation.live import validate_effect_intent
+    from evaluation.live import validate_launch
 
-    intent = validate_effect_intent(effect_intent, unit=expected_unit)
+    launch = validate_launch(launch, unit=expected_unit)
     if (
-        intent["invocation"]["model"] != model
-        or intent["invocation"]["effort"] != effort
-        or intent["invocation"]["timeout_ms"] != timeout * 1000
-        or intent["invocation"]["arm"] != arm
+        launch["invocation"]["model"] != model
+        or launch["invocation"]["effort"] != effort
+        or launch["invocation"]["timeout_ms"] != timeout * 1000
+        or launch["invocation"]["arm"] != arm
     ):
-        raise ValueError("EffectIntent invocation profile drift")
+        raise ValueError("launch invocation profile drift")
     if not plugin.resolve().is_dir():
         raise ValueError("evaluated plugin must be an existing directory")
     invocation_profile(
@@ -1613,7 +1611,7 @@ def _validate_case_intent(
 
 
 def _phase_event_binding(
-    effect_intent: dict[str, Any],
+    launch: dict[str, Any],
     *,
     case_id: str,
     arm: str,
@@ -1622,16 +1620,16 @@ def _phase_event_binding(
     thread_id: str | None,
     profile: dict[str, Any],
 ) -> tuple[dict[str, Any], dict[str, Any]]:
-    from evaluation.live import validate_effect_intent
+    from evaluation.live import validate_launch
 
-    intent = validate_effect_intent(effect_intent)
+    launch = validate_launch(launch)
     profile = validate_invocation_profile(profile, require_bound_binary=True)
     binding = {
         "provider": profile["provider"],
         "session_id": canonical_sha256(
             {
-                "intent_digest": intent["intent_digest"],
-                "unit": intent["unit"],
+                "launch_key": launch["launch_key"],
+                "unit": launch["unit"],
                 "case_id": case_id,
                 "arm": arm,
                 "session_scope": session_scope,
@@ -1639,7 +1637,7 @@ def _phase_event_binding(
         ),
         "thread_id": thread_id,
         "action_id": f"case:{case_id}:{arm}:{phase}",
-        "attempt_key": intent["intent_digest"],
+        "attempt_key": launch["launch_key"],
     }
     return binding, profile
 
@@ -1653,23 +1651,24 @@ def evaluate_case(
     effort: str,
     timeout: int,
     arm: str,
-    effect_intent: dict[str, Any],
-    intent_unit: str | None = None,
+    launch: dict[str, Any],
+    claim_root: Path,
+    launch_unit: str | None = None,
 ) -> dict[str, Any]:
-    _validate_case_intent(
-        effect_intent,
+    _validate_case_launch(
+        launch,
         case=case,
         plugin=plugin,
         model=model,
         effort=effort,
         timeout=timeout,
         arm=arm,
-        unit_id=intent_unit,
+        launch_unit=launch_unit,
     )
     case_output = output / case["id"]
     if case_output.exists():
         if case_output.is_symlink() or not case_output.is_dir():
-            raise ValueError("reserved EffectIntent output is not a real directory")
+            raise ValueError("reserved launch output is not a real directory")
     else:
         case_output.mkdir(parents=True, exist_ok=False)
     with tempfile.TemporaryDirectory(prefix=f"happycodex-{case['id']}-") as raw:
@@ -1699,6 +1698,26 @@ def evaluate_case(
             binary_identity_sha256=codex["sha256"],
             session_mode="fresh-with-bounded-resume" if native else "fresh",
         )
+        accepted = sorted(
+            case["oracle"].get("accepted_baseline_failures", [])
+        )
+        context = {
+            "task_id": f"case:{case['id']}:{arm}",
+            "root_task_id": "root:evaluator",
+            "executor_task_id": "executor:evaluator",
+            "owner_label": "happycodex-evaluator",
+            "destination_id": "repository:happycodex",
+            "lineage_digest": input_digest,
+            "role_config_digest": canonical_sha256(
+                FILESYSTEM_ISOLATION_POLICY
+            ),
+            "repository_digest": _repository_binding_digest(
+                case["id"], fixture["commits"][0], fixture["trees"][0]
+            ),
+            "outcome_digest": _outcome_binding_digest(case["prompt"]),
+            "invocation_profile": profile,
+            "accepted_baseline_failures": accepted,
+        }
         home, env = isolated_home(temp)
         tool_bin = temp / "bin"
         installation = install_plugin(package, home, env)
@@ -1737,7 +1756,8 @@ def evaluate_case(
                 thread=thread,
             )
             completed, timed_out, elapsed = invoke_codex(
-                effect_intent,
+                launch,
+                claim_root,
                 argv=argv,
                 cwd=repo,
                 env=env,
@@ -1746,7 +1766,7 @@ def evaluate_case(
             _persist_phase_raw(case_output, name, completed)
             _require_model_phase_success(completed, timed_out=timed_out, phase=name)
             binding, bound_profile = _phase_event_binding(
-                effect_intent,
+                launch,
                 case_id=case["id"],
                 arm=arm,
                 phase=name,
@@ -1773,6 +1793,7 @@ def evaluate_case(
 
         prompt = f"{EVALUATOR_CONTEXT}\n\n{case['prompt']}"
         fresh_result = None
+        fresh_report = None
         native_receipt = None
         if native:
             _prepared, thread_id = execute(
@@ -1788,22 +1809,27 @@ def evaluate_case(
             result, resume_thread = execute("resume", prompt, thread_id)
             fresh_prompt = f"{EVALUATOR_CONTEXT}\n\n{native['fresh_recovery_prompt']}"
             fresh_result, fresh_thread = execute("fresh-recovery", fresh_prompt)
+            report = canonical_report_from_result(result, context=context)
+            fresh_report = canonical_report_from_result(
+                fresh_result,
+                context={**context, "task_id": context["task_id"] + ":fresh"},
+            )
             failures = match_oracle(
-                result,
+                report,
                 case["oracle"],
                 expected_recovery_state=expected,
                 fixture=case["fixture"],
             )
             failures += match_oracle(
-                fresh_result,
+                fresh_report,
                 case["oracle"],
                 expected_recovery_state=expected,
                 fixture=case["fixture"],
             )
             failures += recovery_control_failures(
-                primary=result,
+                primary=report,
                 primary_thread_id=thread_id,
-                fresh=fresh_result,
+                fresh=fresh_report,
                 fresh_thread_id=fresh_thread,
                 expected_state=expected,
             )
@@ -1824,34 +1850,14 @@ def evaluate_case(
         else:
             result, thread_id = execute("initial", prompt)
             resume_thread = fresh_thread = None
-            failures = match_oracle(result, case["oracle"], fixture=case["fixture"])
+            report = canonical_report_from_result(result, context=context)
+            failures = match_oracle(
+                report,
+                case["oracle"],
+                fixture=case["fixture"],
+            )
         if workspace_file_manifest(repo) != fixture["files"]:
             failures.append("read-only task changed fixture")
-        accepted = sorted(case["oracle"].get("accepted_baseline_failures", []))
-        context = {
-            "task_id": f"case:{case['id']}:{arm}",
-            "root_task_id": "root:evaluator",
-            "executor_task_id": "executor:evaluator",
-            "owner_label": "happycodex-evaluator",
-            "destination_id": "repository:happycodex",
-            "lineage_digest": input_digest,
-            "role_config_digest": canonical_sha256(FILESYSTEM_ISOLATION_POLICY),
-            "repository_digest": _repository_binding_digest(
-                case["id"], fixture["commits"][0], fixture["trees"][0]
-            ),
-            "outcome_digest": _outcome_binding_digest(case["prompt"]),
-            "invocation_profile": profile,
-            "accepted_baseline_failures": accepted,
-        }
-        protocol = protocol_result_projection(result, context=context)
-        fresh_protocol = (
-            protocol_result_projection(
-                fresh_result,
-                context={**context, "task_id": context["task_id"] + ":fresh"},
-            )
-            if fresh_result is not None
-            else None
-        )
         usage_phases = [phase["usage"] for phase in phases]
         usage = combined_usage(*usage_phases)
         events = [phase["completed"].stdout for phase in phases]
@@ -1891,9 +1897,9 @@ def evaluate_case(
             ),
             "native_compaction": native_receipt,
             "result": result,
-            "protocol_result": protocol,
+            "canonical_report": report,
             "fresh_recovery_result": fresh_result,
-            "fresh_recovery_protocol_result": fresh_protocol,
+            "fresh_recovery_canonical_report": fresh_report,
             "oracle_failures": failures,
             "passed": not failures,
             "command": phases[-1]["argv"],
@@ -1968,8 +1974,8 @@ def run_command(args: Any) -> int:
                         arm=args.arm,
                     ),
                     "effects": {
-                        "intents_created": 0,
-                        "units_consumed": 0,
+                        "launches_created": 0,
+                        "actions_consumed": 0,
                         "fixtures_created": 0,
                         "outputs_created": 0,
                         "receipts_created": 0,
@@ -2028,7 +2034,7 @@ def _evaluate_cases_bounded(
     return [result for result in results if result is not None]
 
 
-def _effect_result(metadata: dict[str, Any], intent: dict[str, Any]) -> dict[str, Any]:
+def _launch_result(metadata: dict[str, Any], launch: dict[str, Any]) -> dict[str, Any]:
     usage = {
         "model_calls": len(metadata["usage_phases"]),
         "uncached_input_tokens": metadata["uncached_input_tokens"],
@@ -2036,10 +2042,12 @@ def _effect_result(metadata: dict[str, Any], intent: dict[str, Any]) -> dict[str
         "wall_milliseconds": round(metadata["elapsed_seconds"] * 1000),
     }
     result = {
-        "schema_version": 1,
-        "intent_digest": intent["intent_digest"],
-        "unit": intent["unit"],
+        "schema_generation": 7,
+        "action_key": launch["action_key"],
+        "launch_key": launch["launch_key"],
+        "unit": launch["unit"],
         "status": "succeeded" if metadata["passed"] else "failed",
+        "effect": "provider_reached",
         "output_sha256": canonical_sha256(metadata),
         "usage": usage,
     }
@@ -2049,16 +2057,16 @@ def _effect_result(metadata: dict[str, Any], intent: dict[str, Any]) -> dict[str
 
 def run_authorized(
     args: Any,
-    effect_intents: dict[str, dict[str, Any]],
+    launches: dict[str, dict[str, Any]],
     claim_root: Path,
 ) -> int:
     from evaluation import live
 
-    if not isinstance(effect_intents, dict) or not effect_intents:
-        raise ValueError("authorized corpus run requires EffectIntents")
-    intents = {
-        key: live.validate_effect_intent(value, unit=key)
-        for key, value in effect_intents.items()
+    if not isinstance(launches, dict) or not launches:
+        raise ValueError("authorized corpus run requires launches")
+    prepared = {
+        key: live.validate_launch(value, unit=key)
+        for key, value in launches.items()
     }
     cases = load_cases()
     calibrate = bool(getattr(args, "calibrate", False))
@@ -2070,29 +2078,33 @@ def run_authorized(
     unknown = set(selected) - set(cases)
     if unknown:
         raise ValueError(f"unknown cases: {sorted(unknown)}")
-    if set(intents) != set(selected):
-        raise ValueError("EffectIntent units do not equal selected corpus cases")
+    if set(prepared) != set(selected):
+        raise ValueError("launch units do not equal selected corpus cases")
     output = resolve_output_path(args.output, plugin=args.plugin)
     gate = "calibration" if calibrate else "corpus"
     for case_id in selected:
-        intent = live.validate_effect_intent(
-            intents[case_id],
+        launch = live.validate_launch(
+            prepared[case_id],
             unit=case_id,
             timeout_ms=args.timeout * 1000,
             output=output / case_id,
         )
         if (
-            intent["gate"] != gate
-            or intent["invocation"]["model"] != args.model
-            or intent["invocation"]["effort"] != args.effort
-            or intent["invocation"]["arm"] != args.arm
+            launch["gate"] != gate
+            or launch["invocation"]["model"] != args.model
+            or launch["invocation"]["effort"] != args.effort
+            or launch["invocation"]["arm"] != args.arm
         ):
-            raise ValueError("EffectIntent does not bind corpus invocation")
-    for case_id in selected:
-        live.reserve_effect(intents[case_id], claim_root)
-    results = _evaluate_cases_bounded(
-        selected,
-        lambda case_id: evaluate_case(
+            raise ValueError("launch does not bind corpus invocation")
+    provider_transport_schema(OUTPUT_SCHEMA)
+    codex_identity()
+    package_identities(args.plugin)
+
+    def evaluate_authorized(case_id: str) -> dict[str, Any]:
+        launch = prepared[case_id]
+        live.reserve_launch(launch, claim_root)
+        live.consume_action(launch, claim_root)
+        metadata = evaluate_case(
             cases[case_id],
             plugin=args.plugin,
             output=output,
@@ -2100,19 +2112,24 @@ def run_authorized(
             effort=args.effort,
             timeout=args.timeout,
             arm=args.arm,
-            effect_intent=intents[case_id],
-            intent_unit=case_id,
-        ),
-    )
-    for case_id, result in zip(selected, results, strict=True):
-        live.write_effect_result(
-            intents[case_id],
-            claim_root,
-            _effect_result(result, intents[case_id]),
+            launch=launch,
+            claim_root=claim_root,
+            launch_unit=case_id,
         )
+        live.write_launch_result(
+            launch,
+            claim_root,
+            _launch_result(metadata, launch),
+        )
+        return metadata
+
+    results = _evaluate_cases_bounded(
+        selected,
+        evaluate_authorized,
+    )
     print(json.dumps({
         "schema_version": 1,
-        "engine_generation": "0.6",
+        "engine_generation": "0.6.5",
         "gate": gate,
         "cases": selected,
         "passed": all(result["passed"] for result in results),

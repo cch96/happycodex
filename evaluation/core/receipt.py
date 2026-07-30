@@ -7,13 +7,16 @@ import re
 from typing import Any
 
 from evaluation.core.identity import (
-    PERMISSION_FIELDS,
     canonical_sha256,
     recovery_manifest_projection,
     recovery_summary_consistent,
     sha256_bytes,
 )
-from evaluation.protocol import replay_projection
+from evaluation.semantic import (
+    parse_model_observation,
+    parse_report,
+    report_to_raw,
+)
 
 
 def text_sha256(value: Any) -> str:
@@ -21,7 +24,18 @@ def text_sha256(value: Any) -> str:
 
 
 def canonical_members_sha256(value: Any) -> str:
-    return canonical_sha256(sorted(value) if isinstance(value, list) else [])
+    members = value if isinstance(value, list) else []
+    return canonical_sha256(
+        sorted(
+            members,
+            key=lambda item: json.dumps(
+                item,
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+            ),
+        )
+    )
 
 
 def sanitized_recovery_receipt(value: Any) -> dict[str, Any] | None:
@@ -63,31 +77,32 @@ def sanitized_result_receipt(value: Any) -> dict[str, Any] | None:
         return None
     if not isinstance(value, dict):
         return {"result_sha256": canonical_sha256(value)}
-    findings = value.get("finding_classifications", [])
-    blockers = value.get("blocker_classifications", [])
+    observation = parse_model_observation(value)
+    findings = value["findings"]
     open_gates = value.get("open_gates", [])
     evidence = value.get("evidence", [])
     return {
         "result_sha256": canonical_sha256(value),
-        **{field: value.get(field) for field in sorted(PERMISSION_FIELDS)},
-        "finding_classifications": [
+        "qualifies": observation.qualifies,
+        "execplan_condition": observation.execplan_condition,
+        "findings": [
             {
-                "identity_sha256": text_sha256(item.get("identity", "")),
+                "id_sha256": text_sha256(item.get("id", "")),
                 "domain": item.get("domain"),
-                "state": item.get("state"),
+                "status": item.get("status"),
                 "anchors_sha256": canonical_members_sha256(item.get("anchors", [])),
+                "blocker": (
+                    None
+                    if item.get("blocker") is None
+                    else {
+                        "class": item["blocker"].get("class"),
+                        "reason_sha256": text_sha256(
+                            item["blocker"].get("reason", "")
+                        ),
+                    }
+                ),
             }
             for item in findings
-            if isinstance(item, dict)
-        ],
-        "blocker_classifications": [
-            {
-                "identity_sha256": text_sha256(item.get("identity", "")),
-                "class": item.get("class"),
-                "blocking": item.get("blocking"),
-                "reason_sha256": text_sha256(item.get("reason", "")),
-            }
-            for item in blockers
             if isinstance(item, dict)
         ],
         "open_gates_count": len(open_gates) if isinstance(open_gates, list) else 0,
@@ -98,7 +113,29 @@ def sanitized_result_receipt(value: Any) -> dict[str, Any] | None:
         "evidence_count": len(evidence) if isinstance(evidence, list) else 0,
         "evidence_sha256": canonical_members_sha256(evidence),
         "reason_sha256": text_sha256(value.get("reason", "")),
-        "recovery_state": sanitized_recovery_receipt(value.get("recovery_state")),
+        "recovery": sanitized_recovery_receipt(value.get("recovery")),
+    }
+
+
+def sanitized_report_receipt(value: Any) -> dict[str, Any]:
+    report = parse_report(value)
+    raw = report_to_raw(report)
+    return {
+        "schema_generation": 7,
+        "report_sha256": canonical_sha256(raw),
+        "task_binding_sha256": canonical_sha256(raw["facts"]["task_binding"]),
+        "accepted_baseline_sha256": canonical_members_sha256(
+            raw["facts"]["accepted_baseline_failures"]
+        ),
+        "infrastructure_generation": raw["facts"][
+            "infrastructure_generation"
+        ],
+        "state_key": report.state_key,
+        "action_key": report.action_key,
+        "next_action": raw["next_action"],
+        "findings_sha256": canonical_sha256(raw["findings"]),
+        "blockers_sha256": canonical_sha256(raw["blockers"]),
+        "observation": sanitized_result_receipt(raw["observation"]),
     }
 
 
@@ -140,19 +177,23 @@ def sanitized_native_compaction_receipt(value: Any) -> dict[str, Any] | None:
     }
 
 
-def _validated_projection(
+def _validated_report(
     value: Any,
     *,
     raw: Any,
     profile: Any,
     accepted: Any,
 ) -> dict[str, Any]:
-    return replay_projection(
-        value,
-        raw_result=raw,
-        invocation_profile_sha256=canonical_sha256(profile),
-        accepted_baseline_failures=accepted,
-    )
+    report = parse_report(value)
+    if report.observation != parse_model_observation(raw):
+        raise ValueError("canonical report does not bind raw observation")
+    if (
+        report.facts.task_binding["invocation_profile_digest"]
+        != canonical_sha256(profile)
+        or list(report.facts.accepted_baseline_failures) != accepted
+    ):
+        raise ValueError("canonical report context binding mismatch")
+    return report_to_raw(report)
 
 
 def sanitized_case_receipt(
@@ -160,16 +201,16 @@ def sanitized_case_receipt(
 ) -> dict[str, Any]:
     profile = result.get("invocation_profile")
     accepted = result.get("accepted_baseline_failures", [])
-    protocol = _validated_projection(
-        result.get("protocol_result"),
+    report = _validated_report(
+        result.get("canonical_report"),
         raw=result.get("result"),
         profile=profile,
         accepted=accepted,
     )
     fresh_raw = result.get("fresh_recovery_result")
-    fresh = result.get("fresh_recovery_protocol_result")
+    fresh = result.get("fresh_recovery_canonical_report")
     if fresh_raw is not None:
-        fresh = _validated_projection(
+        fresh = _validated_report(
             fresh, raw=fresh_raw, profile=profile, accepted=accepted
         )
     elif fresh is not None:
@@ -177,7 +218,7 @@ def sanitized_case_receipt(
     installation = result.get("installation", {})
     return {
         "schema_version": 1,
-        "engine_generation": "0.6",
+        "engine_generation": "0.6.5",
         "id": result["case"],
         "metadata_sha256": metadata_sha256,
         "installation": {
@@ -210,9 +251,11 @@ def sanitized_case_receipt(
             )
         },
         "result": sanitized_result_receipt(result.get("result")),
-        "protocol_result": protocol,
+        "canonical_report": sanitized_report_receipt(report),
         "fresh_recovery_result": sanitized_result_receipt(fresh_raw),
-        "fresh_recovery_protocol_result": fresh,
+        "fresh_recovery_canonical_report": (
+            sanitized_report_receipt(fresh) if fresh is not None else None
+        ),
         "terminal_projections": result.get("terminal_projections", []),
         "oracle_failures_sha256": canonical_sha256(result.get("oracle_failures", [])),
         "native_compaction": sanitized_native_compaction_receipt(

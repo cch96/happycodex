@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `P0_BASELINE_FREEZE`
+Status: `A_WORKING`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -26,7 +26,9 @@ Direct execution anchors, each UTF-8 plus LF SHA-256:
 - `你在执行这个的时候也要按照0.6.5的来`:
   `47c548b30d1b569c3438e9f80d3901a6793db805264454ff2ab8ccceaa82cf83`;
 - base correction `你的修改是基于0.6来的吧`:
-  `6671315a28dd929e5670a3f33f03ca94a4b6708c97983717fd7da0c251a24b23`.
+  `6671315a28dd929e5670a3f33f03ca94a4b6708c97983717fd7da0c251a24b23`;
+- release goal `好的，你看看怎么改，改完就发布0.6.5吧`:
+  `09558913501aae4b9601883f309f1ac53c64c197e9307a5c30c43a711b281f8c`.
 
 The correction makes released `v0.6.0`, not the 0.5.5 sibling, the sole product
 base. The 0.6 semantic-core sibling and 0.5.5 typed corpus are design/test
@@ -38,6 +40,10 @@ only for paid/live model work, external install/activation/publication/config
 mutation, destructive external effects, Outcome expansion, or acceptance
 reduction. Calibration, corpus, holdout, exact-final/Fable, isolated install,
 cutover, push, tag, GitHub Release, and publication remain separate gates.
+The release-goal anchor authorizes preparing those gates and completing public
+`0.6.5` after their exact candidate, invocation, destination, and effect
+identities exist. It does not waive a required gate or authorize an unbound
+effect from a dirty worktree.
 
 ## Immutable baseline
 
@@ -147,8 +153,18 @@ push/main/tag/GitHub Release, or publication.
 ## Current checkpoint
 
 - Corrected `v0.6.0` worktree/ref/ledger claim is verified.
-- Base suite and every offline CLI/dry-run boundary are GREEN with zero effects.
-- P0 support artifacts are frozen and awaiting one validated commit.
-- No product/evaluator/package/external state has changed in this worktree.
-- Next action: validate and commit P0, then start batch A with a generation-7
-  invariant-family RED.
+- P0 is committed at `b0ab3aa`; the initial generation-7 semantic core is
+  committed at `ebc94ec`.
+- Batch A is the active dirty wave. Generation-6 schema/protocol paths are
+  deleted; all 17 corpus cases, three holdouts, callers, receipts, and the
+  effect boundary now use generation 7 and GatePlan/ActionKey/LaunchKey.
+- The semantic package remains exactly five files, has 17 public exports, and
+  is 1,122 lines after removing evaluator-only corpus/oracle parsing.
+- Focused generation-7/evaluator/holdout checks are 117/117 GREEN. The
+  cumulative run executes 177 tests with one failure and seven errors solely
+  because Git-clone tests intentionally read committed `HEAD`, which still
+  contains generation 6 until this coherent Batch A checkpoint is committed.
+- No live model, network, install, activation, push, tag, GitHub Release, or
+  publication effect has occurred.
+- Next action: commit the coherent Batch A checkpoint, rerun every real-path
+  offline check against the Git-reachable source, then close or repair Batch A.
