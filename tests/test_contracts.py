@@ -38,7 +38,7 @@ FORBIDDEN_PLUGIN_SURFACES = (
     "scripts",
     "skills/happycodex/hooks",
 )
-RELEASE_VERSION = re.compile(r"^0\.6\.0\+codex\.[0-9]{14}$")
+RELEASE_VERSION = re.compile(r"^0\.6\.5$")
 
 
 def read(path: Path) -> str:
@@ -192,11 +192,12 @@ class HappyCodexContractTests(unittest.TestCase):
         self.assertEqual(entry["policy"]["authentication"], "ON_INSTALL")
         self.assertIn("$happycodex:happycodex", read(README))
 
-    def test_release_version_requires_one_helper_cachebuster_suffix(self) -> None:
+    def test_public_release_version_is_exact(self) -> None:
         version = json.loads(read(MANIFEST))["version"]
         self.assertIsNotNone(RELEASE_VERSION.fullmatch(version))
         for invalid in (
             "0.6.0",
+            "0.6.5+codex.20260730123456",
             "0.5.0+codex.20260730123456",
             "0.6.0+codex.20260730123456+codex.20260730123457",
         ):

@@ -14,10 +14,10 @@ never be linked from `skills/happycodex/SKILL.md`.
   Existing 0.4 tasks finish under 0.4 or are abandoned; never migrate them into 0.5.
 - Use only `python3 -m evaluation.cli`. Every evaluator Python/schema input is
   classified as semantic, harness, or artifact; unknown inputs fail closed.
-- `evaluation/results/current.json` is the sole active evidence ledger. 0.6 uses a
-  fresh full-refresh generation-6 genesis: add no 0.4 evidence reader, alias, migration, dual
-  write, prior-coverage reuse, or parser fallback. Offline checks never promote
-  `refresh_required` to `certified`.
+- `evaluation/results/current.json` is the sole active evidence ledger. 0.6.5
+  uses a fresh full-refresh generation-7 genesis: add no old evidence reader,
+  alias, migration, dual write, prior-coverage reuse, or parser fallback.
+  Offline checks never promote `refresh_required` to `certified`.
 - The comparison baseline is exactly public-0.2 commit `3b9c11f`, tree `4708ebc`,
   its frozen artifact/semantic digests, and four-file Skill surface. Never relabel
   public-0.4 bytes, arms, or receipt fields as public-0.2.
@@ -31,11 +31,12 @@ never be linked from `skills/happycodex/SKILL.md`.
   envelope and complete exact invocation, then request separate exact authority for one
   bounded calibration. Its sanitized successful actual cost becomes historical basis.
   Executor pilot, corpus, and adaptive holdout are three separate authority gates.
-- The validator seals `GateCapability` only from the persisted plan, trusted
-  current-host authority, and reducer report. A namespace lock and complete preflight
-  precede its durable claims; `ClaimedCapability` and an exact unit claim precede every
-  fixture/mapping/workspace/output effect. `invoke_codex` accepts only a PID-bound,
-  nonserializable, one-shot `PhaseProof` for exact argv/cwd/env/timeout.
+- The evaluator derives each `LaunchKey` from the persisted `GatePlan` and its
+  reducer-produced `ActionKey`. Complete local preflight precedes launch
+  reservation; the `ActionKey` is consumed only immediately before a
+  provider-reaching call. A proven `NO_EFFECT` launch may be replaced once by a
+  distinct infrastructure generation; provider-reached or ambiguous work
+  cannot be retried.
 - Certification requires a Git-reachable successor source whose normalized Git package
   artifact and engine manifest match the snapshot. Its retained Executor authority and
   calibration bind the exact external role-config digest; its ledger already persists

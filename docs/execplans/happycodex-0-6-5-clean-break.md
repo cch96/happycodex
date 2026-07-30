@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `A_WORKING`
+Status: `B_WORKING`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -155,16 +155,18 @@ push/main/tag/GitHub Release, or publication.
 - Corrected `v0.6.0` worktree/ref/ledger claim is verified.
 - P0 is committed at `b0ab3aa`; the initial generation-7 semantic core is
   committed at `ebc94ec`.
-- Batch A is the active dirty wave. Generation-6 schema/protocol paths are
+- Batch A is committed at `ec6202f`. Generation-6 schema/protocol paths are
   deleted; all 17 corpus cases, three holdouts, callers, receipts, and the
-  effect boundary now use generation 7 and GatePlan/ActionKey/LaunchKey.
+  effect boundary use generation 7 and GatePlan/ActionKey/LaunchKey.
 - The semantic package remains exactly five files, has 17 public exports, and
   is 1,122 lines after removing evaluator-only corpus/oracle parsing.
-- Focused generation-7/evaluator/holdout checks are 117/117 GREEN. The
-  cumulative run executes 177 tests with one failure and seven errors solely
-  because Git-clone tests intentionally read committed `HEAD`, which still
-  contains generation 6 until this coherent Batch A checkpoint is committed.
+- The complete Git-reachable offline suite is 183/183 GREEN at `ec6202f`;
+  corpus, holdout, and Executor dry-runs report zero effects, and CLI verify is
+  healthy with every evidence gate pending.
+- Batch B is the active dirty wave: align Runtime policy, version/public
+  metadata, generation-7 genesis ledger, maintainer documentation, and launch
+  terminology without changing the compact Runtime lifecycle.
 - No live model, network, install, activation, push, tag, GitHub Release, or
   publication effect has occurred.
-- Next action: commit the coherent Batch A checkpoint, rerun every real-path
-  offline check against the Git-reachable source, then close or repair Batch A.
+- Next action: finish Batch B public-surface alignment, run focused and full
+  offline checks, and commit one coherent Git-reachable checkpoint.

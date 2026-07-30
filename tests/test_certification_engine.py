@@ -208,25 +208,11 @@ def _run_current_cli(*args: str, cwd: Path = ROOT) -> subprocess.CompletedProces
 
 
 class GenesisAndCliTests(unittest.TestCase):
-    def test_active_ledger_has_exact_unplanned_product_candidate(self) -> None:
+    def test_active_ledger_is_generation7_genesis(self) -> None:
         active = json.loads(
             (ROOT / "evaluation/results/current.json").read_text(encoding="utf-8")
         )
-        expected_candidate = {
-            "candidate_sha256": "84e6c7f529dab0583b93bb74b0428027ceea83d986f56be9ed4d4086aaaa24fb",
-            "created_at": "2026-07-30T15:56:08Z",
-            "executor_role_sha256": "f1effcc84e7ed24f6d54c972e2e412db42a3e46a6d92565e6d61b358128305da",
-            "package_artifact_sha256": "4e2b300bfc7c49c4eccad46a198e79f15c28680f2e4e6f041fabcc995ad3621e",
-            "package_semantic_sha256": "9cd5a507a8a9561c8af6751917b430b1cb29c238810b7c32bcff15c39044965a",
-            "record_type": "ReleaseCandidate",
-            "schema_version": 1,
-            "source_commit": "825962522c8ba6abb8dea3f7f7f04b8029e339fe",
-            "source_tree": "36aa681a5c7bd7ab5dd29e2df96d52d965c41fc2",
-        }
-        self.assertEqual(active["schema_version"], 1)
-        self.assertEqual(active["candidate"], expected_candidate)
-        self.assertEqual(active["plans"], [])
-        self.assertEqual(active["receipts"], [])
+        self.assertEqual(active, GENESIS)
         validate_ledger(active, repo=ROOT)
         self.assertEqual(derive_status(active), "refresh_required")
         self.assertEqual(derive_pending(active)["gates"], list(GATE_ORDER))
@@ -540,7 +526,7 @@ class LedgerRecordTests(unittest.TestCase):
         self.assertEqual(derive_status(ledger), "refresh_required")
 
 
-class EffectIntentTests(unittest.TestCase):
+class LaunchGateTests(unittest.TestCase):
     def setUp(self) -> None:
         self.raw = tempfile.TemporaryDirectory()
         self.root = Path(self.raw.name)
@@ -571,7 +557,7 @@ class EffectIntentTests(unittest.TestCase):
             infrastructure_generation=infrastructure,
         )
 
-    def test_intent_exactly_expands_and_binds_one_unit(self) -> None:
+    def test_launch_exactly_expands_and_binds_one_unit(self) -> None:
         launch = self._launch()
         self.assertEqual(launch["unit"], "unit")
         self.assertEqual(Path(launch["output"]), self.root / "effects" / "unit")
@@ -666,7 +652,7 @@ class EffectIntentTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "cost ceiling"):
             live.write_launch_result(launch, self.claims, excessive)
 
-    def test_corpus_rejects_invalid_intent_before_fixture_or_output(self) -> None:
+    def test_corpus_rejects_invalid_launch_before_fixture_or_output(self) -> None:
         case = corpus_engine.load_cases()["subthreshold-control"]
         output = self.root / "raw"
         with mock.patch.object(corpus_engine, "build_fixture") as fixture:
@@ -685,7 +671,7 @@ class EffectIntentTests(unittest.TestCase):
         fixture.assert_not_called()
         self.assertFalse(output.exists())
 
-    def test_holdout_rejects_invalid_intent_before_mapping(self) -> None:
+    def test_holdout_rejects_invalid_launch_before_mapping(self) -> None:
         pair = holdout_engine.load_manifest()["pairs"][0]
         with mock.patch.object(holdout_engine, "seal_mapping") as mapping:
             with self.assertRaisesRegex(ValueError, "launch"):
@@ -702,7 +688,7 @@ class EffectIntentTests(unittest.TestCase):
                 )
         mapping.assert_not_called()
 
-    def test_authorized_entrypoints_accept_only_intents_and_claim_root(self) -> None:
+    def test_authorized_entrypoints_accept_only_launches_and_claim_root(self) -> None:
         self.assertEqual(
             tuple(inspect.signature(corpus_engine.run_authorized).parameters),
             ("args", "launches", "claim_root"),

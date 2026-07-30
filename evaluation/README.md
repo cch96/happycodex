@@ -16,14 +16,14 @@ python3 -m evaluation.cli holdout --dry-run
 `verify` validates the closed evaluator inventory and the sole active ledger.
 `impact` derives conservative invalidation without authorizing work. `apply`
 atomically appends one complete release record with predecessor comparison.
-Every dry run reports zero intents, consumption, fixtures, outputs, workspaces,
-subprocesses, model calls, network calls, and receipts. Live model execution is
-reachable only through the Host-only `run_authorized` boundary.
+Every dry run reports zero launches, consumed actions, fixtures, outputs,
+workspaces, subprocesses, model calls, network calls, and receipts. Live model
+execution is reachable only through the Host-only `run_authorized` boundary.
 
 ## Closed identity and fresh evidence
 
 The evaluator has one exact input inventory: every declared evaluator Python
-module, `contracts-v6.json`, `executor-role.json`, every corpus case, and the
+module, `contracts-v7.json`, `executor-role.json`, every corpus case, and the
 holdout manifest and cases. Unknown or missing Python and JSON inputs fail
 closed. The canonical inventory has one `manifest_sha256`; it has no
 classification, subset, or tool-path digest. Any evaluator-bundle change
@@ -43,7 +43,7 @@ working-tree bytes, and binds its commit and tree. A live corpus receipt adds
 the actual Codex version and binary-content digest plus the model invocation
 profile. It records no executable path or machine toolchain identity.
 
-`results/current.json` is the only active evidence ledger. Generation 6 starts
+`results/current.json` is the only active evidence ledger. Generation 7 starts
 as the empty `{candidate, plans, receipts}` genesis and derives
 `refresh_required`; offline checks cannot promote it. There is no old reader,
 alias, migration, dual write, parser fallback, evidence reuse, or coverage
@@ -57,33 +57,37 @@ Other public bytes or receipts cannot be relabeled as that arm.
 ## Host authority and content binding
 
 Repository data does not authenticate user, task, message, turn, or session
-provenance. A `GatePlan`, approval digest, or `EffectIntent` is audit-bound
-content, never permission. Root/Host orchestration must independently possess
-current-task authority and choose to enter `run_authorized`; the repository
-cannot manufacture or recover that authority.
+provenance. A `GatePlan`, approval digest, `ActionKey`, or `LaunchKey` is
+audit-bound content, never permission. Root/Host orchestration must
+independently possess current-task authority and choose to enter
+`run_authorized`; the repository cannot manufacture or recover that authority.
 
 The authorized boundary reloads the active ledger, requires an active
 nonfailed candidate and its next persisted plan, and reconstructs every exact
-`EffectIntent`. Each intent binds the candidate, gate, full invocation profile,
-cost ceiling, complete unit/resource set, output root, and approval content.
-The supplied set must equal the persisted plan exactly.
+launch. `StateKey` binds the gate facts; reducer output plus exact
+target/scope/falsifier/evidence source derives `ActionKey`; `LaunchKey` binds
+the infrastructure generation, invocation, output, and approval content. The
+supplied launch set must equal the persisted plan exactly.
 
 For each unit the evaluator:
 
 ```text
-validates the current candidate, plan, intent, paths, and identities
-  -> atomically consumes intent_digest + unit with no-follow O_EXCL
-  -> creates the absent no-follow output
-  -> creates the authorized fixture, mapping, workspace, or subprocess
+validates candidate, plan, launch, paths, binary, and package identities
+  -> reserves LaunchKey and the absent no-follow output
+  -> completes local fixture/mapping/workspace preflight
+  -> atomically consumes ActionKey immediately before provider work
   -> emits a typed result for the eventual GateReceipt
 ```
 
-Consumption is durable and cannot be retried or deleted. Claims are private
+Action consumption is durable and cannot be retried or deleted. A proven
+pre-provider `NO_EFFECT` result consumes only its launch and permits one
+replacement with a distinct infrastructure generation; provider-reached,
+billable, or ambiguous work consumes `ActionKey`. Claims are private
 mode-`0600` regular files beneath a pre-existing mode-`0700` root. Collisions,
 partial sets, unsafe unit names, aliases, symlinks, output drift, or an output
-inside the repository/evaluated package refuse before the corresponding effect.
-Raw model events, secrets, unsanitized streams, and hidden oracle bodies stay
-outside Git.
+inside the repository/evaluated package refuse before the corresponding
+effect. Raw model events, secrets, unsanitized streams, and hidden oracle
+bodies stay outside Git.
 
 ## Release records and gates
 

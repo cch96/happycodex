@@ -910,7 +910,7 @@ def installed_package_receipt(source: Path, installed: Path) -> dict[str, str]:
 
 
 _EVENT_BINDING_FIELDS = {
-    "provider", "session_id", "thread_id", "action_id", "attempt_key"
+    "provider", "session_id", "thread_id", "action_id", "launch_key"
 }
 _USAGE_FIELDS = {
     "input_tokens",
@@ -943,9 +943,9 @@ def _event_binding(value: Any) -> dict[str, Any]:
     if (
         any(
             type(binding[field]) is not str or not binding[field]
-            for field in ("provider", "session_id", "action_id", "attempt_key")
+            for field in ("provider", "session_id", "action_id", "launch_key")
         )
-        or re.fullmatch(r"[0-9a-f]{64}", binding["attempt_key"]) is None
+        or re.fullmatch(r"[0-9a-f]{64}", binding["launch_key"]) is None
         or (
             binding["thread_id"] is not None
             and (type(binding["thread_id"]) is not str or not binding["thread_id"])
@@ -1061,7 +1061,7 @@ def parse_events(
         {
             "thread_id": thread_id,
             "action_id": expected["action_id"],
-            "attempt_key": expected["attempt_key"],
+            "launch_key": expected["launch_key"],
             "terminal_ordinal": terminal_ordinal,
             "stream_sha256": stream_sha256,
         }
@@ -1073,7 +1073,7 @@ def parse_events(
         "thread_id": thread_id,
         "turn_id": turn_id,
         "action_id": expected["action_id"],
-        "attempt_key": expected["attempt_key"],
+        "launch_key": expected["launch_key"],
         "result_id": terminal["id"],
         "result_sha256": canonical_sha256(final),
         "stream_sha256": stream_sha256,
@@ -1637,7 +1637,7 @@ def _phase_event_binding(
         ),
         "thread_id": thread_id,
         "action_id": f"case:{case_id}:{arm}:{phase}",
-        "attempt_key": launch["launch_key"],
+        "launch_key": launch["launch_key"],
     }
     return binding, profile
 

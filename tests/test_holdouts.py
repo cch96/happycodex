@@ -273,7 +273,7 @@ class HappyCodexHoldoutTests(unittest.TestCase):
                     ]
                 )
 
-    def test_pair_runner_requires_effect_intent(self) -> None:
+    def test_pair_runner_requires_launch(self) -> None:
         pair = holdout_engine.load_manifest()["pairs"][0]
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)

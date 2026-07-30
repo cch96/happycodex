@@ -1,15 +1,5 @@
 {
-  "candidate": {
-    "candidate_sha256": "84e6c7f529dab0583b93bb74b0428027ceea83d986f56be9ed4d4086aaaa24fb",
-    "created_at": "2026-07-30T15:56:08Z",
-    "executor_role_sha256": "f1effcc84e7ed24f6d54c972e2e412db42a3e46a6d92565e6d61b358128305da",
-    "package_artifact_sha256": "4e2b300bfc7c49c4eccad46a198e79f15c28680f2e4e6f041fabcc995ad3621e",
-    "package_semantic_sha256": "9cd5a507a8a9561c8af6751917b430b1cb29c238810b7c32bcff15c39044965a",
-    "record_type": "ReleaseCandidate",
-    "schema_version": 1,
-    "source_commit": "825962522c8ba6abb8dea3f7f7f04b8029e339fe",
-    "source_tree": "36aa681a5c7bd7ab5dd29e2df96d52d965c41fc2"
-  },
+  "candidate": null,
   "plans": [],
   "receipts": [],
   "schema_version": 1
