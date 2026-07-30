@@ -290,6 +290,15 @@ oracle literals at `tests/test_contracts.py:106-107`. They are not G-023F
 production-code/schema/ledger failures and must not be forgotten or edited
 under this repair.
 
+Grant `HC06BR-G-023H-adaptive-holdout-receipt` then reconciled the full
+three-pair plan with adaptive execution. Repo-aware validation reads the
+validated manifest order and accepts only its canonical prefix: failed
+receipts may stop after one, two, or three pairs; success requires two or
+three. Non-holdout receipts remain exact. The 6-test RED had two errors
+(`105200bd`); focused GREEN is `342c9768`, and all 163 tests are GREEN
+(`72ba37e9`). No engine, manifest, schema, fixture, or active-ledger change was
+needed.
+
 ### Batch 3 — Identity, documentation, and deletion proof
 
 Owned paths:

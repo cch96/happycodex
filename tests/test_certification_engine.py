@@ -1007,5 +1007,137 @@ class FalseGreenBoundaryTests(unittest.TestCase):
                 load_ledger(alias / "evaluation/results/real-current.json")
 
 
+class AdaptiveHoldoutReceiptTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.raw = tempfile.TemporaryDirectory()
+        cls.repo = _prepare_repo(cls.raw.name)
+        cls.candidate = _candidate(cls.repo)
+        cls.snapshot = build_snapshot(cls.repo)
+        cls.plan = _plan(
+            cls.candidate,
+            "holdout",
+            Path(cls.raw.name) / "holdout",
+            units=tuple(cls.snapshot["holdout"]["pairs"]),
+            arm="blinded-pair",
+        )
+        manifest = holdout_engine.load_manifest(
+            cls.repo / "evaluation/holdouts/manifest.json"
+        )
+        cls.execution_order = [pair["id"] for pair in manifest["pairs"]]
+        _git(
+            cls.repo,
+            "commit",
+            "--quiet",
+            "--allow-empty",
+            "-m",
+            "test: add holdout evidence",
+        )
+        cls.evidence_commit = _git(cls.repo, "rev-parse", "HEAD")
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls.raw.cleanup()
+
+    def _receipt_for(
+        self,
+        plan: dict,
+        units: list[str],
+        *,
+        result: str,
+    ) -> dict:
+        receipt = _receipt(
+            self.candidate,
+            plan,
+            0,
+            evidence_commit=self.evidence_commit,
+            result=result,
+        )
+        selected = set(units)
+        receipt["unit_results"] = [
+            item for item in receipt["unit_results"] if item["unit"] in selected
+        ]
+        receipt["receipt_sha256"] = canonical_sha256(
+            {
+                key: value
+                for key, value in receipt.items()
+                if key != "receipt_sha256"
+            }
+        )
+        return receipt
+
+    def _ledger(self, plan: dict, receipt: dict) -> dict:
+        return {
+            "schema_version": 1,
+            "candidate": self.candidate,
+            "plans": [plan],
+            "receipts": [receipt],
+        }
+
+    def test_one_result_failed_holdout_prefix_is_valid(self) -> None:
+        receipt = self._receipt_for(
+            self.plan,
+            self.execution_order[:1],
+            result="failed",
+        )
+        validate_ledger(self._ledger(self.plan, receipt), repo=self.repo)
+
+    def test_two_result_successful_holdout_prefix_is_valid(self) -> None:
+        receipt = self._receipt_for(
+            self.plan,
+            self.execution_order[:2],
+            result="succeeded",
+        )
+        validate_ledger(self._ledger(self.plan, receipt), repo=self.repo)
+
+    def test_one_result_successful_holdout_prefix_is_invalid(self) -> None:
+        receipt = self._receipt_for(
+            self.plan,
+            self.execution_order[:1],
+            result="succeeded",
+        )
+        with self.assertRaises(ValueError):
+            validate_ledger(self._ledger(self.plan, receipt), repo=self.repo)
+
+    def test_holdout_prefix_cannot_skip_mandatory_second_pair(self) -> None:
+        receipt = self._receipt_for(
+            self.plan,
+            [self.execution_order[0], self.execution_order[2]],
+            result="succeeded",
+        )
+        with self.assertRaises(ValueError):
+            validate_ledger(self._ledger(self.plan, receipt), repo=self.repo)
+
+    def test_all_three_successful_holdout_results_are_valid(self) -> None:
+        receipt = self._receipt_for(
+            self.plan,
+            self.execution_order,
+            result="succeeded",
+        )
+        validate_ledger(self._ledger(self.plan, receipt), repo=self.repo)
+
+    def test_every_non_holdout_partial_receipt_is_invalid(self) -> None:
+        for gate in (item for item in GATE_ORDER if item != "holdout"):
+            if gate == "calibration":
+                units = ("subthreshold-control",)
+            elif gate == "corpus":
+                units = tuple(self.snapshot["corpus"]["cases"])
+            else:
+                units = ("unit-a", "unit-b")
+            plan = _plan(
+                self.candidate,
+                gate,
+                Path(self.raw.name) / gate,
+                units=units,
+            )
+            receipt = self._receipt_for(
+                plan,
+                list(plan["units"][:-1]),
+                result="succeeded",
+            )
+            with self.subTest(gate=gate), self.assertRaises(ValueError):
+                validate_ledger(self._ledger(plan, receipt), repo=self.repo)
+
+
 if __name__ == "__main__":
     unittest.main()

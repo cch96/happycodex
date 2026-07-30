@@ -620,7 +620,29 @@ def validate_ledger(ledger: dict[str, Any], *, repo: Path | None = None) -> None
             or receipt["created_at"] <= plan["created_at"]
         ):
             raise ValueError("GateReceipt chronology is not strictly increasing")
-        if [item["unit"] for item in receipt["unit_results"]] != plan["units"]:
+        receipt_units = [item["unit"] for item in receipt["unit_results"]]
+        if receipt["gate"] == "holdout" and repo is not None:
+            from evaluation.holdout.engine import load_manifest
+
+            manifest = load_manifest(
+                repo / "evaluation" / "holdouts" / "manifest.json"
+            )
+            execution_order = [pair["id"] for pair in manifest["pairs"]]
+            valid_length = (
+                len(receipt_units) in {1, 2, 3}
+                if receipt["result"] == "failed"
+                else len(receipt_units) in {2, 3}
+            )
+            if (
+                sorted(execution_order) != plan["units"]
+                or not valid_length
+                or receipt_units
+                != sorted(execution_order[:len(receipt_units)])
+            ):
+                raise ValueError(
+                    "GateReceipt units do not equal an adaptive holdout prefix"
+                )
+        elif receipt_units != plan["units"]:
             raise ValueError("GateReceipt units do not equal the GatePlan")
         if repo is not None:
             validate_evidence_commit(
