@@ -6,14 +6,14 @@ Protocol: `HappyCodex/0.5`
 
 This plan supersedes the four-module semantic-controller and evidence-DAG
 Outcome. It is the current index, not a migration history. The recovery
-checkpoint is branch `codex/happycodex-0.6-bounded-redesign`, worktree
+checkpoint before Batch 2 is branch `codex/happycodex-0.6-bounded-redesign`, worktree
 `/home/caichenghang/projects/happycodex-worktrees/happycodex-0.6-bounded-redesign`,
-commit `ba56bfa835830169d3c8c799082516188bb4e575`, tree
-`444c63a4d6b03782c8dafb776497aa410d79d135`. G019 terminal-receipt SHA-256 is
+commit `7c39df925071a289613470a332c2a39d7ed8abbf`, tree
+`a2acc15bf70bc33d7f7c924922c503c950a19efe`. G019 terminal-receipt SHA-256 is
 `ea2b2a3a09bbdda149b7c138367af93ba41896d45d91a8863336c31926c03e4e`.
 The active ledger SHA-256 is
-`b52d43128ef303f58f059a6f95195802914775ca1281a49648ae726ad6fd571c`;
-it is anchored-empty and noncertified.
+`b4e269d2c64fa0c4d246b1102aa4b366dd22afa250bc44089e7eda45a955228f`;
+it is a fresh three-family genesis and `refresh_required`.
 
 The same Root reads, decides, grants, and verifies. The same fixed Executor
 `/root/bounded_redesign_executor`, role `happycodex_executor`,
@@ -122,12 +122,10 @@ exactly once for that new candidate. Isolated install never mutates source.
 Activation retains paired package/config/cache rollback and is separately
 authorized.
 
-The accepted G018 source `59fb8d5449991078bd27933e9bbf8f88c7b6f0cd`
-and G019 reanchor are historical checkpoints only. The first future product
-commit invalidates that candidate, its archive identities, and its empty ledger.
-Nothing is migrated from it. The existing 259-test GREEN is a baseline, not
-proof of this Outcome. Fable5/max and the fresh Challenger findings remain
-read-only design evidence and are not rerun merely to restate the contract.
+G018 source `59fb8d5449991078bd27933e9bbf8f88c7b6f0cd` and G019 reanchor
+are historical. Product commits invalidate that candidate, its identities, and
+ledger; nothing migrates. The 259-test GREEN, Fable5/max, and Challenger
+findings remain read-only evidence, not proof of this Outcome.
 
 The affected-surface inventory is concrete: Runtime guidance and template;
 terminal protocol parsing and corpus/receipt consumers; effect intent,
@@ -263,6 +261,15 @@ freeze/failure/certification, anchored-empty noncertification, and no manual
 double ledger. The new generation-6 state is fresh; old ledger content is not
 read or transformed. Full offline GREEN is mandatory.
 
+Grant `HC06BR-G-023-batch2-effect-release` persisted intent `89d252d9` and RED
+`65ec033b`; five tests failed across genesis, CLI, calibration, EffectIntent,
+and phase rejection. The result has three release records and one EffectIntent
+consumption/result path. Recovery Manifest, holdout, and model-result structure
+remain fail-closed. The real CLI test uses current evaluator source against an
+isolated Git repo without a trust monkeypatch. All 149 offline tests are GREEN,
+output `992850a6`; four dry-run routes report nine effect counters all zero. No
+live effect ran.
+
 ### Batch 3 — Identity, documentation, and deletion proof
 
 Owned paths:
@@ -333,12 +340,9 @@ output, authority, or receipt. Unknown commands or schema inputs fail closed.
 | `N-AUTH` | repository content never claims host provenance or self-authorizes an effect |
 | `N-MIGRATION` | old ledger, semantic controller, hashes, evidence, and cached status are not reused |
 
-Remaining known work is deliberately outside Batch 1: the capability ladder,
-unreachable trusted-host positive path, cached evidence DAG, heavy identity
-algebra, and structural toolchain remain for later batches. Final production LOC
-is a measurement, not a per-file quota. Batch 2 must prove the CLI writer and
-atomic effect path without live execution. Any outside path, identity drift,
-incomplete consumer migration, or effect returns to Root.
+Remaining work is Batch 3 identity/documentation contraction and deletion
+proof. Final production LOC is a measurement, not a per-file quota. Any outside
+path, identity drift, incomplete consumer migration, or effect returns to Root.
 
 After all three product batches are accepted, this amendment permits a new,
 separately scoped candidate-source preparation and fresh reanchor. That step

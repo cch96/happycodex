@@ -78,8 +78,12 @@ class HappyCodexHoldoutTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)
+            (root / "candidate").mkdir()
+            (root / "public").mkdir()
+            pair_output = root / "output" / pair["id"]
+            pair_output.mkdir(parents=True)
             with mock.patch.object(
-                holdout_engine, "_validate_pair_capability", return_value=None
+                holdout_engine, "_validate_pair_intent", return_value=None
             ):
                 with self.assertRaisesRegex(RuntimeError, "infra failure"):
                     holdout_engine.run_pair(
@@ -90,11 +94,10 @@ class HappyCodexHoldoutTests(unittest.TestCase):
                         model="test-model",
                         effort="high",
                         timeout=10,
-                        authorization=object(),
+                        effect_intent={},
                         evaluator=evaluate,
                     )
 
-            pair_output = root / "output" / pair["id"]
             self.assertTrue((pair_output / "01-mapping-commitment.json").is_file())
             for name in (
                 "02-pre-reveal-decision.json",
@@ -269,7 +272,7 @@ class HappyCodexHoldoutTests(unittest.TestCase):
                     ]
                 )
 
-    def test_pair_runner_requires_authorized_capability(self) -> None:
+    def test_pair_runner_requires_effect_intent(self) -> None:
         pair = holdout_engine.load_manifest()["pairs"][0]
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)
@@ -278,7 +281,7 @@ class HappyCodexHoldoutTests(unittest.TestCase):
                 "seal_mapping",
                 side_effect=AssertionError("holdout live seam reached"),
             ) as mapping:
-                with self.assertRaisesRegex(ValueError, "capability"):
+                with self.assertRaisesRegex(ValueError, "EffectIntent"):
                     holdout_engine.run_pair(
                         pair,
                         candidate=root / "candidate",
@@ -287,6 +290,7 @@ class HappyCodexHoldoutTests(unittest.TestCase):
                         model="gpt-5.6-sol",
                         effort="high",
                         timeout=300,
+                        effect_intent={},
                     )
             mapping.assert_not_called()
 

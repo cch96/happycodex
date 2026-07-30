@@ -39,13 +39,6 @@ MODULE_CATEGORIES = {
     "evaluation/holdout/compare.py": "semantic",
     "evaluation/holdout/engine.py": "harness",
 }
-ARCHIVED_MODULE_CATEGORIES = {
-    "evaluation/semantic/__init__.py": "semantic",
-    "evaluation/semantic/canonical.py": "semantic",
-    "evaluation/semantic/decide.py": "semantic",
-    "evaluation/semantic/parse.py": "semantic",
-    "evaluation/semantic/types.py": "semantic",
-}
 _TOOL_EVENT_TYPES = {
     "collaboration": "collab_tool_call",
     "command_execution": "command_execution",
@@ -53,10 +46,9 @@ _TOOL_EVENT_TYPES = {
     "web_search": "web_search",
 }
 PERMISSION_PROFILE = "happycodex-evaluator"
-PROTOCOL_REVIEW_MODES = ("none", "focused_hardening", "exact_final")
+PROTOCOL_REVIEW_MODES = ("none", "exact_final")
 CONVERGENCE_PHASES = (
-    "implementation",
-    "focused_hardening",
+    "working",
     "candidate_frozen",
     "exact_final",
     "closed",
@@ -93,10 +85,8 @@ RECOVERY_ACTIONS = (
     "create_contract_freeze_revision",
     "observe_red",
     "implement",
-    "repair",
     "run_checks",
     "reconciliation",
-    "focused_review",
     "freeze_candidate",
     "exact_final_review",
     "release",
@@ -109,10 +99,7 @@ RECOVERY_PENDING_GATES = (
     "red_oracle",
     "product_edit",
     "checks",
-    "family_hardening",
-    "boundary_repair",
     "reconciliation",
-    "focused_review",
     "candidate_freeze",
     "exact_final_review",
     "release",
@@ -516,18 +503,7 @@ def engine_inventory(root: Path) -> dict[str, Any]:
         for path in evaluation.rglob("*.py")
         if "__pycache__" not in path.parts
     }
-    module_categories = (
-        MODULE_CATEGORIES
-        if "evaluation/protocol.py" in modules
-        else {
-            **{
-                path: category
-                for path, category in MODULE_CATEGORIES.items()
-                if path != "evaluation/protocol.py"
-            },
-            **ARCHIVED_MODULE_CATEGORIES,
-        }
-    )
+    module_categories = MODULE_CATEGORIES
     unknown = sorted(modules - set(module_categories))
     missing = sorted(set(module_categories) - modules)
     if unknown or missing:

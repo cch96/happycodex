@@ -46,7 +46,7 @@ _DECISIONS = frozenset({"continue", "stop_for_user", "complete", "incomplete"})
 _EXECPLAN_CONDITIONS = frozenset(
     {"not_required", "missing", "usable", "needs_amendment"}
 )
-_REVIEW_MODES = frozenset({"none", "focused_hardening", "exact_final"})
+_REVIEW_MODES = frozenset({"none", "exact_final"})
 _FINDING_DOMAINS = frozenset(
     {"secret", "baseline_failure", "receipt", "other"}
 )
@@ -68,18 +68,14 @@ _GATES = (
     "red_oracle",
     "product_edit",
     "checks",
-    "family_hardening",
-    "boundary_repair",
     "reconciliation",
-    "focused_review",
     "candidate_freeze",
     "exact_final_review",
     "release",
 )
 _MILESTONE_PHASES = frozenset(
     {
-        "implementation",
-        "focused_hardening",
+        "working",
         "candidate_frozen",
         "exact_final",
         "closed",
@@ -93,10 +89,8 @@ _RECOVERY_ACTIONS = frozenset(
         "create_contract_freeze_revision",
         "observe_red",
         "implement",
-        "repair",
         "run_checks",
         "reconciliation",
-        "focused_review",
         "freeze_candidate",
         "exact_final_review",
         "release",
@@ -270,15 +264,11 @@ def _expected_assertions(
     if selected is not None:
         if execplan_blocked and selected in {
             "product_edit",
-            "family_hardening",
-            "boundary_repair",
-            "focused_review",
             "candidate_freeze",
             "exact_final_review",
         }:
             return ("incomplete", False, "none", False)
         if unresolved and selected in {
-            "focused_review",
             "candidate_freeze",
             "exact_final_review",
         }:
@@ -288,9 +278,6 @@ def _expected_assertions(
             "red_oracle": ("continue", False, "none", False),
             "product_edit": ("continue", True, "none", False),
             "checks": ("continue", False, "none", False),
-            "family_hardening": ("continue", True, "none", False),
-            "boundary_repair": ("continue", True, "none", False),
-            "focused_review": ("continue", False, "focused_hardening", False),
             "candidate_freeze": ("continue", False, "none", False),
             "exact_final_review": ("continue", False, "exact_final", False),
             "release": ("continue", False, "none", False),

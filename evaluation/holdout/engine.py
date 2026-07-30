@@ -90,8 +90,8 @@ def load_manifest(path: Path = MANIFEST_PATH) -> dict[str, Any]:
             "pairs": loaded}
 
 
-def _validate_pair_capability(
-    authorization: Any,
+def _validate_pair_intent(
+    effect_intent: dict[str, Any],
     *,
     pair: dict[str, Any],
     candidate: Path,
@@ -100,9 +100,17 @@ def _validate_pair_capability(
     effort: str,
     timeout: int,
 ) -> None:
-    from evaluation.live import _require_unit_capability
+    from evaluation.live import validate_effect_intent
 
-    _require_unit_capability(authorization, pair["id"])
+    intent = validate_effect_intent(effect_intent, unit=pair["id"])
+    if (
+        intent["gate"] != "holdout"
+        or intent["invocation"]["model"] != model
+        or intent["invocation"]["effort"] != effort
+        or intent["invocation"]["timeout_ms"] != timeout * 1000
+        or intent["invocation"]["arm"] != "blinded-pair"
+    ):
+        raise ValueError("EffectIntent does not bind holdout invocation")
     if pair["case"]["id"] != f"holdout-{pair['id']}":
         raise ValueError("holdout pair identity is invalid")
     for plugin in (candidate, public):
@@ -134,11 +142,11 @@ def run_pair(
     model: str,
     effort: str,
     timeout: int,
-    authorization: Any = None,
+    effect_intent: dict[str, Any],
     evaluator: Callable[..., dict[str, Any]] = corpus_engine.evaluate_case,
 ) -> dict[str, Any]:
-    _validate_pair_capability(
-        authorization,
+    _validate_pair_intent(
+        effect_intent,
         pair=pair,
         candidate=candidate,
         public=public,
@@ -147,7 +155,8 @@ def run_pair(
         timeout=timeout,
     )
     pair_output = output / pair["id"]
-    pair_output.mkdir(parents=True, exist_ok=False)
+    if pair_output.is_symlink() or not pair_output.is_dir():
+        raise ValueError("reserved holdout EffectIntent output is not a real directory")
     sealed = seal_mapping(pair["id"])
     commitment_sha = write_new_json(
         pair_output / "01-mapping-commitment.json", sealed.public_receipt()
@@ -165,8 +174,8 @@ def run_pair(
             effort=effort,
             timeout=timeout,
             arm=arm,
-            authorization=authorization,
-            authorization_unit=pair["id"],
+            effect_intent=effect_intent,
+            intent_unit=pair["id"],
         )
 
     raw = _evaluate_pair_arms(evaluate_alias)
@@ -233,31 +242,43 @@ def run_holdouts(
     model: str,
     effort: str,
     timeout: int,
-    authorization: Any,
+    effect_intents: dict[str, dict[str, Any]],
+    claim_root: Path,
 ) -> dict[str, Any]:
     from evaluation import live
 
+    if not isinstance(effect_intents, dict) or not effect_intents:
+        raise ValueError("authorized holdout run requires EffectIntents")
+    intents = {
+        key: live.validate_effect_intent(value, unit=key)
+        for key, value in effect_intents.items()
+    }
     manifest = load_manifest()
     output = resolve_output(output, candidate, public)
     pair_ids = [pair["id"] for pair in manifest["pairs"]]
-    preflight = live._preflight_effect(
-        authorization,
-        gate="holdout",
-        output=output,
-        units=sorted(pair_ids),
-        model=model,
-        effort=effort,
-        timeout_ms=timeout * 1000,
-        arm="blinded-pair",
-    )
-    claimed = live._claim_effect_set(preflight)
-    corpus_engine.create_output_root(output)
+    if set(intents) != set(pair_ids):
+        raise ValueError("EffectIntent units do not equal holdout pairs")
+    for pair_id in pair_ids:
+        intent = live.validate_effect_intent(
+            intents[pair_id],
+            unit=pair_id,
+            timeout_ms=timeout * 1000,
+            output=output / pair_id,
+        )
+        if (
+            intent["gate"] != "holdout"
+            or intent["invocation"]["model"] != model
+            or intent["invocation"]["effort"] != effort
+            or intent["invocation"]["arm"] != "blinded-pair"
+        ):
+            raise ValueError("EffectIntent does not bind holdout invocation")
     receipts = []
     outcomes = []
     by_id = {pair["id"]: pair for pair in manifest["pairs"]}
     while frontier := adaptive_frontier(pair_ids, outcomes):
         pair = by_id[frontier[0]]
-        unit = live._claim_unit(claimed, pair["id"])
+        intent = intents[pair["id"]]
+        live.reserve_effect(intent, claim_root)
         receipt = run_pair(
             pair,
             candidate=candidate,
@@ -266,8 +287,35 @@ def run_holdouts(
             model=model,
             effort=effort,
             timeout=timeout,
-            authorization=unit,
+            effect_intent=intent,
         )
+        usage = {
+            "model_calls": sum(
+                len(arm["usage_phases"]) for arm in receipt["arms"].values()
+            ),
+            "uncached_input_tokens": sum(
+                arm["uncached_input_tokens"] for arm in receipt["arms"].values()
+            ),
+            "output_tokens": sum(
+                arm["usage"]["output_tokens"] for arm in receipt["arms"].values()
+            ),
+            "wall_milliseconds": round(
+                max(arm["elapsed_seconds"] for arm in receipt["arms"].values())
+                * 1000
+            ),
+        }
+        effect_result = {
+            "schema_version": 1,
+            "intent_digest": intent["intent_digest"],
+            "unit": intent["unit"],
+            "status": (
+                "failed" if receipt["outcome"] == "regression" else "succeeded"
+            ),
+            "output_sha256": canonical_sha256(receipt),
+            "usage": usage,
+        }
+        effect_result["result_sha256"] = canonical_sha256(effect_result)
+        live.write_effect_result(intent, claim_root, effect_result)
         receipts.append(receipt)
         outcomes.append(receipt["outcome"])
     return {
@@ -314,6 +362,17 @@ def run_command(args: Any) -> int:
                         timeout_seconds=args.timeout,
                         arm="blinded-pair",
                     ),
+                    "effects": {
+                        "intents_created": 0,
+                        "units_consumed": 0,
+                        "fixtures_created": 0,
+                        "outputs_created": 0,
+                        "receipts_created": 0,
+                        "workspaces_created": 0,
+                        "subprocesses": 0,
+                        "model_calls": 0,
+                        "network_calls": 0,
+                    },
                 },
                 indent=2,
             )
@@ -322,7 +381,11 @@ def run_command(args: Any) -> int:
     raise SystemExit("live holdout execution is available only through evaluation.cli")
 
 
-def run_authorized(args: Any, authorization: Any) -> int:
+def run_authorized(
+    args: Any,
+    effect_intents: dict[str, dict[str, Any]],
+    claim_root: Path,
+) -> int:
     if args.public is None:
         raise ValueError("exact public-0.2 package path is required")
     result = run_holdouts(
@@ -332,7 +395,8 @@ def run_authorized(args: Any, authorization: Any) -> int:
         model=args.model,
         effort=args.effort,
         timeout=args.timeout,
-        authorization=authorization,
+        effect_intents=effect_intents,
+        claim_root=claim_root,
     )
     print(json.dumps(result, sort_keys=True))
     return 0

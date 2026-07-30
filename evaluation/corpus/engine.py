@@ -1146,16 +1146,23 @@ def protocol_result_projection(
     return projection
 
 
-def _validated_capability(authorization: Any, unit_id: str) -> Any:
-    from evaluation.live import _require_unit_capability
+def invoke_codex(
+    effect_intent: dict[str, Any],
+    *,
+    argv: list[str],
+    cwd: Path,
+    env: dict[str, str],
+    timeout: int,
+) -> tuple[subprocess.CompletedProcess[str], bool, float]:
+    from evaluation.live import validate_effect_intent
 
-    return _require_unit_capability(authorization, unit_id)
-
-
-def invoke_codex(phase_proof: Any) -> tuple[subprocess.CompletedProcess[str], bool, float]:
-    from evaluation.live import _consume_phase_proof
-
-    argv, cwd, env, timeout = _consume_phase_proof(phase_proof)
+    intent = validate_effect_intent(effect_intent)
+    if (
+        intent["invocation"]["model"] not in argv
+        or intent["invocation"]["effort"] not in " ".join(argv)
+        or intent["invocation"]["timeout_ms"] != timeout * 1000
+    ):
+        raise ValueError("EffectIntent invocation does not bind model execution")
     started = time.monotonic()
     try:
         completed = run(argv, cwd=cwd, env=env, timeout=timeout)
@@ -1510,8 +1517,8 @@ def expected_recovery_state(
     }
 
 
-def _validate_case_capability(
-    authorization: Any,
+def _validate_case_intent(
+    effect_intent: dict[str, Any],
     *,
     case: dict[str, Any],
     plugin: Path,
@@ -1525,7 +1532,16 @@ def _validate_case_capability(
         expected_unit = unit_id
     else:
         expected_unit = case["id"]
-    _validated_capability(authorization, expected_unit)
+    from evaluation.live import validate_effect_intent
+
+    intent = validate_effect_intent(effect_intent, unit=expected_unit)
+    if (
+        intent["invocation"]["model"] != model
+        or intent["invocation"]["effort"] != effort
+        or intent["invocation"]["timeout_ms"] != timeout * 1000
+        or intent["invocation"]["arm"] != arm
+    ):
+        raise ValueError("EffectIntent invocation profile drift")
     if not plugin.resolve().is_dir():
         raise ValueError("evaluated plugin must be an existing directory")
     invocation_profile(
@@ -1542,7 +1558,7 @@ def _validate_case_capability(
 
 
 def _phase_event_binding(
-    authorization: Any,
+    effect_intent: dict[str, Any],
     *,
     case_id: str,
     arm: str,
@@ -1551,15 +1567,16 @@ def _phase_event_binding(
     thread_id: str | None,
     profile: dict[str, Any],
 ) -> tuple[dict[str, Any], dict[str, Any]]:
-    capability = _validated_capability(authorization, authorization._unit)
-    descriptor = capability._claimed.descriptor()
+    from evaluation.live import validate_effect_intent
+
+    intent = validate_effect_intent(effect_intent)
     profile = validate_invocation_profile(profile, require_bound_binary=True)
     binding = {
         "provider": profile["provider"],
         "session_id": canonical_sha256(
             {
-                "authority_sha256": capability.authority_sha256,
-                "attempt_key": descriptor.get("attempt_id"),
+                "intent_digest": intent["intent_digest"],
+                "unit": intent["unit"],
                 "case_id": case_id,
                 "arm": arm,
                 "session_scope": session_scope,
@@ -1567,7 +1584,7 @@ def _phase_event_binding(
         ),
         "thread_id": thread_id,
         "action_id": f"case:{case_id}:{arm}:{phase}",
-        "attempt_key": descriptor.get("attempt_id"),
+        "attempt_key": intent["intent_digest"],
     }
     return binding, profile
 
@@ -1581,23 +1598,25 @@ def evaluate_case(
     effort: str,
     timeout: int,
     arm: str,
-    authorization: Any = None,
-    authorization_unit: str | None = None,
+    effect_intent: dict[str, Any],
+    intent_unit: str | None = None,
 ) -> dict[str, Any]:
-    from evaluation.live import _issue_phase_proof
-
-    _validate_case_capability(
-        authorization,
+    _validate_case_intent(
+        effect_intent,
         case=case,
         plugin=plugin,
         model=model,
         effort=effort,
         timeout=timeout,
         arm=arm,
-        unit_id=authorization_unit,
+        unit_id=intent_unit,
     )
     case_output = output / case["id"]
-    case_output.mkdir(parents=True, exist_ok=False)
+    if case_output.exists():
+        if case_output.is_symlink() or not case_output.is_dir():
+            raise ValueError("reserved EffectIntent output is not a real directory")
+    else:
+        case_output.mkdir(parents=True, exist_ok=False)
     with tempfile.TemporaryDirectory(prefix=f"happycodex-{case['id']}-") as raw:
         temp = Path(raw)
         repo = temp / "repo"
@@ -1665,12 +1684,17 @@ def evaluate_case(
                 *([thread] if thread else []),
                 prompt,
             ]
-            proof = _issue_phase_proof(authorization)
-            completed, timed_out, elapsed = invoke_codex(proof)
+            completed, timed_out, elapsed = invoke_codex(
+                effect_intent,
+                argv=argv,
+                cwd=repo,
+                env=env,
+                timeout=timeout,
+            )
             _persist_phase_raw(case_output, name, completed)
             _require_model_phase_success(completed, timed_out=timed_out, phase=name)
             binding, bound_profile = _phase_event_binding(
-                authorization,
+                effect_intent,
                 case_id=case["id"],
                 arm=arm,
                 phase=name,
@@ -1873,7 +1897,8 @@ def run_command(args: Any) -> int:
         for case_id in cases:
             print(case_id)
         return 0
-    selected = args.cases or list(cases)
+    calibrate = bool(getattr(args, "calibrate", False))
+    selected = ["subthreshold-control"] if calibrate else (args.cases or list(cases))
     unknown = set(selected) - set(cases)
     if unknown:
         raise SystemExit(f"unknown cases: {sorted(unknown)}")
@@ -1882,6 +1907,7 @@ def run_command(args: Any) -> int:
             json.dumps(
                 {
                     "cases": selected,
+                    "calibrate": calibrate,
                     "coverage": sorted(REQUIRED_TAGS),
                     "invocation_profile": invocation_profile(
                         model=args.model,
@@ -1889,6 +1915,17 @@ def run_command(args: Any) -> int:
                         timeout_seconds=args.timeout,
                         arm=args.arm,
                     ),
+                    "effects": {
+                        "intents_created": 0,
+                        "units_consumed": 0,
+                        "fixtures_created": 0,
+                        "outputs_created": 0,
+                        "receipts_created": 0,
+                        "workspaces_created": 0,
+                        "subprocesses": 0,
+                        "model_calls": 0,
+                        "network_calls": 0,
+                    },
                 },
                 indent=2,
             )
@@ -1939,32 +1976,68 @@ def _evaluate_cases_bounded(
     return [result for result in results if result is not None]
 
 
-def run_authorized(args: Any, authorization: Any) -> int:
+def _effect_result(metadata: dict[str, Any], intent: dict[str, Any]) -> dict[str, Any]:
+    usage = {
+        "model_calls": len(metadata["usage_phases"]),
+        "uncached_input_tokens": metadata["uncached_input_tokens"],
+        "output_tokens": metadata["usage"]["output_tokens"],
+        "wall_milliseconds": round(metadata["elapsed_seconds"] * 1000),
+    }
+    result = {
+        "schema_version": 1,
+        "intent_digest": intent["intent_digest"],
+        "unit": intent["unit"],
+        "status": "succeeded" if metadata["passed"] else "failed",
+        "output_sha256": canonical_sha256(metadata),
+        "usage": usage,
+    }
+    result["result_sha256"] = canonical_sha256(result)
+    return result
+
+
+def run_authorized(
+    args: Any,
+    effect_intents: dict[str, dict[str, Any]],
+    claim_root: Path,
+) -> int:
     from evaluation import live
 
+    if not isinstance(effect_intents, dict) or not effect_intents:
+        raise ValueError("authorized corpus run requires EffectIntents")
+    intents = {
+        key: live.validate_effect_intent(value, unit=key)
+        for key, value in effect_intents.items()
+    }
     cases = load_cases()
-    selected = sorted(args.cases or cases)
+    calibrate = bool(getattr(args, "calibrate", False))
+    selected = (
+        ["subthreshold-control"]
+        if calibrate
+        else sorted(args.cases or cases)
+    )
     unknown = set(selected) - set(cases)
     if unknown:
         raise ValueError(f"unknown cases: {sorted(unknown)}")
+    if set(intents) != set(selected):
+        raise ValueError("EffectIntent units do not equal selected corpus cases")
     output = resolve_output_path(args.output, plugin=args.plugin)
-    gate = authorization._plan["gate"]
-    if gate == "executor" and selected != ["subthreshold-control"]:
-        raise ValueError("persisted gate plan does not match corpus invocation")
-    preflight = live._preflight_effect(
-        authorization,
-        gate=gate,
-        output=output,
-        units=selected,
-        model=args.model,
-        effort=args.effort,
-        timeout_ms=args.timeout * 1000,
-        arm=args.arm,
-    )
-    claimed = live._claim_effect_set(preflight)
-    plan = dict(live._require_claimed(claimed)._gate._plan)
-    units = live._claim_units(claimed, selected)
-    create_output_root(output)
+    gate = "calibration" if calibrate else "corpus"
+    for case_id in selected:
+        intent = live.validate_effect_intent(
+            intents[case_id],
+            unit=case_id,
+            timeout_ms=args.timeout * 1000,
+            output=output / case_id,
+        )
+        if (
+            intent["gate"] != gate
+            or intent["invocation"]["model"] != args.model
+            or intent["invocation"]["effort"] != args.effort
+            or intent["invocation"]["arm"] != args.arm
+        ):
+            raise ValueError("EffectIntent does not bind corpus invocation")
+    for case_id in selected:
+        live.reserve_effect(intents[case_id], claim_root)
     results = _evaluate_cases_bounded(
         selected,
         lambda case_id: evaluate_case(
@@ -1975,14 +2048,20 @@ def run_authorized(args: Any, authorization: Any) -> int:
             effort=args.effort,
             timeout=args.timeout,
             arm=args.arm,
-            authorization=units[case_id],
-            authorization_unit=case_id,
+            effect_intent=intents[case_id],
+            intent_unit=case_id,
         ),
     )
+    for case_id, result in zip(selected, results, strict=True):
+        live.write_effect_result(
+            intents[case_id],
+            claim_root,
+            _effect_result(result, intents[case_id]),
+        )
     print(json.dumps({
         "schema_version": 1,
         "engine_generation": "0.6",
-        "gate": plan["gate"],
+        "gate": gate,
         "cases": selected,
         "passed": all(result["passed"] for result in results),
         "receipts": [canonical_sha256(result) for result in results],

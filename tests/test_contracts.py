@@ -460,8 +460,7 @@ class HappyCodexContractTests(unittest.TestCase):
 
         contract_path = ROOT / "evaluation" / "contracts-v6.json"
         lines = read(contract_path).splitlines()
-        self.assertGreaterEqual(len(lines), 520)
-        self.assertLessEqual(len(lines), 650)
+        self.assertLessEqual(len(lines), 400)
         contracts = load_contracts(contract_path)
         schemas = contracts["schemas"]
         self.assertLessEqual(len(schemas), 30)
@@ -529,26 +528,20 @@ class HappyCodexContractTests(unittest.TestCase):
         self.assertEqual(opaque, {
             "schemas.case.properties.fixture",
             "schemas.case.properties.oracle",
-            "schemas.evidence_record.properties.actual",
-            "schemas.evidence_record.properties.producer",
-            "schemas.evidence_record.properties.subject",
-            "schemas.evidence_record.properties.transcript.items",
-            "schemas.gate_plan.properties.template.properties.env",
-            "schemas.ledger.properties.accepted_evidence",
-            "schemas.ledger.properties.authorities",
-            "schemas.ledger.properties.certification",
-            "schemas.ledger.properties.cost",
-            "schemas.ledger.properties.coverage",
-            "schemas.ledger.properties.freeze",
-            "schemas.ledger.properties.planned_impact",
-            "schemas.ledger.properties.planned_invocations",
-            "schemas.ledger.properties.source_anchor",
-            "schemas.planned_impact.properties.initial_scope",
-            "schemas.planned_impact.properties.live_calls",
-            "schemas.snapshot.properties.corpus.properties.cases",
-            "schemas.snapshot.properties.engine.properties.categories",
-            "schemas.snapshot.properties.engine.properties.scopes",
-            "schemas.snapshot.properties.holdout.properties.pairs",
+            "schemas.gate_plan.properties.cost_ceiling",
+            "schemas.gate_plan.properties.profile",
+            "schemas.gate_receipt.properties.unit_results.items",
+            "schemas.invocation_profile.properties.binary",
+            "schemas.invocation_profile.properties.session",
+            "schemas.invocation_profile.properties.tools",
+            "schemas.ledger.properties.candidate",
+            "schemas.snapshot.properties.corpus",
+            "schemas.snapshot.properties.engine",
+            "schemas.snapshot.properties.holdout",
+            "schemas.snapshot.properties.package",
+            "schemas.snapshot.properties.public_baseline",
+            "schemas.snapshot.properties.role",
+            "schemas.snapshot.properties.settings",
             "schemas.tool_identity",
         })
 

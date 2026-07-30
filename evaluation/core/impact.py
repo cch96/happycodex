@@ -64,12 +64,12 @@ HOLDOUT_HARNESS_PATHS = {
 }
 HOLDOUT_SEMANTIC_PATHS = {"evaluation/holdout/compare.py"}
 GATE_ORDER = (
+    "calibration",
     "corpus",
-    "executor_pilot",
     "holdout",
-    "isolated_install",
     "receipt",
     "review",
+    "isolated_install",
 )
 CORPUS_MODEL_CALLS = {
     case_id: 3 if case_id == "pre-freeze-compaction" else 1
@@ -104,24 +104,6 @@ def _public_baseline() -> dict[str, Any]:
         "semantic_sha256": PUBLIC_02_PACKAGE_SEMANTIC_SHA256,
         "skill_entries": list(PUBLIC_02_SKILL_ENTRIES),
     }
-
-
-def validate_gate_plan(value: Any) -> dict[str, Any]:
-    validate_named(CONTRACTS, "gate_plan", value)
-    repo, output = Path(str(value["repo"])), Path(str(value["output"]))
-    profile, template = value["profile"], value["template"]
-    if (
-        not Path(template["cwd"]).is_absolute()
-        or any(type(key) is not str or type(item) is not str
-               for key, item in template["env"].items())
-        or template["timeout_ms"] != profile["timeout_ms"]
-        or not repo.is_absolute()
-        or not output.is_absolute()
-        or value["units"] != sorted(set(value["units"]))
-        or value["resource_digests"] != sorted(set(value["resource_digests"]))
-    ):
-        raise ValueError("persisted gate plan is invalid")
-    return {**value, "repo": str(repo.resolve()), "output": str(output.resolve())}
 
 
 def _load_cases(root: Path) -> dict[str, dict[str, Any]]:
@@ -442,49 +424,6 @@ def plan_impact(
 
 def validate_successor(before: dict[str, Any], after: dict[str, Any],
                        *, repo: Path | None = None) -> None:
-    from evaluation.core.ledger import _empty_lifecycle, validate_ledger
+    from evaluation.core.ledger import validate_successor as validate_release_successor
 
-    validate_ledger(before, repo=repo)
-    validate_ledger(after, repo=repo)
-    if before["source_anchor"] != after["source_anchor"]:
-        if after["source_anchor"] is None or not all(
-            _empty_lifecycle(item) for item in (before, after)
-        ):
-            raise ValueError("release reanchor must reset without evidence reuse")
-        if repo is None:
-            raise ValueError("release reanchor requires repository")
-        settings = after["snapshot"]["settings"]
-        expected = build_snapshot(
-            repo, model=settings["model"], effort=settings["effort"],
-            timeout=settings["timeout_seconds"],
-        )
-        if after["snapshot"] != expected:
-            raise ValueError("release reanchor snapshot does not match repository")
-        return
-    if before["snapshot"] != after["snapshot"]:
-        raise ValueError("successor snapshot is immutable")
-    for field in ("planned_impact", "freeze", "certification"):
-        if before[field] is not None and before[field] != after[field]:
-            raise ValueError(f"successor cannot rollback or replace {field}")
-    slots = (
-        ("planned_invocations", ("executor", "corpus", "holdout")),
-        ("cost", ("executor", "corpus", "holdout")),
-        ("authorities", ("executor", "corpus", "holdout")),
-        ("accepted_evidence", ("executor", "corpus", "holdout", "receipt", "review", "isolated_install")),
-    )
-    for field, names in slots:
-        for name in names:
-            old, new = before[field][name], after[field][name]
-            if old is not None and old != new:
-                raise ValueError(f"successor cannot rollback, replace, or delete {field}.{name}")
-    changed = {field for field in before if before[field] != after[field]}
-    allowed = (
-        {"planned_impact"}, {"planned_invocations", "cost"}, {"authorities"},
-        {"accepted_evidence", "coverage", "receipt_head"}, {"freeze"},
-        {"certification", "state"},
-    )
-    if changed not in allowed:
-        raise ValueError("successor is not one coherent DAG-ready step")
-    for field, names in slots:
-        if field in changed and sum(before[field][name] != after[field][name] for name in names) != 1:
-            raise ValueError("successor must append exactly one slot")
+    validate_release_successor(before, after, repo=repo)

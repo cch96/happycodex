@@ -266,22 +266,21 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "permission state"):
                     runner.validate_case(invalid, Path(f"{case['id']}.json"))
 
-    def test_review_mode_is_a_three_state_clean_break(self) -> None:
+    def test_review_mode_is_a_two_state_clean_break(self) -> None:
         self.assertNotIn("protocol_may_review", runner.PERMISSION_FIELDS)
         self.assertIn("protocol_review_mode", runner.PERMISSION_FIELDS)
         schema = runner.OUTPUT_SCHEMA
         self.assertNotIn("protocol_may_review", schema["properties"])
         self.assertEqual(
             schema["properties"]["protocol_review_mode"]["enum"],
-            ["none", "focused_hardening", "exact_final"],
+            ["none", "exact_final"],
         )
         self.assertIn("protocol_review_mode", schema["required"])
         recovery = schema["properties"]["recovery_state"]["properties"]
         self.assertEqual(
             recovery["milestone_phase"]["enum"],
             [
-                "implementation",
-                "focused_hardening",
+                "working",
                 "candidate_frozen",
                 "exact_final",
                 "closed",
@@ -824,7 +823,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                     "reason": "contradictory resolved blocker",
                 }
             ],
-            "open_gates": ["boundary_repair"],
+            "open_gates": ["product_edit"],
             "evidence": [],
             "reason": "false green",
             "recovery_state": None,
@@ -1137,17 +1136,17 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             "qualifies": True,
             "execplan_condition": "usable",
             "protocol_may_product_write": False,
-            "protocol_review_mode": "focused_hardening",
+            "protocol_review_mode": "exact_final",
             "protocol_may_complete": False,
             "finding_classifications": [],
             "blocker_classifications": [],
-            "open_gates": ["focused_review"],
+            "open_gates": ["exact_final_review"],
             "evidence": ["focused counterexample replay"],
             "reason": "The terminal GREEN wave permits one focused review.",
             "recovery_state": None,
         }
         receipt = receipt_engine.sanitized_result_receipt(result)
-        self.assertEqual(receipt["protocol_review_mode"], "focused_hardening")
+        self.assertEqual(receipt["protocol_review_mode"], "exact_final")
         self.assertNotIn("protocol_may_review", receipt)
 
     def test_open_family_cannot_masquerade_as_exact_final(self) -> None:
@@ -1229,11 +1228,11 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             "qualifies": True,
             "execplan_condition": "usable",
             "protocol_may_product_write": False,
-            "protocol_review_mode": "focused_hardening",
+            "protocol_review_mode": "exact_final",
             "protocol_may_complete": False,
             "finding_classifications": [],
             "blocker_classifications": [],
-            "open_gates": ["focused_review"],
+            "open_gates": ["exact_final_review"],
             "evidence": ["terminal GREEN repair-wave receipt"],
             "reason": "Focused review is the only next gate.",
             "recovery_state": None,
@@ -1246,7 +1245,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
         stopped = {
             **base,
             "decision": "stop_for_user",
-            "protocol_review_mode": "focused_hardening",
+            "protocol_review_mode": "exact_final",
         }
         self.assertTrue(protocol_result_failures(stopped))
 
@@ -1297,7 +1296,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                     "reason": "The recovery boundary is still unknown.",
                 }
             ],
-            "open_gates": ["boundary_repair", "exact_final_review"],
+            "open_gates": ["exact_final_review"],
             "evidence": [],
             "reason": "Invalid exact-final launch.",
             "recovery_state": None,
@@ -1323,7 +1322,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                     "reason": "No finding owns this blocker.",
                 }
             ],
-            "open_gates": ["boundary_repair"],
+            "open_gates": ["product_edit"],
             "evidence": [],
             "reason": "Invalid classification graph.",
             "recovery_state": None,
@@ -1342,8 +1341,8 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             "current_revision": "3" * 40,
             "current_tree": "4" * 40,
             "writer": "Root",
-            "milestone_phase": "implementation",
-            "next_action": "repair",
+            "milestone_phase": "working",
+            "next_action": "implement",
             "pending_gates": ["product_edit"],
             "tests": {
                 "passed": 4,
@@ -3672,7 +3671,10 @@ class HappyCodexEvaluationTests(unittest.TestCase):
         recovery = runner.OUTPUT_SCHEMA["properties"]["recovery_state"]
         self.assertEqual(recovery["type"], ["object", "null"])
         self.assertNotIn("oneOf", recovery)
-        self.assertNotIn("uniqueItems", json.dumps(recovery, sort_keys=True))
+        self.assertTrue(
+            recovery["properties"]["pending_gates"]["uniqueItems"]
+        )
+        self.assertTrue(recovery["properties"]["marker_ids"]["uniqueItems"])
         findings = runner.OUTPUT_SCHEMA["properties"]["finding_classifications"]
         self.assertIn("anchors", findings["items"]["required"])
         self.assertIn("RED-test edits are product writes", runner.EVALUATOR_CONTEXT)

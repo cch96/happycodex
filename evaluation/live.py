@@ -1,503 +1,379 @@
 from __future__ import annotations
 
-import fcntl
 import json
 import os
 from pathlib import Path
 import re
 import stat
-import subprocess
-import threading
-from types import MappingProxyType
 from typing import Any
 
 from evaluation.core.identity import canonical_sha256
-from evaluation.core.impact import (
-    build_snapshot,
-    impact_token,
-    plan_impact,
+from evaluation.core.impact import build_snapshot, plan_impact
+from evaluation.core.ledger import (
+    GATE_ORDER,
+    derive_certified,
+    derive_coverage,
+    derive_failed,
+    derive_freeze_eligibility,
+    derive_pending,
+    derive_receipt_tip,
+    derive_status,
+    load_ledger,
     validate_gate_plan,
 )
-from evaluation.core.ledger import derive_pending, load_ledger
 
 
 ROOT = Path(__file__).resolve().parents[1]
 LEDGER_PATH = ROOT / "evaluation" / "results" / "current.json"
-_BINDING_FIELDS = {
-    "task_id",
-    "root_task_id",
-    "executor_task_id",
-    "owner_label",
-    "destination_id",
-    "lineage_digest",
-    "role_config_digest",
-    "repository_digest",
-    "outcome_digest",
-    "message_id",
-    "turn_id",
-    "content_digest",
-    "session_id",
-    "thread_id",
-    "permission_digest",
-    "claim_digest",
-}
-_DIGEST_FIELDS = {
-    "lineage_digest",
-    "role_config_digest",
-    "repository_digest",
-    "outcome_digest",
-    "content_digest",
-    "permission_digest",
-    "claim_digest",
-}
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
-_CLAIM_KEY = re.compile(r"^[a-z]+-[0-9a-f]{64}$")
-_HOST_SEAL = object()
-_CAPABILITY_SEAL = object()
-_SPENT_PHASES: set[object] = set()
-_SPENT_PHASE_LOCK = threading.Lock()
+_INTENT_FIELDS = frozenset(
+    {
+        "schema_version",
+        "candidate_sha256",
+        "plan_sha256",
+        "gate",
+        "unit",
+        "invocation",
+        "cost_ceiling",
+        "units",
+        "resource_digests",
+        "output",
+        "approval_content_sha256",
+        "intent_digest",
+    }
+)
+_INVOCATION_FIELDS = frozenset(
+    {"argv", "cwd", "env", "timeout_ms", "model", "effort", "arm"}
+)
+_RESULT_FIELDS = frozenset(
+    {
+        "schema_version",
+        "intent_digest",
+        "unit",
+        "status",
+        "output_sha256",
+        "usage",
+        "result_sha256",
+    }
+)
+_USAGE_FIELDS = frozenset(
+    {
+        "model_calls",
+        "uncached_input_tokens",
+        "output_tokens",
+        "wall_milliseconds",
+    }
+)
 
 
-def _validate_binding(value: Any) -> dict[str, str]:
-    if not isinstance(value, dict) or set(value) != _BINDING_FIELDS:
-        raise ValueError("capability binding is invalid")
-    for field, item in value.items():
-        if type(item) is not str or not item:
-            raise ValueError(f"capability binding field is invalid: {field}")
-        if field in _DIGEST_FIELDS and _SHA256.fullmatch(item) is None:
-            raise ValueError(f"capability binding digest is invalid: {field}")
-    return dict(value)
-
-
-class _TrustedHostContext:
-    __slots__ = ("authority", "authority_record", "binding", "plan", "_seal")
-
-    def __init__(self) -> None:
-        raise TypeError("trusted host context is host-issued")
-
-    def __reduce__(self) -> object:
-        raise TypeError("trusted host context cannot be serialized")
-
-
-def _issue_trusted_host_context(
-    authority: object,
-    binding: dict[str, str],
-    persisted_plan: dict[str, Any],
-    persisted_authority: dict[str, Any],
-) -> object:
-    authority_record = dict(persisted_authority)
-    expected = canonical_sha256({
-        key: value for key, value in authority_record.items()
-        if key != "authority_sha256"
-    })
-    if authority_record.get("authority_sha256") != expected:
-        raise ValueError("persisted authority is invalid")
-    context = object.__new__(_TrustedHostContext)
-    context.authority = authority
-    context.authority_record = MappingProxyType(authority_record)
-    context.binding = MappingProxyType(_validate_binding(binding))
-    context.plan = MappingProxyType({
-        **validate_gate_plan(persisted_plan),
-        "authority_sha256": expected,
-    })
-    context._seal = _HOST_SEAL
-    return context
-
-
-def _trusted_host_context(report: object, args: object) -> object | None:
-    """Private host seam. Standalone CLI intentionally has no positive path."""
-    return None
-
-
-class _Sealed:
-    def __init__(self) -> None:
-        raise TypeError("capability is validator-issued")
-
-    def __copy__(self) -> object:
-        raise TypeError("capability cannot be copied")
-
-    __deepcopy__ = __copy__
-
-    def __reduce__(self) -> object:
-        raise TypeError("capability cannot be serialized")
-
-
-def _require_issued(value: object, expected: type, message: str) -> object:
-    if type(value) is not expected or getattr(value, "_seal", None) is not _CAPABILITY_SEAL:
-        raise ValueError(message)
+def _digest(value: Any, label: str, *, nullable: bool = False) -> str | None:
+    if nullable and value is None:
+        return None
+    if type(value) is not str or _SHA256.fullmatch(value) is None:
+        raise ValueError(f"invalid {label} digest")
     return value
 
 
-class _GateCapability(_Sealed):
-    __slots__ = (
-        "_binding",
-        "_binding_sha256",
-        "_plan",
-        "_pid",
-        "_seal",
-        "_attempt_key",
-        "_authority",
-        "_report",
-        "authority_sha256",
-    )
-
-    def descriptor(self) -> dict[str, object]:
-        _rebind_capability(self)
-        return {
-            "attempt_id": self._attempt_key,
-            "authority_sha256": self.authority_sha256,
-            "binding_sha256": self._binding_sha256,
-            "gate": self._plan["gate"],
-            "invocation_sha256": self._plan["invocation_sha256"],
-        }
-
-
-def _authorize_effect(report: object, args: object) -> object:
-    context = _trusted_host_context(report, args)
-    if (
-        type(context) is not _TrustedHostContext
-        or getattr(context, "_seal", None) is not _HOST_SEAL
-    ):
-        raise ValueError("trusted host context is required")
-    binding = dict(context.binding)
+def _real_private_directory(path: Path, label: str) -> Path:
+    candidate = path.absolute()
     try:
-        task_binding = dict(report.facts.task.to_value())
-        action = report.to_wire()["next_action"]
-        authority_values = {
-            name: getattr(context.authority, name).value
-            for name in (
-                "root_task",
-                "source_task",
-                "target_task",
-                "executor_task",
-                "destination",
-                "lineage",
-                "message_id",
-                "turn_id",
-                "content_digest",
-                "target",
-                "scope",
-            )
-        }
-    except (AttributeError, KeyError, TypeError, ValueError) as exc:
-        raise ValueError("effect content binding is invalid") from exc
-    if (
-        context.authority.channel != "current_task_user"
-        or authority_values["source_task"] != authority_values["target_task"]
-        or authority_values["target"] != action["target"]
-        or authority_values["scope"] != action["scope"]
-    ):
-        raise ValueError("effect authority refused: wrong content binding")
-    expected = {
-        **task_binding,
-        "message_id": authority_values["message_id"],
-        "turn_id": authority_values["turn_id"],
-        "content_digest": authority_values["content_digest"],
-    }
-    if any(binding[field] != value for field, value in expected.items()):
-        raise ValueError("capability binding does not match direct content authority")
-    for authority_field, task_field in (
-        ("root_task", "root_task_id"),
-        ("target_task", "task_id"),
-        ("executor_task", "executor_task_id"),
-        ("destination", "destination_id"),
-        ("lineage", "lineage_digest"),
-    ):
-        if authority_values[authority_field] != task_binding[task_field]:
-            raise ValueError("effect authority refused: wrong content binding")
-    if (
-        binding["permission_digest"]
-        != _permission_digest(report, context.authority, context.plan)
-        or binding["claim_digest"] != _claim_digest(context.plan)
-    ):
-        raise ValueError("persisted permission or claim binding changed")
-    record = dict(context.authority_record)
-    if (
-        record["gate"] != context.plan["gate"]
-        or record["phase"] != context.plan["phase"]
-        or record["impact_token"] != context.plan["impact_token"]
-        or record["invocation_sha256"] != context.plan["invocation_sha256"]
-        or record["action"] != context.plan["action"]
-        or record["host"]["message_id"] != binding["message_id"]
-        or record["host"]["turn_id"] != binding["turn_id"]
-        or record["host"]["content_sha256"] != binding["content_digest"]
-    ):
-        raise ValueError("persisted authority does not match runtime authority")
-    capability = object.__new__(_GateCapability)
-    capability._binding = MappingProxyType(binding)
-    capability._binding_sha256 = canonical_sha256(binding)
-    capability._plan = context.plan
-    capability._pid = os.getpid()
-    capability._seal = _CAPABILITY_SEAL
-    capability._attempt_key = canonical_sha256(
-        {"task_binding": task_binding, "action": action}
-    )
-    capability._authority, capability._report = context.authority, report
-    capability.authority_sha256 = record["authority_sha256"]
-    return capability
-
-
-def _permission_digest(report: object, authority: object, plan: object) -> str:
-    return canonical_sha256({
-        "next_action": report.to_wire()["next_action"],
-        "authority": {
-            "message_id": authority.message_id.value,
-            "turn_id": authority.turn_id.value,
-            "content_digest": authority.content_digest.value,
-            "target": authority.target.value,
-            "scope": authority.scope.value,
-        },
-        "action": dict(plan)["action"],
-    })
-
-
-def _claim_digest(plan: object) -> str:
-    value = dict(plan)
-    return canonical_sha256({
-        "action": value["action"],
-        "gate": value["gate"],
-        "output": value["output"],
-        "resource_digests": value["resource_digests"],
-        "units": value["units"],
-    })
-
-
-def _rebind_capability(
-    capability: object, binding: dict[str, str] | None = None
-) -> object:
-    _require_issued(capability, _GateCapability, "capability is not validator-issued")
-    if capability._pid != os.getpid():
-        raise ValueError("capability cannot cross a process boundary")
-    candidate = dict(capability._binding) if binding is None else _validate_binding(binding)
-    if (
-        candidate != dict(capability._binding)
-        or canonical_sha256(candidate) != capability._binding_sha256
-    ):
-        raise ValueError("capability binding changed")
-    return capability
-
-
-def _effect_claim_root(repo: Path) -> Path:
-    result = subprocess.run(
-        ["git", "-C", str(repo), "rev-parse", "--git-common-dir"],
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-    if result.returncode:
-        raise ValueError("effect claims require a Git repository")
-    raw = Path(result.stdout.strip())
-    common = raw if raw.is_absolute() else repo / raw
-    root = common.resolve() / "happycodex" / "effect-claims" / "v6"
-    try:
-        mode = root.lstat().st_mode
+        mode = candidate.lstat().st_mode
     except FileNotFoundError as exc:
-        raise ValueError("effect claim namespace must be prepared by the host") from exc
-    if stat.S_ISLNK(mode) or not stat.S_ISDIR(mode) or stat.S_IMODE(mode) != 0o700:
-        raise ValueError("effect claim namespace must be a private real directory")
-    return root
+        raise ValueError(f"{label} must already exist") from exc
+    if (
+        stat.S_ISLNK(mode)
+        or not stat.S_ISDIR(mode)
+        or stat.S_IMODE(mode) != 0o700
+        or candidate.resolve() != candidate
+    ):
+        raise ValueError(f"{label} must be a private real directory")
+    return candidate
 
 
-def _claim_file(root: Path, key: str) -> None:
-    if _CLAIM_KEY.fullmatch(key) is None:
-        raise ValueError("invalid effect claim key")
-    kind, digest = key.split("-", 1)
-    payload = {"schema_version": 1, "kind": kind, "digest": digest}
-    mode = root.lstat().st_mode
-    if stat.S_ISLNK(mode) or not stat.S_ISDIR(mode) or stat.S_IMODE(mode) != 0o700:
-        raise ValueError("invalid effect claim namespace")
-    path = root / key
-    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
-    flags |= getattr(os, "O_NOFOLLOW", 0)
-    descriptor = os.open(path, flags, 0o600)
+def _expand(value: str, unit: str) -> str:
+    return value.replace("{unit}", unit)
+
+
+def build_effect_intent(plan: dict[str, Any], unit: str) -> dict[str, Any]:
+    """Build audit-bound effect content; this object grants no permission."""
+    plan = validate_gate_plan(plan)
+    if unit not in plan["units"]:
+        raise ValueError("EffectIntent unit is outside GatePlan")
+    profile = plan["profile"]
+    invocation = {
+        "argv": [_expand(item, unit) for item in profile["argv"]],
+        "cwd": _expand(profile["cwd"], unit),
+        "env": {
+            key: _expand(value, unit)
+            for key, value in sorted(profile["env"].items())
+        },
+        "timeout_ms": profile["timeout_ms"],
+        "model": profile["model"],
+        "effort": profile["effort"],
+        "arm": profile["arm"],
+    }
+    output = str((Path(plan["output"]) / unit).absolute())
+    payload = {
+        "schema_version": 1,
+        "candidate_sha256": plan["candidate_sha256"],
+        "plan_sha256": plan["plan_sha256"],
+        "gate": plan["gate"],
+        "unit": unit,
+        "invocation": invocation,
+        "cost_ceiling": dict(plan["cost_ceiling"]),
+        "units": list(plan["units"]),
+        "resource_digests": list(plan["resource_digests"]),
+        "output": output,
+        "approval_content_sha256": plan["approval_content_sha256"],
+    }
+    payload["intent_digest"] = canonical_sha256(payload)
+    return validate_effect_intent(payload)
+
+
+def validate_effect_intent(
+    value: Any,
+    *,
+    plan: dict[str, Any] | None = None,
+    unit: str | None = None,
+    argv: list[str] | None = None,
+    cwd: Path | None = None,
+    env: dict[str, str] | None = None,
+    timeout_ms: int | None = None,
+    output: Path | None = None,
+) -> dict[str, Any]:
+    if not isinstance(value, dict) or set(value) != _INTENT_FIELDS:
+        raise ValueError("invalid EffectIntent fields")
+    if value["schema_version"] != 1:
+        raise ValueError("invalid EffectIntent schema")
+    for field in (
+        "candidate_sha256",
+        "plan_sha256",
+        "approval_content_sha256",
+        "intent_digest",
+    ):
+        _digest(value[field], f"EffectIntent {field}")
+    if type(value["gate"]) is not str or value["gate"] not in GATE_ORDER:
+        raise ValueError("invalid EffectIntent gate")
+    if type(value["unit"]) is not str or not value["unit"]:
+        raise ValueError("invalid EffectIntent unit")
+    invocation = value["invocation"]
+    if not isinstance(invocation, dict) or set(invocation) != _INVOCATION_FIELDS:
+        raise ValueError("invalid EffectIntent invocation")
+    if (
+        not isinstance(invocation["argv"], list)
+        or not invocation["argv"]
+        or any(type(item) is not str or not item for item in invocation["argv"])
+        or type(invocation["cwd"]) is not str
+        or not Path(invocation["cwd"]).is_absolute()
+        or not isinstance(invocation["env"], dict)
+        or any(type(key) is not str or type(item) is not str
+               for key, item in invocation["env"].items())
+        or type(invocation["timeout_ms"]) is not int
+        or invocation["timeout_ms"] <= 0
+    ):
+        raise ValueError("invalid EffectIntent invocation")
+    if (
+        not isinstance(value["cost_ceiling"], dict)
+        or set(value["cost_ceiling"]) != _USAGE_FIELDS
+        or any(type(item) is not int or item < 0
+               for item in value["cost_ceiling"].values())
+    ):
+        raise ValueError("invalid EffectIntent cost ceiling")
+    if (
+        not isinstance(value["units"], list)
+        or value["units"] != sorted(set(value["units"]))
+        or value["unit"] not in value["units"]
+        or not isinstance(value["resource_digests"], list)
+        or value["resource_digests"] != sorted(set(value["resource_digests"]))
+    ):
+        raise ValueError("invalid EffectIntent units or resources")
+    for digest in value["resource_digests"]:
+        _digest(digest, "EffectIntent resource")
+    output_path = Path(str(value["output"]))
+    if not output_path.is_absolute():
+        raise ValueError("EffectIntent output must be absolute")
+    payload = dict(value)
+    seal = payload.pop("intent_digest")
+    if seal != canonical_sha256(payload):
+        raise ValueError("EffectIntent content changed")
+    if plan is not None and value != build_effect_intent(plan, value["unit"]):
+        raise ValueError("EffectIntent does not match GatePlan")
+    checks = (
+        (unit, value["unit"], "unit"),
+        (argv, invocation["argv"], "argv"),
+        (str(cwd) if cwd is not None else None, invocation["cwd"], "cwd"),
+        (env, invocation["env"], "env"),
+        (timeout_ms, invocation["timeout_ms"], "timeout"),
+        (str(output) if output is not None else None, value["output"], "output"),
+    )
+    for expected, actual, label in checks:
+        if expected is not None and expected != actual:
+            raise ValueError(f"EffectIntent {label} drift")
+    return value
+
+
+def _output_preflight(path: Path) -> tuple[Path, Path]:
+    output = path.absolute()
+    if output != Path(os.path.abspath(output)) or ".." in output.parts:
+        raise ValueError("EffectIntent output path drift")
+    if output.exists() or output.is_symlink():
+        raise ValueError("EffectIntent output must be absent")
+    base = output.parent
+    if base.exists():
+        _real_private_directory(base, "EffectIntent output parent")
+        return base, output
+    grandparent = _real_private_directory(
+        base.parent,
+        "EffectIntent output grandparent",
+    )
+    if base.parent != grandparent:
+        raise ValueError("EffectIntent output parent alias")
+    return base, output
+
+
+def _consumption_path(intent: dict[str, Any], claim_root: Path) -> Path:
+    digest = canonical_sha256(
+        {"intent_digest": intent["intent_digest"], "unit": intent["unit"]}
+    )
+    return claim_root / f"effect-{digest}"
+
+
+def reserve_effect(
+    intent: dict[str, Any],
+    claim_root: Path,
+    *,
+    plan: dict[str, Any] | None = None,
+) -> dict[str, str]:
+    """Consume one intent+unit and create its absent output before any runner."""
+    intent = validate_effect_intent(intent, plan=plan)
+    root = _real_private_directory(claim_root, "effect claim root")
+    base, output = _output_preflight(Path(intent["output"]))
+    claim = _consumption_path(intent, root)
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
+    descriptor = os.open(claim, flags, 0o600)
     try:
-        data = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode() + b"\n"
+        data = (
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "intent_digest": intent["intent_digest"],
+                    "unit": intent["unit"],
+                },
+                sort_keys=True,
+                separators=(",", ":"),
+            ).encode()
+            + b"\n"
+        )
         os.write(descriptor, data)
         os.fsync(descriptor)
     finally:
         os.close(descriptor)
-    directory = os.open(root, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
+    if not base.exists():
+        os.mkdir(base, 0o700)
+    descriptor = os.open(
+        base,
+        os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0),
+    )
     try:
-        os.fsync(directory)
+        os.mkdir(output.name, 0o700, dir_fd=descriptor)
+    except FileExistsError as exc:
+        raise ValueError("EffectIntent output collision after consumption") from exc
     finally:
-        os.close(directory)
+        os.close(descriptor)
+    return {
+        "intent_digest": intent["intent_digest"],
+        "unit": intent["unit"],
+        "claim": str(claim),
+        "output": str(output),
+    }
 
 
-class _ClaimedCapability(_Sealed):
-    __slots__ = ("_gate", "_root", "_seal")
-
-    def descriptor(self) -> dict[str, object]:
-        _require_claimed(self)
-        return self._gate.descriptor()
-
-
-class _UnitCapability(_Sealed):
-    __slots__ = ("_claimed", "_unit", "_seal")
-
-
-class _PhaseProof(_Sealed):
-    __slots__ = ("_unit", "_argv", "_cwd", "_env", "_timeout", "_nonce", "_seal")
-
-
-class _PreflightCapability(_Sealed):
-    __slots__ = ("_gate", "_seal")
-
-
-def _preflight_effect(
-    capability: object,
-    *,
-    gate: str,
-    output: Path,
-    units: list[str],
-    model: str,
-    effort: str,
-    timeout_ms: int,
-    arm: str,
-) -> object:
-    value = _rebind_capability(capability)
-    plan, profile = value._plan, value._plan["profile"]
+def write_effect_result(
+    intent: dict[str, Any],
+    claim_root: Path,
+    result: dict[str, Any],
+) -> str:
+    intent = validate_effect_intent(intent)
+    root = _real_private_directory(claim_root, "effect claim root")
+    claim = _consumption_path(intent, root)
+    if claim.is_symlink() or not claim.is_file():
+        raise ValueError("EffectIntent unit is not durably consumed")
+    output = _real_private_directory(Path(intent["output"]), "effect output")
+    if not isinstance(result, dict) or set(result) != _RESULT_FIELDS:
+        raise ValueError("invalid immutable effect result")
     if (
-        plan["gate"] != gate
-        or plan["output"] != str(output.resolve())
-        or plan["units"] != units
-        or profile["model"] != model
-        or profile["effort"] != effort
-        or profile["timeout_ms"] != timeout_ms
-        or profile["arm"] != arm
+        result["schema_version"] != 1
+        or result["intent_digest"] != intent["intent_digest"]
+        or result["unit"] != intent["unit"]
+        or result["status"] not in {"succeeded", "failed"}
+        or not isinstance(result["usage"], dict)
+        or set(result["usage"]) != _USAGE_FIELDS
     ):
-        raise ValueError("persisted plan or invocation preflight mismatch")
-    result = object.__new__(_PreflightCapability)
-    result._gate, result._seal = value, _CAPABILITY_SEAL
-    return result
-
-
-def _effect_claim_specs(capability: object) -> list[tuple[str, str]]:
-    _require_issued(capability, _PreflightCapability, "preflight capability is required")
-    gate = _rebind_capability(capability._gate)
-    return [
-        ("authority", gate.authority_sha256),
-        ("attempt", gate._attempt_key),
-        *(("resource", digest) for digest in gate._plan["resource_digests"]),
-        ("output", canonical_sha256({"output": gate._plan["output"]})),
-    ]
-
-
-def _claim_effect_set(capability: object) -> object:
-    _require_issued(capability, _PreflightCapability, "preflight capability is required")
-    gate = _rebind_capability(capability._gate)
-    root = _effect_claim_root(Path(gate._plan["repo"]))
-    claims = _effect_claim_specs(capability)
-    _claim_set(root, claims)
-    claimed = object.__new__(_ClaimedCapability)
-    claimed._gate, claimed._root, claimed._seal = gate, root, _CAPABILITY_SEAL
-    return claimed
-
-
-def _claim_set(root: Path, claims: list[tuple[str, str]]) -> None:
-    directory = os.open(root, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
+        raise ValueError("effect result does not bind intent")
+    _digest(result["output_sha256"], "effect output", nullable=True)
+    _digest(result["result_sha256"], "effect result")
+    payload = dict(result)
+    seal = payload.pop("result_sha256")
+    if result["result_sha256"] != canonical_sha256(payload):
+        raise ValueError("effect result seal is invalid")
+    for field, ceiling in intent["cost_ceiling"].items():
+        actual = result["usage"].get(field)
+        if type(actual) is not int or actual < 0 or actual > ceiling:
+            raise ValueError("effect result exceeds cost ceiling")
+    path = output / "result.json"
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
+    descriptor = os.open(path, flags, 0o600)
     try:
-        fcntl.flock(directory, fcntl.LOCK_EX)
-        if any((root / f"{kind}-{digest}").exists() for kind, digest in claims):
-            raise FileExistsError("effect claim set collides")
-        for kind, digest in claims:
-            _claim_file(root, f"{kind}-{digest}")
+        data = json.dumps(result, sort_keys=True, indent=2).encode() + b"\n"
+        os.write(descriptor, data)
+        os.fsync(descriptor)
     finally:
-        fcntl.flock(directory, fcntl.LOCK_UN)
-        os.close(directory)
+        os.close(descriptor)
+    return canonical_sha256(result)
 
 
-def _require_claimed(value: object) -> object:
-    _require_issued(value, _ClaimedCapability, "claimed capability is required")
-    _rebind_capability(value._gate)
-    return value
-
-
-def _claim_unit(claimed: object, unit_id: str) -> object:
-    value = _require_claimed(claimed)
-    if unit_id not in value._gate._plan["units"]:
-        raise ValueError("unit is outside persisted gate plan")
-    digest = canonical_sha256({
-        "gate": value._gate._plan["gate"],
-        "invocation_sha256": value._gate._plan["invocation_sha256"],
-        "unit": unit_id,
-    })
-    _claim_set(value._root, [("unit", digest)])
-    unit = object.__new__(_UnitCapability)
-    unit._claimed, unit._unit, unit._seal = value, unit_id, _CAPABILITY_SEAL
-    return unit
-
-
-def _claim_units(claimed: object, unit_ids: list[str]) -> dict[str, object]:
-    value = _require_claimed(claimed)
-    if unit_ids != sorted(set(unit_ids)) or unit_ids != value._gate._plan["units"]:
-        raise ValueError("units do not equal persisted gate plan")
-    specs = {
-        unit: canonical_sha256({
-            "gate": value._gate._plan["gate"],
-            "invocation_sha256": value._gate._plan["invocation_sha256"],
-            "unit": unit,
-        }) for unit in unit_ids
-    }
-    _claim_set(value._root, [("unit", digest) for digest in specs.values()])
-    result = {}
-    for unit_id in unit_ids:
-        unit = object.__new__(_UnitCapability)
-        unit._claimed, unit._unit, unit._seal = value, unit_id, _CAPABILITY_SEAL
-        result[unit_id] = unit
-    return result
-
-
-def _require_unit_capability(value: object, unit_id: str) -> object:
-    _require_issued(value, _UnitCapability, "exact claimed unit capability is required")
-    if value._unit != unit_id:
-        raise ValueError("exact claimed unit capability is required")
-    _require_claimed(value._claimed)
-    return value
-
-
-def _issue_phase_proof(unit: object) -> object:
-    value = _require_unit_capability(unit, unit._unit if type(unit) is _UnitCapability else "")
-    template = value._claimed._gate._plan["template"]
-    argv = [item.replace("{unit}", value._unit) for item in template["argv"]]
-    cwd = Path(template["cwd"].replace("{unit}", value._unit)).resolve()
-    env = {
-        key: item.replace("{unit}", value._unit)
-        for key, item in template["env"].items()
-    }
-    payload = {
-        "unit": value._unit,
-        "argv": argv,
-        "cwd": str(cwd),
-        "env": dict(sorted(env.items())),
-        "timeout_ms": template["timeout_ms"],
-    }
-    digest = canonical_sha256(payload)
-    _claim_file(value._claimed._root, f"phase-{digest}")
-    proof = object.__new__(_PhaseProof)
-    proof._unit, proof._argv, proof._cwd = value, tuple(argv), cwd
-    proof._env = MappingProxyType(payload["env"])
-    proof._timeout = template["timeout_ms"] / 1000
-    proof._nonce, proof._seal = object(), _CAPABILITY_SEAL
-    return proof
-
-
-def _consume_phase_proof(value: object) -> tuple[list[str], Path, dict[str, str], int]:
-    _require_issued(value, _PhaseProof, "exact PID-bound phase proof is required")
-    _require_unit_capability(value._unit, value._unit._unit)
-    with _SPENT_PHASE_LOCK:
-        if value._nonce in _SPENT_PHASES:
-            raise ValueError("phase proof is spent")
-        _SPENT_PHASES.add(value._nonce)
-    return list(value._argv), value._cwd, dict(value._env), value._timeout
 def load_state() -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
     ledger = load_ledger(LEDGER_PATH)
-    settings = ledger["snapshot"]["settings"]
-    current = build_snapshot(
-        ROOT,
-        model=settings["model"],
-        effort=settings["effort"],
-        timeout=settings["timeout_seconds"],
-    )
-    return ledger, current, plan_impact(
-        ledger["snapshot"], current, pending=derive_pending(ledger)
-    )
+    current = build_snapshot(ROOT)
+    if ledger["candidate"] is None:
+        pending = {
+            "gates": list(GATE_ORDER),
+            "corpus_cases": sorted(current["corpus"]["cases"]),
+            "holdout_pairs": sorted(current["holdout"]["pairs"]),
+        }
+        impact = plan_impact(current, current, pending=pending)
+    else:
+        impact = {
+            "schema_version": 1,
+            "reasons": ["persisted_candidate"],
+            "gates": derive_pending(ledger)["gates"],
+            "corpus_cases": derive_pending(ledger)["corpus_cases"],
+            "holdout_pairs": derive_pending(ledger)["holdout_pairs"],
+            "live_calls": None,
+            "cost": None,
+        }
+    return ledger, current, impact
+
+
+def derived_release_state(ledger: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "state": derive_status(ledger),
+        "pending_gates": derive_pending(ledger)["gates"],
+        "coverage": derive_coverage(ledger),
+        "receipt_tip": derive_receipt_tip(ledger),
+        "freeze_eligibility": derive_freeze_eligibility(ledger),
+        "failed": derive_failed(ledger),
+        "certified": derive_certified(ledger),
+    }
+
+
+__all__ = (
+    "LEDGER_PATH",
+    "ROOT",
+    "build_effect_intent",
+    "derived_release_state",
+    "load_state",
+    "reserve_effect",
+    "validate_effect_intent",
+    "write_effect_result",
+)
