@@ -156,6 +156,7 @@ evaluation/protocol.py
 evaluation/corpus/engine.py
 evaluation/core/receipt.py
 evaluation/core/identity.py
+evaluation/live.py
 evaluation/semantic/__init__.py              delete
 evaluation/semantic/types.py                 delete
 evaluation/semantic/canonical.py             delete
@@ -176,6 +177,15 @@ modules and their internal-structure tests. Preserve all 17 corpus fixtures and
 behavioral assertions. Acceptance requires no import of `evaluation.semantic`,
 no public generic controller types, Runtime at most 262 lines and preferably
 2,200 words with 2,400 hard, exact fixture inventory, and full offline GREEN.
+
+Derived consumer inventory is source-bound: Root reproduction plus the exact
+production import search found only `evaluation/corpus/engine.py`,
+`evaluation/core/receipt.py`, and `evaluation/live.py` outside the semantic
+package; `evaluation/live.py:22` was the omitted Batch 1 consumer. Batch 1 owns
+that file only to remove its semantic import and adapt the call site to the
+direct protocol interface or a non-controller content-binding seam. Deleting
+`TrustedHostContext`, the capability/claim/phase ladder, and changing any effect
+behavior remain exclusively Batch 2 work.
 
 ### Batch 2 — Effect and release persistence
 
