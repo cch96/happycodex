@@ -222,6 +222,7 @@ Owned paths:
 ```text
 evaluation/live.py
 evaluation/cli.py
+evaluation/protocol.py
 evaluation/core/impact.py
 evaluation/core/ledger.py
 evaluation/core/receipt.py
@@ -237,6 +238,14 @@ tests/test_evaluation.py
 tests/test_holdouts.py
 docs/execplans/happycodex-0-6-bounded-redesign.md
 ```
+
+Batch 2 removes production legacy phase, gate, repair-batch, and recurrence
+values—including `implementation`, `focused_hardening`, `family_hardening`, and
+`boundary_repair`—from `evaluation/protocol.py`, the shared schema, and the
+fresh current ledger. Historical fixture prose may retain those terms only as
+corpus or holdout input when still behaviorally required; it is never protocol,
+schema, or ledger state. This inventory adds no case JSON paths and does not
+move `evaluation/holdout/compare.py`.
 
 Batch 2 must delete `ARCHIVED_MODULE_CATEGORIES` immediately after replacing
 `current.json` with the fresh candidate/plan/receipt genesis. Acceptance must
