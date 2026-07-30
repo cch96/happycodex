@@ -5,18 +5,20 @@ Protocol: `HappyCodex/0.5`
 ## Checkpoint and exact authority
 
 This plan is the durable current index for the 0.6 contraction. The accepted
-release source is `S_release` commit
+checkpoint is commit `594c252a5fbda0d39e6eef4a813eed1d50bc060f`, tree
+`203b307b1c1117dc5b905e27d4faddc49dc29197`, on branch
+`codex/happycodex-0.6-bounded-redesign`. Its source is `S_release`
 `b3b79dca1cb3c990ad0c849172ea24aed8c3cab9`, tree
-`20d039576d27d3ca927c0ade702131290eae948f`, on branch
-`codex/happycodex-0.6-bounded-redesign`. Its plugin version is
-`0.6.0+codex.20260730115707`; its accepted offline baseline is 163/163 GREEN.
+`20d039576d27d3ca927c0ade702131290eae948f`, version
+`0.6.0+codex.20260730115707`.
 
-The fresh generation-6 ledger now contains exactly one `ReleaseCandidate`, no
-plans, and no receipts. Its canonical ledger SHA-256 is
-`6074d0d09626150da6e46451c28b693bae59f7d3553f5edffe1cd31c03a542ef`;
-it derives `refresh_required`, empty coverage and failures, and the six pending
-gates `calibration`, `corpus`, `holdout`, `receipt`, `review`, and
-`isolated_install`. It stores no derived state, live authority, or evidence.
+The generation-6 ledger contains exactly one `ReleaseCandidate`, one
+`calibration` `GatePlan`, and no receipts. Its canonical SHA-256 is
+`c28cbecfcb4d24ade3f7552f09507375961dbfdfd720f6b816801d647a5e2f09`
+and file SHA-256 is
+`384fdaef79814779b7c6f0dc45a7e69f4d33b060b3304a76ba760fa2837fa48f`.
+It still derives `refresh_required`, empty coverage/failures, and all six
+pending gates; it stores no derived state, live authority, or evidence.
 
 Root reads, decides, grants, and verifies. Fixed Executor
 `/root/bounded_redesign_executor`, role `happycodex_executor`,
@@ -26,18 +28,13 @@ Root reads, decides, grants, and verifies. Fixed Executor
 binds this worktree, ref, and plan. It stays held. No replacement writer,
 delegation, merge, cherry-pick, or cross-task grant is allowed.
 
-Grant `HC06BR-G-027-fresh-release-candidate-reanchor` authorizes only
-`evaluation/results/current.json` and this ExecPlan. Its mode-`0600` private
-intent SHA-256 is
-`6e715b4aa232382434ac38459e2d93a4d0b9fe39b86d37f3f428d80b531eb70b`.
-Same-batch correction `HC06BR-G-027R-active-candidate-test`, addendum intent
-SHA-256
-`fdbcd9e57c2ed64a85880a4d67b869c703672170681952698233abc1659c95a7`,
-adds only `tests/test_certification_engine.py`. Together they permit one
-candidate append, one exact active-ledger test correction, and one direct-child
-commit from `S_release`; they permit no plan, receipt, plugin, production,
-external configuration, installation, model, live, publication, activation,
-branch/main, or claim-release effect.
+Grant `HC06BR-G-028B-global-config-contraction` is preparation-only. Its
+mode-`0600` intent SHA-256 is
+`07f65d49de826ae7d68a6e7a04f321edccffd2b4341e3927957c86b8fae2283d`.
+It authorizes only the ledger, this index, the exact active-ledger test
+correction, and two private directories described below. It grants no model,
+live, receipt, install, publication, activation, configuration, plugin,
+marketplace, cache, branch/main, push/tag, or claim-release effect.
 
 ## Frozen normalized Outcome
 
@@ -121,89 +118,22 @@ evaluator, role, public, case, and holdout identities; corpus, adaptive
 holdout, exact-final review, install, publication, activation, recovery, and
 rollback. It routes risk; it is not a checklist that manufactures completion.
 
-## Accepted implementation batches
+## Accepted implementation
 
-### Batch 1 — Runtime and direct protocol
+Batch 1 established the four-phase Runtime and direct terminal protocol. Batch 2
+established the three release records, one `EffectIntent` route, atomic
+consumption/output, prior-Git transitions, derived state, and adaptive holdout.
+Batch 3 replaced evaluator subsets with one closed sixteen-module inventory and
+manifest, retained all 17 corpus cases and three holdout pairs, and removed
+wording/formatting proxies for behavior. Runtime/template remain 235 lines and
+1,689 words; the accepted offline suite is 163 tests.
 
-Batch 1 established the four-phase Runtime, one obligations/evidence table, and
-strict direct terminal validation. Corpus, receipt, and live consumers moved
-before the generic semantic package and its construction tests were deleted.
-All 17 corpus fixtures remained. The accepted repair made already-clean
-temporary repositories produce a distinct successor commit without recreating
-deleted code. Runtime and template are 235 lines and 1,689 words. The accepted
-full suite was 221 tests GREEN.
-
-### Batch 2 — Effects and release persistence
-
-Batch 2 replaced legacy effect/release bookkeeping with the three release
-records and one `EffectIntent` route. It added a real CLI ledger transition and
-fixed calibration route, atomic collision/no-follow protections, strict Git
-and snapshot binding, derived status, and fresh empty genesis. Follow-up
-repairs closed empty-success, aliased-ledger, dispatch-drift, model-scope, and
-adaptive-holdout false greens. Accepted commit is
-`87401b512032ec8cccd134f51d6bb7c56f6e8ea9`; the final accepted suite was 163
-tests GREEN. Verify and all four dry-run routes remained zero-live.
-
-## Batch 3 — Identity, documentation, deletion proof
-
-Batch 3 replaces evaluator classification/subset identity with one exact closed
-inventory and manifest. It preserves Git/package/evaluator/role/public/case/
-holdout/invocation identities and all Batch 2 safety. It removes structural
-minimums, phrase/heading checks, and prose-based controller assertions while
-retaining Runtime/package budgets and forbidden-link checks.
-
-Behavioral acceptance proves exactly three record types, no stored derived
-state, at most four lifecycle phases, one effect-intent route, conservative full
-invalidation, unknown-input refusal, and zero dry-run effects. READMEs describe
-real Host authority, audit-only repository bindings, and distinct gates.
-
-The accepted Batch 3 line is `da5877727e3a595a9fe691c8936dcabaed5ae564`
-followed by recovery contraction
-`2313e47f9c1485dedefe256bccb7af32c6551edf` and cross-binding
-`183c91106260cca297f30ef344b457d8258c2afc`. Recovery Manifest now retains
-only repositories, exact claim, one safe ref or content-addressed archive,
-writer, tests, ordered reproduced agents, and ordered gates. Manifest writer,
-test counters, agents, and gates directly equal their recovery-oracle
-counterparts; schema and canonical marker validation remain separate. The
-post-commit checkpoint ran 163/163 GREEN, output SHA-256
-`b4c69132f802490500cb8c8558b0c5ecc8d3420f172bd13e755ee2f96508b0a7`.
-Verify, expected-exit-2 impact, and all four dry runs matched expected exits;
-every dry run reported nine zero effect counters.
-
-The closed inventory has sixteen declared Python modules plus fixed and dynamic
-JSON inputs. Discovery compares the real evaluator tree to that set: an
-unlisted Python module, an unknown JSON document, or a missing declared input
-refuses identity construction. Result/evidence outputs are the only deliberate
-JSON exclusions. Each manifest entry contains path, byte count, and content
-digest; the canonical payload produces one manifest digest. No per-subsystem
-selection survives.
-
-Snapshot validation requires the exact three settings and the single evaluator
-digest. Every corpus and blinded-pair semantic input binds that same bundle.
-Impact planning remains selective for changed case identities or package
-artifact-only install impact, but bundle drift is deliberately conservative:
-all 17 corpus cases, all three holdout pairs, corpus, holdout, and receipt are
-required. Model/effort/timeout drift also reruns both quality gates. A live
-corpus invocation resolves Codex internally, hashes the executable bytes,
-captures the reported version, and binds that digest into the profile without
-serializing the resolved path.
-
-The deletion proof is behavioral. Schema enumeration fixes the four accepted
-lifecycle phases. Ledger tests validate and transition only candidate, plan,
-and receipt records, then recompute all status projections. Authorized corpus
-and holdout entrypoints expose only arguments, exact intent mapping, and claim
-root. Real CLI tests append through predecessor comparison and exercise all
-dry-run routes with zero effect counters. Runtime tests retain the shipped
-surface, combined line/word ceiling, forbidden evaluator links, and hidden-file
-detection, while no longer treating exact sentences, headings, table rows,
-source formatting, or individual file length as protocol behavior.
-
-Documentation must stay aligned with those executable boundaries. In
-particular, it cannot claim that repository content proves Host provenance,
-that a persisted approval is permission, or that one completed quality gate
-authorizes another. The final audit therefore compares README claims against
-the callable entrypoints, ledger fields, gate order, and sanitized receipt
-shape rather than accepting prose alone.
+The recovery manifest binds repositories, claim, safe ref or archive, writer,
+tests, agents, and ordered gates. Schema enumeration fixes four lifecycle
+phases. Ledger and CLI tests exercise candidate/plan/receipt appends, exact
+identities, successor comparison, and zero-effect dry runs. Unknown Python/JSON
+evaluator inputs, aliased ledgers, package drift, and false success fail closed.
+Repository content never claims Host provenance or permission.
 
 ## Bounded release-source preparation
 
@@ -213,8 +143,6 @@ shape rather than accepting prose alone.
 external prestate bytes remain:
 
 ```text
-~/.codex/config.toml
-575ececef691e8c3cc18e20ba40c648ce17d1b3a5a3cb9b02750e914e8f5344a
 ~/.agents/plugins/marketplace.json
 752de5a68116a69025e6ac46e32e8e0a7512cf8e2f87078d53b719c4362dcbfe
 ~/.codex/agents/happycodex_executor.toml
@@ -226,9 +154,8 @@ d98fac1a0fe1bcc3071eac89b7246bfeb59fb85a7040417d50d07c58d74d1275
 ```
 
 The active source and loaded-cache manifests remain byte-identical to each other
-and unchanged. The `config.toml` digest is transaction prestate, not the
-repository `evaluation/executor-role.json` digest. Any later calibration or
-install grant must separately bind the then-current external Executor config.
+and unchanged. Calibration separately binds the external Executor TOML, not
+ambient auto-maintained global configuration.
 
 ### Fresh reanchor — one candidate only
 
@@ -260,19 +187,11 @@ The private input was mode `0600`, SHA-256
 `fd0931ccc75608aea22c232ee2400e9243ba77f1e046ba200d19ccc6c34e3914`.
 The canonical genesis predecessor was
 `09fd486ca4b12699ef42c94e596d584b3ad527aa7ea3054dc0a7a2d674b34ebe`.
-The CLI append succeeded exactly once. Before commit, the ordinary verifier
-must fail closed because the worktree ledger differs from prior Git, while the
-direct repository-aware validator must pass. Commit only the ledger, this plan,
-and the exact active-ledger test correction as a direct child of `S_release`;
-after commit, the ordinary verifier and all zero-live checks must pass.
-
-The first full precommit run was 162/163 because the active-ledger test still
-required the empty genesis after this authorized append. Isolated genesis,
-apply, stale-predecessor, successor, schema, and archive tests already retain
-genesis semantics. The corrected active-ledger test now uses repository-aware
-validation and asserts one typed candidate, zero plans/receipts,
-`refresh_required`, the exact six pending gates, and empty coverage/failures.
-Its focused run and the full 163-test suite are GREEN.
+That historical CLI append produced the accepted candidate-only reanchor
+checkpoint as a direct child of `S_release`; its repository-aware validation,
+ordinary postcommit verification, and 163-test suite passed. The current
+active ledger has advanced to the exact one-plan state below, so the old
+zero-plan checkpoint is not a current-state assertion.
 
 Calibration, corpus, adaptive holdout, artifact receipt, exact-final review,
 and isolated install each remain separate later authority gates. This reanchor
@@ -280,6 +199,84 @@ forbids model/provider calls, Executor pilot, live corpus or holdout,
 exact-final review, install or reinstall, `codex plugin add`,
 marketplace/cache/config mutation, publication, push, tag, release, activation,
 claim release, and main/worktree switching.
+
+## Calibration plan preparation
+
+G028A stopped with an uncommitted plan after irrelevant global-config drift.
+G028B restored the exact Git predecessor through `apply_patch`, invalidated
+that attempt, and appended the corrected plan once through the CLI. This is two
+operational applies across stopped attempts but exactly one final append
+relative to Git. The canonical predecessor is
+`6074d0d09626150da6e46451c28b693bae59f7d3553f5edffe1cd31c03a542ef`.
+Corrected plan SHA-256 is
+`bc359f594b933a72272e91cd91286bea65f0e91a98c4200ca5435479f9b8c678`.
+The candidate and source identities are unchanged. The real private base and
+`calibration-claims` child below are mode `0700`; `calibration-output` remains
+absent:
+
+```text
+/home/caichenghang/.codex/happycodex-0.6-calibration-d5e64387acdadfc2cacff8a63be2f0fa237f0bbff4e020fabc6485f9ac9f4665
+/home/caichenghang/.codex/happycodex-0.6-calibration-d5e64387acdadfc2cacff8a63be2f0fa237f0bbff4e020fabc6485f9ac9f4665/calibration-claims
+```
+
+The exact profile SHA-256 is
+`72870436ea09ca1458a9f9da0fbcca128cb24226890eee3cf0092bba3aeca8de`.
+It binds `gpt-5.6-sol`, `high`, `300000` ms, arm `candidate`, this absolute
+worktree, and only `PYTHONDONTWRITEBYTECODE=1`. Its persisted argv is
+`python3 -c <script>` followed by exactly `corpus --calibrate --plugin
+<worktree> --output <base>/calibration-output --model gpt-5.6-sol --effort high
+--timeout 300 --arm candidate`. The script rejects any other argv, parses with
+the repository parser, loads the current ledger, requires its sole plan to be
+the candidate-bound calibration plan with no receipts, builds every unit via
+`evaluation.live.build_effect_intent`, and calls
+`evaluation.cli.run_authorized` with the exact claims root. It contains no plan
+or request digest and creates no authority or provenance.
+
+The compact labeled resource-bundle canonical preimage is:
+
+```json
+{"candidate":{"candidate_sha256":"d5e64387acdadfc2cacff8a63be2f0fa237f0bbff4e020fabc6485f9ac9f4665","engine_manifest_sha256":"6ad3f01334725c83cc031ad9a9abfadf4922d62143e160e7defa4d37cf22a10a","executor_role_sha256":"f1effcc84e7ed24f6d54c972e2e412db42a3e46a6d92565e6d61b358128305da","package_artifact_sha256":"4e2b300bfc7c49c4eccad46a198e79f15c28680f2e4e6f041fabcc995ad3621e","package_semantic_sha256":"9cd5a507a8a9561c8af6751917b430b1cb29c238810b7c32bcff15c39044965a","snapshot_sha256":"e1f67f2bfcf1470a1c181a7e54fd4e318456c0dab2861a1b7e76d7443dba50fd","source_commit":"b3b79dca1cb3c990ad0c849172ea24aed8c3cab9","source_tree":"20d039576d27d3ca927c0ade702131290eae948f"},"codex":{"binary_sha256":"cb5e8cb8a333a408ce6adbe0d4fad1845c69772c2216af7c1f88c98a11460dc6","version":"codex-cli 0.146.0"},"external":{"executor_toml_sha256":"d98fac1a0fe1bcc3071eac89b7246bfeb59fb85a7040417d50d07c58d74d1275"},"host_route":"evaluation.cli.run_authorized","paths":{"claim_root":"/home/caichenghang/.codex/happycodex-0.6-calibration-d5e64387acdadfc2cacff8a63be2f0fa237f0bbff4e020fabc6485f9ac9f4665/calibration-claims","output_root":"/home/caichenghang/.codex/happycodex-0.6-calibration-d5e64387acdadfc2cacff8a63be2f0fa237f0bbff4e020fabc6485f9ac9f4665/calibration-output"},"profile_sha256":"72870436ea09ca1458a9f9da0fbcca128cb24226890eee3cf0092bba3aeca8de","resource_bundle_type":"happycodex-0.6-calibration","schema_version":1,"unit":{"case_id":"subthreshold-control","semantic_input_sha256":"432ccf406316d95f9d122b9bb0602043cd64b1be6d541f01d9f9aba58df59c8d","snapshot_case_sha256":"d919711682049ce81f21649645fcc341dc34d0abda876a0a3c0fdc25e0e52d9d"}}
+```
+
+Its canonical SHA-256 is
+`52541eef74610840c9f693b4e8de7c729569812eb5830044a47dca88d24ec85a`,
+the plan's sole `resource_digests` member. Whole or selected models-cache and
+global-config identities are deliberately excluded because neither is an
+execution input. The global config was observed moving from SHA-256
+`575ececef691e8c3cc18e20ba40c648ce17d1b3a5a3cb9b02750e914e8f5344a`
+to `16a563c40cffbf8b4504e896e5a02ead63b639a09c30e70a35df2f59f0ca5eb0`
+externally and was not modified here. The non-authoritative model rationale is
+`272000` context, `272000` maximum, and `95%` effective. Recovery must not
+reintroduce either whole-file binding. The repository enforces no internal
+provider-turn or token cutoff; the external Executor TOML remains bound.
+
+The exact canonical approval-request object is:
+
+```json
+{"allowed_effects":["one isolated temporary repository, home, and package install","one subthreshold-control Codex execution phase","external output, effect claim, and result artifacts under the bound roots"],"candidate_sha256":"d5e64387acdadfc2cacff8a63be2f0fa237f0bbff4e020fabc6485f9ac9f4665","cost_ceiling":{"model_calls":1,"output_tokens":100000,"uncached_input_tokens":1000000,"wall_milliseconds":360000},"cost_semantics":{"acceptance_limits":"token and wall ceilings are conservative post-run receipt acceptance limits, not an in-flight billing cutoff","historical_basis":"no accepted generation-6 historical cost exists","model_calls":"one external Codex execution phase, not internal provider turns","preemptive_bound":"the 300-second subprocess timeout is the only preemptive cost bound"},"exclusions":["all other live gates","active config, plugin, marketplace, and cache mutation","publication and activation"],"gate":"calibration","profile_sha256":"72870436ea09ca1458a9f9da0fbcca128cb24226890eee3cf0092bba3aeca8de","request_type":"happycodex-0.6-calibration","resource_bundle_sha256":"52541eef74610840c9f693b4e8de7c729569812eb5830044a47dca88d24ec85a","schema_version":1,"unit":"subthreshold-control"}
+```
+
+Its SHA-256 is
+`44430bbff160bc4288f6d5a08ec99b78ac1082fb8e1851da0844393145e45014`.
+The only canonical future grant line, including one trailing LF, is:
+
+```text
+APPROVE HAPPYCODEX 0.6 CALIBRATION 44430bbff160bc4288f6d5a08ec99b78ac1082fb8e1851da0844393145e45014
+```
+
+Those exact UTF-8 bytes have SHA-256
+`c63f5b47a7a1d9126e6dd1dfbfb5559f66c870de6206b9d834a0b0b9a80a895c`.
+The plan and line are audit bindings, not permission. `model_calls=1` means one
+external Codex execution phase, not internal provider turns. The 300-second
+subprocess timeout is the only preemptive cost bound. The one-million uncached
+input, 100,000 output-token, and 360,000 ms ceilings are conservative post-run
+receipt acceptance limits, not in-flight billing cutoffs; generation 6 has no
+accepted historical cost.
+
+The expected active-state test RED was its obsolete zero-plans assertion. Its
+narrow replacement checks the sealed calibration plan, exact unit, no receipts,
+and unchanged derived state. Isolated genesis, append, successor, schema, and
+archive tests remain unchanged. No live dispatch occurred.
 
 ## Budgets and final checks
 
@@ -310,8 +307,7 @@ Dry runs must create no model call, intent, consumption, fixture, output,
 workspace, network call, or receipt. Unknown commands and evaluator inputs fail
 closed. The active ledger and plugin/market/config bytes must remain unchanged.
 
-After Batch 3 is committed and accepted, this amendment permits only a new,
-separately scoped candidate-source preparation and fresh reanchor. Live
-calibration, corpus, holdout, exact-final review, isolated install, publication,
-and activation still each require later exact authority. No prose, digest,
-intent, plan, claim, or successful offline test grants those effects.
+Live calibration, corpus, holdout, exact-final review, isolated install,
+publication, and activation still each require later exact authority. No prose,
+digest, intent, plan, claim, directory, or successful offline test grants those
+effects.

@@ -210,14 +210,22 @@ def _run_current_cli(*args: str, cwd: Path = ROOT) -> subprocess.CompletedProces
 
 
 class GenesisAndCliTests(unittest.TestCase):
-    def test_active_ledger_is_candidate_only_reanchor(self) -> None:
+    def test_active_ledger_has_exact_calibration_plan(self) -> None:
         active = json.loads(
             (ROOT / "evaluation/results/current.json").read_text(encoding="utf-8")
         )
         validate_ledger(active, repo=ROOT)
         self.assertIsNotNone(active["candidate"])
         self.assertEqual(active["candidate"]["record_type"], "ReleaseCandidate")
-        self.assertEqual(active["plans"], [])
+        self.assertEqual(len(active["plans"]), 1)
+        plan = active["plans"][0]
+        self.assertEqual(plan["record_type"], "GatePlan")
+        self.assertEqual(plan["gate"], "calibration")
+        self.assertEqual(plan["units"], ["subthreshold-control"])
+        self.assertEqual(
+            plan["plan_sha256"],
+            "bc359f594b933a72272e91cd91286bea65f0e91a98c4200ca5435479f9b8c678",
+        )
         self.assertEqual(active["receipts"], [])
         self.assertEqual(derive_status(active), "refresh_required")
         self.assertEqual(derive_pending(active)["gates"], list(GATE_ORDER))
