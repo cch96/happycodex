@@ -2137,7 +2137,7 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                 source_home.mkdir()
                 (source_home / "auth.json").write_text('{"test": true}\n')
                 home, env = runner.isolated_home(temp, source_home=source_home)
-                tool_bin = runner.prepare_native_tool_bin(temp)
+                tool_bin = temp / "bin"
                 probe = (
                     "from pathlib import Path; import subprocess; "
                     f"assert not Path({str(ROOT)!r}).exists(); "
@@ -2194,6 +2194,9 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             self.assertEqual(env["HOME"], str(parent / "user-home"))
             self.assertEqual(env["CODEX_HOME"], str(home))
             self.assertEqual(env["PATH"].split(os.pathsep)[0], str(parent / "bin"))
+            version = runner.run(["codex", "--version"], cwd=parent, env=env)
+            self.assertEqual(version.returncode, 0, version.stderr)
+            self.assertEqual(version.stdout.strip(), runner.codex_identity()["version"])
             copied_auth = home / "auth.json"
             self.assertFalse(copied_auth.is_symlink())
             self.assertEqual(copied_auth.read_text(), '{"test": true}\n')

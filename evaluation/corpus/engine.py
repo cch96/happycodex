@@ -826,13 +826,14 @@ def copy_plugin_package(
 def isolated_home(
     parent: Path, *, source_home: Path = SOURCE_CODEX_HOME
 ) -> tuple[Path, dict[str, str]]:
+    source_auth = source_home.resolve() / "auth.json"
+    if not source_auth.is_file():
+        raise RuntimeError(f"Codex auth unavailable at expected path: {source_auth}")
+    tool_bin = prepare_native_tool_bin(parent)
     home = parent / "codex-home"
     home.mkdir()
     user_home = parent / "user-home"
     user_home.mkdir()
-    source_auth = source_home.resolve() / "auth.json"
-    if not source_auth.is_file():
-        raise RuntimeError(f"Codex auth unavailable at expected path: {source_auth}")
     auth = home / "auth.json"
     shutil.copyfile(source_auth, auth)
     auth.chmod(0o600)
@@ -841,7 +842,7 @@ def isolated_home(
         env.pop(key, None)
     env["HOME"] = str(user_home)
     env["CODEX_HOME"] = str(home)
-    env["PATH"] = os.pathsep.join((str(parent / "bin"), *BASE_COMMAND_PATHS))
+    env["PATH"] = os.pathsep.join((str(tool_bin), *BASE_COMMAND_PATHS))
     return home, env
 
 
@@ -1641,6 +1642,7 @@ def evaluate_case(
             session_mode="fresh-with-bounded-resume" if native else "fresh",
         )
         home, env = isolated_home(temp)
+        tool_bin = temp / "bin"
         installation = install_plugin(package, home, env)
         schema = temp / "response-schema.json"
         schema.write_text(json.dumps(OUTPUT_SCHEMA), encoding="utf-8")
@@ -1652,7 +1654,7 @@ def evaluate_case(
             "-c",
             'approval_policy="never"',
             *permission_profile_args(
-                tool_bin=prepare_native_tool_bin(temp),
+                tool_bin=tool_bin,
                 user_home=temp / "user-home",
             ),
         ]
