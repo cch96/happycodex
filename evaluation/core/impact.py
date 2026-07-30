@@ -7,7 +7,6 @@ from typing import Any
 
 from evaluation.core.identity import (
     IdentityError,
-    CORPUS_SEMANTIC_PATHS,
     PUBLIC_02_ARM,
     PUBLIC_02_PACKAGE_ARTIFACT_SHA256,
     PUBLIC_02_PACKAGE_SEMANTIC_SHA256,
@@ -16,12 +15,9 @@ from evaluation.core.identity import (
     PUBLIC_02_SOURCE_TREE,
     canonical_sha256,
     case_semantic_sha256,
-    engine_category_sha256,
     engine_inventory,
-    engine_paths_sha256,
     executor_role_identity,
     package_identities,
-    toolchain_identity,
 )
 from evaluation.core.schema import CONTRACTS, validate_named
 
@@ -29,14 +25,6 @@ from evaluation.core.schema import CONTRACTS, validate_named
 DEFAULT_MODEL = "gpt-5.6-sol"
 DEFAULT_EFFORT = "high"
 DEFAULT_TIMEOUT = 300
-ENGINE_CATEGORY_FIELDS = {"semantic", "harness", "artifact"}
-ENGINE_SCOPE_FIELDS = {
-    "corpus_harness",
-    "corpus_semantic",
-    "holdout_harness",
-    "holdout_semantic",
-}
-TOOL_IDENTITY_FIELDS = {"path", "sha256", "version"}
 IMPACT_FIELDS = {
     "schema_version",
     "reasons",
@@ -46,23 +34,6 @@ IMPACT_FIELDS = {
     "live_calls",
     "cost",
 }
-CORPUS_HARNESS_PATHS = {
-    "evaluation/__init__.py",
-    "evaluation/cli.py",
-    "evaluation/live.py",
-    "evaluation/core/__init__.py",
-    "evaluation/core/identity.py",
-    "evaluation/core/impact.py",
-    "evaluation/core/ledger.py",
-    "evaluation/core/schema.py",
-    "evaluation/corpus/__init__.py",
-}
-HOLDOUT_HARNESS_PATHS = {
-    "evaluation/holdout/__init__.py",
-    "evaluation/holdout/blind.py",
-    "evaluation/holdout/engine.py",
-}
-HOLDOUT_SEMANTIC_PATHS = {"evaluation/holdout/compare.py"}
 GATE_ORDER = (
     "calibration",
     "corpus",
@@ -138,25 +109,17 @@ def build_snapshot(
 ) -> dict[str, Any]:
     root = root.resolve()
     inventory = engine_inventory(root)
-    harness = {
-        item["path"] for item in inventory["entries"] if item["category"] == "harness"
-    }
-    if harness != CORPUS_HARNESS_PATHS | HOLDOUT_HARNESS_PATHS:
-        raise IdentityError("harness scope inventory is incomplete")
     package = package_identities(root)
-    shared = engine_paths_sha256(inventory, CORPUS_SEMANTIC_PATHS)
-    manifest, pairs = _load_holdouts(root)
-    holdout_shared = canonical_sha256(
-        {"corpus_contract_sha256": shared, "manifest": manifest}
-    )
+    _manifest, pairs = _load_holdouts(root)
+    bundle = inventory["manifest_sha256"]
 
     def identities(
-        values: dict[str, dict[str, Any]], shared_digest: str, arm: str
+        values: dict[str, dict[str, Any]], arm: str
     ) -> dict[str, str]:
         return {
             item_id: case_semantic_sha256(
                 item,
-                shared_semantic_sha256=shared_digest,
+                evaluator_bundle_sha256=bundle,
                 package_semantic_sha256=package["semantic_sha256"],
                 model=model,
                 effort=effort,
@@ -166,36 +129,19 @@ def build_snapshot(
             for item_id, item in sorted(values.items())
         }
 
-    scopes = {
-        "corpus_harness": engine_category_sha256(
-            inventory, "harness", paths=CORPUS_HARNESS_PATHS
-        ),
-        "corpus_semantic": shared,
-        "holdout_harness": engine_category_sha256(
-            inventory, "harness", paths=HOLDOUT_HARNESS_PATHS
-        ),
-        "holdout_semantic": engine_category_sha256(
-            inventory, "semantic", paths=HOLDOUT_SEMANTIC_PATHS
-        ),
-    }
     return {
         "schema_version": 1,
         "settings": {
             "model": model,
             "effort": effort,
             "timeout_seconds": timeout,
-            "toolchain": toolchain_identity(),
         },
-        "engine": {
-            "manifest_sha256": inventory["manifest_sha256"],
-            "categories": inventory["categories"],
-            "scopes": scopes,
-        },
+        "engine": {"manifest_sha256": bundle},
         "package": package,
         "role": {"executor_sha256": executor_role_identity(root)},
         "public_baseline": _public_baseline(),
-        "corpus": {"cases": identities(_load_cases(root), shared, "candidate")},
-        "holdout": {"pairs": identities(pairs, holdout_shared, "blinded-pair")},
+        "corpus": {"cases": identities(_load_cases(root), "candidate")},
+        "holdout": {"pairs": identities(pairs, "blinded-pair")},
     }
 
 
@@ -216,23 +162,22 @@ def _digest_map(value: Any, fields: set[str] | None = None) -> bool:
 
 def validate_snapshot(snapshot: dict[str, Any]) -> None:
     validate_named(CONTRACTS, "snapshot", snapshot)
-    toolchain = snapshot["settings"]["toolchain"]
-    for name, identity in toolchain.items():
-        if (
-            not isinstance(identity, dict)
-            or set(identity) != TOOL_IDENTITY_FIELDS
-            or any(type(identity[field]) is not str or not identity[field] for field in (
-                "path", "version"
-            ))
-            or re.fullmatch(r"[0-9a-f]{64}", identity["sha256"]) is None
-        ):
-            raise IdentityError(f"invalid snapshot tool identity: {name}")
+    settings = snapshot["settings"]
     engine = snapshot["engine"]
     if (
-        not _digest_map(engine["categories"], ENGINE_CATEGORY_FIELDS)
-        or not _digest_map(engine["scopes"], ENGINE_SCOPE_FIELDS)
+        not isinstance(settings, dict)
+        or set(settings) != {"model", "effort", "timeout_seconds"}
+        or any(
+            type(settings[field]) is not str or not settings[field]
+            for field in ("model", "effort")
+        )
+        or type(settings["timeout_seconds"]) is not int
+        or settings["timeout_seconds"] <= 0
+        or not isinstance(engine, dict)
+        or set(engine) != {"manifest_sha256"}
+        or re.fullmatch(r"[0-9a-f]{64}", engine["manifest_sha256"]) is None
     ):
-        raise IdentityError("invalid engine identity")
+        raise IdentityError("invalid snapshot settings or evaluator identity")
     if snapshot["public_baseline"] != _public_baseline():
         raise IdentityError("public-0.2 baseline identity is not exact")
     for envelope, field in (("corpus", "cases"), ("holdout", "pairs")):
@@ -333,41 +278,8 @@ def plan_impact(
         full_live("settings_changed")
     before_engine, after_engine = baseline["engine"], current["engine"]
     if before_engine["manifest_sha256"] != after_engine["manifest_sha256"]:
-        reasons.add("engine_manifest_changed")
+        full_live("evaluator_bundle_changed")
         gates.add("receipt")
-    if before_engine["categories"]["artifact"] != after_engine["categories"]["artifact"]:
-        reasons.add("engine_artifact_changed")
-        gates.add("receipt")
-    changes = {
-        field: before_engine["scopes"][field] != after_engine["scopes"][field]
-        for field in ENGINE_SCOPE_FIELDS
-    }
-    semantic_changed = (
-        before_engine["categories"]["semantic"]
-        != after_engine["categories"]["semantic"]
-    )
-    harness_changed = (
-        before_engine["categories"]["harness"]
-        != after_engine["categories"]["harness"]
-    )
-    if semantic_changed != (
-        changes["corpus_semantic"] or changes["holdout_semantic"]
-    ) or harness_changed != (
-        changes["corpus_harness"] or changes["holdout_harness"]
-    ):
-        raise IdentityError("inconsistent aggregate and scope identities")
-    if changes["corpus_harness"]:
-        full_live("corpus_harness_changed")
-    elif changes["holdout_harness"]:
-        reasons.add("holdout_harness_changed")
-        gates.add("holdout")
-        holdout.update(all_pairs)
-    if changes["corpus_semantic"]:
-        full_live("corpus_semantic_changed")
-    elif changes["holdout_semantic"]:
-        reasons.add("holdout_semantic_changed")
-        gates.add("holdout")
-        holdout.update(all_pairs)
     before_package, after_package = baseline["package"], current["package"]
     if before_package["semantic_sha256"] != after_package["semantic_sha256"]:
         full_live("package_semantic_changed")

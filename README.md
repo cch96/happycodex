@@ -94,13 +94,15 @@ daemon, or second protocol.
 
 ## What's new in 0.6
 
-Version 0.6 replaces the additive evaluator design with a small typed semantic
-kernel and a fresh generation-6 evidence ledger. It binds effects to one fixed
-Executor, a private host-issued process capability, exclusive authority/attempt/
-resource/output claims, and an exact external Executor role configuration. The
-standalone CLI remains read-only or dry-run only: executor calibration, corpus,
-holdout, release, installation, and activation each require a later separate
-authority gate.
+Version 0.6 contracts the evaluator to one direct terminal protocol, one fixed
+Executor, one audit-bound `EffectIntent` route, and a fresh ledger containing
+only candidate, plan, and receipt records. Root/Host orchestration owns actual
+authority; repository plans, approval digests, and intents bind exact content
+but cannot grant permission or authenticate provenance. Calibration, corpus,
+adaptive holdout, artifact receipt, exact-final review, isolated install,
+publication, and activation remain distinct gates. The standalone model routes
+are dry-run only unless the Host enters the authorized boundary with the exact
+current plan and intents.
 
 ## What's new in 0.3
 

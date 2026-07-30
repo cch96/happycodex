@@ -2,387 +2,253 @@
 
 Protocol: `HappyCodex/0.5`
 
-## Current checkpoint and authority
+## Checkpoint and exact authority
 
-This plan supersedes the four-module semantic-controller and evidence-DAG
-Outcome. It is the current index, not a migration history. The recovery
-checkpoint before Batch 2 is branch `codex/happycodex-0.6-bounded-redesign`, worktree
-`/home/caichenghang/projects/happycodex-worktrees/happycodex-0.6-bounded-redesign`,
-commit `7c39df925071a289613470a332c2a39d7ed8abbf`, tree
-`a2acc15bf70bc33d7f7c924922c503c950a19efe`. G019 terminal-receipt SHA-256 is
-`ea2b2a3a09bbdda149b7c138367af93ba41896d45d91a8863336c31926c03e4e`.
-The active ledger SHA-256 is
+This plan is the durable current index for the 0.6 contraction. Accepted Batch 2
+source is commit `87401b512032ec8cccd134f51d6bb7c56f6e8ea9`. The Batch 3
+plan-only baseline is commit `91c743150caefe4652bf17a13f2e9b7cc81f15b4`,
+tree `e98d62722d13a1cfe47b591c670253bf9b40a1d3`. The active ledger
+SHA-256 remains
 `b4e269d2c64fa0c4d246b1102aa4b366dd22afa250bc44089e7eda45a955228f`;
-it is a fresh three-family genesis and `refresh_required`.
+it is the empty generation-6 genesis and derives `refresh_required`.
 
-The same Root reads, decides, grants, and verifies. The same fixed Executor
+Root reads, decides, grants, and verifies. Fixed Executor
 `/root/bounded_redesign_executor`, role `happycodex_executor`,
-`gpt-5.6-sol/high`, is the sole writer. The existing mode-`0600` claim receipt
+`gpt-5.6-sol/high`, is the sole writer. The mode-`0600` claim receipt
 `/tmp/happycodex-0.6-bounded-redesign-resource-claim.json`, SHA-256
 `7ca4471b7633ac6389b57011de429929638526f7746a602f8cf370382fa9c926`,
-continues to bind this worktree, ref, and ledger. It is not released or replaced.
-No new Root, replacement writer, delegation, cross-task coordination, merge,
-cherry-pick, or migration is allowed.
+binds this worktree, ref, and plan. It stays held. No replacement writer,
+delegation, merge, cherry-pick, or cross-task grant is allowed.
 
-The operative amendment is exactly:
-
-```text
-好的 执行吧
-```
-
-Its UTF-8 SHA-256 is
+The operative amendment is exactly `好的 执行吧`. Its UTF-8 SHA-256 is
 `090a0814415d60fa61a0eeb425afe4fb83536bf25391dcf6a1fbeff4954bbcb9`
 without a newline and
 `c3ddfefbb057c1a88fe458584f0a6643c203fb44db75300a62d064f800e79255`
 with one newline. It authorizes the offline product, test, and documentation
-work below and, after those batches are accepted, separately scoped preparation
-and reanchor of a new candidate source. It does not authorize a model call,
-live Executor/corpus/holdout, exact-final, install, publication, marketplace,
-configuration or cache mutation, or activation.
+batches below. It does not authorize any model call, live calibration, corpus,
+holdout, exact-final review, install, publication, marketplace/config/cache
+mutation, or activation.
 
-## Frozen normalized Outcome
-
-Contract HappyCodex 0.6 into a smaller, reachable protocol. Shipped Runtime is
-guidance for one fixed Executor per task/worktree: Root grants and verifies,
-work is tracked in one obligations/evidence table, and correction is event
-driven rather than timer driven. The same unchanged failure must not be retried.
-One coherent repair wave is allowed; after one boundary-level alternative still
-fails, return to the user. Lifecycle is only `working -> candidate_frozen ->
-exact_final -> closed`.
-
-Delete explicit `ProgressKey`, `AttemptKey`, family, repair-batch, recurrence,
-and generic facts/action/effect-controller bookkeeping. Delete the generic
-semantic package after consumers move to one strict direct protocol-result
-validator, preferably `evaluation/protocol.py`; create no adapters subsystem.
-Keep behavioral corpus fixtures and affected-surface inventory for real risks,
-but remove mechanical six-surface tables and structure-as-correctness tests.
-
-Authority belongs to Root/Host orchestration. Repository code does not
-authenticate task, message, or turn provenance, and a grant file is audit
-content rather than security provenance. A future official host attestation may
-be accepted at the boundary. Ordinary repository execution must remain
-reachable without a repo-local fake issuer, private seal factory, or monkeypatch.
-
-One canonical `EffectIntent` binds candidate identity, gate, exact
-invocation/profile, cost ceiling, units, resources, and output. Execution makes
-one atomic durable `intent_digest + unit` no-follow `O_EXCL` consumption, writes
-to an absent no-follow output, and produces one typed result receipt. Remove
-`TrustedHostContext` and the multi-class capability/PID/nonce plus
-authority/attempt/resource/output/phase claim ladder. The intent proves content
-binding and audit history, not permission.
-
-Release persistence has exactly three record families:
-
-1. `ReleaseCandidate`: Git source commit/tree, normalized package digest, one
-   evaluator-bundle digest, external role/config digest, and public baseline.
-2. `GatePlan`: gate, exact invocation/profile, cost ceiling, units, resources,
-   output, and the initial affected scope needed by that gate.
-3. append-only typed `GateReceipt`: immutable result and predecessor/tip binding.
-
-Pending gates, coverage, receipt tip, freeze eligibility, failure, and
-certification are derived. They are never stored as caches or mirrored in a
-second lifecycle state machine. A single reachable CLI transition/writer owns
-schema validation, prior-Git comparison, atomic replacement, and receipt
-append; operators never hand-edit a double ledger.
-
-Executor calibration becomes fixed `corpus --calibrate` execution of the
-retained calibration case. It still requires a distinct exact cost approval,
-but has no separate capability mechanism. Corpus quality, blind adaptive
-holdout, exact-final, isolated install, publication, and activation remain
-distinct outcomes and gates. Artifact receipt binds the candidate; it is not a
-quality gate.
-
-Identity retains Git archive commit/tree, normalized package, evaluator bundle,
-external role/config, public baseline, and the actual model and Codex version in
-live receipts. Drop exact Python/Git/rg paths and hashes and category/scope
-digest algebra. Any semantic evaluator change conservatively reruns every
-affected full gate.
-
-Claims remain narrow: one task-duration worktree/ref lease, a separate
-activation-target lease, Git CAS for refs, exact grants for task-owned paths,
-and `O_EXCL` for effect units and outputs. Disjoint worktrees are never globally
-blocked, and one effect does not require overlapping evaluator claims.
-
-## Preserved safety contract
-
-Generation 6 remains a clean break: no migration, alias, dual write, fallback,
-old reader, prior evidence reuse, or coverage reuse. Future evidence strictly
-postdates a Git-reachable source and binds its normalized `git archive`.
-Prior-Git successor comparison remains mandatory. Anchored-empty state cannot
-certify. Raw model events, secrets, hidden oracle bodies, and unsanitized output
-stay outside Git.
-
-Duplicate primary keys, malformed terminal streams, extra terminals, unsafe or
-aliased paths, raw/ledger divergence, and unrecognized inputs fail closed.
-Baseline failures remain explicit and cannot silently become accepted.
-Recovery uses this plan, Git, receipts, the live claim, and the same fixed
-Executor; summaries, copied handles, replacement writers, or cross-task grants
-cannot restore authority. Candidate preparation uses the official cachebuster
-exactly once for that new candidate. Isolated install never mutates source.
-Activation retains paired package/config/cache rollback and is separately
-authorized.
-
-G018 source `59fb8d5449991078bd27933e9bbf8f88c7b6f0cd` and G019 reanchor
-are historical. Product commits invalidate that candidate, its identities, and
-ledger; nothing migrates. The 259-test GREEN, Fable5/max, and Challenger
-findings remain read-only evidence, not proof of this Outcome.
-
-The affected-surface inventory is concrete: Runtime guidance and template;
-terminal protocol parsing and corpus/receipt consumers; effect intent,
-consumption, output, and CLI dispatch; candidate/plan/receipt persistence and
-prior-Git transitions; package/evaluator/role/public identities; corpus,
-adaptive holdout, exact-final, install, publication, activation, recovery, and
-rollback. A batch must inspect callers across these surfaces when its change can
-reach them; the inventory is risk routing, not a mechanical completion table.
-
-## Three GREEN implementation batches
-
-Each batch begins with a private intent, verifies the claim before every
-write/stage/commit, changes only its listed paths, runs focused RED before repair
-where behavior changes, ends with the full offline suite GREEN, commits a
-Git-reachable checkpoint, and returns to Root for acceptance. A path may appear
-in a later batch only for the later concern named there.
-
-### Batch 1 — Runtime and direct protocol boundary
-
-Owned paths:
+Current grant `HC06BR-G-024-batch3-identity-docs-deletion` owns only:
 
 ```text
-skills/happycodex/SKILL.md
-skills/happycodex/references/execplan.md
-evaluation/protocol.py
-evaluation/corpus/engine.py
-evaluation/core/receipt.py
-evaluation/core/identity.py
-evaluation/live.py
-evaluation/semantic/__init__.py              delete
-evaluation/semantic/types.py                 delete
-evaluation/semantic/canonical.py             delete
-evaluation/semantic/parse.py                 delete
-evaluation/semantic/decide.py                delete
-tests/test_semantic_core.py                   delete
-tests/test_evaluation.py
-tests/test_certification_engine.py
-tests/test_contracts.py
-docs/execplans/happycodex-0-6-bounded-redesign.md
-```
-
-Implement the four-phase Runtime and one obligations/evidence table. The direct
-validator accepts only the exact terminal protocol object, rejects duplicate or
-derived-state injection, and returns the strict permission/result projection
-needed by corpus and receipts. Migrate consumers before deleting semantic
-modules and their internal-structure tests. Preserve all 17 corpus fixtures and
-behavioral assertions. Acceptance requires no import of `evaluation.semantic`,
-no public generic controller types, Runtime at most 262 lines and preferably
-2,200 words with 2,400 hard, exact fixture inventory, and full offline GREEN.
-
-Derived consumer inventory is source-bound: Root reproduction plus the exact
-production import search found only `evaluation/corpus/engine.py`,
-`evaluation/core/receipt.py`, and `evaluation/live.py` outside the semantic
-package; `evaluation/live.py:22` was the omitted Batch 1 consumer. Batch 1 owns
-that file only to remove its semantic import and adapt the call site to the
-direct protocol interface or a non-controller content-binding seam. Deleting
-`TrustedHostContext`, the capability/claim/phase ladder, and changing any effect
-behavior remain exclusively Batch 2 work.
-
-Batch 1 produced commit `99579b37`, but Root did not accept it after an
-independent full-suite run reproduced two errors: `_release_fixture`
-unconditionally removed the already-deleted semantic directory. This is a
-same-batch integration miss before acceptance, not recurrence. Repair grant
-`HC06BR-G-021R-fixture-repair` makes removal conditional and permits an empty
-commit only in the temporary fixture so an already-clean source still gains the
-distinct Git successor required by the test; it never recreates semantic files.
-The two focused tests moved from two errors, output SHA-256 `ff3496bd`, to GREEN,
-output SHA-256 `778bbcf9`; the complete 221-test suite is GREEN with output
-SHA-256 `ebafc4ff`. `verify` and existing Executor/corpus/holdout dry runs pass;
-`impact` remains expected `refresh_required`. `corpus --calibrate --dry-run`
-remains an explicitly Batch 2 command and its current unknown-argument result is
-not repaired under this test-only grant.
-
-The original focused RED at source `70a858aa` proved both the absent direct
-protocol module and old five-phase Runtime; output SHA-256 is `bbf1cf82`. The
-corrected eight-test focused set exited 0 with output SHA-256 `15d3cc86`.
-Runtime/template are 235 lines and 1,689 words. The direct protocol owns exact
-result validation and sanitized canonical projection; corpus and receipt
-consumers use it, `live.py` remains standalone fail-closed, and the five
-semantic modules plus their internal-construction test are deleted.
-Because Batch 1 cannot mutate `current.json`, `ARCHIVED_MODULE_CATEGORIES`
-temporarily classifies only the immutable still-anchored G019 source when
-`evaluation/protocol.py` is absent. It parses no old protocol, evidence, or
-schema, imports no semantic code, accepts no prior evidence or coverage, never
-classifies current source, and leaves the ledger `refresh_required` and
-noncertifying. Root authorized this narrow verification bridge explicitly.
-
-### Batch 2 — Effect and release persistence
-
-Owned paths:
-
-```text
-evaluation/live.py
-evaluation/cli.py
-evaluation/protocol.py
-evaluation/core/impact.py
-evaluation/core/ledger.py
-evaluation/core/receipt.py
-evaluation/core/schema.py
-evaluation/core/identity.py
-evaluation/contracts-v6.json
-evaluation/corpus/engine.py
-evaluation/holdout/engine.py
-evaluation/results/current.json
-tests/test_certification_engine.py
-tests/test_contracts.py
-tests/test_evaluation.py
-tests/test_holdouts.py
-docs/execplans/happycodex-0-6-bounded-redesign.md
-```
-
-Batch 2 removes production legacy phase, gate, repair-batch, and recurrence
-values—including `implementation`, `focused_hardening`, `family_hardening`, and
-`boundary_repair`—from `evaluation/protocol.py`, the shared schema, and the
-fresh current ledger. Historical fixture prose may retain those terms only as
-corpus or holdout input when still behaviorally required; it is never protocol,
-schema, or ledger state. This inventory adds no case JSON paths and does not
-move `evaluation/holdout/compare.py`.
-
-Batch 2 must delete `ARCHIVED_MODULE_CATEGORIES` immediately after replacing
-`current.json` with the fresh candidate/plan/receipt genesis. Acceptance must
-prove that identifier and every legacy `evaluation/semantic/` path are absent
-from production and tests; no archive alias, fallback, reader, evidence reuse,
-or coverage reuse may replace them.
-
-Replace the capability ladder and cached DAG with `ReleaseCandidate`,
-`GatePlan`, `GateReceipt`, and `EffectIntent`. Provide one real CLI writer and a
-reachable no-model transition test without patching a trust seam. Add
-`corpus --calibrate`; bind its fixed case, exact cost approval, output, and
-single-unit consumption. Prove atomic collision refusal, no-follow output,
-write-once receipt, Git CAS/prior-Git refusal, derived pending/coverage/tip/
-freeze/failure/certification, anchored-empty noncertification, and no manual
-double ledger. The new generation-6 state is fresh; old ledger content is not
-read or transformed. Full offline GREEN is mandatory.
-
-Grant `HC06BR-G-023-batch2-effect-release` persisted intent `89d252d9` and RED
-`65ec033b`; five tests failed across genesis, CLI, calibration, EffectIntent,
-and phase rejection. The result has three release records and one EffectIntent
-consumption/result path. Recovery Manifest, holdout, and model-result structure
-remain fail-closed. The real CLI test uses current evaluator source against an
-isolated Git repo without a trust monkeypatch. All 149 offline tests are GREEN,
-output `992850a6`; four dry-run routes report nine effect counters all zero. No
-live effect ran. After commit `54b3b7a`, Root reproduced 11 errors because the
-synthetic genesis already matched HEAD and its required successor commit was
-empty. This is the same pre-acceptance integration miss. Repair grant
-`HC06BR-G-023R-postcommit-fixture` adds only `--allow-empty`; the affected 11
-tests are GREEN, output `e003e893`.
-
-Root then rejected four reproducible release false greens. Grant
-`HC06BR-G-023F-false-green-boundary` made plans and successful receipts
-nonempty, constrained units to safe direct-child names, rebound candidates to
-their exact source snapshot/public baseline/current inputs, required exact
-snapshot-derived model scopes and settings, made repo-less certification fail
-closed, bound authorized dispatch to the current persisted next plan, and made
-ledger loading refuse symlink or parent aliases. Its 8-test RED had 23 failures
-and output SHA-256 `3a4e4719`; focused GREEN output is `00b7fa55`, and the full
-157-test GREEN output is `481de8ea`. Verify and all four dry-run routes remain
-zero-live; `impact` remains expected `refresh_required`. The active
-`current.json` is unchanged. Root explicitly deferred two pre-existing Batch 3
-cleanup surfaces: legacy prose at `evaluation/README.md:65,71`, and negative
-oracle literals at `tests/test_contracts.py:106-107`. They are not G-023F
-production-code/schema/ledger failures and must not be forgotten or edited
-under this repair.
-
-Grant `HC06BR-G-023H-adaptive-holdout-receipt` then reconciled the full
-three-pair plan with adaptive execution. Repo-aware validation reads the
-validated manifest order and accepts only its canonical prefix: failed
-receipts may stop after one, two, or three pairs; success requires two or
-three. Non-holdout receipts remain exact. The 6-test RED had two errors
-(`105200bd`); focused GREEN is `342c9768`, and all 163 tests are GREEN
-(`72ba37e9`). No engine, manifest, schema, fixture, or active-ledger change was
-needed.
-
-### Batch 3 — Identity, documentation, and deletion proof
-
-Owned paths:
-
-```text
-evaluation/core/identity.py
-evaluation/core/impact.py
-evaluation/core/ledger.py
-evaluation/core/schema.py
+evaluation/core/{identity,impact,ledger,schema}.py
 evaluation/contracts-v6.json
 evaluation/corpus/engine.py
 evaluation/executor-role.json
 evaluation/README.md
 README.md
-tests/test_certification_engine.py
-tests/test_contracts.py
-tests/test_evaluation.py
-tests/test_holdouts.py
+tests/{test_certification_engine,test_contracts,test_evaluation,test_holdouts}.py
 docs/execplans/happycodex-0-6-bounded-redesign.md
 ```
 
-`evaluation/corpus/engine.py` directly consumes `CORPUS_SEMANTIC_PATHS`,
-`engine_paths_sha256`, and `toolchain_identity`, so Batch 3 must migrate it
-while deleting category/scope algebra and tool-path hashes. No other current
-production caller requires a signature change.
+## Frozen normalized Outcome
 
-Reduce identity to the retained release identities and live receipt model/Codex
-facts. Delete tool-path hashes, category/scope algebra, per-file LOC quotas,
-schema minimum-line checks, formatting/phrase budgets, and every legacy import
-or structure-presence assertion. Tests must exercise the real CLI entrypoint,
-not a monkeypatched positive path. Acceptance proves exactly three persisted
-record families, at most four lifecycle phases, one effect-intent transition,
-no stored derived status, generic semantic package absent, no legacy controller
-or trusted-context ladder symbols, and full offline GREEN.
+HappyCodex 0.6 is a smaller reachable protocol. Shipped Runtime guides one fixed
+Executor per task/worktree; Root grants and verifies; one obligations/evidence
+table holds durable work; correction is event-driven. The same unchanged
+failure is not retried. One coherent repair wave is allowed; if one
+boundary-level alternative still fails, control returns to the user. Lifecycle
+is only `working -> candidate_frozen -> exact_final -> closed`.
 
-## Semantic budgets and checks
+The evaluator uses one strict direct terminal validator rather than a generic
+semantic controller. Behavioral fixtures and risk inventory remain, while
+mechanical structure, wording, formatting, and per-file allocation tests do
+not stand in for behavior.
 
-Semantic budgets replace file allocations: at most four lifecycle phases, three
-persisted record families, one effect-intent transition path, and zero stored
-derived status. Generic semantic package production is zero after Batch 1.
-Evaluation production has a directional target of 4,000–4,500 lines; readability
-and deletion of semantic duplication matter more than per-file quotas. Runtime
-is at most 262 lines and 2,400 words, preferably 2,200. This current-index plan
-stays between 1,500 and 2,500 words.
+Authority belongs to Root/Host orchestration. Repository code does not
+authenticate task/message/turn provenance. A plan, approval digest, claim, or
+effect intent is content binding and audit history, not permission. Ordinary
+repository validation remains reachable without a local issuer, private seal,
+or positive-path trust monkeypatch.
 
-Every batch runs, as applicable:
+One canonical `EffectIntent` binds candidate, gate, exact invocation/profile,
+cost ceiling, units, resources, output, and approval content. Execution
+atomically consumes `intent_digest + unit` through no-follow `O_EXCL`, writes to
+an absent no-follow output, and produces a typed result. Durable consumption
+prevents reuse.
+
+Release persistence has exactly three record types:
+
+1. `ReleaseCandidate`: Git source commit/tree, normalized package identities,
+   evaluator manifest, external role digest, public baseline, and snapshot.
+2. `GatePlan`: gate, exact profile, cost ceiling, units, resources, output, and
+   approval-request/content digests.
+3. append-only `GateReceipt`: immutable typed result and predecessor/tip
+   binding.
+
+Pending gates, coverage, receipt tip, freeze eligibility, failure, and
+certification are derived rather than stored. One reachable CLI writer owns
+schema validation, prior-Git comparison, predecessor comparison, atomic
+replacement, and receipt append.
+
+Calibration is the fixed retained control routed through corpus execution.
+Calibration, full corpus, adaptive blind holdout, artifact receipt, exact-final
+review, and isolated install are distinct persisted gates. Publication and
+activation are later external gates. Model-reaching gates require separate
+exact Host authority and cost basis.
+
+Identity retains reachable Git archive commit/tree, normalized package,
+evaluator bundle, external role/config, frozen public baseline, and case/holdout
+identities. Snapshot settings are only model, effort, and timeout. A successful
+live corpus receipt additionally binds the actual Codex version, its binary
+content digest, and the invocation profile; no executable path is persisted.
+The evaluator inventory is one exact closed Python/JSON set and one manifest
+digest. Unknown inputs fail closed. Any evaluator-bundle change invalidates the
+full corpus, all holdouts, and artifact receipt.
+
+## Preserved safety
+
+Generation 6 is a clean break: no migration, alias, dual write, fallback, old
+reader, prior evidence reuse, or coverage reuse. Evidence strictly postdates a
+Git-reachable source and binds its normalized `git archive`. Prior-Git
+successor comparison remains mandatory. Empty state cannot certify. Raw model
+events, secrets, hidden oracle bodies, and unsanitized output stay outside Git.
+
+Duplicate keys, malformed terminal streams, extra terminals, unsafe or aliased
+paths, raw/ledger divergence, unrecognized inputs, and baseline drift fail
+closed. Baseline failures remain explicit. Recovery uses this plan, Git,
+receipts, the live claim, and the same fixed Executor; copied summaries or a
+replacement writer cannot restore authority.
+
+Candidate preparation uses the official cachebuster once for the new candidate.
+Isolated install never mutates source. Activation retains paired
+package/config/cache rollback and needs separate authority. Claims remain
+narrow: one task-duration worktree/ref lease, a distinct activation-target
+lease, Git CAS, exact path grants, and atomic effect-unit/output creation.
+
+The affected-surface inventory is concrete: Runtime and template; terminal
+parsing and receipt consumers; effect intent/consumption/output/dispatch;
+candidate/plan/receipt persistence and prior-Git transitions; package,
+evaluator, role, public, case, and holdout identities; corpus, adaptive
+holdout, exact-final review, install, publication, activation, recovery, and
+rollback. It routes risk; it is not a checklist that manufactures completion.
+
+## Accepted implementation batches
+
+### Batch 1 — Runtime and direct protocol
+
+Batch 1 established the four-phase Runtime, one obligations/evidence table, and
+strict direct terminal validation. Corpus, receipt, and live consumers moved
+before the generic semantic package and its construction tests were deleted.
+All 17 corpus fixtures remained. The accepted repair made already-clean
+temporary repositories produce a distinct successor commit without recreating
+deleted code. Runtime and template are 235 lines and 1,689 words. The accepted
+full suite was 221 tests GREEN.
+
+### Batch 2 — Effects and release persistence
+
+Batch 2 replaced legacy effect/release bookkeeping with the three release
+records and one `EffectIntent` route. It added a real CLI ledger transition and
+fixed calibration route, atomic collision/no-follow protections, strict Git
+and snapshot binding, derived status, and fresh empty genesis. Follow-up
+repairs closed empty-success, aliased-ledger, dispatch-drift, model-scope, and
+adaptive-holdout false greens. Accepted commit is
+`87401b512032ec8cccd134f51d6bb7c56f6e8ea9`; the final accepted suite was 163
+tests GREEN. Verify and all four dry-run routes remained zero-live.
+
+## Batch 3 — Identity, documentation, deletion proof
+
+Batch 3 replaces evaluator classification/subset identity with one exact closed
+inventory and manifest. It preserves Git/package/evaluator/role/public/case/
+holdout/invocation identities and all Batch 2 safety. It removes structural
+minimums, phrase/heading checks, and prose-based controller assertions while
+retaining Runtime/package budgets and forbidden-link checks.
+
+Behavioral acceptance proves exactly three record types, no stored derived
+state, at most four lifecycle phases, one effect-intent route, conservative full
+invalidation, unknown-input refusal, and zero dry-run effects. READMEs describe
+real Host authority, audit-only repository bindings, and distinct gates.
+
+Private intent receipt is
+`HC06BR-G-024-batch3-identity-docs-deletion.intent.json`, SHA-256
+`e0f6b0eb498692798b349883aab332e8f06392c372bd9f0027de77f9a03e158e`.
+Focused RED ran six tests and produced two failures plus one error, output
+SHA-256
+`f4f2a5969e478c0f74976444a4828b0d050d0dc470e68929b99b800f552a8855`.
+It proved the old inventory surfaces remained, bundle drift reran only receipt,
+live Codex identity was absent, and obsolete structure tests still existed.
+The RED receipt SHA-256 is
+`401a1f0c1698452325641ba90cdc13d3ed7091bf02f45e103bf6c82cff0b112f`.
+
+The current 12-test focused set is GREEN, output SHA-256
+`408a6c83223d473bfa79b1a54fbad894a91d8aa750852b2944e4f1fa67d6fcf2`.
+The first full run exposed one stale test reference to the deleted production
+lifecycle constant; it was migrated to the shared schema enum. The final full
+suite is 163 tests GREEN, output SHA-256
+`e8564624e5888bf897bee7c03f0f510fdc80615b8785cd16ca240ef0494e701f`.
+Verify, expected-exit-2 impact, Executor dry run, calibration dry run, corpus dry
+run, and holdout dry run all match their expected exits. Every dry run reports
+nine zero effect counters. Their output SHA-256 values are respectively
+`804ee1e1`, `a41780ae`, `e4713eb5`, `d3cf5dc6`, `375ab9a2`, and
+`d5cb2410`. The active ledger digest remains unchanged.
+
+The closed inventory has sixteen declared Python modules plus fixed and dynamic
+JSON inputs. Discovery compares the real evaluator tree to that set: an
+unlisted Python module, an unknown JSON document, or a missing declared input
+refuses identity construction. Result/evidence outputs are the only deliberate
+JSON exclusions. Each manifest entry contains path, byte count, and content
+digest; the canonical payload produces one manifest digest. No per-subsystem
+selection survives.
+
+Snapshot validation requires the exact three settings and the single evaluator
+digest. Every corpus and blinded-pair semantic input binds that same bundle.
+Impact planning remains selective for changed case identities or package
+artifact-only install impact, but bundle drift is deliberately conservative:
+all 17 corpus cases, all three holdout pairs, corpus, holdout, and receipt are
+required. Model/effort/timeout drift also reruns both quality gates. A live
+corpus invocation resolves Codex internally, hashes the executable bytes,
+captures the reported version, and binds that digest into the profile without
+serializing the resolved path.
+
+The deletion proof is behavioral. Schema enumeration fixes the four accepted
+lifecycle phases. Ledger tests validate and transition only candidate, plan,
+and receipt records, then recompute all status projections. Authorized corpus
+and holdout entrypoints expose only arguments, exact intent mapping, and claim
+root. Real CLI tests append through predecessor comparison and exercise all
+dry-run routes with zero effect counters. Runtime tests retain the shipped
+surface, combined line/word ceiling, forbidden evaluator links, and hidden-file
+detection, while no longer treating exact sentences, headings, table rows,
+source formatting, or individual file length as protocol behavior.
+
+Documentation must stay aligned with those executable boundaries. In
+particular, it cannot claim that repository content proves Host provenance,
+that a persisted approval is permission, or that one completed quality gate
+authorizes another. The final audit therefore compares README claims against
+the callable entrypoints, ledger fields, gate order, and sanitized receipt
+shape rather than accepting prose alone.
+
+## Budgets and final checks
+
+Runtime remains capped at 262 lines and 2,400 words, with 2,200 preferred.
+Current combined Runtime is 235 lines and 1,689 words. This plan stays between
+1,500 and 2,500 words.
+
+Evaluation production currently measures 6,077 Python lines across the exact 16
+declared modules. The 4,000–4,500 target is directional, not an acceptance
+quota; this batch deletes identity and test semantic duplication but does not
+compress unrelated evaluator behavior merely to hit a number. The actual final
+measurement must remain reported.
+
+Final offline commands are:
 
 ```text
 PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p 'test_*.py' -v
 PYTHONDONTWRITEBYTECODE=1 python3 -m evaluation.cli verify
 PYTHONDONTWRITEBYTECODE=1 python3 -m evaluation.cli impact
+PYTHONDONTWRITEBYTECODE=1 python3 -m evaluation.cli executor --dry-run
 PYTHONDONTWRITEBYTECODE=1 python3 -m evaluation.cli corpus --calibrate --dry-run
 PYTHONDONTWRITEBYTECODE=1 python3 -m evaluation.cli corpus --dry-run
 PYTHONDONTWRITEBYTECODE=1 python3 -m evaluation.cli holdout --dry-run
 git diff --check
-wc -l -w skills/happycodex/SKILL.md skills/happycodex/references/execplan.md
-wc -l -w docs/execplans/happycodex-0-6-bounded-redesign.md
-rg -n 'evaluation\\.semantic|TrustedHostContext|ProgressKey|AttemptKey' evaluation tests
 ```
 
-Dry runs must create no model call, effect intent, unit consumption, fixture,
-output, authority, or receipt. Unknown commands or schema inputs fail closed.
+Dry runs must create no model call, intent, consumption, fixture, output,
+workspace, network call, or receipt. Unknown commands and evaluator inputs fail
+closed. The active ledger and plugin/market/config bytes must remain unchanged.
 
-## Claims, open risks, and next boundary
-
-| Claim | Required closure |
-| --- | --- |
-| `O-RUNTIME` | four-phase guidance and event correction preserve convergence without hash bookkeeping |
-| `O-PROTOCOL` | direct strict result validation preserves every retained behavior fixture |
-| `O-EFFECT` | one reachable EffectIntent path gives atomic, bounded, auditable execution |
-| `O-RELEASE` | candidate/plan/receipt persistence derives all status through one CLI writer |
-| `P-SAFETY` | clean-break evidence, archive ordering, strict parsing, recovery, install isolation, and rollback remain fail-closed |
-| `P-QUALITY` | corpus, adaptive holdout, exact-final, install, publication, and activation remain distinct |
-| `N-AUTH` | repository content never claims host provenance or self-authorizes an effect |
-| `N-MIGRATION` | old ledger, semantic controller, hashes, evidence, and cached status are not reused |
-
-Remaining work is Batch 3 identity/documentation contraction and deletion
-proof. Final production LOC is a measurement, not a per-file quota. Any outside
-path, identity drift, incomplete consumer migration, or effect returns to Root.
-
-After all three product batches are accepted, this amendment permits a new,
-separately scoped candidate-source preparation and fresh reanchor. That step
-uses the official cachebuster once, preserves external bytes, and creates no
-live evidence. Model/live calibration, corpus, holdout, exact-final, isolated
-install, publication, and activation each still require their own later exact
-authority. No prose, digest, intent, plan, or successful offline test grants
-those effects.
+After Batch 3 is committed and accepted, this amendment permits only a new,
+separately scoped candidate-source preparation and fresh reanchor. Live
+calibration, corpus, holdout, exact-final review, isolated install, publication,
+and activation still each require later exact authority. No prose, digest,
+intent, plan, claim, or successful offline test grants those effects.

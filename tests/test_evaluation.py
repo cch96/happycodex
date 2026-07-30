@@ -1825,6 +1825,10 @@ class HappyCodexEvaluationTests(unittest.TestCase):
                     "semantic_sha256": "2" * 64,
                     "artifact_sha256": "3" * 64,
                 },
+                "codex": {
+                    "sha256": "4" * 64,
+                    "version": "codex-cli 0.145.0",
+                },
             },
             "events_sha256": "b" * 64,
             "stderr_sha256": "c" * 64,
@@ -1970,6 +1974,12 @@ class HappyCodexEvaluationTests(unittest.TestCase):
         self.assertNotIn("SECRET-CANARY-VALUE", rendered)
         self.assertNotIn("/tmp/", rendered)
         self.assertNotIn("isolated_home", rendered)
+        self.assertNotIn("toolchain", rendered)
+        self.assertNotIn('"path"', rendered)
+        self.assertEqual(
+            set(receipt["identities"]["codex"]),
+            {"sha256", "version"},
+        )
         self.assertEqual(receipt["result"]["decision"], "incomplete")
         self.assertIs(receipt["result"]["goal_pause_handoff_present"], False)
         self.assertIn(
@@ -3764,13 +3774,16 @@ class HappyCodexEvaluationTests(unittest.TestCase):
         validate_named(contracts, "output_result", result)
         self.assertTrue(protocol_result_failures(result))
 
+        milestone_phases = contracts["schemas"]["output_result"]["properties"][
+            "recovery_state"
+        ]["properties"]["milestone_phase"]["enum"]
         recovery = {
             "baseline_revision": "1" * 40,
             "baseline_tree": "2" * 40,
             "current_revision": "3" * 40,
             "current_tree": "4" * 40,
             "writer": "Root",
-            "milestone_phase": runner.CONVERGENCE_PHASES[0],
+            "milestone_phase": milestone_phases[0],
             "next_action": runner.RECOVERY_ACTIONS[0],
             "pending_gates": [],
             "tests": {

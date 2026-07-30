@@ -4,7 +4,6 @@
     "nonempty": {"type": "string", "minLength": 1},
     "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
     "git_oid": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
-    "tool_identity": {"type": "object"},
     "output_result": {
       "type": "object",
       "additionalProperties": false,
@@ -234,8 +233,24 @@
       "additionalProperties": false,
       "properties": {
         "schema_version": {"type": "integer", "enum": [1]},
-        "settings": {"type": "object"},
-        "engine": {"type": "object"},
+        "settings": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "model": {"$ref": "nonempty"},
+            "effort": {"$ref": "nonempty"},
+            "timeout_seconds": {"type": "integer", "minimum": 1}
+          },
+          "required": ["model", "effort", "timeout_seconds"]
+        },
+        "engine": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "manifest_sha256": {"$ref": "sha256"}
+          },
+          "required": ["manifest_sha256"]
+        },
         "package": {"type": "object"},
         "role": {"type": "object"},
         "public_baseline": {"type": "object"},

@@ -16,8 +16,6 @@ from typing import Any, Callable
 
 from evaluation.core.identity import (
     BLOCKER_CLASSES,
-    CORPUS_SEMANTIC_PATHS,
-    CONVERGENCE_PHASES,
     FILESYSTEM_ISOLATION_POLICY,
     PACKAGE_PATHS,
     PERMISSION_FIELDS,
@@ -34,8 +32,8 @@ from evaluation.core.identity import (
     canonical_sha256,
     case_semantic_sha256,
     classifications_share_identity,
+    codex_identity,
     engine_inventory,
-    engine_paths_sha256,
     invocation_profile,
     package_identities,
     package_manifest_sha256,
@@ -43,7 +41,6 @@ from evaluation.core.identity import (
     recovery_summary_consistent,
     selected_package_paths,
     sha256_bytes,
-    toolchain_identity,
     validate_invocation_profile,
     workspace_file_manifest,
 )
@@ -203,10 +200,9 @@ def semantic_input_sha256_from_package(
     arm: str = "candidate",
 ) -> str:
     inventory = engine_inventory(ROOT)
-    shared_semantic = engine_paths_sha256(inventory, CORPUS_SEMANTIC_PATHS)
     return case_semantic_sha256(
         case,
-        shared_semantic_sha256=shared_semantic,
+        evaluator_bundle_sha256=inventory["manifest_sha256"],
         package_semantic_sha256=package_semantic_sha256,
         model=model,
         effort=effort,
@@ -1634,14 +1630,14 @@ def evaluate_case(
             timeout=timeout,
             arm=arm,
         )
-        toolchain = toolchain_identity()
+        codex = codex_identity()
         native = case["fixture"].get("native_compaction_resume")
         profile = invocation_profile(
             model=model,
             effort=effort,
             timeout_seconds=timeout,
             arm=arm,
-            binary_identity_sha256=toolchain["codex"]["sha256"],
+            binary_identity_sha256=codex["sha256"],
             session_mode="fresh-with-bounded-resume" if native else "fresh",
         )
         home, env = isolated_home(temp)
@@ -1824,7 +1820,7 @@ def evaluate_case(
             "identities": {
                 "engine": engine_inventory(ROOT),
                 "package": source_package,
-                "toolchain": toolchain,
+                "codex": codex,
             },
             "filesystem_isolation": FILESYSTEM_ISOLATION_POLICY,
             "installation": installation,

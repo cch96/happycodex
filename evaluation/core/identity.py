@@ -7,38 +7,34 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
-import sys
 import tempfile
 from typing import Any
 
 
 PACKAGE_PATHS = (".agents", ".codex-plugin", "README.md", "skills")
-ENGINE_CATEGORIES = ("semantic", "harness", "artifact")
-CORPUS_SEMANTIC_PATHS = frozenset(
+EVALUATOR_PYTHON_INPUTS = frozenset(
     {
-        "evaluation/corpus/engine.py",
-        "evaluation/contracts-v6.json",
+        "evaluation/__init__.py",
+        "evaluation/cli.py",
+        "evaluation/live.py",
         "evaluation/protocol.py",
+        "evaluation/core/__init__.py",
+        "evaluation/core/identity.py",
+        "evaluation/core/impact.py",
+        "evaluation/core/ledger.py",
+        "evaluation/core/receipt.py",
+        "evaluation/core/schema.py",
+        "evaluation/corpus/__init__.py",
+        "evaluation/corpus/engine.py",
+        "evaluation/holdout/__init__.py",
+        "evaluation/holdout/blind.py",
+        "evaluation/holdout/compare.py",
+        "evaluation/holdout/engine.py",
     }
 )
-MODULE_CATEGORIES = {
-    "evaluation/__init__.py": "harness",
-    "evaluation/cli.py": "harness",
-    "evaluation/live.py": "harness",
-    "evaluation/protocol.py": "semantic",
-    "evaluation/core/__init__.py": "harness",
-    "evaluation/core/identity.py": "harness",
-    "evaluation/core/impact.py": "harness",
-    "evaluation/core/ledger.py": "harness",
-    "evaluation/core/receipt.py": "artifact",
-    "evaluation/core/schema.py": "harness",
-    "evaluation/corpus/__init__.py": "harness",
-    "evaluation/corpus/engine.py": "semantic",
-    "evaluation/holdout/__init__.py": "harness",
-    "evaluation/holdout/blind.py": "harness",
-    "evaluation/holdout/compare.py": "semantic",
-    "evaluation/holdout/engine.py": "harness",
-}
+EVALUATOR_FIXED_JSON_INPUTS = frozenset(
+    {"evaluation/contracts-v6.json", "evaluation/executor-role.json"}
+)
 _TOOL_EVENT_TYPES = {
     "collaboration": "collab_tool_call",
     "command_execution": "command_execution",
@@ -47,12 +43,6 @@ _TOOL_EVENT_TYPES = {
 }
 PERMISSION_PROFILE = "happycodex-evaluator"
 PROTOCOL_REVIEW_MODES = ("none", "exact_final")
-CONVERGENCE_PHASES = (
-    "working",
-    "candidate_frozen",
-    "exact_final",
-    "closed",
-)
 PERMISSION_VALUES = {
     "decision": frozenset({"continue", "stop_for_user", "complete", "incomplete"}),
     "qualifies": frozenset({True, False}),
@@ -447,11 +437,11 @@ def source_archive_identity(repo: Path, revision: str) -> dict[str, Any]:
         }
 
 
-def _executable_identity(name: str, *, executable: str | None = None) -> dict[str, str]:
-    raw = executable or shutil.which(name)
+def codex_identity() -> dict[str, str]:
+    raw = shutil.which("codex")
     path = Path(raw).resolve() if raw else None
     if path is None or not path.is_file():
-        raise IdentityError(f"required certification tool is unavailable: {name}")
+        raise IdentityError("required Codex executable is unavailable")
     try:
         completed = subprocess.run(
             [str(path), "--version"],
@@ -462,36 +452,26 @@ def _executable_identity(name: str, *, executable: str | None = None) -> dict[st
             env={**os.environ, "LC_ALL": "C"},
         )
     except (OSError, subprocess.TimeoutExpired) as exc:
-        raise IdentityError(f"cannot identify certification tool: {name}") from exc
+        raise IdentityError("cannot identify Codex executable") from exc
     lines = (completed.stdout or completed.stderr).strip().splitlines()
     if completed.returncode or not lines:
-        raise IdentityError(f"cannot identify certification tool: {name}")
+        raise IdentityError("cannot identify Codex executable")
     return {
-        "path": str(path),
         "sha256": sha256_bytes(path.read_bytes()),
         "version": lines[0],
     }
 
 
-def toolchain_identity() -> dict[str, dict[str, Any]]:
-    return {
-        "python": _executable_identity("python", executable=sys.executable),
-        "codex": _executable_identity("codex"),
-        "git": _executable_identity("git"),
-        "rg": _executable_identity("rg"),
-    }
-
-
-def _schema_paths(root: Path) -> dict[str, str]:
-    result = {"evaluation/executor-role.json": "artifact", "evaluation/contracts-v6.json": "semantic"}
+def _evaluator_json_inputs(root: Path) -> set[str]:
+    result = set(EVALUATOR_FIXED_JSON_INPUTS)
     for path in sorted((root / "evaluation" / "cases").glob("*.json")):
-        result[path.relative_to(root).as_posix()] = "semantic"
+        result.add(path.relative_to(root).as_posix())
     holdout_root = root / "evaluation" / "holdouts"
     manifest = holdout_root / "manifest.json"
     if manifest.is_file():
-        result[manifest.relative_to(root).as_posix()] = "semantic"
+        result.add(manifest.relative_to(root).as_posix())
     for path in sorted((holdout_root / "cases").glob("*.json")):
-        result[path.relative_to(root).as_posix()] = "semantic"
+        result.add(path.relative_to(root).as_posix())
     return result
 
 
@@ -503,14 +483,13 @@ def engine_inventory(root: Path) -> dict[str, Any]:
         for path in evaluation.rglob("*.py")
         if "__pycache__" not in path.parts
     }
-    module_categories = MODULE_CATEGORIES
-    unknown = sorted(modules - set(module_categories))
-    missing = sorted(set(module_categories) - modules)
+    unknown = sorted(modules - EVALUATOR_PYTHON_INPUTS)
+    missing = sorted(EVALUATOR_PYTHON_INPUTS - modules)
     if unknown or missing:
         detail = unknown or missing
-        label = "unclassified" if unknown else "missing classified"
+        label = "unknown" if unknown else "missing"
         raise IdentityError(f"{label} engine input: {', '.join(detail)}")
-    schemas = _schema_paths(root)
+    json_inputs = _evaluator_json_inputs(root)
     discovered_json = {
         path.relative_to(root).as_posix()
         for path in evaluation.rglob("*.json")
@@ -522,76 +501,33 @@ def engine_inventory(root: Path) -> dict[str, Any]:
         if item == "evaluation/results/current.json"
         or Path(item).parts[:3] == ("evaluation", "results", "evidence")
     }
-    unknown_json = sorted(discovered_json - set(schemas) - outputs)
+    unknown_json = sorted(discovered_json - json_inputs - outputs)
     if unknown_json:
-        raise IdentityError(f"unclassified engine input: {', '.join(unknown_json)}")
-    classified = {**module_categories, **schemas}
+        raise IdentityError(f"unknown engine input: {', '.join(unknown_json)}")
     entries = []
-    for relative, category in sorted(classified.items()):
+    for relative in sorted(EVALUATOR_PYTHON_INPUTS | json_inputs):
         path = root / relative
         if not path.is_file():
-            raise IdentityError(f"missing classified engine input: {relative}")
+            raise IdentityError(f"missing engine input: {relative}")
         content = path.read_bytes()
         entries.append(
             {
                 "path": relative,
-                "category": category,
                 "bytes": len(content),
                 "sha256": sha256_bytes(content),
             }
         )
-    categories = {
-        category: canonical_sha256([
-            {"path": item["path"], "sha256": item["sha256"]}
-            for item in entries
-            if item["category"] == category
-        ])
-        for category in ENGINE_CATEGORIES
-    }
     payload = {
         "schema_version": 1,
-        "categories": categories,
         "entries": entries,
     }
     return {**payload, "manifest_sha256": canonical_sha256(payload)}
 
 
-def engine_category_sha256(
-    inventory: dict[str, Any],
-    category: str,
-    *,
-    paths: set[str] | None = None,
-) -> str:
-    if category not in ENGINE_CATEGORIES:
-        raise IdentityError(f"unknown engine category: {category}")
-    selected = [
-        {"path": item["path"], "sha256": item["sha256"]}
-        for item in inventory["entries"]
-        if item["category"] == category
-        and (paths is None or item["path"] in paths)
-    ]
-    if not selected:
-        raise IdentityError(f"empty engine category selection: {category}")
-    return canonical_sha256(selected)
-
-
-def engine_paths_sha256(
-    inventory: dict[str, Any],
-    paths: set[str],
-) -> str:
-    by_path = {
-        item["path"]: {"path": item["path"], "sha256": item["sha256"]}
-        for item in inventory["entries"]
-    }
-    if not paths or not paths.issubset(by_path):
-        raise IdentityError("engine source bundle is incomplete")
-    return canonical_sha256([by_path[path] for path in sorted(paths)])
-
-
 def case_semantic_sha256(
     case: dict[str, Any],
     *,
-    shared_semantic_sha256: str,
+    evaluator_bundle_sha256: str,
     package_semantic_sha256: str,
     model: str,
     effort: str,
@@ -602,7 +538,7 @@ def case_semantic_sha256(
         {
             "schema_version": 1,
             "case": case,
-            "shared_semantic_sha256": shared_semantic_sha256,
+            "evaluator_bundle_sha256": evaluator_bundle_sha256,
             "package_semantic_sha256": package_semantic_sha256,
             "model": model,
             "effort": effort,

@@ -635,18 +635,7 @@ class EffectIntentTests(unittest.TestCase):
                 )
         mapping.assert_not_called()
 
-    def test_old_capability_ladder_is_absent(self) -> None:
-        for legacy in (
-            "_issue_trusted_host_context",
-            "_authorize_effect",
-            "_rebind_capability",
-            "_GateCapability",
-            "_ClaimedCapability",
-            "_PhaseProof",
-            "_issue_phase_proof",
-            "_consume_phase_proof",
-        ):
-            self.assertFalse(hasattr(live, legacy), legacy)
+    def test_authorized_entrypoints_accept_only_intents_and_claim_root(self) -> None:
         self.assertEqual(
             tuple(inspect.signature(corpus_engine.run_authorized).parameters),
             ("args", "effect_intents", "claim_root"),
@@ -682,6 +671,14 @@ class ContractProtocolAndImpactTests(unittest.TestCase):
     def test_protocol_rejects_removed_phase_review_and_gate_values(self) -> None:
         from evaluation.protocol import validate_result
 
+        phases = CONTRACTS["schemas"]["output_result"]["properties"][
+            "recovery_state"
+        ]["properties"]["milestone_phase"]["enum"]
+        self.assertEqual(
+            phases,
+            ["working", "candidate_frozen", "exact_final", "closed"],
+        )
+        self.assertLessEqual(len(phases), 4)
         base = {
             "decision": "complete",
             "qualifies": True,
@@ -1137,6 +1134,94 @@ class AdaptiveHoldoutReceiptTests(unittest.TestCase):
             )
             with self.subTest(gate=gate), self.assertRaises(ValueError):
                 validate_ledger(self._ledger(plan, receipt), repo=self.repo)
+
+
+class Batch3IdentityContractionTests(unittest.TestCase):
+    def test_evaluator_identity_is_one_closed_bundle(self) -> None:
+        inventory = engine_inventory(ROOT)
+        self.assertEqual(
+            set(inventory),
+            {"schema_version", "entries", "manifest_sha256"},
+        )
+        self.assertTrue(inventory["entries"])
+        self.assertTrue(
+            all(
+                set(entry) == {"path", "bytes", "sha256"}
+                for entry in inventory["entries"]
+            )
+        )
+        snapshot = build_snapshot(ROOT)
+        self.assertEqual(
+            set(snapshot["settings"]),
+            {"model", "effort", "timeout_seconds"},
+        )
+        self.assertEqual(
+            snapshot["engine"],
+            {"manifest_sha256": inventory["manifest_sha256"]},
+        )
+
+    def test_evaluator_bundle_change_requires_every_live_quality_gate(self) -> None:
+        baseline = build_snapshot(ROOT)
+        current = copy.deepcopy(baseline)
+        current["engine"]["manifest_sha256"] = "f" * 64
+        impact = plan_impact(baseline, current)
+        self.assertEqual(
+            impact["gates"],
+            ["corpus", "holdout", "receipt"],
+        )
+        self.assertEqual(
+            impact["corpus_cases"],
+            sorted(current["corpus"]["cases"]),
+        )
+        self.assertEqual(
+            impact["holdout_pairs"],
+            sorted(current["holdout"]["pairs"]),
+        )
+
+    def test_live_codex_identity_has_only_version_and_content_digest(self) -> None:
+        from evaluation.core.identity import codex_identity
+
+        identity = codex_identity()
+        self.assertEqual(set(identity), {"version", "sha256"})
+        self.assertRegex(identity["sha256"], r"^[0-9a-f]{64}$")
+        self.assertTrue(identity["version"])
+
+    def test_unknown_python_and_json_evaluator_inputs_fail_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            repo = _prepare_repo(raw)
+            for relative in (
+                "evaluation/unexpected.py",
+                "evaluation/unexpected.json",
+            ):
+                path = repo / relative
+                path.write_text("{}\n", encoding="utf-8")
+                with self.subTest(relative=relative), self.assertRaises(ValueError):
+                    engine_inventory(repo)
+                path.unlink()
+
+    def test_real_evaluator_file_change_invalidates_every_quality_unit(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            repo = _prepare_repo(raw)
+            baseline = build_snapshot(repo)
+            protocol = repo / "evaluation/protocol.py"
+            protocol.write_text(
+                protocol.read_text(encoding="utf-8") + "\n# evaluator change\n",
+                encoding="utf-8",
+            )
+            current = build_snapshot(repo)
+            impact = plan_impact(baseline, current)
+            self.assertEqual(
+                impact["gates"],
+                ["corpus", "holdout", "receipt"],
+            )
+            self.assertEqual(
+                impact["corpus_cases"],
+                sorted(current["corpus"]["cases"]),
+            )
+            self.assertEqual(
+                impact["holdout_pairs"],
+                sorted(current["holdout"]["pairs"]),
+            )
 
 
 if __name__ == "__main__":

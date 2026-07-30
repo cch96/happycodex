@@ -1,119 +1,118 @@
 # Certification engine
 
-The evaluator is maintainer-only standard-library support code. It is excluded
-from the shipped plugin. Its sole command surface is:
+The evaluator is maintainer-only standard-library support code and is excluded
+from the shipped plugin. Its public command surface is:
 
 ```bash
 python3 -m evaluation.cli verify
 python3 -m evaluation.cli impact
+python3 -m evaluation.cli apply --expected DIGEST --record RECORD.json
 python3 -m evaluation.cli executor --dry-run
+python3 -m evaluation.cli corpus --calibrate --dry-run
 python3 -m evaluation.cli corpus --dry-run
 python3 -m evaluation.cli holdout --dry-run
 ```
 
-`verify` validates the classified engine inventory and the sole active ledger.
-The three dry-runs inspect exact work without creating a capability, consuming a
-claim, making a fixture/output/workspace, invoking a model, or using the network.
-`impact` currently fails closed because generation 6 has no persisted cost
-envelope or exact future invocation. No standalone CLI argument, environment
-variable, impact token, ledger record, or prose response is live authority.
+`verify` validates the closed evaluator inventory and the sole active ledger.
+`impact` derives conservative invalidation without authorizing work. `apply`
+atomically appends one complete release record with predecessor comparison.
+Every dry run reports zero intents, consumption, fixtures, outputs, workspaces,
+subprocesses, model calls, network calls, and receipts. Live model execution is
+reachable only through the Host-only `run_authorized` boundary.
 
-## Identities and fresh evidence
+## Closed identity and fresh evidence
 
-The engine records independent identity layers:
+The evaluator has one exact input inventory: every declared evaluator Python
+module, `contracts-v6.json`, `executor-role.json`, every corpus case, and the
+holdout manifest and cases. Unknown or missing Python and JSON inputs fail
+closed. The canonical inventory has one `manifest_sha256`; it has no
+classification, subset, or tool-path digest. Any evaluator-bundle change
+invalidates the full corpus, all holdouts, and the artifact receipt.
 
-- semantic inputs: cases, holdouts, strict terminal/schema/comparison policy,
-  the semantic package, model, effort, timeout, and arm;
-- harness inputs: every executable evaluator module plus the exact resolved
-  Python, Codex, Git, rg, and sandbox binary path/hash/version identities;
-- artifact inputs: receipt projection, sanitization, and the exact external
-  `evaluation/executor-role.json` contract.
+A source snapshot records only:
 
-Every evaluator Python module and case/holdout JSON input is classified as
-semantic, harness, or artifact. Unknown inputs fail closed. Impact planning and
-execution use the same strict input schema from `evaluation.core.ledger`.
+- model, effort, and timeout settings;
+- the evaluator manifest;
+- normalized package artifact and semantic identities;
+- the external Executor role digest;
+- the frozen public-0.2 identity;
+- every corpus-case and holdout-pair semantic identity.
 
-`results/current.json` is the only active evidence ledger. Generation 6 is a
-fresh `refresh_required` line: all three authorities are null, calibration and
-accepted evidence are empty, and receipt head and certification are null. G016
-accepted the construction archive anchor while planned impact and invocations
-remain null. The official helper next creates `S_release` without changing this
-ledger; a separate G019 then replaces it with a fresh empty snapshot and exact
-`S_release` anchor. Offline checks and summaries cannot promote it to `certified`.
+Source identity comes from a reachable normalized `git archive`, not dirty
+working-tree bytes, and binds its commit and tree. A live corpus receipt adds
+the actual Codex version and binary-content digest plus the model invocation
+profile. It records no executable path or machine toolchain identity.
 
-The comparison arm is exactly `public-0.2`: commit `3b9c11f`, tree `4708ebc`,
-the frozen artifact/semantic digests, and only `SKILL.md`,
-`agents/openai.yaml`, `references/external-review.md`, and
-`references/task-packets.md`. Public-0.4 bytes or receipt fields cannot be
-relabeled as that arm.
+`results/current.json` is the only active evidence ledger. Generation 6 starts
+as the empty `{candidate, plans, receipts}` genesis and derives
+`refresh_required`; offline checks cannot promote it. There is no old reader,
+alias, migration, dual write, parser fallback, evidence reuse, or coverage
+reuse. Evidence commits must strictly descend from and postdate their reachable
+candidate source.
 
-There is no reader, alias, migration, dual write, prior-coverage reuse, or parser
-fallback for older evidence. Evidence commits must strictly descend from the
-anchored source and remain reachable from `HEAD`. Source identity comes from
-`git archive`, not dirty working-tree bytes, and binds source commit/tree,
-normalized package artifact and semantics, engine manifest, and external
-Executor role digest.
+The comparison arm remains exactly public-0.2 at commit `3b9c11f`, tree
+`4708ebc`, with its frozen package identities and four-file Runtime surface.
+Other public bytes or receipts cannot be relabeled as that arm.
 
-## Effect authority and claims
+## Host authority and content binding
 
-Live authority can originate only in private trusted host metadata for the
-current task/message/turn. The host binding includes root/source/Executor task,
-owner, destination, lineage, role config, repository, outcome, message, turn,
-content, session, thread, permission, and claim identities. Semantic enforcement
-must return `ALLOW`. The validator then seals `GateCapability` only from the
-persisted plan, trusted authority, and reducer report; callers cannot supply
-authority, AttemptKey, resources, or output claims. The exact effect order is:
+Repository data does not authenticate user, task, message, turn, or session
+provenance. A `GatePlan`, approval digest, or `EffectIntent` is audit-bound
+content, never permission. Root/Host orchestration must independently possess
+current-task authority and choose to enter `run_authorized`; the repository
+cannot manufacture or recover that authority.
+
+The authorized boundary reloads the active ledger, requires an active
+nonfailed candidate and its next persisted plan, and reconstructs every exact
+`EffectIntent`. Each intent binds the candidate, gate, full invocation profile,
+cost ceiling, complete unit/resource set, output root, and approval content.
+The supplied set must equal the persisted plan exactly.
+
+For each unit the evaluator:
 
 ```text
-read-only persisted-plan, identity, path, schema, and provenance validation
-  -> enforce ALLOW and mint GateCapability
-  -> namespace lock plus complete collision preflight
-  -> O_EXCL authority/AttemptKey/resource/output claim set
-  -> ClaimedCapability
-  -> O_EXCL exact unit claim
-  -> authorized fixture/mapping/workspace/output effect
-  -> bind exact argv/cwd/env/timeout/PID into one-shot PhaseProof
-  -> invoke_codex spends only that proof
+validates the current candidate, plan, intent, paths, and identities
+  -> atomically consumes intent_digest + unit with no-follow O_EXCL
+  -> creates the absent no-follow output
+  -> creates the authorized fixture, mapping, workspace, or subprocess
+  -> emits a typed result for the eventual GateReceipt
 ```
 
-Claims are mode-`0600` no-follow files in the resolved Git common directory's
-precreated mode-`0700` `happycodex/effect-claims/v6` namespace. A collision
-or partial/reused set refuses before another claim or effect. Claims are durable
-consumption: no retry or deletion occurs. Gate/claimed capabilities, copied
-proofs, wrong process/invocation, and spent proofs refuse before subprocess.
+Consumption is durable and cannot be retried or deleted. Claims are private
+mode-`0600` regular files beneath a pre-existing mode-`0700` root. Collisions,
+partial sets, unsafe unit names, aliases, symlinks, output drift, or an output
+inside the repository/evaluated package refuse before the corresponding effect.
+Raw model events, secrets, unsanitized streams, and hidden oracle bodies stay
+outside Git.
 
-Raw outputs require an explicit absolute absent path under an existing real
-parent, outside the repository and every evaluated plugin. Symlinks, implicit
-temporary destinations, parent creation, and in-repository output reject before
-effects. Raw model events, secrets, unsanitized streams, and hidden oracle bodies
-stay outside Git; only sanitized summaries, hashes, fixed fixtures/prompts,
-hidden-oracle hashes, and executable evaluation code may be tracked.
+## Release records and gates
 
-## Recovery and future gates
+The ledger persists exactly three record types:
 
-Maintainer evaluation proves native same-task compaction and a distinct
-no-summary/no-handle reconstruction from durable repository/control facts. It
-also proves copied or serialized capabilities, cross-task authority, replacement
-writers, wrong role/config/session/thread/destination/lineage/claim bindings, and
-concurrent recovery cannot reconstruct permission.
+1. `ReleaseCandidate` binds Git source, package, evaluator, external role,
+   public baseline, and snapshot.
+2. `GatePlan` binds one gate's exact profile, cost ceiling, units, resources,
+   output, and approval-request/content digests.
+3. `GateReceipt` appends one immutable typed result with evidence commit and
+   predecessor/tip binding.
 
-Executor calibration, corpus, and adaptive holdout are three future authority
-gates. Each first needs a persisted source-derived cost envelope and complete
-exact invocation, then its own canonical current-task user approval. Calibration
-has no inherited historical cost; only one separately authorized bounded pilot
-may establish a sanitized actual-cost basis. Corpus authority cannot authorize
-holdout, and neither authorizes installation or release.
+Pending gates, coverage, receipt tip, freeze eligibility, failure, and
+certification are derived, never stored. The only writer uses prior-digest
+comparison, no-follow reads, an adjacent temporary regular file, atomic
+replacement, and directory synchronization.
 
-Read-only behavior comparisons use fresh isolated homes/tasks and identical
-model, effort, fixture, prompt, timeout, and oracle. Arm identity is revealed
-only after results freeze. The first completion-blocking regression rejects; a
-first success requires a second distinct pair, and a third is used only for a
-split or uncertain result. At equal quality, uncached input plus output tokens
-and wall time must each remain within 25% of public 0.2.
+Calibration, full corpus, adaptive blinded holdout, artifact receipt,
+exact-final review, and isolated install are distinct persisted gates. The
+first three are independently model-reaching and require their own exact Host
+authority and cost basis. Publication and activation remain later external
+authority boundaries; neither is implied by certification or installation.
+Activation retains paired package/config/cache rollback state.
 
-Release-source preparation, exact-final review, isolated install, release, and
-activation remain later separate gates. Release preparation uses the official
-plugin-creator cachebuster helper exactly once; isolated install never reruns it.
-The helper-produced `S_release` precedes the separate fresh-empty ledger reanchor;
-neither is publication or activation. Activation is atomic and retains the paired
-prior package/config/cache state for rollback.
+Maintainer evaluation also proves native same-task compaction and distinct
+no-summary/no-handle reconstruction from durable facts. Writer identity cannot
+be replaced. Behavior comparison uses fresh isolated homes/tasks, identical
+model, effort, fixture, prompt, timeout, and oracle, and reveals arms only after
+results freeze. The first completion-blocking regression rejects; after first
+success a second distinct pair runs, with a third only for split or uncertain
+results. At equal quality, uncached input plus output tokens and wall time each
+remain within 25% of public-0.2.
