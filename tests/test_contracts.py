@@ -142,7 +142,11 @@ class HappyCodexContractTests(unittest.TestCase):
             for node in ast.walk(ast.parse(read(path), filename=str(path))):
                 if isinstance(node, ast.Import):
                     imported.update(alias.name.split(".", 1)[0] for alias in node.names)
-                elif isinstance(node, ast.ImportFrom) and node.module:
+                elif (
+                    isinstance(node, ast.ImportFrom)
+                    and node.module
+                    and node.level == 0
+                ):
                     imported.add(node.module.split(".", 1)[0])
             with self.subTest(path=path.relative_to(ROOT)):
                 self.assertEqual(imported - allowed, set())
