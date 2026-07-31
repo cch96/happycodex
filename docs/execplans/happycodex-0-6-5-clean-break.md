@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `SUCCESSOR_6_OFFLINE_VERIFICATION`
+Status: `SUCCESSOR_6_OFFLINE_GREEN`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -781,3 +781,19 @@ effect authority.
   `95bcf11d55d1724c1d085d6473a25c5e58af3d202038c5edfbebdecfeaf19c53`
   with empty plan and receipt arrays. It migrates no prior authority, launch,
   result, receipt, cost basis, or evidence.
+- Successor-6 refreeze is committed at
+  `274026368dbf3f488320db64e97b52a4ff9e60ae`, tree
+  `ba587dd2e425268a6ad6bd6079adc13de023bfd0`. Its post-commit complete
+  suite is 194/194 GREEN in 13.590 seconds. CLI verify reports
+  `refresh_required`, no failures, all six gates pending, evaluator manifest
+  `0525ecdac648f682eaf6cdf261477b6b12a43c588fdff4a3bff39af711499f0c`,
+  snapshot
+  `a3dfb0c4633778e07022d91d6a25466463052366f30efabca6949feb160b1bb1`,
+  and ledger
+  `95bcf11d55d1724c1d085d6473a25c5e58af3d202038c5edfbebdecfeaf19c53`.
+  All official dry-runs report zero effects; Skill and plugin validators pass.
+- Protected active 0.6.0 plugin manifest, Skill, and marketplace hashes remain
+  `ab36ad0c`, `19145f8a`, and `752de5a6`. The previously recorded unrelated
+  Host config remains `b069fc75`; it is not an isolated invocation input.
+  No model, network, install, activation, push, tag, publication, or release
+  effect occurred.
