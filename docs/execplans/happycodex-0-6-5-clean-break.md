@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `CALIBRATION_4_FAILED_SEALED`
+Status: `QUALIFICATION_PROJECTION_REPAIR_FOCUSED_GREEN`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -680,3 +680,15 @@ digest. Focused RED reproduced all five findings before implementation.
   `980a4835dd6ef5075c98ca98cfe703b5bdb6b0542348a1b9d359679296f69bb1`.
   The authorization, ActionKey, LaunchKey, and failed candidate are terminal
   and cannot be reused or retried.
+- RED reproduced the exact omission:
+  `test_live_projection_has_one_reducer_owned_boundary` failed because the
+  provider instruction did not distinguish HappyCodex protocol qualification
+  from permission to take the reducer-derived next action.
+- The implementation adds that one field-semantics sentence. Focused prompt,
+  oracle, reducer, and StateKey tests are 4/4 GREEN; schema, StateKey shape,
+  reducer, oracle, fixture, Runtime, and shipped package remain unchanged.
+- The first complete offline run is 192/193 with only
+  `test_active_ledger_has_exact_generation7_candidate` failing, as required
+  after evaluator-source drift against a terminal failed ledger. This remains
+  a transitional signal: a fresh successor candidate/genesis and a second
+  complete GREEN run are required.

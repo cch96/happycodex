@@ -407,6 +407,13 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             "must embed one blocker.",
             runner.EVALUATOR_CONTEXT,
         )
+        self.assertIn(
+            "`qualifies` means this checkpoint requires the HappyCodex "
+            "high-risk protocol, not merely that a next action is permitted; "
+            "set it false for clearly local low-risk work that may proceed "
+            "natively.",
+            runner.EVALUATOR_CONTEXT,
+        )
         self.assertNotIn("permission fields", runner.EVALUATOR_CONTEXT)
         self.assertNotIn("protocol_may_", runner.EVALUATOR_CONTEXT)
 
