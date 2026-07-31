@@ -401,6 +401,12 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             "Recovery Manifest; never synthesize a manifest marker.",
             runner.EVALUATOR_CONTEXT,
         )
+        self.assertIn(
+            "A baseline_unchanged finding is unresolved unless its exact id "
+            "appears in accepted baseline failures; every unresolved finding "
+            "must embed one blocker.",
+            runner.EVALUATOR_CONTEXT,
+        )
         self.assertNotIn("permission fields", runner.EVALUATOR_CONTEXT)
         self.assertNotIn("protocol_may_", runner.EVALUATOR_CONTEXT)
 

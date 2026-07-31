@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `CALIBRATION_3_FAILED_SEALED`
+Status: `BLOCKER_PROJECTION_REPAIR_FOCUSED_GREEN`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -563,3 +563,15 @@ digest. Focused RED reproduced all five findings before implementation.
   `583500c0d103a4c4af4440e6243a53b9c5460020a40c36c7da1cdd9cb885560e`.
   The authorization, ActionKey, LaunchKey, and failed candidate are terminal
   and cannot be reused or retried.
+- RED reproduced the exact omission:
+  `test_live_projection_has_one_reducer_owned_boundary` failed because the
+  provider instruction did not state when `baseline_unchanged` is unresolved
+  or require an embedded blocker for every unresolved finding.
+- The implementation adds that one status-to-blocker sentence. Focused
+  prompt-contract, reducer, and NextAction tests are 3/3 GREEN; schema,
+  reducer, fixture, Runtime, and shipped package remain unchanged.
+- The first complete offline run is 192/193 with only
+  `test_active_ledger_has_exact_generation7_candidate` failing, as required
+  after evaluator-source drift against a terminal failed ledger. This is a
+  transitional clean-break signal, not an accepted failure: a fresh successor
+  candidate/genesis and a second complete GREEN run are required.
