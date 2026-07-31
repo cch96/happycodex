@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `SUCCESSOR_8_OFFLINE_GREEN`
+Status: `SUCCESSOR_8_AWAITING_BUNDLE_AUTHORITY`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -1247,3 +1247,25 @@ effect authority.
   not changed by this task. No model call occurred after the terminal
   successor-7 corpus run, and no install, cutover, push, tag, GitHub Release,
   or publication effect occurred.
+- Distinct successor-8 release-evaluation resource receipt
+  `/home/caichenghang/.codex/happycodex-0.6.5-release-evaluation-7-resource-claim.json`
+  is mode 0600 with SHA-256
+  `a870193a756c39a5b88533fd7549b73c7749d39c91735cf07b9116ac4a84137e`
+  and owner token prefix `b47ccc17`. It exclusively binds three new mode-0700
+  claim, output, and record roots. The claim and output roots are empty.
+- Private authority envelope
+  `/home/caichenghang/.codex/happycodex-0.6.5-release/records/release-evaluation-7/authority.json`
+  is mode 0600 with SHA-256
+  `30bf47a7380b5f3e2f5d1038b830a5ea569f0a5f78fd10d3a602175aa103e078`.
+  It validates against candidate `e885859b`, snapshot `34b29aec`, and Codex
+  binary `cb5e8cb8`; one response covers calibration, corpus, adaptive holdout,
+  artifact receipt, and exact-final review under the same 27-call,
+  2,700,000-input-token, 270,000-output-token, and 8,100,000-millisecond
+  aggregate ceiling.
+- Preparing the envelope created only that private file and one local identity
+  subprocess. It created no GatePlan, launch, ActionKey, fixture, model call,
+  network call, ledger transition, install, or release effect. The one
+  acceptable authority line is:
+  `AUTHORIZE HappyCodex 0.6.5 release evaluation bundle for request f470ffcaa273cc44f9232e7820c93b6eead6614070364a046df091c565fd147e`.
+  Its UTF-8 plus LF SHA-256 is
+  `fd5a5f1f01d953726753c473794adb5dcccccfb2ff79a51f905b24ac7a8f0ea0`.
