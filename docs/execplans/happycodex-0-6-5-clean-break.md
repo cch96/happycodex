@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `CALIBRATION_REPAIR_FOCUSED_GREEN`
+Status: `SUCCESSOR_OFFLINE_VERIFICATION`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -316,3 +316,13 @@ digest. Focused RED reproduced all five findings before implementation.
 - Next action is to commit this repair source, create a fresh successor
   candidate/genesis with no transferred plan, receipt, authority, or evidence,
   run the full offline suite, and derive a new calibration request.
+- The coherent repair source is committed at
+  `402fedc26f891f6977174e57d3cb79ed680ffa0f`, tree
+  `4fc2791b1c4b1e1a9bed1888eba6e11791712596`. A fresh generation-7 genesis
+  now binds successor candidate
+  `8999589309204ed0a10546ca96f2a3b2048777c2491c159e7dc72e2fad60765e`
+  and has ledger identity
+  `f11e10b2d59f8847c025ba9218291aa36ed9d91578be487514290614f2b3c24b`.
+  Its plan and receipt arrays are empty. The failed predecessor ledger remains
+  Git-reachable at `bead2f7`; no predecessor plan, receipt, approval, model
+  result, cost basis, or evidence is migrated or reused.
