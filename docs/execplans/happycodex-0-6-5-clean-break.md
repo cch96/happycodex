@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `CALIBRATION_4_AUTHORIZED_PENDING_APPLY`
+Status: `CALIBRATION_4_AUTHORIZED_PENDING_LAUNCH`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -634,3 +634,11 @@ digest. Focused RED reproduced all five findings before implementation.
   `d3497ce1ddc426b292fff36ec0bc950b09447d8eaa986a6d74d953a4e0bcf0b6`;
   it authorizes only the already sealed fourth calibration GatePlan and has
   not yet been consumed.
+- Applying that sealed GatePlan to successor-4 succeeded exactly once. The new
+  ledger semantic SHA-256 is
+  `a63721c0c5ca5f7e3363197cfec04cd7afa58445b47c70619e6868130df2315e`
+  and its file SHA-256 is
+  `6e0789edbdfa595af8ac58ed8205ddc10d32fe884808f5b408a12b8da4904766`.
+  This transition records the pending plan only; its action and launch remain
+  unconsumed, the launch-claim root is empty, the output root is absent, and no
+  model or network effect has occurred.
