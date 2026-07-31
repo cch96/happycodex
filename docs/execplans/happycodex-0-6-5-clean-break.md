@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `CORPUS_PREAUTHORIZED_UNAPPLIED`
+Status: `CORPUS_AUTHORIZED_OPEN_PLAN`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -904,3 +904,11 @@ effect authority.
   reconstructs every default launch, and caused no launch, ActionKey
   consumption, model call, network call, or ledger change. The claim root is
   empty and output remains absent.
+- The sealed corpus GatePlan was atomically appended once. Predecessor ledger
+  `af58bd421c4135a9aaa50c3e829c6ddbc6085f4b1e700d339996fb2b669be42b`
+  became open-plan ledger
+  `018efc5de6c88e81bc752f54354a3f435fb25c0a7248d09403eb42a1bf077172`,
+  file SHA-256
+  `7f5e00c71d46571cc6dca40010a5ed8c60def6898e13a706845cb11e7d74a2d4`.
+  This transition caused no launch, ActionKey consumption, model call, or
+  network call; the claim root is still empty and output remains absent.

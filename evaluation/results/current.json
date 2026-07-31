@@ -65,6 +65,77 @@
       "units": [
         "subthreshold-control"
       ]
+    },
+    {
+      "approval_content_sha256": "db5fced57e93bb6d147385ce196ef70f63192dfc34cbf2a68aacdca17e846834",
+      "approval_request_sha256": "b6914541ca799c3846cc22010b4fbd6636c53bcbc4f0bd44f833ba8234009723",
+      "candidate_sha256": "e6c95a428ad0dff37534381cda8f1887fee44c2d810c2e12e3403e396dc5c511",
+      "cost_ceiling": {
+        "model_calls": 3,
+        "output_tokens": 10000,
+        "uncached_input_tokens": 120000,
+        "wall_milliseconds": 360000
+      },
+      "created_at": "2026-07-31T03:28:29Z",
+      "gate": "corpus",
+      "output": "/home/caichenghang/.codex/happycodex-0.6.5-release/outputs/release-evaluation-5/corpus",
+      "plan_sha256": "709277dca311239779d67638079cc37815c5dd2915015b9cdd068c10998d2494",
+      "profile": {
+        "argv": [
+          "happycodex-host:run-authorized-v1",
+          "--gate",
+          "corpus",
+          "--repository",
+          "/home/caichenghang/projects/happycodex-worktrees/happycodex-0.6.5",
+          "--output",
+          "/home/caichenghang/.codex/happycodex-0.6.5-release/outputs/release-evaluation-5/corpus",
+          "--claim-root",
+          "/home/caichenghang/.codex/happycodex-0.6.5-release/claims/release-evaluation-5/corpus",
+          "--unit",
+          "{unit}"
+        ],
+        "arm": "candidate",
+        "cwd": "/home/caichenghang/projects/happycodex-worktrees/happycodex-0.6.5",
+        "effort": "high",
+        "env": {
+          "HAPPYCODEX_CLAIM_ROOT": "/home/caichenghang/.codex/happycodex-0.6.5-release/claims/release-evaluation-5/corpus",
+          "HAPPYCODEX_CODEX_SHA256": "cb5e8cb8a333a408ce6adbe0d4fad1845c69772c2216af7c1f88c98a11460dc6",
+          "HAPPYCODEX_IMPACT_SHA256": "24e85549b696e0a7f50b77e6749a80ca58437cce187bc9c7bc190c25e4fa074f"
+        },
+        "model": "gpt-5.6-sol",
+        "timeout_ms": 300000
+      },
+      "record_type": "GatePlan",
+      "resource_digests": [
+        "195af9968b6ca0a4647a616276d8daaf233ed60d0df4bda5ef3da63a72d18174",
+        "1e15ade132ea9107f54cd789ca0c2396e30fb70b6adf7249bc4ae9b9d97c37d9",
+        "48c1007b4d03decf52fec474b700602ade6e46353110d67ee1d859f8a5a0b62f",
+        "5efa16463390bc3c8d4a6462ae58a94cffeb3f9cd24c6c09d65f0a15c525dab0",
+        "935456578c4eb0733eefa3bc848a8424c3ae27fe9c2e87312af453c65e6f875f",
+        "a6d76dee3c3767aceee5aaec8962945f9002c5e907f15fb956247048e6b7b2b5",
+        "d4616894306765a75235a41b1c9c50ff74193f69ba5416bfd70f5144b68f25ff"
+      ],
+      "schema_version": 1,
+      "snapshot_sha256": "a3dfb0c4633778e07022d91d6a25466463052366f30efabca6949feb160b1bb1",
+      "units": [
+        "authorized-rebaseline",
+        "boundary-cutover",
+        "clean-qualifying-control",
+        "compaction-recovery",
+        "exact-final-ready",
+        "goal-divergence",
+        "midflight-escalation",
+        "multi-repo-submodule",
+        "no-commit-archive-recovery",
+        "no-commit-secret",
+        "no-commit-unselected",
+        "pre-freeze-compaction",
+        "receipt-mismatch",
+        "review-admin-cycle",
+        "review-inventory-gate",
+        "review-isolation",
+        "subthreshold-control"
+      ]
     }
   ],
   "receipts": [
