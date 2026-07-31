@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `SUCCESSOR_6_OFFLINE_GREEN`
+Status: `AWAITING_RELEASE_EVALUATION_AUTHORITY`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -797,3 +797,24 @@ effect authority.
   Host config remains `b069fc75`; it is not an isolated invocation input.
   No model, network, install, activation, push, tag, publication, or release
   effect occurred.
+- Distinct release-evaluation resource receipt
+  `/home/caichenghang/.codex/happycodex-0.6.5-release-evaluation-5-resource-claim.json`
+  has SHA-256
+  `01982bd4b8358ac481e0831658502a025b565eab39180dc06a3e32db99975e37`
+  and owner token `faa3fbd8`. It exclusively binds three new mode-0700
+  claim/output/record roots; the claim and output roots remain empty.
+- The private authority envelope is
+  `/home/caichenghang/.codex/happycodex-0.6.5-release/records/release-evaluation-5/authority.json`,
+  mode 0600, SHA-256
+  `4516ab55d2711963a13c58d91f1e0353789eba073f19fc0081ef8ce76ad468ce`.
+  It revalidates against candidate `e6c95a4`, snapshot `a3dfb0c`, and Codex
+  binary `cb5e8c`; it binds calibration, corpus, holdout, receipt, and review
+  to the 27-call/2.7M-input/270K-output/8.1M-ms ceiling. Generating it caused
+  one local identity subprocess and one private file write, with zero launch,
+  ActionKey consumption, model call, network call, ledger change, or release
+  effect.
+- The only acceptable next authority is the exact canonical line:
+  `AUTHORIZE HappyCodex 0.6.5 release evaluation bundle for request b6914541ca799c3846cc22010b4fbd6636c53bcbc4f0bd44f833ba8234009723`.
+  Until the user returns it verbatim, no GatePlan may be applied and no model
+  call may start. This one response grants no isolated install, activation,
+  push, tag, publication, or GitHub Release.
