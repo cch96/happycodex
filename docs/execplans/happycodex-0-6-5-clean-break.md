@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `CALIBRATION_RECEIPTED_PREPARING_CORPUS`
+Status: `CORPUS_PREAUTHORIZED_UNAPPLIED`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -883,3 +883,24 @@ effect authority.
   `4cace3d4c1b853490f33395910f882078137a0a9b7951497c3c8dc8a20a872d3`.
   Calibration is covered with no failed receipt; the remaining gates are
   corpus, holdout, artifact receipt, exact-final review, and isolated install.
+- Corpus impact receipt
+  `/home/caichenghang/.codex/happycodex-0.6.5-release/records/release-evaluation-5/corpus/impact.json`
+  is mode 0600 with SHA-256
+  `24e85549b696e0a7f50b77e6749a80ca58437cce187bc9c7bc190c25e4fa074f`.
+  It binds the exact 17-case/19-provider-phase source schedule and successful
+  calibration actuals. The per-launch ceiling is reduced to three calls,
+  120,000 uncached-input tokens, 10,000 output tokens, and 360 seconds. Even
+  reserving that ceiling for all 17 launches leaves 7 calls, 630,388 input
+  tokens, 98,583 output tokens, and 1,940,880 wall milliseconds inside the
+  original bundle for six holdout calls and one exact-final review.
+- Offline preflight wrote private corpus GatePlan
+  `/home/caichenghang/.codex/happycodex-0.6.5-release/records/release-evaluation-5/corpus/plan.json`,
+  file SHA-256
+  `45f88b32671afabacf934289187434a6da81dfc9dcafefe270868ec463c49242`
+  and plan SHA-256
+  `709277dca311239779d67638079cc37815c5dd2915015b9cdd068c10998d2494`.
+  It is a validated `preauthorized` subset of bundle request
+  `b6914541ca799c3846cc22010b4fbd6636c53bcbc4f0bd44f833ba8234009723`,
+  reconstructs every default launch, and caused no launch, ActionKey
+  consumption, model call, network call, or ledger change. The claim root is
+  empty and output remains absent.
