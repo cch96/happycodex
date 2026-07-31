@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `SUCCESSOR_8_TERMINAL_CORPUS_FAILED`
+Status: `USER_DIRECTED_UNCERTIFIED_RELEASE_PREPARING`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -1402,3 +1402,50 @@ effect authority.
   unchanged. No holdout, artifact receipt, exact-final review, isolated
   install, active cutover, push, tag, GitHub Release, or publication effect
   occurred.
+
+## User-directed uncertified 0.6.5 release
+
+The following current-task user message is the release amendment, captured
+durably at `2026-07-31T05:22:49Z`. Its UTF-8-plus-LF SHA-256 is
+`355b80921678981861bc391a1ef2b3fb707d95fe193702b396cb4344dda624c1`:
+
+```text
+你先直接发0.6.5。这些evalution后面可能需要统一优化
+```
+
+This amendment explicitly selects one direct public `0.6.5` release while
+deferring evaluator repair. Its narrow normalized effect is:
+
+- preserve the successor-8 corpus failure, failed receipt, and
+  `certified=false`; never describe this release as certified;
+- waive the remaining certification requirement only for one fast-forward of
+  `cch96/happycodex` `main` from
+  `e679c3d5cb83d6170fcd6f38f067892603c309da` to the exact release commit,
+  one annotated `v0.6.5` tag, one public GitHub Release, and one paired local
+  `happycodex@personal` activation;
+- make no evaluator, oracle, corpus, holdout, Runtime, or product-behavior
+  repair and perform no further model call;
+- keep the public manifest at its contract-tested exact `0.6.5`; use the
+  plugin-creator cachebuster helper only on the paired local activation copy,
+  preserve the prior installed `0.6.0+codex.20260730115707` cache for rollback,
+  and prove the exact public release package through a fresh isolated install
+  before publication. This manual release-safety proof does not promote the
+  failed certification ledger.
+
+Applying the cachebuster helper directly to the public tree was a proven
+pre-effect `NO_EFFECT` preflight failure: the full suite became 201/205 because
+three exact-version contract tests correctly reject public
+`0.6.5+codex.<stamp>`, in addition to the already accepted active-ledger
+genesis-fixture failure. The public manifest was restored to exact `0.6.5`;
+no marketplace, cache, install, ref, or remote effect occurred.
+
+The former release-output bootstrap receipt is stale because its claim is
+absent and is not reused. Replacement mode-0600 resource receipt
+`/home/caichenghang/.codex/happycodex-0.6.5-public-release-resource-claim.json`
+has SHA-256
+`1a3ad8b92598d89f471769a3dfef15ae2c62b9bf22f321ee2d1a556590d382ed`
+and owner-token prefix `75d99976`. It exclusively binds the release output,
+local `main`/`origin/main`/`v0.6.5` refs, personal marketplace source, active
+config, and versioned cache. Exact release commit, package identities,
+destinations, and rollback prestate must be persisted before the first
+external effect.
