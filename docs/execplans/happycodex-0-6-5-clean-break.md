@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `SUCCESSOR_4_OFFLINE_GREEN`
+Status: `CALIBRATION_4_AWAITING_AUTHORITY`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -599,3 +599,33 @@ digest. Focused RED reproduced all five findings before implementation.
   with file SHA-256
   `fbce07291635985392ba31e0d3a2d4236955081ecc8ae90806974b42259f8634`.
   All official dry-runs report zero effects; Skill and plugin validators pass.
+- The distinct fourth calibration resource receipt is
+  `/home/caichenghang/.codex/happycodex-0.6.5-calibration-4-resource-claim.json`,
+  SHA-256
+  `68ff42183d165b4ec93a3564271d73f4e1f0a28a0738c26007a11aec4898f587`.
+  It exclusively binds new `calibration-4` claim, output, and record roots;
+  the launch-claim root is empty and the output root remains absent.
+- Fourth impact receipt
+  `/home/caichenghang/.codex/happycodex-0.6.5-release/records/calibration-4/impact.json`,
+  SHA-256
+  `108607c714771a24b3ed398fd203b39e5b9647fa640d957e866e8d83ed271a58`,
+  binds candidate `3ea1e34`, snapshot `c173a65`, repaired prompt
+  `f3353d2`, Codex `0.146.0/cb5e8c`, and one
+  `subthreshold-control` call at `gpt-5.6-sol`/`high`. With no successful
+  historical calibration, it retains the conservative ceilings of one call,
+  100,000 uncached-input tokens, 10,000 output tokens, and 300 seconds.
+- Offline request preflight wrote only private GatePlan
+  `/home/caichenghang/.codex/happycodex-0.6.5-release/records/calibration-4/plan.json`,
+  file SHA-256
+  `99c8c42614de43cc986e1cd8821cf1d600980cf3006607037992e3b6dc88d95c`,
+  plan SHA-256
+  `ec6ea0b3fbb263cddba00b31fa1ed04ea94076322e7d2f89664092362f2bc041`,
+  and approval-request SHA-256
+  `411c6398c372a3e4b5266c1cf54fcb00d3eae845f83173fc0cea42ed6d5dafd8`.
+  It reconstructed and validated the default launch before requesting
+  authority. Ledger remains
+  `d4eb89ab133e88fc5fc529f85feeffda47ee38c16822de04ec74480feb329ecb`;
+  zero launch, consumed action, model, network, receipt, install, or
+  publication effect occurred.
+- The only acceptable next authority is the exact canonical line:
+  `AUTHORIZE HappyCodex 0.6.5 gate calibration exactly once for request 411c6398c372a3e4b5266c1cf54fcb00d3eae845f83173fc0cea42ed6d5dafd8`.
