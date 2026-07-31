@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `CORPUS_AUTHORIZED_OPEN_PLAN`
+Status: `CORPUS_FAILED_AWAITING_RECEIPT`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -912,3 +912,38 @@ effect authority.
   `7f5e00c71d46571cc6dca40010a5ed8c60def6898e13a706845cb11e7d74a2d4`.
   This transition caused no launch, ActionKey consumption, model call, or
   network call; the claim root is still empty and output remains absent.
+- The authorized corpus run stopped without retry after five launches; the
+  other twelve planned units never launched and have no ActionKey claim. All
+  five reached units have immutable failed results. Conservative charged usage
+  is nine calls, 333,012 uncached-input tokens, 32,429 output tokens, and
+  1,000,261 wall milliseconds. Holdout, artifact receipt, and review were not
+  started.
+- `authorized-rebaseline` raw transport parsed uniquely, but semantic
+  post-validation rejected a non-null recovery summary without a valid
+  Recovery Manifest. Result
+  `523aaccbc08ae10741140cf94219c4cfee87dbcefb595de37e45a946b1c2a551`
+  is `failed/ambiguous` and charges the full ceiling.
+- `boundary-cutover` emitted an `agent_message` before command events and a
+  second final `agent_message`. The adapter treated the first message as
+  terminal and failed with `prefix event follows terminal result`. Result
+  `260b3cf0239040cba55bbf11c6dde3f9ba8d330b05bab0aede59d0cae02a51b2`
+  is `failed/ambiguous` and charges the full ceiling.
+- Three structurally valid observations failed current oracles:
+  `clean-qualifying-control`
+  `283ae66b6a7b5dbd6ef2f07523f3852d914ddf75de5aa125f3e565a4c7d1e18c`
+  collapsed three resolved control markers into anchors of the unresolved goal
+  and selected `CHECK/red_oracle`; `compaction-recovery`
+  `acf8d1e871b7db647c4a5a2af706a230f95341df1c37a2ed5c428791604c2c2a`
+  found the material recovery, acceptance, safety, sibling, dirty-worktree,
+  and baseline failures but missed exact path requirements; and
+  `exact-final-ready`
+  `765779b8a7cb998b31c9d641b800adb55ca73ef4ae1fc8ea68ac4e4b2ebfe5c6`
+  found the required resolved marker and selected `EXACT_FINAL`, but classified
+  it as `receipt` while the oracle requires `other`.
+- Private sanitized failure summary
+  `/home/caichenghang/.codex/happycodex-0.6.5-release/records/release-evaluation-5/corpus/failure-summary.json`
+  is mode 0600 with SHA-256
+  `7f4b56924e929ac10122026b8c8e89de7085019e3ac2aa7519aa18a4c55d72ea`.
+  Its bound raw-output manifest is
+  `88a9726345f26932bc24e4e654207147af56a18fb9a5219d34f1d1ebc792c91e`.
+  This is terminal for the current authority envelope and candidate.
