@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `CALIBRATION_2_AUTHORIZED_PENDING_APPLY`
+Status: `CALIBRATION_2_AUTHORIZED_PENDING_LAUNCH`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -381,3 +381,8 @@ digest. Focused RED reproduced all five findings before implementation.
   exactly matching the private GatePlan. This grants one application and one
   provider-reaching launch only; it grants no retry, corpus, holdout, review,
   install, activation, push, tag, publication, or release effect.
+- The exact GatePlan was atomically appended to predecessor ledger
+  `f11e10b2d59f8847c025ba9218291aa36ed9d91578be487514290614f2b3c24b`;
+  the authorized open-plan ledger is
+  `e205f270ddce7632e25d4b8274ad60e10fa8c458857f7c8df2ec9b786d43f95c`.
+  No launch or external effect occurred during this transition.
