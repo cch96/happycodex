@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `SUCCESSOR_8_OFFLINE_VERIFICATION`
+Status: `SUCCESSOR_8_OFFLINE_GREEN`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -1224,3 +1224,26 @@ effect authority.
   `7653a0d3bb10e83e1e39056278fdbe171e146db7da5c99f43015e68016d1d002`
   with empty plan and receipt arrays. It imports none of successor-7's
   authority, calibration, launch, result, receipt, or cost records.
+- Successor-8 refreeze is committed at
+  `dc0a984a3588bb492a3a65c4f4d4892da936695e`, tree
+  `3da199bed3f13ac776736213a805394f464af424`. Its complete post-commit
+  suite is 205/205 GREEN in 14.228 seconds. CLI verify reports
+  `refresh_required`, no failures, all six gates pending, evaluator manifest
+  `fca71848667f471c4f5fe44d0a4821c5c781840eef6b9fccfae7459f422c46b2`,
+  snapshot
+  `34b29aec9c689b0fac7e0236c0828a3692d1a1e8f06b57044479b35d341d0978`,
+  and ledger
+  `7653a0d3bb10e83e1e39056278fdbe171e146db7da5c99f43015e68016d1d002`.
+- Executor, calibration, corpus, and holdout dry-runs each report zero
+  launches, consumed actions, fixtures, outputs, receipts, workspaces,
+  subprocesses, model calls, and network calls. Skill and plugin validators
+  pass. Runtime remains 148 lines and 1,145 words; the semantic package remains
+  exactly five files with 17 public exports.
+- Protected active source and cache manifests remain
+  `8b69be2632bf5c6f72736a09d1d3c815acf26ed7fcd4a9e6ed55e0092fcfbed0`;
+  plugin metadata remains `ab36ad0c`, Skill remains `19145f8a`, and marketplace
+  remains `752de5a6`. Host-owned Codex config remains at the previously observed
+  independent drift `48d1580d`; it is not an isolated evaluation input and was
+  not changed by this task. No model call occurred after the terminal
+  successor-7 corpus run, and no install, cutover, push, tag, GitHub Release,
+  or publication effect occurred.
