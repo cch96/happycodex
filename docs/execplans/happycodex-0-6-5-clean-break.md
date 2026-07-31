@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `SUCCESSOR_8_CORPUS_PRELAUNCH`
+Status: `SUCCESSOR_8_CORPUS_FAILED_AWAITING_RECEIPT`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -1343,3 +1343,33 @@ effect authority.
   `10d6b3ee2538fbb0eb579f1d4bb8782a0f8bd11471d16040446b10b16a551c03`.
   No corpus launch, ActionKey, fixture, workspace, model, network, output,
   receipt, install, or release effect occurred.
+- The authorized corpus command ran exactly once and was not retried. All 17
+  sorted units have immutable launch, ActionKey, and terminal result records:
+  five passed, ten reached the provider but failed their exact oracle, and two
+  ended conservatively `ambiguous`. The top-level command terminated with
+  `codex prepare timed out`.
+- Passing units are `authorized-rebaseline`, `compaction-recovery`,
+  `exact-final-ready`, `goal-divergence`, and `subthreshold-control`.
+  Provider-reaching failures are `boundary-cutover`,
+  `clean-qualifying-control`, `midflight-escalation`,
+  `multi-repo-submodule`, `no-commit-archive-recovery`, `no-commit-secret`,
+  `no-commit-unselected`, `receipt-mismatch`, `review-admin-cycle`, and
+  `review-inventory-gate`. `pre-freeze-compaction` and `review-isolation` are
+  the two ambiguous terminal units.
+- Conservative aggregate usage is 21 model calls, 569,735 uncached-input
+  tokens, 77,900 output tokens, and 2,012,499 wall milliseconds. The 15
+  structurally provider-reaching results account for 329,735 input tokens,
+  57,900 output tokens, and 1,292,499 wall milliseconds; the two ambiguous
+  units reserve their full ceilings. This remains within the authority
+  envelope but is terminal because the corpus GatePlan failed.
+- Private sanitized failure summary
+  `/home/caichenghang/.codex/happycodex-0.6.5-release/records/release-evaluation-7/corpus/failure-summary.json`
+  is mode 0600 with file SHA-256
+  `01c810cfc9c9b4716324f6d013ec09679637ab8d871a5c9a910432cc098963ac`.
+  Its output and claim manifests are respectively
+  `d76e032203cc2d66bae9f668281cb3974afbe8da396672664dd49b2cd15e2cb2`
+  and
+  `3fead91d8bd685564a9973fd153c36d3f3e7b808a82ad2edfbd4a28c3cf129f8`.
+  Raw model events remain private outside Git. Holdout, artifact receipt,
+  exact-final review, isolated install, cutover, push, tag, GitHub Release,
+  and publication were not started.
