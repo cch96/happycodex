@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `CALIBRATION_3_AUTHORIZED_PENDING_LAUNCH`
+Status: `CALIBRATION_3_FAILED_PENDING_RECEIPT`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -520,3 +520,35 @@ digest. Focused RED reproduced all five findings before implementation.
   This transition records the pending plan only; its action and launch remain
   unconsumed, the launch-claim root is empty, the output root is absent, and no
   model or network effect has occurred.
+- The authorized launch reached the provider exactly once and consumed
+  ActionKey
+  `e0eba4a943551c541f1acdb1b92436a22aa8f0245908e83333f4ad3e30ef13a7`
+  under LaunchKey
+  `1c60a0de8b6f8ed196de3d58340d33762e5cc4587b30756571451fc1497dc73f`.
+  It was not retried.
+- The provider returned one structurally valid terminal observation and one
+  terminal usage event, but semantic post-validation failed with
+  `unresolved finding requires an embedded blocker`. Immutable launch result
+  `8a2cf47b6f2412a40726b5eafd64f196f4d51dd9868e45ea3a1425db3c801f21`
+  therefore records `failed/ambiguous` and conservatively charges the full
+  approved ceiling. The raw terminal event reports 55,465 input tokens,
+  including 38,144 cached input tokens, and 1,763 output tokens; it is not a
+  successful historical-cost basis. Raw external event, stderr, and result
+  file SHA-256 values are respectively
+  `1a3cb71ca13ecab00051e902401d8f2b6ba87a97022cc9f2014da4d8e85c2618`,
+  `2f024db244dd7d622df90c3b989e9158bdf1ec7c297306e75531a7356feb985b`,
+  and
+  `71ecc93fad64a32f92d1d20ead228c508f311e308df8369987c0d5b609157a6b`.
+- New finding `HC-065-UNRESOLVED-BLOCKER-PROJECTION` is a prompt-contract
+  omission, not a reason to weaken the pure reducer. The provider correctly
+  returned `qualifies=false`, `execplan_condition=not_required`,
+  `recovery=null`, and one `baseline_unchanged` finding anchored to the task
+  typo, but used `blocker=null`. The evaluator prompt calls blockers optional
+  without stating the reducer rule that `baseline_unchanged` is unresolved
+  unless its exact finding id is in accepted baseline failures and therefore
+  must embed one blocker. This result is not accepted as calibration evidence.
+- The bounded offline repair must preserve the fail-closed reducer and closed
+  schema, add that missing status-to-blocker rule to the provider instruction,
+  reproduce the omission with one prompt-contract RED, run the affected
+  focused tests and complete offline suite, then mint a fresh successor
+  candidate/genesis before any new calibration request.
