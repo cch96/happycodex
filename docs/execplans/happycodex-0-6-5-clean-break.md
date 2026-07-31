@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `USER_DIRECTED_UNCERTIFIED_RELEASE_PREPARING`
+Status: `USER_DIRECTED_UNCERTIFIED_RELEASE_FROZEN`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -1449,3 +1449,20 @@ local `main`/`origin/main`/`v0.6.5` refs, personal marketplace source, active
 config, and versioned cache. Exact release commit, package identities,
 destinations, and rollback prestate must be persisted before the first
 external effect.
+
+The frozen public package at preparation commit
+`9cd7d20f7eb0a699178f5fa0cb5ef2a8441a39fd` has exact version `0.6.5`,
+artifact SHA-256
+`22a16298ca0db684b1aefe471ba51cb1c638701976820c32f6f681fc2b1ada36`,
+semantic SHA-256
+`6980f233f11ca9c9dbc565b4b4e27819fe89dcf56f16a2d352bdfc51dc0e86cc`,
+and Executor-role SHA-256
+`f1effcc84e7ed24f6d54c972e2e412db42a3e46a6d92565e6d61b358128305da`.
+Plugin and Skill validators pass; Runtime remains 148 lines and 1,145 words.
+The restored public-version full suite is 204/205 in 13.893 seconds with only
+the explicitly accepted post-evidence genesis-fixture failure.
+
+Immediately before freeze, remote `main` remained
+`e679c3d5cb83d6170fcd6f38f067892603c309da`; remote `v0.6.5` and GitHub
+Release `v0.6.5` were absent. The next effect is a fresh isolated install from
+the exact frozen Git archive. Publication and active cutover remain unstarted.
