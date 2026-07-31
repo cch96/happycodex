@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `CORPUS_FAILED_AWAITING_RECEIPT`
+Status: `CORPUS_FAILED_RECEIPT_BLOCKED`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -947,3 +947,16 @@ effect authority.
   Its bound raw-output manifest is
   `88a9726345f26932bc24e4e654207147af56a18fb9a5219d34f1d1ebc792c91e`.
   This is terminal for the current authority envelope and candidate.
+- The official zero-model receipt command against evidence commit
+  `c43d6ed4372db5a48a84b95821f22d954e17c072` failed closed with
+  `planned unit lacks a provider-reaching result` and wrote no receipt.
+  Finding `HC-065-CORPUS-FAILFAST-RECEIPT` is a protocol contradiction:
+  `_evaluate_cases_bounded` intentionally stops replenishing its bounded
+  frontier after the first exception, but non-holdout GateReceipt validation
+  requires unit results equal to every GatePlan unit. The current candidate
+  therefore cannot durably receipt its own compliant fail-fast corpus result.
+  Synthesizing results or launching the remaining twelve units would
+  misrepresent evidence or violate the terminal bundle policy. Ledger
+  `018efc5de6c88e81bc752f54354a3f435fb25c0a7248d09403eb42a1bf077172`
+  remains at the open failed corpus plan; certification and release cannot
+  proceed.
