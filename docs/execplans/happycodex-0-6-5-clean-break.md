@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `SUCCESSOR_7_CALIBRATION_COVERED`
+Status: `SUCCESSOR_7_CORPUS_PRELAUNCH`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -1104,3 +1104,27 @@ effect authority.
   `76c1609fda85df9e71b13e7074e4897248d643ef204f5a06fc2f6fd7f245766d`.
   Calibration is covered with no failed receipt; the remaining gates are
   corpus, holdout, artifact receipt, exact-final review, and isolated install.
+- Corpus impact receipt
+  `/home/caichenghang/.codex/happycodex-0.6.5-release/records/release-evaluation-6/corpus/impact.json`
+  is mode 0600 with SHA-256
+  `a9a47fa857553e05cf9fbdebd31d4552373c93448d40d80eea0235949f520095`.
+  It binds the exact 17-case/19-provider-phase schedule and the successful
+  calibration actuals. Each launch is capped at three calls, 120,000
+  uncached-input tokens, 10,000 output tokens, and 360 seconds. Conservatively
+  reserving that ceiling for all 17 launches leaves seven calls, 629,935 input
+  tokens, 98,232 output tokens, and 1,933,781 wall milliseconds inside the
+  original bundle for holdout and exact-final review.
+- Offline preflight wrote private corpus GatePlan
+  `/home/caichenghang/.codex/happycodex-0.6.5-release/records/release-evaluation-6/corpus/plan.json`,
+  mode 0600, file SHA-256
+  `31b3f8830643e72c45c6d29619cc7496de60b7ed69561fdc0bed5fe8a06f315f`,
+  and plan SHA-256
+  `afec12f36297cbfa16fd81ad8cae01cb7703e30777c5200c7197561463ea94a6`.
+  It is a `preauthorized` subset of the same bundle and reconstructs all 17
+  sorted units. The claim root is empty and the output path is absent.
+- Appending that plan once changed semantic ledger
+  `76c1609fda85df9e71b13e7074e4897248d643ef204f5a06fc2f6fd7f245766d`
+  to open-plan ledger
+  `6ce31a274b17099d8718130cac9a64332fdbf5032d257b29bcca7ace83ee3c82`.
+  No corpus launch, ActionKey, model, network, output, or receipt effect has
+  occurred.
