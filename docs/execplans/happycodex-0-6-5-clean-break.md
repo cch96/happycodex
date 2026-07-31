@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `SUCCESSOR_7_CORPUS_PRELAUNCH`
+Status: `SUCCESSOR_7_CORPUS_FAILED_AWAITING_RECEIPT_PROBE`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -1128,3 +1128,43 @@ effect authority.
   `6ce31a274b17099d8718130cac9a64332fdbf5032d257b29bcca7ace83ee3c82`.
   No corpus launch, ActionKey, model, network, output, or receipt effect has
   occurred.
+- The authorized corpus command ran exactly once and was not retried. Its
+  bounded four-worker frontier wrote launch claims for the first four sorted
+  units. `authorized-rebaseline` and `compaction-recovery` then reached the
+  provider and consumed their distinct ActionKeys; `boundary-cutover` and
+  `clean-qualifying-control` did not consume an ActionKey.
+- The command terminated with
+  `[Errno 17] File exists: .../release-evaluation-6/corpus`. All four workers
+  passed the absent shared output root through `_output_preflight`, wrote their
+  immutable per-unit launch claims under separate locks, and then raced through
+  the later `exists -> mkdir` transition. Two workers lost that race before
+  creating their unit directories. Their `write_launch_failure` calls could
+  not persist `NO_EFFECT` because the claimed output directories did not
+  exist. Finding `HC-065-CORPUS-OUTPUT-ROOT-RACE` is an incomplete local
+  launch transaction in the evaluator control plane.
+- The two provider-reaching results are both structurally valid oracle
+  failures. `authorized-rebaseline` returned `CHECK` where the oracle expects
+  `IMPLEMENT`; `compaction-recovery` was rejected twice by the distinct
+  anchored-blocker rule. Their exact combined usage is two model calls, 33,369
+  uncached-input tokens, 8,051 output tokens, and 193,523 wall milliseconds.
+  Holdout, artifact receipt, exact-final review, install, cutover, push, tag,
+  and publication were not started.
+- Sorted plan units one and four have provider terminal results, while units
+  two and three have launch claims without terminal results. Existing
+  `collect_plan_results` therefore cannot represent the bounded concurrent
+  frontier as a failed exact prefix. Finding
+  `HC-065-CORPUS-CONCURRENT-FRONTIER-RECEIPT` is separate from the mkdir race:
+  an honest terminal corpus receipt must bind each launched prefix unit,
+  including a proven `NO_EFFECT` result, while still preferring a later
+  provider-reaching infrastructure replacement and rejecting any launch claim
+  with no terminal result.
+- Private sanitized failure summary
+  `/home/caichenghang/.codex/happycodex-0.6.5-release/records/release-evaluation-6/corpus/failure-summary.json`
+  is mode 0600 with SHA-256
+  `e11769371a7a3bafedfcbab4526edb0d8a0c6b9fa6137f91a8f91354b48df6e6`.
+  Its output and claim manifests are respectively
+  `452cd7fc76909311e353234b072abee1238fd6e4b7f5bd717d23587ef826b238`
+  and
+  `af47de438652e0e331a672b6a33c428b9e0248d9ccd70299b5dd0afe3c0c04a4`.
+  This candidate and bundle are terminal; no remaining unit may be launched
+  under the consumed authority.
