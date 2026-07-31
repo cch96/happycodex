@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `SUCCESSOR_5_OFFLINE_VERIFICATION`
+Status: `SUCCESSOR_5_OFFLINE_GREEN`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -703,3 +703,26 @@ digest. Focused RED reproduced all five findings before implementation.
   with empty plan and receipt arrays. It migrates no prior authorization,
   launch, result, receipt, or evidence; all failed predecessors remain
   Git-reachable.
+- The successor-5 refreeze is committed at
+  `a9c10f756627feeed11990e2159c9fd9aeaac616`, tree
+  `7f55caf1e2fadbae07a81bca3d4a60d0677aa977`. Its complete suite is
+  193/193 GREEN in 11.48 seconds.
+- CLI verify reports no failed receipts, all six gates pending, evaluator
+  manifest
+  `94b149fba7dd33b94a1654b68726fb399442dacd71c6b9e9f769e80dc1286435`,
+  snapshot
+  `f8a38eca3233d64e1a01cee6240ef25eec97102acec1215a7949f103edee52b7`,
+  and ledger
+  `0a8b58e390428352c9ea46705100afd705f56566c940db9dcd68ab2e49a1b78a`
+  with file SHA-256
+  `c5fda491d2c85f5ed0062f6345dc8a4cf35607f5c358f2964e727e94a2baf8a3`.
+  Executor, calibration, corpus-control, and holdout dry-runs all report zero
+  effects; Skill and plugin validators pass.
+- Active 0.6.0 plugin source/cache retain normalized manifest
+  `8b69be2632bf5c6f72736a09d1d3c815acf26ed7fcd4a9e6ed55e0092fcfbed0`;
+  plugin manifest, Skill, and marketplace hashes remain protected values.
+  The previously recorded unrelated Host-owned config drift remains unchanged.
+  No install, cutover, push, tag, publication, or release effect occurred.
+- Successor-5 is ready for a newly bound release-evaluation decision. No fifth
+  model call is authorized, and the consumed fourth authorization, ActionKey,
+  LaunchKey, or failed candidate cannot be reused.
