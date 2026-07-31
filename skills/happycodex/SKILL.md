@@ -119,9 +119,12 @@ reconstruct authority. Missing or mismatched durable facts fail closed.
 - Goal: create Goal only when explicitly requested. It continues existing
   authority but grants no amendment, waiver, review, cost, or effect; complete it
   only after the matching gates close.
-- Cost and effects: model, corpus, holdout, install, release, marketplace, and
-  activation each require their own exact impact, invocation, user authority,
-  resource claim, and outcome receipt. Dry-runs cause no effect.
+- Cost and effects: every effect keeps its own exact impact, invocation,
+  resource claim, separate exact gate plan, and outcome receipt. One current-task
+  response may authenticate a content-addressed bundle of bounded model,
+  corpus, holdout, and review plans for one candidate and snapshot; any failure,
+  drift, or exhausted cap stops. Install, release, marketplace, and activation
+  remain separate authorities. Dry-runs cause no effect.
 
 ## Review and complete
 

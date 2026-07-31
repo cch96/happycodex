@@ -31,9 +31,12 @@ acceptance checks; stop conditions; and active, consumed, or returned state.
 Persist an external intent before the first mutation and a terminal receipt
 after the last.
 
-Model, corpus, holdout, install, release, marketplace, and activation effects
-each need a separate source-derived impact envelope, complete invocation, exact
-user authority, current resource claim, and outcome receipt.
+Every effect needs its own source-derived impact, complete invocation, resource
+claim, separate exact gate plan, and outcome receipt. One user response may
+authenticate a content-addressed bundle of bounded model, corpus, holdout, and
+review plans for the same candidate and snapshot; record its cumulative cap and
+stop on failure, drift, or exhaustion. Install, release, marketplace, and
+activation remain separate authorities.
 
 ## Obligations and evidence
 

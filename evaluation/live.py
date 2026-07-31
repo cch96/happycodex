@@ -75,6 +75,24 @@ _USAGE_FIELDS = frozenset(
         "wall_milliseconds",
     }
 )
+_AUTHORITY_GATES = ("calibration", "corpus", "holdout", "receipt", "review")
+_AUTHORITY_FIELDS = frozenset(
+    {
+        "schema_version",
+        "domain",
+        "candidate_sha256",
+        "snapshot_sha256",
+        "codex_sha256",
+        "roots",
+        "gates",
+        "total_cost_ceiling",
+        "policy",
+        "approval_request_sha256",
+        "approval_content_sha256",
+    }
+)
+_AUTHORITY_ROOT_FIELDS = frozenset({"claims", "outputs", "records"})
+_AUTHORITY_POLICY = "derived-gates-stop-on-failure-drift-or-exhaustion-v1"
 _CAPABILITY_SECRET = object()
 
 
@@ -137,6 +155,232 @@ def _real_private_directory(path: Path, label: str) -> Path:
     ):
         raise ValueError(f"{label} must be a private real directory")
     return candidate
+
+
+def _authority_root(path: Path, label: str, repo: Path) -> Path:
+    root = _real_private_directory(path, label)
+    repo = repo.resolve()
+    if root == repo or repo in root.parents or root in repo.parents:
+        raise ValueError(f"{label} must be outside the repository")
+    return root
+
+
+def _authority_gate(
+    snapshot: dict[str, Any],
+    roots: dict[str, str],
+    gate: str,
+) -> dict[str, Any]:
+    from evaluation.core.impact import CORPUS_MODEL_CALLS, validate_snapshot
+
+    validate_snapshot(snapshot)
+    corpus_units = sorted(snapshot["corpus"]["cases"])
+    if set(corpus_units) != set(CORPUS_MODEL_CALLS):
+        raise ValueError("authority corpus schedule differs from the snapshot")
+    holdout_units = sorted(snapshot["holdout"]["pairs"])
+    settings = snapshot["settings"]
+    timeout_ms = settings["timeout_seconds"] * 1000
+    if gate == "calibration":
+        units, unit_calls, total_calls, arm, effort = (
+            ["subthreshold-control"], 1, 1, "candidate", settings["effort"])
+    elif gate == "corpus":
+        units, unit_calls, total_calls, arm, effort = (
+            corpus_units,
+            max(CORPUS_MODEL_CALLS.values()),
+            sum(CORPUS_MODEL_CALLS[unit] for unit in corpus_units),
+            "candidate",
+            settings["effort"],
+        )
+    elif gate == "holdout":
+        units, unit_calls, total_calls, arm, effort = (
+            holdout_units, 2, len(holdout_units) * 2,
+            "blinded-pair", settings["effort"])
+    elif gate == "receipt":
+        units, unit_calls, total_calls, arm, effort = (
+            ["offline-summary"], 0, 0, "offline-summary", "none")
+    elif gate == "review":
+        units, unit_calls, total_calls, arm, effort = (
+            ["exact-final-review"], 1, 1, "neutral-review", "max")
+    else:
+        raise ValueError("GatePlan is outside the authority envelope")
+    return {
+        "units": units,
+        "unit_calls": unit_calls,
+        "total_calls": total_calls,
+        "model": settings["model"] if unit_calls else "none",
+        "effort": effort,
+        "timeout_ms": timeout_ms,
+        "arm": arm,
+        "output": str(Path(roots["outputs"]) / gate),
+        "claim_root": str(Path(roots["claims"]) / gate),
+    }
+
+
+def release_evaluation_approval_line(request_sha256: str) -> str:
+    _digest(request_sha256, "release-evaluation approval request")
+    return (
+        "AUTHORIZE HappyCodex 0.6.5 release evaluation bundle "
+        f"for request {request_sha256}"
+    )
+
+
+def build_release_evaluation_authority(
+    *,
+    candidate: dict[str, Any],
+    snapshot: dict[str, Any],
+    codex: dict[str, str],
+    repo: Path,
+    claim_root: Path,
+    output_root: Path,
+    record_root: Path,
+) -> dict[str, Any]:
+    repo = repo.resolve()
+    roots = {
+        "claims": str(_authority_root(claim_root, "authority claim root", repo)),
+        "outputs": str(_authority_root(output_root, "authority output root", repo)),
+        "records": str(_authority_root(record_root, "authority record root", repo)),
+    }
+    if len(set(roots.values())) != len(roots):
+        raise ValueError("authority roots must be distinct")
+    _digest(candidate["candidate_sha256"], "authority candidate")
+    _digest(codex["sha256"], "authority Codex binary")
+    contracts = [
+        _authority_gate(snapshot, roots, gate) for gate in _AUTHORITY_GATES
+    ]
+    calls = sum(item["total_calls"] for item in contracts)
+    timeout_ms = snapshot["settings"]["timeout_seconds"] * 1000
+    draft = {
+        "schema_version": 1,
+        "domain": "happycodex/0.6.5/release-evaluation-authority",
+        "candidate_sha256": candidate["candidate_sha256"],
+        "snapshot_sha256": canonical_sha256(snapshot),
+        "codex_sha256": codex["sha256"],
+        "roots": roots,
+        "gates": list(_AUTHORITY_GATES),
+        "total_cost_ceiling": {
+            "model_calls": calls,
+            "uncached_input_tokens": calls * 100_000,
+            "output_tokens": calls * 10_000,
+            "wall_milliseconds": calls * timeout_ms,
+        },
+        "policy": _AUTHORITY_POLICY,
+    }
+    request_sha256 = canonical_sha256(
+        {
+            "domain": "happycodex/0.6.5/release-evaluation-approval-request",
+            "authority": draft,
+        }
+    )
+    line = release_evaluation_approval_line(request_sha256)
+    return {
+        **draft,
+        "approval_request_sha256": request_sha256,
+        "approval_content_sha256": sha256_bytes((line + "\n").encode()),
+    }
+
+
+def validate_release_evaluation_authority(
+    value: Any,
+    *,
+    candidate: dict[str, Any],
+    snapshot: dict[str, Any],
+    codex: dict[str, str],
+    repo: Path,
+) -> dict[str, Any]:
+    if not isinstance(value, dict) or set(value) != _AUTHORITY_FIELDS:
+        raise ValueError("invalid release-evaluation authority fields")
+    if (
+        value["schema_version"] != 1
+        or value["domain"]
+        != "happycodex/0.6.5/release-evaluation-authority"
+        or not isinstance(value["roots"], dict)
+        or set(value["roots"]) != _AUTHORITY_ROOT_FIELDS
+    ):
+        raise ValueError("invalid release-evaluation authority")
+    expected = build_release_evaluation_authority(
+        candidate=candidate,
+        snapshot=snapshot,
+        codex=codex,
+        repo=repo,
+        claim_root=Path(value["roots"]["claims"]),
+        output_root=Path(value["roots"]["outputs"]),
+        record_root=Path(value["roots"]["records"]),
+    )
+    if value != expected:
+        raise ValueError("release-evaluation authority envelope drift")
+    return value
+
+
+def load_release_evaluation_authority(
+    path: Path,
+    *,
+    candidate: dict[str, Any],
+    snapshot: dict[str, Any],
+    codex: dict[str, str],
+    repo: Path,
+) -> dict[str, Any]:
+    path = path.absolute()
+    if (
+        path.is_symlink()
+        or not path.is_file()
+        or stat.S_IMODE(path.stat().st_mode) != 0o600
+    ):
+        raise ValueError("authority envelope must be a private real file")
+    authority = json.loads(path.read_text(encoding="utf-8"))
+    validated = validate_release_evaluation_authority(
+        authority,
+        candidate=candidate,
+        snapshot=snapshot,
+        codex=codex,
+        repo=repo,
+    )
+    if path.parent != Path(validated["roots"]["records"]):
+        raise ValueError("authority envelope is outside its record root")
+    return validated
+
+
+def validate_authority_gate_plan(
+    authority: dict[str, Any],
+    plan: dict[str, Any],
+    *,
+    ledger: dict[str, Any],
+    claim_root: Path,
+    snapshot: dict[str, Any],
+) -> dict[str, Any]:
+    plan = validate_gate_plan(plan)
+    spec = _authority_gate(snapshot, authority["roots"], plan["gate"])
+    profile = plan["profile"]
+    cost = plan["cost_ceiling"]
+    if (
+        plan["candidate_sha256"]
+        != authority["candidate_sha256"]
+        or plan["snapshot_sha256"] != authority["snapshot_sha256"]
+        or plan["approval_request_sha256"]
+        != authority["approval_request_sha256"]
+        or plan["approval_content_sha256"]
+        != authority["approval_content_sha256"]
+        or plan["units"] != spec["units"]
+        or plan["output"] != spec["output"]
+        or str(claim_root.absolute()) != spec["claim_root"]
+        or profile["model"] != spec["model"]
+        or profile["effort"] != spec["effort"]
+        or profile["timeout_ms"] != spec["timeout_ms"]
+        or profile["arm"] != spec["arm"]
+        or cost["model_calls"] != spec["unit_calls"]
+        or cost["uncached_input_tokens"] > spec["unit_calls"] * 100_000
+        or cost["output_tokens"] > spec["unit_calls"] * 10_000
+        or cost["wall_milliseconds"]
+        > spec["unit_calls"] * spec["timeout_ms"]
+    ):
+        raise ValueError("GatePlan exceeds or drifts from authority envelope")
+    for prior in ledger["plans"]:
+        if prior["gate"] in authority["gates"] and (
+            prior["approval_request_sha256"]
+            != authority["approval_request_sha256"]
+            or prior["approval_content_sha256"]
+            != authority["approval_content_sha256"]
+        ):
+            raise ValueError("ledger mixes release-evaluation authorities")
+    return plan
 
 
 def _expand(value: str, unit: str) -> str:
@@ -1050,20 +1294,25 @@ __all__ = (
     "ROOT",
     "action_is_consumed",
     "build_launch",
+    "build_release_evaluation_authority",
     "collect_plan_results",
     "consume_action",
     "derived_release_state",
     "enter_provider_call",
+    "load_release_evaluation_authority",
     "load_state",
     "load_launch_result",
     "mint_host_capability",
     "model_gate_profile",
     "model_gate_resource_digests",
+    "release_evaluation_approval_line",
     "reserve_launch",
+    "validate_authority_gate_plan",
     "validate_consumed_action",
     "validate_capability",
     "validate_launch",
     "validate_model_gate_plan",
+    "validate_release_evaluation_authority",
     "write_launch_failure",
     "write_launch_result",
 )

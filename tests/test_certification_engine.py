@@ -405,6 +405,189 @@ class GenesisAndCliTests(unittest.TestCase):
                 [],
             )
 
+    def test_one_authority_bundle_prebinds_independent_exact_gate_plans(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            repo = _prepare_repo(raw)
+            candidate = _candidate(repo)
+            ledger = repo / "evaluation/results/current.json"
+            ledger.write_text(
+                json.dumps(
+                    {
+                        "schema_version": 1,
+                        "candidate": candidate,
+                        "plans": [],
+                        "receipts": [],
+                    },
+                    sort_keys=True,
+                    indent=2,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            _git(repo, "add", "evaluation/results/current.json")
+            _git(repo, "commit", "--quiet", "-m", "test: add candidate")
+            claims = root / "claims"
+            outputs = root / "outputs"
+            records = root / "records"
+            for path in (claims, outputs, records):
+                path.mkdir(mode=0o700)
+            authority_path = records / "authority.json"
+            prepared = _run_current_cli(
+                "authority",
+                "--repo",
+                str(repo),
+                "--claim-root",
+                str(claims),
+                "--output-root",
+                str(outputs),
+                "--record-root",
+                str(records),
+                "--record",
+                str(authority_path),
+            )
+            self.assertEqual(prepared.returncode, 0, prepared.stderr)
+            payload = json.loads(prepared.stdout)
+            authority = json.loads(authority_path.read_text(encoding="utf-8"))
+            self.assertEqual(payload["status"], "approval_required")
+            self.assertEqual(
+                payload["gates"],
+                ["calibration", "corpus", "holdout", "receipt", "review"],
+            )
+            self.assertEqual(
+                authority["total_cost_ceiling"],
+                {
+                    "model_calls": 27,
+                    "uncached_input_tokens": 2_700_000,
+                    "output_tokens": 270_000,
+                    "wall_milliseconds": 8_100_000,
+                },
+            )
+            self.assertNotIn("record_type", authority)
+            self.assertEqual(
+                sha256_bytes((payload["approval_line"] + "\n").encode()),
+                authority["approval_content_sha256"],
+            )
+            self.assertEqual(stat.S_IMODE(authority_path.stat().st_mode), 0o600)
+            self.assertEqual(
+                json.loads(ledger.read_text(encoding="utf-8"))["plans"],
+                [],
+            )
+            self.assertEqual(list(outputs.iterdir()), [])
+            self.assertEqual(list(claims.iterdir()), [])
+
+            calibration_claims = claims / "calibration"
+            calibration_records = records / "calibration"
+            calibration_claims.mkdir(mode=0o700)
+            calibration_records.mkdir(mode=0o700)
+
+            def request(
+                *,
+                output: str = "calibration",
+                record: str = "plan.json",
+                calls: int = 1,
+            ) -> subprocess.CompletedProcess[str]:
+                return _run_current_cli(
+                    "request",
+                    "--repo", str(repo),
+                    "--gate", "calibration",
+                    "--output", str(outputs / output),
+                    "--claim-root", str(calibration_claims),
+                    "--impact-sha256", "9" * 64,
+                    "--record", str(calibration_records / record),
+                    "--model-calls", str(calls),
+                    "--uncached-input-tokens", "100000",
+                    "--output-tokens", "10000",
+                    "--wall-milliseconds", "300000",
+                    "--authority", str(authority_path),
+                )
+
+            plan_path = calibration_records / "plan.json"
+            requested = request()
+            self.assertEqual(requested.returncode, 0, requested.stderr)
+            request_payload = json.loads(requested.stdout)
+            plan = json.loads(plan_path.read_text(encoding="utf-8"))
+            self.assertEqual(request_payload["status"], "preauthorized")
+            self.assertNotIn("approval_line", request_payload)
+            self.assertEqual(
+                plan["approval_request_sha256"],
+                authority["approval_request_sha256"],
+            )
+            self.assertEqual(
+                plan["approval_content_sha256"],
+                authority["approval_content_sha256"],
+            )
+
+            drifted = request(output="wrong", record="wrong.json")
+            self.assertNotEqual(drifted.returncode, 0)
+            self.assertIn("authority envelope", drifted.stderr)
+
+            excessive = request(record="excessive.json", calls=2)
+            self.assertNotEqual(excessive.returncode, 0)
+            self.assertIn("authority envelope", excessive.stderr)
+
+            candidate_ledger = {
+                "schema_version": 1,
+                "candidate": candidate,
+                "plans": [],
+                "receipts": [],
+            }
+            applied = _run_current_cli(
+                "apply",
+                "--repo",
+                str(repo),
+                "--ledger",
+                "evaluation/results/current.json",
+                "--expected",
+                canonical_sha256(candidate_ledger),
+                "--record",
+                str(plan_path),
+            )
+            self.assertEqual(applied.returncode, 0, applied.stderr)
+            _git(repo, "add", "evaluation/results/current.json")
+            _git(repo, "commit", "--quiet", "-m", "test: persist bundled plan")
+            refused = _run_current_cli(
+                "host-run",
+                "--repo",
+                str(repo),
+                "--claim-root",
+                str(calibration_claims),
+                "--impact-sha256",
+                "9" * 64,
+                "--approval-content",
+                payload["approval_line"],
+            )
+            self.assertNotEqual(refused.returncode, 0)
+            self.assertIn("requires its authority envelope", refused.stderr)
+
+            from evaluation import cli
+
+            def dispatch(
+                _args: Namespace,
+                launches: dict[str, dict],
+                claim_root: Path,
+                capability: object,
+            ) -> int:
+                self.assertEqual(set(launches), {"subthreshold-control"})
+                self.assertEqual(claim_root, calibration_claims)
+                live.validate_capability(capability, plan=plan)
+                return 0
+
+            with mock.patch.object(cli, "run_authorized", side_effect=dispatch):
+                result = cli.host_run_command(
+                    Namespace(
+                        repo=repo,
+                        claim_root=calibration_claims,
+                        public=None,
+                        impact_sha256="9" * 64,
+                        approval_content=payload["approval_line"],
+                        authority=authority_path,
+                        infrastructure_generation=None,
+                    )
+                )
+            self.assertEqual(result, 0)
+            self.assertEqual(list(calibration_claims.iterdir()), [])
+
     def test_model_result_prepares_exact_receipt_without_applying_it(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)

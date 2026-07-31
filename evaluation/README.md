@@ -6,6 +6,7 @@ from the shipped plugin. Its public command surface is:
 ```bash
 python3 -m evaluation.cli verify
 python3 -m evaluation.cli impact
+python3 -m evaluation.cli authority --claim-root ROOT --output-root ROOT --record-root ROOT --record RECORD.json
 python3 -m evaluation.cli request --gate GATE ... --record RECORD.json
 python3 -m evaluation.cli apply --expected DIGEST --record RECORD.json
 python3 -m evaluation.cli receipt --claim-root ROOT ... --record RECORD.json
@@ -16,12 +17,15 @@ python3 -m evaluation.cli holdout --dry-run
 ```
 
 `verify` validates the closed evaluator inventory and the sole active ledger.
-`impact` derives conservative invalidation without authorizing work. `request`
-performs deterministic identity/path/schema preflight, writes one private
-GatePlan draft, and prints its exact canonical approval line without persisting
-or executing it. `receipt` prepares one private GateReceipt draft from immutable
-launch results. `apply` atomically appends either complete record with
-predecessor comparison.
+`impact` derives conservative invalidation without authorizing work.
+`authority` writes one private, candidate- and snapshot-bound evaluation
+envelope and prints its single canonical approval line; it performs no model
+call and changes no ledger record. `request` performs deterministic
+identity/path/schema preflight and writes one private GatePlan draft. Without
+an envelope it prints a gate-specific approval line; with `--authority` it
+admits only a bounded derived plan and requests no additional response.
+`receipt` prepares one private GateReceipt draft from immutable launch results.
+`apply` atomically appends either complete record with predecessor comparison.
 Every dry run reports zero launches, consumed actions, fixtures, outputs,
 workspaces, subprocesses, model calls, network calls, and receipts. Live model
 execution is reachable only when Root/Host invokes `host-run` with the exact
@@ -72,11 +76,13 @@ provenance. A `GatePlan`, approval digest, `ActionKey`, or `LaunchKey` is
 audit-bound content, never permission. Root/Host orchestration must
 independently possess current-task authority and choose to enter
 `run_authorized`; the repository cannot manufacture or recover that authority.
-After authenticating the exact line printed by `request`, Host mints one
-immutable, non-serializable, process-local capability bound to the candidate,
-gate, plan, and approval digest. Every model-reaching helper revalidates that
-same capability. Knowing or reconstructing repository content is still not
-proof of current-task authority.
+After authenticating either the gate-specific line printed by `request` or the
+bounded line printed by `authority`, Host mints one immutable,
+non-serializable, process-local capability bound to the candidate, gate, plan,
+and approval digest. Bundling removes repeated user prompts, not GatePlans,
+capabilities, claims, stop conditions, or receipts. Every model-reaching helper
+revalidates the same capability. Knowing or reconstructing repository content
+is still not proof of current-task authority.
 
 The authorized boundary reloads and source-validates the active ledger,
 requires an active nonfailed candidate and its next persisted plan, and
@@ -138,10 +144,12 @@ without pre-authorizing stale future invocations.
 
 Calibration, full corpus, adaptive blinded holdout, artifact receipt,
 exact-final review, and isolated install are distinct persisted gates. The
-first three are independently model-reaching and require their own exact Host
-authority and cost basis. Publication and activation remain later external
-authority boundaries; neither is implied by certification or installation.
-Activation retains paired package/config/cache rollback state.
+first three are independently model-reaching and require their own exact plan
+and cost basis; one content-addressed envelope may authenticate the bounded
+calibration-through-review sequence. Failure, drift, or cap exhaustion stops
+the sequence. Isolated install, publication, and activation remain later
+external authority boundaries; none is implied by certification. Activation
+retains paired package/config/cache rollback state.
 
 Maintainer evaluation also proves native same-task compaction and distinct
 no-summary/no-handle reconstruction from durable facts. Writer identity cannot

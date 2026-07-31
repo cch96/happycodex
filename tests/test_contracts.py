@@ -155,6 +155,8 @@ class HappyCodexContractTests(unittest.TestCase):
         runtime = read(SKILL) + read(EXECPLAN)
         self.assertLessEqual(sum(len(read(path).splitlines()) for path in (SKILL, EXECPLAN)), 262)
         self.assertLessEqual(sum(len(read(path).split()) for path in (SKILL, EXECPLAN)), 2_200)
+        self.assertIn("content-addressed bundle", runtime)
+        self.assertIn("separate exact gate", runtime)
         self.assertNotIn("evaluation/", runtime)
         self.assertNotIn("timer", runtime.casefold())
         self.assertNotIn("cross-root", runtime.casefold())

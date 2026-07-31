@@ -24,13 +24,14 @@ never be linked from `skills/happycodex/SKILL.md`.
 - Before any live corpus or holdout authorization, persist the read-only impact receipt
   and exact source-derived historical-cost envelope. `impact_token` binds identity but
   grants no permission. Live CLI execution additionally requires current-task user
-  authority in `current.json`, bound to the exact token, package/config identities,
-  model, effort, timeout, arm, and complete invocation. Only the canonical affirmative
-  line derived from the exact approval-request digest is authority; prose is not.
+  authority bound to the candidate, snapshot, package/config identities, model, effort,
+  timeout, arm, complete invocation, and cost cap. One canonical affirmative line may
+  authenticate a content-addressed bounded release-evaluation bundle; every effect still
+  requires its own exact GatePlan, capability, claim, and receipt. Prose is not authority.
 - The new Executor pilot has no prior cost. First persist a conservative source-derived
-  envelope and complete exact invocation, then request separate exact authority for one
-  bounded calibration. Its sanitized successful actual cost becomes historical basis.
-  Executor pilot, corpus, and adaptive holdout are three separate authority gates.
+  envelope and complete exact invocation. Its sanitized successful actual cost becomes
+  historical basis. Executor pilot, corpus, and adaptive holdout remain three separate
+  gates even when one current-task response authenticates their bounded plans.
 - The evaluator derives each `LaunchKey` from the persisted `GatePlan` and its
   reducer-produced `ActionKey`. Complete local preflight precedes launch
   reservation; the `ActionKey` is consumed only immediately before a
@@ -39,9 +40,9 @@ never be linked from `skills/happycodex/SKILL.md`.
   cannot be retried.
 - Certification requires a Git-reachable successor source whose normalized Git package
   artifact and engine manifest match the snapshot. Its retained Executor authority and
-  calibration bind the exact external role-config digest; its ledger already persists
-  three gate-scoped authorities bound to the pending phase. Every evidence commit
-  strictly postdates that source. Shared schema validates inputs during both impact
+  calibration bind the exact external role-config digest; its ledger persists separate
+  gate-scoped plans bound to the pending phase and authenticated authority. Every evidence
+  commit strictly postdates that source. Shared schema validates inputs during both impact
   planning and execution.
 - A zero-live `receipt` or `isolated_install` gate still requires strictly post-source,
   content-addressed `offline_summary` evidence. Receipt evidence binds current artifact

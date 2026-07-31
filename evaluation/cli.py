@@ -125,6 +125,66 @@ def impact_command(public: Path | None = None) -> int:
     return 2 if ledger["candidate"] is None else 0
 
 
+def authority_command(args: argparse.Namespace) -> int:
+    """Prepare one bounded authority envelope without authorizing effects."""
+    repo = args.repo.resolve()
+    ledger = load_ledger(repo / "evaluation" / "results" / "current.json")
+    validate_ledger(ledger, repo=repo)
+    if (
+        ledger["candidate"] is None
+        or derive_failed(ledger)
+        or ledger["plans"]
+        or ledger["receipts"]
+    ):
+        raise ValueError(
+            "release-evaluation authority requires a fresh clean candidate"
+        )
+    snapshot = build_snapshot(repo)
+    codex = codex_identity()
+    authority = live.build_release_evaluation_authority(
+        candidate=ledger["candidate"],
+        snapshot=snapshot,
+        codex=codex,
+        repo=repo,
+        claim_root=args.claim_root,
+        output_root=args.output_root,
+        record_root=args.record_root,
+    )
+    if args.record.absolute().parent != args.record_root.absolute():
+        raise ValueError("authority record must be a direct record-root child")
+    _write_private_json(args.record, authority)
+    approval_line = live.release_evaluation_approval_line(
+        authority["approval_request_sha256"]
+    )
+    print(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "status": "approval_required",
+                "gates": authority["gates"],
+                "total_cost_ceiling": authority["total_cost_ceiling"],
+                "approval_request_sha256": authority[
+                    "approval_request_sha256"
+                ],
+                "approval_line": approval_line,
+                "approval_content_sha256": authority[
+                    "approval_content_sha256"
+                ],
+                "record": str(args.record.absolute()),
+                "effects": {
+                    **_zero_effects(),
+                    "outputs_created": 1,
+                    "subprocesses": 1,
+                },
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+            indent=2,
+        )
+    )
+    return 0
+
+
 def request_command(args: argparse.Namespace) -> int:
     """Build, but never persist or execute, the next exact GatePlan."""
     repo = args.repo.resolve()
@@ -139,6 +199,17 @@ def request_command(args: argparse.Namespace) -> int:
         raise ValueError("request is not for the next pending gate")
     snapshot = build_snapshot(repo)
     candidate = ledger["candidate"]
+    authority = None
+    codex = None
+    if args.authority is not None:
+        codex = codex_identity()
+        authority = live.load_release_evaluation_authority(
+            args.authority,
+            candidate=candidate,
+            snapshot=snapshot,
+            codex=codex,
+            repo=repo,
+        )
     output = args.output.absolute()
     cost = {
         "model_calls": args.model_calls,
@@ -153,7 +224,7 @@ def request_command(args: argparse.Namespace) -> int:
 
         if args.impact_sha256 is None:
             raise ValueError("model GatePlan requires an impact receipt digest")
-        codex = codex_identity()
+        codex = codex or codex_identity()
         corpus_engine.provider_transport_schema(corpus_engine.OUTPUT_SCHEMA)
         if package_identities(repo) != {
             "artifact_sha256": candidate["package_artifact_sha256"],
@@ -227,21 +298,28 @@ def request_command(args: argparse.Namespace) -> int:
         "resource_digests": resources,
         "output": str(output),
     }
-    approval_request = {
-        "domain": "happycodex/0.6.5/gate-approval-request",
-        **draft,
-    }
-    request_sha256 = canonical_sha256(approval_request)
-    approval_line = (
-        f"AUTHORIZE HappyCodex 0.6.5 gate {args.gate} exactly once "
-        f"for request {request_sha256}"
-    )
+    if authority is None:
+        approval_request = {
+            "domain": "happycodex/0.6.5/gate-approval-request",
+            **draft,
+        }
+        request_sha256 = canonical_sha256(approval_request)
+        approval_line = (
+            f"AUTHORIZE HappyCodex 0.6.5 gate {args.gate} exactly once "
+            f"for request {request_sha256}"
+        )
+        approval_content_sha256 = sha256_bytes(
+            (approval_line + "\n").encode()
+        )
+    else:
+        approval_request = None
+        approval_line = None
+        request_sha256 = authority["approval_request_sha256"]
+        approval_content_sha256 = authority["approval_content_sha256"]
     plan = {
         **draft,
         "approval_request_sha256": request_sha256,
-        "approval_content_sha256": sha256_bytes(
-            (approval_line + "\n").encode()
-        ),
+        "approval_content_sha256": approval_content_sha256,
     }
     plan["plan_sha256"] = canonical_sha256(plan)
     validate_gate_plan(plan)
@@ -268,28 +346,42 @@ def request_command(args: argparse.Namespace) -> int:
                 plan=plan,
                 unit=unit,
             )
+    if authority is not None:
+        live.validate_authority_gate_plan(
+            authority,
+            plan,
+            ledger=ledger,
+            claim_root=args.claim_root,
+            snapshot=snapshot,
+        )
     append_record(ledger, plan, repo=repo)
     _write_private_json(args.record, plan)
+    payload = {
+        "schema_version": 1,
+        "status": (
+            "approval_required" if authority is None else "preauthorized"
+        ),
+        "gate": args.gate,
+        "approval_request_sha256": request_sha256,
+        "approval_content_sha256": plan["approval_content_sha256"],
+        "plan_sha256": plan["plan_sha256"],
+        "record": str(args.record.absolute()),
+        "effects": {
+            **_zero_effects(),
+            "outputs_created": 1,
+            "subprocesses": 1 if args.gate in MODEL_GATES else 0,
+        },
+    }
+    if authority is None:
+        payload.update(
+            {
+                "approval_request": approval_request,
+                "approval_line": approval_line,
+            }
+        )
     print(
         json.dumps(
-            {
-                "schema_version": 1,
-                "status": "approval_required",
-                "gate": args.gate,
-                "approval_request": approval_request,
-                "approval_request_sha256": request_sha256,
-                "approval_line": approval_line,
-                "approval_content_sha256": plan[
-                    "approval_content_sha256"
-                ],
-                "plan_sha256": plan["plan_sha256"],
-                "record": str(args.record.absolute()),
-                "effects": {
-                    **_zero_effects(),
-                    "outputs_created": 1,
-                    "subprocesses": 1 if args.gate in MODEL_GATES else 0,
-                },
-            },
+            payload,
             ensure_ascii=False,
             sort_keys=True,
             indent=2,
@@ -440,6 +532,15 @@ def build_parser() -> argparse.ArgumentParser:
         help="derive full-refresh impact without authorizing effects",
     )
     impact.add_argument("--public", type=Path)
+    authority = commands.add_parser(
+        "authority",
+        help="prepare one bounded release-evaluation authority envelope",
+    )
+    authority.add_argument("--repo", type=Path, default=Path.cwd())
+    authority.add_argument("--claim-root", type=Path, required=True)
+    authority.add_argument("--output-root", type=Path, required=True)
+    authority.add_argument("--record-root", type=Path, required=True)
+    authority.add_argument("--record", type=Path, required=True)
     request = commands.add_parser(
         "request",
         help="prepare the next exact GatePlan and canonical approval line",
@@ -454,6 +555,7 @@ def build_parser() -> argparse.ArgumentParser:
     request.add_argument("--profile", type=Path)
     request.add_argument("--unit", action="append")
     request.add_argument("--resource-sha256", action="append")
+    request.add_argument("--authority", type=Path)
     request.add_argument("--model-calls", type=int, required=True)
     request.add_argument("--uncached-input-tokens", type=int, required=True)
     request.add_argument("--output-tokens", type=int, required=True)
@@ -516,6 +618,7 @@ def build_parser() -> argparse.ArgumentParser:
     host_run.add_argument("--public", type=Path)
     host_run.add_argument("--impact-sha256", required=True)
     host_run.add_argument("--approval-content", required=True)
+    host_run.add_argument("--authority", type=Path)
     host_run.add_argument("--infrastructure-generation")
     return parser
 
@@ -633,6 +736,34 @@ def host_run_command(args: argparse.Namespace) -> int:
     )
     if plan is None:
         raise ValueError("model gate has no persisted GatePlan")
+    authority_path = getattr(args, "authority", None)
+    if authority_path is not None:
+        snapshot = build_snapshot(repo)
+        codex = codex_identity()
+        authority = live.load_release_evaluation_authority(
+            authority_path,
+            candidate=ledger["candidate"],
+            snapshot=snapshot,
+            codex=codex,
+            repo=repo,
+        )
+        live.validate_authority_gate_plan(
+            authority,
+            plan,
+            ledger=ledger,
+            claim_root=args.claim_root,
+            snapshot=snapshot,
+        )
+        if args.approval_content != live.release_evaluation_approval_line(
+            authority["approval_request_sha256"]
+        ):
+            raise ValueError("approval content does not match authority envelope")
+    elif args.approval_content.startswith(
+        "AUTHORIZE HappyCodex 0.6.5 release evaluation bundle "
+    ):
+        raise ValueError(
+            "bundled approval requires its authority envelope"
+        )
     capability = live.mint_host_capability(plan, args.approval_content)
     launches = {
         unit: live.build_launch(
@@ -688,6 +819,8 @@ def main(argv: list[str] | None = None) -> int:
             return verify_command()
         if args.command == "impact":
             return impact_command(args.public)
+        if args.command == "authority":
+            return authority_command(args)
         if args.command == "request":
             return request_command(args)
         if args.command == "receipt":

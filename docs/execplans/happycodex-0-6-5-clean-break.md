@@ -743,10 +743,11 @@ The selected boundary keeps every independent `GatePlan`, process-local
 capability, `ActionKey`, `LaunchKey`, impact receipt, and `GateReceipt`. It adds
 no ledger field or fourth record family. One private content-addressed
 release-evaluation authority envelope may bind calibration, corpus, adaptive
-holdout, and one exact-final neutral review to the same candidate, evaluator
-snapshot, package, role config, Codex binary, model/effort profiles, timeout,
-exact unit sets, private claim/output/record namespaces, and cumulative cap.
-Each later exact plan is admitted only if it is a subset of that envelope.
+holdout, the zero-live artifact receipt, and one exact-final neutral review to
+the same candidate, evaluator snapshot, package, role config, Codex binary,
+model/effort profiles, timeout, exact unit sets, private claim/output/record
+namespaces, and cumulative cap. Each later exact plan is admitted only if it is
+a subset of that envelope.
 
 The source schedule is at most one calibration call, nineteen corpus provider
 phases, six blinded holdout-arm calls, and one exact-final review: 27 calls.
