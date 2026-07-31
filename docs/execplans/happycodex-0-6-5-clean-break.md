@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `CALIBRATION_2_AWAITING_AUTHORITY`
+Status: `CALIBRATION_2_AUTHORIZED_PENDING_APPLY`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -375,3 +375,9 @@ digest. Focused RED reproduced all five findings before implementation.
   receipt, install, or publication effect occurred.
 - The only acceptable next authority is the exact canonical line:
   `AUTHORIZE HappyCodex 0.6.5 gate calibration exactly once for request ee2938188fc0cb0783fbc6dd887742008ab400a7a5dbbabd8574c17a7f025a10`.
+- The current-task user returned that canonical line verbatim. Its
+  UTF-8-plus-LF SHA-256 is
+  `ee0d893c8be0742be3b4d7bc66513ad350aa752eb15e70e706d32d362d6fe5d6`,
+  exactly matching the private GatePlan. This grants one application and one
+  provider-reaching launch only; it grants no retry, corpus, holdout, review,
+  install, activation, push, tag, publication, or release effect.
