@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `SUCCESSOR_5_OFFLINE_GREEN`
+Status: `AUTHORITY_BUNDLE_CONTRACT_FROZEN`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -726,3 +726,40 @@ digest. Focused RED reproduced all five findings before implementation.
 - Successor-5 is ready for a newly bound release-evaluation decision. No fifth
   model call is authorized, and the consumed fourth authorization, ActionKey,
   LaunchKey, or failed candidate cannot be reused.
+
+## Release-evaluation authority bundle amendment
+
+The user asked `一直要授权是不是没必要，能直接跑吗`, UTF-8 plus LF SHA-256
+`4f4a1cf22331900d607463a3adc2bdbb6c97b6ed2831e6612bdf9039965c47a3`.
+Root proposed one bounded confirmation for the remaining release evaluation,
+while keeping install, activation, and publication separate. The user replied
+`好的继续`, UTF-8 plus LF SHA-256
+`3c0077c9863e135c710592c17be11511b5b335651d358b3c71e76ec015de4189`.
+This authorizes offline design, implementation, tests, commits, refreeze, and
+preparation of that one exact request. It authorizes no model call or external
+effect before the resulting canonical line is returned by the user.
+
+The selected boundary keeps every independent `GatePlan`, process-local
+capability, `ActionKey`, `LaunchKey`, impact receipt, and `GateReceipt`. It adds
+no ledger field or fourth record family. One private content-addressed
+release-evaluation authority envelope may bind calibration, corpus, adaptive
+holdout, and one exact-final neutral review to the same candidate, evaluator
+snapshot, package, role config, Codex binary, model/effort profiles, timeout,
+exact unit sets, private claim/output/record namespaces, and cumulative cap.
+Each later exact plan is admitted only if it is a subset of that envelope.
+
+The source schedule is at most one calibration call, nineteen corpus provider
+phases, six blinded holdout-arm calls, and one exact-final review: 27 calls.
+The conservative envelope is at most 2,700,000 uncached-input tokens, 270,000
+output tokens, and 8,100,000 cumulative wall milliseconds. A successful
+calibration may reduce later per-gate ceilings but never expand the envelope.
+Any provider-reaching failure, ambiguous result, exhausted cap, candidate or
+snapshot drift, unknown gate/unit, namespace mismatch, or changed invocation
+stops without retry or a replacement envelope. The existing single
+pre-provider `NO_EFFECT` infrastructure replacement remains the only exception.
+
+Rejected alternatives are unrestricted direct execution, a fourth persisted
+authority record/state machine, one monolithic multi-gate plan, and repeated
+per-gate user prompts. Install, activation, push, tag, GitHub Release, and
+publication remain outside this envelope and still require their own exact
+effect authority.
