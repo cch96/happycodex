@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `CORPUS_CONTROL_HARDENING_SOURCE_READY`
+Status: `SUCCESSOR_8_OFFLINE_VERIFICATION`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -1212,3 +1212,15 @@ effect authority.
   and shipped plugin package bytes are unchanged. The next action is one source
   commit followed by a fresh successor genesis and full offline GREEN; no
   predecessor authority, result, receipt, or cost basis may transfer.
+- The coherent corpus-control and observed-oracle repair source is committed at
+  `1d549764f37b521b675e083b5a71e9360b41b347`, tree
+  `9c4c57a6b5b1e1f2fab7ef0e9d0bb26d7b603130`. Fresh successor-8 candidate
+  `e885859b55b4870cfa26c5cf410c4402bd75b3a1b8f34c0538bee736da25da40`
+  binds that exact source, unchanged package artifact
+  `22a16298ca0db684b1aefe471ba51cb1c638701976820c32f6f681fc2b1ada36`,
+  unchanged package semantic identity
+  `6980f233f11ca9c9dbc565b4b4e27819fe89dcf56f16a2d352bdfc51dc0e86cc`,
+  and unchanged Executor role. Its fresh generation-7 genesis ledger is
+  `7653a0d3bb10e83e1e39056278fdbe171e146db7da5c99f43015e68016d1d002`
+  with empty plan and receipt arrays. It imports none of successor-7's
+  authority, calibration, launch, result, receipt, or cost records.
