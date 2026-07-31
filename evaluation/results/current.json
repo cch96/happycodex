@@ -1,14 +1,14 @@
 {
   "candidate": {
-    "candidate_sha256": "896c2abd8c1acd50b6498244e739b4f22d0204c96c4d5b6bdea4c00f386b2e28",
-    "created_at": "2026-07-31T02:27:21Z",
+    "candidate_sha256": "e6c95a428ad0dff37534381cda8f1887fee44c2d810c2e12e3403e396dc5c511",
+    "created_at": "2026-07-31T03:06:40Z",
     "executor_role_sha256": "f1effcc84e7ed24f6d54c972e2e412db42a3e46a6d92565e6d61b358128305da",
-    "package_artifact_sha256": "bbc82a07445104820fb4e2108dde252fcce1883136e34e5ef1733eb3984b8b33",
-    "package_semantic_sha256": "9cd5a507a8a9561c8af6751917b430b1cb29c238810b7c32bcff15c39044965a",
+    "package_artifact_sha256": "22a16298ca0db684b1aefe471ba51cb1c638701976820c32f6f681fc2b1ada36",
+    "package_semantic_sha256": "6980f233f11ca9c9dbc565b4b4e27819fe89dcf56f16a2d352bdfc51dc0e86cc",
     "record_type": "ReleaseCandidate",
     "schema_version": 1,
-    "source_commit": "2754db651ec51547190a23cecd6864e1e9ef5a68",
-    "source_tree": "563bfe2fb846166ec5408fc052f2a0be8b87739b"
+    "source_commit": "04175bde1e9d8929ad10e3725f60e0e26ef65773",
+    "source_tree": "2cf796969f8fdbfffe0626abc4f162b4e827ae98"
   },
   "plans": [],
   "receipts": [],

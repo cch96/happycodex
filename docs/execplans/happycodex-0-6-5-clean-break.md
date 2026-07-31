@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `AUTHORITY_BUNDLE_CONTRACT_FROZEN`
+Status: `SUCCESSOR_6_OFFLINE_VERIFICATION`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -764,3 +764,20 @@ authority record/state machine, one monolithic multi-gate plan, and repeated
 per-gate user prompts. Install, activation, push, tag, GitHub Release, and
 publication remain outside this envelope and still require their own exact
 effect authority.
+
+- The bounded authority implementation is committed at
+  `04175bde1e9d8929ad10e3725f60e0e26ef65773`, tree
+  `2cf796969f8fdbfffe0626abc4f162b4e827ae98`. It adds one private envelope
+  and one CLI entry while retaining the three existing ledger record families.
+  The pre-refreeze complete suite was 193/194 GREEN; its only failure was the
+  required stale-candidate signal after source and evaluator drift.
+- Fresh successor-6 candidate
+  `e6c95a428ad0dff37534381cda8f1887fee44c2d810c2e12e3403e396dc5c511`
+  binds that exact source, package artifact
+  `22a16298ca0db684b1aefe471ba51cb1c638701976820c32f6f681fc2b1ada36`,
+  package semantic
+  `6980f233f11ca9c9dbc565b4b4e27819fe89dcf56f16a2d352bdfc51dc0e86cc`,
+  and the unchanged Executor role. Its fresh generation-7 genesis ledger is
+  `95bcf11d55d1724c1d085d6473a25c5e58af3d202038c5edfbebdecfeaf19c53`
+  with empty plan and receipt arrays. It migrates no prior authority, launch,
+  result, receipt, cost basis, or evidence.
