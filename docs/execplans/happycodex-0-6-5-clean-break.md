@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `SUCCESSOR_8_CALIBRATION_PRELAUNCH`
+Status: `SUCCESSOR_8_CALIBRATION_SUCCEEDED_AWAITING_RECEIPT`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -1299,3 +1299,13 @@ effect authority.
   `ce0c34746840f37ef04e541f3bc941d09b90b27f47045bbaf8ce7b633938b16f`.
   No launch, ActionKey, fixture, workspace, model, network, output, receipt,
   install, or release effect occurred.
+- The authorized calibration command ran exactly once. It consumed ActionKey
+  `503a06a4`, reached the provider under LaunchKey `5c689187`, and passed the
+  complete `subthreshold-control` oracle with output receipt
+  `41ca97ed39624af9fba07c68a41300e7fe7366311e3b76c4fd241034bc48e382`.
+  Its successful actual usage is one model call, 16,850 uncached-input tokens,
+  1,283 output tokens, and 35,223 wall milliseconds. The immutable result is
+  `beac9330ef0de03a4a60007f6f8c6deab96b6703ba463a42901be5401f274f6f`.
+  External event, stderr, metadata, and result-file SHA-256 values are
+  respectively `ef9fd87f`, `7daf67dc`, `d667f247`, and `425c4d6b`.
+  Corpus, holdout, artifact receipt, and exact-final review have not started.
