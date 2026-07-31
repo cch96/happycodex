@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `SUCCESSOR_8_CALIBRATION_SUCCEEDED_AWAITING_RECEIPT`
+Status: `SUCCESSOR_8_CALIBRATION_COVERED`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -1309,3 +1309,14 @@ effect authority.
   External event, stderr, metadata, and result-file SHA-256 values are
   respectively `ef9fd87f`, `7daf67dc`, `d667f247`, and `425c4d6b`.
   Corpus, holdout, artifact receipt, and exact-final review have not started.
+- Evidence commit `bd1ab8ec60f779979dc794574e623900b28f75da`
+  produced successful calibration GateReceipt
+  `4dcf83f47d92537e3080235fb64dfe6bd6259c44ad11570f0760a9a53f6e8001`,
+  private file SHA-256
+  `143c980c0408dd0d23cbc5abe94ff0169eeff5fa394c37f553b8b94629c1b448`,
+  and aggregate output
+  `7fcdf344087776768e9ffd1dc22f5e9124b50678ea4507af78cfd2b6973cd241`.
+  Applying it once changed open-plan ledger `ce0c3474` to semantic ledger
+  `087f995f34362c78d466b6b87918488d6179089b5a5e98fd86560b875ba8ecd9`.
+  Calibration is covered with no failed receipt; corpus is the next pending
+  gate.
