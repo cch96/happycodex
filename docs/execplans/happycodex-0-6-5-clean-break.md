@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `CALIBRATION_PRELAUNCH_FROZEN`
+Status: `CALIBRATION_AUTHORIZED_OPEN_PLAN`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -842,3 +842,12 @@ effect authority.
   It is `preauthorized` by the bundle, reconstructs the exact default launch,
   and has created no launch, ActionKey consumption, model call, network call,
   or ledger change. The claim root is empty and output remains absent.
+- The sealed calibration plan was atomically appended once at commit
+  `8c945dc`. Predecessor ledger
+  `95bcf11d55d1724c1d085d6473a25c5e58af3d202038c5edfbebdecfeaf19c53`
+  became open-plan ledger
+  `c42c7059e9e7f9fc210869666e04f6caf1e7ec1ab142a3c721d85c6a12773201`,
+  file SHA-256
+  `54e947e043c05d929ca7c00341aa7b3d47a75eceefc7d6402390057ae2481599`.
+  The claim root remains empty and output absent; this transition caused no
+  launch, ActionKey consumption, model call, or network call.
