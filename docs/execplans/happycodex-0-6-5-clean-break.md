@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `AWAITING_RELEASE_EVALUATION_AUTHORITY`
+Status: `CALIBRATION_PRELAUNCH_FROZEN`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -818,3 +818,27 @@ effect authority.
   Until the user returns it verbatim, no GatePlan may be applied and no model
   call may start. This one response grants no isolated install, activation,
   push, tag, publication, or GitHub Release.
+- The current-task user returned that exact line verbatim. Its UTF-8 content
+  with one trailing LF has SHA-256
+  `db5fced57e93bb6d147385ce196ef70f63192dfc34cbf2a68aacdca17e846834`,
+  exactly matching the private envelope. It authenticates only bounded derived
+  plans under that envelope and remains outside isolated install, activation,
+  push, tag, publication, and GitHub Release.
+- Calibration impact receipt
+  `/home/caichenghang/.codex/happycodex-0.6.5-release/records/release-evaluation-5/calibration/impact.json`
+  is mode 0600 with SHA-256
+  `70fe655dd7ef61b64762e4d8b96b07a5dace02f7a4872c53321d2f379adda0f8`.
+  It binds candidate `e6c95a4`, snapshot `a3dfb0c`, Codex
+  `0.146.0/cb5e8c`, the exact private roots, and one
+  `subthreshold-control` call at `gpt-5.6-sol`/`high` with ceilings of
+  100,000 uncached-input tokens, 10,000 output tokens, and 300 seconds.
+  There is no successful historical cost basis.
+- Offline preflight wrote private calibration GatePlan
+  `/home/caichenghang/.codex/happycodex-0.6.5-release/records/release-evaluation-5/calibration/plan.json`,
+  file SHA-256
+  `49af9f51c8e87dcf94fe81d6327401adfc0473cb7c3c229e1baff3c34401e972`
+  and plan SHA-256
+  `c69be13123b97bfa4d2b62b07338433d84d105df2f3c75abe606aec6902c1ccc`.
+  It is `preauthorized` by the bundle, reconstructs the exact default launch,
+  and has created no launch, ActionKey consumption, model call, network call,
+  or ledger change. The claim root is empty and output remains absent.
