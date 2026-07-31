@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `CALIBRATION_2_FAILED_SEALED`
+Status: `RECOVERY_PREDICATE_REPAIR`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -420,3 +420,12 @@ digest. Focused RED reproduced all five findings before implementation.
   `5251d1cb974dd7a592c2b331641a2edc2d45ae980c6ff5284599e47c64a53198`.
   The authorization, ActionKey, LaunchKey, and failed candidate are terminal
   and cannot be reused or retried.
+- The bounded offline repair preserves the existing fail-closed rule that a
+  non-null recovery summary must bind exactly one content-addressed Recovery
+  Manifest. It changes only the provider instruction so `recovery` must be
+  `null` unless the reviewer has found and validated that manifest. Allowing
+  unmanifested recovery would weaken evidence; adding a synthetic manifest to
+  the ordinary subthreshold fixture would contaminate the calibration control.
+  The repair requires one prompt-contract RED, the affected focused tests, the
+  full offline suite, and a fresh successor candidate/genesis before any new
+  calibration request.
