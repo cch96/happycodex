@@ -1388,3 +1388,17 @@ effect authority.
   Derived failed gates are exactly `corpus`; certification and freeze
   eligibility are false. This candidate and authority envelope cannot proceed
   to holdout, artifact receipt, exact-final review, or release.
+- The post-terminal complete offline suite is 204/205 GREEN in 13.843 seconds.
+  Its sole failure is
+  `GenesisAndCliTests.test_active_ledger_has_exact_generation7_candidate`,
+  whose fixture requires the active ledger to retain empty plan and receipt
+  arrays and no derived failed gate. That assertion is valid only at fresh
+  genesis and necessarily fails after the legitimate calibration and corpus
+  evidence chain; it is a post-evidence harness/genesis-fixture failure, not
+  Runtime or package drift. The suite is therefore recorded honestly as
+  204/205 rather than relabelled GREEN.
+- Final CLI verification accepts ledger `b2fb8014`, derives exactly failed gate
+  `corpus`, and keeps certification false. Runtime and package identities are
+  unchanged. No holdout, artifact receipt, exact-final review, isolated
+  install, active cutover, push, tag, GitHub Release, or publication effect
+  occurred.
