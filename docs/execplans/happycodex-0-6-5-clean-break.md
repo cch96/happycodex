@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `CALIBRATION_3_FAILED_PENDING_RECEIPT`
+Status: `CALIBRATION_3_FAILED_SEALED`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -552,3 +552,14 @@ digest. Focused RED reproduced all five findings before implementation.
   reproduce the omission with one prompt-contract RED, run the affected
   focused tests and complete offline suite, then mint a fresh successor
   candidate/genesis before any new calibration request.
+- Failed calibration receipt
+  `cedeccb7ded4e4d3a8fe86a10dead7d22e83dc9df7cfb4ab0393a86db30bcb4b`
+  binds that immutable result and evidence commit `0635e8b`. Its private file
+  SHA-256 is
+  `3ddfcb0c6481c343a948643134038f4e6d548dee4236b6256e97ea6d3b55c3c1`;
+  the failed terminal ledger is
+  `1b814352ea1d29f15a3d0db314626eaa387a43ae63afed3c887fcdef4670782f`
+  with file SHA-256
+  `583500c0d103a4c4af4440e6243a53b9c5460020a40c36c7da1cdd9cb885560e`.
+  The authorization, ActionKey, LaunchKey, and failed candidate are terminal
+  and cannot be reused or retried.
