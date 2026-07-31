@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `SUCCESSOR_OFFLINE_GREEN`
+Status: `CALIBRATION_2_AWAITING_AUTHORITY`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -345,3 +345,33 @@ digest. Focused RED reproduced all five findings before implementation.
 - Next action is to acquire distinct private resources, persist a successor
   impact receipt, and generate a newly bound calibration request. No live call
   may occur without the new exact current-task authority.
+- The distinct successor calibration resource receipt is
+  `/home/caichenghang/.codex/happycodex-0.6.5-calibration-2-resource-claim.json`,
+  SHA-256
+  `6907fd31f6d2074e6988b548ff4bb7ea63a7fe35d78bdaeb854d5eadbb9511f6`.
+  It exclusively binds new `calibration-2` claim, output, and record roots;
+  the output root remains absent and the launch-claim root remains empty.
+- Successor impact receipt
+  `/home/caichenghang/.codex/happycodex-0.6.5-release/records/calibration-2/impact.json`,
+  SHA-256
+  `6d6d80fd5d807d6aeb6672e5138b936cb5568afeafc6927814180a9110b35429`,
+  binds candidate `8999589`, evaluator snapshot `62d501d`, Codex 0.146.0
+  binary `cb5e8c`, the new private roots, and one
+  `subthreshold-control` call at `gpt-5.6-sol`/`high` with the same
+  conservative ceilings: one model call, 100,000 uncached-input tokens,
+  10,000 output tokens, and 300 seconds. It has no historical-success basis.
+- Offline request preflight wrote only private GatePlan
+  `/home/caichenghang/.codex/happycodex-0.6.5-release/records/calibration-2/plan.json`,
+  file SHA-256
+  `2ababb72e56a4287463e9305c9eac749d0a9e2a6181d8aa0feaade06d7b86604`,
+  plan SHA-256
+  `c521a48c7cc46e310850ad50a21d3d7ea1ab139b1baf92b6f5eff4ffe63e199d`,
+  and approval-request SHA-256
+  `ee2938188fc0cb0783fbc6dd887742008ab400a7a5dbbabd8574c17a7f025a10`.
+  It also successfully reconstructed and validated the exact default launch
+  before requesting authority. The repository ledger remains
+  `f11e10b2d59f8847c025ba9218291aa36ed9d91578be487514290614f2b3c24b`;
+  zero launch, ActionKey consumption, fixture, workspace, model, network,
+  receipt, install, or publication effect occurred.
+- The only acceptable next authority is the exact canonical line:
+  `AUTHORIZE HappyCodex 0.6.5 gate calibration exactly once for request ee2938188fc0cb0783fbc6dd887742008ab400a7a5dbbabd8574c17a7f025a10`.
