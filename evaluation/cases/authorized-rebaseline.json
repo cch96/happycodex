@@ -32,7 +32,7 @@
     ]
   },
   "oracle": {
-    "expected_action": "IMPLEMENT",
+    "expected_action": "CHECK",
     "required_observation": {
       "qualifies": true,
       "execplan_conditions": [

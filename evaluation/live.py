@@ -1167,15 +1167,17 @@ def collect_plan_results(
     plan: dict[str, Any],
     claim_root: Path,
 ) -> list[dict[str, Any]]:
-    """Collect the one provider-reaching terminal result for each reached unit."""
+    """Collect the exact terminal result for each unit in the reached frontier."""
     plan = validate_gate_plan(plan)
     root = _real_private_directory(claim_root, "launch claim root")
     collected = []
     corpus_suffix_started = False
+    provider_reached = False
     for unit in plan["units"]:
         default = build_launch(plan, unit)
         claims = _prior_launches(default, root)
         terminals = []
+        provider_terminals = []
         for claim in claims:
             launch = (
                 default
@@ -1200,23 +1202,36 @@ def collect_plan_results(
             ):
                 raise ValueError("launch claim does not reconstruct exactly")
             result_path = Path(launch["output"]) / "result.json"
-            if result_path.exists() or result_path.is_symlink():
-                result = load_launch_result(launch, root)
-                if result["effect"] != "no_effect":
-                    terminals.append(result)
-        if len(terminals) > 1:
+            if not result_path.exists() and not result_path.is_symlink():
+                raise ValueError("reserved launch lacks a terminal result")
+            result = load_launch_result(launch, root)
+            terminals.append(result)
+            if result["effect"] != "no_effect":
+                provider_terminals.append(result)
+        if len(provider_terminals) > 1:
             raise ValueError("unit has multiple provider-reaching results")
-        if terminals:
+        if provider_terminals:
+            terminal = provider_terminals[0]
+        elif len(terminals) > 1:
+            raise ValueError("unit has multiple NO_EFFECT terminal results")
+        else:
+            terminal = terminals[0] if terminals else None
+        if terminal is not None and plan["gate"] == "corpus":
             if corpus_suffix_started:
                 raise ValueError(
-                    "corpus provider-reaching results are not an execution prefix"
+                    "corpus terminal results are not an execution prefix"
                 )
-            collected.append(terminals[0])
+            collected.append(terminal)
+            provider_reached |= terminal["effect"] != "no_effect"
+        elif provider_terminals:
+            collected.append(provider_terminals[0])
         elif plan["gate"] == "corpus":
             corpus_suffix_started = True
         elif plan["gate"] != "holdout":
             raise ValueError("planned unit lacks a provider-reaching result")
-    if not collected:
+    if not collected or (
+        plan["gate"] == "corpus" and not provider_reached
+    ):
         raise ValueError("GatePlan has no provider-reaching results")
     if (
         corpus_suffix_started

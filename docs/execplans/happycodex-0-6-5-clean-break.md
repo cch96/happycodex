@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `SUCCESSOR_7_CORPUS_FAILED_AWAITING_RECEIPT_PROBE`
+Status: `CORPUS_CONTROL_HARDENING_SOURCE_READY`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -1168,3 +1168,47 @@ effect authority.
   `af47de438652e0e331a672b6a33c428b9e0248d9ccd70299b5dd0afe3c0c04a4`.
   This candidate and bundle are terminal; no remaining unit may be launched
   under the consumed authority.
+- The official zero-model receipt command against evidence commit
+  `dc5da7ec92a66d423c8f9d8a0126a7db15b9dd35` failed closed with
+  `corpus provider-reaching results are not an execution prefix` and wrote no
+  receipt. The open corpus plan remains unchanged.
+- The bounded offline repair starts with three invariants: the corpus
+  orchestrator must provision its shared output root once before starting
+  workers; a failed corpus receipt may bind the exact contiguous launched
+  frontier including proven `NO_EFFECT` terminals when at least one unit
+  reached the provider; and every launch claim in that frontier must have an
+  immutable terminal result. It adds no Runtime state, event queue, retry, or
+  provider feature.
+- The exact three-test RED command failed 3/3 for those reasons: the output
+  root was absent when the bounded scheduler started, a mixed
+  `provider_reached/NO_EFFECT/provider_reached` frontier was rejected as
+  non-prefix, and a claimed launch without a terminal fell through to the
+  generic no-provider error.
+- Root also replayed both structurally valid model observations against the
+  durable fixtures. `authorized-rebaseline` correctly selected
+  `CHECK/red_oracle`: its plan explicitly says the next evidence is a
+  legacy-read RED oracle before product implementation, so the stored
+  `IMPLEMENT` expectation is stale. `compaction-recovery` supplied every
+  required anchored blocker and the correct `RECONCILE` action, but two broad
+  plan-path requirements each matched two legitimate findings; the matcher
+  incorrectly demanded exactly one candidate instead of an injective
+  requirement-to-finding assignment. Two additional RED invariants bind those
+  observed oracle corrections without weakening any blocker class or anchor.
+- All five focused invariants are GREEN. The corpus orchestrator now creates
+  the shared output root once after common local preflight and before worker
+  dispatch. Result collection binds a contiguous launched corpus frontier,
+  accepts a proven `NO_EFFECT` terminal only when the same frontier contains
+  provider-reaching evidence, prefers a provider-reaching infrastructure
+  replacement, and rejects any claimed launch without a terminal.
+- The anchored-blocker matcher now computes one deterministic injective
+  assignment from requirements to finding identities. Extra legitimate
+  findings no longer fail the oracle, while one finding still cannot satisfy
+  two distinct requirements. `authorized-rebaseline` now follows its durable
+  `CHECK/red_oracle` checkpoint. Replaying both retained model observations
+  against the corrected oracles yields zero failures.
+- The complete pre-source-commit suite is 204/205 GREEN in 13.774 seconds.
+  Its sole failure is the required stale-candidate identity assertion because
+  evaluator inputs changed while the ledger still binds successor-7. Runtime
+  and shipped plugin package bytes are unchanged. The next action is one source
+  commit followed by a fresh successor genesis and full offline GREEN; no
+  predecessor authority, result, receipt, or cost basis may transfer.

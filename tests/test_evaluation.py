@@ -1895,6 +1895,37 @@ class HappyCodexEvaluationTests(unittest.TestCase):
             )
             self.assertTrue(runner.match_oracle(wrong_report, case["oracle"]))
 
+    def test_authorized_rebaseline_obeys_its_durable_red_gate(self) -> None:
+        case = self.cases["authorized-rebaseline"]
+        self.assertEqual(case["oracle"]["expected_action"], "CHECK")
+
+    def test_anchored_blocker_oracle_uses_distinct_matching(self) -> None:
+        case = self.cases["compaction-recovery"]
+        report = self._case_report(case)
+        observation = copy.deepcopy(report["observation"])
+        plan = self._path("docs/execplans/jobs.md")
+        observation["findings"].extend(
+            [
+                self._finding(
+                    "extra-original-goal",
+                    plan,
+                    status="unknown",
+                    blocker="original_goal",
+                ),
+                self._finding(
+                    "extra-frozen-acceptance",
+                    plan,
+                    status="unknown",
+                    blocker="frozen_acceptance",
+                ),
+            ]
+        )
+        expanded = self._report(
+            observation,
+            task_id="case:compaction-recovery:expanded",
+        )
+        self.assertEqual(runner.match_oracle(expanded, case["oracle"]), [])
+
     def test_oracle_matcher_uses_blocker_classes_not_prose_phrases(self) -> None:
         case = self.cases["goal-divergence"]
         report = self._case_report(case)

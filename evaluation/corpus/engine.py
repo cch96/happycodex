@@ -1566,6 +1566,23 @@ def finding_has_anchor(finding: Any, expected: dict[str, Any]) -> bool:
     )
 
 
+def _has_distinct_finding_assignment(matches: list[set[str]]) -> bool:
+    owners: dict[str, int] = {}
+
+    def assign(requirement: int, seen: set[str]) -> bool:
+        for finding_id in sorted(matches[requirement]):
+            if finding_id in seen:
+                continue
+            seen.add(finding_id)
+            previous = owners.get(finding_id)
+            if previous is None or assign(previous, seen):
+                owners[finding_id] = requirement
+                return True
+        return False
+
+    return all(assign(index, set()) for index in range(len(matches)))
+
+
 def normalized_recovery_value(field: str, value: Any) -> Any:
     if field == "marker_ids" and isinstance(value, list):
         return sorted(value)
@@ -1684,7 +1701,7 @@ def match_oracle(
     for blocker_class in oracle.get("required_blocker_classes", []):
         if not any(item.blocker_class == blocker_class for item in blockers):
             failures.append(f"missing blocking class: {blocker_class}")
-    used_blockers: set[str] = set()
+    anchored_blocker_matches = []
     for expected in oracle.get("required_anchored_blockers", []):
         matches = {
             blocker.finding_id
@@ -1694,9 +1711,13 @@ def match_oracle(
         }
         if not matches:
             failures.append(f"missing anchored blocker: {expected['anchor']}")
-        elif len(matches) != 1 or used_blockers & matches:
-            failures.append("distinct anchored blocker required")
-        used_blockers |= matches
+        anchored_blocker_matches.append(matches)
+    if (
+        anchored_blocker_matches
+        and all(anchored_blocker_matches)
+        and not _has_distinct_finding_assignment(anchored_blocker_matches)
+    ):
+        failures.append("distinct anchored blocker required")
     for expected in oracle.get("required_anchored_findings", []):
         matches = {
             item.finding_id
@@ -2319,6 +2340,8 @@ def run_authorized(
     provider_transport_schema(OUTPUT_SCHEMA)
     codex_identity()
     package_identities(args.plugin)
+    if not output.exists():
+        create_output_root(output)
 
     def evaluate_authorized(case_id: str) -> dict[str, Any]:
         launch = prepared[case_id]

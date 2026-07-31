@@ -1338,6 +1338,69 @@ class LaunchGateTests(unittest.TestCase):
             expected,
         )
 
+    def test_failed_corpus_frontier_includes_proven_no_effect(self) -> None:
+        plan = _plan(
+            self.candidate,
+            "corpus",
+            self.root / "mixed-prefix",
+            units=("a", "b", "c", "d"),
+        )
+        expected = []
+        for unit, effect in (
+            ("a", "provider_reached"),
+            ("b", "no_effect"),
+            ("c", "provider_reached"),
+        ):
+            launch = live.build_launch(plan, unit)
+            live.reserve_launch(launch, self.claims)
+            if effect == "no_effect":
+                live.write_launch_failure(
+                    launch,
+                    self.claims,
+                    RuntimeError("local preflight failed"),
+                )
+                expected.append(live.load_launch_result(launch, self.claims))
+                continue
+            live.consume_action(launch, self.claims)
+            result = {
+                "schema_generation": 7,
+                "action_key": launch["action_key"],
+                "launch_key": launch["launch_key"],
+                "unit": unit,
+                "status": "failed",
+                "effect": effect,
+                "output_sha256": canonical_sha256(
+                    {"unit": unit, "result": "failed"}
+                ),
+                "usage": {
+                    "model_calls": 1,
+                    "uncached_input_tokens": 10,
+                    "output_tokens": 2,
+                    "wall_milliseconds": 20,
+                },
+            }
+            result["result_sha256"] = canonical_sha256(result)
+            live.write_launch_result(launch, self.claims, result)
+            expected.append(result)
+        self.assertEqual(
+            live.collect_plan_results(plan, self.claims),
+            expected,
+        )
+
+    def test_receipt_collection_rejects_claim_without_terminal(self) -> None:
+        plan = _plan(
+            self.candidate,
+            "corpus",
+            self.root / "incomplete-prefix",
+            units=("a", "b"),
+        )
+        live.reserve_launch(
+            live.build_launch(plan, "a"),
+            self.claims,
+        )
+        with self.assertRaisesRegex(ValueError, "terminal result"):
+            live.collect_plan_results(plan, self.claims)
+
     def test_reservation_refuses_symlink_and_path_drift(self) -> None:
         launch = self._launch()
         target = self.root / "target"
@@ -1415,6 +1478,47 @@ class LaunchGateTests(unittest.TestCase):
         )
         self.assertEqual(result["effect"], "no_effect")
         self.assertTrue(all(value == 0 for value in result["usage"].values()))
+
+    def test_authorized_run_provisions_output_root_before_workers(self) -> None:
+        _plan_value, launch, capability = self._authorized_launch(
+            gate="calibration",
+            unit="subthreshold-control",
+        )
+        output = self.root / "effects"
+        args = Namespace(
+            calibrate=True,
+            cases=["subthreshold-control"],
+            plugin=ROOT,
+            output=output,
+            model="gpt-5.6-sol",
+            effort="high",
+            timeout=300,
+            arm="candidate",
+        )
+
+        def observe_root(
+            case_ids: list[str],
+            _evaluate: object,
+        ) -> list[dict]:
+            self.assertEqual(case_ids, ["subthreshold-control"])
+            self.assertTrue(output.is_dir())
+            self.assertEqual(stat.S_IMODE(output.stat().st_mode), 0o700)
+            return [{"passed": True}]
+
+        with mock.patch.object(
+            corpus_engine,
+            "_evaluate_cases_bounded",
+            side_effect=observe_root,
+        ):
+            self.assertEqual(
+                corpus_engine.run_authorized(
+                    args,
+                    {"subthreshold-control": launch},
+                    self.claims,
+                    capability,
+                ),
+                0,
+            )
 
     def test_provider_edge_rejects_drift_then_consumes_once(self) -> None:
         codex = codex_identity()
