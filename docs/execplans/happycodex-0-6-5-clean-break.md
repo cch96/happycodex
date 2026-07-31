@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `SUCCESSOR_OFFLINE_VERIFICATION`
+Status: `SUCCESSOR_OFFLINE_GREEN`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -326,3 +326,22 @@ digest. Focused RED reproduced all five findings before implementation.
   Its plan and receipt arrays are empty. The failed predecessor ledger remains
   Git-reachable at `bead2f7`; no predecessor plan, receipt, approval, model
   result, cost basis, or evidence is migrated or reused.
+- The successor refreeze is committed at `a84ce56`. Its complete offline suite
+  is 193/193 GREEN in 11.699 seconds. CLI verify reports
+  `refresh_required`, no failed receipts, all six gates pending, evaluator
+  manifest
+  `9efd480fbc65088bb0bd14e9cdd01f7801bf8579a27125faa733dcd44ef335f0`,
+  and snapshot
+  `62d501d7e9974cdf1b286be6587b1e67f6ada1dc73814141d195e03909f473ac`.
+  Executor, calibration, corpus-control, and holdout dry-runs all report zero
+  launches, consumed actions, fixtures, outputs, receipts, workspaces,
+  subprocesses, model calls, and network calls. Skill and plugin validators
+  pass.
+- Active 0.6.0 plugin source/cache bytes, normalized cache manifest
+  `8b69be2632bf5c6f72736a09d1d3c815acf26ed7fcd4a9e6ed55e0092fcfbed0`,
+  marketplace, and Codex configuration still match the protected-resource
+  inventory. No install, cutover, publication, push, tag, or release effect
+  occurred.
+- Next action is to acquire distinct private resources, persist a successor
+  impact receipt, and generate a newly bound calibration request. No live call
+  may occur without the new exact current-task authority.
