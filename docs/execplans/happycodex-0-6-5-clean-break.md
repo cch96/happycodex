@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `SUCCESSOR_8_AWAITING_BUNDLE_AUTHORITY`
+Status: `SUCCESSOR_8_CALIBRATION_PREFLIGHT`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -1269,3 +1269,10 @@ effect authority.
   `AUTHORIZE HappyCodex 0.6.5 release evaluation bundle for request f470ffcaa273cc44f9232e7820c93b6eead6614070364a046df091c565fd147e`.
   Its UTF-8 plus LF SHA-256 is
   `fd5a5f1f01d953726753c473794adb5dcccccfb2ff79a51f905b24ac7a8f0ea0`.
+- The user returned that exact canonical line in this task. Root independently
+  recomputed the UTF-8-plus-LF digest as `fd5a5f1f` and revalidated the private
+  envelope, candidate, snapshot, Codex binary, aggregate ceiling, and all four
+  exclusive resource claims. This grants one successor-8 evaluation bundle
+  through calibration, corpus, adaptive holdout, artifact receipt, and
+  exact-final review. It grants no isolated install, active cutover, push, tag,
+  GitHub Release, or publication effect.
