@@ -1301,6 +1301,43 @@ class LaunchGateTests(unittest.TestCase):
             [succeeded],
         )
 
+    def test_receipt_collection_accepts_failed_corpus_prefix(self) -> None:
+        plan = _plan(
+            self.candidate,
+            "corpus",
+            self.root / "corpus-prefix",
+            units=("a", "b", "c"),
+        )
+        expected = []
+        for unit in ("a", "b"):
+            launch = live.build_launch(plan, unit)
+            live.reserve_launch(launch, self.claims)
+            live.consume_action(launch, self.claims)
+            result = {
+                "schema_generation": 7,
+                "action_key": launch["action_key"],
+                "launch_key": launch["launch_key"],
+                "unit": unit,
+                "status": "failed",
+                "effect": "provider_reached",
+                "output_sha256": canonical_sha256(
+                    {"unit": unit, "result": "failed"}
+                ),
+                "usage": {
+                    "model_calls": 1,
+                    "uncached_input_tokens": 10,
+                    "output_tokens": 2,
+                    "wall_milliseconds": 20,
+                },
+            }
+            result["result_sha256"] = canonical_sha256(result)
+            live.write_launch_result(launch, self.claims, result)
+            expected.append(result)
+        self.assertEqual(
+            live.collect_plan_results(plan, self.claims),
+            expected,
+        )
+
     def test_reservation_refuses_symlink_and_path_drift(self) -> None:
         launch = self._launch()
         target = self.root / "target"
@@ -2122,6 +2159,34 @@ class AdaptiveHoldoutReceiptTests(unittest.TestCase):
             result="succeeded",
         )
         validate_ledger(self._ledger(self.plan, receipt), repo=self.repo)
+
+    def test_failed_corpus_execution_prefix_is_valid(self) -> None:
+        receipt = _receipt(
+            self.candidate,
+            self.corpus_plan,
+            1,
+            evidence_commit=self.evidence_commit,
+            created_at="2026-07-30T00:00:04Z",
+            result="failed",
+            parent=self.calibration_receipt["receipt_sha256"],
+        )
+        receipt["unit_results"] = receipt["unit_results"][:5]
+        receipt["receipt_sha256"] = canonical_sha256(
+            {
+                key: value
+                for key, value in receipt.items()
+                if key != "receipt_sha256"
+            }
+        )
+        validate_ledger(
+            {
+                "schema_version": 1,
+                "candidate": self.candidate,
+                "plans": [self.calibration_plan, self.corpus_plan],
+                "receipts": [self.calibration_receipt, receipt],
+            },
+            repo=self.repo,
+        )
 
     def test_every_non_holdout_partial_receipt_is_invalid(self) -> None:
         for gate in (item for item in GATE_ORDER if item != "holdout"):

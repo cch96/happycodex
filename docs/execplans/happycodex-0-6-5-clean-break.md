@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `CORPUS_FAILED_RECEIPT_BLOCKED`
+Status: `CORPUS_FAILURE_OFFLINE_RED`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -960,3 +960,10 @@ effect authority.
   `018efc5de6c88e81bc752f54354a3f435fb25c0a7248d09403eb42a1bf077172`
   remains at the open failed corpus plan; certification and release cannot
   proceed.
+- A separate zero-model successor hardening wave began without changing or
+  retrying the terminal bundle. Six focused RED invariants cover: last-message
+  terminal selection, failed corpus prefix collection, failed corpus prefix
+  ledger validation, aggregated evidence anchors, exact-final receipt-domain
+  classification, and explicit dirty-path/Manifest-presence instructions.
+  The exact six-test command failed 6/6 for those six expected reasons with no
+  unrelated failure.

@@ -417,6 +417,124 @@ class HappyCodexEvaluationTests(unittest.TestCase):
         self.assertNotIn("permission fields", runner.EVALUATOR_CONTEXT)
         self.assertNotIn("protocol_may_", runner.EVALUATOR_CONTEXT)
 
+    def test_terminal_adapter_uses_only_the_last_agent_message(self) -> None:
+        observation = self._observation(gate="checks")
+        command_started = {
+            "id": "item-1",
+            "type": "command_execution",
+            "command": "/usr/bin/rg --files",
+            "aggregated_output": "",
+            "exit_code": None,
+            "status": "in_progress",
+        }
+        command_completed = {
+            **command_started,
+            "aggregated_output": "TASK.md\n",
+            "exit_code": 0,
+            "status": "completed",
+        }
+        events = [
+            {"type": "thread.started", "thread_id": "thread-1"},
+            {"type": "turn.started"},
+            {
+                "type": "item.completed",
+                "item": {
+                    "id": "item-0",
+                    "type": "agent_message",
+                    "text": "Inspecting the durable repository facts.",
+                },
+            },
+            {"type": "item.started", "item": command_started},
+            {"type": "item.completed", "item": command_completed},
+            {
+                "type": "item.completed",
+                "item": {
+                    "id": "item-2",
+                    "type": "agent_message",
+                    "text": json.dumps(observation),
+                },
+            },
+            {
+                "type": "turn.completed",
+                "usage": {
+                    "input_tokens": 100,
+                    "cached_input_tokens": 40,
+                    "cache_write_input_tokens": 0,
+                    "output_tokens": 20,
+                    "reasoning_output_tokens": 10,
+                },
+            },
+        ]
+        parsed, usage, thread_id, terminal = runner.parse_events(
+            "\n".join(json.dumps(item) for item in events) + "\n",
+            binding={
+                "provider": "openai",
+                "session_id": "session-1",
+                "thread_id": None,
+                "action_id": "case:test:candidate:initial",
+                "launch_key": "a" * 64,
+            },
+            invocation_profile=runner.invocation_profile(
+                model="gpt-5.6-sol",
+                effort="high",
+                timeout_seconds=300,
+                arm="candidate",
+            ),
+        )
+        self.assertEqual(parsed, observation)
+        self.assertEqual(usage["output_tokens"], 20)
+        self.assertEqual(thread_id, "thread-1")
+        self.assertEqual(terminal["result_id"], "item-2")
+        self.assertEqual(terminal["terminal_ordinal"], 5)
+
+    def test_clean_control_accepts_aggregated_control_marker_anchors(self) -> None:
+        finding = self._finding(
+            "O1",
+            status="baseline_unchanged",
+            blocker="original_goal",
+        )
+        finding["anchors"] = [
+            self._marker("O1"),
+            self._marker("RESOURCE-DISJOINT-OK"),
+            self._marker("F-DEFAULT-SIBLING-A"),
+            self._marker("F-DEFAULT-SIBLING-B"),
+        ]
+        report = self._report(
+            self._observation(
+                findings=[finding],
+                gate="red_oracle",
+            ),
+            task_id="case:clean-qualifying-control:candidate",
+        )
+        case = self.cases["clean-qualifying-control"]
+        self.assertEqual(runner.match_oracle(report, case["oracle"]), [])
+
+    def test_exact_final_oracle_uses_receipt_domain(self) -> None:
+        case = self.cases["exact-final-ready"]
+        self.assertEqual(
+            {item["domain"] for item in case["oracle"]["required_findings"]},
+            {"receipt"},
+        )
+        self.assertEqual(
+            {
+                item["domain"]
+                for item in case["oracle"]["required_anchored_findings"]
+            },
+            {"receipt"},
+        )
+
+    def test_live_projection_requires_dirty_findings_and_manifest_presence(
+        self,
+    ) -> None:
+        self.assertIn(
+            "each material dirty, staged, or untracked path as its own finding",
+            runner.EVALUATOR_CONTEXT,
+        )
+        self.assertIn(
+            "If that exact manifest path is absent, recovery must be null",
+            runner.EVALUATOR_CONTEXT,
+        )
+
     def test_live_projection_instructions_make_saturated_semantics_field_local(
         self,
     ) -> None:
