@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `BLOCKER_PROJECTION_REPAIR_FOCUSED_GREEN`
+Status: `SUCCESSOR_4_OFFLINE_VERIFICATION`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -575,3 +575,13 @@ digest. Focused RED reproduced all five findings before implementation.
   after evaluator-source drift against a terminal failed ledger. This is a
   transitional clean-break signal, not an accepted failure: a fresh successor
   candidate/genesis and a second complete GREEN run are required.
+- The blocker-projection repair source is committed at
+  `cce1347a70a510d4e2b1c0a2d899265f03da4fe0`, tree
+  `59154ee03bb210ee95a316aeb76c9157fe9795fb`. A fresh generation-7
+  genesis binds successor candidate
+  `3ea1e345c2335114219a366991278b2ac621e24e5c4d976c46fbfc31056e4448`
+  and ledger
+  `d4eb89ab133e88fc5fc529f85feeffda47ee38c16822de04ec74480feb329ecb`.
+  Its plan and receipt arrays are empty. All three failed predecessors remain
+  Git-reachable; no prior authority, launch, result, receipt, cost basis, or
+  evidence is migrated or reused.
