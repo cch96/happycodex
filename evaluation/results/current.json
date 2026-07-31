@@ -67,6 +67,28 @@
       ]
     }
   ],
-  "receipts": [],
+  "receipts": [
+    {
+      "candidate_sha256": "e6c95a428ad0dff37534381cda8f1887fee44c2d810c2e12e3403e396dc5c511",
+      "created_at": "2026-07-31T03:23:06Z",
+      "evidence_commit": "db9b4362e1ed100879cb95e87c81b82f8725de3c",
+      "gate": "calibration",
+      "output_sha256": "fcfdde1bb4766c92bed94a8b485dccb11d814fc340d79be5c9124d076797892b",
+      "parent_receipt_sha256": null,
+      "plan_sha256": "c69be13123b97bfa4d2b62b07338433d84d105df2f3c75abe606aec6902c1ccc",
+      "receipt_sha256": "6d324958ce5dad2df3afd4a2717fc0c294075a59dca6035e947799ef80d93694",
+      "record_type": "GateReceipt",
+      "result": "succeeded",
+      "schema_version": 1,
+      "sequence": 0,
+      "unit_results": [
+        {
+          "result_sha256": "04fad6c809d8b3121ae5421e3fb4f4bd6410264d4802e64c63b404beff025472",
+          "status": "succeeded",
+          "unit": "subthreshold-control"
+        }
+      ]
+    }
+  ],
   "schema_version": 1
 }

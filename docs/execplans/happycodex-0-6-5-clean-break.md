@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `CALIBRATION_SUCCEEDED_AWAITING_RECEIPT`
+Status: `CALIBRATION_RECEIPTED_PREPARING_CORPUS`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -870,3 +870,16 @@ effect authority.
   `b5724f837e91a4b02af03137608c72289b983c917a1ffeb318bf9bfd9bad6d49`.
   These successful actuals are the sole historical basis for later bundled
   corpus and holdout ceilings.
+- Calibration GateReceipt
+  `6d324958ce5dad2df3afd4a2717fc0c294075a59dca6035e947799ef80d93694`
+  binds evidence commit `db9b4362e1ed100879cb95e87c81b82f8725de3c`,
+  the successful immutable result, and aggregate output
+  `fcfdde1bb4766c92bed94a8b485dccb11d814fc340d79be5c9124d076797892b`.
+  Its private file SHA-256 is
+  `18be5b3533f1d8654f9c155a78170c305c1d1d929f62dcd9b75336c5bec3a299`.
+  Applying it once to the open-plan ledger produced semantic ledger
+  `af58bd421c4135a9aaa50c3e829c6ddbc6085f4b1e700d339996fb2b669be42b`
+  and file SHA-256
+  `4cace3d4c1b853490f33395910f882078137a0a9b7951497c3c8dc8a20a872d3`.
+  Calibration is covered with no failed receipt; the remaining gates are
+  corpus, holdout, artifact receipt, exact-final review, and isolated install.
