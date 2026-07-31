@@ -10,7 +10,63 @@
     "source_commit": "48eb968f2707ca299667edbd6ec9a191a99b6d0a",
     "source_tree": "212189310b1e4e0ff7294f07ba2c4c25e60c1d76"
   },
-  "plans": [],
+  "plans": [
+    {
+      "approval_content_sha256": "929dfca4cc65ea68f7ef2bcc4897ddf8c02a69d9081becc83b6cbcf786efc417",
+      "approval_request_sha256": "aca7ebf1c942e1d948f11487e4da61af5fa774addaffbe7d8225919d538aca07",
+      "candidate_sha256": "c62b0a7c4f3b142cd500b060e2640f89b22335db099e4947a97b702a107b7bdd",
+      "cost_ceiling": {
+        "model_calls": 1,
+        "output_tokens": 10000,
+        "uncached_input_tokens": 100000,
+        "wall_milliseconds": 300000
+      },
+      "created_at": "2026-07-31T04:16:13Z",
+      "gate": "calibration",
+      "output": "/home/caichenghang/.codex/happycodex-0.6.5-release/outputs/release-evaluation-6/calibration",
+      "plan_sha256": "92f17191d8c0ca0ed2d48082a88fdbe2cf9eca087adb6383467b0cf425a8416e",
+      "profile": {
+        "argv": [
+          "happycodex-host:run-authorized-v1",
+          "--gate",
+          "calibration",
+          "--repository",
+          "/home/caichenghang/projects/happycodex-worktrees/happycodex-0.6.5",
+          "--output",
+          "/home/caichenghang/.codex/happycodex-0.6.5-release/outputs/release-evaluation-6/calibration",
+          "--claim-root",
+          "/home/caichenghang/.codex/happycodex-0.6.5-release/claims/release-evaluation-6/calibration",
+          "--unit",
+          "{unit}"
+        ],
+        "arm": "candidate",
+        "cwd": "/home/caichenghang/projects/happycodex-worktrees/happycodex-0.6.5",
+        "effort": "high",
+        "env": {
+          "HAPPYCODEX_CLAIM_ROOT": "/home/caichenghang/.codex/happycodex-0.6.5-release/claims/release-evaluation-6/calibration",
+          "HAPPYCODEX_CODEX_SHA256": "cb5e8cb8a333a408ce6adbe0d4fad1845c69772c2216af7c1f88c98a11460dc6",
+          "HAPPYCODEX_IMPACT_SHA256": "888747c39873dc0e1257de5c5749c188fcaabaeb956e6e726d5b15198e39eb2e"
+        },
+        "model": "gpt-5.6-sol",
+        "timeout_ms": 300000
+      },
+      "record_type": "GatePlan",
+      "resource_digests": [
+        "1e15ade132ea9107f54cd789ca0c2396e30fb70b6adf7249bc4ae9b9d97c37d9",
+        "298f8fd1561c656a1f43e0a5fc60860d7ef3d56179b307a3a20b1a8de0e48c4a",
+        "3073d1f83b58c145f5658f66bfe0bcd5134873d3c632152968b64a62bf7c8bfe",
+        "314dd34086b33951f969e7b009152535264b90d148b6ff2f0aa0bfd9435ab7c4",
+        "662e34a7f6dec320b05eeb3466a2a89a36e7eefb4633a1cf4ebf91edfd6e02f5",
+        "935456578c4eb0733eefa3bc848a8424c3ae27fe9c2e87312af453c65e6f875f",
+        "d4616894306765a75235a41b1c9c50ff74193f69ba5416bfd70f5144b68f25ff"
+      ],
+      "schema_version": 1,
+      "snapshot_sha256": "d87cc540681b0bddea4cc9d205d0a309dbbd45445d3d8a2d43866d0a1b8eadaa",
+      "units": [
+        "subthreshold-control"
+      ]
+    }
+  ],
   "receipts": [],
   "schema_version": 1
 }

@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `SUCCESSOR_7_BUNDLE_AWAITING_EXACT_AUTHORITY`
+Status: `SUCCESSOR_7_CALIBRATION_PRELAUNCH`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -1040,3 +1040,36 @@ effect authority.
   One exact response covers all five evaluation gates; no per-gate user
   confirmation follows. It grants no isolated install, activation, push, tag,
   GitHub Release, or publication.
+- The current-task user returned that exact line verbatim. Its UTF-8 plus LF
+  SHA-256 is
+  `929dfca4cc65ea68f7ef2bcc4897ddf8c02a69d9081becc83b6cbcf786efc417`,
+  exactly matching the private envelope. It authenticates all five bounded
+  evaluation gates and no release effect.
+- Calibration impact receipt
+  `/home/caichenghang/.codex/happycodex-0.6.5-release/records/release-evaluation-6/calibration/impact.json`
+  is mode 0600 with SHA-256
+  `888747c39873dc0e1257de5c5749c188fcaabaeb956e6e726d5b15198e39eb2e`.
+  It binds the current candidate, snapshot, Codex binary, private roots, exact
+  source-derived 42,388-byte known text surface, and one
+  `subthreshold-control` call at `gpt-5.6-sol`/`high` with ceilings of 100,000
+  uncached-input tokens, 10,000 output tokens, and 300 seconds. There is no
+  successful successor-7 historical cost basis.
+- The first local request attempt was rejected before GatePlan creation because
+  an empty raw-output directory existed where reservation requires absence.
+  Root verified it was empty, removed only that exact directory, and reran
+  preflight under changed infrastructure state. The event caused one local
+  identity subprocess and zero launch, ActionKey, fixture, workspace, model,
+  network, receipt, ledger, or release effect.
+- Corrected preflight wrote private calibration GatePlan
+  `/home/caichenghang/.codex/happycodex-0.6.5-release/records/release-evaluation-6/calibration/plan.json`,
+  mode 0600, file SHA-256
+  `e00e6ae0e68e3a81da0bc091675662f235473b843ced2c9241fd3dcd3e8f3985`,
+  and plan SHA-256
+  `92f17191d8c0ca0ed2d48082a88fdbe2cf9eca087adb6383467b0cf425a8416e`.
+  It is `preauthorized` by the bundle and reconstructs the one exact default
+  launch. The claim root remains empty and the output path remains absent.
+- The calibration GatePlan was atomically appended once. Genesis ledger
+  `fc0ce54915435632b7df5c17ef273db4dc3519489afadc1b1f16b270e7348f71`
+  became open-plan ledger
+  `b7c2f46a419e9eafd77a9c1cd5f5765588ae3d01f20f867e8847753cf42c49a8`.
+  No launch, ActionKey, model, network, output, or receipt effect occurred.
