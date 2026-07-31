@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `RECOVERY_PREDICATE_REPAIR`
+Status: `RECOVERY_REPAIR_FOCUSED_GREEN`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -429,3 +429,18 @@ digest. Focused RED reproduced all five findings before implementation.
   The repair requires one prompt-contract RED, the affected focused tests, the
   full offline suite, and a fresh successor candidate/genesis before any new
   calibration request.
+- RED reproduced the exact omission:
+  `test_live_projection_has_one_reducer_owned_boundary` failed because the
+  provider prompt had no Manifest-presence condition. The implementation adds
+  one sentence requiring `recovery: null` unless exactly one valid Recovery
+  Manifest was inspected and forbidding synthetic markers; schema, semantic
+  parser, manifest validator, fixture, Runtime, and shipped package are
+  unchanged.
+- The affected six-test slice is 6/6 GREEN in 0.953 seconds, including
+  fail-closed Recovery Manifest validation, prompt secrecy, zero-effect
+  dry-run, provider schema projection, and the real isolated no-MCP probe.
+  Repaired evaluator manifest is
+  `d9b7cad5bd6e61875e8e233a8eb24e034d7cf50deae4d1075edbea6ca259251d`
+  and snapshot is
+  `c4c18319ae33c806cbef32df1d27eba8fca5df089de8bdcbe075ee3f2880c9e6`;
+  package artifact and semantic identities remain unchanged.

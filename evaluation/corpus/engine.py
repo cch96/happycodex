@@ -211,10 +211,11 @@ EVALUATOR_CONTEXT = (
     "object: repository-relative path, lifecycle marker, or labeled Git/SHA-256 "
     "digest. Use repository `fixture` for fixture paths. Use open_gates only from the "
     "closed control gate vocabulary and copy recovery.pending_gates in checkpoint "
-    "order without inferring downstream gates. Recovery controls must include every "
-    "durable Git, plan, test, worktree, delegated-agent, and Recovery Manifest fact; "
-    "live_agents contains delegated receipts, never the Root writer. Do not inspect "
-    "evaluator code or hidden oracles."
+    "order without inferring downstream gates. Set recovery to null unless you "
+    "inspected exactly one valid Recovery Manifest; never synthesize a manifest "
+    "marker. Recovery controls must include every durable Git, plan, test, worktree, "
+    "delegated-agent, and Recovery Manifest fact; live_agents contains delegated "
+    "receipts, never the Root writer. Do not inspect evaluator code or hidden oracles."
 )
 EXPECTED_CANDIDATE_SKILL_ENTRIES = frozenset(
     {

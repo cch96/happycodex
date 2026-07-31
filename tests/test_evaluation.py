@@ -396,6 +396,11 @@ class HappyCodexEvaluationTests(unittest.TestCase):
 
     def test_live_projection_has_one_reducer_owned_boundary(self) -> None:
         self.assertIn("derives the sole NextAction", runner.EVALUATOR_CONTEXT)
+        self.assertIn(
+            "Set recovery to null unless you inspected exactly one valid "
+            "Recovery Manifest; never synthesize a manifest marker.",
+            runner.EVALUATOR_CONTEXT,
+        )
         self.assertNotIn("permission fields", runner.EVALUATOR_CONTEXT)
         self.assertNotIn("protocol_may_", runner.EVALUATOR_CONTEXT)
 
