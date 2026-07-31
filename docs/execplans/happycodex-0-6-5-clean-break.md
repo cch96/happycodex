@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `SUCCESSOR_7_CALIBRATION_SUCCEEDED_AWAITING_RECEIPT`
+Status: `SUCCESSOR_7_CALIBRATION_COVERED`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -1089,3 +1089,18 @@ effect authority.
   External event, stderr, metadata, and result-file SHA-256 values are
   respectively `599d36a6`, `77ed1d8b`, `1caad6b9`, and `7c960dc8`.
   Corpus, holdout, receipt, and review have not started.
+- Receipt preparation first rejected the abbreviated evidence revision before
+  writing any record. Rebinding the same evidence to full commit
+  `578493a7d58561035bade908c8e158fae35a1c68` produced successful calibration
+  GateReceipt
+  `45b555f59945a775c664053b0af675163093abed1916c6eb691c29df9aafe029`,
+  private file SHA-256
+  `f7d76295695b64d083ac371036517b409d9a74df26164eb1803f1c5cd2fc3662`,
+  and aggregate output
+  `5e83285e5b5f1a0f34b066ad212254aba2e698f2de3d549d02b737ba6c20cbe3`.
+- Applying that receipt once changed open-plan ledger
+  `b7c2f46a419e9eafd77a9c1cd5f5765588ae3d01f20f867e8847753cf42c49a8`
+  to semantic ledger
+  `76c1609fda85df9e71b13e7074e4897248d643ef204f5a06fc2f6fd7f245766d`.
+  Calibration is covered with no failed receipt; the remaining gates are
+  corpus, holdout, artifact receipt, exact-final review, and isolated install.
