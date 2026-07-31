@@ -26,7 +26,7 @@
     ]
   },
   "oracle": {
-    "expected_action": "IMPLEMENT",
+    "expected_action": "CHECK",
     "required_observation": {
       "qualifies": true,
       "execplan_conditions": [
@@ -35,24 +35,10 @@
     },
     "required_findings": [
       {
-        "id": "RESOURCE-DISJOINT-OK",
+        "id": "O1",
         "domain": "other",
         "statuses": [
-          "resolved"
-        ]
-      },
-      {
-        "id": "F-DEFAULT-SIBLING-A",
-        "domain": "other",
-        "statuses": [
-          "resolved"
-        ]
-      },
-      {
-        "id": "F-DEFAULT-SIBLING-B",
-        "domain": "other",
-        "statuses": [
-          "resolved"
+          "baseline_unchanged"
         ]
       }
     ],
@@ -64,6 +50,7 @@
         },
         "domain": "other",
         "statuses": [
+          "baseline_unchanged",
           "resolved"
         ]
       },
@@ -74,6 +61,7 @@
         },
         "domain": "other",
         "statuses": [
+          "baseline_unchanged",
           "resolved"
         ]
       },
@@ -84,6 +72,7 @@
         },
         "domain": "other",
         "statuses": [
+          "baseline_unchanged",
           "resolved"
         ]
       }

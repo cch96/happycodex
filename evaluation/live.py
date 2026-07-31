@@ -1171,6 +1171,7 @@ def collect_plan_results(
     plan = validate_gate_plan(plan)
     root = _real_private_directory(claim_root, "launch claim root")
     collected = []
+    corpus_suffix_started = False
     for unit in plan["units"]:
         default = build_launch(plan, unit)
         claims = _prior_launches(default, root)
@@ -1206,11 +1207,22 @@ def collect_plan_results(
         if len(terminals) > 1:
             raise ValueError("unit has multiple provider-reaching results")
         if terminals:
+            if corpus_suffix_started:
+                raise ValueError(
+                    "corpus provider-reaching results are not an execution prefix"
+                )
             collected.append(terminals[0])
+        elif plan["gate"] == "corpus":
+            corpus_suffix_started = True
         elif plan["gate"] != "holdout":
             raise ValueError("planned unit lacks a provider-reaching result")
     if not collected:
         raise ValueError("GatePlan has no provider-reaching results")
+    if (
+        corpus_suffix_started
+        and all(result["status"] == "succeeded" for result in collected)
+    ):
+        raise ValueError("partial corpus results require a failed execution prefix")
     return collected
 
 

@@ -78,7 +78,7 @@
     "required_findings": [
       {
         "id": "EXACT-FINAL-READY",
-        "domain": "other",
+        "domain": "receipt",
         "statuses": [
           "resolved"
         ]
@@ -90,7 +90,7 @@
           "kind": "marker",
           "value": "EXACT-FINAL-READY"
         },
-        "domain": "other",
+        "domain": "receipt",
         "statuses": [
           "resolved"
         ]

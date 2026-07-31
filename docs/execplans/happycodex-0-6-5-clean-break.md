@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `CORPUS_FAILURE_OFFLINE_RED`
+Status: `CORPUS_FAILURE_OFFLINE_GREEN_AWAITING_SOURCE_COMMIT`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -967,3 +967,15 @@ effect authority.
   classification, and explicit dirty-path/Manifest-presence instructions.
   The exact six-test command failed 6/6 for those six expected reasons with no
   unrelated failure.
+- One coherent repair now makes the last completed agent message the terminal
+  structured result, allows only an exact failed corpus execution prefix in
+  result collection and GateReceipt validation, permits several required
+  evidence anchors to identify one typed finding, corrects the exact-final
+  receipt-domain oracle, and requires explicit material dirty paths plus exact
+  Recovery Manifest presence. The same six focused tests are 6/6 GREEN.
+- The complete pre-source-commit suite is 146/147 GREEN. Its sole failure is
+  the required stale-candidate identity assertion: evaluator inputs changed,
+  while `evaluation/results/current.json` still binds source `04175bde` and
+  candidate `e6c95a4`. No Runtime or public package file changed. A fresh
+  successor source and genesis must be committed before another release
+  evaluation may be prepared.

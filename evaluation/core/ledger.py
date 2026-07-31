@@ -584,6 +584,15 @@ def validate_ledger(ledger: dict[str, Any], *, repo: Path | None = None) -> None
                 raise ValueError(
                     "GateReceipt units do not equal an adaptive holdout prefix"
                 )
+        elif (
+            receipt["gate"] == "corpus"
+            and receipt["result"] == "failed"
+        ):
+            if receipt_units != plan["units"][:len(receipt_units)]:
+                raise ValueError(
+                    "failed corpus GateReceipt units do not equal "
+                    "the execution prefix"
+                )
         elif receipt_units != plan["units"]:
             raise ValueError("GateReceipt units do not equal the GatePlan")
         if repo is not None:

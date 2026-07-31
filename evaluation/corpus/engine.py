@@ -207,7 +207,9 @@ EVALUATOR_CONTEXT = (
     "This invocation is an observational checkpoint only. RED-test edits are product "
     "writes. Report observations only; the evaluator derives the sole NextAction. "
     "Put every material finding and its optional blocker in one finding with one exact "
-    "shared id. A baseline_unchanged finding is unresolved unless its exact id "
+    "shared id. Represent each material dirty, staged, or untracked path as its own "
+    "finding when it affects scope, ownership, recovery, or completion. A "
+    "baseline_unchanged finding is unresolved unless its exact id "
     "appears in accepted baseline failures; every unresolved finding must embed one "
     "blocker. `qualifies` means this checkpoint requires the HappyCodex high-risk "
     "protocol, not merely that a next action is permitted; set it false for clearly "
@@ -218,7 +220,9 @@ EVALUATOR_CONTEXT = (
     "closed control gate vocabulary and copy recovery.pending_gates in checkpoint "
     "order without inferring downstream gates. Set recovery to null unless you "
     "inspected exactly one valid Recovery Manifest; never synthesize a manifest "
-    "marker. Recovery controls must include every durable Git, plan, test, worktree, "
+    "marker. Treat docs/execplans/recovery-manifest.json as the exact manifest path. "
+    "If that exact manifest path is absent, recovery must be null even when other "
+    "recovery facts exist. Recovery controls must include every durable Git, plan, test, worktree, "
     "delegated-agent, and Recovery Manifest fact; live_agents contains delegated "
     "receipts, never the Root writer. Do not inspect evaluator code or hidden oracles."
 )
@@ -1132,16 +1136,23 @@ def parse_events(
     pending = {}
     terminal = None
     terminal_ordinal = None
+    terminal_event_ordinal = len(events) - 2
     for ordinal, raw in enumerate(events[2:-1], 2):
         event = _exact_event(raw, {"type", "item"}, "item")
         item = event["item"]
         item_type = item.get("type") if isinstance(item, dict) else None
         item_id = item.get("id") if isinstance(item, dict) else None
-        if event["type"] == "item.completed" and item_type == "agent_message":
-            if terminal is not None:
-                raise ValueError("duplicate terminal agent result")
-            terminal = _exact_event(item, {"id", "type", "text"}, "agent result")
-            terminal_ordinal = ordinal
+        if item_type == "agent_message":
+            message = _exact_event(
+                item,
+                {"id", "type", "text"},
+                "agent result",
+            )
+            if event["type"] != "item.completed" or type(message["text"]) is not str:
+                raise ValueError("agent message event is incomplete")
+            if ordinal == terminal_event_ordinal:
+                terminal = message
+                terminal_ordinal = ordinal
             continue
         item = _prefix_item(item, allowed)
         if terminal is not None:
@@ -1686,7 +1697,6 @@ def match_oracle(
         elif len(matches) != 1 or used_blockers & matches:
             failures.append("distinct anchored blocker required")
         used_blockers |= matches
-    used_findings: set[str] = set()
     for expected in oracle.get("required_anchored_findings", []):
         matches = {
             item.finding_id
@@ -1697,9 +1707,8 @@ def match_oracle(
         }
         if not matches:
             failures.append(f"missing anchored finding: {expected['anchor']}")
-        elif len(matches) != 1 or used_findings & matches:
+        elif len(matches) != 1:
             failures.append("distinct anchored finding required")
-        used_findings |= matches
     return failures
 
 
