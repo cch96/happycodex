@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `CALIBRATION_3_AWAITING_AUTHORITY`
+Status: `CALIBRATION_3_AUTHORIZED_PENDING_APPLY`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -495,3 +495,20 @@ digest. Focused RED reproduced all five findings before implementation.
   publication effect occurred.
 - The only acceptable next authority is the exact canonical line:
   `AUTHORIZE HappyCodex 0.6.5 gate calibration exactly once for request 1cf14e64236812fd203911bd18b5d6294092c0019135bd925d62c8081ee4955e`.
+- The user supplied that exact canonical line once. Its UTF-8 content with one
+  trailing LF has SHA-256
+  `e534f2351ac17cfe2a796d8ed69c79e746abd83842d90758d9abb6fb3abb2e14`;
+  it authorizes only the already sealed third calibration GatePlan and has not
+  yet been consumed.
+- The immediate pre-effect check observed Host-owned global Codex config drift:
+  full config SHA-256 is
+  `a75ecd807b09c55e3db019cc1db975b4a6718aa3c9a784e88e54d835940feea7`
+  at 4,935 bytes. The only non-timestamp change is one unrelated project trust
+  entry adding 86 bytes. Projecting out that entry and `last_updated` produces
+  the previously frozen 4,811 bytes and SHA-256
+  `753c421f07d0eca27b07d7f134dadc07cb57e5020257e2afb32719d3ffae1ad9`.
+  Global config is not an invocation input: the GatePlan uses a fresh isolated
+  `CODEX_HOME`, explicit model/effort/tool arguments, and a closed environment.
+  Candidate, package, role config, binary, invocation, authority, private
+  destinations, and protected active installation are unchanged, so this
+  unrelated Host-owned addition does not invalidate or re-mint the GatePlan.
