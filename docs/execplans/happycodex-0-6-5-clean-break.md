@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `SUCCESSOR_8_CALIBRATION_PREFLIGHT`
+Status: `SUCCESSOR_8_CALIBRATION_PRELAUNCH`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -1276,3 +1276,26 @@ effect authority.
   through calibration, corpus, adaptive holdout, artifact receipt, and
   exact-final review. It grants no isolated install, active cutover, push, tag,
   GitHub Release, or publication effect.
+- Calibration impact receipt
+  `/home/caichenghang/.codex/happycodex-0.6.5-release/records/release-evaluation-7/calibration/impact.json`
+  is mode 0600 with SHA-256
+  `ead74d5918238bb3cd4fefe22005750aa296c03c0d8297ca38e4bcffa6344ccd`.
+  It binds the successor-8 candidate, snapshot, Codex binary, private roots,
+  exact source-derived 42,388-byte known text surface, and one
+  `subthreshold-control` call at `gpt-5.6-sol`/`high` with ceilings of 100,000
+  uncached-input tokens, 10,000 output tokens, and 300 seconds. There is no
+  transferred successful calibration or historical cost basis.
+- Private calibration GatePlan
+  `/home/caichenghang/.codex/happycodex-0.6.5-release/records/release-evaluation-7/calibration/plan.json`
+  is mode 0600 with file SHA-256
+  `94de5fbbeb359c87b5213943178f1d5e97f2867952a8e033c40c4334b0720e30`
+  and plan SHA-256
+  `8984c45b645fe579e1d6e971d88d3e0430d2933149e00c5b53420cba4efb9e46`.
+  It is preauthorized by the exact bundle and reconstructs the one bound
+  launch. The claim root remains empty and the raw output path remains absent.
+- Appending that plan once changed genesis ledger
+  `7653a0d3bb10e83e1e39056278fdbe171e146db7da5c99f43015e68016d1d002`
+  to open-plan ledger
+  `ce0c34746840f37ef04e541f3bc941d09b90b27f47045bbaf8ce7b633938b16f`.
+  No launch, ActionKey, fixture, workspace, model, network, output, receipt,
+  install, or release effect occurred.
