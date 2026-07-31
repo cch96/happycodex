@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `CALIBRATION_2_AUTHORIZED_PENDING_LAUNCH`
+Status: `CALIBRATION_2_FAILED_PENDING_RECEIPT`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -386,3 +386,28 @@ digest. Focused RED reproduced all five findings before implementation.
   the authorized open-plan ledger is
   `e205f270ddce7632e25d4b8274ad60e10fa8c458857f7c8df2ec9b786d43f95c`.
   No launch or external effect occurred during this transition.
+- The authorized launch reached the provider exactly once and consumed
+  ActionKey
+  `4880d209779a5589fea2e587bb13718a31f3483b4d27f6c72354a5b1c9a7609a`
+  under LaunchKey
+  `c6e278d618a17118b33afbd643b695a087d29bccc38e383601abac7647a3ec52`.
+  It was not retried.
+- The provider returned one structurally valid terminal observation and a
+  terminal usage event, but semantic post-validation failed with
+  `invalid Recovery Manifest or summary`. Immutable launch result
+  `aad932ae6ca3742d264ecdd489aad2f996d6b3be9e5321b6ab84a8a254e12769`
+  therefore records `failed/ambiguous` and conservatively charges the full
+  approved ceiling. Raw external event, stderr, and result file SHA-256 values
+  are respectively
+  `484a838418a2542387223e9e38a1abe7867a7648a912d6717ccdbd979e1f306f`,
+  `cc4e03678599c1496aed1e62397875861ed9413c37078de6a04f460eaac5df95`,
+  and
+  `d2bfeaefa4b4211f0fc226498a37f4cf23ec53a78ee51600fd3b18c42019f8c9`.
+- New finding `HC-065-RECOVERY-MANIFEST-PREDICATE` is a harness
+  contradiction: the neutral prompt asks for recovery controls, the ordinary
+  subthreshold fixture intentionally has no Recovery Manifest, and
+  `canonical_report_from_result` nevertheless requires exactly one manifest
+  marker for every non-null recovery object. The returned observation had the
+  expected `qualifies=false`, `not_required`, and implementation direction;
+  this is not accepted as quality evidence and provides no historical-success
+  cost basis.
