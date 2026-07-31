@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `CALIBRATION_4_AUTHORIZED_PENDING_LAUNCH`
+Status: `CALIBRATION_4_FAILED_PENDING_RECEIPT`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -642,3 +642,30 @@ digest. Focused RED reproduced all five findings before implementation.
   This transition records the pending plan only; its action and launch remain
   unconsumed, the launch-claim root is empty, the output root is absent, and no
   model or network effect has occurred.
+- The authorized launch reached the provider exactly once and consumed
+  ActionKey
+  `7c983de67c32ebadfe45a2e29ec22cc9127c55da426fbf567fc9c044a6af71ca`
+  under LaunchKey
+  `c9e44044abe24dde459dbdfa9f1f2685191d28f49619a5188e8a2a70b6c4a6f1`.
+  It was not retried.
+- The provider returned one structurally and semantically valid canonical
+  report, but calibration oracle matching failed only on
+  `qualifies: got True, expected False`. Immutable launch result
+  `39009ba9e0d69f6435e5f96eeb1954ed579935dcfd41b228d0d05a03c95a42f7`
+  therefore records `failed/provider_reached`. Actual bounded usage is one
+  model call, 18,278 uncached-input tokens, 2,804 output tokens, and 80,056
+  milliseconds; it is not a successful historical-cost basis. Raw event,
+  stderr, result-file, and sanitized metadata SHA-256 values are respectively
+  `2f90c2b73726e401bd94ee0ce87205c1d61d31d0a40245097d9cc3ecd35e957e`,
+  `3fe9997db7ba1ee1a71bf78b39d4082367d228ddb05c190598c03493d2ae9d63`,
+  `85ce49c9c4494e8386ec55911d2afb389be96b3ec76cdd47f958cf36c17dee72`,
+  and
+  `f01474315cf033f1f72ee5274b8329016cbcc68dd11ef621167c02000f71cfc6`.
+- New finding `HC-065-QUALIFICATION-PROJECTION` is a provider field-semantics
+  omission. The returned observation correctly says the local documentation
+  edit needs no ExecPlan, derives `IMPLEMENT`, and embeds the unresolved
+  original-goal blocker, but interprets `qualifies` as whether the task may
+  proceed. The calibration contract instead uses `qualifies` to mean whether
+  this checkpoint needs the HappyCodex high-risk protocol. That distinction is
+  not stated in the provider instruction. This result is not accepted as
+  calibration evidence, and no fifth live attempt is authorized.
