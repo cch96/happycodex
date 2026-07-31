@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `CALIBRATION_AUTHORIZED_OPEN_PLAN`
+Status: `CALIBRATION_SUCCEEDED_AWAITING_RECEIPT`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -851,3 +851,22 @@ effect authority.
   `54e947e043c05d929ca7c00341aa7b3d47a75eceefc7d6402390057ae2481599`.
   The claim root remains empty and output absent; this transition caused no
   launch, ActionKey consumption, model call, or network call.
+- The authorized calibration reached the provider exactly once and consumed
+  ActionKey
+  `fe93115e34fde42663ed4a64ee79e91b2cc2cd0e960b3826c86b518254e8d5ba`
+  under LaunchKey
+  `124969ecc4f444e10b1e89a635e1b04c1dbea28109201ec1dc5bf3e1a716533d`.
+  It was not retried. The terminal structured observation passed the
+  `subthreshold-control` oracle and produced output receipt
+  `f97fd23df9e91be41c0a5b515a23ef7e1ead63dae3c84faab592f2641d7f9b4b`.
+- Successful actual usage is one model call, 29,612 uncached-input tokens,
+  1,417 output tokens, and 39,120 wall milliseconds. Immutable result
+  `04fad6c809d8b3121ae5421e3fb4f4bd6410264d4802e64c63b404beff025472`
+  records `succeeded/provider_reached`. External event, stderr, and result-file
+  SHA-256 values are respectively
+  `686dfb7a583e6927e73f7024588bb23716430e930f0a219b48c9a4dbec7630d7`,
+  `b4f7b73840ddbcdfc2e4dea57cd375eb404d4b6384f3284ed26c3682d486647c`,
+  and
+  `b5724f837e91a4b02af03137608c72289b983c917a1ffeb318bf9bfd9bad6d49`.
+  These successful actuals are the sole historical basis for later bundled
+  corpus and holdout ceilings.
