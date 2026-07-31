@@ -216,15 +216,15 @@ class GenesisAndCliTests(unittest.TestCase):
             (ROOT / "evaluation/results/current.json").read_text(encoding="utf-8")
         )
         expected_candidate = {
-            "candidate_sha256": "8999589309204ed0a10546ca96f2a3b2048777c2491c159e7dc72e2fad60765e",
-            "created_at": "2026-07-30T23:59:10Z",
+            "candidate_sha256": "0da306eb5055bc2db9baff77ef5a2bdd98dad80766a9e7b239843ad9ec3dc40d",
+            "created_at": "2026-07-31T01:33:10Z",
             "executor_role_sha256": "f1effcc84e7ed24f6d54c972e2e412db42a3e46a6d92565e6d61b358128305da",
             "package_artifact_sha256": "bbc82a07445104820fb4e2108dde252fcce1883136e34e5ef1733eb3984b8b33",
             "package_semantic_sha256": "9cd5a507a8a9561c8af6751917b430b1cb29c238810b7c32bcff15c39044965a",
             "record_type": "ReleaseCandidate",
             "schema_version": 1,
-            "source_commit": "402fedc26f891f6977174e57d3cb79ed680ffa0f",
-            "source_tree": "4fc2791b1c4b1e1a9bed1888eba6e11791712596",
+            "source_commit": "ad20dbf60535f574e98e7b5adaccc6397d204c69",
+            "source_tree": "358560f2e392b23efa9e9ae26a3bf3e69fe8a455",
         }
         self.assertEqual(
             active,

@@ -1,94 +1,16 @@
 {
   "candidate": {
-    "candidate_sha256": "8999589309204ed0a10546ca96f2a3b2048777c2491c159e7dc72e2fad60765e",
-    "created_at": "2026-07-30T23:59:10Z",
+    "candidate_sha256": "0da306eb5055bc2db9baff77ef5a2bdd98dad80766a9e7b239843ad9ec3dc40d",
+    "created_at": "2026-07-31T01:33:10Z",
     "executor_role_sha256": "f1effcc84e7ed24f6d54c972e2e412db42a3e46a6d92565e6d61b358128305da",
     "package_artifact_sha256": "bbc82a07445104820fb4e2108dde252fcce1883136e34e5ef1733eb3984b8b33",
     "package_semantic_sha256": "9cd5a507a8a9561c8af6751917b430b1cb29c238810b7c32bcff15c39044965a",
     "record_type": "ReleaseCandidate",
     "schema_version": 1,
-    "source_commit": "402fedc26f891f6977174e57d3cb79ed680ffa0f",
-    "source_tree": "4fc2791b1c4b1e1a9bed1888eba6e11791712596"
+    "source_commit": "ad20dbf60535f574e98e7b5adaccc6397d204c69",
+    "source_tree": "358560f2e392b23efa9e9ae26a3bf3e69fe8a455"
   },
-  "plans": [
-    {
-      "approval_content_sha256": "ee0d893c8be0742be3b4d7bc66513ad350aa752eb15e70e706d32d362d6fe5d6",
-      "approval_request_sha256": "ee2938188fc0cb0783fbc6dd887742008ab400a7a5dbbabd8574c17a7f025a10",
-      "candidate_sha256": "8999589309204ed0a10546ca96f2a3b2048777c2491c159e7dc72e2fad60765e",
-      "cost_ceiling": {
-        "model_calls": 1,
-        "output_tokens": 10000,
-        "uncached_input_tokens": 100000,
-        "wall_milliseconds": 300000
-      },
-      "created_at": "2026-07-31T00:04:43Z",
-      "gate": "calibration",
-      "output": "/home/caichenghang/.codex/happycodex-0.6.5-release/outputs/calibration-2",
-      "plan_sha256": "c521a48c7cc46e310850ad50a21d3d7ea1ab139b1baf92b6f5eff4ffe63e199d",
-      "profile": {
-        "argv": [
-          "happycodex-host:run-authorized-v1",
-          "--gate",
-          "calibration",
-          "--repository",
-          "/home/caichenghang/projects/happycodex-worktrees/happycodex-0.6.5",
-          "--output",
-          "/home/caichenghang/.codex/happycodex-0.6.5-release/outputs/calibration-2",
-          "--claim-root",
-          "/home/caichenghang/.codex/happycodex-0.6.5-release/claims/calibration-2",
-          "--unit",
-          "{unit}"
-        ],
-        "arm": "candidate",
-        "cwd": "/home/caichenghang/projects/happycodex-worktrees/happycodex-0.6.5",
-        "effort": "high",
-        "env": {
-          "HAPPYCODEX_CLAIM_ROOT": "/home/caichenghang/.codex/happycodex-0.6.5-release/claims/calibration-2",
-          "HAPPYCODEX_CODEX_SHA256": "cb5e8cb8a333a408ce6adbe0d4fad1845c69772c2216af7c1f88c98a11460dc6",
-          "HAPPYCODEX_IMPACT_SHA256": "6d6d80fd5d807d6aeb6672e5138b936cb5568afeafc6927814180a9110b35429"
-        },
-        "model": "gpt-5.6-sol",
-        "timeout_ms": 300000
-      },
-      "record_type": "GatePlan",
-      "resource_digests": [
-        "1e15ade132ea9107f54cd789ca0c2396e30fb70b6adf7249bc4ae9b9d97c37d9",
-        "3595451388a67755b0cc61bff087ebedfc1941f0c9711c780f57f5ef27603065",
-        "935456578c4eb0733eefa3bc848a8424c3ae27fe9c2e87312af453c65e6f875f",
-        "97ce5ef9e8ae865959e753fa0f4fdbbd464e170ebcae9af45a5c3a42cdb0a81e",
-        "9b1361e63a6e5fbc234d0d13d3dcfbf260a6fe195fc0ab8d6a41c65746272861",
-        "d3020812785b0d5b0f7037bd545ebbc1a3243f271cd20f2d93e9b1d67a16587a",
-        "e26e799958e46db0041bd284380a12805bdb51927d872b8c5cad14a9c24adac9"
-      ],
-      "schema_version": 1,
-      "snapshot_sha256": "62d501d7e9974cdf1b286be6587b1e67f6ada1dc73814141d195e03909f473ac",
-      "units": [
-        "subthreshold-control"
-      ]
-    }
-  ],
-  "receipts": [
-    {
-      "candidate_sha256": "8999589309204ed0a10546ca96f2a3b2048777c2491c159e7dc72e2fad60765e",
-      "created_at": "2026-07-31T01:29:02Z",
-      "evidence_commit": "7f58f3f514cf91c93c104edf5dadc738358fbfb8",
-      "gate": "calibration",
-      "output_sha256": "8b9fce3dc350fc9f28783cd9f1d85a7015baa89c55e463831216b6a4b5058cdf",
-      "parent_receipt_sha256": null,
-      "plan_sha256": "c521a48c7cc46e310850ad50a21d3d7ea1ab139b1baf92b6f5eff4ffe63e199d",
-      "receipt_sha256": "5dd8715ef76a8b3037ff06ca2ec8585f4556f4d343b32e444b36f717846591a9",
-      "record_type": "GateReceipt",
-      "result": "failed",
-      "schema_version": 1,
-      "sequence": 0,
-      "unit_results": [
-        {
-          "result_sha256": "aad932ae6ca3742d264ecdd489aad2f996d6b3be9e5321b6ab84a8a254e12769",
-          "status": "failed",
-          "unit": "subthreshold-control"
-        }
-      ]
-    }
-  ],
+  "plans": [],
+  "receipts": [],
   "schema_version": 1
 }

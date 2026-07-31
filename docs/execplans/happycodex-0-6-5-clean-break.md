@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `RECOVERY_REPAIR_FOCUSED_GREEN`
+Status: `SUCCESSOR_3_OFFLINE_VERIFICATION`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -444,3 +444,13 @@ digest. Focused RED reproduced all five findings before implementation.
   and snapshot is
   `c4c18319ae33c806cbef32df1d27eba8fca5df089de8bdcbe075ee3f2880c9e6`;
   package artifact and semantic identities remain unchanged.
+- The recovery-predicate repair source is committed at
+  `ad20dbf60535f574e98e7b5adaccc6397d204c69`, tree
+  `358560f2e392b23efa9e9ae26a3bf3e69fe8a455`. A fresh generation-7
+  genesis binds successor candidate
+  `0da306eb5055bc2db9baff77ef5a2bdd98dad80766a9e7b239843ad9ec3dc40d`
+  and ledger
+  `b23bef69aef8f398f00ecedf680336bccf17129f8ade66217c22c7fd86fe35ea`.
+  Its plan and receipt arrays are empty. Both failed predecessors remain
+  Git-reachable; no prior authority, launch, result, receipt, cost basis, or
+  evidence is migrated or reused.
