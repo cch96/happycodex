@@ -159,6 +159,107 @@
           "unit": "subthreshold-control"
         }
       ]
+    },
+    {
+      "candidate_sha256": "e885859b55b4870cfa26c5cf410c4402bd75b3a1b8f34c0538bee736da25da40",
+      "created_at": "2026-07-31T05:12:21Z",
+      "evidence_commit": "876ded6e948127818d05e30165d1f84b02a9fd22",
+      "gate": "corpus",
+      "output_sha256": "2dd3309c7d51109a4cc811d5b4944e8df8350845106ed17350e599e52e6de2fa",
+      "parent_receipt_sha256": "4dcf83f47d92537e3080235fb64dfe6bd6259c44ad11570f0760a9a53f6e8001",
+      "plan_sha256": "7b9caa1babd295997e9e7bb524edc3a064998c259609f654338613e14db536d3",
+      "receipt_sha256": "72ab15111aeeb481820820dd977d18f9c0c59bcad5c0f588a1e84181756286b8",
+      "record_type": "GateReceipt",
+      "result": "failed",
+      "schema_version": 1,
+      "sequence": 1,
+      "unit_results": [
+        {
+          "result_sha256": "20abf53926242264d64959a6daa3931ab7032cdd250df97c25c14218ccabd987",
+          "status": "succeeded",
+          "unit": "authorized-rebaseline"
+        },
+        {
+          "result_sha256": "187b72a821e463da853ef2c75dd372aeaa2aae2d857ca6d763a639b22abff1dd",
+          "status": "failed",
+          "unit": "boundary-cutover"
+        },
+        {
+          "result_sha256": "0cf74060759857798da472f184f7e699b4ce3a6f66801c4de55c14cf27ea8697",
+          "status": "failed",
+          "unit": "clean-qualifying-control"
+        },
+        {
+          "result_sha256": "aa4a17a90441d90828b0d902357738b58775d4ac9af0664b76099b02bb2c16f4",
+          "status": "succeeded",
+          "unit": "compaction-recovery"
+        },
+        {
+          "result_sha256": "24a1ac70fa5fd3df78fc4a71942dcf10e2dab974c83d0d5e85318bad58d95710",
+          "status": "succeeded",
+          "unit": "exact-final-ready"
+        },
+        {
+          "result_sha256": "896ad60f700f663655715c0d4bb2def1788844c2180695b78dc5d1a94720869e",
+          "status": "succeeded",
+          "unit": "goal-divergence"
+        },
+        {
+          "result_sha256": "94f805172bd987d27c49c784ea65d2008c2bab082a6ff106a1bd6cc7772166fe",
+          "status": "failed",
+          "unit": "midflight-escalation"
+        },
+        {
+          "result_sha256": "75004214f144075c0b56db9d1bd334169b44b4ffdcbaaebd36f9bc36f8f8dbaf",
+          "status": "failed",
+          "unit": "multi-repo-submodule"
+        },
+        {
+          "result_sha256": "b11ad147b9d069f975ea1b9973638d76c8d4e721fe90bdafd8d9ff0c40f6404a",
+          "status": "failed",
+          "unit": "no-commit-archive-recovery"
+        },
+        {
+          "result_sha256": "f1e13ca970a4446bc09133ea4b8a1b4ada3e2cafdbddb21f0d75a60f9a330fa2",
+          "status": "failed",
+          "unit": "no-commit-secret"
+        },
+        {
+          "result_sha256": "19532ca5133e362e71585eeddf05c0639669c78413b93dd405939caf3fb2c20b",
+          "status": "failed",
+          "unit": "no-commit-unselected"
+        },
+        {
+          "result_sha256": "796639d182ab751388c36996f5ac89ae30748cc8fb2955bb0c1dbc490205f6e8",
+          "status": "failed",
+          "unit": "pre-freeze-compaction"
+        },
+        {
+          "result_sha256": "69e23fd67b5ddde21b8cdea4c4d3a4d822fb4718ded26de38ac9ff6270718d5b",
+          "status": "failed",
+          "unit": "receipt-mismatch"
+        },
+        {
+          "result_sha256": "e508a25bc6817bebd2041d4b88a9dc55295c59e817ea470190b14a670ee3bc33",
+          "status": "failed",
+          "unit": "review-admin-cycle"
+        },
+        {
+          "result_sha256": "9a930ba3b3e2ac432a6886fb027d95d9a482d806ad63de6e1b8c2e067083ee6c",
+          "status": "failed",
+          "unit": "review-inventory-gate"
+        },
+        {
+          "result_sha256": "2a1899724c538eafabf2920145f5c26afc978a105cafb8a249ea88a358b3dc3b",
+          "status": "failed",
+          "unit": "review-isolation"
+        },
+        {
+          "result_sha256": "9f72a22ffcb3f94389cb8a8266ca7cde0f03875d6fb3c16d8bdd57e58b15968b",
+          "status": "succeeded",
+          "unit": "subthreshold-control"
+        }
+      ]
     }
   ],
   "schema_version": 1

@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `SUCCESSOR_8_CORPUS_FAILED_AWAITING_RECEIPT`
+Status: `SUCCESSOR_8_TERMINAL_CORPUS_FAILED`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -1373,3 +1373,18 @@ effect authority.
   Raw model events remain private outside Git. Holdout, artifact receipt,
   exact-final review, isolated install, cutover, push, tag, GitHub Release,
   and publication were not started.
+- Evidence commit `876ded6e948127818d05e30165d1f84b02a9fd22`
+  produced the exact failed corpus GateReceipt
+  `72ab15111aeeb481820820dd977d18f9c0c59bcad5c0f588a1e84181756286b8`,
+  private file SHA-256
+  `d5188bb5f32a39692d99b19ea5b4a3d6639f895f48379585c6c709d16e1510dc`,
+  and aggregate output
+  `2dd3309c7d51109a4cc811d5b4944e8df8350845106ed17350e599e52e6de2fa`.
+  The receipt binds all 17 sorted plan units and chains to calibration receipt
+  `4dcf83f4`; no launch claim is missing a terminal result.
+- Applying that receipt once changed open-plan ledger `10d6b3ee` to terminal
+  semantic ledger
+  `b2fb8014d61763401bf7628eb653bb904aeb5246b9efec5f93742c63f48c6d02`.
+  Derived failed gates are exactly `corpus`; certification and freeze
+  eligibility are false. This candidate and authority envelope cannot proceed
+  to holdout, artifact receipt, exact-final review, or release.
