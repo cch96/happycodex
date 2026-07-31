@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `SUCCESSOR_7_CALIBRATION_PRELAUNCH`
+Status: `SUCCESSOR_7_CALIBRATION_SUCCEEDED_AWAITING_RECEIPT`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -1073,3 +1073,19 @@ effect authority.
   became open-plan ledger
   `b7c2f46a419e9eafd77a9c1cd5f5765588ae3d01f20f867e8847753cf42c49a8`.
   No launch, ActionKey, model, network, output, or receipt effect occurred.
+- Authorized calibration reached the provider exactly once and consumed
+  ActionKey
+  `b5829c4d31e67a30092ccb248bc4c5d3d93520b0ed6dc88badb0b6460a46424b`
+  under LaunchKey
+  `9fa0e35a0a8f6823c92ffe5d7856304975cb4ff3c3aa5c6f03922e74bf712812`.
+  Fresh isolated task `019fb664-c72c-7930-a072-88342e84b26b` used
+  `gpt-5.6-sol`/`high`; the terminal structured observation passed the
+  `subthreshold-control` oracle. It was not retried.
+- Successful actual usage is one model call, 30,065 uncached-input tokens,
+  1,768 output tokens, and 46,219 wall milliseconds. Immutable result
+  `5759c11e2a1e7cb9027f5c9d8c996f52812b2f69e1217df44dbe315bacd9aeab`
+  records `succeeded/provider_reached`; output receipt is
+  `f9301aba045f8fa98b4e9f866be8d5f5b84a98998ffef2550bdd508b76282814`.
+  External event, stderr, metadata, and result-file SHA-256 values are
+  respectively `599d36a6`, `77ed1d8b`, `1caad6b9`, and `7c960dc8`.
+  Corpus, holdout, receipt, and review have not started.
