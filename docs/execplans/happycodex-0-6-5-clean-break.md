@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `QUALIFICATION_PROJECTION_REPAIR_FOCUSED_GREEN`
+Status: `SUCCESSOR_5_OFFLINE_VERIFICATION`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -692,3 +692,14 @@ digest. Focused RED reproduced all five findings before implementation.
   after evaluator-source drift against a terminal failed ledger. This remains
   a transitional signal: a fresh successor candidate/genesis and a second
   complete GREEN run are required.
+- The qualification-projection repair source is committed at
+  `2754db651ec51547190a23cecd6864e1e9ef5a68`, tree
+  `563bfe2fb846166ec5408fc052f2a0be8b87739b`. Fresh successor-5 candidate
+  `896c2abd8c1acd50b6498244e739b4f22d0204c96c4d5b6bdea4c00f386b2e28`
+  binds that exact source while preserving package artifact, package semantic,
+  and Executor role identities.
+- Successor-5 starts from fresh generation-7 genesis ledger
+  `0a8b58e390428352c9ea46705100afd705f56566c940db9dcd68ab2e49a1b78a`
+  with empty plan and receipt arrays. It migrates no prior authorization,
+  launch, result, receipt, or evidence; all failed predecessors remain
+  Git-reachable.
