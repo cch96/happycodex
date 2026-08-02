@@ -6,23 +6,10 @@ import subprocess
 from typing import Any
 
 from evaluation.records import build_product_artifact, canonical_sha256
+from evaluation.policy import DETERMINISTIC_DOMAINS, MODEL_ROLE_IDS
 
 
 PACKAGE_PATHS = (".agents", ".codex-plugin", "README.md", "skills")
-MODEL_ROLE_IDS = (
-    "qualification-low-risk",
-    "qualification-high-risk",
-    "qualification-midflight",
-    "goal-divergence",
-    "no-commit-secret",
-    "same-task-compaction",
-    "no-summary-reconstruction",
-)
-DETERMINISTIC_DOMAINS = frozenset(
-    {"receipt", "claim", "schema", "parser", "invalidation", "review-truncation", "install", "rollback"}
-)
-
-
 class IdentityError(ValueError):
     pass
 

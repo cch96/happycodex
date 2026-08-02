@@ -66,6 +66,14 @@ class DurableRecordTests(unittest.TestCase):
             {"receipt", "claim", "schema", "parser", "invalidation", "review-truncation", "install", "rollback"},
         )
 
+    def test_caller_supplied_spec_must_match_production_behavior_inventory(self):
+        with self.assertRaises(RecordError):
+            bundle(
+                unit_overrides={
+                    "goal-divergence": {"role_id": "test-only-convenience"}
+                }
+            )
+
 
 class InvalidationTests(unittest.TestCase):
     def test_oracle_only_change_replays_one_role_with_zero_model_units(self):

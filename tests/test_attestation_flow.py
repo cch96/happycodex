@@ -310,6 +310,22 @@ class ExactFinalAndReleaseTests(unittest.TestCase):
 
 
 class FreshProcessTests(unittest.TestCase):
+    def test_cli_builds_only_request_digest_for_caller_supplied_spec(self):
+        _, spec, _, _ = bundle()
+        with tempfile.TemporaryDirectory() as raw:
+            path = Path(raw) / "spec.json"
+            write_json(path, spec)
+            completed = subprocess.run(
+                ["python3", "-m", "evaluation.cli", "authority-request", "--spec", str(path)],
+                cwd=Path(__file__).resolve().parents[1], capture_output=True,
+                text=True, check=False,
+            )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        result = json.loads(completed.stdout)
+        self.assertEqual(result["authority_request_sha256"], spec["authority_request_sha256"])
+        self.assertNotIn("approval", str(result).lower())
+        self.assertNotIn("signature", result)
+
     def test_cli_verifies_caller_supplied_immutable_records_without_ledger(self):
         selected, spec, _, mapping, attestations, _ = positive_evaluation()
         with tempfile.TemporaryDirectory() as raw:

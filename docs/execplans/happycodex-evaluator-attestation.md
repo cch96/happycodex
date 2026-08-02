@@ -174,16 +174,16 @@ full refresh.
 
 | ID | Observable obligation | Falsifier | Planned evidence | State |
 | --- | --- | --- | --- | --- |
-| `O-PRESERVE` | Product package and external role config equal `v0.6.5`; active/rollback state untouched. | Any package/config/install digest changes. | Pre/post manifests and Git diff classification. | source verified; final open |
-| `O-FOUR` | Only the four named durable record schemas exist. | A ledger, plan/receipt/gate/review family, join, or generic graph is required. | Closed schema inventory and unknown-input rejection tests. | open |
-| `O-SEPARATE` | Product identity does not depend on evaluator bytes; evaluator changes do not rewrite product identity. | Oracle/harness edits change `ProductArtifact`. | Differential identity tests. | open |
-| `O-STATELESS` | Verification derives status from immutable input records without active mutable state. | Certification needs ledger order, promotion, or reconciliation. | Fresh-process replay and missing/tampered-record tests. | open |
-| `O-BLIND` | Provider input cannot contain or read expected answers or mappings. | Sentinel oracle bytes appear in projection/workspace/events. | Differential sentinel and isolation tests. | open |
-| `O-INVALIDATE` | The table above causes only necessary model calls. | Oracle-only change calls a model, or provider-input drift reuses an observation. | Per-component mutation matrix with call counters. | open |
-| `O-AUTH` | One bounded evaluation authority plus one distinct release authority suffices by default; neither implies the other. | Hidden micro-authority gates appear or release uses evaluation authority. | Exact digest/cap/refusal tests. | open |
-| `O-ADVERSE` | Adverse exact-final is durable for unchanged artifact bytes. | Unchanged artifact can discard or rerun it for a friendlier result. | Persistent negative and changed-artifact tests. | open |
-| `O-REAL` | Real provider terminals and raw-event digests cannot be forged by sanitized records. | Fabricated success verifies without its bound external terminal. | Fake-provider positive/negative E2E, then separately authorized real path. | open |
-| `O-RELEASE` | Release binds exact artifact, valid attestations, isolated install, destination, and rollback. | Semantic-only or stale attestation can release different bytes. | Offline refusal matrix and separately authorized isolated release proof. | open |
+| `O-PRESERVE` | Product package and external role config equal `v0.6.5`; active/rollback state untouched. | Any package/config/install digest changes. | Pre/post manifests and Git diff classification. | offline verified |
+| `O-FOUR` | Only the four named durable record schemas exist. | A ledger, plan/receipt/gate/review family, join, or generic graph is required. | Closed schema inventory and unknown-input rejection tests. | verified |
+| `O-SEPARATE` | Product identity does not depend on evaluator bytes; evaluator changes do not rewrite product identity. | Oracle/harness edits change `ProductArtifact`. | Differential identity tests. | verified |
+| `O-STATELESS` | Verification derives status from immutable input records without active mutable state. | Certification needs ledger order, promotion, or reconciliation. | Fresh-process replay and missing/tampered-record tests. | verified |
+| `O-BLIND` | Provider input cannot contain or read expected answers or mappings. | Sentinel oracle bytes appear in projection/workspace/events. | Differential sentinel and isolation tests. | offline verified |
+| `O-INVALIDATE` | The table above causes only necessary model calls. | Oracle-only change calls a model, or provider-input drift reuses an observation. | Per-component mutation matrix with call counters. | verified |
+| `O-AUTH` | One bounded evaluation authority plus one distinct release authority suffices by default; neither implies the other. | Hidden micro-authority gates appear or release uses evaluation authority. | Exact digest/cap/refusal tests. | offline verified |
+| `O-ADVERSE` | Adverse exact-final is durable for unchanged artifact bytes. | Unchanged artifact can discard or rerun it for a friendlier result. | Persistent negative and changed-artifact tests. | verified |
+| `O-REAL` | Real provider terminals and raw-event digests cannot be forged by sanitized records. | Fabricated success verifies without its bound external terminal. | Fake-provider positive/negative E2E, then separately authorized real path. | fake-provider verified; live open |
+| `O-RELEASE` | Release binds exact artifact, valid attestations, isolated install, destination, and rollback. | Semantic-only or stale attestation can release different bytes. | Offline refusal matrix and separately authorized isolated release proof. | offline verified; live open |
 
 ## Planned implementation waves
 
@@ -220,16 +220,32 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `working`; GRANT-02 offline implementation authorized.
+- Phase: `working`; GRANT-02 offline implementation GREEN and consumed after
+  the enclosing checkpoint commit.
 - Selected checkpoint source: `v0.6.5` commit/tree recorded above.
 - Baseline: one authorized run recorded above; unchanged 204/205 known failure.
-- Controlled changes at intent persistence: this ExecPlan only; evaluator RED
-  characterization is next.
+- Implementation checkpoint: commit
+  `2a7a0280b9c40b7a5dfe22e716a0466188d1f7c1`, tree
+  `7436e409bb04cc45eb8690b8c0435dd2f865bbbf`; 63 files, 2,450
+  insertions and 17,982 deletions. The enclosing checkpoint commit adds the
+  closed production behavior policy, its caller-supplied CLI tests, and this
+  final current-index update.
+- Exact cumulative check: `python3 -m unittest discover -s tests -v` returned
+  exit `0`, `Ran 51 tests in 0.222s`, `OK`. Focused fixed-holdout rerun was 4/4
+  GREEN after binding baseline arms to the previous released product; focused
+  caller-supplied policy/CLI verification was 8/8 GREEN in 0.088s.
+- Static evidence: `git diff --check` passed; evaluator production Python is
+  1,387 lines, largest module 457 lines; plan is below 3,000 words; durable type
+  inventory is exactly four; `skills/happycodex` remains
+  `d9e525a267fbf36669d409ba1b4b009a6beeeea5` with no product diff.
 - Provider/model/network calls: `0`. Install/release/activation effects: `0`.
-- Candidate, `ProductArtifact`, `EvalSpec`, `Attestation`, `ReleaseReceipt`, and
-  exact-final: not yet created.
-- Open gates: complete GRANT-02 offline acceptance. Evaluation and release
-  authorities are explicitly outside this grant.
+- The four typed formats and stateless verifier are implemented; no task
+  `ProductArtifact`, `EvalSpec`, `Attestation`, `ReleaseReceipt`, authority, or
+  exact-final result has been persisted or executed.
+- Open gates: Root verification, then a separately frozen evaluation request
+  and external authority if desired. Real provider, exact-final, isolated
+  install, release, and activation remain unrun and unauthorized.
 - Recovery: read this entire file, verify branch/worktree/source/status and
-  owner token, and reconcile only the files allowed by GRANT-02. Stop after
-  offline GREEN and clean commits; do not continue into exact-final or effects.
+  owner token, confirm the implementation commit and enclosing checkpoint
+  commit, then obtain a new exact grant. Do not continue into effects from this
+  grant or conversation context.

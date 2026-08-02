@@ -5,6 +5,8 @@ import json
 import re
 from typing import Any, Callable
 
+from evaluation.policy import EXACT_FINAL_ROLE_ID, HOLDOUT_ROLE_ID, MODEL_ROLE_IDS
+
 
 RECORD_TYPES = frozenset(
     {"ProductArtifact", "EvalSpec", "Attestation", "ReleaseReceipt"}
@@ -259,6 +261,7 @@ def validate_eval_spec(record: dict[str, Any]) -> dict[str, Any]:
     _require(unit_ids == sorted(set(unit_ids)), "EvalSpec units must be sorted and unique")
     exact_final = [unit for unit in record["units"] if unit["kind"] == "exact_final"]
     _require(len(exact_final) == 1, "EvalSpec requires exactly one exact-final unit")
+    _require(exact_final[0]["role_id"] == EXACT_FINAL_ROLE_ID, "exact-final role differs from production policy")
     _require(type(record["holdouts"]) is list and len(record["holdouts"]) == 3, "EvalSpec requires exactly three fixed holdout pairs")
     for pair in record["holdouts"]:
         _validate_holdout(pair)
@@ -268,10 +271,24 @@ def validate_eval_spec(record: dict[str, Any]) -> dict[str, Any]:
     _require(len(holdout_units) == 6 and len(set(holdout_units)) == 6, "fixed holdouts require six unique units")
     _require(set(holdout_units).issubset(unit_ids), "holdout unit is absent from EvalSpec")
     units_by_id = {unit["unit_id"]: unit for unit in record["units"]}
+    behavior_roles = sorted(
+        unit["role_id"] for unit_id, unit in units_by_id.items()
+        if unit_id not in holdout_units and unit["kind"] == "behavior"
+    )
+    _require(behavior_roles == sorted(MODEL_ROLE_IDS), "behavior role inventory differs from production policy")
     for unit_id, unit in units_by_id.items():
         if unit_id not in holdout_units:
             _require(unit["product_semantic_sha256"] == record["product_semantic_sha256"], "non-holdout unit does not bind candidate product")
     for pair in record["holdouts"]:
+        _require(
+            all(
+                units_by_id[unit_id]["role_id"] == HOLDOUT_ROLE_ID
+                and units_by_id[unit_id]["sample_id"] == pair["sample_id"]
+                and units_by_id[unit_id]["kind"] == "behavior"
+                for unit_id in pair["unit_ids"]
+            ),
+            "holdout unit differs from fixed production policy",
+        )
         semantics = {units_by_id[unit_id]["product_semantic_sha256"] for unit_id in pair["unit_ids"]}
         _require(len(semantics) == 2 and record["product_semantic_sha256"] in semantics, "holdout pair must blind candidate and one distinct baseline")
     expected_request = canonical_sha256(evaluation_authority_request_payload(record))
