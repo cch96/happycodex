@@ -162,15 +162,29 @@ def _validate_cap(cap: dict[str, Any]) -> None:
 def _validate_unit(unit: dict[str, Any]) -> None:
     _exact(
         unit,
-        {"unit_id", "kind", "role_id", "sample_id", "product_semantic_sha256", "provider_input_sha256", "oracle_sha256", "harness_sha256", "invocation_sha256"},
+        {"unit_id", "kind", "role_id", "sample_id", "stage", "order", "product_semantic_sha256", "external_role_config_sha256", "provider_input_sha256", "oracle_sha256", "harness_sha256", "invocation", "invocation_sha256", "review_brief_sha256"},
         "unit",
     )
     _text(unit["unit_id"], "unit.unit_id")
     _require(unit["kind"] in {"behavior", "exact_final"}, "unit kind is invalid")
     _text(unit["role_id"], "unit.role_id")
     _require(unit["sample_id"] is None or (type(unit["sample_id"]) is str and unit["sample_id"]), "unit.sample_id is invalid")
-    for field in ("product_semantic_sha256", "provider_input_sha256", "oracle_sha256", "harness_sha256", "invocation_sha256"):
+    _require(unit["stage"] in {"behavior", "holdout", "exact_final"}, "unit stage is invalid")
+    _require(unit["order"] == {"behavior": 1, "holdout": 2, "exact_final": 3}[unit["stage"]], "unit stage order is invalid")
+    for field in ("product_semantic_sha256", "external_role_config_sha256", "provider_input_sha256", "oracle_sha256", "harness_sha256", "invocation_sha256"):
         _sha(unit[field], f"unit.{field}")
+    _exact(unit["invocation"], {"unit_id", "stage", "product_semantic_sha256", "external_role_config_sha256", "provider_input", "model", "effort", "tools", "timeout_seconds", "claim_key"}, "unit.invocation")
+    for field in ("unit_id", "stage", "product_semantic_sha256", "external_role_config_sha256"):
+        _require(unit["invocation"][field] == unit[field], f"invocation {field} drift")
+    _require(type(unit["invocation"]["provider_input"]) is dict, "invocation provider input must be an object")
+    _require(canonical_sha256(unit["invocation"]["provider_input"]) == unit["provider_input_sha256"], "provider input digest mismatch")
+    _validate_profile({key: unit["invocation"][key] for key in ("model", "effort", "tools", "timeout_seconds")})
+    _sha(unit["invocation"]["claim_key"], "invocation.claim_key")
+    _require(canonical_sha256(unit["invocation"]) == unit["invocation_sha256"], "invocation digest mismatch")
+    if unit["stage"] == "exact_final":
+        _sha(unit["review_brief_sha256"], "unit.review_brief_sha256")
+    else:
+        _require(unit["review_brief_sha256"] is None, "non-review unit has review brief")
 
 
 def _validate_holdout(pair: dict[str, Any]) -> None:
@@ -190,7 +204,7 @@ def evaluation_authority_request_payload(spec: dict[str, Any]) -> dict[str, Any]
         "evaluator_bundle_sha256": spec["evaluator_bundle_sha256"],
         "profile": spec["profile"],
         "invocations": [
-            {"unit_id": unit["unit_id"], "product_semantic_sha256": unit["product_semantic_sha256"], "invocation_sha256": unit["invocation_sha256"]}
+            {"unit_id": unit["unit_id"], "stage": unit["stage"], "invocation": unit["invocation"], "invocation_sha256": unit["invocation_sha256"]}
             for unit in spec["units"]
         ],
         "total_cap": spec["total_cap"],
@@ -206,6 +220,10 @@ def build_eval_spec(
     provider_component_sha256: str,
     oracle_component_sha256: str,
     harness_component_sha256: str,
+    manifest_sha256: str,
+    fixtures_sha256: str,
+    oracles_sha256: str,
+    neutral_review_brief_sha256: str,
     profile: dict[str, Any],
     units: list[dict[str, Any]],
     holdouts: list[dict[str, Any]],
@@ -221,6 +239,10 @@ def build_eval_spec(
         "provider_component_sha256": provider_component_sha256,
         "oracle_component_sha256": oracle_component_sha256,
         "harness_component_sha256": harness_component_sha256,
+        "manifest_sha256": manifest_sha256,
+        "fixtures_sha256": fixtures_sha256,
+        "oracles_sha256": oracles_sha256,
+        "neutral_review_brief_sha256": neutral_review_brief_sha256,
         "profile": profile,
         "units": units,
         "holdouts": holdouts,
@@ -238,7 +260,8 @@ def validate_eval_spec(record: dict[str, Any]) -> dict[str, Any]:
             "record_type", "schema_version", "product_semantic_sha256",
             "external_role_config_sha256", "evaluator_bundle_sha256",
             "provider_component_sha256", "oracle_component_sha256",
-            "harness_component_sha256", "profile", "units", "holdouts",
+            "harness_component_sha256", "manifest_sha256", "fixtures_sha256",
+            "oracles_sha256", "neutral_review_brief_sha256", "profile", "units", "holdouts",
             "total_cap", "previous_product_record_sha256",
             "authority_request_sha256", "record_sha256",
         },
@@ -249,6 +272,8 @@ def validate_eval_spec(record: dict[str, Any]) -> dict[str, Any]:
         "product_semantic_sha256", "external_role_config_sha256",
         "evaluator_bundle_sha256", "provider_component_sha256",
         "oracle_component_sha256", "harness_component_sha256",
+        "manifest_sha256", "fixtures_sha256", "oracles_sha256",
+        "neutral_review_brief_sha256",
         "previous_product_record_sha256", "authority_request_sha256",
     ):
         _sha(record[field], field)
@@ -258,10 +283,15 @@ def validate_eval_spec(record: dict[str, Any]) -> dict[str, Any]:
     for unit in record["units"]:
         _validate_unit(unit)
     unit_ids = [unit["unit_id"] for unit in record["units"]]
-    _require(unit_ids == sorted(set(unit_ids)), "EvalSpec units must be sorted and unique")
+    expected_order = [
+        unit["unit_id"]
+        for unit in sorted(record["units"], key=lambda item: (item["order"], item["unit_id"]))
+    ]
+    _require(len(unit_ids) == len(set(unit_ids)) and unit_ids == expected_order, "EvalSpec units must be stage ordered and unique")
     exact_final = [unit for unit in record["units"] if unit["kind"] == "exact_final"]
     _require(len(exact_final) == 1, "EvalSpec requires exactly one exact-final unit")
     _require(exact_final[0]["role_id"] == EXACT_FINAL_ROLE_ID, "exact-final role differs from production policy")
+    _require(exact_final[0]["stage"] == "exact_final" and exact_final[0]["review_brief_sha256"] == record["neutral_review_brief_sha256"], "exact-final stage or brief differs")
     _require(type(record["holdouts"]) is list and len(record["holdouts"]) == 3, "EvalSpec requires exactly three fixed holdout pairs")
     for pair in record["holdouts"]:
         _validate_holdout(pair)
@@ -279,10 +309,13 @@ def validate_eval_spec(record: dict[str, Any]) -> dict[str, Any]:
     for unit_id, unit in units_by_id.items():
         if unit_id not in holdout_units:
             _require(unit["product_semantic_sha256"] == record["product_semantic_sha256"], "non-holdout unit does not bind candidate product")
+            if unit["kind"] == "behavior":
+                _require(unit["stage"] == "behavior", "core behavior unit stage differs")
     for pair in record["holdouts"]:
         _require(
             all(
                 units_by_id[unit_id]["role_id"] == HOLDOUT_ROLE_ID
+                and units_by_id[unit_id]["stage"] == "holdout"
                 and units_by_id[unit_id]["sample_id"] == pair["sample_id"]
                 and units_by_id[unit_id]["kind"] == "behavior"
                 for unit_id in pair["unit_ids"]
@@ -336,9 +369,10 @@ def _validate_observation(observation: dict[str, Any], kind: str) -> None:
 
 def build_attestation(
     *, kind: str, unit_id: str, product_semantic_sha256: str,
-    product_artifact_sha256: str | None,
+    product_artifact_sha256: str | None, external_role_config_sha256: str,
     provider_input_sha256: str, oracle_sha256: str, harness_sha256: str,
-    invocation_sha256: str, authority_sha256: str, observation: dict[str, Any],
+    invocation_sha256: str, authority_sha256: str, host_claim_key: str,
+    host_proof_sha256: str, observation: dict[str, Any],
     terminal: dict[str, Any], verdict: str, diagnostics: list[str],
 ) -> dict[str, Any]:
     return validate_attestation(
@@ -348,10 +382,12 @@ def build_attestation(
                 "kind": kind, "unit_id": unit_id,
                 "product_semantic_sha256": product_semantic_sha256,
                 "product_artifact_sha256": product_artifact_sha256,
+                "external_role_config_sha256": external_role_config_sha256,
                 "provider_input_sha256": provider_input_sha256,
                 "oracle_sha256": oracle_sha256, "harness_sha256": harness_sha256,
                 "invocation_sha256": invocation_sha256,
                 "authority_sha256": authority_sha256, "observation": observation,
+                "host_claim_key": host_claim_key, "host_proof_sha256": host_proof_sha256,
                 "terminal": terminal, "verdict": verdict,
                 "diagnostics": diagnostics,
             }
@@ -365,16 +401,17 @@ def validate_attestation(record: dict[str, Any]) -> dict[str, Any]:
         {
             "record_type", "schema_version", "kind", "unit_id",
             "product_semantic_sha256", "product_artifact_sha256",
+            "external_role_config_sha256",
             "provider_input_sha256", "oracle_sha256",
             "harness_sha256", "invocation_sha256", "authority_sha256",
-            "observation", "terminal", "verdict", "diagnostics", "record_sha256",
+            "host_claim_key", "host_proof_sha256", "observation", "terminal", "verdict", "diagnostics", "record_sha256",
         },
         "Attestation",
     )
     _require(record["record_type"] == "Attestation" and record["schema_version"] == 1, "invalid Attestation header")
     _require(record["kind"] in ATTESTATION_KINDS, "attestation kind is invalid")
     _text(record["unit_id"], "unit_id")
-    for field in ("product_semantic_sha256", "provider_input_sha256", "oracle_sha256", "harness_sha256", "invocation_sha256", "authority_sha256"):
+    for field in ("product_semantic_sha256", "external_role_config_sha256", "provider_input_sha256", "oracle_sha256", "harness_sha256", "invocation_sha256", "authority_sha256", "host_claim_key", "host_proof_sha256"):
         _sha(record[field], field)
     _require(record["product_artifact_sha256"] is None or _HEX64.fullmatch(record["product_artifact_sha256"]) is not None, "product_artifact_sha256 is invalid")
     _validate_terminal(record["terminal"])
@@ -382,8 +419,6 @@ def validate_attestation(record: dict[str, Any]) -> dict[str, Any]:
     _require(record["observation"]["terminal_sha256"] == canonical_sha256(record["terminal"]), "terminal digest mismatch")
     _require(record["verdict"] in {"pass", "fail", "diagnostic"}, "attestation verdict is invalid")
     _string_list(record["diagnostics"], "diagnostics")
-    if record["kind"] == "replay":
-        _require(record["terminal"]["model_calls"] == 0 and not record["terminal"]["provider_reached"], "replay must use zero provider calls")
     if record["kind"] == "exact_final":
         _sha(record["product_artifact_sha256"], "exact-final product artifact")
         report = record["observation"]["report"]

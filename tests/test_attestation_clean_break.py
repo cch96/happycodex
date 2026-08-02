@@ -45,7 +45,9 @@ class CleanBreakRedTests(unittest.TestCase):
     def test_provider_projection_is_allowlisted_not_redacted(self):
         case = {
             "role_id": "qualification-high-risk",
-            "fixture_sha256": "5" * 64,
+            "fixture": {"request": "classify"},
+            "workspace": {"clean": True},
+            "runtime": "runtime bytes",
             "prompt": "classify the task",
             "expected_answer": "SENTINEL",
             "oracle": {"answer": "SENTINEL"},

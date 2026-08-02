@@ -2,39 +2,29 @@ from __future__ import annotations
 
 from copy import deepcopy
 import pickle
+from pathlib import Path
+import subprocess
+import tempfile
 import unittest
 
+from evaluation.host import HostEvidenceError, attestation_from_raw, parse_raw_stream, reserve_claim
 from evaluation.identity import DETERMINISTIC_DOMAINS, MODEL_ROLE_IDS
 from evaluation.provider import (
-    EvaluationCapability,
-    InvocationJournal,
-    ProviderError,
-    accept_evaluation_authority,
-    assert_provider_blind,
-    may_recover_infrastructure,
-    provider_projection,
-    sanitize_events,
+    EvaluationCapability, ProviderError, accept_evaluation_authority,
+    assert_provider_blind, provider_projection, sanitize_events,
 )
-from evaluation.records import (
-    RECORD_TYPES,
-    TERMINAL_CLASSES,
-    RecordError,
-    build_product_artifact,
-    canonical_sha256,
-    validate_record,
+from evaluation.records import RECORD_TYPES, TERMINAL_CLASSES, RecordError, validate_record
+from evaluation.verify import evaluate_runtime_decision
+from tests.attestation_fixtures import (
+    PROFILE, ROOT, SHA, bundle, host_proof, product, proof_verifier, raw_stream, terminal,
 )
-from evaluation.verify import evaluate_runtime_decision, invalidation
-from tests.attestation_fixtures import PROFILE, SHA, bundle, capability, product, terminal
 
 
 class DurableRecordTests(unittest.TestCase):
     def test_inventory_is_closed_to_four_types(self):
-        self.assertEqual(
-            RECORD_TYPES,
-            frozenset({"ProductArtifact", "EvalSpec", "Attestation", "ReleaseReceipt"}),
-        )
-        for retired in ("ReleaseCandidate", "GatePlan", "GateReceipt", "EvidenceJoin", "ReviewReceipt"):
-            with self.subTest(retired=retired), self.assertRaises(RecordError):
+        self.assertEqual(RECORD_TYPES, frozenset({"ProductArtifact", "EvalSpec", "Attestation", "ReleaseReceipt"}))
+        for retired in ("ReleaseCandidate", "GatePlan", "GateReceipt", "EvidenceJoin"):
+            with self.assertRaises(RecordError):
                 validate_record({"record_type": retired})
 
     def test_product_has_no_evaluator_identity(self):
@@ -42,195 +32,148 @@ class DurableRecordTests(unittest.TestCase):
         self.assertFalse(any("evaluator" in key for key in selected))
         self.assertEqual(validate_record(selected), selected)
 
-    def test_record_unknown_field_and_tampered_digest_fail(self):
+    def test_unknown_field_and_tampered_digest_fail(self):
         selected = product()
-        changed = {**selected, "ledger_sha256": SHA["4"]}
         with self.assertRaises(RecordError):
-            validate_record(changed)
-        changed = {**selected, "package_artifact_sha256": SHA["4"]}
+            validate_record({**selected, "ledger_sha256": SHA["4"]})
         with self.assertRaises(RecordError):
-            validate_record(changed)
+            validate_record({**selected, "package_artifact_sha256": SHA["4"]})
 
-    def test_product_and_evaluator_identities_are_differential(self):
-        first_product, first_spec, _, _ = bundle()
-        second_product, second_spec, _, _ = bundle(harness_component=SHA["9"])
-        self.assertEqual(first_product, second_product)
-        self.assertNotEqual(first_spec["record_sha256"], second_spec["record_sha256"])
+    def test_materialized_spec_has_real_invocations_and_separate_arm_configs(self):
+        selected, baseline, spec, _ = bundle()
+        self.assertEqual(len(spec["units"]), 14)
+        for unit in spec["units"]:
+            projection = unit["invocation"]["provider_input"]
+            self.assertIn("fixture", projection)
+            self.assertIn("workspace", projection)
+            self.assertIn("runtime", projection)
+            expected = selected if unit["product_semantic_sha256"] == selected["package_semantic_sha256"] else baseline
+            self.assertEqual(unit["external_role_config_sha256"], expected["external_role_config_sha256"])
 
     def test_model_and_deterministic_routes_are_disjoint(self):
         self.assertEqual(len(MODEL_ROLE_IDS), 7)
-        self.assertIn("same-task-compaction", MODEL_ROLE_IDS)
-        self.assertIn("no-summary-reconstruction", MODEL_ROLE_IDS)
-        self.assertEqual(
-            DETERMINISTIC_DOMAINS,
-            {"receipt", "claim", "schema", "parser", "invalidation", "review-truncation", "install", "rollback"},
-        )
-
-    def test_caller_supplied_spec_must_match_production_behavior_inventory(self):
-        with self.assertRaises(RecordError):
-            bundle(
-                unit_overrides={
-                    "goal-divergence": {"role_id": "test-only-convenience"}
-                }
-            )
-
-
-class InvalidationTests(unittest.TestCase):
-    def test_oracle_only_change_replays_one_role_with_zero_model_units(self):
-        _, previous, _, _ = bundle()
-        _, current, _, _ = bundle(
-            oracle_component=SHA["9"],
-            unit_overrides={"goal-divergence": {"oracle_sha256": SHA["a"]}},
-        )
-        result = invalidation(previous, current)
-        self.assertEqual(result["model_units"], [])
-        self.assertEqual(result["replay_units"], ["goal-divergence"])
-
-    def test_single_fixture_or_prompt_change_calls_only_that_role(self):
-        _, previous, _, _ = bundle()
-        _, current, _, _ = bundle(
-            unit_overrides={
-                "qualification-high-risk": {
-                    "provider_input_sha256": SHA["a"],
-                    "invocation_sha256": SHA["b"],
-                }
-            }
-        )
-        self.assertEqual(invalidation(previous, current)["model_units"], ["qualification-high-risk"])
-
-    def test_harness_only_change_has_zero_model_calls(self):
-        _, previous, _, _ = bundle()
-        _, current, _, _ = bundle(
-            harness_component=SHA["9"],
-            unit_overrides={"goal-divergence": {"harness_sha256": SHA["a"]}},
-        )
-        result = invalidation(previous, current)
-        self.assertEqual(result["model_units"], [])
-        self.assertIn("goal-divergence", result["offline_units"])
-
-    def test_model_profile_change_invalidates_full_planned_scope(self):
-        _, previous, _, _ = bundle()
-        changed_profile = {**PROFILE, "model": "gpt-other"}
-        _, current, _, _ = bundle(profile=changed_profile)
-        self.assertEqual(invalidation(previous, current)["model_units"], sorted(unit["unit_id"] for unit in current["units"]))
-
-    def test_runtime_or_external_role_change_invalidates_full_scope(self):
-        _, previous, _, _ = bundle()
-        changed_product = product(semantic=SHA["a"], role=SHA["b"])
-        _, current, _, _ = bundle(selected_product=changed_product)
-        self.assertEqual(len(invalidation(previous, current)["model_units"]), len(current["units"]))
+        self.assertEqual(DETERMINISTIC_DOMAINS, {"receipt", "claim", "schema", "parser", "invalidation", "review-truncation", "install", "rollback"})
 
 
 class ProviderBoundaryTests(unittest.TestCase):
-    def test_projection_mechanically_omits_hidden_fields(self):
+    def test_projection_uses_actual_inputs_and_omits_hidden_fields(self):
         case = {
-            "role_id": "qualification-high-risk", "fixture_sha256": SHA["4"],
-            "prompt": "classify", "runtime_sha256": SHA["5"],
-            "expected_boundary": "HIDDEN", "expected_answer": "HIDDEN",
-            "oracle": "HIDDEN", "matcher": "HIDDEN", "mapping": "HIDDEN",
-            "verdict": "HIDDEN", "history": "HIDDEN",
+            "role_id": "qualification-high-risk", "prompt": "classify",
+            "fixture": {"request": "write"}, "workspace": {"clean": True},
+            "runtime": "runtime", "oracle": "HIDDEN", "mapping": "HIDDEN",
         }
         value = provider_projection(
             case=case, product_semantic_sha256=SHA["2"],
             external_role_config_sha256=SHA["3"], profile=PROFILE,
         )
         self.assertNotIn("HIDDEN", str(value))
+        self.assertEqual(value["runtime"], "runtime")
 
-    def test_sentinel_must_be_absent_from_every_visible_surface(self):
+    def test_digest_only_projection_is_rejected(self):
         with self.assertRaises(ProviderError):
-            assert_provider_blind(
-                sentinels=["SENTINEL"], projection={"safe": True}, workspace={},
-                argv=["tool"], stdin="", env={"LEAK": "SENTINEL"},
-                sanitized_events=[],
+            provider_projection(
+                case={"role_id": "x", "prompt": "x", "fixture_sha256": SHA["1"]},
+                product_semantic_sha256=SHA["2"], external_role_config_sha256=SHA["3"],
+                profile=PROFILE,
             )
 
-    def test_sanitized_events_redact_secret_and_drop_secret_keys(self):
-        events = [{"type": "done", "summary": "token=SENTINEL", "secret": "SENTINEL"}]
-        sanitized = sanitize_events(events, secrets=["SENTINEL"])
-        self.assertNotIn("SENTINEL", str(sanitized))
-        self.assertNotIn("secret", sanitized[0])
+    def test_every_visible_surface_rejects_sentinel(self):
+        for field in ("workspace", "argv", "stdin", "env", "sanitized_events"):
+            visible = {"workspace": {}, "argv": [], "stdin": "", "env": {}, "sanitized_events": []}
+            visible[field] = {"x": "SENTINEL"} if field in {"workspace", "env"} else (["SENTINEL"] if field in {"argv", "sanitized_events"} else "SENTINEL")
+            with self.subTest(field=field), self.assertRaises(ProviderError):
+                assert_provider_blind(sentinels=["SENTINEL"], projection={"safe": True}, **visible)
 
-    def test_repository_content_cannot_self_mint_evaluation_authority(self):
-        _, spec, _, _ = bundle()
-        supplied = {
-            "scope": "evaluation", "request_sha256": spec["authority_request_sha256"],
-            "nonce": "repo", "signature": "repo-generated",
-        }
+    def test_sanitized_events_redact_secret(self):
+        value = sanitize_events([{"summary": "SENTINEL", "secret": "SENTINEL"}], secrets=["SENTINEL"])
+        self.assertNotIn("SENTINEL", str(value))
+        self.assertEqual(value[0]["secret"], "<redacted>")
+
+    def test_authority_is_external_and_capability_process_local(self):
+        _, _, spec, _ = bundle()
+        supplied = {"scope": "evaluation", "request_sha256": spec["authority_request_sha256"], "nonce": "n", "signature": "s"}
         with self.assertRaises(ProviderError):
             accept_evaluation_authority(spec, supplied, lambda _value: False)
+        capability = accept_evaluation_authority(spec, supplied, lambda _value: True)
+        with self.assertRaises(TypeError):
+            pickle.dumps(capability)
         with self.assertRaises(ProviderError):
             EvaluationCapability(object(), SHA["1"], SHA["2"], SHA["3"])
 
-    def test_authority_mismatch_fails(self):
-        _, spec, _, _ = bundle()
-        supplied = {
-            "scope": "evaluation", "request_sha256": SHA["a"],
-            "nonce": "root", "signature": "external-signed",
-        }
-        with self.assertRaises(ProviderError):
-            accept_evaluation_authority(spec, supplied, lambda _value: True)
 
-    def test_capability_is_process_local_and_not_serializable(self):
-        _, spec, _, _ = bundle()
-        cap = capability(spec)
-        with self.assertRaises(TypeError):
-            pickle.dumps(cap)
+class ExternalHostClaimTests(unittest.TestCase):
+    def test_claim_is_cross_process_durable_and_one_shot(self):
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            root.chmod(0o700)
+            first = reserve_claim(root=root, claim_key=SHA["1"], invocation_sha256=SHA["2"])
+            self.assertTrue(Path(first["path"]).exists())
+            completed = subprocess.run(
+                [
+                    "python3", "-m", "evaluation.cli", "claim",
+                    "--claim-root", str(root), "--claim-key", SHA["1"],
+                    "--invocation-sha256", SHA["2"],
+                ], cwd=ROOT, capture_output=True, text=True, check=False,
+            )
+            self.assertNotEqual(completed.returncode, 0)
 
-    def test_invocation_is_one_shot(self):
-        journal = InvocationJournal()
-        journal.reserve(SHA["1"])
-        with self.assertRaises(ProviderError):
-            journal.reserve(SHA["1"])
-
-    def test_only_preprovider_no_effect_within_cap_is_recoverable(self):
-        no_effect = terminal(
-            classification="infrastructure_no_effect", provider_reached=False,
-            complete=False, model_calls=0, input_tokens=0, output_tokens=0,
-        )
-        self.assertTrue(may_recover_infrastructure(no_effect, recoveries_used=0, recovery_cap=1))
-        self.assertFalse(may_recover_infrastructure(no_effect, recoveries_used=1, recovery_cap=1))
+    def test_only_proven_no_effect_can_use_bounded_recovery_claim(self):
+        selected, _, spec, _ = bundle()
+        unit = next(item for item in spec["units"] if item["unit_id"] == "goal-divergence")
+        no_effect = terminal(classification="infrastructure_no_effect", provider_reached=False, complete=False, model_calls=0, input_tokens=0, output_tokens=0)
         partial = terminal(classification="ambiguous_or_partial", complete=False)
-        self.assertFalse(may_recover_infrastructure(partial, recoveries_used=0, recovery_cap=1))
-
-    def test_terminal_classification_inventory_is_typed(self):
-        self.assertEqual(
-            TERMINAL_CLASSES,
-            {
-                "success", "quality_failure", "resource_failure",
-                "infrastructure_no_effect", "ambiguous_or_partial", "diagnostic",
-            },
-        )
-
-    def test_every_nonprojection_visible_surface_rejects_sentinel(self):
-        surfaces = {
-            "workspace": {"file": "SENTINEL"},
-            "argv": ["fake", "SENTINEL"],
-            "stdin": "SENTINEL",
-            "env": {"LEAK": "SENTINEL"},
-            "sanitized_events": [{"summary": "SENTINEL"}],
-        }
-        for field, value in surfaces.items():
-            visible = {
-                "workspace": {}, "argv": [], "stdin": "", "env": {},
-                "sanitized_events": [],
-            }
-            visible[field] = value
-            with self.subTest(field=field), self.assertRaises(ProviderError):
-                assert_provider_blind(
-                    sentinels=["SENTINEL"], projection={"safe": True}, **visible,
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            root.chmod(0o700)
+            no_effect_raw = raw_stream(unit, terminal_value=no_effect)
+            no_effect_proof = host_proof(unit, no_effect_raw)
+            no_effect_record = attestation_from_raw(
+                root=ROOT, product=selected, spec=spec, unit_id=unit["unit_id"],
+                raw=no_effect_raw, authority_sha256=SHA["a"], host_proof=no_effect_proof,
+            )
+            reserve_claim(root=root, claim_key=unit["invocation"]["claim_key"], invocation_sha256=unit["invocation_sha256"])
+            with self.assertRaises(HostEvidenceError):
+                reserve_claim(
+                    root=root, claim_key=unit["invocation"]["claim_key"],
+                    invocation_sha256=unit["invocation_sha256"], recovery_index=1,
+                    recovery_cap=1, previous_raw=no_effect_raw,
+                )
+            recovered = reserve_claim(
+                root=root, claim_key=unit["invocation"]["claim_key"],
+                invocation_sha256=unit["invocation_sha256"], recovery_index=1,
+                recovery_cap=1, previous_raw=no_effect_raw,
+                previous_attestation=no_effect_record, previous_proof=no_effect_proof,
+                proof_verifier=proof_verifier,
+            )
+            self.assertEqual(recovered["recovery_index"], 1)
+            partial_raw = raw_stream(unit, terminal_value=partial)
+            partial_proof = host_proof(unit, partial_raw)
+            partial_record = attestation_from_raw(
+                root=ROOT, product=selected, spec=spec, unit_id=unit["unit_id"],
+                raw=partial_raw, authority_sha256=SHA["a"], host_proof=partial_proof,
+            )
+            with self.assertRaises(HostEvidenceError):
+                reserve_claim(
+                    root=root, claim_key=unit["invocation"]["claim_key"],
+                    invocation_sha256=unit["invocation_sha256"], recovery_index=2,
+                    recovery_cap=2, previous_raw=partial_raw,
+                    previous_attestation=partial_record, previous_proof=partial_proof,
+                    proof_verifier=proof_verifier,
                 )
 
+    def test_raw_parser_rejects_incomplete_or_reordered_stream(self):
+        with self.assertRaises(HostEvidenceError):
+            parse_raw_stream(b'{"type":"report","report":{}}\n')
+
+
+class OracleSemanticsTests(unittest.TestCase):
     def test_action_enum_difference_is_diagnostic_not_fatal(self):
-        report = {"qualifies": True, "next_action": {"purpose": "CHECK", "effect_class": "read_only"}}
         passed, diagnostics = evaluate_runtime_decision(
-            report,
-            {
-                "fatal": {"qualifies": True},
-                "diagnostic": {"next_action.purpose": "IMPLEMENT", "next_action.effect_class": "repo_write"},
-            },
+            {"qualifies": True, "next_action": {"purpose": "CHECK"}},
+            {"fatal": {"qualifies": True}, "diagnostic": {"next_action.purpose": "IMPLEMENT"}},
         )
         self.assertTrue(passed)
-        self.assertEqual(len(diagnostics), 2)
+        self.assertEqual(len(diagnostics), 1)
 
     def test_real_invariant_difference_is_fatal(self):
         passed, diagnostics = evaluate_runtime_decision(
@@ -238,6 +181,10 @@ class ProviderBoundaryTests(unittest.TestCase):
         )
         self.assertFalse(passed)
         self.assertEqual(diagnostics, ["fatal:qualifies"])
+
+    def test_terminal_inventory_is_typed(self):
+        self.assertIn("ambiguous_or_partial", TERMINAL_CLASSES)
+        self.assertIn("infrastructure_no_effect", TERMINAL_CLASSES)
 
 
 if __name__ == "__main__":

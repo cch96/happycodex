@@ -46,20 +46,47 @@ has been implemented or certified.
   before creation. The new worktree was clean at the source commit before this
   plan was written.
 
-### Active grant: GRANT-02
+### Active grant: GRANT-03
 
-GRANT-02 is one coherent offline implementation batch owned by token
-`5a63e381-1ff8-4675-9c10-c81da14e1de2`. Its exact prestate is commit
-`c8c175d05f80c5fa0edead3581889b2ba8fe8d70`, tree
-`ce67d5582edbe805d3a22a7645d88352f4eb4fd2`, clean, with preserved
-`skills/happycodex` tree `d9e525a267fbf36669d409ba1b4b009a6beeeea5`.
-It permits writes only to this plan, `AGENTS.md`, `evaluation/**`, `tests/**`,
-and this branch/ref, with at most three logical commits. It authorizes deleting
-or rewriting evaluator-only code/tests/data and running offline tests. It does
-not authorize product/config changes, provider/model/network calls, install,
-release, activation, compatibility migration, or writes to another
-worktree/ref. This paragraph is the durable intent persisted before any
-evaluator mutation.
+GRANT-03 is a bounded trust-boundary repair in the same working wave, owned by
+token `5a63e381-1ff8-4675-9c10-c81da14e1de2`. Exact prestate is commit
+`78883e1eed0b8a82e6b99a0b414f8a580691c5ef`, tree
+`2093d5148b10741f184989b88238b775ff31b328`, clean; preserved
+`skills/happycodex` tree is `d9e525a267fbf36669d409ba1b4b009a6beeeea5`.
+Writes remain limited to this plan, `AGENTS.md`, `evaluation/**`, `tests/**`,
+and this branch/ref, with at most two commits. Only offline subprocesses and
+temporary directories are allowed. Product/config bytes, provider/model/network
+calls, install/release/activation, other refs/worktrees, a fifth durable type,
+and a general scheduler/graph remain forbidden. This is the durable intent
+persisted before repair code.
+
+Root reproduced four falsifiers against the GRANT-02 checkpoint:
+
+- `F1`: a directly sealed unsafe goal-divergence report verifies because the
+  verifier trusts stored verdict instead of raw external provenance and the
+  current hidden oracle.
+- `F2`: omitting holdout mapping/reveal still returns verified.
+- `F3`: exact-final may start before behavior outputs freeze.
+- `F4`: an exact-final oracle-only change is routed to unsupported behavior
+  replay.
+
+Related source gaps are in scope only as needed to close them: production lacks
+provider-visible fixtures/prompts, separated hidden oracle/scoring material,
+and a real spec materializer; tests substitute lambdas for the external-host
+boundary; one-shot state is only in memory; per-arm role config is not bound;
+and holdout scoring trusts model claims.
+
+The repair boundary is a read-only stateless verifier plus a small external-host
+contract. A versioned production manifest materializes exact units, stages,
+provider envelopes, dynamic neutral review brief, and authority request without
+exposing hidden material. Verification receives caller-supplied raw streams and
+an external proof verifier, reconstructs terminal/report, and evaluates current
+hidden oracles. A narrow atomic external claim helper reserves one-shot host
+effects across processes; claims are operational files, not durable records or
+certification input. A terminal prefix is valid evidence of stopped failure;
+successful completion still requires all behavior and fixed holdouts before
+exact-final. Behavior oracle-only changes replay; exact-final rubric/input
+changes require fresh exact-final.
 
 ## Baseline
 
@@ -161,7 +188,8 @@ identity, effect, and goal-closure invariants are fatal.
 | Packaging/version bytes only | New artifact identity and exact-final/install/release; reuse behavior attestations only when their bound semantic and role-config digests are identical. |
 | A role's fixture or public prompt | Change only that role's provider-input identity and rerun only that role. |
 | Shared provider instructions, model, effort, tools, isolation, or timeout | Change every affected provider-input identity and rerun those roles. |
-| Expected answer, oracle, or matcher only | Change the oracle component; replay the frozen observation with zero model calls when provider-input identity is unchanged. |
+| Behavior/holdout expected answer, oracle, or matcher only | Change only the affected oracle identity; replay the frozen observation with zero new model calls when provider-input identity is unchanged. |
+| Exact-final rubric or oracle | Run a fresh exact-final unit; a terminal review cannot be reinterpreted as a new neutral review. |
 | Scheduler, serialization, receipt verifier, or other harness only | Run offline harness/adversarial checks; never call the model unless provider input also changed. |
 | Case added, removed, or requirement policy changed | Create a new `EvalSpec`; reuse still-valid attestations by exact component identity and run only newly required provider inputs. |
 | Any product mutation after exact-final | Invalidate exact-final and release eligibility; return to working with a new `ProductArtifact`. |
@@ -220,32 +248,43 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `working`; GRANT-02 offline implementation GREEN and consumed after
-  the enclosing checkpoint commit.
+- Phase: `candidate-ready`; GRANT-03 trust-boundary repair complete offline.
 - Selected checkpoint source: `v0.6.5` commit/tree recorded above.
 - Baseline: one authorized run recorded above; unchanged 204/205 known failure.
-- Implementation checkpoint: commit
-  `2a7a0280b9c40b7a5dfe22e716a0466188d1f7c1`, tree
-  `7436e409bb04cc45eb8690b8c0435dd2f865bbbf`; 63 files, 2,450
-  insertions and 17,982 deletions. The enclosing checkpoint commit adds the
-  closed production behavior policy, its caller-supplied CLI tests, and this
-  final current-index update.
-- Exact cumulative check: `python3 -m unittest discover -s tests -v` returned
-  exit `0`, `Ran 51 tests in 0.222s`, `OK`. Focused fixed-holdout rerun was 4/4
-  GREEN after binding baseline arms to the previous released product; focused
-  caller-supplied policy/CLI verification was 8/8 GREEN in 0.088s.
-- Static evidence: `git diff --check` passed; evaluator production Python is
-  1,387 lines, largest module 457 lines; plan is below 3,000 words; durable type
-  inventory is exactly four; `skills/happycodex` remains
+- Repair checkpoint source remains commit
+  `78883e1eed0b8a82e6b99a0b414f8a580691c5ef`, tree
+  `2093d5148b10741f184989b88238b775ff31b328`; the final repair commit is
+  recorded by Git after this receipt update.
+- Root falsifiers `F1`-`F4` were first run as a focused RED set: three errored
+  because the verifier had no raw/proof contract and exact-final oracle drift
+  was incorrectly routed to replay. After repair the same set was 4/4 GREEN;
+  the expanded focused invalidation/trust suite is 8/8 GREEN.
+- The first repair-wide run executed 46 tests: 37 passed, eight errored and one
+  failed. All nine symptoms had one cause: sanitization deleted the semantic
+  report field named `secret`, so the Attestation could not reproduce from its
+  external raw stream. Value-level redaction replaced key deletion. The final
+  cumulative command `python3 -m unittest discover -s tests -v` returned exit
+  `0`, `Ran 50 tests in 1.531s`, `OK`.
+- Implemented boundary: versioned manifest, provider-visible fixtures, hidden
+  oracle specifications, deterministic materialization, per-arm external role
+  config, stage-ordered full invocation envelopes, external JSONL raw/proof
+  verification, hidden-oracle recomputation, mandatory holdout reveal, strict
+  behavior-to-holdout-to-exact-final ordering, terminal failure prefixes, and
+  a cross-process atomic claim with proof-bound bounded no-effect recovery.
+  No model scheduler, signing system, PKI, graph, ledger, or fifth record was
+  added.
+- Static evidence: `git diff --check` and Python compilation passed; evaluator
+  production Python is 1,927 lines, largest module 488 lines; plan remains
+  below 3,000 words; durable type inventory is exactly four; unknown evaluator
+  inputs fail closed; `skills/happycodex` remains
   `d9e525a267fbf36669d409ba1b4b009a6beeeea5` with no product diff.
 - Provider/model/network calls: `0`. Install/release/activation effects: `0`.
 - The four typed formats and stateless verifier are implemented; no task
   `ProductArtifact`, `EvalSpec`, `Attestation`, `ReleaseReceipt`, authority, or
   exact-final result has been persisted or executed.
-- Open gates: Root verification, then a separately frozen evaluation request
-  and external authority if desired. Real provider, exact-final, isolated
-  install, release, and activation remain unrun and unauthorized.
+- Open effects: real provider, exact-final, isolated install, release, and
+  activation remain unrun and unauthorized. This grant stops before
+  exact-final.
 - Recovery: read this entire file, verify branch/worktree/source/status and
-  owner token, confirm the implementation commit and enclosing checkpoint
-  commit, then obtain a new exact grant. Do not continue into effects from this
-  grant or conversation context.
+  owner token and GRANT-03 prestate, then reconcile only authorized paths. Do
+  not continue into effects from this grant or conversation context.

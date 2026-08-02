@@ -1,8 +1,13 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Callable
 
+from evaluation.host import HostEvidenceError, verify_host_evidence
 from evaluation.holdout import judge_fixed_holdouts
+from evaluation.manifest import load_production_inputs
+from evaluation.oracle import hidden_oracle_for, score_hidden
 from evaluation.provider import ReleaseCapability, release_authority_request
 from evaluation.records import (
     RecordError,
@@ -37,19 +42,20 @@ def invalidation(previous: dict[str, Any], current: dict[str, Any]) -> dict[str,
         previous[field] != current[field]
         for field in ("product_semantic_sha256", "external_role_config_sha256", "provider_component_sha256")
     ) or previous["profile"] != current["profile"]
+    global_oracle_change = previous["oracle_component_sha256"] != current["oracle_component_sha256"]
     for unit_id, unit in new.items():
         prior = old.get(unit_id)
         if global_provider_change or prior is None or prior["provider_input_sha256"] != unit["provider_input_sha256"]:
             model.add(unit_id)
+        elif global_oracle_change:
+            (model if unit["stage"] == "exact_final" else replay).add(unit_id)
         elif prior["oracle_sha256"] != unit["oracle_sha256"]:
-            replay.add(unit_id)
+            (model if unit["stage"] == "exact_final" else replay).add(unit_id)
         elif prior["harness_sha256"] != unit["harness_sha256"]:
             offline.add(unit_id)
     removed = set(old) - set(new)
     if removed or previous["harness_component_sha256"] != current["harness_component_sha256"]:
         offline.add("__bundle__")
-    if previous["oracle_component_sha256"] != current["oracle_component_sha256"] and not replay:
-        offline.add("__oracle__")
     return {
         "model_units": sorted(model),
         "replay_units": sorted(replay - model),
@@ -94,26 +100,25 @@ def replay_attestation(
         raise VerificationError("replay unit is absent from EvalSpec")
     if parent["provider_input_sha256"] != unit["provider_input_sha256"]:
         raise VerificationError("provider input changed; replay is forbidden")
+    if parent["external_role_config_sha256"] != unit["external_role_config_sha256"]:
+        raise VerificationError("external role config changed; replay is forbidden")
     passed, diagnostics = oracle(parent["observation"]["report"])
-    terminal = {
-        "classification": "diagnostic", "provider_reached": False,
-        "complete": True, "model_calls": 0, "input_tokens": 0,
-        "output_tokens": 0, "wall_milliseconds": 0,
-    }
     observation = {
         **parent["observation"],
-        "terminal_sha256": canonical_sha256(terminal),
         "parent_attestation_sha256": parent["record_sha256"],
     }
     return build_attestation(
         kind="replay", unit_id=unit["unit_id"],
         product_semantic_sha256=parent["product_semantic_sha256"],
         product_artifact_sha256=None,
+        external_role_config_sha256=unit["external_role_config_sha256"],
         provider_input_sha256=unit["provider_input_sha256"],
         oracle_sha256=unit["oracle_sha256"], harness_sha256=unit["harness_sha256"],
         invocation_sha256=unit["invocation_sha256"],
-        authority_sha256=parent["authority_sha256"], observation=observation,
-        terminal=terminal, verdict="pass" if passed else "fail",
+        authority_sha256=parent["authority_sha256"],
+        host_claim_key=parent["host_claim_key"],
+        host_proof_sha256=parent["host_proof_sha256"], observation=observation,
+        terminal=parent["terminal"], verdict="pass" if passed else "fail",
         diagnostics=diagnostics,
     )
 
@@ -133,9 +138,22 @@ def append_attestation(
     return [*existing, new]
 
 
+def _time(value: str) -> datetime:
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except (TypeError, ValueError) as exc:
+        raise VerificationError("evidence timestamp is invalid") from exc
+    if parsed.tzinfo is None:
+        raise VerificationError("evidence timestamp lacks timezone")
+    return parsed.astimezone(timezone.utc)
+
+
 def verify_evaluation(
-    *, product: dict[str, Any], spec: dict[str, Any],
-    attestations: list[dict[str, Any]], previous_product: dict[str, Any] | None = None,
+    *, root: Path, product: dict[str, Any], spec: dict[str, Any],
+    attestations: list[dict[str, Any]], raw_streams: dict[str, bytes],
+    host_proofs: dict[str, dict[str, Any]],
+    proof_verifier: Callable[[dict[str, Any], dict[str, Any]], bool],
+    previous_product: dict[str, Any] | None = None,
     holdout_mapping: dict[str, dict[str, str]] | None = None,
     mapping_revealed_at: str | None = None,
 ) -> dict[str, Any]:
@@ -143,8 +161,13 @@ def verify_evaluation(
     validate_eval_spec(spec)
     if product["package_semantic_sha256"] != spec["product_semantic_sha256"] or product["external_role_config_sha256"] != spec["external_role_config_sha256"]:
         raise VerificationError("ProductArtifact does not match EvalSpec")
+    inputs = load_production_inputs(root)
+    for field in ("manifest_sha256", "fixtures_sha256", "oracles_sha256"):
+        if spec[field] != inputs[field]:
+            raise VerificationError(f"EvalSpec {field} differs from production input")
     planned = _unit_map(spec)
     by_unit: dict[str, dict[str, Any]] = {}
+    assessments: dict[str, dict[str, Any]] = {}
     authority: str | None = None
     totals = {"model_calls": 0, "input_tokens": 0, "output_tokens": 0, "wall_milliseconds": 0}
     for record in attestations:
@@ -152,9 +175,11 @@ def verify_evaluation(
         unit = planned.get(record["unit_id"])
         if unit is None or record["unit_id"] in by_unit:
             raise VerificationError("unknown or duplicate attestation unit")
-        for field in ("provider_input_sha256", "oracle_sha256", "harness_sha256", "invocation_sha256"):
+        for field in ("external_role_config_sha256", "provider_input_sha256", "oracle_sha256", "harness_sha256", "invocation_sha256"):
             if record[field] != unit[field]:
                 raise VerificationError(f"attestation {field} mismatch")
+        if record["host_claim_key"] != unit["invocation"]["claim_key"]:
+            raise VerificationError("attestation host claim mismatch")
         if record["product_semantic_sha256"] != unit["product_semantic_sha256"]:
             raise VerificationError("attestation product semantic mismatch")
         if unit["kind"] == "exact_final":
@@ -165,23 +190,80 @@ def verify_evaluation(
         authority = authority or record["authority_sha256"]
         if record["authority_sha256"] != authority:
             raise VerificationError("more than one evaluation authority bundle was used")
+        if record["unit_id"] not in raw_streams or record["unit_id"] not in host_proofs:
+            raise VerificationError("attestation lacks external raw/proof evidence")
+        try:
+            parsed = verify_host_evidence(
+                record=record, raw=raw_streams[record["unit_id"]],
+                proof=host_proofs[record["unit_id"]],
+                external_verifier=proof_verifier,
+            )
+        except HostEvidenceError as exc:
+            raise VerificationError(str(exc)) from exc
+        observation = record["observation"]
+        if (
+            parsed["report"] != observation["report"]
+            or canonical_sha256(parsed["report"]) != observation["report_sha256"]
+            or parsed["terminal"] != record["terminal"]
+            or parsed["started_at"] != observation["started_at"]
+            or parsed["frozen_at"] != observation["frozen_at"]
+        ):
+            raise VerificationError("Attestation does not reproduce from raw evidence")
+        provenance = observation["provenance"]
+        if provenance["provider"] != "external-host" or any(
+            provenance[field] != unit["invocation"][field]
+            for field in ("model", "effort", "tools", "timeout_seconds")
+        ):
+            raise VerificationError("Attestation provenance differs from invocation")
+        assessment = score_hidden(
+            parsed["report"], hidden_oracle_for(inputs, unit), stage=unit["stage"]
+        )
+        expected_verdict = (
+            "pass" if assessment["passed"] and parsed["terminal"]["classification"] == "success"
+            else "fail"
+        )
+        if record["verdict"] != expected_verdict:
+            raise VerificationError("Attestation verdict differs from hidden oracle recomputation")
+        assessments[record["unit_id"]] = assessment
         for field in totals:
-            totals[field] += record["terminal"][field]
+            totals[field] += parsed["terminal"][field]
             if totals[field] > spec["total_cap"][field]:
                 raise VerificationError(f"evaluation exceeds total cap: {field}")
         by_unit[record["unit_id"]] = record
-    if set(by_unit) != set(planned):
-        raise VerificationError("caller did not supply exactly one attestation per planned unit")
+    if set(raw_streams) != set(by_unit) or set(host_proofs) != set(by_unit):
+        raise VerificationError("external raw/proof inventory differs from attestations")
     failures = [
         {"unit_id": unit_id, "classification": record["terminal"]["classification"], "verdict": record["verdict"]}
         for unit_id, record in by_unit.items()
         if record["verdict"] != "pass" or record["terminal"]["classification"] != "success"
-        and record["kind"] != "replay"
     ]
-    exact_final = next(record for record in by_unit.values() if record["kind"] == "exact_final")
-    if exact_final["observation"]["report"]["decision"] != "GO":
-        failures.append({"unit_id": exact_final["unit_id"], "classification": "quality_failure", "verdict": "fail"})
+    stage_units = {
+        stage: {unit["unit_id"] for unit in planned.values() if unit["stage"] == stage}
+        for stage in ("behavior", "holdout", "exact_final")
+    }
+    supplied = set(by_unit)
+    if supplied & stage_units["holdout"] and not stage_units["behavior"].issubset(supplied):
+        raise VerificationError("holdout started before behavior froze")
+    if supplied & stage_units["exact_final"] and not (
+        stage_units["behavior"] | stage_units["holdout"]
+    ).issubset(supplied):
+        raise VerificationError("exact-final started before behavior and holdout froze")
+    if failures:
+        failed_order = min(planned[item["unit_id"]]["order"] for item in failures)
+        if any(planned[unit_id]["order"] > failed_order for unit_id in supplied):
+            raise VerificationError("calls continued after a terminal failure")
+    elif supplied != set(planned):
+        raise VerificationError("successful evaluation lacks planned attestations")
+    exact_final = by_unit.get("exact-final")
+    if exact_final is not None:
+        prior = stage_units["behavior"] | stage_units["holdout"]
+        prior_frozen = max(_time(by_unit[unit_id]["observation"]["frozen_at"]) for unit_id in prior)
+        if _time(exact_final["observation"]["started_at"]) <= prior_frozen:
+            raise VerificationError("exact-final started before prior stages froze")
     holdout = None
+    full_success = not failures and supplied == set(planned)
+    if full_success and (holdout_mapping is None or mapping_revealed_at is None):
+        raise VerificationError("successful evaluation requires holdout mapping and reveal")
     if holdout_mapping is not None or mapping_revealed_at is not None:
         if holdout_mapping is None or mapping_revealed_at is None or previous_product is None:
             raise VerificationError("holdout mapping and reveal time are inseparable")
@@ -191,17 +273,20 @@ def verify_evaluation(
         holdout_units = {unit for pair in spec["holdouts"] for unit in pair["unit_ids"]}
         holdout = judge_fixed_holdouts(
             spec=spec, attestations=[by_unit[unit] for unit in sorted(holdout_units)],
+            assessments={unit: assessments[unit] for unit in holdout_units},
             mapping=holdout_mapping, revealed_at=mapping_revealed_at,
             candidate_product=product, previous_product=previous_product,
         )
         if not holdout["passed"]:
             failures.append({"unit_id": "fixed-holdouts", "classification": "quality_failure", "verdict": "fail"})
+        if exact_final is not None and _time(mapping_revealed_at) >= _time(exact_final["observation"]["started_at"]):
+            raise VerificationError("exact-final started before holdout mapping reveal")
     return {
         "verified": not failures, "failures": failures,
         "product_record_sha256": product["record_sha256"],
         "eval_spec_sha256": spec["record_sha256"],
         "attestation_sha256s": sorted(record["record_sha256"] for record in attestations),
-        "exact_final_attestation_sha256": exact_final["record_sha256"],
+        "exact_final_attestation_sha256": exact_final["record_sha256"] if exact_final else None,
         "authority_sha256": authority, "usage": totals, "holdout": holdout,
     }
 

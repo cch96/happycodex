@@ -77,9 +77,17 @@ def evaluator_components(root: Path) -> dict[str, str]:
         if path.is_file() and "__pycache__" not in path.parts
         and path.suffix in {".py", ".json"}
     ]
-    provider = [path for path in files if path.name in {"provider.py", "identity.py"}]
-    oracle = [path for path in files if path.name in {"verify.py", "holdout.py"}]
-    harness = [path for path in files if path not in provider and path not in oracle]
+    configuration = {"manifest-v1.json", "provider-fixtures-v1.json", "hidden-oracles-v1.json"}
+    provider_names = {"provider.py", "identity.py", "manifest.py", "policy.py"}
+    oracle_names = {"verify.py", "holdout.py", "oracle.py"}
+    harness_names = {"__init__.py", "cli.py", "host.py", "records.py"}
+    known = configuration | provider_names | oracle_names | harness_names
+    unknown = sorted(path.name for path in files if path.name not in known)
+    if unknown:
+        raise IdentityError(f"unclassified evaluator inputs: {unknown}")
+    provider = [path for path in files if path.name in provider_names]
+    oracle = [path for path in files if path.name in oracle_names]
+    harness = [path for path in files if path.name in harness_names]
     return {
         "evaluator_bundle_sha256": canonical_sha256(_file_entries(root, files)),
         "provider_component_sha256": canonical_sha256(_file_entries(root, provider)),

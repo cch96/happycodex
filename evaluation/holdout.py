@@ -26,6 +26,7 @@ def _ratio_ok(candidate: int, baseline: int) -> bool:
 
 def judge_fixed_holdouts(
     *, spec: dict[str, Any], attestations: list[dict[str, Any]],
+    assessments: dict[str, dict[str, Any]],
     mapping: dict[str, dict[str, str]], revealed_at: str,
     candidate_product: dict[str, Any], previous_product: dict[str, Any],
 ) -> dict[str, Any]:
@@ -43,6 +44,8 @@ def judge_fixed_holdouts(
     required = {unit for pair in spec["holdouts"] for unit in pair["unit_ids"]}
     if set(by_unit) != required or len(required) != 6:
         raise HoldoutError("all six fixed holdout outputs must freeze before reveal")
+    if set(assessments) != required:
+        raise HoldoutError("holdout assessments differ from the fixed plan")
     reveal = _time(revealed_at)
     candidate_tokens = baseline_tokens = 0
     candidate_wall = baseline_wall = 0
@@ -67,14 +70,18 @@ def judge_fixed_holdouts(
             raise HoldoutError("candidate arm does not bind candidate product")
         if baseline["product_semantic_sha256"] != previous_product["package_semantic_sha256"]:
             raise HoldoutError("baseline arm does not bind previous released product")
+        if candidate["external_role_config_sha256"] != candidate_product["external_role_config_sha256"]:
+            raise HoldoutError("candidate arm does not bind candidate role config")
+        if baseline["external_role_config_sha256"] != previous_product["external_role_config_sha256"]:
+            raise HoldoutError("baseline arm does not bind previous role config")
         for label, item in labelled.items():
-            report = item["observation"]["report"]
-            if type(report.get("quality_score")) is not int or type(report.get("fatal_invariants")) is not list:
-                raise HoldoutError(f"{label} holdout report is not typed")
-            if item["verdict"] != "pass" or report["fatal_invariants"]:
+            assessment = assessments[item["unit_id"]]
+            if type(assessment) is not dict or type(assessment.get("score")) is not int:
+                raise HoldoutError(f"{label} hidden assessment is not typed")
+            if assessment.get("passed") is not True:
                 raise HoldoutError(f"{label} holdout has a fatal quality failure")
-        candidate_score = candidate["observation"]["report"]["quality_score"]
-        baseline_score = baseline["observation"]["report"]["quality_score"]
+        candidate_score = assessments[candidate["unit_id"]]["score"]
+        baseline_score = assessments[baseline["unit_id"]]["score"]
         pair_passed = candidate_score >= baseline_score
         candidate_tokens += candidate["terminal"]["input_tokens"] + candidate["terminal"]["output_tokens"]
         baseline_tokens += baseline["terminal"]["input_tokens"] + baseline["terminal"]["output_tokens"]

@@ -1,0 +1,195 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from typing import Any
+
+from evaluation.identity import evaluator_components
+from evaluation.policy import EXACT_FINAL_ROLE_ID, HOLDOUT_ROLE_ID, MODEL_ROLE_IDS
+from evaluation.provider import provider_projection
+from evaluation.records import (
+    RecordError,
+    build_eval_spec,
+    canonical_sha256,
+    validate_product_artifact,
+)
+
+
+MANIFEST_FILE = "manifest-v1.json"
+
+
+class ManifestError(ValueError):
+    pass
+
+
+def _read(path: Path) -> dict[str, Any]:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ManifestError(f"cannot read production evaluator input: {path.name}") from exc
+    if type(value) is not dict:
+        raise ManifestError(f"production evaluator input is not an object: {path.name}")
+    return value
+
+
+def load_production_inputs(root: Path) -> dict[str, Any]:
+    evaluation = root.resolve() / "evaluation"
+    manifest = _read(evaluation / MANIFEST_FILE)
+    if set(manifest) != {"schema_version", "manifest_id", "provider_fixtures", "hidden_oracles", "core_roles", "holdout_samples", "exact_final"} or manifest["schema_version"] != 1:
+        raise ManifestError("production manifest fields differ")
+    if tuple(manifest["core_roles"]) != MODEL_ROLE_IDS:
+        raise ManifestError("production core role inventory differs")
+    if type(manifest["holdout_samples"]) is not list or len(manifest["holdout_samples"]) != 3 or manifest["holdout_samples"] != sorted(set(manifest["holdout_samples"])):
+        raise ManifestError("production manifest requires three fixed samples")
+    if manifest["exact_final"].get("role_id") != EXACT_FINAL_ROLE_ID or type(manifest["exact_final"].get("brief_template")) is not str:
+        raise ManifestError("production exact-final template differs")
+    fixtures = _read(evaluation / manifest["provider_fixtures"])
+    oracles = _read(evaluation / manifest["hidden_oracles"])
+    if set(fixtures) != {"schema_version", "core", "holdouts"} or fixtures["schema_version"] != 1:
+        raise ManifestError("provider fixture fields differ")
+    if set(oracles) != {"schema_version", "core", "holdouts", "exact_final"} or oracles["schema_version"] != 1:
+        raise ManifestError("hidden oracle fields differ")
+    if set(fixtures["core"]) != set(MODEL_ROLE_IDS) or set(oracles["core"]) != set(MODEL_ROLE_IDS):
+        raise ManifestError("core fixture/oracle inventory differs")
+    samples = set(manifest["holdout_samples"])
+    if set(fixtures["holdouts"]) != samples or set(oracles["holdouts"]) != samples:
+        raise ManifestError("holdout fixture/oracle inventory differs")
+    return {
+        "manifest": manifest, "fixtures": fixtures, "oracles": oracles,
+        "manifest_sha256": canonical_sha256(manifest),
+        "fixtures_sha256": canonical_sha256(fixtures),
+        "oracles_sha256": canonical_sha256(oracles),
+    }
+
+
+def neutral_review_brief(
+    inputs: dict[str, Any], product: dict[str, Any], brief: dict[str, Any],
+) -> str:
+    required = {"request", "obligations", "checks", "exclusions"}
+    if set(brief) != required:
+        raise ManifestError("neutral review brief fields differ")
+    return inputs["manifest"]["exact_final"]["brief_template"].format(
+        artifact_sha256=product["package_artifact_sha256"],
+        request=brief["request"],
+        obligations=json.dumps(brief["obligations"], sort_keys=True),
+        checks=json.dumps(brief["checks"], sort_keys=True),
+        exclusions=json.dumps(brief["exclusions"], sort_keys=True),
+    )
+
+
+def _unit(
+    *, unit_id: str, role_id: str, sample_id: str | None, stage: str,
+    arm_product: dict[str, Any], case: dict[str, Any], profile: dict[str, Any],
+    oracle_sha256: str, harness_sha256: str, review_brief_sha256: str | None,
+) -> dict[str, Any]:
+    projection = provider_projection(
+        case={"role_id": role_id, "sample_id": sample_id, **case},
+        product_semantic_sha256=arm_product["package_semantic_sha256"],
+        external_role_config_sha256=arm_product["external_role_config_sha256"],
+        profile=profile,
+    )
+    invocation = {
+        "unit_id": unit_id, "stage": stage,
+        "product_semantic_sha256": arm_product["package_semantic_sha256"],
+        "external_role_config_sha256": arm_product["external_role_config_sha256"],
+        "provider_input": projection, "model": profile["model"],
+        "effort": profile["effort"], "tools": profile["tools"],
+        "timeout_seconds": profile["timeout_seconds"],
+        "claim_key": canonical_sha256(
+            {
+                "unit_id": unit_id, "stage": stage,
+                "product": arm_product["package_semantic_sha256"],
+                "role_config": arm_product["external_role_config_sha256"],
+                "provider_input": projection,
+            }
+        ),
+    }
+    return {
+        "unit_id": unit_id, "kind": "exact_final" if stage == "exact_final" else "behavior",
+        "role_id": role_id, "sample_id": sample_id, "stage": stage,
+        "order": {"behavior": 1, "holdout": 2, "exact_final": 3}[stage],
+        "product_semantic_sha256": arm_product["package_semantic_sha256"],
+        "external_role_config_sha256": arm_product["external_role_config_sha256"],
+        "provider_input_sha256": canonical_sha256(projection),
+        "oracle_sha256": oracle_sha256, "harness_sha256": harness_sha256,
+        "invocation": invocation, "invocation_sha256": canonical_sha256(invocation),
+        "review_brief_sha256": review_brief_sha256,
+    }
+
+
+def materialize_eval_spec(
+    *, root: Path, candidate: dict[str, Any], previous: dict[str, Any],
+    profile: dict[str, Any], total_cap: dict[str, int],
+    holdout_mapping: dict[str, dict[str, str]], review_brief: dict[str, Any],
+) -> dict[str, Any]:
+    validate_product_artifact(candidate)
+    validate_product_artifact(previous)
+    inputs = load_production_inputs(root)
+    runtime = (root.resolve() / "skills" / "happycodex" / "SKILL.md").read_text(encoding="utf-8")
+    brief_text = neutral_review_brief(inputs, candidate, review_brief)
+    brief_sha = canonical_sha256(brief_text)
+    harness_sha = canonical_sha256({"raw_stream": "jsonl-v1", "proof": "external-host-v1"})
+    units: list[dict[str, Any]] = []
+    for role_id in MODEL_ROLE_IDS:
+        fixture = inputs["fixtures"]["core"][role_id]
+        units.append(
+            _unit(
+                unit_id=role_id, role_id=role_id, sample_id=None, stage="behavior",
+                arm_product=candidate,
+                case={**fixture, "runtime": runtime}, profile=profile,
+                oracle_sha256=canonical_sha256(inputs["oracles"]["core"][role_id]),
+                harness_sha256=harness_sha, review_brief_sha256=None,
+            )
+        )
+    holdouts = []
+    for sample_id in inputs["manifest"]["holdout_samples"]:
+        pair_id = sample_id
+        unit_ids = sorted([f"{pair_id}-arm-a", f"{pair_id}-arm-b"])
+        mapping = holdout_mapping.get(pair_id)
+        if type(mapping) is not dict or set(mapping) != set(unit_ids) or sorted(mapping.values()) != ["baseline", "candidate"]:
+            raise ManifestError("external holdout mapping differs from fixed pair")
+        holdouts.append(
+            {"pair_id": pair_id, "sample_id": sample_id, "unit_ids": unit_ids, "mapping_sha256": canonical_sha256(mapping)}
+        )
+        fixture = inputs["fixtures"]["holdouts"][sample_id]
+        for unit_id in unit_ids:
+            arm_product = candidate if mapping[unit_id] == "candidate" else previous
+            units.append(
+                _unit(
+                    unit_id=unit_id, role_id=HOLDOUT_ROLE_ID, sample_id=sample_id,
+                    stage="holdout", arm_product=arm_product,
+                    case={**fixture, "runtime": runtime}, profile=profile,
+                    oracle_sha256=canonical_sha256(inputs["oracles"]["holdouts"][sample_id]),
+                    harness_sha256=harness_sha, review_brief_sha256=None,
+                )
+            )
+    units.append(
+        _unit(
+            unit_id=EXACT_FINAL_ROLE_ID, role_id=EXACT_FINAL_ROLE_ID,
+            sample_id=None, stage="exact_final", arm_product=candidate,
+            case={
+                "prompt": "Perform the neutral exact-final review.",
+                "fixture": {"artifact_sha256": candidate["package_artifact_sha256"]},
+                "workspace": {"brief_sha256": brief_sha}, "runtime": runtime,
+                "neutral_review_brief": brief_text,
+            },
+            profile=profile,
+            oracle_sha256=canonical_sha256(inputs["oracles"]["exact_final"]),
+            harness_sha256=harness_sha, review_brief_sha256=brief_sha,
+        )
+    )
+    units.sort(key=lambda item: (item["order"], item["unit_id"]))
+    if total_cap.get("model_calls", -1) < len(units):
+        raise ManifestError("total cap cannot cover the finite invocation plan")
+    components = evaluator_components(root)
+    return build_eval_spec(
+        product_semantic_sha256=candidate["package_semantic_sha256"],
+        external_role_config_sha256=candidate["external_role_config_sha256"],
+        previous_product_record_sha256=previous["record_sha256"],
+        profile=profile, units=units, holdouts=holdouts, total_cap=total_cap,
+        neutral_review_brief_sha256=brief_sha,
+        manifest_sha256=inputs["manifest_sha256"],
+        fixtures_sha256=inputs["fixtures_sha256"],
+        oracles_sha256=inputs["oracles_sha256"],
+        **components,
+    )
