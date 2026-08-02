@@ -1,6 +1,5 @@
-"""HappyCodex maintainer certification engine.
+"""HappyCodex maintainer-only stateless evaluator."""
 
-This package is repository support code. It is never included in the shipped plugin.
-"""
+from evaluation.records import RECORD_TYPES
 
-__all__: tuple[str, ...] = ()
+__all__ = ("RECORD_TYPES",)

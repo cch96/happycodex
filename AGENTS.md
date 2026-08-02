@@ -1,64 +1,37 @@
 # HappyCodex maintainer protocol
 
-The current 0.4-to-0.5 source-construction task remains a Root-only writer task through
-closure under its frozen ExecPlan. Do not recursively apply candidate 0.5 ownership to
-this migration. After an authorized 0.5 activation, fresh HappyCodex/0.5 tasks use one
-fixed Executor as the sole authorized writer; Root reads, decides, grants, and verifies.
-Repository-level evaluation files are maintenance support, not Skill Runtime, and must
-never be linked from `skills/happycodex/SKILL.md`.
+The packaged product is frozen at the published `v0.6.5` bytes while the
+maintainer evaluator is rebuilt independently. Repository evaluation files are
+maintenance support and must never be linked from `skills/happycodex/SKILL.md`.
 
-- Keep Runtime Markdown at or below 262 lines. Target at most 2,200 words; 2,400 words
-  is the hard ceiling.
-- The active 0.4 installation, public package bytes, and rollback cache remain unchanged
-  until cutover is separately authorized. The operative 0.5 Outcome excludes Fable.
-  Existing 0.4 tasks finish under 0.4 or are abandoned; never migrate them into 0.5.
-- Use only `python3 -m evaluation.cli`. Every evaluator Python/schema input is
-  classified as semantic, harness, or artifact; unknown inputs fail closed.
-- `evaluation/results/current.json` is the sole active evidence ledger. 0.6.5
-  uses a fresh full-refresh generation-7 genesis: add no old evidence reader,
-  alias, migration, dual write, prior-coverage reuse, or parser fallback.
-  Offline checks never promote `refresh_required` to `certified`.
-- The comparison baseline is exactly public-0.2 commit `3b9c11f`, tree `4708ebc`,
-  its frozen artifact/semantic digests, and four-file Skill surface. Never relabel
-  public-0.4 bytes, arms, or receipt fields as public-0.2.
-- Before any live corpus or holdout authorization, persist the read-only impact receipt
-  and exact source-derived historical-cost envelope. `impact_token` binds identity but
-  grants no permission. Live CLI execution additionally requires current-task user
-  authority bound to the candidate, snapshot, package/config identities, model, effort,
-  timeout, arm, complete invocation, and cost cap. One canonical affirmative line may
-  authenticate a content-addressed bounded release-evaluation bundle; every effect still
-  requires its own exact GatePlan, capability, claim, and receipt. Prose is not authority.
-- The new Executor pilot has no prior cost. First persist a conservative source-derived
-  envelope and complete exact invocation. Its sanitized successful actual cost becomes
-  historical basis. Executor pilot, corpus, and adaptive holdout remain three separate
-  gates even when one current-task response authenticates their bounded plans.
-- The evaluator derives each `LaunchKey` from the persisted `GatePlan` and its
-  reducer-produced `ActionKey`. Complete local preflight precedes launch
-  reservation; the `ActionKey` is consumed only immediately before a
-  provider-reaching call. A proven `NO_EFFECT` launch may be replaced once by a
-  distinct infrastructure generation; provider-reached or ambiguous work
-  cannot be retried.
-- Certification requires a Git-reachable successor source whose normalized Git package
-  artifact and engine manifest match the snapshot. Its retained Executor authority and
-  calibration bind the exact external role-config digest; its ledger persists separate
-  gate-scoped plans bound to the pending phase and authenticated authority. Every evidence
-  commit strictly postdates that source. Shared schema validates inputs during both impact
-  planning and execution.
-- A zero-live `receipt` or `isolated_install` gate still requires strictly post-source,
-  content-addressed `offline_summary` evidence. Receipt evidence binds current artifact
-  identity; install evidence binds the existing exact source/installed-package/config
-  receipt.
-- Store raw model events outside the repository. Track only sanitized summaries, hashes,
-  fixed fixtures, prompts, hidden oracles, and executable evaluation code.
-- Maintainer evaluation proves native same-task compaction and a distinct
-  no-summary/no-handle reconstruction. It also proves writer identity cannot be replaced;
-  ordinary Runtime does not rerun that control for every user task.
-- Read-only behavior comparisons use fresh isolated homes/tasks and identical model,
-  effort, fixture, prompt, timeout, and oracle. Reveal arms only after results freeze.
-  Reject the first completion-blocking holdout regression; after first success run a
-  second distinct pair, using a third only for split/uncertain results. At equal quality,
-  uncached input plus output tokens and wall time each stay within 25% of public 0.2.
-- Before release, use the plugin-creator cachebuster helper instead of hand-editing
-  marketplace state. Prove a fresh isolated install/invocation of that exact release and
-  external role config, then update the active plugin atomically with the prior cache
-  ready for paired package/config rollback.
+- Preserve the exact `skills/happycodex` tree
+  `d9e525a267fbf36669d409ba1b4b009a6beeeea5`, external role configuration,
+  active install, cache, and rollback state until separately authorized.
+- The evaluator has exactly four durable record types: `ProductArtifact`,
+  `EvalSpec`, `Attestation`, and `ReleaseReceipt`. Unknown types fail closed.
+- Product identity never includes evaluator bytes. Evaluator identity separates
+  provider input, oracle, and harness components so invalidation causes only
+  necessary work.
+- Verification is stateless over caller-supplied immutable records. Do not add
+  an active mutable ledger, general evidence graph, compatibility reader,
+  migration, alias, or dual write.
+- Provider input is allowlisted and mechanically excludes expected answers,
+  hidden boundaries, oracle/matcher/mapping content, desired verdicts, and
+  history. Raw events remain external; repository records contain digests and
+  sanitized projections only.
+- Repository code may construct an authority request digest and validate
+  externally supplied authority. It cannot manufacture user authority. One
+  bounded evaluation authority normally covers the exact behavior plan and one
+  neutral exact-final. Release authority is separate.
+- Every provider invocation is one-shot. Only a proven pre-provider
+  infrastructure no-effect terminal may recover within an already authorized
+  recovery cap. Ambiguous or partial effects stop without retry.
+- Holdouts are exactly three fixed concurrent pairs against the previous
+  released product. Freeze all six outputs before revealing mappings; aggregate
+  candidate tokens and wall time must each be no more than 1.25 times baseline.
+- Persist an adverse exact-final attestation and reject a friendlier rerun for
+  unchanged artifact bytes. Product mutation requires a new exact-final.
+- Keep evaluator Python at most 3,200 lines where practical; 3,600 is a hard
+  stop and no production module may exceed 600 lines.
+- Use only offline standard-library tests unless a later exact authority names
+  every model/network/install/release effect, identity, destination, and cap.

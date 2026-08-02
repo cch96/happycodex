@@ -46,13 +46,20 @@ has been implemented or certified.
   before creation. The new worktree was clean at the source commit before this
   plan was written.
 
-### Active grant: GRANT-01
+### Active grant: GRANT-02
 
-GRANT-01 permits only branch/worktree bootstrap, the exact baseline command,
-this plan, and one bootstrap commit. It grants no evaluator implementation,
-provider/model/network effect, installation, release, activation, migration, or
-write to another path/ref/worktree. Stop on identity or configuration drift,
-branch/path/claim conflict, an unexpected baseline result, or wider scope.
+GRANT-02 is one coherent offline implementation batch owned by token
+`5a63e381-1ff8-4675-9c10-c81da14e1de2`. Its exact prestate is commit
+`c8c175d05f80c5fa0edead3581889b2ba8fe8d70`, tree
+`ce67d5582edbe805d3a22a7645d88352f4eb4fd2`, clean, with preserved
+`skills/happycodex` tree `d9e525a267fbf36669d409ba1b4b009a6beeeea5`.
+It permits writes only to this plan, `AGENTS.md`, `evaluation/**`, `tests/**`,
+and this branch/ref, with at most three logical commits. It authorizes deleting
+or rewriting evaluator-only code/tests/data and running offline tests. It does
+not authorize product/config changes, provider/model/network calls, install,
+release, activation, compatibility migration, or writes to another
+worktree/ref. This paragraph is the durable intent persisted before any
+evaluator mutation.
 
 ## Baseline
 
@@ -74,6 +81,19 @@ baseline characterization. It must not be relabelled GREEN or inherited as an
 acceptance condition for the new evaluator.
 
 ## Selected design
+
+Root reproduced three v0.6.5 blockers that this clean break must remove: one
+engine identity forces full reruns after unrelated evaluator changes; generic
+receipt records confuse typed evidence; and repository-generated
+authority/approval content crosses the trust boundary by attempting to
+authenticate itself.
+
+Two alternatives were compared. Pure layered observation replay maximizes
+reuse but recreates a graph and lifecycle; a minimal fresh suite is simpler but
+wastes calls on oracle-only edits. The selected hybrid has no general graph:
+each immutable `Attestation` contains its frozen observation and provenance, so
+an oracle-only change can create a zero-call replay attestation, while the small
+model suite covers only Runtime decisions that cannot be checked mechanically.
 
 The design has two planes and four durable record types, exactly:
 
@@ -102,8 +122,9 @@ oracle text, holdout mapping, desired verdict, and historical findings are
 excluded mechanically and are unreadable from the isolated provider workspace.
 The projection digest is computed independently of the oracle digest.
 
-One user-authenticated evaluation bundle may authorize the exact finite set of
-provider invocations for core cases, triggered adaptive holdouts, and one
+One externally supplied user-authenticated evaluation bundle may authorize the
+exact finite set of provider invocations for required behavior cases, three
+fixed holdout pairs, and one
 neutral exact-final, with a cumulative call/token/time ceiling. Each planned
 invocation remains one-shot; provider-reached or ambiguous effects are never
 retried. The first terminal or oracle failure stops the bundle. Exact-final
@@ -115,6 +136,22 @@ unchanged bytes.
 
 Release is a separate effect. It requires one exact release authority and
 produces one `ReleaseReceipt`; it cannot infer authority from attestations.
+Repository code may construct an authority request digest and verify supplied
+authority, but may never treat self-generated text or records as authority.
+
+Each fixed holdout has candidate and previous-released-product arms, run
+concurrently with identical settings. All six outputs freeze before mapping is
+revealed and one quality decision is computed. Across all fixed pairs,
+candidate aggregate tokens and wall time must each be no more than `1.25` times
+the previous released product; no old named public arm is part of this design.
+
+Model cases are limited to low/high-risk qualification, midflight escalation,
+goal divergence, no-commit/secret decisions, same-task compaction,
+no-summary/no-handle reconstruction, the fixed holdouts, and exact-final.
+Receipt, claim, schema, parser, invalidation, truncation, install, and rollback
+behavior is deterministic integration coverage. Exact action-enum wording is
+diagnostic when a conservative equivalent is safe; only safety, quality,
+identity, effect, and goal-closure invariants are fatal.
 
 ## Invalidation rules
 
@@ -183,15 +220,16 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `working`; bootstrap planning only.
+- Phase: `working`; GRANT-02 offline implementation authorized.
 - Selected checkpoint source: `v0.6.5` commit/tree recorded above.
 - Baseline: one authorized run recorded above; unchanged 204/205 known failure.
-- Controlled changes: this ExecPlan only.
+- Controlled changes at intent persistence: this ExecPlan only; evaluator RED
+  characterization is next.
 - Provider/model/network calls: `0`. Install/release/activation effects: `0`.
 - Candidate, `ProductArtifact`, `EvalSpec`, `Attestation`, `ReleaseReceipt`, and
   exact-final: not yet created.
-- Open gates: a new Root implementation grant is required. Evaluation and
-  release authorities are explicitly not requested by this bootstrap.
+- Open gates: complete GRANT-02 offline acceptance. Evaluation and release
+  authorities are explicitly outside this grant.
 - Recovery: read this entire file, verify branch/worktree/source/status and
-  owner token, then obtain a new exact grant. GRANT-01 ends after its single
-  bootstrap commit; do not continue implementation from conversation context.
+  owner token, and reconcile only the files allowed by GRANT-02. Stop after
+  offline GREEN and clean commits; do not continue into exact-final or effects.
