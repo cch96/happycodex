@@ -32,8 +32,8 @@ def provider_projection(
     required = {"role_id", "prompt"}
     if not required.issubset(case):
         raise ProviderError("case lacks provider-visible inputs")
-    if "fixture" not in case or "workspace" not in case or "runtime" not in case:
-        raise ProviderError("case lacks materialized fixture, workspace, or Runtime")
+    if any(field not in case for field in ("fixture", "workspace", "runtime", "response_schema")):
+        raise ProviderError("case lacks materialized fixture, workspace, Runtime, or response schema")
     projection = {
         "schema_version": 1,
         "role_id": case["role_id"],
@@ -44,6 +44,7 @@ def provider_projection(
         "workspace": case["workspace"],
         "prompt": case["prompt"],
         "runtime": case["runtime"],
+        "response_schema": case["response_schema"],
         "neutral_review_brief": case.get("neutral_review_brief"),
         "profile": {
             "model": profile["model"],

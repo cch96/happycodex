@@ -48,6 +48,7 @@ class CleanBreakRedTests(unittest.TestCase):
             "fixture": {"request": "classify"},
             "workspace": {"clean": True},
             "runtime": "runtime bytes",
+            "response_schema": {"type": "object", "properties": {"qualifies": {"type": "boolean"}}},
             "prompt": "classify the task",
             "expected_answer": "SENTINEL",
             "oracle": {"answer": "SENTINEL"},

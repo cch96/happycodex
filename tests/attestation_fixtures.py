@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from evaluation.host import attestation_from_raw
+from evaluation.host import attestation_from_raw, load_proof_verifier, planned_host_challenge
 from evaluation.manifest import load_production_inputs, materialize_eval_spec
 from evaluation.records import build_product_artifact, canonical_sha256
 
@@ -27,6 +27,15 @@ REVIEW_BRIEF = {
     "checks": ["offline suite green"], "exclusions": ["repair history"],
 }
 REVEALED_AT = "2026-08-02T00:00:35Z"
+HOST_CONTRACT = {
+    "schema_version": 1, "trust_domain": "happycodex-offline-test-host-v1",
+    "proof_verifier_sha256": __import__("hashlib").sha256((ROOT / "tests" / "fake_proof_verifier.py").read_bytes()).hexdigest(),
+    "provider_binary_sha256": __import__("hashlib").sha256((ROOT / "tests" / "fake_external_host.py").read_bytes()).hexdigest(),
+    "tool_config_sha256": canonical_sha256({"tools": ["command_execution"]}),
+    "permission_profile_sha256": canonical_sha256({"network": False, "filesystem": "temporary"}),
+    "workspace_policy_sha256": canonical_sha256({"cwd": "fresh-temporary-repo", "home": "fresh-temporary-home"}),
+}
+proof_verifier = load_proof_verifier(ROOT / "tests" / "fake_proof_verifier.py", HOST_CONTRACT)
 
 
 def product(*, artifact: str = SHA["1"], semantic: str = SHA["2"], role: str = SHA["3"]):
@@ -62,6 +71,7 @@ def bundle(
     baseline_product: dict[str, Any] | None = None,
     profile: dict[str, Any] | None = None,
     total_cap: dict[str, int] | None = None,
+    host_contract: dict[str, Any] | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], dict[str, dict[str, str]]]:
     selected = selected_product or product()
     baseline = baseline_product or previous_product()
@@ -71,6 +81,7 @@ def bundle(
         profile=deepcopy(profile or PROFILE),
         total_cap=deepcopy(total_cap or TOTAL_CAP),
         holdout_mapping=blind_mapping, review_brief=REVIEW_BRIEF,
+        host_contract=deepcopy(host_contract or HOST_CONTRACT),
     )
     return selected, baseline, spec, blind_mapping
 
@@ -131,22 +142,19 @@ def raw_stream(
     return b"".join((json.dumps(event, sort_keys=True) + "\n").encode() for event in events)
 
 
-def host_proof(unit: dict[str, Any], raw: bytes) -> dict[str, Any]:
-    return {
-        "host": "offline-external-test-host", "unit_id": unit["unit_id"],
-        "claim_key": unit["invocation"]["claim_key"],
-        "raw_sha256": __import__("hashlib").sha256(raw).hexdigest(),
-        "accepted": True,
-    }
-
-
-def proof_verifier(proof: dict[str, Any], challenge: dict[str, Any]) -> bool:
-    return (
-        proof.get("accepted") is True
-        and proof.get("unit_id") == challenge["unit_id"]
-        and proof.get("claim_key") == challenge["claim_key"]
-        and proof.get("raw_sha256") == challenge["raw_events_sha256"]
+def host_proof(
+    unit: dict[str, Any], raw: bytes, spec: dict[str, Any],
+    *, product_artifact_sha256: str | None = None,
+    authority_sha256: str = SHA["a"],
+) -> dict[str, Any]:
+    challenge = planned_host_challenge(
+        unit=unit, spec=spec, authority_sha256=authority_sha256, raw=raw,
+        product_artifact_sha256=product_artifact_sha256,
     )
+    return {
+        "trust_domain": spec["host_contract"]["trust_domain"],
+        "challenge_sha256": canonical_sha256(challenge),
+    }
 
 
 def attest_all(
@@ -163,7 +171,10 @@ def attest_all(
             terminal_value=(terminals or {}).get(unit["unit_id"]),
             start=(starts or {}).get(unit["unit_id"]),
         )
-        proof = host_proof(unit, raw)
+        proof = host_proof(
+            unit, raw, spec,
+            product_artifact_sha256=(arm["package_artifact_sha256"] if unit["stage"] == "exact_final" else None),
+        )
         record = attestation_from_raw(
             root=ROOT, product=arm, spec=spec, unit_id=unit["unit_id"], raw=raw,
             authority_sha256=SHA["a"], host_proof=proof,

@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
 
-from evaluation.host import HostEvidenceError, verify_host_evidence
+from evaluation.host import ExternalProofVerifier, HostEvidenceError, verify_host_evidence
 from evaluation.holdout import judge_fixed_holdouts
 from evaluation.manifest import load_production_inputs
 from evaluation.oracle import hidden_oracle_for, score_hidden
@@ -40,7 +40,7 @@ def invalidation(previous: dict[str, Any], current: dict[str, Any]) -> dict[str,
     offline: set[str] = set()
     global_provider_change = any(
         previous[field] != current[field]
-        for field in ("product_semantic_sha256", "external_role_config_sha256", "provider_component_sha256")
+        for field in ("product_semantic_sha256", "external_role_config_sha256", "provider_component_sha256", "host_contract_sha256")
     ) or previous["profile"] != current["profile"]
     global_oracle_change = previous["oracle_component_sha256"] != current["oracle_component_sha256"]
     for unit_id, unit in new.items():
@@ -56,6 +56,12 @@ def invalidation(previous: dict[str, Any], current: dict[str, Any]) -> dict[str,
     removed = set(old) - set(new)
     if removed or previous["harness_component_sha256"] != current["harness_component_sha256"]:
         offline.add("__bundle__")
+    if previous["manifest_sha256"] != current["manifest_sha256"]:
+        offline.add("__manifest__")
+    if previous["fixtures_sha256"] != current["fixtures_sha256"] and not model:
+        offline.add("__fixtures__")
+    if previous["response_schemas_sha256"] != current["response_schemas_sha256"] and not model:
+        offline.add("__response_schemas__")
     return {
         "model_units": sorted(model),
         "replay_units": sorted(replay - model),
@@ -90,6 +96,7 @@ def evaluate_runtime_decision(
 def replay_attestation(
     *, parent: dict[str, Any], spec: dict[str, Any],
     oracle: Callable[[dict[str, Any]], tuple[bool, list[str]]],
+    host_proof: dict[str, Any],
 ) -> dict[str, Any]:
     validate_attestation(parent)
     validate_eval_spec(spec)
@@ -117,7 +124,7 @@ def replay_attestation(
         invocation_sha256=unit["invocation_sha256"],
         authority_sha256=parent["authority_sha256"],
         host_claim_key=parent["host_claim_key"],
-        host_proof_sha256=parent["host_proof_sha256"], observation=observation,
+        host_proof_sha256=canonical_sha256(host_proof), observation=observation,
         terminal=parent["terminal"], verdict="pass" if passed else "fail",
         diagnostics=diagnostics,
     )
@@ -152,7 +159,7 @@ def verify_evaluation(
     *, root: Path, product: dict[str, Any], spec: dict[str, Any],
     attestations: list[dict[str, Any]], raw_streams: dict[str, bytes],
     host_proofs: dict[str, dict[str, Any]],
-    proof_verifier: Callable[[dict[str, Any], dict[str, Any]], bool],
+    proof_verifier: ExternalProofVerifier,
     previous_product: dict[str, Any] | None = None,
     holdout_mapping: dict[str, dict[str, str]] | None = None,
     mapping_revealed_at: str | None = None,
@@ -162,7 +169,7 @@ def verify_evaluation(
     if product["package_semantic_sha256"] != spec["product_semantic_sha256"] or product["external_role_config_sha256"] != spec["external_role_config_sha256"]:
         raise VerificationError("ProductArtifact does not match EvalSpec")
     inputs = load_production_inputs(root)
-    for field in ("manifest_sha256", "fixtures_sha256", "oracles_sha256"):
+    for field in ("manifest_sha256", "fixtures_sha256", "oracles_sha256", "response_schemas_sha256"):
         if spec[field] != inputs[field]:
             raise VerificationError(f"EvalSpec {field} differs from production input")
     planned = _unit_map(spec)
@@ -194,7 +201,8 @@ def verify_evaluation(
             raise VerificationError("attestation lacks external raw/proof evidence")
         try:
             parsed = verify_host_evidence(
-                record=record, raw=raw_streams[record["unit_id"]],
+                record=record, unit=unit, spec=spec,
+                raw=raw_streams[record["unit_id"]],
                 proof=host_proofs[record["unit_id"]],
                 external_verifier=proof_verifier,
             )
@@ -224,6 +232,10 @@ def verify_evaluation(
         )
         if record["verdict"] != expected_verdict:
             raise VerificationError("Attestation verdict differs from hidden oracle recomputation")
+        expected_diagnostics = [f"fatal:{path}" for path in assessment["fatal"]]
+        expected_diagnostics.extend(f"diagnostic:{path}" for path in assessment["diagnostics"])
+        if record["diagnostics"] != expected_diagnostics:
+            raise VerificationError("Attestation diagnostics differ from hidden oracle recomputation")
         assessments[record["unit_id"]] = assessment
         for field in totals:
             totals[field] += parsed["terminal"][field]
@@ -244,6 +256,11 @@ def verify_evaluation(
     supplied = set(by_unit)
     if supplied & stage_units["holdout"] and not stage_units["behavior"].issubset(supplied):
         raise VerificationError("holdout started before behavior froze")
+    if supplied & stage_units["holdout"]:
+        behavior_frozen = max(_time(by_unit[unit_id]["observation"]["frozen_at"]) for unit_id in stage_units["behavior"])
+        holdout_started = min(_time(by_unit[unit_id]["observation"]["started_at"]) for unit_id in supplied & stage_units["holdout"])
+        if holdout_started <= behavior_frozen:
+            raise VerificationError("holdout started before all behavior froze")
     if supplied & stage_units["exact_final"] and not (
         stage_units["behavior"] | stage_units["holdout"]
     ).issubset(supplied):
@@ -252,8 +269,6 @@ def verify_evaluation(
         failed_order = min(planned[item["unit_id"]]["order"] for item in failures)
         if any(planned[unit_id]["order"] > failed_order for unit_id in supplied):
             raise VerificationError("calls continued after a terminal failure")
-    elif supplied != set(planned):
-        raise VerificationError("successful evaluation lacks planned attestations")
     exact_final = by_unit.get("exact-final")
     if exact_final is not None:
         prior = stage_units["behavior"] | stage_units["holdout"]
@@ -271,6 +286,8 @@ def verify_evaluation(
         if previous_product["record_sha256"] != spec["previous_product_record_sha256"]:
             raise VerificationError("holdout baseline is not the previous released product")
         holdout_units = {unit for pair in spec["holdouts"] for unit in pair["unit_ids"]}
+        if not holdout_units.issubset(supplied):
+            raise VerificationError("holdout mapping was supplied before all outputs froze")
         holdout = judge_fixed_holdouts(
             spec=spec, attestations=[by_unit[unit] for unit in sorted(holdout_units)],
             assessments={unit: assessments[unit] for unit in holdout_units},
@@ -278,9 +295,13 @@ def verify_evaluation(
             candidate_product=product, previous_product=previous_product,
         )
         if not holdout["passed"]:
+            if exact_final is not None:
+                raise VerificationError("calls continued after fixed-holdout failure")
             failures.append({"unit_id": "fixed-holdouts", "classification": "quality_failure", "verdict": "fail"})
         if exact_final is not None and _time(mapping_revealed_at) >= _time(exact_final["observation"]["started_at"]):
             raise VerificationError("exact-final started before holdout mapping reveal")
+    if not failures and supplied != set(planned):
+        raise VerificationError("successful evaluation lacks planned attestations")
     return {
         "verified": not failures, "failures": failures,
         "product_record_sha256": product["record_sha256"],

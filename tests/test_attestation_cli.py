@@ -8,7 +8,7 @@ import unittest
 
 from evaluation.host import attestation_from_raw
 from tests.attestation_fixtures import (
-    PROFILE, REVEALED_AT, REVIEW_BRIEF, ROOT, TOTAL_CAP, SHA,
+    HOST_CONTRACT, PROFILE, REVEALED_AT, REVIEW_BRIEF, ROOT, TOTAL_CAP, SHA,
     attest_all, bundle, host_proof, passing_report, write_json,
 )
 
@@ -29,7 +29,7 @@ class FreshProcessTests(unittest.TestCase):
         )
         self.assertEqual(completed.returncode, 0, completed.stderr)
         raw = completed.stdout.encode()
-        proof = host_proof(unit, raw)
+        proof = host_proof(unit, raw, spec)
         record = attestation_from_raw(
             root=ROOT, product=selected, spec=spec, unit_id=unit["unit_id"], raw=raw,
             authority_sha256=SHA["a"], host_proof=proof,
@@ -44,6 +44,7 @@ class FreshProcessTests(unittest.TestCase):
             values = {
                 "product": selected, "previous": baseline, "profile": PROFILE,
                 "cap": TOTAL_CAP, "mapping": blind_mapping, "brief": REVIEW_BRIEF,
+                "host": HOST_CONTRACT,
             }
             paths = {}
             for name, value in values.items():
@@ -55,6 +56,7 @@ class FreshProcessTests(unittest.TestCase):
                     "--product", str(paths["product"]), "--previous-product", str(paths["previous"]),
                     "--profile", str(paths["profile"]), "--total-cap", str(paths["cap"]),
                     "--mapping", str(paths["mapping"]), "--review-brief", str(paths["brief"]),
+                    "--host-contract", str(paths["host"]),
                 ], cwd=ROOT, capture_output=True, text=True, check=False,
             )
         self.assertEqual(completed.returncode, 0, completed.stderr)
@@ -85,7 +87,7 @@ class FreshProcessTests(unittest.TestCase):
                     "python3", "-m", "evaluation.cli", "verify", "--repo", str(ROOT),
                     "--product", str(paths["product"]), "--previous-product", str(paths["previous"]),
                     "--spec", str(paths["spec"]), "--mapping", str(paths["mapping"]),
-                    "--revealed-at", REVEALED_AT, "--proof-verifier-command", "/usr/bin/true",
+                    "--revealed-at", REVEALED_AT, "--proof-verifier-command", str(ROOT / "tests" / "fake_proof_verifier.py"),
                     *repeated,
                 ], cwd=ROOT, capture_output=True, text=True, check=False,
             )
@@ -112,7 +114,7 @@ class FreshProcessTests(unittest.TestCase):
                     "--product", str(paths["product"]), "--previous-product", str(paths["previous"]),
                     "--spec", str(paths["spec"]), "--attestation", str(paths["attestation"]),
                     "--raw", f"{unit_id}={raw_path}", "--proof", f"{unit_id}={paths['proof']}",
-                    "--proof-verifier-command", "/usr/bin/false",
+                    "--proof-verifier-command", "/usr/bin/true",
                 ], cwd=ROOT, capture_output=True, text=True, check=False,
             )
         self.assertNotEqual(completed.returncode, 0)

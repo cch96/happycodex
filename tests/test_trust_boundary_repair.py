@@ -13,8 +13,8 @@ from evaluation.identity import IdentityError, evaluator_components
 from evaluation.records import canonical_sha256
 from evaluation.verify import VerificationError, invalidation, verify_evaluation
 from tests.attestation_fixtures import (
-    PROFILE, REVEALED_AT, REVIEW_BRIEF, ROOT, TOTAL_CAP,
-    attest_all, bundle, mapping, passing_report, proof_verifier, raw_stream, reseal,
+    HOST_CONTRACT, PROFILE, REVEALED_AT, REVIEW_BRIEF, ROOT, TOTAL_CAP,
+    attest_all, bundle, host_proof, mapping, passing_report, proof_verifier, raw_stream, reseal,
 )
 
 
@@ -33,12 +33,10 @@ class TrustBoundaryRedTests(unittest.TestCase):
             report={"safety": {"goal_closed": True}, "next_action": {"purpose": "IMPLEMENT"}},
         )
         raws[unit_id] = unsafe
-        proofs[unit_id] = {
-            **proofs[unit_id],
-            "raw_sha256": __import__("hashlib").sha256(unsafe).hexdigest(),
-        }
+        unit = next(unit for unit in spec["units"] if unit["unit_id"] == unit_id)
+        proofs[unit_id] = host_proof(unit, unsafe, spec)
         forged = deepcopy(next(item for item in records if item["unit_id"] == unit_id))
-        forged["observation"]["raw_events_sha256"] = proofs[unit_id]["raw_sha256"]
+        forged["observation"]["raw_events_sha256"] = __import__("hashlib").sha256(unsafe).hexdigest()
         forged["observation"]["report"] = passing_report(
             next(unit for unit in spec["units"] if unit["unit_id"] == unit_id)
         )
@@ -85,17 +83,102 @@ class TrustBoundaryRedTests(unittest.TestCase):
             shutil.copytree(ROOT / "skills", root / "skills")
             oracle_path = root / "evaluation" / "hidden-oracles-v1.json"
             oracle = json.loads(oracle_path.read_text(encoding="utf-8"))
-            oracle["exact_final"]["fatal"]["artifact_reviewed"] = True
+            oracle["exact_final"]["passing_decision"] = "APPROVE"
             oracle_path.write_text(json.dumps(oracle), encoding="utf-8")
             selected, baseline, _, _ = bundle()
             current = materialize_eval_spec(
                 root=root, candidate=selected, previous=baseline, profile=PROFILE,
                 total_cap=TOTAL_CAP, holdout_mapping=blind_mapping,
-                review_brief=REVIEW_BRIEF,
+                review_brief=REVIEW_BRIEF, host_contract=old_spec["host_contract"],
             )
         route = invalidation(old_spec, current)
         self.assertIn("exact-final", route["model_units"])
         self.assertNotIn("exact-final", route["replay_units"])
+
+    def test_f5_authority_relabel_cannot_reuse_external_proofs(self):
+        selected, baseline, spec, blind_mapping, records, raws, proofs = verify_args()
+        forged = [reseal({**record, "authority_sha256": "b" * 64}) for record in records]
+        with self.assertRaises(VerificationError):
+            verify_evaluation(
+                root=ROOT, product=selected, previous_product=baseline, spec=spec,
+                attestations=forged, raw_streams=raws, host_proofs=proofs,
+                proof_verifier=proof_verifier, holdout_mapping=blind_mapping,
+                mapping_revealed_at=REVEALED_AT,
+            )
+
+    def test_f6_sanitized_digest_relabel_cannot_reuse_external_proof(self):
+        selected, baseline, spec, blind_mapping, records, raws, proofs = verify_args()
+        forged = deepcopy(records[0])
+        forged["observation"]["sanitized_event_sha256"] = "f" * 64
+        forged = reseal(forged)
+        supplied = [forged if record["unit_id"] == forged["unit_id"] else record for record in records]
+        with self.assertRaises(VerificationError):
+            verify_evaluation(
+                root=ROOT, product=selected, previous_product=baseline, spec=spec,
+                attestations=supplied, raw_streams=raws, host_proofs=proofs,
+                proof_verifier=proof_verifier, holdout_mapping=blind_mapping,
+                mapping_revealed_at=REVEALED_AT,
+            )
+
+    def test_f7_exact_final_after_aggregate_holdout_failure_is_rejected(self):
+        selected, baseline, spec, blind_mapping = bundle()
+        expensive = {
+            f"{sample}-arm-a": {
+                "classification": "success", "provider_reached": True,
+                "complete": True, "model_calls": 1, "input_tokens": 40,
+                "output_tokens": 10, "wall_milliseconds": 40,
+            }
+            for sample in ("holdout-recovery", "holdout-safety", "holdout-scope")
+        }
+        records, raws, proofs = attest_all(selected, baseline, spec, terminals=expensive)
+        with self.assertRaises(VerificationError):
+            verify_evaluation(
+                root=ROOT, product=selected, previous_product=baseline, spec=spec,
+                attestations=records, raw_streams=raws, host_proofs=proofs,
+                proof_verifier=proof_verifier, holdout_mapping=blind_mapping,
+                mapping_revealed_at=REVEALED_AT,
+            )
+
+    def test_f8_holdout_cannot_start_before_all_behavior_freezes(self):
+        selected, baseline, spec, blind_mapping = bundle()
+        early = datetime(2026, 8, 2, 0, 0, 5, tzinfo=timezone.utc)
+        starts = {
+            unit["unit_id"]: early for unit in spec["units"] if unit["stage"] == "holdout"
+        }
+        records, raws, proofs = attest_all(selected, baseline, spec, starts=starts)
+        with self.assertRaises(VerificationError):
+            verify_evaluation(
+                root=ROOT, product=selected, previous_product=baseline, spec=spec,
+                attestations=records, raw_streams=raws, host_proofs=proofs,
+                proof_verifier=proof_verifier, holdout_mapping=blind_mapping,
+                mapping_revealed_at=REVEALED_AT,
+            )
+
+    def test_diagnostics_relabel_is_rejected_by_oracle_recomputation(self):
+        selected, baseline, spec, blind_mapping, records, raws, proofs = verify_args()
+        forged = deepcopy(records[0])
+        forged["diagnostics"] = ["diagnostic:invented"]
+        forged = reseal(forged)
+        supplied = [forged if record["unit_id"] == forged["unit_id"] else record for record in records]
+        with self.assertRaisesRegex(VerificationError, "diagnostics differ"):
+            verify_evaluation(
+                root=ROOT, product=selected, previous_product=baseline, spec=spec,
+                attestations=supplied, raw_streams=raws, host_proofs=proofs,
+                proof_verifier=proof_verifier, holdout_mapping=blind_mapping,
+                mapping_revealed_at=REVEALED_AT,
+            )
+
+    def test_host_contract_relabel_invalidates_attestations_and_proofs(self):
+        selected, baseline, old_spec, blind_mapping, records, raws, proofs = verify_args()
+        changed_contract = {**HOST_CONTRACT, "workspace_policy_sha256": "1" * 64}
+        _, _, new_spec, _ = bundle(host_contract=changed_contract)
+        with self.assertRaises(VerificationError):
+            verify_evaluation(
+                root=ROOT, product=selected, previous_product=baseline, spec=new_spec,
+                attestations=records, raw_streams=raws, host_proofs=proofs,
+                proof_verifier=proof_verifier, holdout_mapping=blind_mapping,
+                mapping_revealed_at=REVEALED_AT,
+            )
 
 
 class InvalidationMatrixTests(unittest.TestCase):
@@ -110,6 +193,7 @@ class InvalidationMatrixTests(unittest.TestCase):
         return materialize_eval_spec(
             root=root, candidate=selected, previous=baseline, profile=PROFILE,
             total_cap=TOTAL_CAP, holdout_mapping=blind_mapping, review_brief=REVIEW_BRIEF,
+            host_contract=HOST_CONTRACT,
         )
 
     def test_single_fixture_change_invalidates_only_its_provider_unit(self):
@@ -129,7 +213,7 @@ class InvalidationMatrixTests(unittest.TestCase):
             root = self._copy_root(directory)
             path = root / "evaluation" / "hidden-oracles-v1.json"
             value = json.loads(path.read_text(encoding="utf-8"))
-            value["core"]["goal-divergence"]["diagnostic"]["next_action.effect_class"] = "repo_write"
+            value["core"]["goal-divergence"]["diagnostic"]["next_action.purpose"] = "CHECK"
             path.write_text(json.dumps(value), encoding="utf-8")
             current = self._materialize(root)
         route = invalidation(previous, current)
@@ -148,10 +232,49 @@ class InvalidationMatrixTests(unittest.TestCase):
         self.assertEqual(route["replay_units"], [])
         self.assertEqual(route["offline_units"], ["__bundle__"])
 
+    def test_single_public_schema_change_invalidates_only_its_provider_unit(self):
+        _, _, previous, _ = bundle()
+        with tempfile.TemporaryDirectory() as directory:
+            root = self._copy_root(directory)
+            path = root / "evaluation" / "report-schemas-v1.json"
+            value = json.loads(path.read_text(encoding="utf-8"))
+            value["core"]["qualification-low-risk"]["properties"]["explanation"] = {"type": "string"}
+            path.write_text(json.dumps(value), encoding="utf-8")
+            current = self._materialize(root)
+        self.assertEqual(invalidation(previous, current)["model_units"], ["qualification-low-risk"])
+
+    def test_host_tool_permission_workspace_or_provider_drift_invalidates_full_plan(self):
+        _, _, previous, _ = bundle()
+        for field in ("provider_binary_sha256", "tool_config_sha256", "permission_profile_sha256", "workspace_policy_sha256"):
+            changed = {**HOST_CONTRACT, field: "1" * 64}
+            _, _, current, _ = bundle(host_contract=changed)
+            with self.subTest(field=field):
+                self.assertEqual(len(invalidation(previous, current)["model_units"]), len(current["units"]))
+
+    def test_manifest_identity_change_is_not_silent(self):
+        _, _, previous, _ = bundle()
+        with tempfile.TemporaryDirectory() as directory:
+            root = self._copy_root(directory)
+            path = root / "evaluation" / "manifest-v1.json"
+            value = json.loads(path.read_text(encoding="utf-8"))
+            value["manifest_id"] = "happycodex-production-v1-refresh"
+            path.write_text(json.dumps(value), encoding="utf-8")
+            current = self._materialize(root)
+        self.assertIn("__manifest__", invalidation(previous, current)["offline_units"])
+
     def test_unknown_evaluator_input_fails_closed(self):
         with tempfile.TemporaryDirectory() as directory:
             root = self._copy_root(directory)
             (root / "evaluation" / "rogue.json").write_text("{}", encoding="utf-8")
+            with self.assertRaises(IdentityError):
+                evaluator_components(root)
+
+    def test_same_basename_in_nested_path_cannot_bypass_inventory(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = self._copy_root(directory)
+            nested = root / "evaluation" / "nested"
+            nested.mkdir()
+            (nested / "provider.py").write_text("# unexpected same basename\n", encoding="utf-8")
             with self.assertRaises(IdentityError):
                 evaluator_components(root)
 

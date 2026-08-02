@@ -3,13 +3,11 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
-import subprocess
 from typing import Any
 
-from evaluation.host import reserve_claim
+from evaluation.host import load_proof_verifier, reserve_claim
 from evaluation.identity import evaluator_components, load_json, product_artifact_from_git
 from evaluation.manifest import materialize_eval_spec
-from evaluation.records import canonical_json
 from evaluation.records import RECORD_TYPES, validate_eval_spec, validate_record
 from evaluation.verify import verify_evaluation, verify_release
 
@@ -52,6 +50,8 @@ def request_command(args: argparse.Namespace) -> int:
             "scope": "evaluation",
             "authority_request_sha256": spec["authority_request_sha256"],
             "eval_spec_sha256": spec["record_sha256"],
+            "host_contract": spec["host_contract"],
+            "host_contract_sha256": spec["host_contract_sha256"],
             "total_cap": spec["total_cap"],
             "invocations": [
                 {"unit_id": unit["unit_id"], "invocation_sha256": unit["invocation_sha256"]}
@@ -70,6 +70,7 @@ def materialize_command(args: argparse.Namespace) -> int:
             profile=load_json(args.profile.resolve()), total_cap=load_json(args.total_cap.resolve()),
             holdout_mapping=load_json(args.mapping.resolve()),
             review_brief=load_json(args.review_brief.resolve()),
+            host_contract=load_json(args.host_contract.resolve()),
         )
     )
     return 0
@@ -85,26 +86,13 @@ def _named_paths(values: list[str], label: str) -> dict[str, Path]:
     return result
 
 
-def _proof_verifier(command: Path):
-    command = command.resolve()
-
-    def verify(proof: dict[str, Any], challenge: dict[str, Any]) -> bool:
-        completed = subprocess.run(
-            [str(command)], input=canonical_json({"proof": proof, "challenge": challenge}),
-            text=True, capture_output=True, check=False,
-        )
-        return completed.returncode == 0
-
-    return verify
-
-
-def _evidence(args: argparse.Namespace):
+def _evidence(args: argparse.Namespace, spec: dict[str, Any]):
     raw_paths = _named_paths(args.raw, "raw")
     proof_paths = _named_paths(args.proof, "proof")
     return (
         {unit_id: path.read_bytes() for unit_id, path in raw_paths.items()},
         {unit_id: load_json(path) for unit_id, path in proof_paths.items()},
-        _proof_verifier(args.proof_verifier_command),
+        load_proof_verifier(args.proof_verifier_command, spec["host_contract"]),
     )
 
 
@@ -114,7 +102,7 @@ def verify_command(args: argparse.Namespace) -> int:
     spec = validate_record(load_json(args.spec.resolve()))
     attestations = _records(args.attestation)
     mapping = load_json(args.mapping.resolve()) if args.mapping else None
-    raw_streams, host_proofs, proof_verifier = _evidence(args)
+    raw_streams, host_proofs, proof_verifier = _evidence(args, spec)
     result = verify_evaluation(
         root=args.repo.resolve(), product=product, spec=spec, attestations=attestations,
         raw_streams=raw_streams, host_proofs=host_proofs,
@@ -132,7 +120,7 @@ def release_command(args: argparse.Namespace) -> int:
     spec = validate_record(load_json(args.spec.resolve()))
     attestations = _records(args.attestation)
     mapping = load_json(args.mapping.resolve())
-    raw_streams, host_proofs, proof_verifier = _evidence(args)
+    raw_streams, host_proofs, proof_verifier = _evidence(args, spec)
     evaluation = verify_evaluation(
         root=args.repo.resolve(), product=product, spec=spec, attestations=attestations,
         raw_streams=raw_streams, host_proofs=host_proofs,
@@ -158,6 +146,7 @@ def record_command(args: argparse.Namespace) -> int:
 
 
 def claim_command(args: argparse.Namespace) -> int:
+    previous_spec = validate_record(load_json(args.previous_spec.resolve())) if args.previous_spec else None
     _print(
         reserve_claim(
             root=args.claim_root.resolve(), claim_key=args.claim_key,
@@ -165,8 +154,9 @@ def claim_command(args: argparse.Namespace) -> int:
             recovery_index=args.recovery_index, recovery_cap=args.recovery_cap,
             previous_raw=args.previous_raw.read_bytes() if args.previous_raw else None,
             previous_attestation=(validate_record(load_json(args.previous_attestation.resolve())) if args.previous_attestation else None),
+            previous_spec=previous_spec,
             previous_proof=(load_json(args.previous_proof.resolve()) if args.previous_proof else None),
-            proof_verifier=(_proof_verifier(args.proof_verifier_command) if args.proof_verifier_command else None),
+            proof_verifier=(load_proof_verifier(args.proof_verifier_command, previous_spec["host_contract"]) if args.proof_verifier_command and previous_spec else None),
         )
     )
     return 0
@@ -205,6 +195,7 @@ def parser() -> argparse.ArgumentParser:
     materialize.add_argument("--total-cap", type=Path, required=True)
     materialize.add_argument("--mapping", type=Path, required=True)
     materialize.add_argument("--review-brief", type=Path, required=True)
+    materialize.add_argument("--host-contract", type=Path, required=True)
     materialize.set_defaults(handler=materialize_command)
 
     verify = sub.add_parser("verify")
@@ -242,6 +233,7 @@ def parser() -> argparse.ArgumentParser:
     claim.add_argument("--recovery-cap", type=int, default=0)
     claim.add_argument("--previous-raw", type=Path)
     claim.add_argument("--previous-attestation", type=Path)
+    claim.add_argument("--previous-spec", type=Path)
     claim.add_argument("--previous-proof", type=Path)
     claim.add_argument("--proof-verifier-command", type=Path)
     claim.set_defaults(handler=claim_command)

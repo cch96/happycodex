@@ -46,47 +46,38 @@ has been implemented or certified.
   before creation. The new worktree was clean at the source commit before this
   plan was written.
 
-### Active grant: GRANT-03
+### Active grant: GRANT-04
 
-GRANT-03 is a bounded trust-boundary repair in the same working wave, owned by
-token `5a63e381-1ff8-4675-9c10-c81da14e1de2`. Exact prestate is commit
-`78883e1eed0b8a82e6b99a0b414f8a580691c5ef`, tree
-`2093d5148b10741f184989b88238b775ff31b328`, clean; preserved
-`skills/happycodex` tree is `d9e525a267fbf36669d409ba1b4b009a6beeeea5`.
-Writes remain limited to this plan, `AGENTS.md`, `evaluation/**`, `tests/**`,
-and this branch/ref, with at most two commits. Only offline subprocesses and
-temporary directories are allowed. Product/config bytes, provider/model/network
-calls, install/release/activation, other refs/worktrees, a fifth durable type,
-and a general scheduler/graph remain forbidden. This is the durable intent
-persisted before repair code.
+GRANT-04 is the final bounded host-contract closure in this working wave, owned
+by token `5a63e381-1ff8-4675-9c10-c81da14e1de2`. Exact clean prestate is commit
+`02cd5d4c7dd91fe21ebe77b539d1513c07797129`, tree
+`b1dabfb6dd87b13559be809664769db7bdd82736`; preserved `skills/happycodex`
+tree is `d9e525a267fbf36669d409ba1b4b009a6beeeea5`. Writes remain limited to this
+plan, `AGENTS.md`, `evaluation/**`, `tests/**`, and this branch, with one commit
+maximum. Offline/temp subprocesses are allowed; product/config changes,
+provider/model/network/install/release/activation effects, other refs, a fifth
+record, scheduler, graph, signing system, and PKI are forbidden. A same-family
+trust bypass or need for a wider trust system is an immediate `NOT YET` return.
+This is the durable intent persisted before GRANT-04 implementation.
 
-Root reproduced four falsifiers against the GRANT-02 checkpoint:
+Root reproduced four new falsifiers: `F5`, resealing every Attestation under a
+different authority still verifies; `F6`, resealing an arbitrary sanitized
+event digest still verifies; `F7`, exact-final may exist after a fixed-holdout
+aggregate resource failure; and `F8`, holdout may start before behavior freezes.
+The related source blockers are an arbitrary CLI proof-verifier executable,
+logical-only invocation identity, no provider-visible response schema, and
+stored diagnostics not checked against oracle recomputation.
 
-- `F1`: a directly sealed unsafe goal-divergence report verifies because the
-  verifier trusts stored verdict instead of raw external provenance and the
-  current hidden oracle.
-- `F2`: omitting holdout mapping/reveal still returns verified.
-- `F3`: exact-final may start before behavior outputs freeze.
-- `F4`: an exact-final oracle-only change is routed to unsupported behavior
-  replay.
-
-Related source gaps are in scope only as needed to close them: production lacks
-provider-visible fixtures/prompts, separated hidden oracle/scoring material,
-and a real spec materializer; tests substitute lambdas for the external-host
-boundary; one-shot state is only in memory; per-arm role config is not bound;
-and holdout scoring trusts model claims.
-
-The repair boundary is a read-only stateless verifier plus a small external-host
-contract. A versioned production manifest materializes exact units, stages,
-provider envelopes, dynamic neutral review brief, and authority request without
-exposing hidden material. Verification receives caller-supplied raw streams and
-an external proof verifier, reconstructs terminal/report, and evaluates current
-hidden oracles. A narrow atomic external claim helper reserves one-shot host
-effects across processes; claims are operational files, not durable records or
-certification input. A terminal prefix is valid evidence of stopped failure;
-successful completion still requires all behavior and fixed holdouts before
-exact-final. Behavior oracle-only changes replay; exact-final rubric/input
-changes require fresh exact-final.
+The finite repair adds one exact external-host contract to `EvalSpec`, binding
+trusted proof-verifier/provider binary, tool config, permission profile, and
+workspace/cwd policy identities. Its digest enters every invocation, authority
+request, Attestation proof challenge, and CLI executable verification. Public
+versioned report schemas enter the affected provider projection without hidden
+values. Proof challenges bind authority, spec/request, invocation/claim,
+raw/terminal/report/sanitized identities, artifact where applicable, and host
+contract. Verification enforces behavior freeze before holdout start and a
+successful six-arm reveal/oracle/aggregate decision before exact-final starts.
+Failure prefixes remain valid; no executor or model scheduler is introduced.
 
 ## Baseline
 
@@ -248,33 +239,32 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `candidate-ready`; GRANT-03 trust-boundary repair complete offline.
+- Phase: `candidate-pre-freeze`; GRANT-04 host-contract closure complete
+  offline. Candidate freeze and exact-final have not started.
 - Selected checkpoint source: `v0.6.5` commit/tree recorded above.
 - Baseline: one authorized run recorded above; unchanged 204/205 known failure.
-- Repair checkpoint source remains commit
-  `78883e1eed0b8a82e6b99a0b414f8a580691c5ef`, tree
-  `2093d5148b10741f184989b88238b775ff31b328`; the final repair commit is
-  recorded by Git after this receipt update.
-- Root falsifiers `F1`-`F4` were first run as a focused RED set: three errored
-  because the verifier had no raw/proof contract and exact-final oracle drift
-  was incorrectly routed to replay. After repair the same set was 4/4 GREEN;
-  the expanded focused invalidation/trust suite is 8/8 GREEN.
-- The first repair-wide run executed 46 tests: 37 passed, eight errored and one
-  failed. All nine symptoms had one cause: sanitization deleted the semantic
-  report field named `secret`, so the Attestation could not reproduce from its
-  external raw stream. Value-level redaction replaced key deletion. The final
-  cumulative command `python3 -m unittest discover -s tests -v` returned exit
-  `0`, `Ran 50 tests in 1.531s`, `OK`.
-- Implemented boundary: versioned manifest, provider-visible fixtures, hidden
-  oracle specifications, deterministic materialization, per-arm external role
-  config, stage-ordered full invocation envelopes, external JSONL raw/proof
-  verification, hidden-oracle recomputation, mandatory holdout reveal, strict
-  behavior-to-holdout-to-exact-final ordering, terminal failure prefixes, and
-  a cross-process atomic claim with proof-bound bounded no-effect recovery.
-  No model scheduler, signing system, PKI, graph, ledger, or fifth record was
-  added.
+- GRANT-04 exact prestate is the commit/tree in its active-grant section. Root
+  falsifiers `F5`-`F8` first ran 0/4: each failed because the expected
+  `VerificationError` was absent. The identical focused set is now 4/4 GREEN;
+  original `F1`-`F4` remain GREEN.
+- The final cumulative command
+  `python3 -m unittest discover -s tests -v` returned exit `0`, `Ran 62 tests
+  in 5.943s`, `OK`. It includes full raw-subprocess evidence, bound fake
+  verifier and unbound-binary refusal, claims/recovery, failure prefixes,
+  release refusal, public-schema/invalidation, stage-order, relabelling, and
+  diagnostics-tamper coverage.
+- GRANT-04 adds an exact host contract and public response schemas. Every unit,
+  authority request, and proof challenge binds the contract; the challenge
+  also binds authority, EvalSpec/request, invocation/claim, raw, terminal,
+  report, sanitized events, and exact artifact. The CLI hashes and checks the
+  configured verifier executable before use. Behavior must freeze before
+  holdout starts; holdout must freeze, reveal, and pass hidden/aggregate
+  judgment before exact-final. Aggregate failure without exact-final remains a
+  valid terminal prefix; an already-called exact-final is rejected.
+- No model scheduler, signing system, PKI, graph, ledger, gate family, or fifth
+  record was added.
 - Static evidence: `git diff --check` and Python compilation passed; evaluator
-  production Python is 1,927 lines, largest module 488 lines; plan remains
+  production Python is 2,083 lines, largest module 517 lines; plan remains
   below 3,000 words; durable type inventory is exactly four; unknown evaluator
   inputs fail closed; `skills/happycodex` remains
   `d9e525a267fbf36669d409ba1b4b009a6beeeea5` with no product diff.
@@ -286,5 +276,5 @@ These are planning boundaries, not authority under GRANT-01.
   activation remain unrun and unauthorized. This grant stops before
   exact-final.
 - Recovery: read this entire file, verify branch/worktree/source/status and
-  owner token and GRANT-03 prestate, then reconcile only authorized paths. Do
+  owner token and GRANT-04 prestate, then reconcile only authorized paths. Do
   not continue into effects from this grant or conversation context.

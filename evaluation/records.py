@@ -159,6 +159,18 @@ def _validate_cap(cap: dict[str, Any]) -> None:
         _integer(cap[field], f"total_cap.{field}")
 
 
+def _validate_host_contract(contract: dict[str, Any]) -> None:
+    _exact(
+        contract,
+        {"schema_version", "trust_domain", "proof_verifier_sha256", "provider_binary_sha256", "tool_config_sha256", "permission_profile_sha256", "workspace_policy_sha256"},
+        "host_contract",
+    )
+    _require(contract["schema_version"] == 1, "host contract schema differs")
+    _text(contract["trust_domain"], "host_contract.trust_domain")
+    for field in set(contract) - {"schema_version", "trust_domain"}:
+        _sha(contract[field], f"host_contract.{field}")
+
+
 def _validate_unit(unit: dict[str, Any]) -> None:
     _exact(
         unit,
@@ -173,10 +185,11 @@ def _validate_unit(unit: dict[str, Any]) -> None:
     _require(unit["order"] == {"behavior": 1, "holdout": 2, "exact_final": 3}[unit["stage"]], "unit stage order is invalid")
     for field in ("product_semantic_sha256", "external_role_config_sha256", "provider_input_sha256", "oracle_sha256", "harness_sha256", "invocation_sha256"):
         _sha(unit[field], f"unit.{field}")
-    _exact(unit["invocation"], {"unit_id", "stage", "product_semantic_sha256", "external_role_config_sha256", "provider_input", "model", "effort", "tools", "timeout_seconds", "claim_key"}, "unit.invocation")
+    _exact(unit["invocation"], {"unit_id", "stage", "product_semantic_sha256", "external_role_config_sha256", "host_contract_sha256", "provider_input", "model", "effort", "tools", "timeout_seconds", "claim_key"}, "unit.invocation")
     for field in ("unit_id", "stage", "product_semantic_sha256", "external_role_config_sha256"):
         _require(unit["invocation"][field] == unit[field], f"invocation {field} drift")
     _require(type(unit["invocation"]["provider_input"]) is dict, "invocation provider input must be an object")
+    _sha(unit["invocation"]["host_contract_sha256"], "invocation.host_contract_sha256")
     _require(canonical_sha256(unit["invocation"]["provider_input"]) == unit["provider_input_sha256"], "provider input digest mismatch")
     _validate_profile({key: unit["invocation"][key] for key in ("model", "effort", "tools", "timeout_seconds")})
     _sha(unit["invocation"]["claim_key"], "invocation.claim_key")
@@ -202,6 +215,8 @@ def evaluation_authority_request_payload(spec: dict[str, Any]) -> dict[str, Any]
         "product_semantic_sha256": spec["product_semantic_sha256"],
         "external_role_config_sha256": spec["external_role_config_sha256"],
         "evaluator_bundle_sha256": spec["evaluator_bundle_sha256"],
+        "host_contract": spec["host_contract"],
+        "host_contract_sha256": spec["host_contract_sha256"],
         "profile": spec["profile"],
         "invocations": [
             {"unit_id": unit["unit_id"], "stage": unit["stage"], "invocation": unit["invocation"], "invocation_sha256": unit["invocation_sha256"]}
@@ -223,6 +238,9 @@ def build_eval_spec(
     manifest_sha256: str,
     fixtures_sha256: str,
     oracles_sha256: str,
+    response_schemas_sha256: str,
+    host_contract: dict[str, Any],
+    host_contract_sha256: str,
     neutral_review_brief_sha256: str,
     profile: dict[str, Any],
     units: list[dict[str, Any]],
@@ -242,6 +260,9 @@ def build_eval_spec(
         "manifest_sha256": manifest_sha256,
         "fixtures_sha256": fixtures_sha256,
         "oracles_sha256": oracles_sha256,
+        "response_schemas_sha256": response_schemas_sha256,
+        "host_contract": host_contract,
+        "host_contract_sha256": host_contract_sha256,
         "neutral_review_brief_sha256": neutral_review_brief_sha256,
         "profile": profile,
         "units": units,
@@ -261,7 +282,8 @@ def validate_eval_spec(record: dict[str, Any]) -> dict[str, Any]:
             "external_role_config_sha256", "evaluator_bundle_sha256",
             "provider_component_sha256", "oracle_component_sha256",
             "harness_component_sha256", "manifest_sha256", "fixtures_sha256",
-            "oracles_sha256", "neutral_review_brief_sha256", "profile", "units", "holdouts",
+            "oracles_sha256", "response_schemas_sha256", "host_contract",
+            "host_contract_sha256", "neutral_review_brief_sha256", "profile", "units", "holdouts",
             "total_cap", "previous_product_record_sha256",
             "authority_request_sha256", "record_sha256",
         },
@@ -273,15 +295,18 @@ def validate_eval_spec(record: dict[str, Any]) -> dict[str, Any]:
         "evaluator_bundle_sha256", "provider_component_sha256",
         "oracle_component_sha256", "harness_component_sha256",
         "manifest_sha256", "fixtures_sha256", "oracles_sha256",
-        "neutral_review_brief_sha256",
+        "response_schemas_sha256", "host_contract_sha256", "neutral_review_brief_sha256",
         "previous_product_record_sha256", "authority_request_sha256",
     ):
         _sha(record[field], field)
+    _validate_host_contract(record["host_contract"])
+    _require(record["host_contract_sha256"] == canonical_sha256(record["host_contract"]), "host contract digest mismatch")
     _validate_profile(record["profile"])
     _validate_cap(record["total_cap"])
     _require(type(record["units"]) is list and bool(record["units"]), "EvalSpec units must be non-empty")
     for unit in record["units"]:
         _validate_unit(unit)
+        _require(unit["invocation"]["host_contract_sha256"] == record["host_contract_sha256"], "unit host contract differs")
     unit_ids = [unit["unit_id"] for unit in record["units"]]
     expected_order = [
         unit["unit_id"]
