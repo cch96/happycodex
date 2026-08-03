@@ -4,6 +4,7 @@ import hashlib
 import json
 from pathlib import Path
 import stat
+import subprocess
 from typing import Any, Callable
 
 from evaluation.records import (
@@ -77,6 +78,131 @@ def _frozen_tree(root: Path) -> Path:
     return root
 
 
+def _source_git(root: Path, *args: str) -> str:
+    completed = subprocess.run(
+        ["git", "-C", str(root), *args], capture_output=True, text=True,
+        check=False,
+        env={
+            "PATH": "/usr/bin:/bin", "LC_ALL": "C",
+            "GIT_CONFIG_GLOBAL": "/dev/null", "GIT_CONFIG_NOSYSTEM": "1",
+            "GIT_OPTIONAL_LOCKS": "0",
+        },
+    )
+    if completed.returncode:
+        raise ProviderError(f"exact-final Git validation failed: {' '.join(args)}")
+    return completed.stdout
+
+
+def _git_blob_sha(body: bytes) -> str:
+    return hashlib.sha1(b"blob " + str(len(body)).encode() + b"\0" + body).hexdigest()
+
+
+def _private_oracle_metadata(path: Path) -> tuple[dict[str, Any], bytes]:
+    private = _private_path(path, directory=False)
+    if private.name != "hidden-oracles-v1.json" or private.parent.name != "evaluation":
+        raise ProviderError("private hidden oracle path differs")
+    body = private.read_bytes()
+    return {
+        "path": "evaluation/hidden-oracles-v1.json", "git_mode": "100644",
+        "git_object": _git_blob_sha(body), "sha256": hashlib.sha256(body).hexdigest(),
+        "size_bytes": len(body),
+    }, body
+
+
+def _reject_oracle_diff(diff: bytes, oracle: bytes) -> None:
+    private_path = b"evaluation/hidden-oracles-v1.json"
+    if private_path in diff or oracle in diff:
+        raise ProviderError("hidden oracle reached exact-final diff")
+    for prefix in (b"+", b"-", b" "):
+        header = {b"+": b"+++ ", b"-": b"--- "}.get(prefix)
+        payload = b"".join(
+            line[1:] for line in diff.splitlines(keepends=True)
+            if line.startswith(prefix) and (header is None or not line.startswith(header))
+        )
+        if oracle in payload:
+            raise ProviderError("hidden oracle content reached exact-final diff")
+
+
+def exact_final_source_identity(root: Path, private_oracle_path: Path) -> str:
+    root = _frozen_tree(root)
+    if not (root / ".git").is_dir() or (root / ".git").is_symlink():
+        raise ProviderError("exact-final Git metadata is not self-contained")
+    status = _source_git(
+        root, "status", "--porcelain=v1", "--untracked-files=all", "--ignored=matching",
+    )
+    if status:
+        raise ProviderError("exact-final source is not one clean synthetic commit")
+    if Path(_source_git(root, "rev-parse", "--show-toplevel").strip()) != root:
+        raise ProviderError("exact-final Git root differs")
+    head = _source_git(root, "rev-parse", "HEAD").strip()
+    commits = _source_git(root, "rev-list", "--all").splitlines()
+    refs = _source_git(root, "for-each-ref", "--format=%(refname)").splitlines()
+    symbolic = _source_git(root, "symbolic-ref", "-q", "HEAD").strip()
+    if commits != [head] or refs != ["refs/heads/exact-final"] or symbolic != refs[0]:
+        raise ProviderError("exact-final source is not one clean synthetic commit")
+    if _source_git(root, "remote").strip():
+        raise ProviderError("exact-final source has a remote")
+    if _source_git(root, "rev-parse", "--show-object-format").strip() != "sha1":
+        raise ProviderError("exact-final Git object format differs")
+    config_lines = _source_git(root, "config", "--local", "--get-regexp", ".*").splitlines()
+    config = [line.split(None, 1) for line in config_lines]
+    if config != [
+        ["core.repositoryformatversion", "0"], ["core.filemode", "true"],
+        ["core.bare", "false"], ["core.logallrefupdates", "true"],
+    ]:
+        raise ProviderError("exact-final Git config differs")
+    if (root / ".git/objects/info/alternates").exists() or _source_git(root, "fsck", "--full", "--no-reflogs", "--unreachable").strip():
+        raise ProviderError("exact-final Git objects are not self-contained")
+    if set(_source_git(root, "reflog", "--all", "--format=%H").splitlines()) != {head}:
+        raise ProviderError("exact-final Git reflog differs")
+    tracked = sorted(_source_git(root, "ls-files").splitlines())
+    visible = sorted(
+        path.relative_to(root).as_posix()
+        for path in root.rglob("*")
+        if path.is_file() and ".git" not in path.relative_to(root).parts
+    )
+    support = {"EXACT_FINAL_DIFF.patch", "EXACT_FINAL_SOURCE_MANIFEST.json"}
+    if visible != tracked or not support.issubset(tracked):
+        raise ProviderError("exact-final support files are not fully tracked")
+    hidden = "evaluation/hidden-oracles-v1.json"
+    if hidden in tracked or (root / hidden).exists():
+        raise ProviderError("hidden oracle reached exact-final workspace")
+    manifest_path, diff_path = root / "EXACT_FINAL_SOURCE_MANIFEST.json", root / "EXACT_FINAL_DIFF.patch"
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ProviderError("exact-final source manifest is invalid") from exc
+    if type(manifest) is not dict or type(manifest.get("projection")) is not dict:
+        raise ProviderError("exact-final source manifest fields differ")
+    expected_private, oracle = _private_oracle_metadata(private_oracle_path)
+    if manifest.get("private_exclusion") != expected_private:
+        raise ProviderError("hidden oracle private exclusion differs")
+    if hidden in canonical_json(manifest["projection"]):
+        raise ProviderError("hidden oracle is listed in reviewer projection")
+    diff = diff_path.read_bytes()
+    aggregate = manifest.get("aggregate_diff")
+    if type(aggregate) is not dict or aggregate.get("path") != diff_path.name or aggregate.get("sha256") != hashlib.sha256(diff).hexdigest() or aggregate.get("size_bytes") != len(diff):
+        raise ProviderError("exact-final aggregate diff identity differs")
+    _reject_oracle_diff(diff, oracle)
+    entries = []
+    for path in [root, *sorted(root.rglob("*"))]:
+        if path.is_symlink():
+            raise ProviderError("exact-final source contains a symlink")
+        relative = "." if path == root else path.relative_to(root).as_posix()
+        mode = f"{stat.S_IMODE(path.stat().st_mode):04o}"
+        if path.is_dir():
+            entries.append({"path": relative, "kind": "directory", "mode": mode})
+        elif path.is_file():
+            body = path.read_bytes()
+            entries.append({
+                "path": relative, "kind": "file", "mode": mode,
+                "sha256": hashlib.sha256(body).hexdigest(), "size_bytes": len(body),
+            })
+        else:
+            raise ProviderError("exact-final source contains a special file")
+    return canonical_sha256(entries)
+
+
 def _validate_external_role(
     path: Path, *, expected_sha256: str, instruction: str, model: str, effort: str,
 ) -> Path:
@@ -103,7 +229,7 @@ def _validate_external_role(
 
 def build_fixed_host_policy(
     *, execution_root: Path, binary_path: Path, external_role_config_path: Path,
-    exact_final_source: Path, holdout_mapping_path: Path,
+    exact_final_source: Path, holdout_mapping_path: Path, private_oracle_path: Path,
     behavior_developer_instructions: str = BEHAVIOR_DEVELOPER_INSTRUCTIONS,
     behavior_model: str = "gpt-5.6-sol", behavior_effort: str = "high",
 ) -> dict[str, Any]:
@@ -111,6 +237,8 @@ def build_fixed_host_policy(
     binary = _executable_file(binary_path)
     role = _private_path(external_role_config_path, directory=False, mode=0o600)
     snapshot = _frozen_tree(exact_final_source)
+    private_oracle = _private_path(private_oracle_path, directory=False)
+    snapshot_sha256 = exact_final_source_identity(snapshot, private_oracle)
     mapping_path = _private_path(holdout_mapping_path, directory=False, mode=0o600)
     role_sha256 = _file_sha(role)
     _validate_external_role(
@@ -123,6 +251,9 @@ def build_fixed_host_policy(
         "execution_root": str(execution), "units_root": child("units"),
         "raw_root": child("raw"), "attestations_root": child("attestations"),
         "claims_root": child("claims"), "exact_final_source": str(snapshot),
+        "exact_final_source_sha256": snapshot_sha256,
+        "private_oracle_path": str(private_oracle),
+        "private_oracle_sha256": _file_sha(private_oracle),
         "holdout_mapping_path": str(mapping_path),
         "holdout_mapping_sha256": canonical_sha256(json.loads(mapping_path.read_text(encoding="utf-8"))),
         "directory_mode": "0700", "private_file_mode": "0600",
@@ -178,7 +309,9 @@ def host_contract_from_policy(policy: dict[str, Any]) -> dict[str, Any]:
     }
     workspace_fields = {
         "execution_root", "units_root", "raw_root", "attestations_root", "claims_root",
-        "exact_final_source", "holdout_mapping_path", "holdout_mapping_sha256",
+        "exact_final_source", "exact_final_source_sha256",
+        "private_oracle_path", "private_oracle_sha256",
+        "holdout_mapping_path", "holdout_mapping_sha256",
         "directory_mode", "private_file_mode", "frozen_directory_mode", "frozen_file_mode",
         "claim_filename", "raw_filename", "attestation_filename", "auth_staging_filename",
         "behavior_workspace", "exact_final_workspace", "mapping_reveal",
@@ -207,6 +340,10 @@ def host_contract_from_policy(policy: dict[str, Any]) -> dict[str, Any]:
         raise ProviderError("host stage cwd policy differs")
     if policy["workspace_policy"]["claim_filename"] != "{effective_claim_key}.json" or policy["workspace_policy"]["mapping_reveal"] != "after-six-durable-attestations":
         raise ProviderError("host transaction path policy differs")
+    workspace = policy["workspace_policy"]
+    private_oracle = Path(workspace["private_oracle_path"])
+    if _file_sha(private_oracle) != workspace["private_oracle_sha256"] or exact_final_source_identity(Path(workspace["exact_final_source"]), private_oracle) != workspace["exact_final_source_sha256"]:
+        raise ProviderError("exact-final source identity drift")
     return {
         "schema_version": 2, "trust_domain": policy["trust_domain"],
         "provider_binary_sha256": provider["binary_sha256"],

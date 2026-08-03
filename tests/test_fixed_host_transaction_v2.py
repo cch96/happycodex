@@ -41,6 +41,92 @@ def _mode(path: Path) -> int:
     return stat.S_IMODE(path.stat().st_mode)
 
 
+def _git_blob_sha(body: bytes) -> str:
+    return hashlib.sha1(b"blob " + str(len(body)).encode() + b"\0" + body).hexdigest()
+
+
+def _freeze_tree(root: Path) -> None:
+    for path in root.rglob("*"):
+        if path.is_file():
+            path.chmod(0o500 if path.stat().st_mode & 0o111 else 0o400)
+    for path in sorted(
+        (item for item in root.rglob("*") if item.is_dir()),
+        key=lambda item: len(item.parts), reverse=True,
+    ):
+        path.chmod(0o500)
+    root.chmod(0o500)
+
+
+def _synthetic_snapshot(
+    base: Path, *, hidden_file: bool = False, hidden_diff: bool = False,
+    untracked_support: bool = False,
+) -> tuple[Path, Path]:
+    snapshot = base / "execution" / "exact-final-source"
+    snapshot.mkdir(mode=0o700)
+    oracle = base / "private" / "evaluation" / "hidden-oracles-v1.json"
+    oracle.parent.mkdir(parents=True)
+    oracle.write_bytes((ROOT / "evaluation" / "hidden-oracles-v1.json").read_bytes())
+    body = oracle.read_bytes()
+    readme = snapshot / "README.md"
+    readme.write_text("frozen exact-final source\n", encoding="utf-8")
+    diff = snapshot / "EXACT_FINAL_DIFF.patch"
+    if hidden_diff:
+        diff.write_bytes(
+            b"diff --git a/public-copy.json b/public-copy.json\n"
+            b"--- a/public-copy.json\n+++ b/public-copy.json\n@@ -1,22 +1,22 @@\n"
+            + b"".join(b" " + line for line in body.splitlines(keepends=True))
+            + b"-old trailer\n+new trailer\n"
+        )
+    else:
+        diff.write_bytes(
+            b"diff --git a/README.md b/README.md\n--- a/README.md\n+++ b/README.md\n"
+        )
+    private = {
+        "path": "evaluation/hidden-oracles-v1.json", "git_mode": "100644",
+        "git_object": _git_blob_sha(body), "sha256": hashlib.sha256(body).hexdigest(),
+        "size_bytes": len(body),
+    }
+    manifest = {
+        "aggregate_diff": {
+            "path": diff.name, "sha256": hashlib.sha256(diff.read_bytes()).hexdigest(),
+            "size_bytes": diff.stat().st_size,
+        },
+        "private_exclusion": private,
+        "projection": {"included_paths": ["README.md"], "file_count": 1},
+        "source_commit": "1" * 40, "source_tree": "2" * 40,
+    }
+    (snapshot / "EXACT_FINAL_SOURCE_MANIFEST.json").write_text(
+        json.dumps(manifest, sort_keys=True, indent=2) + "\n", encoding="utf-8",
+    )
+    if hidden_file:
+        path = snapshot / private["path"]
+        path.parent.mkdir(parents=True)
+        path.write_bytes(body)
+    subprocess.run(
+        ["git", "init", "-q", "-b", "exact-final", str(snapshot)],
+        check=True, env={"PATH": "/usr/bin:/bin", "LC_ALL": "C"},
+    )
+    subprocess.run(
+        ["git", "-C", str(snapshot), "add", "README.md"] if untracked_support else
+        ["git", "-C", str(snapshot), "add", "-A"], check=True,
+        env={"PATH": "/usr/bin:/bin", "LC_ALL": "C"},
+    )
+    commit_env = {
+        "PATH": "/usr/bin:/bin", "LC_ALL": "C",
+        "GIT_AUTHOR_NAME": "Exact Final", "GIT_AUTHOR_EMAIL": "exact@invalid",
+        "GIT_AUTHOR_DATE": "2000-01-01T00:00:00Z",
+        "GIT_COMMITTER_NAME": "Exact Final", "GIT_COMMITTER_EMAIL": "exact@invalid",
+        "GIT_COMMITTER_DATE": "2000-01-01T00:00:00Z",
+    }
+    subprocess.run(
+        ["git", "-C", str(snapshot), "-c", "commit.gpgSign=false", "commit", "-q", "-m", "Frozen exact-final projection"],
+        check=True, env=commit_env,
+    )
+    _freeze_tree(snapshot)
+    oracle.chmod(0o400)
+    return snapshot, oracle
+
+
 class ReproducedBlockerTests(unittest.TestCase):
     def test_every_provider_object_is_closed_and_exactly_required(self):
         schemas = json.loads((ROOT / "evaluation" / "report-schemas-v1.json").read_text())
@@ -126,8 +212,7 @@ class FixedHostTransactionTests(unittest.TestCase):
             execution / "attestations", execution / "claims",
         ):
             path.mkdir(mode=0o700)
-        snapshot = execution / "exact-final-source"
-        snapshot.mkdir(mode=0o500)
+        snapshot, private_oracle = _synthetic_snapshot(base)
         role = base / "executor.toml"
         role.write_text(
             'name = "happycodex_executor"\n'
@@ -148,7 +233,8 @@ class FixedHostTransactionTests(unittest.TestCase):
         policy = build_fixed_host_policy(
             execution_root=execution, binary_path=binary,
             external_role_config_path=role, exact_final_source=snapshot,
-            holdout_mapping_path=mapping_path, behavior_model="gpt-fake",
+            holdout_mapping_path=mapping_path, private_oracle_path=private_oracle,
+            behavior_model="gpt-fake",
         )
         contract = host_contract_from_policy(policy)
         selected = product(role=role_sha)
@@ -165,6 +251,90 @@ class FixedHostTransactionTests(unittest.TestCase):
             "nonce": "n", "signature": "s",
         }
         return supplied, canonical_sha256(supplied), f"APPROVE HAPPYCODEX EVALUATION {spec['authority_request_sha256']}"
+
+    def test_exact_final_source_is_clean_fully_bound_and_relocation_invariant(self):
+        from evaluation.provider import exact_final_source_identity
+
+        with tempfile.TemporaryDirectory() as directory:
+            execution, _, _, policy, _, _, _, _ = self._inputs(directory)
+            source = Path(policy["workspace_policy"]["exact_final_source"])
+            private = Path(policy["workspace_policy"]["private_oracle_path"])
+            self.assertEqual(
+                subprocess.check_output(
+                    ["git", "-C", str(source), "status", "--porcelain=v1"], text=True,
+                    env={"PATH": "/usr/bin:/bin", "LC_ALL": "C"},
+                ),
+                "",
+            )
+            self.assertEqual(
+                set(subprocess.check_output(
+                    ["git", "-C", str(source), "ls-files"], text=True,
+                    env={"PATH": "/usr/bin:/bin", "LC_ALL": "C"},
+                ).splitlines()),
+                {"README.md", "EXACT_FINAL_DIFF.patch", "EXACT_FINAL_SOURCE_MANIFEST.json"},
+            )
+            relocated = Path(directory) / "relocated"
+            shutil.copytree(source, relocated)
+            self.assertEqual(
+                policy["workspace_policy"]["exact_final_source_sha256"],
+                exact_final_source_identity(relocated, private),
+            )
+            self.assertEqual(list((execution / "units").iterdir()), [])
+
+    def test_exact_final_source_rejects_untracked_support_and_hidden_oracle(self):
+        from evaluation.provider import ProviderError, exact_final_source_identity
+
+        with tempfile.TemporaryDirectory() as directory:
+            execution, _, _, policy, _, _, _, _ = self._inputs(directory)
+            source = Path(policy["workspace_policy"]["exact_final_source"])
+            private = Path(policy["workspace_policy"]["private_oracle_path"])
+            source.chmod(0o700)
+            untracked = source / "UNTRACKED"
+            untracked.write_text("not bound\n", encoding="utf-8"); untracked.chmod(0o400)
+            source.chmod(0o500)
+            with self.assertRaisesRegex(ProviderError, "clean synthetic commit"):
+                exact_final_source_identity(source, private)
+            self.assertEqual(list((execution / "claims").iterdir()), [])
+
+        for exposure in ("file", "diff"):
+            with self.subTest(exposure=exposure), tempfile.TemporaryDirectory() as directory:
+                base = Path(directory); (base / "execution").mkdir(mode=0o700)
+                source, private = _synthetic_snapshot(
+                    base, hidden_file=exposure == "file", hidden_diff=exposure == "diff",
+                )
+                with self.assertRaisesRegex(ProviderError, "hidden oracle"):
+                    exact_final_source_identity(source, private)
+
+        with tempfile.TemporaryDirectory() as directory:
+            base = Path(directory); (base / "execution").mkdir(mode=0o700)
+            source, private = _synthetic_snapshot(base, untracked_support=True)
+            with self.assertRaisesRegex(ProviderError, "clean synthetic commit"):
+                exact_final_source_identity(source, private)
+
+    def test_post_policy_source_or_git_config_mutation_stops_before_effect(self):
+        from evaluation.host import execute_fixed_host_transaction
+        from evaluation.provider import ProviderError
+
+        for relative in (Path("README.md"), Path(".git/config")):
+            with self.subTest(relative=str(relative)), tempfile.TemporaryDirectory() as directory:
+                execution, _, _, policy, selected, baseline, spec, _ = self._inputs(directory)
+                source = Path(policy["workspace_policy"]["exact_final_source"])
+                target = source / relative
+                source.chmod(0o700); target.parent.chmod(0o700); target.chmod(0o600)
+                target.write_bytes(target.read_bytes() + b"\nmutated\n")
+                target.chmod(0o400); target.parent.chmod(0o500); source.chmod(0o500)
+                supplied, _, line = self._authority(spec)
+                with self.assertRaisesRegex(ProviderError, "clean synthetic commit|Git config differs|identity drift"):
+                    execute_fixed_host_transaction(
+                        repo_root=ROOT, product=selected, previous_product=baseline,
+                        spec=spec, unit_id="goal-divergence", policy=policy,
+                        authority_line=line, supplied_authority=supplied,
+                        authenticate_line=lambda *_args: self.fail("authority accepted"),
+                        provider_auth=b"private-auth",
+                        run_provider=lambda **_kwargs: self.fail("provider reached"),
+                    )
+                self.assertEqual(list((execution / "units").iterdir()), [])
+                self.assertEqual(list((execution / "claims").iterdir()), [])
 
     def _persist(self, execution, selected, baseline, spec, unit_ids, authority, *, terminal_values=None, reports=None):
         for unit in spec["units"]:
@@ -514,14 +684,16 @@ class FixedHostTransactionTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             execution, _, _, policy, selected, baseline, spec, _ = self._inputs(directory)
             supplied, _, line = self._authority(spec)
-            with patch("evaluation.host.subprocess.Popen", side_effect=OSError("spawn blocked")):
-                result = execute_fixed_host_transaction(
-                    repo_root=ROOT, product=selected, previous_product=baseline,
-                    spec=spec, unit_id="goal-divergence", policy=policy,
-                    authority_line=line, supplied_authority=supplied,
-                    authenticate_line=lambda actual, _value: actual == line,
-                    provider_auth=b"private-auth",
-                )
+            def blocked_provider(**_kwargs):
+                raise OSError("spawn blocked")
+
+            result = execute_fixed_host_transaction(
+                repo_root=ROOT, product=selected, previous_product=baseline,
+                spec=spec, unit_id="goal-divergence", policy=policy,
+                authority_line=line, supplied_authority=supplied,
+                authenticate_line=lambda actual, _value: actual == line,
+                provider_auth=b"private-auth", run_provider=blocked_provider,
+            )
             self.assertEqual(result["attestation"]["terminal"]["classification"], "infrastructure_no_effect")
             self.assertEqual(len(list((execution / "claims").iterdir())), 1)
             self.assertEqual(len(list((execution / "raw").iterdir())), 1)
