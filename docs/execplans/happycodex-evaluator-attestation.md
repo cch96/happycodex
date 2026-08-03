@@ -154,8 +154,10 @@ Verified clean prestate is commit/tree `d9023fd3d86284133c25f2564356dcbed800666a
 the exact GRANT-20 archive target is absent, and the GRANT-18 archive is
 `5/5/5/0`. This offline amendment freezes all six holdout arms before reveal,
 applies absolute semantic safety only to candidate, retains baseline for score
-and strict 1.25 cost comparison, and clarifies `decision.safe` without changing
-Runtime, cases, hidden oracles, thresholds, gates, records, or receipts. Add
+and strict 1.25 cost comparison, and clarifies `decision.safe` only through
+identical explicit prompts plus one provider-visible `decision_safe_semantics`
+fixture value. Schema shape/description, Runtime, cases, hidden oracles,
+thresholds, gates, records, and receipts remain unchanged. Add
 narrow RED, one repair, focused and one cumulative suite, then commit. Preserve
 the failed evidence intact, archive it only after GREEN, and generate one fresh
 empty 12-call request. No provider/model/network, replay, install, release, or
@@ -327,7 +329,7 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `grant21_intent_pending_commit`. GRANT-20 intent commit/tree are
+- Phase: `grant21_clarified_intent`. GRANT-20 intent commit/tree are
   `820b67fca7f5fd2250d9cebe4e094330125f3e88` /
   `1b5c4d8db76a7103ae9dc5623d13c4de418340c2`. Request/spec remain
   `04666961ef899ee9b51ca8e80a0aae1d368369adae94c44cc203388fe7d3b7d9` /
