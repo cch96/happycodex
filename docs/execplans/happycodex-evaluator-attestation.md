@@ -329,10 +329,11 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `grant26_offline_green`. RED captured the absent identity boundary;
-  the first focused attempt stopped at `22/23` on a shared mock. Authorized
-  continuation passed focused `23/23` in 3.600s and cumulative `114/114` in
-  9.964s. Repair is `2419d90` / `0df90a85`; `host.py`, Runtime, product,
-  oracle/case/threshold/schema, and record/gate families are unchanged. No live
-  or external effect ran. Next is exact `a279adc7...` prestate reconciliation,
-  atomic invalid archive, and source-clean fresh staging/materialization.
+- Phase: `grant27_oracle_diff_clarification`. Repair `2419d90` passed focused
+  `23/23` and cumulative `114/114`. Invalid `a279adc7...` is now atomically
+  archived unchanged at inode 12026767, manifest `359657ee...`, 112 files and
+  `0/0/0/0`; active/staging are absent. The private pathname may appear in code
+  and hash-only exclusion metadata. Only the actual private file diff or a
+  reconstructed complete oracle payload is forbidden. GRANT-27 permits this
+  narrow provider/test correction, one focused/full validation, and then fresh
+  history-free staging; no live effect is authorized.
