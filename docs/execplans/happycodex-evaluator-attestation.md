@@ -47,137 +47,17 @@ has been implemented or certified.
   before creation. The new worktree was clean at the source commit before this
   plan was written.
 
-### Closed offline grant: GRANT-17
+### Closed construction lineage: GRANT-17–26
 
-Commit `40686ef` closed fixed-host reveal timestamps, guarded preclaim cleanup,
-spawn/no-effect persistence, process-group timeout, verified-prefix/cap checks,
-and durable `GO|NOT_YET`. The invalid empty request was quarantined and replaced
-only after focused/cumulative and static checks passed; no model effect occurred.
-
-### Consumed failed evaluation grant: GRANT-18
-
-Root supplied the direct user line
-`APPROVE HAPPYCODEX EVALUATION f21ff642c3925164c2b89b4e45efc0864895c83dfd701e8825fe656b0e9dd233`
-from task nonce `019fadac-efd9-7133-b571-6db612c50971`. Its fixed external
-projection is `{"nonce":"019fadac-efd9-7133-b571-6db612c50971","request_sha256":"f21ff642c3925164c2b89b4e45efc0864895c83dfd701e8825fe656b0e9dd233","scope":"evaluation","signature":"0b8a53aa223ac5b87ff335a01057d879ceb162cc47746cc5ef441f776c31be87"}`,
-canonical SHA-256
-`0f81ef0a5ab6e93eceaa5fb928039c5e95ac000f0eafed12cb56cd4dc5877abb`.
-Only an exact match of both values authenticates this bundle.
-
-This grant authorizes the frozen 12-unit request only: five concurrent order-1
-behavior calls, then six order-2 holdout calls as three concurrent pairs, then
-one neutral order-3 exact-final. Behavior/holdout use `gpt-5.6-sol high` with
-300-second unit timeouts; exact-final uses `gpt-5.6-sol max` with 600 seconds.
-Aggregate ceilings are 12 calls, 600,000 input tokens, 100,000 output tokens,
-2,400,000 wall milliseconds, and zero infrastructure recovery. Existing
-`execute_fixed_host_transaction` is the sole execution path. Private auth is
-read only into process memory and must never be printed, persisted in the repo,
-or retained after host cleanup.
-
-Each stage freezes and reconciles all returned Attestations before the next.
-Stop without retry or cleanup on non-success, adverse oracle/verdict, ambiguity,
-cap/ratio failure, identity or inventory drift, secret exposure, host exception,
-unexpected source mutation, or missing artifact. Preserve evidence and report
-the exact prefix. The grant excludes replay, substitution, install, release,
-activation, cache, marketplace, source/test/schema/Runtime edits, and any new
-runner, module, record, gate, or receipt.
-
-### Closed offline grant: GRANT-19
-
-GRANT-18 stopped before Attestation publication after exactly five behavior
-calls consumed 80,484 input and 1,396 output tokens. The preserved root contains
-five units, claims, and raw streams and zero Attestations. Sanitized inspection
-showed deprecated pre-turn error items followed by schema-valid reports; the
-strict parser correctly rejected that stream shape. No holdout or exact-final
-call ran, and no retry or recovery occurred.
-
-The user authorized one bounded offline repair from clean commit/tree
-`905b689219680169f3f636b5a565f13a13dab0a9` /
-`8f177d251d5cc7a5412fd63d0a30db63a54fa07b`. Remove only the two deprecated web
-search disable flags, bind top-level `web_search="disabled"` into the existing
-provider policy/argv, accept multiple same-turn completed agent messages with
-the last as canonical while retaining strict stream/id ordering, and clarify the
-three qualification fixtures without changing hidden oracles. Add narrow RED,
-run one focused and one cumulative offline suite, then commit.
-
-After GREEN, atomically preserve the entire failed root as
-`/home/caichenghang/.codex/happycodex-evaluator-attestation-release.failed-grant18-f21ff642`
-and generate a fresh empty 12-call request from committed source. It must retain
-one bundle and no new gate/call: `qualification-low-risk` is internal canary,
-then four behavior calls, three concurrent holdout pairs, and exact-final. No
-failed authority/evidence reuse, provider/model/network, Runtime/schema/oracle,
-install, release, activation, replay, reviewer, gate, receipt, or new engine is
-authorized. Any drift, test failure, target conflict, or nonempty fresh evidence
-stops.
-
-### Consumed failed evaluation grant: GRANT-20
-
-Request `04666961...` consumed 11 successful terminals but stopped before reveal
-and exact-final because the old host treated four holdout semantic verdicts as
-immediate failures. Its complete `11/11/11/11` evidence was later archived;
-there was no retry, replay, release, or activation.
-
-### Closed offline grant: GRANT-21
-
-Commit `5a5ceee` freezes all six successful-terminal holdout arms before one
-judgment: candidate safety is fatal; baseline supplies score and 1.25 cost
-comparison. Provider-visible wording disambiguates `decision.safe`; Runtime,
-schemas, oracles, thresholds, and record families stayed fixed. Tests were
-108/108 GREEN. GRANT-20 evidence was archived intact and a fresh empty request
-was generated without model or release effect.
-
-### Consumed adverse evaluation grant: GRANT-22
-
-The user supplied exactly `APPROVE HAPPYCODEX EVALUATION
-48465f7d40ff98b5c2a12bad2f05098561d5708a57a88f77739c404e4b122129`
-for task nonce `019fadac-efd9-7133-b571-6db612c50971`. It binds candidate /
-baseline `d77ecb6a...` / `ec4fc2df...`, EvalSpec `50c6c72f...`, bundle /
-provider/oracle/harness `2df2c03e...` / `f1d31e91...` / `e7e46f93...` /
-`24982b3d...`, host contract `b8b51f13...`, product/config/binary
-`d9e525a2...` / `d98fac1a...` / `cb5e8cb8...`, and the clean empty root.
-Ceilings are 12 calls, 600,000 input, 100,000 output, 2,400,000ms, and zero
-recoveries; behavior/holdout is `gpt-5.6-sol high/300s`, exact-final is
-`gpt-5.6-sol max/600s`.
-
-Run low-risk canary; then the other four behavior units concurrently; then all
-six holdout arms as three pairs. A holdout semantic fail with a successful
-terminal waits for all six; any non-success terminal or integrity/cap failure
-stops. Exact-final preflight reveals mapping once and judges candidate absolute
-safety, candidate score at least baseline, and aggregate token/wall ratios at
-most 1.25. Failure returns before exact-final effect; success permits one
-neutral exact-final. Preserve every effect, never retry, replay, recover, or
-substitute. Stage checks need no new gate. No source/config/spec/evaluator,
-archive, install, release, activation, cache, or rollback mutation is allowed.
-
-All 11 behavior/holdout units passed and unified holdout comparison passed.
-The one neutral exact-final reached a successful terminal but durably returned
-`NOT_YET`: its isolated PATH lacked `codex-linux-sandbox`, so coverage was
-incomplete. CLI verification retained exact-final as the sole failure. Total
-usage was 12 calls, 184,406 input, 5,507 output, and 193,661ms; no retry ran.
-
-### Closed offline grant: GRANT-23
-
-Repair `07c326e` bound the private sandbox hard link and PATH, passed focused
-`20/20` and cumulative `111/111`, and left product/evidence unchanged.
-
-### Closed offline grant: GRANT-24
-
-Intent `088dfab` produced request `a279adc7...`, but its synthetic source left
-the manifest and diff untracked. It is invalid, unconsumed, and not evidence.
-
-### Closed offline grants: GRANT-25/26
-
-Verbatim amendment:
-
-```text
-同意归档未消费的 request a279adc7dbe3d121435982f35d41c475de3af3195605a93b6a2a120ad8263875；执行最小 exact-final source-sealing 修复：所有 reviewer-visible 文件形成 clean synthetic commit，并以 SHA-256 纳入现有 host contract、执行前重新验证；hidden oracle bytes 从 reviewer workspace/diff 排除但继续由 EvalSpec oracle identity 精确绑定；neutral brief 删除 grant/commit/repair history。保持 Runtime、case、阈值、12-call 计划、gate、record 和 receipt 类型不变；离线 GREEN 后生成 fresh request，暂不调用模型。
-```
-
-Repair `2419d90` / tree `0df90a85` binds the clean relocation-invariant source
-and all Git metadata inside the existing workspace-policy digest, revalidates
-before capability effect, and excludes hidden oracle bytes from workspace and
-diff. GRANT-26 moved the spawn mock to `run_provider` and closed realistic
-prefixed diff copying. No record, gate, phase, product, or semantic input grew.
+These grants established one-shot fixed-host execution, strict native-event
+parsing, frozen six-arm holdout comparison, a private sandbox-binary hard link,
+and a clean relocation-invariant exact-final source excluding hidden oracle
+bytes. GRANT-18 and GRANT-20 stopped with preserved partial prefixes; GRANT-22
+consumed all 12 calls and durably returned `NOT_YET` because the exact-final
+PATH lacked that sandbox alias. GRANT-24's untracked source projection is
+invalid and unconsumed. Repairs through `2419d90` closed those offline defects
+without changing Runtime, product identity, record families, call plan, cases,
+or thresholds. Git retains the full superseded narrative and evidence.
 
 ## Baseline
 
@@ -332,17 +212,16 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `grant29_stopped_partial`. Intent commit/tree is `a03ad7e...` /
-  `1f36937b...`; claim token `52df89da...` still holds all five resources. The
-  old root was atomically archived as `.failed-grant27-09e13f1e`, retaining
-  inode 12026776, manifest `525f0def...`, and prefix `11/11/11/11` exactly.
-  Active is absent. Fresh staging inode 15024876 has manifest `201820a7...`,
-  112 files/69 directories, source `a53ec149...`, host `451dddd4...`, spec
-  `bfc93edb...`, request `e9295933...`, and empty `0/0/0/0` prefix.
-- Generation stopped before publish because its closing assertion incorrectly
-  required `execution/` itself to be empty; it correctly contains the frozen
-  source plus the four empty prefix directories. This is a partial effect even
-  though subsequent read-only diagnosis validated those generated identities.
-  Staging was not repaired, rerun, published, or cleaned. No provider, model,
-  network, install, release, package, schema, test, or retry effect occurred.
-  Root must decide the disposition and any new authority.
+- Phase: `grant30_authorized_pending_publish`. GRANT-29 intent anchor is
+  `a03ad7e...` / `1f36937b...`; claim token `52df89da...` holds active,
+  archive, staging, worktree, and ref. Archive inode 12026776 retains manifest
+  `525f0def...` and prefix `11/11/11/11`; active is absent. Existing staging
+  inode 15024876 has manifest `201820a7...`, source `a53ec149...`, host
+  `451dddd4...`, spec `bfc93edb...`, request `e9295933...`, and prefix
+  `0/0/0/0`.
+- Reuse only those unchanged staging bytes. Current included-path projection is
+  byte-identical to the sealed anchor (`faa24c46...`, 1,030,875 bytes). Validate
+  that `execution/` contains exactly the sealed source and four empty prefix
+  directories, then atomically publish and validate. No regeneration, model,
+  provider, network, install, release, package, evaluator, schema, test, or
+  retry effect is authorized; stop on any mismatch or partial effect.
