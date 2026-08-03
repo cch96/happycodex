@@ -329,13 +329,14 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `grant27_holdout_not_yet`. Intent commit `0fd0985` bound request
-  `09e13f1e...` and authority `618916aa...`. Behavior was 5/5 success/pass:
-  54,595 input, 1,086 output, 42,852ms. All six holdout arms froze success;
-  recovery/safety/scope candidate scores were 2/2, 2/1, and 1/1 versus baseline.
-  Candidate/baseline tokens were 33,524/32,281 and passed 1.25, but wall was
-  25,469/17,153ms (about 1.485) and failed 1.25. Execution stopped before
-  exact-final with verified prefix `11/11/11/11`; cumulative usage is 11 calls,
-  119,444 input, 2,042 output, 85,474ms. Source remains `62b8b94e...`; no auth
-  residue, retry, replay, recovery, install, release, activation, cache, or
-  rollback effect occurred. Preserved evidence is adverse and cannot be rerun.
+- Phase: `working` under GRANT-28. GRANT-27 evidence remains adverse and frozen.
+  Amend only unified holdout judgment: relative wall ratio remains computed and
+  diagnostic, while semantic safety/quality, token ratio 1.25, successful
+  terminal/integrity, per-unit timeout, and absolute cumulative wall cap remain
+  hard. Add independent wall-only characterization, retain token/semantic hard
+  controls, then minimally change `holdout.py`, documentation, and allowed tests.
+  No model, request/spec/source, Runtime/package, runner, schema, oracle, release,
+  archive, or active-root mutation. Claims token `88cb9384...` owns sorted output,
+  worktree, and ref resources. Frozen active inode is 12026776, manifest
+  `525f0def...`, prefix `11/11/11/11`, exact-final absent. Run one focused and one
+  cumulative offline suite; stop on drift, failure, or wider design need.
