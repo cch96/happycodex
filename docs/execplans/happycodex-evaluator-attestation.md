@@ -214,6 +214,18 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
+- GRANT-40 intent, pre-external-write: from clean commit/tree `97b66b6...` /
+  `19867ad...`, construct one fresh offline twelve-unit request generation from
+  current source only. Stage privately at the exclusively claimed randomized
+  root ending `staging-55bce812a5b29c04dcbba5d7`, atomically publish only
+  `/home/caichenghang/.codex/happycodex-evaluator-attestation-cleanbreak-1`,
+  and commit no repository bytes except this checkpoint. The frozen v0.6.5 and
+  baseline revisions, active role-config/provider identities, two profiles,
+  exact total cap, hidden mapping, neutral brief, 32-path review projection,
+  one-commit source, four empty execution-prefix directories, and generated
+  request identities must pass offline reproduction. GRANT-36 evidence and
+  authority remain unread and unusable. No provider, model, network, install,
+  release, activation, cache, marketplace, or rollback effect is authorized.
 - GRANT-39 narrow closure is GREEN. Its durable-intent commit/tree are
   `8fc2c73...` / `665c862...`, based on `3979209...` / `fa43b19...`.
   `_unit` now binds `claim_key.role_config` to the already-derived stage-local
