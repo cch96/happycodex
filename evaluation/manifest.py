@@ -144,19 +144,23 @@ def _unit(
     *, unit_id: str, role_id: str, sample_id: str | None, stage: str,
     arm_product: dict[str, Any], case: dict[str, Any], profile: dict[str, Any],
     oracle_sha256: str, harness_sha256: str, review_brief_sha256: str | None,
-    host_contract_sha256: str,
+    effective_host_sha256: str,
 ) -> dict[str, Any]:
+    role_config = (
+        canonical_sha256({"role": "neutral-exact-final"})
+        if stage == "exact_final" else arm_product["external_role_config_sha256"]
+    )
     projection = provider_projection(
         case={"role_id": role_id, "sample_id": sample_id, **case},
         product_semantic_sha256=arm_product["package_semantic_sha256"],
-        external_role_config_sha256=arm_product["external_role_config_sha256"],
+        external_role_config_sha256=role_config,
         profile=profile,
     )
     invocation = {
         "unit_id": unit_id, "stage": stage,
         "product_semantic_sha256": arm_product["package_semantic_sha256"],
-        "external_role_config_sha256": arm_product["external_role_config_sha256"],
-        "host_contract_sha256": host_contract_sha256,
+        "external_role_config_sha256": role_config,
+        "effective_host_sha256": effective_host_sha256,
         "provider_input": projection, "model": profile["model"],
         "effort": profile["effort"], "tools": profile["tools"],
         "timeout_seconds": profile["timeout_seconds"],
@@ -165,7 +169,7 @@ def _unit(
                 "unit_id": unit_id, "stage": stage,
                 "product": arm_product["package_semantic_sha256"],
                 "role_config": arm_product["external_role_config_sha256"],
-                "host_contract": host_contract_sha256,
+                "effective_host": effective_host_sha256,
                 "provider_input": projection,
             }
         ),
@@ -175,7 +179,7 @@ def _unit(
         "role_id": role_id, "sample_id": sample_id, "stage": stage,
         "order": {"behavior": 1, "holdout": 2, "exact_final": 3}[stage],
         "product_semantic_sha256": arm_product["package_semantic_sha256"],
-        "external_role_config_sha256": arm_product["external_role_config_sha256"],
+        "external_role_config_sha256": role_config,
         "provider_input_sha256": canonical_sha256(projection),
         "oracle_sha256": oracle_sha256, "harness_sha256": harness_sha256,
         "invocation": invocation, "invocation_sha256": canonical_sha256(invocation),
@@ -214,7 +218,7 @@ def materialize_eval_spec(
                 case={**fixture, "runtime": candidate_runtime, "response_schema": inputs["schemas"]["core"][role_id]}, profile=behavior_profile,
                 oracle_sha256=canonical_sha256(inputs["oracles"]["core"][role_id]),
                 harness_sha256=harness_sha, review_brief_sha256=None,
-                host_contract_sha256=host_contract_sha,
+                effective_host_sha256=host_contract["behavior_sha256"],
             )
         )
     holdouts = []
@@ -238,7 +242,7 @@ def materialize_eval_spec(
                     case={**fixture, "runtime": arm_runtime, "response_schema": inputs["schemas"]["holdout"]}, profile=behavior_profile,
                     oracle_sha256=canonical_sha256(inputs["oracles"]["holdouts"][sample_id]),
                     harness_sha256=harness_sha, review_brief_sha256=None,
-                    host_contract_sha256=host_contract_sha,
+                    effective_host_sha256=host_contract["holdout_sha256"],
                 )
             )
     units.append(
@@ -248,14 +252,18 @@ def materialize_eval_spec(
             case={
                 "prompt": "Perform the neutral exact-final review.",
                 "fixture": {"artifact_sha256": candidate["package_artifact_sha256"]},
-                "workspace": {"brief_sha256": brief_sha}, "runtime": candidate_runtime,
+                "workspace": {
+                    "brief_sha256": brief_sha,
+                    "cwd": "readable frozen Git projection",
+                    "host_facts": "authoritative machine facts",
+                }, "runtime": candidate_runtime,
                 "neutral_review_brief": brief_text,
                 "response_schema": inputs["schemas"]["exact_final"],
             },
             profile=exact_final_profile,
             oracle_sha256=canonical_sha256(inputs["oracles"]["exact_final"]),
             harness_sha256=harness_sha, review_brief_sha256=brief_sha,
-            host_contract_sha256=host_contract_sha,
+            effective_host_sha256=host_contract["exact_final_sha256"],
         )
     )
     units.sort(key=lambda item: (item["order"], item["unit_id"]))

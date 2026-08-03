@@ -20,10 +20,10 @@ from evaluation.cli import parser
 from evaluation.host import HostEvidenceError, attestation_from_raw
 from evaluation.manifest import ManifestError, _validate_structural_schema
 from evaluation.provider import BEHAVIOR_DEVELOPER_INSTRUCTIONS
-from evaluation.records import canonical_sha256
+from evaluation.records import canonical_sha256, evaluation_authority_request_payload
 from tests.attestation_fixtures import (
-    HOST_CONTRACT, ROOT, SHA, bundle, host_metadata, mapping, passing_report,
-    previous_product, product, raw_stream, terminal,
+    HOST_CONTRACT, ROOT, SHA, attest_all, bundle, host_metadata, mapping, passing_report,
+    previous_product, product, raw_stream, reseal, terminal,
 )
 
 
@@ -194,7 +194,10 @@ class ReproducedBlockerTests(unittest.TestCase):
         self.assertEqual(record["observation"]["report"], {})
 
     def test_host_contract_binds_provider_policy_and_cli_has_no_writer(self):
-        self.assertIn("provider_policy_sha256", HOST_CONTRACT)
+        self.assertEqual(
+            set(HOST_CONTRACT),
+            {"schema_version", "trust_domain", "behavior_sha256", "holdout_sha256", "exact_final_sha256"},
+        )
         choices = parser()._subparsers._group_actions[0].choices
         self.assertNotIn("claim", choices)
 
@@ -862,6 +865,71 @@ class FixedHostTransactionTests(unittest.TestCase):
                 result["holdout_reveal"]["revealed_at"],
                 result["attestation"]["observation"]["started_at"],
             )
+
+    def test_fake_host_exact_only_refresh_composes_without_importing_prefix(self):
+        from evaluation.host import execute_fixed_host_transaction
+        from evaluation.provider import host_contract_from_policy
+        from evaluation.verify import exact_final_authority_proposal, verify_evaluation
+
+        with tempfile.TemporaryDirectory() as directory:
+            execution, _, _, policy, selected, baseline, previous, blind = self._inputs(directory)
+            records, raws = attest_all(selected, baseline, previous)
+            prior = [record for record in records if record["unit_id"] != "exact-final"]
+            prior_raws = {key: value for key, value in raws.items() if key != "exact-final"}
+            prior_proposal = evaluation_authority_request_payload(previous)
+            prior_supplied = {"scope": "evaluation", "request_sha256": canonical_sha256(prior_proposal), "nonce": "n1", "signature": "s1"}
+            prior_authority = canonical_sha256(prior_supplied)
+            prior = [reseal({**record, "authority_sha256": prior_authority}) for record in prior]
+            current_policy = deepcopy(policy)
+            current_policy["provider_policy"]["exact_final_developer_instructions"] += " Confirm the inspected tree."
+            contract = host_contract_from_policy(current_policy)
+            _, _, current, _ = bundle(
+                selected_product=selected, baseline_product=baseline,
+                host_contract=contract,
+            )
+            cap = {**current["total_cap"], "model_calls": 1}
+            proposal = exact_final_authority_proposal(
+                root=ROOT, product=selected, previous_product=baseline,
+                previous_spec=previous, spec=current, attestations=prior,
+                raw_streams=prior_raws, holdout_mapping=blind,
+                mapping_revealed_at="2026-08-02T00:00:35Z", total_cap=cap,
+            )
+            request = canonical_sha256(proposal)
+            supplied = {"scope": "evaluation", "request_sha256": request, "nonce": "n2", "signature": "s2"}
+            line = f"APPROVE HAPPYCODEX EVALUATION {request}"
+            exact = next(unit for unit in current["units"] if unit["stage"] == "exact_final")
+
+            def provider(**kwargs):
+                os.write(kwargs["stdout_fd"], raw_stream(exact))
+                return 0, False
+
+            times = iter(datetime(2026, 8, 2, 0, 0, second, tzinfo=timezone.utc) for second in (36, 40, 42))
+            result = execute_fixed_host_transaction(
+                repo_root=ROOT, product=selected, previous_product=baseline,
+                spec=current, unit_id="exact-final", policy=current_policy,
+                authority_line=line, supplied_authority=supplied,
+                authenticate_line=lambda actual, _value: actual == line,
+                provider_auth=b"private-auth", run_provider=provider,
+                clock=lambda: next(times), authority_proposal=proposal,
+                previous_spec=previous, prerequisite_attestations=prior,
+                prerequisite_raw_streams=prior_raws, holdout_mapping=blind,
+                mapping_revealed_at="2026-08-02T00:00:35Z",
+            )
+            self.assertEqual(result["attestation"]["verdict"], "pass")
+            self.assertEqual(len(list((execution / "attestations").iterdir())), 1)
+            raw = Path(result["raw_path"]).read_bytes()
+            composed = verify_evaluation(
+                root=ROOT, product=selected, previous_product=baseline, spec=current,
+                attestations=[*prior, result["attestation"]],
+                raw_streams={**prior_raws, "exact-final": raw},
+                holdout_mapping=blind, mapping_revealed_at="2026-08-02T00:00:35Z",
+                authority_bindings={
+                    prior_authority: {"proposal": prior_proposal, "supplied_authority": prior_supplied},
+                    result["attestation"]["authority_sha256"]: {"proposal": proposal, "supplied_authority": supplied},
+                },
+            )
+            self.assertTrue(composed["verified"])
+            self.assertEqual(len(composed["authority_sha256s"]), 2)
 
     def test_baseline_fatal_still_reveals_all_six_for_unified_judgment(self):
         from evaluation.host import reveal_holdout_mapping

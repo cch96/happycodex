@@ -68,7 +68,7 @@ class StageProfileContractTests(unittest.TestCase):
                         "stage": stage,
                         "product": unit["product_semantic_sha256"],
                         "role_config": unit["external_role_config_sha256"],
-                        "host_contract": invocation["host_contract_sha256"],
+                        "effective_host": invocation["effective_host_sha256"],
                         "provider_input": invocation["provider_input"],
                     }
                 )
@@ -89,6 +89,10 @@ class StageProfileContractTests(unittest.TestCase):
         spec = materialize()
         payload = evaluation_authority_request_payload(spec)
         self.assertEqual(payload["profiles"], PROFILES)
+        self.assertEqual(payload["selected_unit_ids"], [unit["unit_id"] for unit in spec["units"]])
+        self.assertEqual(payload["total_cap"], TOTAL_CAP)
+        self.assertEqual(payload["prerequisites"], [])
+        self.assertIsNone(payload["prerequisite_state"])
         self.assertEqual(
             [item["invocation_sha256"] for item in payload["invocations"]],
             [unit["invocation_sha256"] for unit in spec["units"]],

@@ -7,7 +7,10 @@ from typing import Any
 
 from evaluation.identity import evaluator_components, load_json, product_artifact_from_git
 from evaluation.manifest import materialize_eval_spec
-from evaluation.records import RECORD_TYPES, validate_eval_spec, validate_record
+from evaluation.records import (
+    RECORD_TYPES, canonical_sha256, evaluation_authority_request_payload,
+    validate_eval_spec, validate_record,
+)
 from evaluation.verify import verify_evaluation, verify_release
 
 
@@ -44,21 +47,8 @@ def request_command(args: argparse.Namespace) -> int:
     spec = validate_eval_spec(load_json(args.spec.resolve()))
     # This is deliberately only a request digest. It cannot mint approval text,
     # signatures, capabilities, plans, or receipts.
-    _print(
-        {
-            "scope": "evaluation",
-            "authority_request_sha256": spec["authority_request_sha256"],
-            "eval_spec_sha256": spec["record_sha256"],
-            "host_contract": spec["host_contract"],
-            "host_contract_sha256": spec["host_contract_sha256"],
-            "profiles": spec["profiles"],
-            "total_cap": spec["total_cap"],
-            "invocations": [
-                {"unit_id": unit["unit_id"], "invocation_sha256": unit["invocation_sha256"]}
-                for unit in spec["units"]
-            ],
-        }
-    )
+    proposal = evaluation_authority_request_payload(spec)
+    _print({"authority_request_sha256": canonical_sha256(proposal), "proposal": proposal})
     return 0
 
 

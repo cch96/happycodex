@@ -10,6 +10,8 @@ from typing import Any, Callable
 from evaluation.records import (
     canonical_json,
     canonical_sha256,
+    evaluation_authority_request_payload,
+    validate_evaluation_authority_payload,
     validate_eval_spec,
     validate_product_artifact,
 )
@@ -33,8 +35,11 @@ DISABLED_FEATURES = tuple(
     "workspace_dependencies".split()
 )
 NEUTRAL_EXACT_FINAL_INSTRUCTIONS = (
-    "Perform one neutral, read-only exact-final review of the supplied frozen "
-    "projection. Do not modify files, delegate, use hidden history, or retry."
+    "Perform one neutral, read-only exact-final review. The current working "
+    "directory is the readable frozen Git projection; use command_execution to "
+    "inspect it before claiming coverage.complete=true or GO. Supplied host "
+    "launch facts are authoritative host facts. Do not modify files, delegate, "
+    "use hidden history, infer a desired verdict, or retry."
 )
 BEHAVIOR_DEVELOPER_INSTRUCTIONS = (
     "You are the one fixed HappyCodex Executor and the only authorized "
@@ -197,22 +202,13 @@ def exact_final_source_identity(root: Path, private_oracle_path: Path) -> str:
         raise ProviderError("exact-final aggregate diff identity differs")
     _reject_oracle_diff(diff, oracle)
     entries = []
-    for path in [root, *sorted(root.rglob("*"))]:
-        if path.is_symlink():
-            raise ProviderError("exact-final source contains a symlink")
-        relative = "." if path == root else path.relative_to(root).as_posix()
-        mode = f"{stat.S_IMODE(path.stat().st_mode):04o}"
-        if path.is_dir():
-            entries.append({"path": relative, "kind": "directory", "mode": mode})
-        elif path.is_file():
-            body = path.read_bytes()
-            entries.append({
-                "path": relative, "kind": "file", "mode": mode,
-                "sha256": hashlib.sha256(body).hexdigest(), "size_bytes": len(body),
-            })
-        else:
-            raise ProviderError("exact-final source contains a special file")
-    return canonical_sha256(entries)
+    for relative in tracked:
+        path = root / relative
+        if path.is_symlink() or not path.is_file():
+            raise ProviderError("exact-final tracked source is not a regular file")
+        body = path.read_bytes()
+        entries.append({"path": relative, "mode": f"{stat.S_IMODE(path.stat().st_mode):04o}", "sha256": hashlib.sha256(body).hexdigest(), "size_bytes": len(body)})
+    return canonical_sha256({"tree": _source_git(root, "rev-parse", "HEAD^{tree}").strip(), "files": entries})
 
 
 def _validate_external_role(
@@ -356,13 +352,32 @@ def host_contract_from_policy(policy: dict[str, Any]) -> dict[str, Any]:
     private_oracle = Path(workspace["private_oracle_path"])
     if _file_sha(private_oracle) != workspace["private_oracle_sha256"] or exact_final_source_identity(Path(workspace["exact_final_source"]), private_oracle) != workspace["exact_final_source_sha256"]:
         raise ProviderError("exact-final source identity drift")
+    common = {
+        "binary_sha256": provider["binary_sha256"],
+        "disabled_features": provider["disabled_features"],
+        "web_search": provider["web_search"], "retry": False, "resume": False,
+        "command_path_template": provider["command_path_template"],
+        "sandbox_alias": [provider["sandbox_alias_name"], provider["sandbox_alias_kind"]],
+        "stdin_source": provider["stdin_source"], "output_schema_source": provider["output_schema_source"],
+        "tools": policy["tool_config"], "permission": policy["permission_profile"],
+    }
+    behavior = {
+        **common, "role_config_sha256": provider["external_role_config_sha256"],
+        "instructions_sha256": provider["behavior_developer_instructions_sha256"],
+        "model": provider["behavior_model"], "effort": provider["behavior_effort"],
+        "cwd": provider["cwd_by_stage"]["behavior"],
+    }
+    exact = {
+        **common, "instructions": provider["exact_final_developer_instructions"],
+        "cwd": provider["cwd_by_stage"]["exact_final"],
+        "source_sha256": workspace["exact_final_source_sha256"],
+        "permission_delta": "sandbox-helper-read-only",
+    }
     return {
-        "schema_version": 2, "trust_domain": policy["trust_domain"],
-        "provider_binary_sha256": provider["binary_sha256"],
-        "provider_policy_sha256": canonical_sha256(provider),
-        "tool_config_sha256": canonical_sha256(policy["tool_config"]),
-        "permission_profile_sha256": canonical_sha256(policy["permission_profile"]),
-        "workspace_policy_sha256": canonical_sha256(policy["workspace_policy"]),
+        "schema_version": 3, "trust_domain": policy["trust_domain"],
+        "behavior_sha256": canonical_sha256(behavior),
+        "holdout_sha256": canonical_sha256({**behavior, "cwd": provider["cwd_by_stage"]["holdout"]}),
+        "exact_final_sha256": canonical_sha256(exact),
     }
 
 
@@ -484,57 +499,30 @@ def assert_provider_blind(
             raise ProviderError("hidden sentinel reached a provider-visible surface")
 
 
-def _redact(value: Any, secrets: list[str]) -> Any:
-    if type(value) is str:
-        result = value
-        for secret in secrets:
-            if secret:
-                result = result.replace(secret, "<redacted>")
-        return result
-    if type(value) is list:
-        return [_redact(item, secrets) for item in value]
-    if type(value) is dict:
-        return {
-            key: _redact(item, secrets)
-            for key, item in value.items()
-            if key not in {"token", "credential", "raw_stdin"}
-        }
-    return value
-
-
-def sanitize_events(events: list[dict[str, Any]], *, secrets: list[str]) -> list[dict[str, Any]]:
-    if type(events) is not list or not all(type(item) is dict for item in events):
-        raise ProviderError("raw events must be an object list")
-    sanitized = [_redact(event, secrets) for event in events]
-    visible = canonical_json(sanitized)
-    if any(secret and secret in visible for secret in secrets):
-        raise ProviderError("secret remained in sanitized events")
-    return sanitized
-
-
 class EvaluationCapability:
-    __slots__ = ("request_sha256", "authority_sha256", "spec_sha256")
+    __slots__ = ("request_sha256", "authority_sha256", "spec_sha256", "selected_unit_ids")
 
-    def __init__(self, key: object, request: str, authority: str, spec: str):
+    def __init__(self, key: object, request: str, authority: str, spec: str, selected: tuple[str, ...] = ()):
         if key is not _CAPABILITY_KEY:
             raise ProviderError("evaluation capability is host-minted only")
         self.request_sha256 = request
         self.authority_sha256 = authority
         self.spec_sha256 = spec
+        self.selected_unit_ids = selected
 
     def __reduce__(self):
         raise TypeError("evaluation capability is process-local")
 
 
 def rebind_evaluation_capability(
-    capability: EvaluationCapability, spec: dict[str, Any],
+    capability: EvaluationCapability, spec: dict[str, Any], unit_id: str | None = None,
 ) -> EvaluationCapability:
     validate_eval_spec(spec)
     if type(capability) is not EvaluationCapability:
         raise ProviderError("evaluation capability is absent or replaced")
     if (
-        capability.request_sha256 != spec["authority_request_sha256"]
-        or capability.spec_sha256 != spec["record_sha256"]
+        capability.spec_sha256 != spec["record_sha256"]
+        or (unit_id is not None and unit_id not in capability.selected_unit_ids)
     ):
         raise ProviderError("evaluation capability differs from EvalSpec")
     return capability
@@ -565,14 +553,22 @@ def _validate_supplied_authority(value: dict[str, Any], scope: str, request: str
 def accept_evaluation_authority(
     spec: dict[str, Any], supplied: dict[str, Any],
     authenticate: Callable[[dict[str, Any]], bool],
+    proposal: dict[str, Any] | None = None,
 ) -> EvaluationCapability:
     validate_eval_spec(spec)
-    _validate_supplied_authority(supplied, "evaluation", spec["authority_request_sha256"])
+    proposal = proposal or evaluation_authority_request_payload(spec)
+    try:
+        validate_evaluation_authority_payload(spec, proposal)
+    except ValueError as exc:
+        raise ProviderError(str(exc)) from exc
+    selected = proposal["selected_unit_ids"]
+    request = canonical_sha256(proposal)
+    _validate_supplied_authority(supplied, "evaluation", request)
     if not authenticate(supplied):
         raise ProviderError("external authenticator rejected evaluation authority")
     return EvaluationCapability(
-        _CAPABILITY_KEY, supplied["request_sha256"],
-        canonical_sha256(supplied), spec["record_sha256"],
+        _CAPABILITY_KEY, request, canonical_sha256(supplied),
+        spec["record_sha256"], tuple(selected),
     )
 
 

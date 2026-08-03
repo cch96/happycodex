@@ -132,3 +132,29 @@ def load_json(path: Path) -> dict[str, Any]:
     if type(value) is not dict:
         raise IdentityError("JSON record must be an object")
     return value
+
+
+def validate_authority_composition(
+    records: list[dict[str, Any]], bindings: dict[str, dict[str, Any]] | None,
+) -> list[str]:
+    authorities = {record["authority_sha256"] for record in records}
+    if len(authorities) <= 1:
+        return sorted(authorities)
+    if type(bindings) is not dict or set(bindings) != authorities:
+        raise IdentityError("mixed evaluation authorities lack exact request bindings")
+    for authority, binding in bindings.items():
+        if type(binding) is not dict or set(binding) != {"proposal", "supplied_authority"}:
+            raise IdentityError("evaluation authority binding fields differ")
+        proposal, supplied = binding["proposal"], binding["supplied_authority"]
+        if (
+            type(proposal) is not dict or type(supplied) is not dict
+            or set(supplied) != {"scope", "request_sha256", "nonce", "signature"}
+            or supplied["scope"] != "evaluation"
+            or supplied["request_sha256"] != canonical_sha256(proposal)
+            or canonical_sha256(supplied) != authority
+        ):
+            raise IdentityError("evaluation authority binding identity differs")
+        invocations = {(item.get("unit_id"), item.get("invocation_sha256")) for item in proposal.get("invocations", []) if type(item) is dict}
+        if any((record["unit_id"], record["invocation_sha256"]) not in invocations for record in records if record["authority_sha256"] == authority):
+            raise IdentityError("evaluation authority does not select its Attestation")
+    return sorted(authorities)

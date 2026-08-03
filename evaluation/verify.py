@@ -7,14 +7,16 @@ from pathlib import Path
 from typing import Any, Callable
 
 from evaluation.holdout import judge_fixed_holdouts
+from evaluation.identity import IdentityError, validate_authority_composition
 from evaluation.manifest import load_production_inputs
 from evaluation.oracle import hidden_oracle_for, score_hidden
-from evaluation.provider import ReleaseCapability, release_authority_request, sanitize_events
+from evaluation.provider import ReleaseCapability, release_authority_request
 from evaluation.records import (
     RecordError,
     build_attestation,
     build_release_receipt,
     canonical_sha256,
+    evaluation_authority_request_payload,
     validate_attestation,
     validate_eval_spec,
     validate_product_artifact,
@@ -147,14 +149,46 @@ def _sanitized(parsed: dict[str, Any], report: dict[str, Any]) -> dict[str, Any]
     return {"schema_version":1,"thread_id":parsed["thread_id"],"turn_started":parsed["turn_started"],"turn_completed":parsed["turn_completed"],"turn_failed":parsed["turn_failed"],"failure_message_sha256":parsed["failure_message_sha256"],"items":parsed["item_facts"],"agent_report":report if parsed["report"] is not None else None,"usage":parsed["usage"]}
 
 
+def _redact(value: Any, secrets: list[str]) -> Any:
+    if type(value) is str:
+        result = value
+        for secret in secrets:
+            if secret:
+                result = result.replace(secret, "<redacted>")
+        return result
+    if type(value) is list:
+        return [_redact(item, secrets) for item in value]
+    if type(value) is dict:
+        return {key: _redact(item, secrets) for key, item in value.items() if key not in {"token", "credential", "raw_stdin"}}
+    return value
+
+
+def sanitize_events(events: list[dict[str, Any]], *, secrets: list[str]) -> list[dict[str, Any]]:
+    if type(events) is not list or not all(type(item) is dict for item in events):
+        raise HostEvidenceError("raw events must be an object list")
+    sanitized = [_redact(event, secrets) for event in events]
+    if any(secret and secret in canonical_sha256(sanitized) + json.dumps(sanitized) for secret in secrets):
+        raise HostEvidenceError("secret remained in sanitized events")
+    return sanitized
+
+
+def _assessment(inputs: dict[str, Any], unit: dict[str, Any], report: dict[str, Any], parsed: dict[str, Any]) -> dict[str, Any]:
+    result = score_hidden(report, hidden_oracle_for(inputs, unit), stage=unit["stage"])
+    claims_complete = report.get("decision") == "GO" or report.get("coverage", {}).get("complete") is True
+    used_command = any(item["event"] == "item.completed" and item["type"] == "command_execution" for item in parsed["item_facts"])
+    if unit["stage"] == "exact_final" and claims_complete and not used_command:
+        result = {**result, "passed": False, "fatal": [*result["fatal"], "command_execution"]}
+    return result
+
+
 def attestation_from_raw(*, root: Path, product: dict[str, Any], spec: dict[str, Any], unit_id: str, raw: bytes, host_metadata: dict[str, Any], authority_sha256: str, secrets: list[str] | None = None) -> dict[str, Any]:
     validate_product_artifact(product); validate_eval_spec(spec)
     unit = next((item for item in spec["units"] if item["unit_id"] == unit_id), None)
     if unit is None: raise HostEvidenceError("unit is absent from EvalSpec")
-    if product["package_semantic_sha256"] != unit["product_semantic_sha256"] or product["external_role_config_sha256"] != unit["external_role_config_sha256"]: raise HostEvidenceError("host product differs from planned unit")
+    if product["package_semantic_sha256"] != unit["product_semantic_sha256"] or (unit["stage"] != "exact_final" and product["external_role_config_sha256"] != unit["external_role_config_sha256"]): raise HostEvidenceError("host product differs from planned unit")
     parsed = parse_raw_stream(raw); metadata = _host_metadata(host_metadata); terminal = _terminal(parsed, host_metadata)
     report = sanitize_events([parsed["report"]], secrets=secrets or [])[0] if parsed["report"] is not None else {}
-    inputs = load_production_inputs(root); assessment = score_hidden(report, hidden_oracle_for(inputs, unit), stage=unit["stage"])
+    inputs = load_production_inputs(root); assessment = _assessment(inputs, unit, report, parsed)
     observation = {
         "raw_events_sha256":parsed["raw_events_sha256"],"raw_report_sha256":canonical_sha256(parsed["report"]),"sanitized_event_sha256":canonical_sha256(_sanitized(parsed,report)),"terminal_sha256":canonical_sha256(terminal),"report":report,"report_sha256":canonical_sha256(report),
         "provenance":{"provider":"fixed-host-runner","model":unit["invocation"]["model"],"effort":unit["invocation"]["effort"],"tools":unit["invocation"]["tools"],"timeout_seconds":unit["invocation"]["timeout_seconds"]},"parent_attestation_sha256":None,
@@ -172,7 +206,8 @@ def verify_host_evidence(*, record: dict[str, Any], unit: dict[str, Any], spec: 
     if observation["raw_report_sha256"] != canonical_sha256(parsed["report"]): raise HostEvidenceError("raw report digest differs from Attestation")
     if record["terminal"] != terminal or observation["terminal_sha256"] != canonical_sha256(terminal): raise HostEvidenceError("raw terminal differs from Attestation")
     if record["unit_id"] != unit["unit_id"] or record["invocation_sha256"] != unit["invocation_sha256"]: raise HostEvidenceError("fixed-host invocation differs from EvalSpec")
-    if record["host_claim_key"] != unit["invocation"]["claim_key"] or unit["invocation"]["host_contract_sha256"] != spec["host_contract_sha256"]: raise HostEvidenceError("fixed-host claim or contract differs")
+    expected_host = spec["host_contract"][f'{unit["stage"]}_sha256']
+    if record["host_claim_key"] != unit["invocation"]["claim_key"] or unit["invocation"]["effective_host_sha256"] != expected_host: raise HostEvidenceError("fixed-host claim or effective host differs")
     if observation["sanitized_event_sha256"] != canonical_sha256(_sanitized(parsed,observation["report"])): raise HostEvidenceError("sanitized projection digest differs from Attestation")
     return {**parsed,"terminal":terminal,"started_at":observation["started_at"],"frozen_at":observation["frozen_at"]}
 
@@ -194,14 +229,10 @@ def invalidation(previous: dict[str, Any], current: dict[str, Any]) -> dict[str,
     model: set[str] = set()
     replay: set[str] = set()
     offline: set[str] = set()
-    global_provider_change = any(
-        previous[field] != current[field]
-        for field in ("product_semantic_sha256", "external_role_config_sha256", "provider_component_sha256", "host_contract_sha256")
-    )
     global_oracle_change = previous["oracle_component_sha256"] != current["oracle_component_sha256"]
     for unit_id, unit in new.items():
         prior = old.get(unit_id)
-        if global_provider_change or prior is None or prior["provider_input_sha256"] != unit["provider_input_sha256"]:
+        if prior is None or prior["invocation_sha256"] != unit["invocation_sha256"]:
             model.add(unit_id)
         elif global_oracle_change:
             (model if unit["stage"] == "exact_final" else replay).add(unit_id)
@@ -285,21 +316,6 @@ def replay_attestation(
     )
 
 
-def append_attestation(
-    existing: list[dict[str, Any]], new: dict[str, Any],
-) -> list[dict[str, Any]]:
-    validate_attestation(new)
-    for record in existing:
-        validate_attestation(record)
-        if record["unit_id"] == new["unit_id"]:
-            if record["kind"] == "exact_final" and record["product_artifact_sha256"] == new["product_artifact_sha256"]:
-                if record["verdict"] == "fail":
-                    raise VerificationError("adverse exact-final is durable for unchanged artifact")
-                raise VerificationError("exact-final invocation is one-shot for unchanged artifact")
-            raise VerificationError("attestation unit already exists")
-    return [*existing, new]
-
-
 def _time(value: str) -> datetime:
     try:
         parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
@@ -316,6 +332,8 @@ def verify_evaluation(
     previous_product: dict[str, Any] | None = None,
     holdout_mapping: dict[str, dict[str, str]] | None = None,
     mapping_revealed_at: str | None = None,
+    required_unit_ids: set[str] | None = None,
+    authority_bindings: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     validate_product_artifact(product)
     validate_eval_spec(spec)
@@ -328,7 +346,7 @@ def verify_evaluation(
     planned = _unit_map(spec)
     by_unit: dict[str, dict[str, Any]] = {}
     assessments: dict[str, dict[str, Any]] = {}
-    authority: str | None = None
+    authorities: set[str] = set()
     totals = {"model_calls": 0, "input_tokens": 0, "output_tokens": 0, "wall_milliseconds": 0}
     for record in attestations:
         validate_attestation(record)
@@ -347,9 +365,7 @@ def verify_evaluation(
                 raise VerificationError("exact-final does not bind exact artifact")
         elif record["kind"] not in {"behavior", "replay"}:
             raise VerificationError("behavior unit has wrong attestation kind")
-        authority = authority or record["authority_sha256"]
-        if record["authority_sha256"] != authority:
-            raise VerificationError("more than one evaluation authority bundle was used")
+        authorities.add(record["authority_sha256"])
         if record["unit_id"] not in raw_streams:
             raise VerificationError("attestation lacks fixed-host raw evidence")
         try:
@@ -374,9 +390,7 @@ def verify_evaluation(
             for field in ("model", "effort", "tools", "timeout_seconds")
         ):
             raise VerificationError("Attestation provenance differs from invocation")
-        assessment = score_hidden(
-            observation["report"], hidden_oracle_for(inputs, unit), stage=unit["stage"]
-        )
+        assessment = _assessment(inputs, unit, observation["report"], parsed)
         expected_verdict = (
             "pass" if assessment["passed"] and parsed["terminal"]["classification"] == "success"
             else "fail"
@@ -406,6 +420,11 @@ def verify_evaluation(
         for stage in ("behavior", "holdout", "exact_final")
     }
     supplied = set(by_unit)
+    required = set(planned) if required_unit_ids is None else required_unit_ids
+    if not required or not required.issubset(planned):
+        raise VerificationError("fixed-host evidence differs from required units")
+    if required_unit_ids is not None and supplied != required:
+        raise VerificationError("fixed-host evidence differs from required units")
     if supplied & stage_units["holdout"] and not stage_units["behavior"].issubset(supplied):
         raise VerificationError("holdout started before behavior froze")
     if supplied & stage_units["holdout"]:
@@ -440,7 +459,8 @@ def verify_evaluation(
             raise VerificationError("exact-final started before prior stages froze")
     holdout = None
     full_success = not failures and supplied == set(planned)
-    if full_success and (holdout_mapping is None or mapping_revealed_at is None):
+    holdouts_complete = stage_units["holdout"].issubset(supplied)
+    if not failures and holdouts_complete and (holdout_mapping is None or mapping_revealed_at is None):
         raise VerificationError("successful evaluation requires holdout mapping and reveal")
     if holdout_mapping is not None or mapping_revealed_at is not None:
         if holdout_mapping is None or mapping_revealed_at is None or previous_product is None:
@@ -463,16 +483,67 @@ def verify_evaluation(
             failures.append({"unit_id": "fixed-holdouts", "classification": "quality_failure", "verdict": "fail"})
         if exact_final is not None and _time(mapping_revealed_at) >= _time(exact_final["observation"]["started_at"]):
             raise VerificationError("exact-final started before holdout mapping reveal")
-    if not failures and supplied != set(planned):
+    if required_unit_ids is None and not failures and supplied != required:
         raise VerificationError("successful evaluation lacks planned attestations")
+    if len(authorities) > 1:
+        ordinary = {record["authority_sha256"] for unit_id, record in by_unit.items() if unit_id != "exact-final"}
+        exact_authority = {by_unit["exact-final"]["authority_sha256"]} if "exact-final" in by_unit else set()
+        if len(authorities) != 2 or len(ordinary) != 1 or exact_authority & ordinary:
+            raise VerificationError("mixed authorities do not form one bound exact-final composition")
+    try:
+        authority_sha256s = validate_authority_composition(attestations, authority_bindings)
+    except IdentityError as exc:
+        raise VerificationError(str(exc)) from exc
     return {
-        "verified": not failures, "failures": failures,
+        "verified": not failures, "complete": full_success, "failures": failures,
         "product_record_sha256": product["record_sha256"],
         "eval_spec_sha256": spec["record_sha256"],
         "attestation_sha256s": sorted(record["record_sha256"] for record in attestations),
         "exact_final_attestation_sha256": exact_final["record_sha256"] if exact_final else None,
-        "authority_sha256": authority, "usage": totals, "holdout": holdout,
+        "authority_sha256s": authority_sha256s, "usage": totals, "holdout": holdout,
     }
+
+
+def exact_final_authority_proposal(
+    *, root: Path, product: dict[str, Any], previous_product: dict[str, Any],
+    previous_spec: dict[str, Any], spec: dict[str, Any],
+    attestations: list[dict[str, Any]], raw_streams: dict[str, bytes],
+    holdout_mapping: dict[str, dict[str, str]], mapping_revealed_at: str,
+    total_cap: dict[str, int],
+) -> dict[str, Any]:
+    if invalidation(previous_spec, spec)["model_units"] != ["exact-final"]:
+        raise VerificationError("exact-only proposal requires exact-final-only invalidation")
+    if set(total_cap) != set(spec["total_cap"]) or total_cap["model_calls"] != 1 or any(
+        type(value) is not int or value < 0 or value > spec["total_cap"][field]
+        for field, value in total_cap.items()
+    ):
+        raise VerificationError("exact-only proposal cap exceeds its selected effect")
+    prior_ids = {unit["unit_id"] for unit in spec["units"] if unit["stage"] != "exact_final"}
+    result = verify_evaluation(
+        root=root, product=product, previous_product=previous_product, spec=spec,
+        attestations=attestations, raw_streams=raw_streams,
+        holdout_mapping=holdout_mapping, mapping_revealed_at=mapping_revealed_at,
+        required_unit_ids=prior_ids,
+    )
+    if not result["verified"] or result["complete"] or not result["holdout"]["passed"]:
+        raise VerificationError("exact-only prerequisites are not current-generation GREEN")
+    by_unit = {record["unit_id"]: record for record in attestations}
+    prerequisites = [
+        {
+            "unit_id": unit_id,
+            "attestation_sha256": by_unit[unit_id]["record_sha256"],
+            "raw_sha256": hashlib.sha256(raw_streams[unit_id]).hexdigest(),
+        }
+        for unit_id in sorted(prior_ids)
+    ]
+    state = {
+        "mapping_revealed_at": mapping_revealed_at,
+        "holdout_judgment_sha256": canonical_sha256(result["holdout"]),
+    }
+    return evaluation_authority_request_payload(
+        spec, selected_unit_ids=["exact-final"], total_cap=total_cap,
+        prerequisites=prerequisites, prerequisite_state=state,
+    )
 
 
 def create_release_receipt(
@@ -481,7 +552,7 @@ def create_release_receipt(
     rollback: dict[str, Any], capability: ReleaseCapability,
 ) -> dict[str, Any]:
     validate_product_artifact(product)
-    if evaluation.get("verified") is not True or evaluation.get("holdout", {}).get("passed") is not True:
+    if evaluation.get("verified") is not True or evaluation.get("complete") is not True or evaluation.get("holdout", {}).get("passed") is not True:
         raise VerificationError("release requires a fully verified evaluation")
     request = release_authority_request(
         product_record_sha256=product["record_sha256"],
@@ -491,7 +562,7 @@ def create_release_receipt(
     )
     if capability.request_sha256 != request:
         raise VerificationError("release capability does not bind this effect")
-    if capability.authority_sha256 == evaluation["authority_sha256"]:
+    if capability.authority_sha256 in evaluation["authority_sha256s"]:
         raise VerificationError("evaluation authority cannot authorize release")
     return build_release_receipt(
         product_record_sha256=product["record_sha256"],
@@ -509,7 +580,7 @@ def verify_release(
 ) -> dict[str, Any]:
     validate_product_artifact(product)
     validate_release_receipt(receipt)
-    if not evaluation.get("verified") or not evaluation.get("holdout", {}).get("passed"):
+    if not evaluation.get("verified") or not evaluation.get("complete") or not evaluation.get("holdout", {}).get("passed"):
         raise VerificationError("release evaluation is not qualifying")
     checks = {
         "product": receipt["product_record_sha256"] == product["record_sha256"],
@@ -518,7 +589,7 @@ def verify_release(
         "exact_final": receipt["exact_final_attestation_sha256"] == evaluation["exact_final_attestation_sha256"],
         "destination": receipt["destination"] == destination,
         "rollback": receipt["rollback"] == rollback,
-        "authority_separate": receipt["release_authority_sha256"] != evaluation["authority_sha256"],
+        "authority_separate": receipt["release_authority_sha256"] not in evaluation["authority_sha256s"],
     }
     if not all(checks.values()):
         raise VerificationError("ReleaseReceipt identity/effect mismatch")

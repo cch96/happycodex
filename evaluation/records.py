@@ -169,13 +169,12 @@ def _validate_host_contract(contract: dict[str, Any]) -> None:
     _exact(
         contract,
         {
-            "schema_version", "trust_domain", "provider_binary_sha256",
-            "provider_policy_sha256", "tool_config_sha256",
-            "permission_profile_sha256", "workspace_policy_sha256",
+            "schema_version", "trust_domain", "behavior_sha256",
+            "holdout_sha256", "exact_final_sha256",
         },
         "host_contract",
     )
-    _require(contract["schema_version"] == 2, "host contract schema differs")
+    _require(contract["schema_version"] == 3, "host contract schema differs")
     _text(contract["trust_domain"], "host_contract.trust_domain")
     for field in set(contract) - {"schema_version", "trust_domain"}:
         _sha(contract[field], f"host_contract.{field}")
@@ -195,11 +194,11 @@ def _validate_unit(unit: dict[str, Any]) -> None:
     _require(unit["order"] == {"behavior": 1, "holdout": 2, "exact_final": 3}[unit["stage"]], "unit stage order is invalid")
     for field in ("product_semantic_sha256", "external_role_config_sha256", "provider_input_sha256", "oracle_sha256", "harness_sha256", "invocation_sha256"):
         _sha(unit[field], f"unit.{field}")
-    _exact(unit["invocation"], {"unit_id", "stage", "product_semantic_sha256", "external_role_config_sha256", "host_contract_sha256", "provider_input", "model", "effort", "tools", "timeout_seconds", "claim_key"}, "unit.invocation")
+    _exact(unit["invocation"], {"unit_id", "stage", "product_semantic_sha256", "external_role_config_sha256", "effective_host_sha256", "provider_input", "model", "effort", "tools", "timeout_seconds", "claim_key"}, "unit.invocation")
     for field in ("unit_id", "stage", "product_semantic_sha256", "external_role_config_sha256"):
         _require(unit["invocation"][field] == unit[field], f"invocation {field} drift")
     _require(type(unit["invocation"]["provider_input"]) is dict, "invocation provider input must be an object")
-    _sha(unit["invocation"]["host_contract_sha256"], "invocation.host_contract_sha256")
+    _sha(unit["invocation"]["effective_host_sha256"], "invocation.effective_host_sha256")
     _require(canonical_sha256(unit["invocation"]["provider_input"]) == unit["provider_input_sha256"], "provider input digest mismatch")
     invocation_profile = {
         key: unit["invocation"][key]
@@ -227,22 +226,62 @@ def _validate_holdout(pair: dict[str, Any]) -> None:
     _sha(pair["mapping_sha256"], "holdout.mapping_sha256")
 
 
-def evaluation_authority_request_payload(spec: dict[str, Any]) -> dict[str, Any]:
+def evaluation_authority_request_payload(
+    spec: dict[str, Any], *, selected_unit_ids: list[str] | None = None,
+    total_cap: dict[str, int] | None = None,
+    prerequisites: list[dict[str, str]] | None = None,
+    prerequisite_state: dict[str, str] | None = None,
+) -> dict[str, Any]:
+    selected = selected_unit_ids or [unit["unit_id"] for unit in spec["units"]]
+    units = {unit["unit_id"]: unit for unit in spec["units"]}
     return {
         "scope": "evaluation",
+        "eval_spec_identity_sha256": canonical_sha256({key: value for key, value in spec.items() if key not in {"authority_request_sha256", "record_sha256"}}),
         "product_semantic_sha256": spec["product_semantic_sha256"],
         "external_role_config_sha256": spec["external_role_config_sha256"],
         "evaluator_bundle_sha256": spec["evaluator_bundle_sha256"],
-        "host_contract": spec["host_contract"],
         "host_contract_sha256": spec["host_contract_sha256"],
         "profiles": spec["profiles"],
         "invocations": [
             {"unit_id": unit["unit_id"], "stage": unit["stage"], "invocation": unit["invocation"], "invocation_sha256": unit["invocation_sha256"]}
-            for unit in spec["units"]
+            for unit in (units[unit_id] for unit_id in selected)
         ],
-        "total_cap": spec["total_cap"],
+        "selected_unit_ids": selected,
+        "total_cap": total_cap or spec["total_cap"],
+        "prerequisites": prerequisites or [],
+        "prerequisite_state": prerequisite_state,
         "previous_product_record_sha256": spec["previous_product_record_sha256"],
     }
+
+
+def validate_evaluation_authority_payload(spec: dict[str, Any], proposal: dict[str, Any]) -> dict[str, Any]:
+    planned = [unit["unit_id"] for unit in spec["units"]]
+    selected = proposal.get("selected_unit_ids") if type(proposal) is dict else None
+    cap = proposal.get("total_cap", {}) if type(proposal) is dict else {}
+    prerequisites = proposal.get("prerequisites") if type(proposal) is dict else None
+    state = proposal.get("prerequisite_state") if type(proposal) is dict else None
+    _require(
+        type(selected) is list and selected and len(selected) == len(set(selected))
+        and selected == [unit_id for unit_id in planned if unit_id in selected]
+        and proposal.get("scope") == "evaluation" and set(cap) == set(spec["total_cap"])
+        and cap.get("model_calls") == len(selected)
+        and all(type(value) is int and 0 <= value <= spec["total_cap"][field] for field, value in cap.items()),
+        "evaluation proposal is not a bounded selected-unit projection",
+    )
+    if selected == planned:
+        _require(proposal == evaluation_authority_request_payload(spec), "full evaluation proposal differs from EvalSpec")
+    else:
+        prior = set(planned) - {"exact-final"}
+        valid_prior = type(prerequisites) is list and len(prerequisites) == 11 and all(
+            type(item) is dict and set(item) == {"unit_id", "attestation_sha256", "raw_sha256"}
+            and item["unit_id"] in prior
+            and all(type(item[field]) is str and _HEX64.fullmatch(item[field]) for field in ("attestation_sha256", "raw_sha256"))
+            for item in prerequisites
+        )
+        _require(selected == ["exact-final"] and valid_prior and {item["unit_id"] for item in prerequisites} == prior, "exact-only proposal lacks its closed prerequisite binding")
+        _require(type(state) is dict and set(state) == {"mapping_revealed_at", "holdout_judgment_sha256"} and _HEX64.fullmatch(state["holdout_judgment_sha256"]), "exact-only prerequisite state differs")
+        _require(proposal == evaluation_authority_request_payload(spec, selected_unit_ids=selected, total_cap=cap, prerequisites=prerequisites, prerequisite_state=state), "exact-only proposal projection differs")
+    return proposal
 
 
 def build_eval_spec(
@@ -324,7 +363,8 @@ def validate_eval_spec(record: dict[str, Any]) -> dict[str, Any]:
     _require(type(record["units"]) is list and bool(record["units"]), "EvalSpec units must be non-empty")
     for unit in record["units"]:
         _validate_unit(unit)
-        _require(unit["invocation"]["host_contract_sha256"] == record["host_contract_sha256"], "unit host contract differs")
+        expected_host = record["host_contract"][f'{unit["stage"]}_sha256']
+        _require(unit["invocation"]["effective_host_sha256"] == expected_host, "unit effective host differs")
         expected_profile = record["profiles"]["exact_final" if unit["stage"] == "exact_final" else "behavior"]
         actual_profile = {
             key: unit["invocation"][key]
@@ -484,7 +524,7 @@ def validate_attestation(record: dict[str, Any]) -> dict[str, Any]:
                 and all(type(item) is dict and set(item) == {"summary"} and type(item["summary"]) is str for item in report["findings"]),
                 "exact-final report is not typed",
             )
-            passing = record["terminal"]["classification"] == "success" and report["neutral"] and report["coverage"]["complete"] and report["decision"] == "GO"
+            passing = record["terminal"]["classification"] == "success" and report["neutral"] and report["coverage"]["complete"] and report["decision"] == "GO" and "fatal:command_execution" not in record["diagnostics"]
             _require((record["verdict"] == "pass") == passing, "exact-final decision and verdict differ")
         else:
             _require(report == {} and record["verdict"] == "fail", "incomplete exact-final must retain an empty adverse report")

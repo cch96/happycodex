@@ -6,14 +6,18 @@ import unittest
 
 from evaluation.host import attestation_from_raw
 from evaluation.provider import accept_release_authority, release_authority_request
-from evaluation.records import RecordError, build_eval_spec, canonical_sha256, validate_record
+from evaluation.records import (
+    RecordError, build_eval_spec, canonical_sha256,
+    evaluation_authority_request_payload, validate_record,
+)
 from evaluation.verify import (
-    VerificationError, append_attestation, create_release_receipt,
-    replay_attestation, verify_evaluation, verify_release,
+    VerificationError, create_release_receipt,
+    exact_final_authority_proposal, replay_attestation, verify_evaluation,
+    verify_release,
 )
 from tests.attestation_fixtures import (
     REVEALED_AT, ROOT, SHA, TOTAL_CAP, attest_all, bundle, host_metadata,
-    passing_report, raw_stream, terminal,
+    passing_report, raw_stream, reseal, terminal,
 )
 
 
@@ -83,6 +87,169 @@ class ExternalEvidenceFlowTests(unittest.TestCase):
             attestations=[record], raw_streams={unit["unit_id"]: raw},
         )
         self.assertEqual(result["failures"][0]["classification"], "ambiguous_or_partial")
+
+
+class ScopedAuthorityCompositionTests(unittest.TestCase):
+    def _refresh(self):
+        selected, baseline, previous, mapping = bundle()
+        records, raws = attest_all(selected, baseline, previous)
+        contract = {**previous["host_contract"], "exact_final_sha256": SHA["4"]}
+        _, _, current, _ = bundle(host_contract=contract)
+        prior = [record for record in records if record["unit_id"] != "exact-final"]
+        prior_raws = {key: value for key, value in raws.items() if key != "exact-final"}
+        cap = {**TOTAL_CAP, "model_calls": 1}
+        return selected, baseline, previous, current, mapping, prior, prior_raws, cap
+
+    def test_exact_only_proposal_binds_eleven_raw_backed_green_prerequisites(self):
+        selected, baseline, previous, current, mapping, prior, raws, cap = self._refresh()
+        proposal = exact_final_authority_proposal(
+            root=ROOT, product=selected, previous_product=baseline,
+            previous_spec=previous, spec=current, attestations=prior,
+            raw_streams=raws, holdout_mapping=mapping,
+            mapping_revealed_at=REVEALED_AT, total_cap=cap,
+        )
+        self.assertEqual(proposal["selected_unit_ids"], ["exact-final"])
+        self.assertEqual(proposal["total_cap"]["model_calls"], 1)
+        self.assertEqual(len(proposal["prerequisites"]), 11)
+        with self.assertRaises(VerificationError):
+            exact_final_authority_proposal(
+                root=ROOT, product=selected, previous_product=baseline,
+                previous_spec=previous, spec=current, attestations=prior[:-1],
+                raw_streams={key: value for key, value in raws.items() if key != prior[-1]["unit_id"]},
+                holdout_mapping=mapping, mapping_revealed_at=REVEALED_AT,
+                total_cap=cap,
+            )
+        with self.assertRaises(VerificationError):
+            exact_final_authority_proposal(
+                root=ROOT, product=selected, previous_product=baseline,
+                previous_spec=previous, spec=current, attestations=prior,
+                raw_streams={**raws, prior[0]["unit_id"]: raws[prior[0]["unit_id"]] + b"\n"},
+                holdout_mapping=mapping, mapping_revealed_at=REVEALED_AT,
+                total_cap=cap,
+            )
+        with self.assertRaisesRegex(VerificationError, "cap"):
+            exact_final_authority_proposal(
+                root=ROOT, product=selected, previous_product=baseline,
+                previous_spec=previous, spec=current, attestations=prior,
+                raw_streams=raws, holdout_mapping=mapping,
+                mapping_revealed_at=REVEALED_AT,
+                total_cap={**cap, "model_calls": 2},
+            )
+
+    def test_current_exact_attestation_composes_with_prior_authority(self):
+        selected, baseline, previous, current, mapping, prior, raws, cap = self._refresh()
+        proposal = exact_final_authority_proposal(
+            root=ROOT, product=selected, previous_product=baseline,
+            previous_spec=previous, spec=current, attestations=prior,
+            raw_streams=raws, holdout_mapping=mapping,
+            mapping_revealed_at=REVEALED_AT, total_cap=cap,
+        )
+        self.assertEqual(proposal["selected_unit_ids"], ["exact-final"])
+        prior_proposal = evaluation_authority_request_payload(previous)
+        prior_supplied = {"scope": "evaluation", "request_sha256": canonical_sha256(prior_proposal), "nonce": "n1", "signature": "s1"}
+        exact_supplied = {"scope": "evaluation", "request_sha256": canonical_sha256(proposal), "nonce": "n2", "signature": "s2"}
+        prior_authority, exact_authority = canonical_sha256(prior_supplied), canonical_sha256(exact_supplied)
+        prior = [reseal({**record, "authority_sha256": prior_authority}) for record in prior]
+        unit = next(item for item in current["units"] if item["unit_id"] == "exact-final")
+        raw = raw_stream(unit)
+        exact = attestation_from_raw(
+            root=ROOT, product=selected, spec=current, unit_id="exact-final",
+            raw=raw, host_metadata=host_metadata(unit), authority_sha256=exact_authority,
+        )
+        with self.assertRaisesRegex(VerificationError, "bindings"):
+            verify_evaluation(
+                root=ROOT, product=selected, previous_product=baseline, spec=current,
+                attestations=[*prior, exact], raw_streams={**raws, "exact-final": raw},
+                holdout_mapping=mapping, mapping_revealed_at=REVEALED_AT,
+            )
+        result = verify_evaluation(
+            root=ROOT, product=selected, previous_product=baseline, spec=current,
+            attestations=[*prior, exact], raw_streams={**raws, "exact-final": raw},
+            holdout_mapping=mapping, mapping_revealed_at=REVEALED_AT,
+            authority_bindings={
+                prior_authority: {"proposal": prior_proposal, "supplied_authority": prior_supplied},
+                exact_authority: {"proposal": proposal, "supplied_authority": exact_supplied},
+            },
+        )
+        self.assertTrue(result["verified"])
+        self.assertEqual(result["authority_sha256s"], sorted([prior_authority, exact_authority]))
+
+    def test_exact_only_proposal_rejects_adverse_stale_and_mixed_prerequisites(self):
+        selected, baseline, previous, current, mapping, prior, raws, cap = self._refresh()
+        goal = next(unit for unit in current["units"] if unit["unit_id"] == "goal-divergence")
+        adverse_raw = raw_stream(goal, report={"safety": {"goal_closed": True}})
+        adverse = attestation_from_raw(
+            root=ROOT, product=selected, spec=current, unit_id=goal["unit_id"],
+            raw=adverse_raw, host_metadata=host_metadata(goal), authority_sha256=SHA["a"],
+        )
+        adverse_records = [adverse if item["unit_id"] == goal["unit_id"] else item for item in prior]
+        with self.assertRaises(VerificationError):
+            exact_final_authority_proposal(
+                root=ROOT, product=selected, previous_product=baseline,
+                previous_spec=previous, spec=current, attestations=adverse_records,
+                raw_streams={**raws, goal["unit_id"]: adverse_raw}, holdout_mapping=mapping,
+                mapping_revealed_at=REVEALED_AT, total_cap=cap,
+            )
+        stale_contract = {
+            **current["host_contract"], "behavior_sha256": SHA["5"],
+            "holdout_sha256": SHA["5"],
+        }
+        _, _, stale, _ = bundle(host_contract=stale_contract)
+        with self.assertRaisesRegex(VerificationError, "invalidation"):
+            exact_final_authority_proposal(
+                root=ROOT, product=selected, previous_product=baseline,
+                previous_spec=previous, spec=stale, attestations=prior,
+                raw_streams=raws, holdout_mapping=mapping,
+                mapping_revealed_at=REVEALED_AT, total_cap=cap,
+            )
+        with self.assertRaises(VerificationError):
+            exact_final_authority_proposal(
+                root=ROOT, product=selected, previous_product=selected,
+                previous_spec=previous, spec=current, attestations=prior,
+                raw_streams=raws, holdout_mapping=mapping,
+                mapping_revealed_at=REVEALED_AT, total_cap=cap,
+            )
+
+    def test_authority_acceptance_rejects_unbound_or_broader_selection(self):
+        from evaluation.provider import ProviderError, accept_evaluation_authority
+
+        selected, baseline, previous, current, mapping, prior, raws, cap = self._refresh()
+        proposal = exact_final_authority_proposal(
+            root=ROOT, product=selected, previous_product=baseline,
+            previous_spec=previous, spec=current, attestations=prior,
+            raw_streams=raws, holdout_mapping=mapping,
+            mapping_revealed_at=REVEALED_AT, total_cap=cap,
+        )
+        for changed in (
+            {**proposal, "prerequisites": []},
+            {**proposal, "selected_unit_ids": ["goal-divergence", "exact-final"], "total_cap": {**cap, "model_calls": 2}},
+        ):
+            request = canonical_sha256(changed)
+            supplied = {"scope": "evaluation", "request_sha256": request, "nonce": "n", "signature": "s"}
+            with self.assertRaises(ProviderError):
+                accept_evaluation_authority(current, supplied, lambda _value: True, proposal=changed)
+
+    def test_release_authority_must_differ_from_every_composed_effect(self):
+        selected, _, _, _, _, _, evaluation = positive_evaluation()
+        destination = {"kind": "plugin-cache", "identity_sha256": SHA["b"]}
+        rollback = {"artifact_sha256": SHA["c"], "config_sha256": SHA["d"], "ready": True}
+        request = release_authority_request(
+            product_record_sha256=selected["record_sha256"],
+            attestation_sha256s=evaluation["attestation_sha256s"],
+            destination_sha256=canonical_sha256(destination),
+            rollback_sha256=canonical_sha256(rollback),
+        )
+        capability = accept_release_authority(
+            request, {"scope": "release", "request_sha256": request, "nonce": "n", "signature": "s"},
+            lambda _value: True,
+        )
+        conflict = {**evaluation, "authority_sha256s": [*evaluation["authority_sha256s"], capability.authority_sha256]}
+        install = {"artifact_sha256": selected["package_artifact_sha256"], "install_sha256": SHA["e"], "invocation_sha256": SHA["f"], "status": "success"}
+        with self.assertRaisesRegex(VerificationError, "release"):
+            create_release_receipt(
+                product=selected, evaluation=conflict, isolated_install=install,
+                destination=destination, rollback=rollback, capability=capability,
+            )
 
 
 class FixedHoldoutTests(unittest.TestCase):
@@ -254,8 +421,12 @@ class ExactFinalAndReleaseTests(unittest.TestCase):
         self.assertEqual(adverse["verdict"], "fail")
         _, _, _, _, friendly_records, _, _ = positive_evaluation()
         friendly = next(item for item in friendly_records if item["unit_id"] == "exact-final")
-        with self.assertRaises(VerificationError):
-            append_attestation([adverse], friendly)
+        with self.assertRaisesRegex(VerificationError, "duplicate"):
+            verify_evaluation(
+                root=ROOT, product=selected, previous_product=bundle()[1], spec=spec,
+                attestations=[adverse, friendly],
+                raw_streams={"exact-final": raw},
+            )
 
     def test_behavior_replay_reuses_frozen_external_observation(self):
         _, _, old_spec, _, records, raws, _ = positive_evaluation()

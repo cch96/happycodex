@@ -22,13 +22,14 @@ from evaluation.provider import (
 from evaluation.records import (
     canonical_json,
     canonical_sha256,
+    evaluation_authority_request_payload,
     validate_attestation,
     validate_eval_spec,
     validate_product_artifact,
 )
 from evaluation.verify import (
     HostEvidenceError, attestation_from_raw, parse_raw_stream,
-    verify_host_evidence,
+    exact_final_authority_proposal, verify_host_evidence,
 )
 
 
@@ -202,6 +203,8 @@ def _evidence_files(root: Path, suffix: str) -> dict[str, Path]:
 def _verified_prefix(
     *, repo_root: Path, spec: dict[str, Any], policy: dict[str, Any],
     authority_sha256: str | None, launch: dict[str, Any], mode: str = "launch",
+    prerequisites: list[dict[str, Any]] | None = None,
+    effect_cap: dict[str, int] | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, int]]:
     if mode not in {"launch", "pending", "final"}:
         raise HostEvidenceError("durable-prefix verification mode differs")
@@ -274,6 +277,10 @@ def _verified_prefix(
         records.append(record)
     if len(authorities) > 1:
         raise HostEvidenceError("durable prefix contains mixed authorities")
+    prerequisites = prerequisites or []
+    if {record["unit_id"] for record in prerequisites} & {record["unit_id"] for record in records}:
+        raise HostEvidenceError("prerequisite and current evidence overlap")
+    records = [*prerequisites, *records]
     completed = {record["unit_id"] for record in records}
     behavior = {unit_id for unit_id, unit in planned.items() if unit["stage"] == "behavior"}
     if mode == "launch" and launch["stage"] == "behavior" and any(planned[unit_id]["stage"] != "behavior" for unit_id in completed):
@@ -282,7 +289,8 @@ def _verified_prefix(
         raise HostEvidenceError("holdout requires all behavior predecessors")
     if mode == "launch" and launch["stage"] == "exact_final" and (set(planned) - {launch["unit_id"]}) != completed:
         raise HostEvidenceError("exact-final requires the complete durable prefix")
-    if mode == "launch" and any(totals[field] >= spec["total_cap"][field] for field in totals):
+    cap = effect_cap or spec["total_cap"]
+    if mode == "launch" and any(totals[field] >= cap[field] for field in totals):
         raise HostEvidenceError("durable prefix exhausted the total cap")
     return records, totals
 
@@ -414,18 +422,44 @@ def execute_fixed_host_transaction(
     authenticate_line: Callable[[str, dict[str, Any]], bool], provider_auth: bytes,
     run_provider: Callable[..., tuple[int, bool]] | None = None,
     clock: Callable[[], datetime] = lambda: datetime.now(timezone.utc),
+    authority_proposal: dict[str, Any] | None = None,
+    previous_spec: dict[str, Any] | None = None,
+    prerequisite_attestations: list[dict[str, Any]] | None = None,
+    prerequisite_raw_streams: dict[str, bytes] | None = None,
+    holdout_mapping: dict[str, dict[str, str]] | None = None,
+    mapping_revealed_at: str | None = None,
 ) -> dict[str, Any]:
     validate_product_artifact(product); validate_product_artifact(previous_product); validate_eval_spec(spec)
     if host_contract_from_policy(policy) != spec["host_contract"]:
         raise HostEvidenceError("host policy differs from authority-bound contract")
-    expected_line = f"APPROVE HAPPYCODEX EVALUATION {spec['authority_request_sha256']}"
+    proposal = authority_proposal or evaluation_authority_request_payload(spec)
+    prerequisites = prerequisite_attestations or []
+    selected = proposal.get("selected_unit_ids") if type(proposal) is dict else None
+    if selected == ["exact-final"]:
+        if previous_spec is None or prerequisite_raw_streams is None or holdout_mapping is None or mapping_revealed_at is None:
+            raise HostEvidenceError("exact-only authority lacks bound prerequisites")
+        expected_proposal = exact_final_authority_proposal(
+            root=repo_root, product=product, previous_product=previous_product,
+            previous_spec=previous_spec, spec=spec, attestations=prerequisites,
+            raw_streams=prerequisite_raw_streams, holdout_mapping=holdout_mapping,
+            mapping_revealed_at=mapping_revealed_at, total_cap=proposal.get("total_cap", {}),
+        )
+    else:
+        expected_proposal = evaluation_authority_request_payload(spec)
+        if prerequisites or prerequisite_raw_streams:
+            raise HostEvidenceError("full-bundle authority cannot import prerequisites")
+    if proposal != expected_proposal:
+        raise HostEvidenceError("evaluation authority proposal differs")
+    request_sha256 = canonical_sha256(proposal)
+    expected_line = f"APPROVE HAPPYCODEX EVALUATION {request_sha256}"
     if authority_line != expected_line:
         raise HostEvidenceError("evaluation authority line differs")
     capability = accept_evaluation_authority(
         spec, supplied_authority,
         lambda value: authenticate_line(authority_line, value),
+        proposal=proposal,
     )
-    rebind_evaluation_capability(capability, spec)
+    rebind_evaluation_capability(capability, spec, unit_id)
     unit = next((item for item in spec["units"] if item["unit_id"] == unit_id), None)
     if unit is None:
         raise HostEvidenceError("unit is absent from EvalSpec")
@@ -437,6 +471,7 @@ def execute_fixed_host_transaction(
         prefix_records, prefix_totals = _verified_prefix(
             repo_root=repo_root, spec=spec, policy=policy,
             authority_sha256=capability.authority_sha256, launch=unit,
+            prerequisites=prerequisites, effect_cap=proposal["total_cap"],
         )
         targets = _preflight_paths(policy, unit); holdout_reveal = None
         if unit["stage"] == "exact_final":
@@ -513,17 +548,19 @@ def execute_fixed_host_transaction(
         _verified_prefix(
             repo_root=repo_root, spec=spec, policy=policy,
             authority_sha256=capability.authority_sha256, launch=unit,
-            mode="pending",
+            mode="pending", prerequisites=prerequisites,
+            effect_cap=proposal["total_cap"],
         )
         _exclusive(attestation_path, (canonical_json(record) + "\n").encode(), 0o600)
         records, totals = _verified_prefix(
             repo_root=repo_root, spec=spec, policy=policy,
             authority_sha256=capability.authority_sha256, launch=unit,
-            mode="final",
+            mode="final", prerequisites=prerequisites,
+            effect_cap=proposal["total_cap"],
         )
     finally:
         _unlock_claims(lock)
-    exceeded = [field for field in totals if totals[field] > spec["total_cap"][field]]
+    exceeded = [field for field in totals if totals[field] > proposal["total_cap"][field]]
     stop_reason = None
     planned = {item["unit_id"]: item for item in spec["units"]}
     if any(

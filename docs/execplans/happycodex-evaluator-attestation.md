@@ -146,13 +146,15 @@ identity, effect, and goal-closure invariants are fatal.
 
 | Change | Required invalidation and work |
 | --- | --- |
-| Runtime, semantic package bytes, or external role config | New product semantic identity; rerun every behavior role and exact-final. |
+| Runtime or semantic package bytes | New product semantic identity; rerun all twelve units. |
+| External role config or behavior host surface | Rerun the five core and six holdout arms; exact-final keeps its neutral role identity. |
 | Packaging/version bytes only | New artifact identity and exact-final/install/release; reuse behavior attestations only when their bound semantic and role-config digests are identical. |
 | A role's fixture or public prompt | Change only that role's provider-input identity and rerun only that role. |
 | Shared provider instructions, model, effort, tools, isolation, or timeout | Change every affected provider-input identity and rerun those roles. |
 | Behavior/holdout expected answer, oracle, or matcher only | Change only the affected oracle identity; replay the frozen observation with zero new model calls when provider-input identity is unchanged. |
-| Holdout comparison policy only | Change oracle/evaluator/source identity and require a fresh `EvalSpec` and request. Any reuse or next-call plan must be mechanically proven under the single-authority contract; an incomplete adverse prefix grants no implicit continuation. |
+| Holdout comparison policy only | Change oracle/evaluator identity and require a fresh `EvalSpec`; reuse requires exact current unit and raw identities. |
 | Exact-final rubric or oracle | Run a fresh exact-final unit; a terminal review cannot be reinterpreted as a new neutral review. |
+| Exact source, neutral brief/instructions, or exact permission delta | Invalidate only exact-final; a one-call proposal must bind all eleven raw-backed GREEN prerequisites. |
 | Scheduler, serialization, receipt verifier, or other harness only | Run offline harness/adversarial checks; never call the model unless provider input also changed. |
 | Case added, removed, or requirement policy changed | Create a new `EvalSpec`; reuse still-valid attestations by exact component identity and run only newly required provider inputs. |
 | Any product mutation after exact-final | Invalidate exact-final and release eligibility; return to working with a new `ProductArtifact`. |
@@ -212,16 +214,28 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `grant38_clean_break_working`. Root authorized a fresh, incompatible
-  evaluator generation at clean commit/tree `637da0e...` / `9795b1d...`.
-  GRANT-36 evidence is archival only and cannot be imported or authorize work.
-- Replace global path-bound host identity with path-neutral stage-local
-  effective identity. Keep the ordinary `5 + 6 + 1` bundle and four records;
-  permit a stateless exact-only authority projection only when eleven current,
-  raw-backed GREEN prerequisites verify. Independently authenticated effects
-  may compose only through current unit and raw identities.
-- Exact-final must inspect its readable frozen cwd using `command_execution`;
-  zero-tool `GO` fails. Preserve blindness, fixed holdout semantics, behavior
-  permissions, product bytes, and the 3,200/600/3,000 size bounds. Add no gate,
-  ledger, compatibility reader, continuation engine, provider call, request,
-  install, release, activation, or external evidence mutation.
+- Phase: `grant38_offline_green`, terminal. Intent commit/tree are
+  `61d4042...` / `4edb032...`; GRANT-36 evidence remained archival and was not
+  read, imported, or accepted as authority.
+- The global path-bound host digest, blanket same-authority verifier, and
+  collection-style Attestation append helper were deleted. Stage-local
+  effective host identities, a pure selected-unit authority proposal, exact
+  prerequisite verification, and request-bound mixed-authority composition
+  replaced them without a new record, gate, ledger, graph, or state machine.
+- Original RED is GREEN: exact-final must inspect the readable frozen cwd with
+  completed `command_execution`; identical host relocation preserves all twelve
+  invocation identities. Exact-only fake-host refresh writes one current
+  Attestation and composes with eleven raw-backed GREEN prerequisites. Missing,
+  tampered, adverse, stale, mixed-product, changed-unit, unbound, broader, and
+  over-cap inputs fail before provider reach. Release authority differs from
+  every evaluation authority.
+- Focused checks converged; the sole full offline run was `127/127` in 13.520s.
+  Evaluator Python is 3,186 lines, maximum file 596; this plan remains below
+  3,000 words. Product/Runtime/config and the four-record, ordinary `5 + 6 + 1`
+  inventory are unchanged. No provider, model, network, request, evidence-root,
+  install, release, activation, cache, marketplace, or rollback effect occurred.
+- The coherent terminal change set is exactly this plan, `evaluation/README.md`,
+  `evaluation/{cli,host,identity,manifest,provider,records,verify}.py`,
+  `tests/attestation_fixtures.py`, and
+  `tests/{test_attestation_flow,test_fixed_host_transaction_v2,test_stage_profiles,test_stateless_records,test_trust_boundary_repair}.py`.
+  Claim-marker directories are control metadata and are not part of the commit.

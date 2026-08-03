@@ -28,10 +28,17 @@ python3 -m evaluation.cli verify --product PRODUCT.json \
 python3 -m evaluation.cli verify-release ...
 ```
 
-`authority-request` prints only the digest and bounded invocation inventory.
+`authority-request` prints only the digest and default twelve-invocation proposal.
 An external authenticator must validate user authority before the provider or
 release APIs mint a non-serializable process-local capability. Repository
 content cannot authenticate itself.
+
+Authority is effect-scoped and stateless. The default proposal selects all
+twelve invocations. When only exact-final changed, a one-call proposal may bind
+the eleven current raw-backed GREEN prerequisites, frozen mapping reveal, and
+holdout judgment. No evidence is imported or promoted: final verification
+composes immutable Attestations only when every current unit identity and raw
+stream verifies, and returns the sorted evaluation-authority digest set.
 
 `PROFILES.json` has exactly `behavior` and `exact_final`, each with the existing
 `model`, `effort`, `tools`, and `timeout_seconds` fields. Core behavior and all
@@ -64,9 +71,12 @@ exact-final receive the candidate source Runtime; each holdout arm receives its
 mapped product source Runtime. Mutable working-tree bytes are never substituted
 for either frozen source, and mapping labels remain outside provider input.
 
-The fixed external host is the trusted capture boundary. `EvalSpec`
-binds its binary, complete provider argv/role policy, trust domain,
-tool/permission/workspace configuration, and every invocation. The public CLI
+The fixed external host is the trusted capture boundary. `EvalSpec` binds
+path-neutral effective host identities per stage and every invocation. Absolute
+execution, output, source, config, oracle, and mapping paths remain execution
+policy only. Behavior and holdouts bind their shared role/tool/permission
+surface; exact-final alone binds the frozen source, neutral instructions, brief,
+and read-only helper permission delta. The public CLI
 never reserves a claim or writes execution evidence. After an external
 authenticator accepts the exact authority line, the same process calls the
 single `evaluation.host.execute_fixed_host_transaction` path: prepare and
@@ -81,7 +91,10 @@ durable pre-provider/no-effect Attestation, timeout kills and reaps the process
 group, and any current failure or cap overrun is persisted before stop. Holdout
 mapping is raw-verified only after all six arm Attestations are durable, and its
 authoritative reveal timestamp is returned for final verification. Exact-final
-uses closed `GO | NOT_YET`; every typed adverse report remains durable. The raw
+uses closed `GO | NOT_YET`; every typed adverse report remains durable. A
+complete `GO` is non-qualifying unless the raw stream contains a completed
+`command_execution` inspection of the readable frozen Git cwd. Host-verified
+launch facts are authoritative machine facts. The raw
 input is native `codex exec --json`: one thread, one turn, paired item events,
 one or more completed JSON agent messages with unique IDs, and one terminal
 usage event. The last same-turn agent message is canonical; all earlier messages

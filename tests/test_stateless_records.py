@@ -16,13 +16,13 @@ from evaluation.identity import (
 from evaluation.manifest import ManifestError
 from evaluation.provider import (
     EvaluationCapability, ProviderError, accept_evaluation_authority,
-    assert_provider_blind, provider_projection, sanitize_events,
+    assert_provider_blind, provider_projection,
 )
 from evaluation.records import (
     RECORD_TYPES, TERMINAL_CLASSES, RecordError, build_product_artifact,
     validate_record,
 )
-from evaluation.verify import evaluate_runtime_decision
+from evaluation.verify import evaluate_runtime_decision, sanitize_events
 from tests.attestation_fixtures import (
     BASELINE_REVISION, CANDIDATE_REVISION, HOST_CONTRACT, PROFILES, ROOT, SHA,
     bundle, host_metadata, product, raw_stream, terminal,
@@ -84,7 +84,8 @@ class DurableRecordTests(unittest.TestCase):
             self.assertNotIn("fatal", str(projection["response_schema"]).lower())
             self.assertNotIn("expected", str(projection["response_schema"]).lower())
             expected = selected if unit["product_semantic_sha256"] == selected["package_semantic_sha256"] else baseline
-            self.assertEqual(unit["external_role_config_sha256"], expected["external_role_config_sha256"])
+            if unit["stage"] != "exact_final":
+                self.assertEqual(unit["external_role_config_sha256"], expected["external_role_config_sha256"])
             self.assertEqual(projection["runtime"], expected_runtimes[unit["product_semantic_sha256"]])
         units = {unit["unit_id"]: unit for unit in spec["units"]}
         for pair in spec["holdouts"]:

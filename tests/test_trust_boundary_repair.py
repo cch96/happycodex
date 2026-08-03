@@ -218,7 +218,7 @@ class TrustBoundaryRedTests(unittest.TestCase):
 
     def test_host_contract_relabel_invalidates_attestations(self):
         selected, baseline, old_spec, blind_mapping, records, raws = verify_args()
-        changed_contract = {**HOST_CONTRACT, "workspace_policy_sha256": "1" * 64}
+        changed_contract = {**HOST_CONTRACT, "exact_final_sha256": "1" * 64}
         _, _, new_spec, _ = bundle(host_contract=changed_contract)
         with self.assertRaises(VerificationError):
             verify_evaluation(
@@ -333,16 +333,25 @@ class ExactFinalContractRedTests(unittest.TestCase):
 
     def test_exact_final_go_without_command_execution_is_rejected(self):
         selected, baseline, spec, blind_mapping, records, raws = verify_args()
-        exact_raw = raws["exact-final"].decode("utf-8")
+        unit = next(item for item in spec["units"] if item["unit_id"] == "exact-final")
+        exact = raw_stream(unit, command_execution=False)
+        replacement = attestation_from_raw(
+            root=ROOT, product=selected, spec=spec, unit_id="exact-final", raw=exact,
+            host_metadata=host_metadata(unit), authority_sha256="a" * 64,
+        )
+        records = [replacement if item["unit_id"] == "exact-final" else item for item in records]
+        raws["exact-final"] = exact
+        exact_raw = exact.decode("utf-8")
         self.assertNotIn('"type": "command_execution"', exact_raw)
-        with self.assertRaisesRegex(VerificationError, "command_execution"):
-            verify_evaluation(
-                root=ROOT, product=selected, previous_product=baseline, spec=spec,
-                attestations=records, raw_streams=raws,
-                holdout_mapping=blind_mapping, mapping_revealed_at=REVEALED_AT,
-            )
+        result = verify_evaluation(
+            root=ROOT, product=selected, previous_product=baseline, spec=spec,
+            attestations=records, raw_streams=raws,
+            holdout_mapping=blind_mapping, mapping_revealed_at=REVEALED_AT,
+        )
+        self.assertFalse(result["verified"])
+        self.assertIn("fatal:command_execution", replacement["diagnostics"])
 
-    def test_path_relocation_preserves_prior_eleven_invocation_identities(self):
+    def test_path_relocation_preserves_all_invocation_identities(self):
         from tests.test_fixed_host_transaction_v2 import FixedHostTransactionTests
 
         helper = FixedHostTransactionTests()
@@ -353,8 +362,6 @@ class ExactFinalContractRedTests(unittest.TestCase):
             *_, current, _ = helper._inputs(str(host_b))
         prior = {unit["unit_id"]: unit for unit in previous["units"]}
         for unit in current["units"]:
-            if unit["unit_id"] == "exact-final":
-                continue
             self.assertEqual(
                 unit["invocation_sha256"], prior[unit["unit_id"]]["invocation_sha256"],
                 f"absolute host path leaked into {unit['unit_id']} semantic identity",
@@ -449,13 +456,28 @@ class InvalidationMatrixTests(unittest.TestCase):
             with self.assertRaises(ManifestError):
                 self._materialize(root)
 
-    def test_host_tool_permission_workspace_or_provider_drift_invalidates_full_plan(self):
+    def test_stage_local_host_drift_invalidates_only_its_effective_units(self):
         _, _, previous, _ = bundle()
-        for field in ("provider_binary_sha256", "provider_policy_sha256", "tool_config_sha256", "permission_profile_sha256", "workspace_policy_sha256"):
-            changed = {**HOST_CONTRACT, field: "1" * 64}
-            _, _, current, _ = bundle(host_contract=changed)
-            with self.subTest(field=field):
-                self.assertEqual(len(invalidation(previous, current)["model_units"]), len(current["units"]))
+        exact = {**HOST_CONTRACT, "exact_final_sha256": "4" * 64}
+        _, _, current, _ = bundle(host_contract=exact)
+        self.assertEqual(invalidation(previous, current)["model_units"], ["exact-final"])
+        behavior = {**HOST_CONTRACT, "behavior_sha256": "4" * 64, "holdout_sha256": "4" * 64}
+        _, _, current, _ = bundle(host_contract=behavior)
+        self.assertEqual(
+            invalidation(previous, current)["model_units"],
+            sorted(unit["unit_id"] for unit in current["units"] if unit["stage"] != "exact_final"),
+        )
+
+    def test_neutral_brief_drift_invalidates_only_exact_final(self):
+        selected, baseline, previous, blind_mapping = bundle()
+        brief = deepcopy(REVIEW_BRIEF)
+        brief["checks"].append("inspect the frozen cwd")
+        current = materialize_eval_spec(
+            root=ROOT, candidate=selected, previous=baseline, profiles=PROFILES,
+            total_cap=TOTAL_CAP, holdout_mapping=blind_mapping,
+            review_brief=brief, host_contract=HOST_CONTRACT,
+        )
+        self.assertEqual(invalidation(previous, current)["model_units"], ["exact-final"])
 
     def test_manifest_identity_change_is_not_silent(self):
         _, _, previous, _ = bundle()

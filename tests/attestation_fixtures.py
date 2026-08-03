@@ -37,12 +37,9 @@ REVIEW_BRIEF = {
 }
 REVEALED_AT = "2026-08-02T00:00:35Z"
 HOST_CONTRACT = {
-    "schema_version": 2, "trust_domain": "happycodex-offline-test-host-v2",
-    "provider_binary_sha256": __import__("hashlib").sha256((ROOT / "tests" / "fake_external_host.py").read_bytes()).hexdigest(),
-    "provider_policy_sha256": canonical_sha256({"argv": "fixed-fake-v2"}),
-    "tool_config_sha256": canonical_sha256({"tools": ["command_execution"]}),
-    "permission_profile_sha256": canonical_sha256({"network": False, "filesystem": "temporary"}),
-    "workspace_policy_sha256": canonical_sha256({"cwd": "fresh-temporary-repo", "home": "fresh-temporary-home"}),
+    "schema_version": 3, "trust_domain": "happycodex-offline-test-host-v3",
+    "behavior_sha256": SHA["1"], "holdout_sha256": SHA["2"],
+    "exact_final_sha256": SHA["3"],
 }
 def product(*, root: Path = ROOT, role: str = SHA["3"]):
     return product_artifact_from_git(
@@ -123,6 +120,7 @@ def raw_stream(
     unit: dict[str, Any], *, report: dict[str, Any] | None = None,
     terminal_value: dict[str, Any] | None = None,
     start: datetime | None = None, duration_seconds: int = 10,
+    command_execution: bool | None = None,
 ) -> bytes:
     usage = terminal_value or terminal()
     if usage["classification"] == "infrastructure_no_effect":
@@ -132,6 +130,12 @@ def raw_stream(
         {"type": "turn.started"},
     ]
     if usage["classification"] == "success":
+        use_command = unit["stage"] == "exact_final" if command_execution is None else command_execution
+        if use_command:
+            events.extend([
+                {"type": "item.started", "item": {"id": f"command-{unit['unit_id']}", "type": "command_execution"}},
+                {"type": "item.completed", "item": {"id": f"command-{unit['unit_id']}", "type": "command_execution"}},
+            ])
         events.extend(
             [
                 {"type": "item.completed", "item": {"id": f"message-{unit['unit_id']}", "type": "agent_message", "text": json.dumps(deepcopy(report or passing_report(unit)), sort_keys=True)}},
