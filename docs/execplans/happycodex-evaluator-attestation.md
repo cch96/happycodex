@@ -212,95 +212,16 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `grant31_exact_final_not_yet`, terminal and mechanically reconciled.
-  Durable intent is commit/tree `f65878205536cbfca2aed04b41755167be6a4fdc` /
-  `6c2f387fda9dc1966d47f5501b029934dceeead9`; this receipt is the commit
-  carrying this checkpoint. Exact authority request `e9295933...` and authority
-  digest `05825e35...` bound the unchanged spec `bfc93edb...`, product/baseline
-  `d77ecb6a...` / `ec4fc2df...`, and twelve-call cap.
-- All five behavior units were success/pass. All six concurrently frozen
-  holdout arms were success/pass; the three candidate scores equal baseline
-  (`2/2`, `1/1`, `1/1`) and every candidate passed its absolute oracle.
-  Candidate/baseline tokens are 33,389/32,297 and wall milliseconds are
-  22,661/21,055; both reported ratios are within 1.25. Mapping reveal was
-  `2026-08-03T16:03:09.998190Z` and the holdout judgment is GREEN.
-- The sole exact-final provider call completed successfully but returned
-  `coverage.complete=false` and `decision=NOT_YET`, with the finding that its
-  read-only command environment failed to launch and the frozen projection
-  therefore could not be completely inspected. Attestation `4f18f6bb...` is
-  verdict `fail` with diagnostics `fatal:coverage.complete` and
-  `fatal:decision`. Stateless replay reproduces exactly that sole failure while
-  retaining the GREEN holdout.
-- Final prefix is `12/12/12/12`; cumulative usage is 12 calls, 144,010 input
-  tokens, 3,270 output tokens, and 121,195ms, within every cap. Auth staging is
-  absent. No call was retried or recovered, and no package, Runtime, evaluator,
-  source, config, install, release, activation, cache, marketplace, or rollback
-  effect followed. Release remains excluded; a new Root decision is required
-  for any repair or new evaluation identity.
-
-### GRANT-33 simplification receipt
-
-- The first exact-only bridge was deleted when its 162-line module plus branches
-  exceeded the 3,200/600 limits. Only the derived exact-final helper-file read
-  remained; behavior permissions stayed byte-exact. Full offline was `117/117`.
-
-### GRANT-35 request receipt
-
-- Fresh request/spec/host/source `78be8bc8...` / `dfd9f9ab...` / `cbb93a5a...` /
-  `acdd2624...` bound candidate/baseline `d77ecb6a...` / `ec4fc2df...`, high/max
-  profiles and `12/600000/100000/2400000/0`. Source was clean, self-contained,
-  hidden-blind, and atomically published with zero prefix.
-
-### GRANT-36 terminal receipt
-
-- Phase: `exact_final_not_yet`. Intent commit/tree are `b1b4327...` /
-  `4ce435c...`; exact authority `78be8bc8...` minted one process-local bundle
-  identity `19ff5a08...`. Pre-effect claims, credentials, zero prefix, frozen
-  request/spec/host/source, twelve invocations, profiles, mapping, and cap were
-  exact. No retry or recovery occurred.
-- Core was `5/5` success/pass. All six holdout arms froze success/pass before
-  reveal. Unified judgment was GREEN: candidate/baseline tokens `34,056/32,741`
-  passed strict 1.25; pair scores were `2/2`, `2/1`, `1/1`. Wall
-  `40,108/25,161` exceeded 1.25 but is diagnostic-only. A status formatter used
-  one obsolete field name after freeze; offline replay reconciled the complete
-  eleven-unit prefix without another provider effect.
-- Exact-final reached the provider once and completed, but returned
-  `coverage.complete=false` and `decision=NOT_YET`: it said the frozen source
-  and durable evidence were not inspectable from supplied summaries. It emitted
-  zero command-execution items. Attestation `8c7e8ad6...` is durably fail with
-  `fatal:coverage.complete` and `fatal:decision`.
-- Stateless replay reproduces the sole failure with holdout GREEN. Final usage
-  is 12 calls, 144,386 input, 4,396 output, and 149,246ms, within all caps; all
-  12 raw/claim/Attestation records remain outside the repository and auth
-  staging is absent. Release is excluded and unchanged bytes cannot rerun this
-  review. No package, Runtime, config, install, activation, cache, marketplace,
-  or rollback effect occurred; further action requires a new Root decision.
-
-### GRANT-37 durable intent
-
-- Root authorized one offline exact-final contract repair at clean commit/tree
-  `9896309...` / `99ae68f...`. Freeze RED for mandatory frozen-cwd inspection,
-  zero-tool GO rejection, path-neutral identity, and an exact-only refresh bound
-  to the eleven raw-backed GREEN prerequisites.
-- Add no gate, record, receipt, case, generic continuation/replay engine, model
-  call, request, install, or release. Preserve the ordinary twelve-unit bundle,
-  behavior permissions, package and immutable GRANT-36 evidence. If a readable
-  solution recreates the prior continuation family or exceeds 3,200/600, stop
-  after RED instead of compressing or widening the protocol.
-
-### GRANT-37 RED stop receipt
-
-- Phase: `exact_final_contract_red`, terminal under the authorized stop rule.
-  Intent commit/tree are `b49838e...` / `6df8b47...`. Three focused
-  characterizations fail as required: the exact-final input omits mandatory
-  command/cwd/host-fact instructions; a zero-command `GO` verifies; and moving
-  an otherwise identical fixed host changes an ordinary invocation identity.
-- The only implementation delta is 44 test lines. Production evaluator Python
-  remains 3,018 lines, leaving 182 under the 3,200 ceiling; `provider.py` is
-  already at its 600-line file ceiling. The previously abandoned readable
-  exact-only bridge alone required a 162-line continuation module plus schema,
-  host, invalidation, and composition branches. This stricter contract cannot
-  fit the remaining budget without recreating that family or minifying code.
-  Per grant, implementation and the full suite stopped after RED.
-- No evaluator, package, Runtime, config, external evidence, model, request,
-  install, release, activation, cache, marketplace, or rollback effect occurred.
+- Phase: `grant38_clean_break_working`. Root authorized a fresh, incompatible
+  evaluator generation at clean commit/tree `637da0e...` / `9795b1d...`.
+  GRANT-36 evidence is archival only and cannot be imported or authorize work.
+- Replace global path-bound host identity with path-neutral stage-local
+  effective identity. Keep the ordinary `5 + 6 + 1` bundle and four records;
+  permit a stateless exact-only authority projection only when eleven current,
+  raw-backed GREEN prerequisites verify. Independently authenticated effects
+  may compose only through current unit and raw identities.
+- Exact-final must inspect its readable frozen cwd using `command_execution`;
+  zero-tool `GO` fails. Preserve blindness, fixed holdout semantics, behavior
+  permissions, product bytes, and the 3,200/600/3,000 size bounds. Add no gate,
+  ledger, compatibility reader, continuation engine, provider call, request,
+  install, release, activation, or external evidence mutation.
