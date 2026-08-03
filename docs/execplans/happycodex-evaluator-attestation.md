@@ -214,6 +214,12 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
+- GRANT-39 intent, pre-mutation: from commit/tree `39792098bee3b74029d2457ec57d85c8791be09a` /
+  `fa43b199489c2eefeee0f202ce75b46a7801af01`, repair only the exact-final
+  claim-key dependency in `evaluation/manifest.py` so it binds the already
+  stage-local role-config digest, and add one external-role differential in
+  `tests/test_stage_profiles.py`. Run only the authorized focused modules and
+  contract/size guards; do not rerun the full suite or create any live effect.
 - Phase: `grant38_offline_green`, terminal. Intent commit/tree are
   `61d4042...` / `4edb032...`; GRANT-36 evidence remained archival and was not
   read, imported, or accepted as authority.
