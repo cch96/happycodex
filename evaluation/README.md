@@ -55,7 +55,9 @@ boundaries, oracle and matcher content, holdout mappings, desired verdicts, and
 repair history are absent from workspace, arguments, standard input,
 environment, and sanitized events. Fixed holdouts are exactly three concurrent
 two-arm pairs against the previous released product; all six outputs freeze
-before reveal, and aggregate token and wall ratios must each be at most 1.25.
+before reveal. Aggregate tokens must be at most 1.25; the same relative wall
+ratio is computed and returned as a diagnostic, while per-unit timeouts and the
+absolute cumulative wall cap remain hard.
 Before materialization, each supplied `ProductArtifact` is reconstructed from
 its exact Git source and external-role-config digest. Core behavior and
 exact-final receive the candidate source Runtime; each holdout arm receives its

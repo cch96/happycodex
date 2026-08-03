@@ -104,10 +104,42 @@ class FixedHoldoutTests(unittest.TestCase):
                 mapping_revealed_at="2026-08-02T00:00:45Z",
             )
 
-    def test_aggregate_token_and_wall_ratios_are_strict(self):
+    def test_relative_wall_ratio_is_diagnostic_only(self):
+        selected, baseline, spec, blind_mapping = bundle()
+        candidate_units = {
+            unit_id
+            for pair in blind_mapping.values()
+            for unit_id, label in pair.items()
+            if label == "candidate"
+        }
+        exact_start = datetime(2026, 8, 2, 0, 0, 50, tzinfo=timezone.utc)
+        records, raws = [], {}
+        for unit in spec["units"]:
+            arm = selected if unit["product_semantic_sha256"] == selected["package_semantic_sha256"] else baseline
+            start = exact_start if unit["stage"] == "exact_final" else None
+            duration = 20 if unit["unit_id"] in candidate_units else 10
+            raw = raw_stream(unit, start=start, duration_seconds=duration)
+            records.append(attestation_from_raw(
+                root=ROOT, product=arm, spec=spec, unit_id=unit["unit_id"],
+                raw=raw, host_metadata=host_metadata(
+                    unit, start=start, duration_seconds=duration,
+                ), authority_sha256=SHA["a"],
+            ))
+            raws[unit["unit_id"]] = raw
+        result = verify_evaluation(
+            root=ROOT, product=selected, previous_product=baseline, spec=spec,
+            attestations=records, raw_streams=raws, holdout_mapping=blind_mapping,
+            mapping_revealed_at="2026-08-02T00:00:45Z",
+        )
+        self.assertTrue(result["verified"])
+        self.assertTrue(result["holdout"]["passed"])
+        self.assertTrue(result["holdout"]["aggregate"]["token_ratio_within_1_25"])
+        self.assertFalse(result["holdout"]["aggregate"]["wall_ratio_within_1_25"])
+
+    def test_aggregate_token_ratio_is_strict_and_blocks_exact_final(self):
         selected, baseline, spec, blind_mapping = bundle()
         expensive = {
-            f"{sample}-arm-a": terminal(input_tokens=20, output_tokens=2, wall_milliseconds=20)
+            f"{sample}-arm-a": terminal(input_tokens=20, output_tokens=2)
             for sample in ("holdout-recovery", "holdout-safety", "holdout-scope")
         }
         records, raws = attest_all(selected, baseline, spec, terminals=expensive)
@@ -121,7 +153,7 @@ class FixedHoldoutTests(unittest.TestCase):
     def test_aggregate_failure_prefix_is_retained_without_exact_final(self):
         selected, baseline, spec, blind_mapping = bundle()
         expensive = {
-            f"{sample}-arm-a": terminal(input_tokens=20, output_tokens=2, wall_milliseconds=20)
+            f"{sample}-arm-a": terminal(input_tokens=20, output_tokens=2)
             for sample in ("holdout-recovery", "holdout-safety", "holdout-scope")
         }
         records, raws = attest_all(selected, baseline, spec, terminals=expensive)

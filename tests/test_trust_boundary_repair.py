@@ -171,13 +171,13 @@ class TrustBoundaryRedTests(unittest.TestCase):
                 mapping_revealed_at=REVEALED_AT,
             )
 
-    def test_f7_exact_final_after_aggregate_holdout_failure_is_rejected(self):
+    def test_f7_exact_final_after_token_ratio_failure_is_rejected(self):
         selected, baseline, spec, blind_mapping = bundle()
         expensive = {
             f"{sample}-arm-a": {
                 "classification": "success", "provider_reached": True,
                 "complete": True, "model_calls": 1, "input_tokens": 40,
-                "output_tokens": 10, "wall_milliseconds": 40,
+                "output_tokens": 10, "wall_milliseconds": 10,
             }
             for sample in ("holdout-recovery", "holdout-safety", "holdout-scope")
         }

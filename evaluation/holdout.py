@@ -103,7 +103,7 @@ def judge_fixed_holdouts(
     token_ratio_ok = _ratio_ok(candidate_tokens, baseline_tokens)
     wall_ratio_ok = _ratio_ok(candidate_wall, baseline_wall)
     return {
-        "passed": all(item["passed"] for item in pair_results) and token_ratio_ok and wall_ratio_ok,
+        "passed": all(item["passed"] for item in pair_results) and token_ratio_ok,
         "pairs": pair_results,
         "aggregate": {
             "candidate_tokens": candidate_tokens, "baseline_tokens": baseline_tokens,

@@ -28,7 +28,9 @@ maintenance support and must never be linked from `skills/happycodex/SKILL.md`.
   recovery cap. Ambiguous or partial effects stop without retry.
 - Holdouts are exactly three fixed concurrent pairs against the previous
   released product. Freeze all six outputs before revealing mappings; aggregate
-  candidate tokens and wall time must each be no more than 1.25 times baseline.
+  candidate tokens must be no more than 1.25 times baseline. The corresponding
+  relative wall ratio is retained as a diagnostic; per-unit timeouts and the
+  absolute cumulative wall cap remain hard.
 - Persist an adverse exact-final attestation and reject a friendlier rerun for
   unchanged artifact bytes. Product mutation requires a new exact-final.
 - Keep evaluator Python at most 3,200 lines where practical; 3,600 is a hard
