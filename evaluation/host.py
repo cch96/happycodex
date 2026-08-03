@@ -16,7 +16,7 @@ from evaluation.manifest import load_production_inputs
 from evaluation.oracle import hidden_oracle_for, score_hidden
 from evaluation.provider import (
     EvaluationCapability, accept_evaluation_authority,
-    build_fixed_host_policy, fixed_host_argv, fixed_host_instruction,
+    build_fixed_host_policy, fixed_command_path, fixed_host_argv, fixed_host_instruction,
     host_contract_from_policy, rebind_evaluation_capability,
 )
 from evaluation.records import (
@@ -149,6 +149,21 @@ def _prepare_unit(policy: dict[str, Any], unit: dict[str, Any]) -> dict[str, Pat
     os.mkdir(unit_root, 0o700)
     home, codex_home = unit_root / "home", unit_root / "codex-home"
     os.mkdir(home, 0o700); os.mkdir(codex_home, 0o700)
+    command_bin = unit_root / "command-bin"; os.mkdir(command_bin, 0o700)
+    source = Path(policy["provider_policy"]["binary_path"])
+    alias = command_bin / policy["provider_policy"]["sandbox_alias_name"]
+    try:
+        os.link(source, alias, follow_symlinks=False)
+        _sync_directory(command_bin); command_bin.chmod(0o500)
+        fixed_command_path(policy, command_bin)
+    except Exception as exc:
+        command_bin.chmod(0o700)
+        if alias.exists() or alias.is_symlink(): alias.unlink()
+        command_bin.rmdir(); codex_home.rmdir(); home.rmdir(); unit_root.rmdir()
+        _sync_directory(units)
+        if isinstance(exc, OSError):
+            raise HostEvidenceError("unit-private sandbox hard link failed") from exc
+        raise
     schema = unit_root / "output-schema.json"
     _exclusive(schema, (canonical_json(unit["invocation"]["provider_input"]["response_schema"]) + "\n").encode(), 0o600)
     schema.chmod(0o400)
@@ -165,7 +180,10 @@ def _prepare_unit(policy: dict[str, Any], unit: dict[str, Any]) -> dict[str, Pat
         _exclusive(git / "HEAD", b"ref: refs/heads/main\n", 0o600)
         _exclusive(git / "config", b"[core]\n\trepositoryformatversion = 0\n\tbare = false\n", 0o600)
         _freeze(cwd)
-    return {"unit_root": unit_root, "home": home, "codex_home": codex_home, "cwd": cwd, "schema": schema}
+    return {
+        "unit_root": unit_root, "home": home, "codex_home": codex_home,
+        "command_bin": command_bin, "cwd": cwd, "schema": schema,
+    }
 
 
 def _evidence_files(root: Path, suffix: str) -> dict[str, Path]:
@@ -300,9 +318,11 @@ def _discard_preclaim(paths: dict[str, Path], raw_fd: int | None, raw_path: Path
     if auth.exists(): auth.unlink(); _sync_directory(auth.parent)
     root = paths["unit_root"]
     if root.exists():
+        root.chmod(0o700)
+        for child in root.rglob("*"):
+            if child.is_dir() and not child.is_symlink(): child.chmod(0o700)
         for child in sorted(root.rglob("*"), key=lambda item: len(item.parts), reverse=True):
-            child.chmod(0o700 if child.is_dir() else 0o600)
-            child.rmdir() if child.is_dir() else child.unlink()
+            child.rmdir() if child.is_dir() and not child.is_symlink() else child.unlink()
         root.rmdir(); _sync_directory(root.parent)
 
 def _judge_holdout_mapping(
@@ -434,9 +454,10 @@ def execute_fixed_host_transaction(
                 }
         instruction = fixed_host_instruction(policy, unit); paths = _prepare_unit(policy, unit)
         argv = fixed_host_argv(policy, unit, paths, instruction)
+        command_path = fixed_command_path(policy, paths["command_bin"])
         env = {
             "CODEX_HOME": str(paths["codex_home"]), "HOME": str(paths["home"]),
-            "PATH": "/usr/bin:/bin", "LANG": "C.UTF-8", "LC_ALL": "C.UTF-8",
+            "PATH": command_path, "LANG": "C.UTF-8", "LC_ALL": "C.UTF-8",
             "GIT_CONFIG_GLOBAL": "/dev/null", "GIT_CONFIG_NOSYSTEM": "1",
             "GIT_OPTIONAL_LOCKS": "0", "GIT_TERMINAL_PROMPT": "0",
         }

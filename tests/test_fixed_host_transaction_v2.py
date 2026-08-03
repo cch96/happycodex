@@ -7,6 +7,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import shutil
 import stat
 import subprocess
 import sys
@@ -141,8 +142,11 @@ class FixedHostTransactionTests(unittest.TestCase):
         mapping_path = base / "holdout-mapping.json"
         mapping_path.write_text(json.dumps(mapping(), sort_keys=True) + "\n", encoding="utf-8")
         mapping_path.chmod(0o600)
+        binary = base / "provider-binary"
+        binary.write_bytes(FAKE_BINARY.read_bytes())
+        binary.chmod(0o500)
         policy = build_fixed_host_policy(
-            execution_root=execution, binary_path=FAKE_BINARY,
+            execution_root=execution, binary_path=binary,
             external_role_config_path=role, exact_final_source=snapshot,
             holdout_mapping_path=mapping_path, behavior_model="gpt-fake",
         )
@@ -280,7 +284,19 @@ class FixedHostTransactionTests(unittest.TestCase):
             self.assertEqual(_mode(unit_root / "output-schema.json"), 0o400)
             self.assertFalse((unit_root / "codex-home" / "auth.json").exists())
             self.assertNotIn(private_auth, Path(result["raw_path"]).read_bytes())
-            self.assertNotIn("tool-bin", " ".join(captured["argv"]))
+            command_bin = unit_root / "command-bin"
+            sandbox = command_bin / "codex-linux-sandbox"
+            source = Path(policy["provider_policy"]["binary_path"])
+            self.assertEqual(_mode(command_bin), 0o500)
+            self.assertTrue(sandbox.is_file())
+            self.assertTrue(os.access(sandbox, os.X_OK))
+            self.assertEqual(
+                (source.stat().st_dev, source.stat().st_ino),
+                (sandbox.stat().st_dev, sandbox.stat().st_ino),
+            )
+            command_path = f"{command_bin}:/usr/bin:/bin"
+            self.assertEqual(captured["env"]["PATH"], command_path)
+            self.assertEqual(shutil.which("codex-linux-sandbox", path=command_path), str(sandbox))
             self.assertIn(
                 "developer_instructions=" + json.dumps(EXECUTOR_INSTRUCTIONS),
                 captured["argv"],
@@ -297,6 +313,10 @@ class FixedHostTransactionTests(unittest.TestCase):
             ]
             self.assertEqual(policy["provider_policy"]["web_search"], "disabled")
             self.assertEqual(config_values.count('web_search="disabled"'), 1)
+            self.assertIn(
+                f'shell_environment_policy.set={{PATH={json.dumps(command_path)},HOME={json.dumps(str(unit_root / "home"))}}}',
+                config_values,
+            )
             self.assertNotIn("web_search_cached", disabled_values)
             self.assertNotIn("web_search_request", disabled_values)
             claim = list((execution / "claims").iterdir())
@@ -311,6 +331,52 @@ class FixedHostTransactionTests(unittest.TestCase):
             self.assertEqual(exact_paths["cwd"], Path(policy["workspace_policy"]["exact_final_source"]))
             self.assertIn("neutral, read-only", exact_instruction)
             self.assertNotIn(EXECUTOR_INSTRUCTIONS, " ".join(exact_argv))
+
+    def test_legacy_path_lacks_required_sandbox_helper(self):
+        with tempfile.TemporaryDirectory() as directory:
+            legacy_usr = Path(directory) / "usr" / "bin"
+            legacy_bin = Path(directory) / "bin"
+            legacy_usr.mkdir(parents=True); legacy_bin.mkdir()
+            self.assertIsNone(
+                shutil.which("codex-linux-sandbox", path=f"{legacy_usr}:{legacy_bin}")
+            )
+
+    def test_private_sandbox_alias_tamper_fails_closed(self):
+        from evaluation.host import _prepare_unit
+        from evaluation.provider import ProviderError, fixed_command_path
+
+        for tamper in ("template", "directory-mode", "replacement"):
+            with self.subTest(tamper=tamper), tempfile.TemporaryDirectory() as directory:
+                _, _, _, policy, _, _, spec, _ = self._inputs(directory)
+                unit = next(item for item in spec["units"] if item["unit_id"] == "goal-divergence")
+                paths = _prepare_unit(policy, unit)
+                command_bin = paths["command_bin"]
+                alias = command_bin / "codex-linux-sandbox"
+                if tamper == "template":
+                    policy["provider_policy"]["command_path_template"] = "/usr/bin:/bin"
+                elif tamper == "directory-mode":
+                    command_bin.chmod(0o700)
+                else:
+                    command_bin.chmod(0o700)
+                    alias.unlink()
+                    alias.write_bytes(Path(policy["provider_policy"]["binary_path"]).read_bytes())
+                    alias.chmod(0o500)
+                    command_bin.chmod(0o500)
+                with self.assertRaises(ProviderError):
+                    fixed_command_path(policy, command_bin)
+
+    def test_cross_filesystem_sandbox_alias_fails_before_effect(self):
+        from evaluation.host import _prepare_unit
+
+        with tempfile.TemporaryDirectory() as directory:
+            execution, _, _, policy, _, _, spec, _ = self._inputs(directory)
+            unit = next(item for item in spec["units"] if item["unit_id"] == "goal-divergence")
+            with patch("evaluation.host.os.link", side_effect=OSError(18, "cross-device link")):
+                with self.assertRaisesRegex(HostEvidenceError, "hard link failed"):
+                    _prepare_unit(policy, unit)
+            self.assertEqual(list((execution / "units").iterdir()), [])
+            self.assertEqual(list((execution / "claims").iterdir()), [])
+            self.assertEqual(list((execution / "raw").iterdir()), [])
 
     def test_forged_prefix_raw_and_known_failure_or_cap_block_launch(self):
         from evaluation.host import execute_fixed_host_transaction

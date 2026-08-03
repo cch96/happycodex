@@ -61,6 +61,14 @@ def _file_sha(path: Path) -> str:
     return hashlib.sha256(_private_path(path, directory=False).read_bytes()).hexdigest()
 
 
+def _executable_file(path: Path) -> Path:
+    path = _private_path(path, directory=False)
+    status = path.stat()
+    if not stat.S_ISREG(status.st_mode) or not status.st_mode & 0o111:
+        raise ProviderError(f"fixed-host executable is not regular and executable: {path}")
+    return path
+
+
 def _frozen_tree(root: Path) -> Path:
     root = _private_path(root, directory=True, mode=0o500)
     for path in root.rglob("*"):
@@ -100,7 +108,7 @@ def build_fixed_host_policy(
     behavior_model: str = "gpt-5.6-sol", behavior_effort: str = "high",
 ) -> dict[str, Any]:
     execution = _private_path(execution_root, directory=True, mode=0o700)
-    binary = _private_path(binary_path, directory=False)
+    binary = _executable_file(binary_path)
     role = _private_path(external_role_config_path, directory=False, mode=0o600)
     snapshot = _frozen_tree(exact_final_source)
     mapping_path = _private_path(holdout_mapping_path, directory=False, mode=0o600)
@@ -133,7 +141,9 @@ def build_fixed_host_policy(
         "behavior_model": behavior_model, "behavior_effort": behavior_effort,
         "exact_final_developer_instructions": NEUTRAL_EXACT_FINAL_INSTRUCTIONS,
         "disabled_features": list(DISABLED_FEATURES), "web_search": "disabled",
-        "command_path": "/usr/bin:/bin",
+        "command_path_template": "{unit_command_bin}:/usr/bin:/bin",
+        "sandbox_alias_name": "codex-linux-sandbox",
+        "sandbox_alias_kind": "hard-link-to-provider-binary",
         "stdin_source": "EvalSpec.units[].invocation.provider_input",
         "output_schema_source": "provider_input.response_schema",
         "cwd_by_stage": {"behavior": "prepared-empty-git", "holdout": "prepared-empty-git", "exact_final": "exact-final-source"},
@@ -162,7 +172,8 @@ def host_contract_from_policy(policy: dict[str, Any]) -> dict[str, Any]:
         "binary_path", "binary_sha256", "external_role_config_path",
         "external_role_config_sha256", "behavior_developer_instructions",
         "behavior_developer_instructions_sha256", "behavior_model", "behavior_effort",
-        "exact_final_developer_instructions", "disabled_features", "web_search", "command_path",
+        "exact_final_developer_instructions", "disabled_features", "web_search",
+        "command_path_template", "sandbox_alias_name", "sandbox_alias_kind",
         "stdin_source", "output_schema_source", "cwd_by_stage", "retry", "resume",
     }
     workspace_fields = {
@@ -174,9 +185,17 @@ def host_contract_from_policy(policy: dict[str, Any]) -> dict[str, Any]:
     }
     if type(provider) is not dict or set(provider) != provider_fields or type(policy["workspace_policy"]) is not dict or set(policy["workspace_policy"]) != workspace_fields:
         raise ProviderError("host policy nested fields differ")
-    if policy["schema_version"] != 2 or provider["retry"] is not False or provider["resume"] is not False or provider["disabled_features"] != list(DISABLED_FEATURES) or provider["web_search"] != "disabled" or provider["command_path"] != "/usr/bin:/bin":
+    if (
+        policy["schema_version"] != 2
+        or provider["retry"] is not False or provider["resume"] is not False
+        or provider["disabled_features"] != list(DISABLED_FEATURES)
+        or provider["web_search"] != "disabled"
+        or provider["command_path_template"] != "{unit_command_bin}:/usr/bin:/bin"
+        or provider["sandbox_alias_name"] != "codex-linux-sandbox"
+        or provider["sandbox_alias_kind"] != "hard-link-to-provider-binary"
+    ):
         raise ProviderError("host provider policy differs")
-    if _file_sha(Path(provider["binary_path"])) != provider["binary_sha256"]:
+    if _file_sha(_executable_file(Path(provider["binary_path"]))) != provider["binary_sha256"]:
         raise ProviderError("host provider binary drift")
     _validate_external_role(
         Path(provider["external_role_config_path"]),
@@ -196,6 +215,30 @@ def host_contract_from_policy(policy: dict[str, Any]) -> dict[str, Any]:
         "permission_profile_sha256": canonical_sha256(policy["permission_profile"]),
         "workspace_policy_sha256": canonical_sha256(policy["workspace_policy"]),
     }
+
+
+def fixed_command_path(policy: dict[str, Any], command_bin: Path) -> str:
+    provider = policy["provider_policy"]
+    if (
+        provider.get("command_path_template") != "{unit_command_bin}:/usr/bin:/bin"
+        or provider.get("sandbox_alias_name") != "codex-linux-sandbox"
+        or provider.get("sandbox_alias_kind") != "hard-link-to-provider-binary"
+    ):
+        raise ProviderError("sandbox alias policy differs")
+    source = _executable_file(Path(provider["binary_path"]))
+    alias_root = _private_path(command_bin, directory=True, mode=0o500)
+    alias = _executable_file(alias_root / provider["sandbox_alias_name"])
+    source_status, alias_status = source.stat(), alias.stat()
+    if (
+        _file_sha(source) != provider["binary_sha256"]
+        or (source_status.st_dev, source_status.st_ino)
+        != (alias_status.st_dev, alias_status.st_ino)
+    ):
+        raise ProviderError("sandbox alias is not the bound binary hard link")
+    value = provider["command_path_template"].replace("{unit_command_bin}", str(alias_root))
+    if value != f"{alias_root}:/usr/bin:/bin":
+        raise ProviderError("sandbox command path differs")
+    return value
 
 
 def fixed_host_instruction(policy: dict[str, Any], unit: dict[str, Any]) -> str:
@@ -219,6 +262,7 @@ def fixed_host_instruction(policy: dict[str, Any], unit: dict[str, Any]) -> str:
 def fixed_host_argv(policy: dict[str, Any], unit: dict[str, Any], paths: dict[str, Path], instruction: str) -> list[str]:
     provider, permission = policy["provider_policy"], policy["permission_profile"]
     profile = permission["profile_name"]
+    command_path = fixed_command_path(policy, paths["command_bin"])
     argv = [
         provider["binary_path"], "exec", "--json", "--ephemeral", "--ignore-user-config",
         "--ignore-rules", "--strict-config", "--color", "never", "--model", unit["invocation"]["model"],
@@ -230,7 +274,7 @@ def fixed_host_argv(policy: dict[str, Any], unit: dict[str, Any], paths: dict[st
         "--config", f"permissions.{profile}.network.enabled=false",
         "--config", 'shell_environment_policy.inherit="none"',
         "--config", "shell_environment_policy.ignore_default_excludes=false",
-        "--config", f'shell_environment_policy.set={{PATH="/usr/bin:/bin",HOME={json.dumps(str(paths["home"]))}}}',
+        "--config", f'shell_environment_policy.set={{PATH={json.dumps(command_path)},HOME={json.dumps(str(paths["home"]))}}}',
         "--config", "developer_instructions=" + json.dumps(instruction),
     ]
     for feature in provider["disabled_features"]:
