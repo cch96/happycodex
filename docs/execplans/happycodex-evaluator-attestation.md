@@ -46,38 +46,38 @@ has been implemented or certified.
   before creation. The new worktree was clean at the source commit before this
   plan was written.
 
-### Active grant: GRANT-10
+### Last grant: GRANT-11 (stopped)
 
 Under the active user amendment `同意将 compaction/reconstruction 降为
-conditional mechanism，按 12-call 发布路径继续`, GRANT-10 repairs only exact
-per-arm Runtime binding. It is owned by token
+conditional mechanism，按 12-call 发布路径继续`, GRANT-11 authorizes only
+offline freeze/materialization. It is owned by token
 `5a63e381-1ff8-4675-9c10-c81da14e1de2`. Exact clean prestate is branch
 `codex/happycodex-evaluator-attestation`, commit
-`af7534d175abc146c813ad5414aded921c00c125`, tree
-`c014a2b3214d09ae7a60f53597e0bf147b5ed01d`, product tree
+`46b71f3a22e2246527be543f85da9b5ae77dcce4`, tree
+`32b4418162331745239a17dfe10b89f9237a2b5a`, product tree
 `d9e525a267fbf36669d409ba1b4b009a6beeeea5`, evaluator bundle
-`a668311e244fe4764bb46cecd49672eff8bef96211c1ad7a97003cde36583ad9`,
+`b42afeee7e878dc263e61ff7f569519bb8509d04f140911a601c05420964805b`,
 Codex binary SHA-256
 `cb5e8cb8a333a408ce6adbe0d4fad1845c69772c2216af7c1f88c98a11460dc6`,
 and unchanged Executor config SHA-256
 `d98fac1a0fe1bcc3071eac89b7246bfeb59fb85a7040417d50d07c58d74d1275`.
 
-Root's exact reproduced falsifier is durable input: all candidate and baseline
-holdout units currently carry candidate Runtime SHA-256
-`07421636583ddec11308bf235fe4b49b2d0b11598944303f5287574f631d4bb5`,
-while exact baseline source `3b9c11fac1f97df75263e0bfc6421c575e04e8b2`
-has Runtime SHA-256
-`aa090bbd0d7af6e6ac05e5afc959ee93268393f8621bd5ebf00e745d04e3ce55`.
-Thus the 1.25 comparison is not yet real. This one offline commit may validate
-each ProductArtifact against its exact Git source and bind each unit to that
-source's exact Runtime. It may change only the plan, `identity.py`,
-`manifest.py`, README if needed, and directly affected existing tests. The
-twelve calls, cases, profiles, thresholds, evidence boundary, records,
-conditional mechanisms, Runtime/package/config, and effects remain unchanged.
-No fallback, override, adapter, new file/abstraction, production record,
-provider/model/network/install/release/activation, candidate freeze, or
-exact-final is authorized. Any unavailable/forged product, wider path, product
-diff, unexpected failure, unknown input, or ambiguity returns `NOT YET`.
+Repository writes are limited to this plan and one plan-only commit. External
+writes are limited to one new private mode-0700 root
+`/home/caichenghang/.codex/happycodex-evaluator-attestation-release`, private
+JSON inputs/generated records, and empty future execution directories. Only
+the existing `python3 -m evaluation.cli` may materialize the two exact products,
+twelve-unit EvalSpec, validation, and one combined authority request. The host
+policy/contract must close all environment, isolation, native JSONL, per-arm
+Runtime, concurrency, and no-retry preimages. No test, provider/model/network,
+claim, attestation, raw stream, install/cache/release/activation, authority
+mint, new code/schema/runner/record/gate/ledger/graph, or product/config change
+is authorized. Any identity, shape, permission, or effect ambiguity returns
+`NOT YET` before paid execution.
+
+GRANT-11 terminated `NOT YET` after an offline configuration probe produced
+unexpected local files in a directory required to remain empty. No later
+effect is authorized from this stopped grant.
 
 ## Baseline
 
@@ -207,6 +207,7 @@ full refresh.
 | `O-ADVERSE` | Adverse exact-final is durable for unchanged artifact bytes. | Unchanged artifact can discard or rerun it for a friendlier result. | Persistent negative and changed-artifact tests. | verified |
 | `O-REAL` | Every non-replay Attestation requires matching fixed-host raw bytes; the runner is trusted for sanitization. | A sanitized record alone or mismatched raw validates. | Fake-runner raw positive/negative E2E, then separately authorized real path. | fixed-host offline verified; live open |
 | `O-RELEASE` | Release binds exact artifact, valid attestations, isolated install, destination, and rollback. | Semantic-only or stale attestation can release different bytes. | Offline refusal matrix and separately authorized isolated release evidence. | offline verified; live open |
+| `O-CONDITIONAL` | Compaction and no-handle reconstruction remain conditional mechanism checks, not default release gates. | The twelve-call default claims those mechanisms or silently adds their calls. | Manifest inventory, exact-final exclusion, and trigger rules. | offline verified; mechanism certification unclaimed |
 
 ## Planned implementation waves
 
@@ -243,8 +244,8 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `working`; GRANT-10 offline repair and verification are complete.
-  Candidate freeze and exact-final have not started.
+- Phase: `working / NOT YET`; GRANT-11 is stopped. Paid evidence, exact-final,
+  install, release, and activation have not started.
 - The exact RED ran three tests and produced four assertion failures: baseline
   holdouts received candidate Runtime, a dirty temporary checkout replaced
   frozen Runtime bytes, a forged source tree was accepted, and an unavailable
@@ -276,13 +277,29 @@ These are planning boundaries, not authority under GRANT-01.
   `skills/happycodex` remains
   `d9e525a267fbf36669d409ba1b4b009a6beeeea5` with no product diff.
 - Provider/model/network calls: `0`. Install/release/activation effects: `0`.
-- The four typed formats and stateless verifier are implemented; no task
-  `ProductArtifact`, `EvalSpec`, `Attestation`, `ReleaseReceipt`, authority, or
-  exact-final result has been persisted or executed.
-- Open effects: real provider, exact-final, isolated install, release, and
-  activation remain unrun and unauthorized. This grant stops before
-  exact-final.
+- GRANT-11 materialized private `ProductArtifact` inputs and a twelve-unit
+  `EvalSpec` at external root
+  `/home/caichenghang/.codex/happycodex-evaluator-attestation-release`.
+  EvalSpec record SHA-256 is
+  `52a23223dabed162caf6cf7a85b4be2e6d5f406c3f6cb3ba639d876895bdfbd4`;
+  its combined approval-request digest is
+  `b604ef4f4164ec0363afd1988f7d388c51cb0142aa0e480097c33eb415ea4c5f`.
+  These files are unexecuted and are not authority or qualifying evidence.
+- The host policy passed component-hash checks and `codex debug prompt-input`
+  parsed its exact permission/config overrides locally. That command did not
+  contact a provider, but it unexpectedly populated the supplied isolated
+  `CODEX_HOME` under `execution/units` with `skills/`, `tmp/`,
+  `.sandbox_migration`, and `installation_id`. The other execution directories
+  remain empty; no claim, attestation, raw stream, or authority was minted.
+- Because GRANT-11 required empty future execution directories, this partial
+  local effect invalidates the freeze. Nothing was deleted or retried after
+  discovery. Root must decide a new exact cleanup/rematerialization grant; the
+  recommended repair is a fresh external root plus a distinct disposable
+  config-probe `CODEX_HOME`, never the frozen execution root.
+- Open effects: cleanup/rematerialization, real provider, exact-final, isolated
+  install, release, and activation remain unrun and unauthorized.
 - Recovery: read this entire file and verify the recorded branch, worktree,
   source, clean status, product tree, owner token, selected evaluator bundle,
-  and GRANT-10 receipt before reconciling only authorized paths. Do not
-  continue into effects from this grant or conversation context.
+  and this GRANT-11 stopped receipt before reconciling only paths named by a
+  new grant. Do not execute or treat the materialized approval request as
+  authority from this grant or conversation context.
