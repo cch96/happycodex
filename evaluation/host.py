@@ -158,7 +158,8 @@ def host_challenge(
         "claim_key": unit["invocation"]["claim_key"],
         "raw_events_sha256": parsed["raw_events_sha256"],
         "terminal_sha256": canonical_sha256(parsed["terminal"]),
-        "report_sha256": canonical_sha256(parsed["report"]),
+        "raw_report_sha256": canonical_sha256(parsed["report"]),
+        "sanitized_report_sha256": record["observation"]["report_sha256"],
         "sanitized_event_sha256": record["observation"]["sanitized_event_sha256"],
         "product_artifact_sha256": record["product_artifact_sha256"],
         "host_contract_sha256": spec["host_contract_sha256"],
@@ -168,13 +169,18 @@ def host_challenge(
 def planned_host_challenge(
     *, unit: dict[str, Any], spec: dict[str, Any], authority_sha256: str,
     raw: bytes, product_artifact_sha256: str | None,
+    secrets: list[str] | None = None,
 ) -> dict[str, Any]:
     parsed = parse_raw_stream(raw)
-    sanitized = sanitize_events(parsed["events"], secrets=[])
+    sanitized = sanitize_events(parsed["events"], secrets=secrets or [])
+    report = next(event["report"] for event in sanitized if event["type"] == "report")
     provisional = {
         "authority_sha256": authority_sha256,
         "product_artifact_sha256": product_artifact_sha256,
-        "observation": {"sanitized_event_sha256": canonical_sha256(sanitized)},
+        "observation": {
+            "sanitized_event_sha256": canonical_sha256(sanitized),
+            "report_sha256": canonical_sha256(report),
+        },
     }
     return host_challenge(record=provisional, unit=unit, spec=spec, parsed=parsed)
 

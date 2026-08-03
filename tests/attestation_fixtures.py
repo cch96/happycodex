@@ -146,10 +146,12 @@ def host_proof(
     unit: dict[str, Any], raw: bytes, spec: dict[str, Any],
     *, product_artifact_sha256: str | None = None,
     authority_sha256: str = SHA["a"],
+    secrets: list[str] | None = None,
 ) -> dict[str, Any]:
     challenge = planned_host_challenge(
         unit=unit, spec=spec, authority_sha256=authority_sha256, raw=raw,
         product_artifact_sha256=product_artifact_sha256,
+        secrets=secrets,
     )
     return {
         "trust_domain": spec["host_contract"]["trust_domain"],

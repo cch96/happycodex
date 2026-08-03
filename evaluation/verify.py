@@ -209,10 +209,10 @@ def verify_evaluation(
         except HostEvidenceError as exc:
             raise VerificationError(str(exc)) from exc
         observation = record["observation"]
+        if _time(observation["started_at"]) > _time(observation["frozen_at"]):
+            raise VerificationError("Attestation timestamps run backwards")
         if (
-            parsed["report"] != observation["report"]
-            or canonical_sha256(parsed["report"]) != observation["report_sha256"]
-            or parsed["terminal"] != record["terminal"]
+            parsed["terminal"] != record["terminal"]
             or parsed["started_at"] != observation["started_at"]
             or parsed["frozen_at"] != observation["frozen_at"]
         ):
@@ -224,7 +224,7 @@ def verify_evaluation(
         ):
             raise VerificationError("Attestation provenance differs from invocation")
         assessment = score_hidden(
-            parsed["report"], hidden_oracle_for(inputs, unit), stage=unit["stage"]
+            observation["report"], hidden_oracle_for(inputs, unit), stage=unit["stage"]
         )
         expected_verdict = (
             "pass" if assessment["passed"] and parsed["terminal"]["classification"] == "success"
@@ -269,6 +269,17 @@ def verify_evaluation(
         failed_order = min(planned[item["unit_id"]]["order"] for item in failures)
         if any(planned[unit_id]["order"] > failed_order for unit_id in supplied):
             raise VerificationError("calls continued after a terminal failure")
+        cutoff = min(_time(by_unit[item["unit_id"]]["observation"]["frozen_at"]) for item in failures)
+        earliest = {
+            item["unit_id"] for item in failures
+            if _time(by_unit[item["unit_id"]]["observation"]["frozen_at"]) == cutoff
+        }
+        if any(
+            unit_id not in earliest
+            and _time(record["observation"]["started_at"]) >= cutoff
+            for unit_id, record in by_unit.items()
+        ):
+            raise VerificationError("calls continued after a known terminal failure")
     exact_final = by_unit.get("exact-final")
     if exact_final is not None:
         prior = stage_units["behavior"] | stage_units["holdout"]

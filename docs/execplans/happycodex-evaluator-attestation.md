@@ -46,38 +46,32 @@ has been implemented or certified.
   before creation. The new worktree was clean at the source commit before this
   plan was written.
 
-### Active grant: GRANT-04
+### Active grant: GRANT-05
 
-GRANT-04 is the final bounded host-contract closure in this working wave, owned
-by token `5a63e381-1ff8-4675-9c10-c81da14e1de2`. Exact clean prestate is commit
-`02cd5d4c7dd91fe21ebe77b539d1513c07797129`, tree
-`b1dabfb6dd87b13559be809664769db7bdd82736`; preserved `skills/happycodex`
-tree is `d9e525a267fbf36669d409ba1b4b009a6beeeea5`. Writes remain limited to this
-plan, `AGENTS.md`, `evaluation/**`, `tests/**`, and this branch, with one commit
-maximum. Offline/temp subprocesses are allowed; product/config changes,
-provider/model/network/install/release/activation effects, other refs, a fifth
-record, scheduler, graph, signing system, and PKI are forbidden. A same-family
-trust bypass or need for a wider trust system is an immediate `NOT YET` return.
-This is the durable intent persisted before GRANT-04 implementation.
+User amendment, verbatim: `继续修这3项`. GRANT-05 is the final bounded
+three-falsifier closure, owned by token
+`5a63e381-1ff8-4675-9c10-c81da14e1de2`. Exact clean prestate is commit
+`b0792a8b980e8b3ced5d5edcb775829c24388ba9`, tree
+`e94e07066006e532f61059c3499049bf736c9d5b`; preserved `skills/happycodex`
+tree is `d9e525a267fbf36669d409ba1b4b009a6beeeea5`. Writes are limited to this
+plan, `evaluation/**`, `tests/**`, and this branch, with one commit maximum.
+Only offline/temp subprocesses are allowed. Product/runtime/config/plugin
+changes, other refs, provider/model/network/install/release/activation, a fifth
+record, gate, scheduler, graph, ledger, PKI, generic schema engine, and
+compatibility layer are forbidden. This is the durable intent persisted before
+GRANT-05 implementation.
 
-Root reproduced four new falsifiers: `F5`, resealing every Attestation under a
-different authority still verifies; `F6`, resealing an arbitrary sanitized
-event digest still verifies; `F7`, exact-final may exist after a fixed-holdout
-aggregate resource failure; and `F8`, holdout may start before behavior freezes.
-The related source blockers are an arbitrary CLI proof-verifier executable,
-logical-only invocation identity, no provider-visible response schema, and
-stored diagnostics not checked against oracle recomputation.
-
-The finite repair adds one exact external-host contract to `EvalSpec`, binding
-trusted proof-verifier/provider binary, tool config, permission profile, and
-workspace/cwd policy identities. Its digest enters every invocation, authority
-request, Attestation proof challenge, and CLI executable verification. Public
-versioned report schemas enter the affected provider projection without hidden
-values. Proof challenges bind authority, spec/request, invocation/claim,
-raw/terminal/report/sanitized identities, artifact where applicable, and host
-contract. Verification enforces behavior freeze before holdout start and a
-successful six-arm reveal/oracle/aggregate decision before exact-final starts.
-Failure prefixes remain valid; no executor or model scheduler is introduced.
+Root reproduced exactly three falsifiers: `F9`, answer-bearing JSON Schema
+keywords can reach provider input; `F10`, a genuinely sanitized durable report
+cannot verify because raw and sanitized reports must be equal; and `F11`, a
+same-stage provider unit may start after another unit's failing terminal is
+already known. The finite repair closes the existing schema subset to
+structural keywords only, binds raw and sanitized report/projection identities
+through the trusted host proof while scoring the sanitized report, and applies
+the earliest failing frozen timestamp as the cutoff for later starts while
+preserving already-started concurrent units. A broader trust system, secret
+leak, schema incompatibility, or remaining same-family bypass is an immediate
+`NOT YET` return.
 
 ## Baseline
 
@@ -239,32 +233,32 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `candidate-pre-freeze`; GRANT-04 host-contract closure complete
+- Phase: `candidate-pre-freeze`; GRANT-05 three-falsifier closure complete
   offline. Candidate freeze and exact-final have not started.
 - Selected checkpoint source: `v0.6.5` commit/tree recorded above.
 - Baseline: one authorized run recorded above; unchanged 204/205 known failure.
-- GRANT-04 exact prestate is the commit/tree in its active-grant section. Root
-  falsifiers `F5`-`F8` first ran 0/4: each failed because the expected
-  `VerificationError` was absent. The identical focused set is now 4/4 GREEN;
-  original `F1`-`F4` remain GREEN.
+- GRANT-05 exact prestate is recorded in its active-grant section. Focused
+  prestate characterization produced `F9` FAIL (`ManifestError` absent), `F10`
+  ERROR (sanitized proof rejected), and `F11` FAIL (late same-stage call not
+  rejected); its already-started concurrent control passed. The identical
+  focused set is now 4/4 GREEN and prior `F1`-`F8` remain GREEN.
 - The final cumulative command
-  `python3 -m unittest discover -s tests -v` returned exit `0`, `Ran 62 tests
-  in 5.943s`, `OK`. It includes full raw-subprocess evidence, bound fake
+  `python3 -m unittest discover -s tests -v` returned exit `0`, `Ran 68 tests
+  in 7.276s`, `OK`. It includes full raw-subprocess evidence, bound fake
   verifier and unbound-binary refusal, claims/recovery, failure prefixes,
   release refusal, public-schema/invalidation, stage-order, relabelling, and
   diagnostics-tamper coverage.
-- GRANT-04 adds an exact host contract and public response schemas. Every unit,
-  authority request, and proof challenge binds the contract; the challenge
-  also binds authority, EvalSpec/request, invocation/claim, raw, terminal,
-  report, sanitized events, and exact artifact. The CLI hashes and checks the
-  configured verifier executable before use. Behavior must freeze before
-  holdout starts; holdout must freeze, reveal, and pass hidden/aggregate
-  judgment before exact-final. Aggregate failure without exact-final remains a
-  valid terminal prefix; an already-called exact-final is rejected.
+- GRANT-05 closes provider-visible schemas to the structural subset and rejects
+  answer annotations, unknown keywords, and malformed required relationships.
+  Host proofs bind distinct raw-report, sanitized-report, and sanitized-event
+  identities; verification scores only the proof-bound sanitized report, so no
+  secret enters an Attestation. The earliest failing frozen terminal is the
+  temporal cutoff for later starts, including same-stage units; already-started
+  concurrent work remains valid evidence.
 - No model scheduler, signing system, PKI, graph, ledger, gate family, or fifth
   record was added.
 - Static evidence: `git diff --check` and Python compilation passed; evaluator
-  production Python is 2,083 lines, largest module 517 lines; plan remains
+  production Python is 2,130 lines, largest module 517 lines; plan remains
   below 3,000 words; durable type inventory is exactly four; unknown evaluator
   inputs fail closed; `skills/happycodex` remains
   `d9e525a267fbf36669d409ba1b4b009a6beeeea5` with no product diff.
@@ -276,5 +270,5 @@ These are planning boundaries, not authority under GRANT-01.
   activation remain unrun and unauthorized. This grant stops before
   exact-final.
 - Recovery: read this entire file, verify branch/worktree/source/status and
-  owner token and GRANT-04 prestate, then reconcile only authorized paths. Do
+  owner token and GRANT-05 prestate, then reconcile only authorized paths. Do
   not continue into effects from this grant or conversation context.

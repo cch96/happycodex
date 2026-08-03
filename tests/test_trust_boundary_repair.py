@@ -8,7 +8,8 @@ import shutil
 import tempfile
 import unittest
 
-from evaluation.manifest import materialize_eval_spec
+from evaluation.manifest import ManifestError, materialize_eval_spec
+from evaluation.host import attestation_from_raw
 from evaluation.identity import IdentityError, evaluator_components
 from evaluation.records import canonical_sha256
 from evaluation.verify import VerificationError, invalidation, verify_evaluation
@@ -180,6 +181,125 @@ class TrustBoundaryRedTests(unittest.TestCase):
                 mapping_revealed_at=REVEALED_AT,
             )
 
+    def test_f9_answer_bearing_const_schema_is_rejected_before_projection(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            shutil.copytree(ROOT / "evaluation", root / "evaluation")
+            shutil.copytree(ROOT / "skills", root / "skills")
+            path = root / "evaluation" / "report-schemas-v1.json"
+            value = json.loads(path.read_text(encoding="utf-8"))
+            value["core"]["goal-divergence"]["properties"]["safety"]["properties"]["goal_closed"]["const"] = False
+            path.write_text(json.dumps(value), encoding="utf-8")
+            selected, baseline, _, blind_mapping = bundle()
+            with self.assertRaises(ManifestError):
+                materialize_eval_spec(
+                    root=root, candidate=selected, previous=baseline,
+                    profile=PROFILE, total_cap=TOTAL_CAP,
+                    holdout_mapping=blind_mapping, review_brief=REVIEW_BRIEF,
+                    host_contract=HOST_CONTRACT,
+                )
+
+    def test_f10_secret_raw_can_verify_as_proof_bound_sanitized_attestation(self):
+        selected, baseline, spec, blind_mapping = bundle()
+        records, raws, proofs = attest_all(selected, baseline, spec)
+        unit = next(item for item in spec["units"] if item["unit_id"] == "no-commit-secret")
+        secret = "RAW-SECRET-SENTINEL"
+        report = passing_report(unit)
+        report["secret"]["value"] = secret
+        raw = raw_stream(unit, report=report)
+        proof = host_proof(unit, raw, spec, secrets=[secret])
+        sanitized = attestation_from_raw(
+            root=ROOT, product=selected, spec=spec, unit_id=unit["unit_id"],
+            raw=raw, authority_sha256="a" * 64, host_proof=proof,
+            secrets=[secret],
+        )
+        self.assertNotIn(secret, canonical_sha256(sanitized) + str(sanitized))
+        supplied = [sanitized if record["unit_id"] == unit["unit_id"] else record for record in records]
+        raws[unit["unit_id"]] = raw
+        proofs[unit["unit_id"]] = proof
+        result = verify_evaluation(
+            root=ROOT, product=selected, previous_product=baseline, spec=spec,
+            attestations=supplied, raw_streams=raws, host_proofs=proofs,
+            proof_verifier=proof_verifier, holdout_mapping=blind_mapping,
+            mapping_revealed_at=REVEALED_AT,
+        )
+        self.assertTrue(result["verified"])
+        changed_report = deepcopy(sanitized)
+        changed_report["observation"]["report"]["secret"]["value"] = "<different-redaction>"
+        changed_report["observation"]["report_sha256"] = canonical_sha256(changed_report["observation"]["report"])
+        changed_report = reseal(changed_report)
+        changed_records = [changed_report if record["unit_id"] == unit["unit_id"] else record for record in records]
+        with self.assertRaises(VerificationError):
+            verify_evaluation(
+                root=ROOT, product=selected, previous_product=baseline, spec=spec,
+                attestations=changed_records, raw_streams=raws, host_proofs=proofs,
+                proof_verifier=proof_verifier, holdout_mapping=blind_mapping,
+                mapping_revealed_at=REVEALED_AT,
+            )
+        wrong_proof = host_proof(unit, raw, spec)
+        mismatched = attestation_from_raw(
+            root=ROOT, product=selected, spec=spec, unit_id=unit["unit_id"],
+            raw=raw, authority_sha256="a" * 64, host_proof=wrong_proof,
+            secrets=[secret],
+        )
+        wrong_records = [mismatched if record["unit_id"] == unit["unit_id"] else record for record in records]
+        proofs[unit["unit_id"]] = wrong_proof
+        with self.assertRaises(VerificationError):
+            verify_evaluation(
+                root=ROOT, product=selected, previous_product=baseline, spec=spec,
+                attestations=wrong_records, raw_streams=raws, host_proofs=proofs,
+                proof_verifier=proof_verifier, holdout_mapping=blind_mapping,
+                mapping_revealed_at=REVEALED_AT,
+            )
+
+    def test_f11_same_stage_call_starting_after_known_failure_is_rejected(self):
+        selected, baseline, spec, _ = bundle()
+        failed_unit = next(item for item in spec["units"] if item["unit_id"] == "goal-divergence")
+        late_unit = next(item for item in spec["units"] if item["unit_id"] == "qualification-high-risk")
+        failed_raw = raw_stream(failed_unit, report={"safety": {"goal_closed": True}})
+        late_raw = raw_stream(
+            late_unit,
+            start=datetime(2026, 8, 2, 0, 0, 10, tzinfo=timezone.utc),
+        )
+        failed_proof = host_proof(failed_unit, failed_raw, spec)
+        late_proof = host_proof(late_unit, late_raw, spec)
+        records = [
+            attestation_from_raw(root=ROOT, product=selected, spec=spec, unit_id=failed_unit["unit_id"], raw=failed_raw, authority_sha256="a" * 64, host_proof=failed_proof),
+            attestation_from_raw(root=ROOT, product=selected, spec=spec, unit_id=late_unit["unit_id"], raw=late_raw, authority_sha256="a" * 64, host_proof=late_proof),
+        ]
+        with self.assertRaisesRegex(VerificationError, "calls continued after"):
+            verify_evaluation(
+                root=ROOT, product=selected, previous_product=baseline, spec=spec,
+                attestations=records,
+                raw_streams={failed_unit["unit_id"]: failed_raw, late_unit["unit_id"]: late_raw},
+                host_proofs={failed_unit["unit_id"]: failed_proof, late_unit["unit_id"]: late_proof},
+                proof_verifier=proof_verifier,
+            )
+
+    def test_f11_same_stage_unit_already_started_before_failure_is_retained(self):
+        selected, baseline, spec, _ = bundle()
+        failed_unit = next(item for item in spec["units"] if item["unit_id"] == "goal-divergence")
+        concurrent_unit = next(item for item in spec["units"] if item["unit_id"] == "qualification-high-risk")
+        failed_raw = raw_stream(failed_unit, report={"safety": {"goal_closed": True}})
+        concurrent_raw = raw_stream(
+            concurrent_unit,
+            start=datetime(2026, 8, 2, 0, 0, 5, tzinfo=timezone.utc),
+        )
+        failed_proof = host_proof(failed_unit, failed_raw, spec)
+        concurrent_proof = host_proof(concurrent_unit, concurrent_raw, spec)
+        records = [
+            attestation_from_raw(root=ROOT, product=selected, spec=spec, unit_id=failed_unit["unit_id"], raw=failed_raw, authority_sha256="a" * 64, host_proof=failed_proof),
+            attestation_from_raw(root=ROOT, product=selected, spec=spec, unit_id=concurrent_unit["unit_id"], raw=concurrent_raw, authority_sha256="a" * 64, host_proof=concurrent_proof),
+        ]
+        result = verify_evaluation(
+            root=ROOT, product=selected, previous_product=baseline, spec=spec,
+            attestations=records,
+            raw_streams={failed_unit["unit_id"]: failed_raw, concurrent_unit["unit_id"]: concurrent_raw},
+            host_proofs={failed_unit["unit_id"]: failed_proof, concurrent_unit["unit_id"]: concurrent_proof},
+            proof_verifier=proof_verifier,
+        )
+        self.assertFalse(result["verified"])
+
 
 class InvalidationMatrixTests(unittest.TestCase):
     def _copy_root(self, directory: str) -> Path:
@@ -242,6 +362,33 @@ class InvalidationMatrixTests(unittest.TestCase):
             path.write_text(json.dumps(value), encoding="utf-8")
             current = self._materialize(root)
         self.assertEqual(invalidation(previous, current)["model_units"], ["qualification-low-risk"])
+
+    def test_public_schema_rejects_answer_annotations_and_unknown_keywords(self):
+        forbidden = {
+            "const": False, "enum": [False, True], "default": False,
+            "example": False, "examples": [False],
+            "description": "answer", "title": "answer", "unknown": "answer",
+        }
+        for keyword, value in forbidden.items():
+            with self.subTest(keyword=keyword), tempfile.TemporaryDirectory() as directory:
+                root = self._copy_root(directory)
+                path = root / "evaluation" / "report-schemas-v1.json"
+                schema = json.loads(path.read_text(encoding="utf-8"))
+                leaf = schema["core"]["goal-divergence"]["properties"]["safety"]["properties"]["goal_closed"]
+                leaf[keyword] = value
+                path.write_text(json.dumps(schema), encoding="utf-8")
+                with self.assertRaises(ManifestError):
+                    self._materialize(root)
+
+    def test_public_schema_rejects_malformed_required_relationship(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = self._copy_root(directory)
+            path = root / "evaluation" / "report-schemas-v1.json"
+            schema = json.loads(path.read_text(encoding="utf-8"))
+            del schema["core"]["goal-divergence"]["properties"]["safety"]["properties"]["goal_closed"]
+            path.write_text(json.dumps(schema), encoding="utf-8")
+            with self.assertRaises(ManifestError):
+                self._materialize(root)
 
     def test_host_tool_permission_workspace_or_provider_drift_invalidates_full_plan(self):
         _, _, previous, _ = bundle()

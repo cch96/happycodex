@@ -22,6 +22,34 @@ class ManifestError(ValueError):
     pass
 
 
+def _validate_structural_schema(node: Any) -> None:
+    if type(node) is not dict or "type" not in node:
+        raise ManifestError("response schema node lacks a structural type")
+    allowed = {"type", "required", "properties", "items"}
+    if set(node) - allowed:
+        raise ManifestError("response schema contains a non-structural keyword")
+    schema_type = node["type"]
+    if schema_type not in {"object", "array", "boolean", "string"}:
+        raise ManifestError("response schema type is outside the closed subset")
+    if schema_type == "object":
+        properties = node.get("properties", {})
+        required = node.get("required", [])
+        if type(properties) is not dict or type(required) is not list or not all(type(item) is str for item in required):
+            raise ManifestError("response schema object shape is malformed")
+        if len(required) != len(set(required)) or not set(required).issubset(properties):
+            raise ManifestError("response schema required fields differ from properties")
+        if "items" in node:
+            raise ManifestError("response schema object cannot contain items")
+        for child in properties.values():
+            _validate_structural_schema(child)
+    elif schema_type == "array":
+        if set(node) != {"type", "items"}:
+            raise ManifestError("response schema array shape is malformed")
+        _validate_structural_schema(node["items"])
+    elif set(node) != {"type"}:
+        raise ManifestError("response schema scalar contains non-structural fields")
+
+
 def _schema_covers(schema: dict[str, Any], path: str, expected: Any) -> bool:
     node: Any = schema
     for part in path.split("."):
@@ -66,6 +94,8 @@ def load_production_inputs(root: Path) -> dict[str, Any]:
         raise ManifestError("core fixture/oracle inventory differs")
     if set(schemas["core"]) != set(MODEL_ROLE_IDS):
         raise ManifestError("core response schema inventory differs")
+    for schema in [*schemas["core"].values(), schemas["holdout"], schemas["exact_final"]]:
+        _validate_structural_schema(schema)
     samples = set(manifest["holdout_samples"])
     if set(fixtures["holdouts"]) != samples or set(oracles["holdouts"]) != samples:
         raise ManifestError("holdout fixture/oracle inventory differs")
