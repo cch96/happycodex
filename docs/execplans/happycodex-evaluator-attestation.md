@@ -287,3 +287,20 @@ These are planning boundaries, not authority under GRANT-01.
   behavior permissions, package and immutable GRANT-36 evidence. If a readable
   solution recreates the prior continuation family or exceeds 3,200/600, stop
   after RED instead of compressing or widening the protocol.
+
+### GRANT-37 RED stop receipt
+
+- Phase: `exact_final_contract_red`, terminal under the authorized stop rule.
+  Intent commit/tree are `b49838e...` / `6df8b47...`. Three focused
+  characterizations fail as required: the exact-final input omits mandatory
+  command/cwd/host-fact instructions; a zero-command `GO` verifies; and moving
+  an otherwise identical fixed host changes an ordinary invocation identity.
+- The only implementation delta is 44 test lines. Production evaluator Python
+  remains 3,018 lines, leaving 182 under the 3,200 ceiling; `provider.py` is
+  already at its 600-line file ceiling. The previously abandoned readable
+  exact-only bridge alone required a 162-line continuation module plus schema,
+  host, invalidation, and composition branches. This stricter contract cannot
+  fit the remaining budget without recreating that family or minifying code.
+  Per grant, implementation and the full suite stopped after RED.
+- No evaluator, package, Runtime, config, external evidence, model, request,
+  install, release, activation, cache, marketplace, or rollback effect occurred.

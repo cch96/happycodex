@@ -317,6 +317,50 @@ class TrustBoundaryRedTests(unittest.TestCase):
         self.assertFalse(result["verified"])
 
 
+class ExactFinalContractRedTests(unittest.TestCase):
+    def test_exact_final_prompt_requires_cwd_inspection_and_authoritative_host_facts(self):
+        from evaluation.provider import NEUTRAL_EXACT_FINAL_INSTRUCTIONS
+
+        _, _, spec, _ = bundle()
+        exact = next(unit for unit in spec["units"] if unit["unit_id"] == "exact-final")
+        contract = (
+            NEUTRAL_EXACT_FINAL_INSTRUCTIONS + "\n"
+            + exact["invocation"]["provider_input"]["neutral_review_brief"]
+        ).lower()
+        self.assertIn("command_execution", contract)
+        self.assertIn("current working directory", contract)
+        self.assertIn("authoritative host facts", contract)
+
+    def test_exact_final_go_without_command_execution_is_rejected(self):
+        selected, baseline, spec, blind_mapping, records, raws = verify_args()
+        exact_raw = raws["exact-final"].decode("utf-8")
+        self.assertNotIn('"type": "command_execution"', exact_raw)
+        with self.assertRaisesRegex(VerificationError, "command_execution"):
+            verify_evaluation(
+                root=ROOT, product=selected, previous_product=baseline, spec=spec,
+                attestations=records, raw_streams=raws,
+                holdout_mapping=blind_mapping, mapping_revealed_at=REVEALED_AT,
+            )
+
+    def test_path_relocation_preserves_prior_eleven_invocation_identities(self):
+        from tests.test_fixed_host_transaction_v2 import FixedHostTransactionTests
+
+        helper = FixedHostTransactionTests()
+        with tempfile.TemporaryDirectory() as directory:
+            host_a, host_b = Path(directory) / "host-a", Path(directory) / "host-b"
+            host_a.mkdir(); host_b.mkdir()
+            *_, previous, _ = helper._inputs(str(host_a))
+            *_, current, _ = helper._inputs(str(host_b))
+        prior = {unit["unit_id"]: unit for unit in previous["units"]}
+        for unit in current["units"]:
+            if unit["unit_id"] == "exact-final":
+                continue
+            self.assertEqual(
+                unit["invocation_sha256"], prior[unit["unit_id"]]["invocation_sha256"],
+                f"absolute host path leaked into {unit['unit_id']} semantic identity",
+            )
+
+
 class InvalidationMatrixTests(unittest.TestCase):
     def _copy_root(self, directory: str) -> Path:
         return isolated_checkout(directory)
