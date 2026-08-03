@@ -127,6 +127,39 @@ class StageProfileContractTests(unittest.TestCase):
         )
         self.assertEqual(behavior_impact["model_units"], expected)
 
+    def test_external_role_change_does_not_invalidate_neutral_exact_final(self):
+        original = materialize()
+        changed_role = canonical_sha256({"external_role": "changed"})
+        changed_host = deepcopy(HOST_CONTRACT)
+        changed_host["behavior_sha256"] = canonical_sha256({"behavior_host": changed_role})
+        changed_host["holdout_sha256"] = canonical_sha256({"holdout_host": changed_role})
+        changed = materialize_eval_spec(
+            root=ROOT,
+            candidate=product(role=changed_role),
+            previous=previous_product(role=changed_role),
+            profiles=deepcopy(PROFILES),
+            total_cap=deepcopy(TOTAL_CAP),
+            holdout_mapping=mapping(),
+            review_brief=deepcopy(REVIEW_BRIEF),
+            host_contract=changed_host,
+        )
+
+        expected = sorted(
+            unit["unit_id"] for unit in original["units"]
+            if unit["stage"] in {"behavior", "holdout"}
+        )
+        self.assertEqual(invalidation(original, changed)["model_units"], expected)
+
+        original_exact = next(unit for unit in original["units"] if unit["stage"] == "exact_final")
+        changed_exact = next(unit for unit in changed["units"] if unit["stage"] == "exact_final")
+        self.assertEqual(changed_exact["provider_input_sha256"], original_exact["provider_input_sha256"])
+        self.assertEqual(
+            changed_exact["invocation"]["claim_key"],
+            original_exact["invocation"]["claim_key"],
+        )
+        self.assertEqual(changed_exact["invocation"], original_exact["invocation"])
+        self.assertEqual(changed_exact["invocation_sha256"], original_exact["invocation_sha256"])
+
 
 if __name__ == "__main__":
     unittest.main()

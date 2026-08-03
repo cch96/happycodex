@@ -214,12 +214,19 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- GRANT-39 intent, pre-mutation: from commit/tree `39792098bee3b74029d2457ec57d85c8791be09a` /
-  `fa43b199489c2eefeee0f202ce75b46a7801af01`, repair only the exact-final
-  claim-key dependency in `evaluation/manifest.py` so it binds the already
-  stage-local role-config digest, and add one external-role differential in
-  `tests/test_stage_profiles.py`. Run only the authorized focused modules and
-  contract/size guards; do not rerun the full suite or create any live effect.
+- GRANT-39 narrow closure is GREEN. Its durable-intent commit/tree are
+  `8fc2c73...` / `665c862...`, based on `3979209...` / `fa43b19...`.
+  `_unit` now binds `claim_key.role_config` to the already-derived stage-local
+  role config. The new differential proves an external Executor role-config
+  change plus corresponding behavior/holdout host drift invalidates exactly
+  the five core and six holdout units while neutral exact-final provider input,
+  claim key, and invocation remain byte-identical.
+- Authorized focused tests passed `14/14` in 2.236s; product preservation,
+  four-record/default-twelve inventory, retired-vocabulary, Python-size, and
+  bounded-plan guards passed `7/7` in 0.054s. An initial guard selector named a
+  nonexistent class and loaded zero tests; the actual `RepositoryContractTests`
+  selectors then passed. The full suite was not rerun. Product/Runtime/config
+  and all live/effect surfaces remain untouched.
 - Phase: `grant38_offline_green`, terminal. Intent commit/tree are
   `61d4042...` / `4edb032...`; GRANT-36 evidence remained archival and was not
   read, imported, or accepted as authority.

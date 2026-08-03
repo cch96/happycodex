@@ -168,7 +168,7 @@ def _unit(
             {
                 "unit_id": unit_id, "stage": stage,
                 "product": arm_product["package_semantic_sha256"],
-                "role_config": arm_product["external_role_config_sha256"],
+                "role_config": role_config,
                 "effective_host": effective_host_sha256,
                 "provider_input": projection,
             }
