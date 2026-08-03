@@ -214,6 +214,17 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
+- GRANT-43 durable intent, pre-materialization: from clean commit/tree
+  `745c9dcce59e6896a283b5cc93ca72c344af9033` /
+  `7dd709bbfff80683cd734e2ad081c412fd98da24`, build entirely offline one
+  fresh exact-final-only request at
+  `/home/caichenghang/.codex/happycodex-evaluator-attestation-exact-refresh-1e9ccb96965a`.
+  Reverify and compose exactly the eleven old raw-backed GREEN behavior/holdout
+  prerequisites, create a repaired frozen exact source, and select exactly
+  `exact-final` with one call, 600-second timeout, and zero recoveries. The old
+  failed exact evidence stays immutable and excluded. No provider/model/network,
+  auth staging, install, release, activation, cache, marketplace, rollback, or
+  evaluator/product/config/case/oracle/threshold/protocol mutation is authorized.
 - Phase: `launcher_repair_offline_green`; release remains `NOT_YET`. GRANT-42
   began from clean commit/tree `a799d0a898f54e7bab318224dddca2053d5fd3be` /
   `b833665b9b5179975d86184129d9764decc1b5a7`; durable-intent commit/tree are
