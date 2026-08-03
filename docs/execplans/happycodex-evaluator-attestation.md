@@ -344,9 +344,8 @@ These are planning boundaries, not authority under GRANT-01.
 ## Current checkpoint
 
 - Phase: `grant26_offline_continuation`; GRANT-25 intent is `01a419f`. Its first
-  focused module was `22/23`: only the spawn/no-effect test errored because its
-  shared-stdlib `Popen` patch intercepted source-validation Git. No cumulative,
-  external, or live effect ran. Bound provider/test dirt is `193b5967...`.
-  GRANT-26 permits only moving that mock to the existing `run_provider` seam and
-  closing realistic prefixed hidden-oracle diff copying, then one focused and
-  one cumulative run. The invalid `a279adc7...` root remains untouched.
+  focused module was `22/23`: the spawn test's global `Popen` mock intercepted
+  Git validation. No cumulative or external/live effect ran. Bound dirt is
+  `193b5967...`. GRANT-26 permits only the existing `run_provider` seam and
+  realistic prefixed oracle-diff closure, then focused and cumulative runs.
+  Invalid `a279adc7...` remains untouched.
