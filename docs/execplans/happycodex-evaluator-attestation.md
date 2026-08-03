@@ -163,30 +163,15 @@ focused `20/20` and cumulative `111/111`; receipt `56d539b` left product,
 semantic inputs, config, binary, and GRANT-22 evidence unchanged with no live
 effect.
 
-### Active offline grant: GRANT-24
+### Closed offline grant: GRANT-24
 
-The user authorizes an `infrastructure-no-coverage` Outcome amendment and one
-fresh request/spec only. The exception applies because old exact-final has
-`coverage.complete=false`, Root independently proved the fixed-host defect,
-product/Runtime/oracle/case/threshold/config are unchanged, GRANT-23 repaired
-the host contract, and the adverse evidence remains complete. It permits one
-new host contract plus fresh EvalSpec and, only under later exact authority,
-exactly one complete fresh 12-call certification. The same infrastructure
-family recurring stops. This is not review shopping, replay, evidence reuse,
-or retry of the same request.
-
-After this intent commit, revalidate clean prestate `56d539b` / `b9832de`,
-manifest `858fe5a4...`, inventory, absent exact archive target, and same device.
-Atomically rename the entire active root to
-`happycodex-evaluator-attestation-release.failed-grant22-48465f7d`, prove it
-unchanged, then materialize a fresh mode-0700 root through existing CLI paths.
-Archive bytes are preservation evidence only, never semantic, authority, or
-model input. Fresh execution must be `0/0/0/0`, with no auth or unit roots.
-Only this plan and those two exact external paths may change. No evaluator,
-test, Runtime, package, config, install, cache, rollback, provider/model/network,
-release/activation, new gate/record/runner/replay, or evidence reuse is allowed.
-Any drift, mismatch, unknown file, nonempty evidence, or need to widen stops
-without retry or cleanup.
+The user authorized the narrow `infrastructure-no-coverage` amendment because
+old exact-final had `coverage.complete=false`, Root proved a fixed-host defect,
+semantic inputs stayed fixed, GRANT-23 repaired the host contract, and old
+evidence stayed complete. Intent `088dfab` permits only one fresh spec/request
+and, under later exact authority, one complete fresh 12-call certification;
+same-family recurrence stops. It permits no replay, evidence reuse, same-request
+retry, review shopping, or live/release effect.
 
 ## Baseline
 
@@ -339,8 +324,21 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `grant24_intent`. Prestate is clean `56d539b` / `b9832de`; active
-  relative-path manifest is `858fe5a4...`, 912 files and `12/12/12/12`, with
-  three exact-final-source top files and no auth/tool-bin/command-bin. Archive
-  target is absent and both paths are on device 64769. Next is the authorized
-  post-intent recheck, atomic archive, equality proof, and fresh materialization.
+- Phase: `fresh_request_awaiting_authority`. GRANT-22 is atomically preserved at
+  `happycodex-evaluator-attestation-release.failed-grant22-48465f7d` with
+  relative manifest `858fe5a4...`, 912 files, `12/12/12/12`, exact adverse
+  `4366366e...`, and request `48465f7d...`; it supplied no fresh input.
+- Fresh candidate/baseline remain `d77ecb6a...` / `ec4fc2df...`, product tree
+  `d9e525a2...`, config `d98fac1a...`, and binary `cb5e8cb8...`. EvalSpec /
+  request are `7faa6d07...` / `a279adc7...`; bundle/provider/oracle/harness are
+  `8e1b3255...` / `a47f4a11...` / `e7e46f93...` / `0e3ffa56...`; host contract
+  is `62ebfb71...`. The private mapping digest is `990e437d...`.
+- The rules-free 33-blob projection has synthetic commit/tree `b23da6f8...` /
+  `7ebe443d...`; manifest/diff are `a0ba351b...` / `97278be0...`. CLI records
+  validate and rematerialize byte-identically. The mode-0700 fresh root is
+  `0/0/0/0`, with no auth, JSONL, unit, command-bin, or tool-bin content.
+- The plan remains five order-1 behavior, three order-2 concurrent holdout
+  pairs, then one order-3 exact-final; profiles are `gpt-5.6-sol high/300s` and
+  `max/600s`, capped at `12/600000/100000/2400000/0`. No tests, provider/model,
+  network, install, release, activation, cache, or authority consumption ran.
+  Only an exact user authority for `a279adc7...` may begin certification.
