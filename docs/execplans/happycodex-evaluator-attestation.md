@@ -214,16 +214,31 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- GRANT-41 durable intent, pre-provider: from clean commit/tree `564b0c0...` /
-  `9bdb573...`, execute exactly the frozen default proposal bound to request
-  `682a9f76...` under one current-task user authority whose canonical digest is
-  `adc37317...`. Run the five core units sequentially, then the six holdout arms
-  concurrently behind one barrier, reveal once only after all six freeze, and
-  run exact-final once only after a GREEN hidden judgment. After every stage,
-  stop on the first failure, ambiguity, drift, or cap violation without retry.
-  Persist raw events and Attestations only in the claimed private request root;
-  Git receives only a sanitized terminal checkpoint. No release, install,
-  activation, cache, marketplace, rollback, recovery, or repair is authorized.
+- Phase: `evaluation_terminal_not_yet`. GRANT-41 durable-intent commit/tree are
+  `1006e05...` / `ec68caa...`. The exact request `682a9f76...` ran once under
+  the sole authority digest `adc37317...`, without retry or recovery. All five
+  sequential core units were `success/pass` (54,729 input, 948 output, 41,267
+  ms). All six barrier-concurrent holdout arms froze `success/pass` before the
+  single reveal at `2026-08-03T19:27:00.222225Z`.
+- Hidden holdout judgment is GREEN: candidate/baseline tokens are 33,584 /
+  32,472 and wall-ms are 25,446 / 21,668; both ratios are within 1.25. Pair
+  scores are recovery `2/2`, safety `2/0`, and scope `1/1`, with every candidate
+  absolute oracle passing. Private mapping-reveal file digest is `f1fd12ef...`.
+- The unique exact-final reached the provider and completed successfully at the
+  transport level, but returned `NOT_YET`, `coverage.complete=false`, one
+  finding, and no completed `command_execution`; its verdict is `fail` with
+  `fatal:coverage.complete` and `fatal:decision`. The sanitized finding says the
+  reviewer could not start its read-only command because the host-provided
+  sandbox path was absent, so it could not inspect the frozen projection and,
+  under the no-retry rule, declared incomplete coverage. Exact Attestation/raw
+  digests are `6ecb2194...` / `cefae864...`.
+- The durable terminal prefix is exactly twelve claims/raws/Attestations under
+  one authority; aggregate usage is 12 calls, 143,293 input, 3,191 output, and
+  119,783 ms, within the frozen cap. Its combined evidence digest is
+  `b2c47ec6...`. Stateless reproduction returns `verified=false`,
+  `complete=false`, GREEN holdout, and the exact-final verdict as its only
+  failure. No auth residue or Git evidence exists. No repair, provider retry,
+  install, release, activation, cache, marketplace, or rollback effect follows.
 - Phase: `candidate_frozen_request_ready`. GRANT-40 durable-intent commit/tree
   are `5660afb...` / `b317ebf...`, based on source commit/tree `97b66b6...` /
   `19867ad...`. A private randomized staging root was atomically replaced by
