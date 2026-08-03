@@ -325,8 +325,26 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `grant23_intent`. GRANT-22 external inventory is `12/12/12/12`, with
-  no auth/tool-bin, and content manifest SHA-256
-  `bd8be130b5f891f8596473573e5a9147e616608163a2abc3d738ba75929e81e1`.
-  It is frozen read-only for this grant. No offline repair file has changed yet;
-  the next step is narrow RED within the exact ownership above.
+- Phase: `grant23_offline_repair_green`. Durable intent is commit `60ec018`.
+  Narrow RED produced one pass plus two intended errors: legacy PATH lacked the
+  helper; the transaction lacked private `command-bin` and tamper validation.
+  Repair `07c326e` / tree `c40eeef` freezes a per-unit hard link and PATH;
+  mode, template, inode, or cross-filesystem failure stops before effect.
+- Focused `tests.test_fixed_host_transaction_v2` is `20/20` GREEN in 2.287s;
+  cumulative offline is `111/111` GREEN in 8.576s. Evaluator Python is 2,867
+  lines, max module 556. Inventory has four records, no active ledger, and
+  bundle/provider/oracle/harness
+  `8e1b3255...` / `a47f4a11...` / `e7e46f93...` / `0e3ffa56...`.
+  Product/Runtime, semantic inputs, role config `d98fac1a...`, and binary
+  `cb5e8cb8...` are unchanged; binary and root share device 64769. The corrected
+  bounded-plan test passed.
+- GRANT-22 remains read-only at `12/12/12/12`, 912 files, three top-level
+  exact-final-source files, and no auth/tool-bin/command-bin. Root's
+  independently captured like-for-like content digest remains exactly
+  `6e79c00cd4f587df2ddcb6bc6fe0f1a2b51903c88929a2868aa8369812e34b23`.
+  Historical `bd8be130...` remains above, but its unrecorded canonicalization
+  was not relabeled as reproduced.
+- GRANT-23 made no provider/model/network/install/release/activation effect or
+  fresh request. GRANT-22 is not replayable. Future evaluation needs a fresh
+  frozen request/spec and separate authority; this repair decides no release or
+  completion.
