@@ -329,13 +329,13 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `fresh_request_frozen`. Repair `dd1782f` / tree `4db7aba6` is offline
-  GREEN: focused `23/23`, cumulative `114/114`. Active mode-0700 root is
-  `/home/caichenghang/.codex/happycodex-evaluator-attestation-release` with
-  candidate/baseline `d77ecb6a...` / `ec4fc2d...`, source `62b8b94e...`, host
-  contract `520b1a48...`, EvalSpec `0148517c...`, and request `09e13f1e...`.
-  Synthetic source is one clean 34-file commit; hidden oracle is absent and
-  externally hash-bound. Prefix remains `0/0/0/0`; no model, network, install,
-  release, cache, or activation effect occurred. Invalid request inode 12026767
-  remains unchanged; the rejected projection source is separately archived.
-  Next authority, if granted, must exactly approve request `09e13f1e...`.
+- Phase: `grant27_authorized_pending_execution`. User supplied exact request
+  `09e13f1edf5aed61a76142fab95e6b3c6ba1662e19275406033aab8a91226c61`
+  for nonce `019fadac-efd9-7133-b571-6db612c50971`; projection signature is
+  `dc95931d5fe3c21b507773bea233365b9dcc109baf7b68b3fbe359501a8c54fc`
+  and supplied-authority SHA is `618916aa63c494c6a7158b48fb7f172926e6bdd250f6591d0cde90038fff0cac`.
+  Bound EvalSpec is `0148517c...`, source `62b8b94e...`, host `520b1a48...`,
+  prefix `0/0/0/0`; cap is 12 calls, 600,000 input, 100,000 output,
+  2,400,000ms, zero recovery. Execute one-shot behavior, then frozen six-arm
+  holdout/reveal, then one neutral exact-final only after GREEN. Stop on any
+  failure or drift; no retry, install, release, activation, cache, or rollback.
