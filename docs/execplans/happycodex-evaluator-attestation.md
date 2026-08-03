@@ -214,6 +214,13 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
+- GRANT-43A amendment: the required exact-only pathway is not exposed by the
+  sole allowed evaluator entrypoint. Add exactly one compact offline
+  `python3 -m evaluation.cli prepare-exact-request` adapter over existing
+  materializers, validators, and `exact_final_authority_proposal`; prove public
+  CLI equality and fail-closed behavior, commit that closure, then use it for
+  GRANT-43. No one-off internal script, new engine/state/durable type, or
+  provider/model/network effect is allowed.
 - GRANT-43 durable intent, pre-materialization: from clean commit/tree
   `745c9dcce59e6896a283b5cc93ca72c344af9033` /
   `7dd709bbfff80683cd734e2ad081c412fd98da24`, build entirely offline one
