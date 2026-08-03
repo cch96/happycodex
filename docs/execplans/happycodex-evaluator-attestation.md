@@ -212,19 +212,30 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `fresh_request_frozen`. GRANT-30 intent is `9eccd2e...` /
-  `230f075...`; closure is the commit carrying this checkpoint. Active inode
-  15024876 has manifest `201820a7...`, 112 files/69 directories, sealed source
-  `a53ec149...`, host `451dddd4...`, spec `bfc93edb...`, request
-  `e9295933...`, and empty `0/0/0/0` prefix. Archive inode 12026776 retains
-  manifest `525f0def...`, 865 files/533 directories, and `11/11/11/11` prefix.
-- Product/baseline are `d77ecb6a...` / `ec4fc2df...`; package/Runtime/config/
-  binary are `d9e525a2...` / `07421636...` / `d98fac1a...` / `cb5e8cb8...`.
-  Evaluator bundle/provider/oracle/harness are `c01cbafb...` / `2240e900...` /
-  `74d459a4...` / `0e3ffa56...`. The inherited offline suite is `116/116`.
-  Behavior is `gpt-5.6-sol high/300s`; exact-final is `gpt-5.6-sol max/600s`;
-  cap is 12/600000/100000/2400000/0. No staging regeneration, model, provider,
-  network, install, release, activation, cache, marketplace, rollback, package,
-  evaluator, schema, test, or retry effect occurred.
-- Next authority must be exactly `APPROVE HAPPYCODEX EVALUATION
+- Phase: `grant31_authorized_execution`. Pre-intent commit/tree are
+  `a139b51414f8635041c41b05a79a956296cdb7a1` /
+  `de5870fb8cf2169211b3ddac7831fafa8ad2577d`; post-intent commit/tree are the
+  commit carrying this checkpoint and must be reported before effect.
+  Receipt `/home/caichenghang/.codex/happycodex-evaluator-attestation-grant31-resource-claim.json`
+  binds owner token `1ca384e808555296861bc51c84db91ac7ebd989b72593f583b91ab50ad91d79b`
+  to exactly active output, this worktree, and this branch ref.
+- Exact authority is `APPROVE HAPPYCODEX EVALUATION
   e92959332dc30697c173791886818747989b102ba312346dae84e21250b8fe27`.
+  Its projection is `{"nonce":"019fadac-efd9-7133-b571-6db612c50971","request_sha256":"e92959332dc30697c173791886818747989b102ba312346dae84e21250b8fe27","scope":"evaluation","signature":"97d2bbe559cdde66da85ed6c242ea8a4bb7ba512d998c4d3dfd6bd7e28d48142"}`;
+  canonical digest is `05825e3507e039ffe8b8b999d05e792faebcb8014e57393b36fbcd0e5c66ede0`.
+- Active inode 15024876, manifest `201820a7...`, source `a53ec149...`, host
+  `451dddd4...`, spec/request `bfc93edb...` / `e9295933...`, and prefix
+  `0/0/0/0` bind product/baseline `d77ecb6a...` / `ec4fc2df...`, evaluator
+  `c01cbafb...` / `2240e900...` / `74d459a4...` / `0e3ffa56...`, and
+  package/Runtime/config/binary `d9e525a2...` / `07421636...` / `d98fac1a...` /
+  `cb5e8cb8...`.
+- After Root's internal EFFECT GO: run low-risk canary; four remaining behavior
+  units concurrently; six holdout arms concurrently and freeze before reveal;
+  then, only after hard holdout GREEN, one neutral exact-final. Profiles are
+  high/300s and max/600s; cap is 12/600000/100000/2400000/0. Provider auth may
+  be read only after GO, retained only in memory and existing isolated temporary
+  staging, never printed or persisted. Any terminal, oracle, hard holdout,
+  integrity, parser, identity, source, config, root, claim, secret, exception,
+  ambiguity, partial-effect, or cap failure stops with exact evidence preserved.
+  No retry, recovery, cleanup, product/evaluator/source/config mutation, install,
+  release, activation, cache, marketplace, or rollback is authorized.
