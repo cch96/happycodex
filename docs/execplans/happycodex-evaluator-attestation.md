@@ -214,18 +214,32 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- GRANT-40 intent, pre-external-write: from clean commit/tree `97b66b6...` /
-  `19867ad...`, construct one fresh offline twelve-unit request generation from
-  current source only. Stage privately at the exclusively claimed randomized
-  root ending `staging-55bce812a5b29c04dcbba5d7`, atomically publish only
-  `/home/caichenghang/.codex/happycodex-evaluator-attestation-cleanbreak-1`,
-  and commit no repository bytes except this checkpoint. The frozen v0.6.5 and
-  baseline revisions, active role-config/provider identities, two profiles,
-  exact total cap, hidden mapping, neutral brief, 32-path review projection,
-  one-commit source, four empty execution-prefix directories, and generated
-  request identities must pass offline reproduction. GRANT-36 evidence and
-  authority remain unread and unusable. No provider, model, network, install,
-  release, activation, cache, marketplace, or rollback effect is authorized.
+- Phase: `candidate_frozen_request_ready`. GRANT-40 durable-intent commit/tree
+  are `5660afb...` / `b317ebf...`, based on source commit/tree `97b66b6...` /
+  `19867ad...`. A private randomized staging root was atomically replaced by
+  `/home/caichenghang/.codex/happycodex-evaluator-attestation-cleanbreak-1`;
+  its closed 169-entry inventory digest is `34483b10...` and no staging root
+  remains.
+- Candidate/previous ProductArtifact record digests are `d77ecb6a...` /
+  `ec4fc2df...`. Evaluator bundle and fixed host-contract digests are
+  `6f5496ce...` / `e3eccc13...`; active role-config/provider binary remain
+  `d98fac1a...` / `cb5e8cb8...`. The hidden mapping digest is `adf44dbd...`.
+  The ordered default remains exactly `5 + 6 + 1`, with cap `12 / 600000 /
+  100000 / 2400000 / 0` for calls/input/output/wall-ms/recoveries.
+- The frozen 32-path review projection plus two support files has synthetic
+  commit `c6ecf81...` and relocation-stable identity `ce2fe6ea...`. Its complete
+  1,066,211-byte binary diff, including 48 retired-file deletions and excluding
+  the private oracle, is `dda70abd...`. Source is one clean self-contained
+  commit/ref/reflog identity, recursively frozen, and contains no docs,
+  instructions, plan, mapping, authority, or hidden-oracle bytes.
+- EvalSpec record and authority-request digests are `f8e949ff...` /
+  `682a9f76...`; the request file digest is `369392bc...`. Fresh-process public
+  CLI product/materialize/validate/request reproduction, private modes, closed
+  inventory, blind projections, neutral exact-final command/source binding,
+  and four empty execution prefixes are GREEN. GRANT-36 evidence was neither
+  read nor reused. No approval/auth staging exists, and no provider, model,
+  network, evidence, install, release, activation, cache, marketplace, or
+  rollback effect occurred.
 - GRANT-39 narrow closure is GREEN. Its durable-intent commit/tree are
   `8fc2c73...` / `665c862...`, based on `3979209...` / `fa43b19...`.
   `_unit` now binds `claim_key.role_config` to the already-derived stage-local
