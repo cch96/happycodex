@@ -157,26 +157,45 @@ usage was 12 calls, 184,406 input, 5,507 output, and 193,661ms; no retry ran.
 
 ### Closed offline grant: GRANT-23
 
-The user's `改一下` authorized the private frozen sandbox hard link and exact
-PATH repair from `d6e1a7f` / `27806c2`. Repair `07c326e` / `c40eeef` passed
-focused `20/20` and cumulative `111/111`; receipt `56d539b` left product,
-semantic inputs, config, binary, and GRANT-22 evidence unchanged with no live
-effect.
+Repair `07c326e` bound the private sandbox hard link and PATH, passed focused
+`20/20` and cumulative `111/111`, and left product/evidence unchanged.
 
 ### Closed offline grant: GRANT-24
 
-The user authorized the narrow `infrastructure-no-coverage` amendment because
-old exact-final had `coverage.complete=false`, Root proved a fixed-host defect,
-semantic inputs stayed fixed, GRANT-23 repaired the host contract, and old
-evidence stayed complete. Intent `088dfab` permits only one fresh spec/request
-and, under later exact authority, one complete fresh 12-call certification;
-same-family recurrence stops. It permits no replay, evidence reuse, same-request
-retry, review shopping, or live/release effect.
+Intent `088dfab` produced request `a279adc7...`, but its synthetic source left
+the manifest and diff untracked. It is invalid, unconsumed, and not evidence.
+
+### Active offline grant: GRANT-25
+
+Verbatim amendment:
+
+```text
+同意归档未消费的 request a279adc7dbe3d121435982f35d41c475de3af3195605a93b6a2a120ad8263875；执行最小 exact-final source-sealing 修复：所有 reviewer-visible 文件形成 clean synthetic commit，并以 SHA-256 纳入现有 host contract、执行前重新验证；hidden oracle bytes 从 reviewer workspace/diff 排除但继续由 EvalSpec oracle identity 精确绑定；neutral brief 删除 grant/commit/repair history。保持 Runtime、case、阈值、12-call 计划、gate、record 和 receipt 类型不变；离线 GREEN 后生成 fresh request，暂不调用模型。
+```
+
+From clean `00e427c` / `0cd44c8`, only this plan, `evaluation/provider.py`,
+mechanically necessary `evaluation/host.py`, and focused existing tests may
+change. Add RED, then bind a relocation-invariant SHA-256 identity over every
+reviewer-visible file and effective Git metadata/config inside the existing
+workspace policy. Contract validation must reject drift before authority or
+provider preparation, symlinks, dirty or multi-commit repos, remotes, missing
+or untracked support files, and hidden-oracle file/diff exposure. No new record,
+gate, receipt, graph, builder, phase, product/Runtime/case/oracle/threshold, or
+schema semantics are allowed.
+
+After one focused and one cumulative offline GREEN, commit repair and receipt;
+then recheck and atomically archive the unchanged unconsumed active root at the
+exact invalid-request target. Build a fresh staging root without archived
+semantic input: private entropy mapping, current neutral brief, clean fully
+tracked projection excluding hidden oracle bytes, existing CLI records, and the
+unchanged 12-call profiles/caps. Atomically publish only after all identity,
+privacy, byte-equality, empty-evidence, and zero-effect checks pass. Any drift,
+test failure, wider need, hidden byte, nonempty evidence, or live reach stops
+without retry or cleanup.
 
 ## Baseline
 
-Published v0.6.5 had 204/205 tests passing; only its stale generation-7 ledger
-fixture failed. This was baseline characterization, never new-evaluator GREEN.
+Published v0.6.5 was `204/205`; its stale ledger fixture was not evaluator GREEN.
 
 ## Selected design
 
@@ -281,7 +300,7 @@ full refresh.
 | `O-FOUR` | Only the four named durable record schemas exist. | A ledger, plan/receipt/gate/review family, join, or generic graph is required. | Closed schema inventory and unknown-input rejection tests. | verified |
 | `O-SEPARATE` | Product identity does not depend on evaluator bytes; evaluator changes do not rewrite product identity. | Oracle/harness edits change `ProductArtifact`. | Differential identity tests. | verified |
 | `O-STATELESS` | Verification derives status from immutable input records without active mutable state. | Certification needs ledger order, promotion, or reconciliation. | Fresh-process replay and missing/tampered-record tests. | verified |
-| `O-BLIND` | Provider input cannot contain or read expected answers or mappings. | Sentinel oracle bytes appear in projection/workspace/events. | Differential sentinel and isolation tests. | offline verified |
+| `O-BLIND` | Provider input cannot contain or read expected answers or mappings. | Sentinel oracle bytes appear in projection/workspace/events. | Differential sentinel and isolation tests. | reopened by GRANT-25 |
 | `O-INVALIDATE` | The table above causes only necessary model calls. | Oracle-only change calls a model, or provider-input drift reuses an observation. | Per-component mutation matrix with call counters. | verified |
 | `O-AUTH` | One bounded evaluation authority plus one distinct release authority suffices by default; neither implies the other. | Hidden micro-authority gates appear or release uses evaluation authority. | Exact digest/cap/refusal tests. | offline verified |
 | `O-ADVERSE` | Adverse exact-final is durable for unchanged artifact bytes. | Unchanged artifact can discard or rerun it for a friendlier result. | Persistent negative and changed-artifact tests. | verified |
@@ -324,21 +343,8 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `fresh_request_awaiting_authority`. GRANT-22 is atomically preserved at
-  `happycodex-evaluator-attestation-release.failed-grant22-48465f7d` with
-  relative manifest `858fe5a4...`, 912 files, `12/12/12/12`, exact adverse
-  `4366366e...`, and request `48465f7d...`; it supplied no fresh input.
-- Fresh candidate/baseline remain `d77ecb6a...` / `ec4fc2df...`, product tree
-  `d9e525a2...`, config `d98fac1a...`, and binary `cb5e8cb8...`. EvalSpec /
-  request are `7faa6d07...` / `a279adc7...`; bundle/provider/oracle/harness are
-  `8e1b3255...` / `a47f4a11...` / `e7e46f93...` / `0e3ffa56...`; host contract
-  is `62ebfb71...`. The private mapping digest is `990e437d...`.
-- The rules-free 33-blob projection has synthetic commit/tree `b23da6f8...` /
-  `7ebe443d...`; manifest/diff are `a0ba351b...` / `97278be0...`. CLI records
-  validate and rematerialize byte-identically. The mode-0700 fresh root is
-  `0/0/0/0`, with no auth, JSONL, unit, command-bin, or tool-bin content.
-- The plan remains five order-1 behavior, three order-2 concurrent holdout
-  pairs, then one order-3 exact-final; profiles are `gpt-5.6-sol high/300s` and
-  `max/600s`, capped at `12/600000/100000/2400000/0`. No tests, provider/model,
-  network, install, release, activation, cache, or authority consumption ran.
-  Only an exact user authority for `a279adc7...` may begin certification.
+- Phase: `grant25_intent`; state is reopened to `working` for O-BLIND and
+  exact-final source identity closure. Prestate is clean `00e427c` / `0cd44c8`.
+  Active root inode 12026767 is mode 0700 on device 64769, manifest
+  `359657ee...`, 112 files, `0/0/0/0`, with two untracked support files and no
+  forbidden evidence. Both exact archive and staging targets are absent.
