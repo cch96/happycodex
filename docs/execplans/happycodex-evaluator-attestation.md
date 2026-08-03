@@ -214,101 +214,47 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- GRANT-42 durable intent, pre-repair: from clean commit/tree `a799d0a...` /
-  `b833665...`, characterize and remove only the exact-final unit-private
-  launcher/sandbox discovery defect using zero-model native probes. Preserve
-  the four-record/default-twelve protocol, one-shot semantics, Runtime,
-  package/config, cases/oracles/thresholds, neutral review, and release
-  separation. The failed request `682a9f76...`, exact Attestation `6ecb2194...`,
-  and raw `cefae864...` remain immutable adverse evidence and cannot qualify by
-  reinterpretation. No provider/model/network, live evidence, install, release,
-  activation, cache, marketplace, rollback, or retry effect is authorized.
-- Phase: `evaluation_terminal_not_yet`. GRANT-41 durable-intent commit/tree are
-  `1006e05...` / `ec68caa...`. The exact request `682a9f76...` ran once under
-  the sole authority digest `adc37317...`, without retry or recovery. All five
-  sequential core units were `success/pass` (54,729 input, 948 output, 41,267
-  ms). All six barrier-concurrent holdout arms froze `success/pass` before the
-  single reveal at `2026-08-03T19:27:00.222225Z`.
-- Hidden holdout judgment is GREEN: candidate/baseline tokens are 33,584 /
-  32,472 and wall-ms are 25,446 / 21,668; both ratios are within 1.25. Pair
-  scores are recovery `2/2`, safety `2/0`, and scope `1/1`, with every candidate
-  absolute oracle passing. Private mapping-reveal file digest is `f1fd12ef...`.
-- The unique exact-final reached the provider and completed successfully at the
-  transport level, but returned `NOT_YET`, `coverage.complete=false`, one
-  finding, and no completed `command_execution`; its verdict is `fail` with
-  `fatal:coverage.complete` and `fatal:decision`. The sanitized finding says the
-  reviewer could not start its read-only command because the host-provided
-  sandbox path was absent, so it could not inspect the frozen projection and,
-  under the no-retry rule, declared incomplete coverage. Exact Attestation/raw
-  digests are `6ecb2194...` / `cefae864...`.
-- The durable terminal prefix is exactly twelve claims/raws/Attestations under
-  one authority; aggregate usage is 12 calls, 143,293 input, 3,191 output, and
-  119,783 ms, within the frozen cap. Its combined evidence digest is
-  `b2c47ec6...`. Stateless reproduction returns `verified=false`,
-  `complete=false`, GREEN holdout, and the exact-final verdict as its only
-  failure. No auth residue or Git evidence exists. No repair, provider retry,
-  install, release, activation, cache, marketplace, or rollback effect follows.
-- Phase: `candidate_frozen_request_ready`. GRANT-40 durable-intent commit/tree
-  are `5660afb...` / `b317ebf...`, based on source commit/tree `97b66b6...` /
-  `19867ad...`. A private randomized staging root was atomically replaced by
-  `/home/caichenghang/.codex/happycodex-evaluator-attestation-cleanbreak-1`;
-  its closed 169-entry inventory digest is `34483b10...` and no staging root
-  remains.
-- Candidate/previous ProductArtifact record digests are `d77ecb6a...` /
-  `ec4fc2df...`. Evaluator bundle and fixed host-contract digests are
-  `6f5496ce...` / `e3eccc13...`; active role-config/provider binary remain
-  `d98fac1a...` / `cb5e8cb8...`. The hidden mapping digest is `adf44dbd...`.
-  The ordered default remains exactly `5 + 6 + 1`, with cap `12 / 600000 /
-  100000 / 2400000 / 0` for calls/input/output/wall-ms/recoveries.
-- The frozen 32-path review projection plus two support files has synthetic
-  commit `c6ecf81...` and relocation-stable identity `ce2fe6ea...`. Its complete
-  1,066,211-byte binary diff, including 48 retired-file deletions and excluding
-  the private oracle, is `dda70abd...`. Source is one clean self-contained
-  commit/ref/reflog identity, recursively frozen, and contains no docs,
-  instructions, plan, mapping, authority, or hidden-oracle bytes.
-- EvalSpec record and authority-request digests are `f8e949ff...` /
-  `682a9f76...`; the request file digest is `369392bc...`. Fresh-process public
-  CLI product/materialize/validate/request reproduction, private modes, closed
-  inventory, blind projections, neutral exact-final command/source binding,
-  and four empty execution prefixes are GREEN. GRANT-36 evidence was neither
-  read nor reused. No approval/auth staging exists, and no provider, model,
-  network, evidence, install, release, activation, cache, marketplace, or
-  rollback effect occurred.
-- GRANT-39 narrow closure is GREEN. Its durable-intent commit/tree are
-  `8fc2c73...` / `665c862...`, based on `3979209...` / `fa43b19...`.
-  `_unit` now binds `claim_key.role_config` to the already-derived stage-local
-  role config. The new differential proves an external Executor role-config
-  change plus corresponding behavior/holdout host drift invalidates exactly
-  the five core and six holdout units while neutral exact-final provider input,
-  claim key, and invocation remain byte-identical.
-- Authorized focused tests passed `14/14` in 2.236s; product preservation,
-  four-record/default-twelve inventory, retired-vocabulary, Python-size, and
-  bounded-plan guards passed `7/7` in 0.054s. An initial guard selector named a
-  nonexistent class and loaded zero tests; the actual `RepositoryContractTests`
-  selectors then passed. The full suite was not rerun. Product/Runtime/config
-  and all live/effect surfaces remain untouched.
-- Phase: `grant38_offline_green`, terminal. Intent commit/tree are
-  `61d4042...` / `4edb032...`; GRANT-36 evidence remained archival and was not
-  read, imported, or accepted as authority.
-- The global path-bound host digest, blanket same-authority verifier, and
-  collection-style Attestation append helper were deleted. Stage-local
-  effective host identities, a pure selected-unit authority proposal, exact
-  prerequisite verification, and request-bound mixed-authority composition
-  replaced them without a new record, gate, ledger, graph, or state machine.
-- Original RED is GREEN: exact-final must inspect the readable frozen cwd with
-  completed `command_execution`; identical host relocation preserves all twelve
-  invocation identities. Exact-only fake-host refresh writes one current
-  Attestation and composes with eleven raw-backed GREEN prerequisites. Missing,
-  tampered, adverse, stale, mixed-product, changed-unit, unbound, broader, and
-  over-cap inputs fail before provider reach. Release authority differs from
-  every evaluation authority.
-- Focused checks converged; the sole full offline run was `127/127` in 13.520s.
-  Evaluator Python is 3,186 lines, maximum file 596; this plan remains below
-  3,000 words. Product/Runtime/config and the four-record, ordinary `5 + 6 + 1`
-  inventory are unchanged. No provider, model, network, request, evidence-root,
-  install, release, activation, cache, marketplace, or rollback effect occurred.
-- The coherent terminal change set is exactly this plan, `evaluation/README.md`,
-  `evaluation/{cli,host,identity,manifest,provider,records,verify}.py`,
-  `tests/attestation_fixtures.py`, and
-  `tests/{test_attestation_flow,test_fixed_host_transaction_v2,test_stage_profiles,test_stateless_records,test_trust_boundary_repair}.py`.
-  Claim-marker directories are control metadata and are not part of the commit.
+- Phase: `launcher_repair_offline_green`; release remains `NOT_YET`. GRANT-42
+  began from clean commit/tree `a799d0a898f54e7bab318224dddca2053d5fd3be` /
+  `b833665b9b5179975d86184129d9764decc1b5a7`; durable-intent commit/tree are
+  `fe4c5f15de5d75d799b7b4e8bb84ce2f733abe80` /
+  `faa8493f93f6fbbd7bb73b00c420e6ea93936c6e`.
+- The immutable failed request `682a9f76...`, exact Attestation record
+  `6ecb2194...`, and raw digest `cefae864...` remain adverse evidence under
+  `/home/caichenghang/.codex/happycodex-evaluator-attestation-cleanbreak-1`.
+  They were neither modified nor reinterpreted, and the provider-reaching unit
+  was not retried.
+- Mechanical cause: exact-final launched the release binary by its absolute
+  path while granting only the unit-private `codex-linux-sandbox` file. Native
+  discovery mapped the direct launcher to the release binary's helper surface
+  and the private hard-linked launcher to `command-bin/codex`. `doctor --json`
+  did not reproduce the provider error and used local AF_INET syscalls, so it is
+  characterization only. A zero-model `codex sandbox /usr/bin/true` probe used
+  no AF_INET connect/send/receive and passed with the exact private launcher and
+  helper file permissions.
+- Repair: exact-final now creates and validates two unit-private hard links,
+  `codex` and `codex-linux-sandbox`, launches through the former, and binds the
+  launcher alias into exact-only host identity. Inode, digest, path, executable,
+  link-creation, and tamper drift fail closed before provider reach. Behavior
+  and holdout launcher identity remain unchanged. No stderr/schema/receipt
+  change was made: native stderr remains process-observable but is not promoted
+  to a fifth durable evidence surface.
+- RED was three targeted tests with one failure and three errors. The same three
+  became GREEN in 0.524s; native/focused coverage passed `5/5` in 0.724s and the
+  cumulative focused modules passed `72/72` in 10.576s. The single cumulative
+  offline suite passed `131/131` in 13.968s. Evaluator Python is 3,188 lines;
+  `evaluation/provider.py` is 593 lines and `evaluation/host.py` is 584. The
+  post-repair product/four-record/default-plan/vocabulary/size guards passed
+  `8/8` in 0.054s; this single current index is 2,464 words.
+- The coherent repair changes exactly this plan, `evaluation/provider.py`,
+  `evaluation/host.py`, and `tests/test_fixed_host_transaction_v2.py`. It does
+  not change Runtime, package/config, cases, oracles, thresholds, the four
+  durable record types, the ordinary `5 + 6 + 1` plan, receipts, evidence, or
+  release semantics. No provider/model/network, live evidence, install,
+  release, activation, cache, marketplace, rollback, or retry effect occurred.
+- The eleven prior raw-backed GREEN behavior/holdout prerequisites are only
+  candidates for exact-only composition if a future fresh authority proposal
+  mechanically binds this repaired spec and revalidates every prerequisite.
+  The failed exact Attestation can never count as success. Release still needs
+  exactly one fresh neutral exact-final model call under new exact authority;
+  this checkpoint neither requests nor grants it.

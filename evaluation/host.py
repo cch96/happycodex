@@ -153,17 +153,22 @@ def _prepare_unit(policy: dict[str, Any], unit: dict[str, Any]) -> dict[str, Pat
     command_bin = unit_root / "command-bin"; os.mkdir(command_bin, 0o700)
     source = Path(policy["provider_policy"]["binary_path"])
     alias = command_bin / policy["provider_policy"]["sandbox_alias_name"]
+    launcher = source; link_label = "sandbox"
     try:
         os.link(source, alias, follow_symlinks=False)
+        if unit["stage"] == "exact_final":
+            link_label = "launcher"
+            launcher = command_bin / policy["provider_policy"]["exact_launcher_name"]
+            os.link(source, launcher, follow_symlinks=False)
         _sync_directory(command_bin); command_bin.chmod(0o500)
         fixed_command_path(policy, command_bin)
     except Exception as exc:
         command_bin.chmod(0o700)
-        if alias.exists() or alias.is_symlink(): alias.unlink()
+        for child in command_bin.iterdir(): child.unlink()
         command_bin.rmdir(); codex_home.rmdir(); home.rmdir(); unit_root.rmdir()
         _sync_directory(units)
         if isinstance(exc, OSError):
-            raise HostEvidenceError("unit-private sandbox hard link failed") from exc
+            raise HostEvidenceError(f"unit-private {link_label} hard link failed") from exc
         raise
     schema = unit_root / "output-schema.json"
     _exclusive(schema, (canonical_json(unit["invocation"]["provider_input"]["response_schema"]) + "\n").encode(), 0o600)
@@ -183,7 +188,7 @@ def _prepare_unit(policy: dict[str, Any], unit: dict[str, Any]) -> dict[str, Pat
         _freeze(cwd)
     return {
         "unit_root": unit_root, "home": home, "codex_home": codex_home,
-        "command_bin": command_bin, "cwd": cwd, "schema": schema,
+        "command_bin": command_bin, "launcher": launcher, "cwd": cwd, "schema": schema,
     }
 
 

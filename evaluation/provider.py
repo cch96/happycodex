@@ -49,40 +49,28 @@ BEHAVIOR_DEVELOPER_INSTRUCTIONS = (
     "Return decision-changing ambiguity, partial effects, or identity/config drift to Root.\n"
     "Never widen scope, retry an ambiguous effect, or decide completion.\n"
 )
-
-
 class ProviderError(ValueError):
     pass
-
-
 def _private_path(path: Path, *, directory: bool, mode: int | None = None) -> Path:
     path = path.absolute()
     valid = path.is_dir() if directory else path.is_file()
     if path.is_symlink() or not valid or (mode is not None and stat.S_IMODE(path.stat().st_mode) != mode):
         raise ProviderError(f"fixed-host path is not private and regular: {path}")
     return path
-
-
 def _file_sha(path: Path) -> str:
     return hashlib.sha256(_private_path(path, directory=False).read_bytes()).hexdigest()
-
-
 def _executable_file(path: Path) -> Path:
     path = _private_path(path, directory=False)
     status = path.stat()
     if not stat.S_ISREG(status.st_mode) or not status.st_mode & 0o111:
         raise ProviderError(f"fixed-host executable is not regular and executable: {path}")
     return path
-
-
 def _frozen_tree(root: Path) -> Path:
     root = _private_path(root, directory=True, mode=0o500)
     for path in root.rglob("*"):
         if path.is_symlink() or (path.is_dir() and stat.S_IMODE(path.stat().st_mode) != 0o500) or (path.is_file() and stat.S_IMODE(path.stat().st_mode) not in {0o400, 0o500}):
             raise ProviderError("exact-final tree is not recursively frozen")
     return root
-
-
 def _source_git(root: Path, *args: str) -> str:
     completed = subprocess.run(
         ["git", "-C", str(root), *args], capture_output=True, text=True,
@@ -96,8 +84,6 @@ def _source_git(root: Path, *args: str) -> str:
     if completed.returncode:
         raise ProviderError(f"exact-final Git validation failed: {' '.join(args)}")
     return completed.stdout
-
-
 def _git_blob_sha(body: bytes) -> str:
     return hashlib.sha1(b"blob " + str(len(body)).encode() + b"\0" + body).hexdigest()
 
@@ -283,6 +269,7 @@ def build_fixed_host_policy(
         "command_path_template": "{unit_command_bin}:/usr/bin:/bin",
         "sandbox_alias_name": "codex-linux-sandbox",
         "sandbox_alias_kind": "hard-link-to-provider-binary",
+        "exact_launcher_name": "codex", "exact_launcher_kind": "hard-link-to-provider-binary",
         "stdin_source": "EvalSpec.units[].invocation.provider_input",
         "output_schema_source": "provider_input.response_schema",
         "cwd_by_stage": {"behavior": "prepared-empty-git", "holdout": "prepared-empty-git", "exact_final": "exact-final-source"},
@@ -313,6 +300,7 @@ def host_contract_from_policy(policy: dict[str, Any]) -> dict[str, Any]:
         "behavior_developer_instructions_sha256", "behavior_model", "behavior_effort",
         "exact_final_developer_instructions", "disabled_features", "web_search",
         "command_path_template", "sandbox_alias_name", "sandbox_alias_kind",
+        "exact_launcher_name", "exact_launcher_kind",
         "stdin_source", "output_schema_source", "cwd_by_stage", "retry", "resume",
     }
     workspace_fields = {
@@ -334,6 +322,8 @@ def host_contract_from_policy(policy: dict[str, Any]) -> dict[str, Any]:
         or provider["command_path_template"] != "{unit_command_bin}:/usr/bin:/bin"
         or provider["sandbox_alias_name"] != "codex-linux-sandbox"
         or provider["sandbox_alias_kind"] != "hard-link-to-provider-binary"
+        or provider["exact_launcher_name"] != "codex"
+        or provider["exact_launcher_kind"] != "hard-link-to-provider-binary"
     ):
         raise ProviderError("host provider policy differs")
     if _file_sha(_executable_file(Path(provider["binary_path"]))) != provider["binary_sha256"]:
@@ -371,7 +361,8 @@ def host_contract_from_policy(policy: dict[str, Any]) -> dict[str, Any]:
         **common, "instructions": provider["exact_final_developer_instructions"],
         "cwd": provider["cwd_by_stage"]["exact_final"],
         "source_sha256": workspace["exact_final_source_sha256"],
-        "permission_delta": "sandbox-helper-read-only",
+        "launcher_alias": [provider["exact_launcher_name"], provider["exact_launcher_kind"]],
+        "permission_delta": "unit-private-launcher-and-sandbox-files-read-only",
     }
     return {
         "schema_version": 3, "trust_domain": policy["trust_domain"],
@@ -427,10 +418,16 @@ def fixed_host_argv(policy: dict[str, Any], unit: dict[str, Any], paths: dict[st
     provider, permission = policy["provider_policy"], policy["permission_profile"]
     profile = permission["profile_name"]
     command_path = fixed_command_path(policy, paths["command_bin"])
-    helper = paths["command_bin"] / provider["sandbox_alias_name"] if unit["stage"] == "exact_final" else None
-    filesystem = '{":minimal"="read",":workspace_roots"={"."="read"}' + (f',{json.dumps(str(helper))}="read"' if helper else "") + "}"
+    launcher = _executable_file(Path(provider["binary_path"])); allowed: list[Path] = []
+    if unit["stage"] == "exact_final":
+        expected = paths["command_bin"] / provider["exact_launcher_name"]
+        launcher = _executable_file(paths.get("launcher", expected)); source = _executable_file(Path(provider["binary_path"]))
+        if launcher != expected or _file_sha(source) != provider["binary_sha256"] or (source.stat().st_dev, source.stat().st_ino) != (launcher.stat().st_dev, launcher.stat().st_ino):
+            raise ProviderError("exact launcher is not the bound binary hard link")
+        allowed = [paths["command_bin"] / provider["sandbox_alias_name"], launcher]
+    filesystem = '{":minimal"="read",":workspace_roots"={"."="read"}' + "".join(f',{json.dumps(str(path))}="read"' for path in allowed) + "}"
     argv = [
-        provider["binary_path"], "exec", "--json", "--ephemeral", "--ignore-user-config",
+        str(launcher), "exec", "--json", "--ephemeral", "--ignore-user-config",
         "--ignore-rules", "--strict-config", "--color", "never", "--model", unit["invocation"]["model"],
         "--config", f'model_reasoning_effort="{unit["invocation"]["effort"]}"',
         "--config", 'approval_policy="never"', "--config", 'web_search="disabled"',

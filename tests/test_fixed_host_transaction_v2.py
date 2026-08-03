@@ -483,6 +483,7 @@ class FixedHostTransactionTests(unittest.TestCase):
             self.assertNotIn(private_auth, Path(result["raw_path"]).read_bytes())
             command_bin = unit_root / "command-bin"
             sandbox = command_bin / "codex-linux-sandbox"
+            self.assertFalse((command_bin / "codex").exists())
             source = Path(policy["provider_policy"]["binary_path"])
             self.assertEqual(_mode(command_bin), 0o500)
             self.assertTrue(sandbox.is_file())
@@ -532,8 +533,17 @@ class FixedHostTransactionTests(unittest.TestCase):
             exact_configs = [exact_argv[index + 1] for index, value in enumerate(exact_argv[:-1]) if value == "--config"]
             exact_filesystem = next(value for value in exact_configs if ".filesystem=" in value)
             helper = exact_paths["command_bin"] / "codex-linux-sandbox"
+            launcher = exact_paths["command_bin"] / "codex"
+            self.assertEqual(exact_paths["launcher"], launcher)
+            self.assertEqual(exact_argv[0], str(launcher))
+            self.assertEqual(_mode(launcher), 0o500)
+            self.assertEqual(
+                (source.stat().st_dev, source.stat().st_ino),
+                (launcher.stat().st_dev, launcher.stat().st_ino),
+            )
             self.assertEqual(behavior_filesystem, 'permissions.happycodex_evaluator.filesystem={":minimal"="read",":workspace_roots"={"."="read"}}')
             self.assertIn(f'{json.dumps(str(helper))}="read"', exact_filesystem)
+            self.assertIn(f'{json.dumps(str(launcher))}="read"', exact_filesystem)
             self.assertNotIn(json.dumps(str(exact_paths["command_bin"])) + "=", exact_filesystem)
             self.assertNotIn(":root", exact_filesystem)
 
@@ -554,7 +564,8 @@ class FixedHostTransactionTests(unittest.TestCase):
             base = Path(directory); command_bin = base / "command-bin"
             command_bin.mkdir(mode=0o700)
             helper = command_bin / "codex-linux-sandbox"
-            os.link(binary, helper); command_bin.chmod(0o500)
+            launcher = command_bin / "codex"
+            os.link(binary, helper); os.link(binary, launcher); command_bin.chmod(0o500)
             cwd = base / "frozen-source"; cwd.mkdir(mode=0o500)
             home = base / "home"; home.mkdir(mode=0o700)
             codex_home = base / "codex-home"; codex_home.mkdir(mode=0o700)
@@ -565,7 +576,7 @@ class FixedHostTransactionTests(unittest.TestCase):
             def run(extra: str):
                 filesystem = base_permissions + extra + "}"
                 return subprocess.run(
-                    [str(binary), "-c", 'permissions.probe.description="probe read only"',
+                    [str(launcher), "-c", 'permissions.probe.description="probe read only"',
                      "-c", f"permissions.probe.filesystem={filesystem}",
                      "-c", "permissions.probe.network.enabled=false",
                      "sandbox", "-P", "probe", "-C", str(cwd), "/bin/pwd"],
@@ -573,13 +584,19 @@ class FixedHostTransactionTests(unittest.TestCase):
                 )
 
             negative = run("")
-            positive = run(f',{json.dumps(str(helper))}="read"')
+            positive = run(
+                f',{json.dumps(str(helper))}="read",{json.dumps(str(launcher))}="read"'
+            )
             self.assertNotEqual(negative.returncode, 0)
             self.assertEqual(negative.stdout, "")
             self.assertNotEqual(negative.stderr, "")
             self.assertEqual(positive.returncode, 0)
             self.assertEqual(positive.stdout.strip(), str(cwd))
             self.assertIsInstance(positive.stderr, str)
+            self.assertEqual(
+                (binary.stat().st_dev, binary.stat().st_ino),
+                (launcher.stat().st_dev, launcher.stat().st_ino),
+            )
 
     def test_private_sandbox_alias_tamper_fails_closed(self):
         from evaluation.host import _prepare_unit
@@ -604,6 +621,101 @@ class FixedHostTransactionTests(unittest.TestCase):
                     command_bin.chmod(0o500)
                 with self.assertRaises(ProviderError):
                     fixed_command_path(policy, command_bin)
+
+    def test_exact_private_launcher_tamper_and_path_drift_fail_closed(self):
+        from evaluation.host import _prepare_unit
+        from evaluation.provider import ProviderError, fixed_host_argv, fixed_host_instruction
+
+        for tamper in ("replacement", "path-drift"):
+            with self.subTest(tamper=tamper), tempfile.TemporaryDirectory() as directory:
+                _, _, _, policy, _, _, spec, _ = self._inputs(directory)
+                exact = next(unit for unit in spec["units"] if unit["stage"] == "exact_final")
+                paths = _prepare_unit(policy, exact)
+                launcher = paths["launcher"]
+                if tamper == "replacement":
+                    command_bin = paths["command_bin"]
+                    command_bin.chmod(0o700)
+                    launcher.unlink()
+                    launcher.write_bytes(Path(policy["provider_policy"]["binary_path"]).read_bytes())
+                    launcher.chmod(0o500)
+                    command_bin.chmod(0o500)
+                else:
+                    paths["launcher"] = Path(policy["provider_policy"]["binary_path"])
+                with self.assertRaises(ProviderError):
+                    fixed_host_argv(
+                        policy, exact, paths, fixed_host_instruction(policy, exact),
+                    )
+
+    def test_exact_launcher_binding_changes_only_exact_host_identity(self):
+        from evaluation.provider import host_contract_from_policy
+        from evaluation.verify import invalidation
+
+        with tempfile.TemporaryDirectory() as directory:
+            _, _, _, policy, selected, baseline, _, blind = self._inputs(directory)
+            captured = []
+
+            def capture(value):
+                captured.append(deepcopy(value))
+                return canonical_sha256(value)
+
+            with patch("evaluation.provider.canonical_sha256", side_effect=capture):
+                contract = host_contract_from_policy(policy)
+            surfaces = [value for value in captured if type(value) is dict and "sandbox_alias" in value]
+            self.assertEqual(len(surfaces), 3)
+            self.assertNotIn("launcher_alias", surfaces[0])
+            self.assertNotIn("launcher_alias", surfaces[1])
+            self.assertEqual(
+                surfaces[2]["launcher_alias"],
+                ["codex", "hard-link-to-provider-binary"],
+            )
+            legacy = {**contract, "exact_final_sha256": "4" * 64}
+            _, _, previous, _ = bundle(
+                selected_product=selected, baseline_product=baseline,
+                host_contract=legacy,
+            )
+            _, _, current, _ = bundle(
+                selected_product=selected, baseline_product=baseline,
+                host_contract=contract,
+            )
+            self.assertEqual(blind, mapping())
+            self.assertEqual(invalidation(previous, current)["model_units"], ["exact-final"])
+
+    def test_exact_launcher_link_failure_stops_before_provider_reach(self):
+        from evaluation.host import execute_fixed_host_transaction
+
+        with tempfile.TemporaryDirectory() as directory:
+            execution, _, _, policy, selected, baseline, spec, _ = self._inputs(directory)
+            supplied, authority, line = self._authority(spec)
+            prior = {
+                unit["unit_id"] for unit in spec["units"]
+                if unit["stage"] != "exact_final"
+            }
+            self._persist(execution, selected, baseline, spec, prior, authority)
+            real_link = os.link
+            link_count = 0
+
+            def fail_second_link(source, destination, **kwargs):
+                nonlocal link_count
+                link_count += 1
+                if link_count == 2:
+                    raise OSError(18, "cross-device launcher link")
+                return real_link(source, destination, **kwargs)
+
+            with patch("evaluation.host.os.link", side_effect=fail_second_link):
+                with self.assertRaisesRegex(HostEvidenceError, "launcher hard link failed"):
+                    execute_fixed_host_transaction(
+                        repo_root=ROOT, product=selected, previous_product=baseline,
+                        spec=spec, unit_id="exact-final", policy=policy,
+                        authority_line=line, supplied_authority=supplied,
+                        authenticate_line=lambda actual, _value: actual == line,
+                        provider_auth=b"private-auth",
+                        run_provider=lambda **_kwargs: self.fail("provider reached"),
+                        clock=lambda: datetime(
+                            2026, 8, 2, 0, 0, 35, tzinfo=timezone.utc,
+                        ),
+                    )
+            for name in ("units", "raw", "attestations", "claims"):
+                self.assertEqual(len(list((execution / name).iterdir())), 11)
 
     def test_cross_filesystem_sandbox_alias_fails_before_effect(self):
         from evaluation.host import _prepare_unit
