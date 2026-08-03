@@ -269,22 +269,35 @@ These are planning boundaries, not authority under GRANT-01.
   rollback, or GRANT-31 evidence mutation occurred. Release remains excluded;
   any fresh twelve-call evaluation requires a later exact Root authority.
 
-### GRANT-34 durable intent
+### GRANT-35 request receipt
 
-- Root authorized one offline-only fresh ordinary twelve-unit request at clean
-  commit/tree `81af3d0052030ffe57b2d1c84f3db5d07ad66af4` /
-  `fc14cf1e94bb095ec06fe13dcbd6a3b3eed4d576`. Claim receipt
-  `/home/caichenghang/.codex/happycodex-evaluator-attestation-grant34-resource-claim.json`
-  exclusively binds this worktree/ref/plan and the absent final/staging output
-  roots. All prior evaluation roots remain immutable.
-- Re-derive candidate and baseline from Git, require their known record
-  identities, create a fresh high/max profile, fixed mapping, cap
-  `12/600000/100000/2400000/0`, neutral brief, clean single-commit exact-final
-  projection, private host workspace, host contract, `EvalSpec`, and authority
-  request. Reuse no raw event, Attestation, authority, or failed-state input.
-- Validate the frozen source, twelve-unit/zero-prefix inventory, four record
-  families, hidden-byte isolation, exact-final helper-only read, unchanged
-  behavior permissions, product identity, component/config/binary/oracle
-  digests, and fresh request entirely offline. Publish staging atomically only
-  after every check; no provider/model/network or product/release effect is
-  authorized.
+- Phase: `fresh_request_ready`. Durable intent is commit `32101d5`; the claimed
+  final output is
+  `/home/caichenghang/.codex/happycodex-evaluator-attestation-release-grant34`.
+  Candidate/baseline were freshly derived from Git and equal `d77ecb6a...` /
+  `ec4fc2df...`; no prior raw event, Attestation, authority, or adverse result
+  was read as an input.
+- The first staging validation stopped before publication because an auxiliary
+  substring assertion confused sibling basenames. GRANT-35 replaced only that
+  check with canonical path equality/ancestor comparisons. It proved the prior
+  and new roots are distinct non-overlapping siblings, found zero prior-root
+  path values, revalidated all 112 staged files without changing a byte, and
+  performed one atomic rename. Staging is absent and all four prefix directories
+  remain empty.
+- The frozen one-commit projection binds source commit/tree `32101d5...` /
+  `06456ac...`, baseline `e601664...`, 32 included files, aggregate diff
+  `958da428...`, and source identity `acdd2624...`; docs, instructions, source
+  history, private oracle bytes, and evidence are excluded. Candidate package
+  tree remains `d9e525a...`.
+- Official final-path APIs reproduced the host contract `cbb93a5a...`, ordinary
+  twelve-unit EvalSpec `dfd9f9ab...`, and fresh request `78be8bc8...` exactly.
+  Components are bundle/provider/oracle/harness `14d25183...` / `7240d396...` /
+  `74d459a4...` / `0e3ffa56...`; binary/config/private-oracle identities are
+  `cb5e8cb8...` / `d98fac1a...` / `387ae38a...`. Profiles are high/max and cap
+  remains `12/600000/100000/2400000/0`.
+- Inventory is exactly four record types; source is clean, frozen, self-contained
+  and remote-free; hidden bytes are absent; exact-final helper-only visibility
+  and unchanged behavior permissions remain bound. No provider, model, network,
+  package, Runtime, config, install, release, activation, cache, marketplace, or
+  rollback effect occurred. The request grants no permission; live execution
+  requires the exact external affirmative line for `78be8bc8...`.
