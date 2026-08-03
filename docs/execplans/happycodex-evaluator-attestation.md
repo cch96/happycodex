@@ -241,26 +241,44 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `repair_green_pending_commit`. The obsolete request beginning
-  `52657eb3` is invalid and must never be consumed or reused. Its active root is
-  unchanged, its evidence directories remain empty, and it awaits the exact
-  recoverable quarantine named in GRANT-17.
-- GRANT-17 RED reproduced all five diagnosed transaction gaps plus forged-prefix,
-  known-failure, cumulative-cap, orphaned-in-flight, and cross-process races.
-  Repair now verifies the durable prefix before every launch/finalization,
-  serializes publication without blocking fixed paired provider work, preserves
-  adverse exact-final reports and authoritative reveal metadata, cleans every
-  preclaim failure, classifies spawn failure as no-effect, and kills/reaps the
-  provider process group on timeout.
-- Final affected suite: 88/88 GREEN in 7.750s. Single cumulative suite:
-  101/101 GREEN in 7.769s. `git diff --check`, AST, and production schema-load
-  checks passed.
-- Production evaluator Python is 2,777 lines; largest module is `records.py` at
-  556. Evaluator bundle identity is
-  `4f38b83a91d90f5b170d5c1e27b21f26643e631976f10d4b98aa33c9c8d7bf38`.
-  This plan is below 3,000 words. Durable inventory remains exactly
-  ProductArtifact, EvalSpec, Attestation, and ReleaseReceipt. CLI commands are
-  read-only/materialization/verification surfaces with no claim command.
+- Phase: `frozen_request_awaiting_separate_authority`. GRANT-17 repair commit/tree
+  are `40686ef5163bbd9fa4a23223bff106502a3017be` /
+  `3f06667194de306aa1d32e72bb5780047069b0fd`; the coherent repair commit changed
+  only this plan, existing evaluator files/schema, and affected tests.
+- RED covered the five diagnosed transaction gaps and forged-prefix,
+  known-failure, cap, orphan, cross-process, process-group, and adverse-review
+  paths. The focused suite was 88/88 GREEN in 7.750s; the single cumulative suite
+  was 101/101 GREEN in 7.769s. Diff, AST, schema-load, replay, and static-budget
+  checks passed. Production evaluator Python is 2,777 lines, largest module 556;
+  this plan remains below 3,000 words.
+- The invalid request `52657eb39b065a00edb411f3e525a684996cd3c31c2dd82d6239f7784922cd39`
+  was never consumed. Its evidence-empty root moved atomically and recoverably to
+  `/home/caichenghang/.codex/happycodex-evaluator-attestation-release.invalid-52657eb3`.
+  No file from it was reused after quarantine.
+- A fresh mode-0700 root was generated from the repair commit. New EvalSpec /
+  authority request are
+  `f3bb8c6c2551441fcc7e751adcadbdb1927e0fd5950f2d79b9fc08c6866a1591` /
+  `f21ff642c3925164c2b89b4e45efc0864895c83dfd701e8825fe656b0e9dd233`.
+  Candidate/baseline ProductArtifact records are
+  `d77ecb6af42ad35a6cf4f37787b6b7472bffe1faf4a103e145742bd2fe115fed` /
+  `ec4fc2dfb65be9ce8cc8d725a878d4166844cbd1ebbb686a4396116c17ecc9bf`;
+  host policy/contract are
+  `81b577bfaab4122842cbffacd960c846da9aed15b2e7f2efe740a215cb42e83b` /
+  `0652d84a248a910ecda8815442b94bfb23688134a116e5ad3775d0f371b8a8f8`.
+- Evaluator bundle/provider/oracle/harness identities are
+  `4f38b83a91d90f5b170d5c1e27b21f26643e631976f10d4b98aa33c9c8d7bf38`,
+  `0df713cbac6eea38af29144bec01152c94c266e406c51302cdac364a0a295abf`,
+  `c4e033ffe6ffcb91cf31254cbad2c87b28995e8915d06e80ef5ba4b801778934`,
+  and `a6c47f6aaabcfa844838602ba72230c28e81d28487c13dc7d58c3e854de8abf`.
+- The exact-final projection has 33 Git-verified files and one isolated synthetic
+  commit/tree `a474ef066c188d84cec1c05590a3cbcbf0c66835` /
+  `2120e71bec6aee910ff66d527adeb1cdbeaf161d`. Manifest/diff SHA-256 are
+  `fbd5b2d7531b5bc2fa67104f55d35a364e5a35c6a862b6b749cfac2df7d97ff0` /
+  `4f8f8dcea68ebb645cfe5981933ba15cf430b89269efbdceaf50af8109f98d23`.
+- CLI rematerialization is byte-identical. The spec contains exactly five core,
+  six blinded holdout, and one exact-final unit under a twelve-call cap; mapping
+  and oracle material are absent from provider input. All fresh claims, raw,
+  Attestation, and unit directories are empty; no auth, JSONL, or tool-bin exists.
 - The bound Codex 0.146.0 binary exposes every fixed exec flag and all 29
   explicitly disabled features. The fixed policy validates the external role
   config by whole-file SHA and unique exact byte blocks and binds the literal
