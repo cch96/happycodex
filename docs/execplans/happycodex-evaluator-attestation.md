@@ -240,67 +240,16 @@ These are planning boundaries, not authority under GRANT-01.
 
 ### GRANT-33 simplification receipt
 
-- Phase: `grant33_offline_green`. GRANT-32 began at clean commit/tree
-  `c19908bc7c2e05ae9f670a0ec7c695ca4935471c` /
-  `c479a0cf1f52ee44de653048f0e3d56d8e3e3ecf`; durable intent is commit
-  `ba5af32`. Its resource receipt and immutable GRANT-31 evidence root remained
-  valid and read-only throughout.
-- The proposed one-call bridge was abandoned after its readable shared-engine
-  form still required a 162-line continuation module plus schema, host, policy,
-  and invalidation branches. It raised evaluator Python to 3,354 lines and
-  exceeded the 3,200/600 repository limits. Compressing that state machine only
-  to reuse eleven historical calls would contradict this clean-break Outcome.
-  No continuation form, composition API, host parameter, special invalidation,
-  documentation promise, or standalone test remains. Future live evaluation
-  therefore uses a fresh ordinary twelve-unit `EvalSpec` and authority.
-- The retained repair is two derived lines in `evaluation/provider.py`.
-  Behavior filesystem permissions remain byte-for-byte unchanged. Exact-final
-  alone adds `read` for the already validated per-unit
-  `command-bin/codex-linux-sandbox` hard link, derived from its bound stage,
-  command-bin, and `sandbox_alias_name`; no new policy field or record exists.
-  Network remains false and approval remains `never`.
-- Focused fixed-host plus repository-contract checks are GREEN `36/36`.
-  The real Linux no-model probe fails with the base read profile, then succeeds
-  with only the exact helper file readable while stdout and stderr remain
-  separate. The full offline suite is GREEN `117/117` in 10.315s. Evaluator
-  Python is 3,018 lines total and every file is at most 600 lines.
-- No model, API, network, dependency, external-output, package, Runtime, case,
-  oracle, threshold, config, install, release, activation, cache, marketplace,
-  rollback, or GRANT-31 evidence mutation occurred. Release remains excluded;
-  any fresh twelve-call evaluation requires a later exact Root authority.
+- The first exact-only bridge was deleted when its 162-line module plus branches
+  exceeded the 3,200/600 limits. Only the derived exact-final helper-file read
+  remained; behavior permissions stayed byte-exact. Full offline was `117/117`.
 
 ### GRANT-35 request receipt
 
-- Phase: `fresh_request_ready`. Durable intent is commit `32101d5`; the claimed
-  final output is
-  `/home/caichenghang/.codex/happycodex-evaluator-attestation-release-grant34`.
-  Candidate/baseline were freshly derived from Git and equal `d77ecb6a...` /
-  `ec4fc2df...`; no prior raw event, Attestation, authority, or adverse result
-  was read as an input.
-- The first staging validation stopped before publication because an auxiliary
-  substring assertion confused sibling basenames. GRANT-35 replaced only that
-  check with canonical path equality/ancestor comparisons. It proved the prior
-  and new roots are distinct non-overlapping siblings, found zero prior-root
-  path values, revalidated all 112 staged files without changing a byte, and
-  performed one atomic rename. Staging is absent and all four prefix directories
-  remain empty.
-- The frozen one-commit projection binds source commit/tree `32101d5...` /
-  `06456ac...`, baseline `e601664...`, 32 included files, aggregate diff
-  `958da428...`, and source identity `acdd2624...`; docs, instructions, source
-  history, private oracle bytes, and evidence are excluded. Candidate package
-  tree remains `d9e525a...`.
-- Official final-path APIs reproduced the host contract `cbb93a5a...`, ordinary
-  twelve-unit EvalSpec `dfd9f9ab...`, and fresh request `78be8bc8...` exactly.
-  Components are bundle/provider/oracle/harness `14d25183...` / `7240d396...` /
-  `74d459a4...` / `0e3ffa56...`; binary/config/private-oracle identities are
-  `cb5e8cb8...` / `d98fac1a...` / `387ae38a...`. Profiles are high/max and cap
-  remains `12/600000/100000/2400000/0`.
-- Inventory is exactly four record types; source is clean, frozen, self-contained
-  and remote-free; hidden bytes are absent; exact-final helper-only visibility
-  and unchanged behavior permissions remain bound. No provider, model, network,
-  package, Runtime, config, install, release, activation, cache, marketplace, or
-  rollback effect occurred. The request grants no permission; live execution
-  requires the exact external affirmative line for `78be8bc8...`.
+- Fresh request/spec/host/source `78be8bc8...` / `dfd9f9ab...` / `cbb93a5a...` /
+  `acdd2624...` bound candidate/baseline `d77ecb6a...` / `ec4fc2df...`, high/max
+  profiles and `12/600000/100000/2400000/0`. Source was clean, self-contained,
+  hidden-blind, and atomically published with zero prefix.
 
 ### GRANT-36 terminal receipt
 
@@ -326,3 +275,15 @@ These are planning boundaries, not authority under GRANT-01.
   staging is absent. Release is excluded and unchanged bytes cannot rerun this
   review. No package, Runtime, config, install, activation, cache, marketplace,
   or rollback effect occurred; further action requires a new Root decision.
+
+### GRANT-37 durable intent
+
+- Root authorized one offline exact-final contract repair at clean commit/tree
+  `9896309...` / `99ae68f...`. Freeze RED for mandatory frozen-cwd inspection,
+  zero-tool GO rejection, path-neutral identity, and an exact-only refresh bound
+  to the eleven raw-backed GREEN prerequisites.
+- Add no gate, record, receipt, case, generic continuation/replay engine, model
+  call, request, install, or release. Preserve the ordinary twelve-unit bundle,
+  behavior permissions, package and immutable GRANT-36 evidence. If a readable
+  solution recreates the prior continuation family or exceeds 3,200/600, stop
+  after RED instead of compressing or widening the protocol.
