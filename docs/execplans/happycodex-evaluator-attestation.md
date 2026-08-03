@@ -132,6 +132,21 @@ install, release, activation, replay, reviewer, gate, receipt, or new engine is
 authorized. Any drift, test failure, target conflict, or nonempty fresh evidence
 stops.
 
+### Active evaluation grant: GRANT-20
+
+The user supplied exactly
+`APPROVE HAPPYCODEX EVALUATION 04666961ef899ee9b51ca8e80a0aae1d368369adae94c44cc203388fe7d3b7d9`.
+Task nonce is `019fadac-efd9-7133-b571-6db612c50971`; this line binds only the
+fresh request/spec and every exact product/profile/host/config/binary identity
+in Current checkpoint. Total ceilings are 12 calls, 600,000 input tokens,
+100,000 output tokens, 2,400,000 wall milliseconds, and zero recoveries.
+Run low-risk canary alone, four remaining behavior calls concurrently, three
+fixed holdout pairs, then one neutral exact-final. Between stages require a
+durable success/pass prefix, recomputed oracle, identity/inventory integrity,
+and remaining cap. Any adverse, ambiguous, partial, drifted, malformed, or
+over-cap effect stops without retry, cleanup, replay, or substitution. This
+grant excludes source mutation, extra calls, install, release, and activation.
+
 ## Baseline
 
 Command, run once in the new clean worktree:
@@ -297,7 +312,7 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `fresh_request_awaiting_separate_authority`. GRANT-19 intent commit was
+- Phase: `grant20_intent_pending_commit`. GRANT-19 intent commit was
   `587dcf2fffe5293f4a79a3aeb591c87596d32ab1`; source repair commit/tree are
   `b53bb183d85efe28a73a5a800898dc8b10c11b2b` /
   `b4f2ec9b2ce9327c97bd27c26b8081758e994f52`. It changed only provider policy,
