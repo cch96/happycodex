@@ -268,3 +268,23 @@ These are planning boundaries, not authority under GRANT-01.
   oracle, threshold, config, install, release, activation, cache, marketplace,
   rollback, or GRANT-31 evidence mutation occurred. Release remains excluded;
   any fresh twelve-call evaluation requires a later exact Root authority.
+
+### GRANT-34 durable intent
+
+- Root authorized one offline-only fresh ordinary twelve-unit request at clean
+  commit/tree `81af3d0052030ffe57b2d1c84f3db5d07ad66af4` /
+  `fc14cf1e94bb095ec06fe13dcbd6a3b3eed4d576`. Claim receipt
+  `/home/caichenghang/.codex/happycodex-evaluator-attestation-grant34-resource-claim.json`
+  exclusively binds this worktree/ref/plan and the absent final/staging output
+  roots. All prior evaluation roots remain immutable.
+- Re-derive candidate and baseline from Git, require their known record
+  identities, create a fresh high/max profile, fixed mapping, cap
+  `12/600000/100000/2400000/0`, neutral brief, clean single-commit exact-final
+  projection, private host workspace, host contract, `EvalSpec`, and authority
+  request. Reuse no raw event, Attestation, authority, or failed-state input.
+- Validate the frozen source, twelve-unit/zero-prefix inventory, four record
+  families, hidden-byte isolation, exact-final helper-only read, unchanged
+  behavior permissions, product identity, component/config/binary/oracle
+  digests, and fresh request entirely offline. Publish staging atomically only
+  after every check; no provider/model/network or product/release effect is
+  authorized.
