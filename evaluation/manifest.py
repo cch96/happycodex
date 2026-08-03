@@ -191,7 +191,7 @@ def materialize_eval_spec(
     brief_text = neutral_review_brief(inputs, candidate, review_brief)
     brief_sha = canonical_sha256(brief_text)
     host_contract_sha = canonical_sha256(host_contract)
-    harness_sha = canonical_sha256({"raw_stream": "jsonl-v1", "proof": "external-host-v1"})
+    harness_sha = canonical_sha256({"raw_stream": "jsonl-v1", "capture": "fixed-host-runner-v1"})
     if type(profiles) is not dict or set(profiles) != {"behavior", "exact_final"}:
         raise ManifestError("profiles must contain exactly behavior and exact_final")
     behavior_profile = profiles["behavior"]

@@ -168,7 +168,7 @@ def _validate_cap(cap: dict[str, Any]) -> None:
 def _validate_host_contract(contract: dict[str, Any]) -> None:
     _exact(
         contract,
-        {"schema_version", "trust_domain", "proof_verifier_sha256", "provider_binary_sha256", "tool_config_sha256", "permission_profile_sha256", "workspace_policy_sha256"},
+        {"schema_version", "trust_domain", "provider_binary_sha256", "tool_config_sha256", "permission_profile_sha256", "workspace_policy_sha256"},
         "host_contract",
     )
     _require(contract["schema_version"] == 1, "host contract schema differs")
@@ -394,10 +394,10 @@ def _validate_terminal(terminal: dict[str, Any]) -> None:
 def _validate_observation(observation: dict[str, Any], kind: str) -> None:
     _exact(
         observation,
-        {"raw_events_sha256", "sanitized_event_sha256", "terminal_sha256", "report", "report_sha256", "provenance", "parent_attestation_sha256", "started_at", "frozen_at"},
+        {"raw_events_sha256", "raw_report_sha256", "sanitized_event_sha256", "terminal_sha256", "report", "report_sha256", "provenance", "parent_attestation_sha256", "started_at", "frozen_at"},
         "observation",
     )
-    for field in ("raw_events_sha256", "sanitized_event_sha256", "terminal_sha256", "report_sha256"):
+    for field in ("raw_events_sha256", "raw_report_sha256", "sanitized_event_sha256", "terminal_sha256", "report_sha256"):
         _sha(observation[field], f"observation.{field}")
     _require(type(observation["report"]) is dict, "observation.report must be an object")
     _require(observation["report_sha256"] == canonical_sha256(observation["report"]), "report digest mismatch")
@@ -417,7 +417,7 @@ def build_attestation(
     product_artifact_sha256: str | None, external_role_config_sha256: str,
     provider_input_sha256: str, oracle_sha256: str, harness_sha256: str,
     invocation_sha256: str, authority_sha256: str, host_claim_key: str,
-    host_proof_sha256: str, observation: dict[str, Any],
+    observation: dict[str, Any],
     terminal: dict[str, Any], verdict: str, diagnostics: list[str],
 ) -> dict[str, Any]:
     return validate_attestation(
@@ -432,7 +432,7 @@ def build_attestation(
                 "oracle_sha256": oracle_sha256, "harness_sha256": harness_sha256,
                 "invocation_sha256": invocation_sha256,
                 "authority_sha256": authority_sha256, "observation": observation,
-                "host_claim_key": host_claim_key, "host_proof_sha256": host_proof_sha256,
+                "host_claim_key": host_claim_key,
                 "terminal": terminal, "verdict": verdict,
                 "diagnostics": diagnostics,
             }
@@ -449,14 +449,14 @@ def validate_attestation(record: dict[str, Any]) -> dict[str, Any]:
             "external_role_config_sha256",
             "provider_input_sha256", "oracle_sha256",
             "harness_sha256", "invocation_sha256", "authority_sha256",
-            "host_claim_key", "host_proof_sha256", "observation", "terminal", "verdict", "diagnostics", "record_sha256",
+            "host_claim_key", "observation", "terminal", "verdict", "diagnostics", "record_sha256",
         },
         "Attestation",
     )
     _require(record["record_type"] == "Attestation" and record["schema_version"] == 1, "invalid Attestation header")
     _require(record["kind"] in ATTESTATION_KINDS, "attestation kind is invalid")
     _text(record["unit_id"], "unit_id")
-    for field in ("product_semantic_sha256", "external_role_config_sha256", "provider_input_sha256", "oracle_sha256", "harness_sha256", "invocation_sha256", "authority_sha256", "host_claim_key", "host_proof_sha256"):
+    for field in ("product_semantic_sha256", "external_role_config_sha256", "provider_input_sha256", "oracle_sha256", "harness_sha256", "invocation_sha256", "authority_sha256", "host_claim_key"):
         _sha(record[field], field)
     _require(record["product_artifact_sha256"] is None or _HEX64.fullmatch(record["product_artifact_sha256"]) is not None, "product_artifact_sha256 is invalid")
     _validate_terminal(record["terminal"])

@@ -136,17 +136,17 @@ def _validate_supplied_authority(value: dict[str, Any], scope: str, request: str
     if value["scope"] != scope or value["request_sha256"] != request:
         raise ProviderError("external authority does not bind the request")
     if not all(type(value[field]) is str and value[field] for field in ("nonce", "signature")):
-        raise ProviderError("external authority proof is empty")
+        raise ProviderError("external authority authenticator fields are empty")
 
 
 def accept_evaluation_authority(
     spec: dict[str, Any], supplied: dict[str, Any],
-    external_verifier: Callable[[dict[str, Any]], bool],
+    authenticate: Callable[[dict[str, Any]], bool],
 ) -> EvaluationCapability:
     validate_eval_spec(spec)
     _validate_supplied_authority(supplied, "evaluation", spec["authority_request_sha256"])
-    if not external_verifier(supplied):
-        raise ProviderError("external verifier rejected evaluation authority")
+    if not authenticate(supplied):
+        raise ProviderError("external authenticator rejected evaluation authority")
     return EvaluationCapability(
         _CAPABILITY_KEY, supplied["request_sha256"],
         canonical_sha256(supplied), spec["record_sha256"],
@@ -169,9 +169,9 @@ def release_authority_request(
 
 def accept_release_authority(
     request_sha256: str, supplied: dict[str, Any],
-    external_verifier: Callable[[dict[str, Any]], bool],
+    authenticate: Callable[[dict[str, Any]], bool],
 ) -> ReleaseCapability:
     _validate_supplied_authority(supplied, "release", request_sha256)
-    if not external_verifier(supplied):
-        raise ProviderError("external verifier rejected release authority")
+    if not authenticate(supplied):
+        raise ProviderError("external authenticator rejected release authority")
     return ReleaseCapability(_CAPABILITY_KEY, request_sha256, canonical_sha256(supplied))

@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from evaluation.host import attestation_from_raw, load_proof_verifier, planned_host_challenge
+from evaluation.host import attestation_from_raw
 from evaluation.manifest import load_production_inputs, materialize_eval_spec
 from evaluation.records import build_product_artifact, canonical_sha256
 
@@ -35,15 +35,11 @@ REVIEW_BRIEF = {
 REVEALED_AT = "2026-08-02T00:00:35Z"
 HOST_CONTRACT = {
     "schema_version": 1, "trust_domain": "happycodex-offline-test-host-v1",
-    "proof_verifier_sha256": __import__("hashlib").sha256((ROOT / "tests" / "fake_proof_verifier.py").read_bytes()).hexdigest(),
     "provider_binary_sha256": __import__("hashlib").sha256((ROOT / "tests" / "fake_external_host.py").read_bytes()).hexdigest(),
     "tool_config_sha256": canonical_sha256({"tools": ["command_execution"]}),
     "permission_profile_sha256": canonical_sha256({"network": False, "filesystem": "temporary"}),
     "workspace_policy_sha256": canonical_sha256({"cwd": "fresh-temporary-repo", "home": "fresh-temporary-home"}),
 }
-proof_verifier = load_proof_verifier(ROOT / "tests" / "fake_proof_verifier.py", HOST_CONTRACT)
-
-
 def product(*, artifact: str = SHA["1"], semantic: str = SHA["2"], role: str = SHA["3"]):
     return build_product_artifact(
         source_commit="a" * 40, source_tree="b" * 40, package_tree="c" * 40,
@@ -148,30 +144,13 @@ def raw_stream(
     return b"".join((json.dumps(event, sort_keys=True) + "\n").encode() for event in events)
 
 
-def host_proof(
-    unit: dict[str, Any], raw: bytes, spec: dict[str, Any],
-    *, product_artifact_sha256: str | None = None,
-    authority_sha256: str = SHA["a"],
-    secrets: list[str] | None = None,
-) -> dict[str, Any]:
-    challenge = planned_host_challenge(
-        unit=unit, spec=spec, authority_sha256=authority_sha256, raw=raw,
-        product_artifact_sha256=product_artifact_sha256,
-        secrets=secrets,
-    )
-    return {
-        "trust_domain": spec["host_contract"]["trust_domain"],
-        "challenge_sha256": canonical_sha256(challenge),
-    }
-
-
 def attest_all(
     selected: dict[str, Any], baseline: dict[str, Any], spec: dict[str, Any],
     *, reports: dict[str, dict[str, Any]] | None = None,
     terminals: dict[str, dict[str, Any]] | None = None,
     starts: dict[str, datetime] | None = None,
-) -> tuple[list[dict[str, Any]], dict[str, bytes], dict[str, dict[str, Any]]]:
-    records, raws, proofs = [], {}, {}
+) -> tuple[list[dict[str, Any]], dict[str, bytes]]:
+    records, raws = [], {}
     for unit in spec["units"]:
         arm = selected if unit["product_semantic_sha256"] == selected["package_semantic_sha256"] else baseline
         raw = raw_stream(
@@ -179,18 +158,13 @@ def attest_all(
             terminal_value=(terminals or {}).get(unit["unit_id"]),
             start=(starts or {}).get(unit["unit_id"]),
         )
-        proof = host_proof(
-            unit, raw, spec,
-            product_artifact_sha256=(arm["package_artifact_sha256"] if unit["stage"] == "exact_final" else None),
-        )
         record = attestation_from_raw(
             root=ROOT, product=arm, spec=spec, unit_id=unit["unit_id"], raw=raw,
-            authority_sha256=SHA["a"], host_proof=proof,
+            authority_sha256=SHA["a"],
         )
         records.append(record)
         raws[unit["unit_id"]] = raw
-        proofs[unit["unit_id"]] = proof
-    return records, raws, proofs
+    return records, raws
 
 
 def write_json(path: Path, value: Any) -> None:

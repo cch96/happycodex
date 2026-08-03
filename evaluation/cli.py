@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from evaluation.host import load_proof_verifier, reserve_claim
+from evaluation.host import reserve_claim
 from evaluation.identity import evaluator_components, load_json, product_artifact_from_git
 from evaluation.manifest import materialize_eval_spec
 from evaluation.records import RECORD_TYPES, validate_eval_spec, validate_record
@@ -87,14 +87,9 @@ def _named_paths(values: list[str], label: str) -> dict[str, Path]:
     return result
 
 
-def _evidence(args: argparse.Namespace, spec: dict[str, Any]):
+def _evidence(args: argparse.Namespace):
     raw_paths = _named_paths(args.raw, "raw")
-    proof_paths = _named_paths(args.proof, "proof")
-    return (
-        {unit_id: path.read_bytes() for unit_id, path in raw_paths.items()},
-        {unit_id: load_json(path) for unit_id, path in proof_paths.items()},
-        load_proof_verifier(args.proof_verifier_command, spec["host_contract"]),
-    )
+    return {unit_id: path.read_bytes() for unit_id, path in raw_paths.items()}
 
 
 def verify_command(args: argparse.Namespace) -> int:
@@ -103,11 +98,10 @@ def verify_command(args: argparse.Namespace) -> int:
     spec = validate_record(load_json(args.spec.resolve()))
     attestations = _records(args.attestation)
     mapping = load_json(args.mapping.resolve()) if args.mapping else None
-    raw_streams, host_proofs, proof_verifier = _evidence(args, spec)
+    raw_streams = _evidence(args)
     result = verify_evaluation(
         root=args.repo.resolve(), product=product, spec=spec, attestations=attestations,
-        raw_streams=raw_streams, host_proofs=host_proofs,
-        proof_verifier=proof_verifier,
+        raw_streams=raw_streams,
         previous_product=previous_product,
         holdout_mapping=mapping, mapping_revealed_at=args.revealed_at,
     )
@@ -121,11 +115,10 @@ def release_command(args: argparse.Namespace) -> int:
     spec = validate_record(load_json(args.spec.resolve()))
     attestations = _records(args.attestation)
     mapping = load_json(args.mapping.resolve())
-    raw_streams, host_proofs, proof_verifier = _evidence(args, spec)
+    raw_streams = _evidence(args)
     evaluation = verify_evaluation(
         root=args.repo.resolve(), product=product, spec=spec, attestations=attestations,
-        raw_streams=raw_streams, host_proofs=host_proofs,
-        proof_verifier=proof_verifier,
+        raw_streams=raw_streams,
         previous_product=previous_product,
         holdout_mapping=mapping, mapping_revealed_at=args.revealed_at,
     )
@@ -156,8 +149,6 @@ def claim_command(args: argparse.Namespace) -> int:
             previous_raw=args.previous_raw.read_bytes() if args.previous_raw else None,
             previous_attestation=(validate_record(load_json(args.previous_attestation.resolve())) if args.previous_attestation else None),
             previous_spec=previous_spec,
-            previous_proof=(load_json(args.previous_proof.resolve()) if args.previous_proof else None),
-            proof_verifier=(load_proof_verifier(args.proof_verifier_command, previous_spec["host_contract"]) if args.proof_verifier_command and previous_spec else None),
         )
     )
     return 0
@@ -166,8 +157,6 @@ def claim_command(args: argparse.Namespace) -> int:
 def _add_evidence_arguments(command: argparse.ArgumentParser) -> None:
     command.add_argument("--repo", type=Path, default=Path.cwd())
     command.add_argument("--raw", action="append", required=True, help="UNIT=PATH")
-    command.add_argument("--proof", action="append", required=True, help="UNIT=PATH")
-    command.add_argument("--proof-verifier-command", type=Path, required=True)
 
 
 def parser() -> argparse.ArgumentParser:
@@ -235,8 +224,6 @@ def parser() -> argparse.ArgumentParser:
     claim.add_argument("--previous-raw", type=Path)
     claim.add_argument("--previous-attestation", type=Path)
     claim.add_argument("--previous-spec", type=Path)
-    claim.add_argument("--previous-proof", type=Path)
-    claim.add_argument("--proof-verifier-command", type=Path)
     claim.set_defaults(handler=claim_command)
     return result
 

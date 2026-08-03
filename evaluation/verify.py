@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
 
-from evaluation.host import ExternalProofVerifier, HostEvidenceError, verify_host_evidence
+from evaluation.host import HostEvidenceError, verify_host_evidence
 from evaluation.holdout import judge_fixed_holdouts
 from evaluation.manifest import load_production_inputs
 from evaluation.oracle import hidden_oracle_for, score_hidden
@@ -96,7 +96,6 @@ def evaluate_runtime_decision(
 def replay_attestation(
     *, parent: dict[str, Any], spec: dict[str, Any],
     oracle: Callable[[dict[str, Any]], tuple[bool, list[str]]],
-    host_proof: dict[str, Any],
 ) -> dict[str, Any]:
     validate_attestation(parent)
     validate_eval_spec(spec)
@@ -124,7 +123,7 @@ def replay_attestation(
         invocation_sha256=unit["invocation_sha256"],
         authority_sha256=parent["authority_sha256"],
         host_claim_key=parent["host_claim_key"],
-        host_proof_sha256=canonical_sha256(host_proof), observation=observation,
+        observation=observation,
         terminal=parent["terminal"], verdict="pass" if passed else "fail",
         diagnostics=diagnostics,
     )
@@ -158,8 +157,6 @@ def _time(value: str) -> datetime:
 def verify_evaluation(
     *, root: Path, product: dict[str, Any], spec: dict[str, Any],
     attestations: list[dict[str, Any]], raw_streams: dict[str, bytes],
-    host_proofs: dict[str, dict[str, Any]],
-    proof_verifier: ExternalProofVerifier,
     previous_product: dict[str, Any] | None = None,
     holdout_mapping: dict[str, dict[str, str]] | None = None,
     mapping_revealed_at: str | None = None,
@@ -197,14 +194,12 @@ def verify_evaluation(
         authority = authority or record["authority_sha256"]
         if record["authority_sha256"] != authority:
             raise VerificationError("more than one evaluation authority bundle was used")
-        if record["unit_id"] not in raw_streams or record["unit_id"] not in host_proofs:
-            raise VerificationError("attestation lacks external raw/proof evidence")
+        if record["unit_id"] not in raw_streams:
+            raise VerificationError("attestation lacks fixed-host raw evidence")
         try:
             parsed = verify_host_evidence(
                 record=record, unit=unit, spec=spec,
                 raw=raw_streams[record["unit_id"]],
-                proof=host_proofs[record["unit_id"]],
-                external_verifier=proof_verifier,
             )
         except HostEvidenceError as exc:
             raise VerificationError(str(exc)) from exc
@@ -218,7 +213,7 @@ def verify_evaluation(
         ):
             raise VerificationError("Attestation does not reproduce from raw evidence")
         provenance = observation["provenance"]
-        if provenance["provider"] != "external-host" or any(
+        if provenance["provider"] != "fixed-host-runner" or any(
             provenance[field] != unit["invocation"][field]
             for field in ("model", "effort", "tools", "timeout_seconds")
         ):
@@ -242,8 +237,8 @@ def verify_evaluation(
             if totals[field] > spec["total_cap"][field]:
                 raise VerificationError(f"evaluation exceeds total cap: {field}")
         by_unit[record["unit_id"]] = record
-    if set(raw_streams) != set(by_unit) or set(host_proofs) != set(by_unit):
-        raise VerificationError("external raw/proof inventory differs from attestations")
+    if set(raw_streams) != set(by_unit):
+        raise VerificationError("fixed-host raw inventory differs from attestations")
     failures = [
         {"unit_id": unit_id, "classification": record["terminal"]["classification"], "verdict": record["verdict"]}
         for unit_id, record in by_unit.items()

@@ -46,33 +46,35 @@ has been implemented or certified.
   before creation. The new worktree was clean at the source commit before this
   plan was written.
 
-### Active grant: GRANT-06
+### Active grant: GRANT-07
 
-User amendment, verbatim: `同意 per-stage profile`. GRANT-06 is the bounded
-clean-break two-stage profile amendment, owned by token
-`5a63e381-1ff8-4675-9c10-c81da14e1de2`. Exact clean prestate is commit
-`a9b8ee30627f8b6ac637a71cfe4f5505199af84d`, tree
-`a60a2dec90ff8b5b8b886ad6e39b5fe3f7d301ca`; preserved `skills/happycodex`
-tree is `d9e525a267fbf36669d409ba1b4b009a6beeeea5`. Root observed external Executor
-configuration SHA-256
-`d98fac1a0fe1bcc3071eac89b7246bfeb59fb85a7040417d50d07c58d74d1275`;
-this grant records but does not read or mutate that external configuration.
-Writes are limited to this plan, `evaluation/**`, `tests/**`, and this branch,
-with one commit maximum. Only offline/temp subprocesses are allowed.
-Product/runtime/config/plugin changes, other refs, provider/model/network/
-install/release/activation, a new record, gate, scheduler, graph, ledger, host
-verifier, replay engine, compatibility reader, alias, or generic profile engine
-are forbidden. This is the durable intent persisted before implementation.
+User amendment, verbatim: `同意将 external proof verifier 简化为固定 host runner 的原始流捕获与摘要绑定；不新增签名系统、gate、record 或 receipt`.
+GRANT-07 is the bounded fixed-host raw-capture simplification, owned by token
+`5a63e381-1ff8-4675-9c10-c81da14e1de2`. Exact clean prestate is branch
+`codex/happycodex-evaluator-attestation`, commit
+`9e5660d6235b1c7490753d39c8782aeafb74c53a`, tree
+`0fe577a049c8e547904c0ac0c18a01821f8acd84`; preserved `skills/happycodex`
+tree is `d9e525a267fbf36669d409ba1b4b009a6beeeea5`. Writes are limited to this
+plan, directly affected existing files under `evaluation/**` and `tests/**`,
+deletion of `tests/fake_proof_verifier.py`, and this branch, with one coherent
+commit maximum. Only offline/temp fake subprocesses are allowed.
 
-`EvalSpec.profiles` has exactly `behavior` and `exact_final`, each using the
-existing profile shape; the former binds every core and holdout invocation and
-the latter binds the unique exact-final invocation. No legacy single-profile
-alias or fallback is accepted. Materialization and CLI accept the exact object,
-authority binds both profiles and all resulting invocations, and per-unit
-provider identity preserves minimal invalidation. The production target is
-`gpt-5.6-sol/high` for behavior and holdouts and `gpt-5.6-sol/max` for
-exact-final. Any wider design need, external effect, or identity drift returns
-`NOT YET` to Root.
+The clean break removes the external verifier, proof/challenge helpers and
+fields, proof maps, and proof CLI flags without aliases or fallbacks. The fixed
+external host runner is the trusted trust boundary; `EvalSpec` continues
+to bind its trust domain, binary, tools, permissions, workspace, invocation,
+claim, and evaluator harness identity. Every non-replay Attestation requires
+the retained raw JSONL and binds its digest plus parsed/sanitized record facts;
+verification recomputes all mechanically checkable links while explicitly
+trusting the runner for raw-to-sanitized projection. Recovery remains limited
+to matching raw evidence for proven pre-provider `infrastructure_no_effect`
+under existing caps and one-shot claims. Product/runtime/config/plugin/cache,
+other refs, provider/model/network/install/release/activation, signing/PKI, a
+new gate, record, receipt, ledger, graph, replay engine, scheduler, generic host
+framework, or any wider design are forbidden and return `NOT YET` to Root.
+The GRANT-07 receipt correction is plan-only: it replaces two inaccurate
+current-index statements and amends the same unpushed coherent commit without
+changing evaluator, test, product, or effect state.
 
 ## Baseline
 
@@ -117,8 +119,9 @@ The design has two planes and four durable record types, exactly:
 | Evaluation | `Attestation` | Binds one immutable observation or offline replay to the relevant product semantic/artifact identity and `EvalSpec` component digests, verdict, terminal state, usage, and authority digest. Behavior and exact-final are kinds of this one record, not gate families. |
 | Product | `ReleaseReceipt` | Binds the exact released `ProductArtifact`, qualifying attestation digests, isolated-install result, release destination, rollback identity, and separate release-authority digest. |
 
-Authorization text and raw provider events are authenticated inputs, not new
-durable record families. Raw events remain outside the repository; an
+Authorization text is an authenticated input; raw provider events are retained
+host-observed evidence, not new durable record families. Raw events remain
+outside the repository; an
 `Attestation` stores only their digest and sanitized projection. Direct foreign
 keys between the four records replace GatePlan/GateReceipt chains, joins,
 recurrence counters, and a general evidence graph. Current state is derived by
@@ -196,8 +199,8 @@ full refresh.
 | `O-INVALIDATE` | The table above causes only necessary model calls. | Oracle-only change calls a model, or provider-input drift reuses an observation. | Per-component mutation matrix with call counters. | verified |
 | `O-AUTH` | One bounded evaluation authority plus one distinct release authority suffices by default; neither implies the other. | Hidden micro-authority gates appear or release uses evaluation authority. | Exact digest/cap/refusal tests. | offline verified |
 | `O-ADVERSE` | Adverse exact-final is durable for unchanged artifact bytes. | Unchanged artifact can discard or rerun it for a friendlier result. | Persistent negative and changed-artifact tests. | verified |
-| `O-REAL` | Real provider terminals and raw-event digests cannot be forged by sanitized records. | Fabricated success verifies without its bound external terminal. | Fake-provider positive/negative E2E, then separately authorized real path. | fake-provider verified; live open |
-| `O-RELEASE` | Release binds exact artifact, valid attestations, isolated install, destination, and rollback. | Semantic-only or stale attestation can release different bytes. | Offline refusal matrix and separately authorized isolated release proof. | offline verified; live open |
+| `O-REAL` | Every non-replay Attestation requires matching fixed-host raw bytes; the runner is trusted for sanitization. | A sanitized record alone or mismatched raw validates. | Fake-runner raw positive/negative E2E, then separately authorized real path. | fixed-host offline verified; live open |
+| `O-RELEASE` | Release binds exact artifact, valid attestations, isolated install, destination, and rollback. | Semantic-only or stale attestation can release different bytes. | Offline refusal matrix and separately authorized isolated release evidence. | offline verified; live open |
 
 ## Planned implementation waves
 
@@ -234,8 +237,14 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `candidate-pre-freeze`; GRANT-06 per-stage profile amendment complete
-  offline. Candidate freeze and exact-final have not started.
+- Phase: `candidate-pre-freeze`; GRANT-07 fixed-host raw-capture simplification
+  complete offline. Candidate freeze and exact-final have not started.
+- GRANT-07 focused RED command
+  `python3 -m unittest discover -s tests -p 'test_attestation_contract.py' -v`
+  returned exit `1`, `Ran 9 tests`, with the fixed-host surface test failing.
+  It found 13 evaluator/test artifacts still carrying the legacy verification
+  contract, including the external executable test artifact; the other eight
+  repository contract tests passed.
 - Focused RED command
   `python3 -m unittest discover -s tests -p 'test_stage_profiles.py' -v`
   returned exit `1`, `Ran 2 tests`, with two errors. Both were the exact
@@ -243,33 +252,39 @@ These are planning boundaries, not authority under GRANT-01.
   the single-profile materializer cannot represent the authorized contract or
   its stage-local invalidation.
 - Selected checkpoint source: `v0.6.5` commit/tree recorded above.
+- Selected evaluator checkpoint bundle:
+  `c3b58ae91654cc1c0fde6719d83745106b4e8ac761961b52908f16339f36647f`.
 - Baseline: one authorized run recorded above; unchanged 204/205 known failure.
 - Focused post-repair profile suite is 6/6 GREEN. It proves exact two-key
   materialization, both stage-drift directions fail closed, the legacy
   top-level `profile` is rejected, authority binds both profiles and every
   invocation, the production `gpt-5.6-sol` high/max target, and stage-local
   invalidation. The prior `F1`-`F11` control file is 24/24 GREEN.
-- The one final cumulative command
-  `python3 -m unittest discover -s tests -v` returned exit `0`, `Ran 74 tests
-  in 6.765s`, `OK`. It includes full raw-subprocess evidence, bound fake
-  verifier and unbound-binary refusal, claims/recovery, failure prefixes,
-  release refusal, public-schema/invalidation, stage-order, relabelling,
-  diagnostics-tamper, and per-stage profile coverage.
-- GRANT-05 closes provider-visible schemas to the structural subset and rejects
-  answer annotations, unknown keywords, and malformed required relationships.
-  Host proofs bind distinct raw-report, sanitized-report, and sanitized-event
-  identities; verification scores only the proof-bound sanitized report, so no
-  secret enters an Attestation. The earliest failing frozen terminal is the
-  temporal cutoff for later starts, including same-stage units; already-started
-  concurrent work remains valid evidence.
+- GRANT-07's converged affected command covered 75 tests and returned `OK` in
+  4.052s. Root independently reproduced the cumulative command
+  `python3 -m unittest discover -s tests -v` returned exit `0`, `Ran 78 tests
+  in 4.017s`, `OK`. Coverage includes raw-only CLI and fake-runner E2E, legacy
+  field/flag refusal, missing/tampered raw, terminal/report/projection/contract/
+  invocation binding, secret non-persistence, matching-raw recovery, claims,
+  failure prefixes, release refusal, invalidation, and per-stage profiles.
+- Provider-visible schemas remain closed to structural keywords. The fixed
+  runner binds raw-stream, raw-report, terminal, sanitized-report and
+  sanitized-event identities without claiming cryptographic provenance;
+  verification scores only the host-sanitized report, so no secret enters an
+  Attestation. The earliest failing frozen terminal remains the temporal cutoff
+  for later starts while already-started concurrent work remains valid.
 - `EvalSpec.profiles`, materialization, CLI, validator, and authority now bind
   behavior/holdout to the behavior profile and the unique exact-final unit to
   the exact-final profile. Profile-only invalidation follows changed per-unit
   provider identities rather than a global profile switch. No compatibility
   alias, generic profile engine, model scheduler, signing system, PKI, graph,
   ledger, gate family, or fifth record was added.
+- External verification/challenge APIs, fields, maps and CLI flags were removed
+  cleanly, including the executable fake artifact. Recovery now consumes only
+  the prior EvalSpec, Attestation and matching raw stream. This is host-observed
+  integrity, not cross-host cryptographic non-repudiation.
 - Static evidence: `git diff --check` and Python compilation passed; evaluator
-  production Python is 2,155 lines, largest module 537 lines; plan remains
+  production Python is 2,066 lines, largest module 537 lines; plan remains
   below 3,000 words; durable type inventory is exactly four; unknown evaluator
   inputs fail closed; `skills/happycodex` remains
   `d9e525a267fbf36669d409ba1b4b009a6beeeea5` with no product diff.
@@ -280,6 +295,7 @@ These are planning boundaries, not authority under GRANT-01.
 - Open effects: real provider, exact-final, isolated install, release, and
   activation remain unrun and unauthorized. This grant stops before
   exact-final.
-- Recovery: read this entire file, verify branch/worktree/source/status and
-  owner token and GRANT-06 prestate, then reconcile only authorized paths. Do
-  not continue into effects from this grant or conversation context.
+- Recovery: read this entire file and verify the recorded branch, worktree,
+  source, clean status, product tree, owner token, selected evaluator bundle,
+  and GRANT-07 receipt before reconciling only authorized paths. Do not
+  continue into effects from this grant or conversation context.

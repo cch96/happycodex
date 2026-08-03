@@ -5,7 +5,6 @@ import json
 import os
 from pathlib import Path
 import stat
-import subprocess
 from typing import Any
 
 from evaluation.manifest import load_production_inputs
@@ -23,41 +22,6 @@ from evaluation.records import (
 
 class HostEvidenceError(ValueError):
     pass
-
-
-_VERIFIER_KEY = object()
-
-
-class ExternalProofVerifier:
-    __slots__ = ("path", "sha256", "trust_domain")
-
-    def __init__(self, key: object, path: Path, contract: dict[str, Any]):
-        if key is not _VERIFIER_KEY:
-            raise HostEvidenceError("proof verifier is host-loaded only")
-        self.path = path
-        self.sha256 = contract["proof_verifier_sha256"]
-        self.trust_domain = contract["trust_domain"]
-
-    def __call__(self, proof: dict[str, Any], challenge: dict[str, Any]) -> bool:
-        completed = subprocess.run(
-            [str(self.path)], input=canonical_json({"proof": proof, "challenge": challenge}),
-            text=True, capture_output=True, check=False,
-        )
-        return completed.returncode == 0
-
-
-def load_proof_verifier(path: Path, contract: dict[str, Any]) -> ExternalProofVerifier:
-    path = path.absolute()
-    try:
-        metadata = path.lstat()
-    except OSError as exc:
-        raise HostEvidenceError("proof verifier is unavailable") from exc
-    if stat.S_ISLNK(metadata.st_mode) or not stat.S_ISREG(metadata.st_mode) or not os.access(path, os.X_OK):
-        raise HostEvidenceError("proof verifier must be an executable regular file")
-    digest = hashlib.sha256(path.read_bytes()).hexdigest()
-    if digest != contract.get("proof_verifier_sha256"):
-        raise HostEvidenceError("proof verifier binary differs from host contract")
-    return ExternalProofVerifier(_VERIFIER_KEY, path, contract)
 
 
 def parse_raw_stream(raw: bytes) -> dict[str, Any]:
@@ -96,7 +60,7 @@ def parse_raw_stream(raw: bytes) -> dict[str, Any]:
 
 def attestation_from_raw(
     *, root: Path, product: dict[str, Any], spec: dict[str, Any], unit_id: str,
-    raw: bytes, authority_sha256: str, host_proof: dict[str, Any],
+    raw: bytes, authority_sha256: str,
     secrets: list[str] | None = None,
 ) -> dict[str, Any]:
     validate_product_artifact(product)
@@ -113,11 +77,12 @@ def attestation_from_raw(
     assessment = score_hidden(report, hidden_oracle_for(inputs, unit), stage=unit["stage"])
     observation = {
         "raw_events_sha256": parsed["raw_events_sha256"],
+        "raw_report_sha256": canonical_sha256(parsed["report"]),
         "sanitized_event_sha256": canonical_sha256(sanitized),
         "terminal_sha256": canonical_sha256(parsed["terminal"]),
         "report": report, "report_sha256": canonical_sha256(report),
         "provenance": {
-            "provider": "external-host", "model": unit["invocation"]["model"],
+            "provider": "fixed-host-runner", "model": unit["invocation"]["model"],
             "effort": unit["invocation"]["effort"],
             "tools": unit["invocation"]["tools"],
             "timeout_seconds": unit["invocation"]["timeout_seconds"],
@@ -138,69 +103,37 @@ def attestation_from_raw(
         invocation_sha256=unit["invocation_sha256"],
         authority_sha256=authority_sha256,
         host_claim_key=unit["invocation"]["claim_key"],
-        host_proof_sha256=canonical_sha256(host_proof),
         observation=observation, terminal=parsed["terminal"], verdict=verdict,
         diagnostics=diagnostics,
     )
 
 
-def host_challenge(
-    *, record: dict[str, Any], unit: dict[str, Any], spec: dict[str, Any],
-    parsed: dict[str, Any],
-) -> dict[str, Any]:
-    return {
-        "trust_domain": spec["host_contract"]["trust_domain"],
-        "unit_id": unit["unit_id"],
-        "authority_sha256": record["authority_sha256"],
-        "eval_spec_sha256": spec["record_sha256"],
-        "authority_request_sha256": spec["authority_request_sha256"],
-        "invocation_sha256": unit["invocation_sha256"],
-        "claim_key": unit["invocation"]["claim_key"],
-        "raw_events_sha256": parsed["raw_events_sha256"],
-        "terminal_sha256": canonical_sha256(parsed["terminal"]),
-        "raw_report_sha256": canonical_sha256(parsed["report"]),
-        "sanitized_report_sha256": record["observation"]["report_sha256"],
-        "sanitized_event_sha256": record["observation"]["sanitized_event_sha256"],
-        "product_artifact_sha256": record["product_artifact_sha256"],
-        "host_contract_sha256": spec["host_contract_sha256"],
-    }
-
-
-def planned_host_challenge(
-    *, unit: dict[str, Any], spec: dict[str, Any], authority_sha256: str,
-    raw: bytes, product_artifact_sha256: str | None,
-    secrets: list[str] | None = None,
-) -> dict[str, Any]:
-    parsed = parse_raw_stream(raw)
-    sanitized = sanitize_events(parsed["events"], secrets=secrets or [])
-    report = next(event["report"] for event in sanitized if event["type"] == "report")
-    provisional = {
-        "authority_sha256": authority_sha256,
-        "product_artifact_sha256": product_artifact_sha256,
-        "observation": {
-            "sanitized_event_sha256": canonical_sha256(sanitized),
-            "report_sha256": canonical_sha256(report),
-        },
-    }
-    return host_challenge(record=provisional, unit=unit, spec=spec, parsed=parsed)
-
-
 def verify_host_evidence(
     *, record: dict[str, Any], unit: dict[str, Any], spec: dict[str, Any],
-    raw: bytes, proof: dict[str, Any], external_verifier: ExternalProofVerifier,
+    raw: bytes,
 ) -> dict[str, Any]:
+    validate_attestation(record)
+    validate_eval_spec(spec)
     parsed = parse_raw_stream(raw)
     if record["observation"]["raw_events_sha256"] != parsed["raw_events_sha256"]:
         raise HostEvidenceError("raw stream digest differs from Attestation")
-    if record["host_proof_sha256"] != canonical_sha256(proof):
-        raise HostEvidenceError("external host proof digest differs")
-    if not isinstance(external_verifier, ExternalProofVerifier):
-        raise HostEvidenceError("proof verifier is not bound to the host contract")
-    if external_verifier.sha256 != spec["host_contract"]["proof_verifier_sha256"] or external_verifier.trust_domain != spec["host_contract"]["trust_domain"]:
-        raise HostEvidenceError("proof verifier identity differs from EvalSpec")
-    challenge = host_challenge(record=record, unit=unit, spec=spec, parsed=parsed)
-    if not external_verifier(proof, challenge):
-        raise HostEvidenceError("external host proof was rejected")
+    observation = record["observation"]
+    if observation["raw_report_sha256"] != canonical_sha256(parsed["report"]):
+        raise HostEvidenceError("raw report digest differs from Attestation")
+    if record["terminal"] != parsed["terminal"] or observation["terminal_sha256"] != canonical_sha256(parsed["terminal"]):
+        raise HostEvidenceError("raw terminal differs from Attestation")
+    if observation["started_at"] != parsed["started_at"] or observation["frozen_at"] != parsed["frozen_at"]:
+        raise HostEvidenceError("raw timestamps differ from Attestation")
+    if record["unit_id"] != unit["unit_id"] or record["invocation_sha256"] != unit["invocation_sha256"]:
+        raise HostEvidenceError("fixed-host invocation differs from EvalSpec")
+    if record["host_claim_key"] != unit["invocation"]["claim_key"]:
+        raise HostEvidenceError("fixed-host claim differs from EvalSpec")
+    if unit["invocation"]["host_contract_sha256"] != spec["host_contract_sha256"]:
+        raise HostEvidenceError("fixed-host contract differs from invocation")
+    sanitized = [*parsed["events"]]
+    sanitized[1] = {"type": "report", "report": observation["report"]}
+    if observation["sanitized_event_sha256"] != canonical_sha256(sanitized):
+        raise HostEvidenceError("sanitized projection digest differs from Attestation")
     return parsed
 
 
@@ -217,14 +150,11 @@ def reserve_claim(
     previous_raw: bytes | None = None,
     previous_attestation: dict[str, Any] | None = None,
     previous_spec: dict[str, Any] | None = None,
-    previous_proof: dict[str, Any] | None = None,
-    proof_verifier: ExternalProofVerifier | None = None,
 ) -> dict[str, Any]:
     root = _safe_claim_root(root)
     if recovery_index:
         if (
             previous_raw is None or previous_attestation is None or previous_spec is None
-            or previous_proof is None or proof_verifier is None
             or recovery_index > recovery_cap
         ):
             raise HostEvidenceError("recovery is outside the preauthorized cap")
@@ -235,7 +165,6 @@ def reserve_claim(
             raise HostEvidenceError("recovery unit is absent from EvalSpec")
         previous = verify_host_evidence(
             record=previous_attestation, unit=unit, spec=previous_spec, raw=previous_raw,
-            proof=previous_proof, external_verifier=proof_verifier,
         )["terminal"]
         if (
             previous_attestation["host_claim_key"] != claim_key

@@ -58,6 +58,22 @@ class RepositoryContractTests(unittest.TestCase):
             with self.subTest(retired=retired):
                 self.assertNotIn(retired, text)
 
+    def test_fixed_host_raw_capture_has_no_legacy_verification_surface(self):
+        roots = (ROOT / "evaluation", ROOT / "tests")
+        sources = [
+            path
+            for root in roots
+            for path in root.rglob("*")
+            if path.is_file() and "__pycache__" not in path.parts
+        ]
+        forbidden = ("pro" + "of", "ver" + "ifier")
+        offenders = [
+            str(path.relative_to(ROOT))
+            for path in sources
+            if any(token in path.name.lower() or token in path.read_text(encoding="utf-8", errors="ignore").lower() for token in forbidden)
+        ]
+        self.assertEqual(offenders, [])
+
     def test_evaluation_python_loc_is_bounded(self):
         modules = list((ROOT / "evaluation").rglob("*.py"))
         counts = {path: len(path.read_text(encoding="utf-8").splitlines()) for path in modules}

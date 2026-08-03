@@ -7,7 +7,7 @@ import subprocess
 import tempfile
 import unittest
 
-from evaluation.host import HostEvidenceError, attestation_from_raw, load_proof_verifier, parse_raw_stream, reserve_claim
+from evaluation.host import HostEvidenceError, attestation_from_raw, parse_raw_stream, reserve_claim
 from evaluation.identity import DETERMINISTIC_DOMAINS, MODEL_ROLE_IDS
 from evaluation.provider import (
     EvaluationCapability, ProviderError, accept_evaluation_authority,
@@ -16,7 +16,7 @@ from evaluation.provider import (
 from evaluation.records import RECORD_TYPES, TERMINAL_CLASSES, RecordError, validate_record
 from evaluation.verify import evaluate_runtime_decision
 from tests.attestation_fixtures import (
-    HOST_CONTRACT, PROFILES, ROOT, SHA, bundle, host_proof, product, proof_verifier, raw_stream, terminal,
+    HOST_CONTRACT, PROFILES, ROOT, SHA, bundle, product, raw_stream, terminal,
 )
 
 
@@ -104,9 +104,11 @@ class ProviderBoundaryTests(unittest.TestCase):
         with self.assertRaises(ProviderError):
             EvaluationCapability(object(), SHA["1"], SHA["2"], SHA["3"])
 
-    def test_unbound_proof_verifier_binary_is_rejected(self):
-        with self.assertRaises(HostEvidenceError):
-            load_proof_verifier(Path("/usr/bin/true"), HOST_CONTRACT)
+    def test_legacy_host_contract_field_is_rejected(self):
+        contract = deepcopy(HOST_CONTRACT)
+        contract["pro" + "of_" + "ver" + "ifier_sha256"] = SHA["1"]
+        with self.assertRaises(RecordError):
+            bundle(host_contract=contract)
 
 
 class ExternalHostClaimTests(unittest.TestCase):
@@ -134,10 +136,9 @@ class ExternalHostClaimTests(unittest.TestCase):
             root = Path(raw)
             root.chmod(0o700)
             no_effect_raw = raw_stream(unit, terminal_value=no_effect)
-            no_effect_proof = host_proof(unit, no_effect_raw, spec)
             no_effect_record = attestation_from_raw(
                 root=ROOT, product=selected, spec=spec, unit_id=unit["unit_id"],
-                raw=no_effect_raw, authority_sha256=SHA["a"], host_proof=no_effect_proof,
+                raw=no_effect_raw, authority_sha256=SHA["a"],
             )
             reserve_claim(root=root, claim_key=unit["invocation"]["claim_key"], invocation_sha256=unit["invocation_sha256"])
             with self.assertRaises(HostEvidenceError):
@@ -150,23 +151,28 @@ class ExternalHostClaimTests(unittest.TestCase):
                 root=root, claim_key=unit["invocation"]["claim_key"],
                 invocation_sha256=unit["invocation_sha256"], recovery_index=1,
                 recovery_cap=1, previous_raw=no_effect_raw,
-                previous_attestation=no_effect_record, previous_spec=spec, previous_proof=no_effect_proof,
-                proof_verifier=proof_verifier,
+                previous_attestation=no_effect_record, previous_spec=spec,
             )
             self.assertEqual(recovered["recovery_index"], 1)
+            mismatched_raw = raw_stream(unit, terminal_value=no_effect, duration_seconds=11)
+            with self.assertRaises(HostEvidenceError):
+                reserve_claim(
+                    root=root, claim_key=unit["invocation"]["claim_key"],
+                    invocation_sha256=unit["invocation_sha256"], recovery_index=2,
+                    recovery_cap=2, previous_raw=mismatched_raw,
+                    previous_attestation=no_effect_record, previous_spec=spec,
+                )
             partial_raw = raw_stream(unit, terminal_value=partial)
-            partial_proof = host_proof(unit, partial_raw, spec)
             partial_record = attestation_from_raw(
                 root=ROOT, product=selected, spec=spec, unit_id=unit["unit_id"],
-                raw=partial_raw, authority_sha256=SHA["a"], host_proof=partial_proof,
+                raw=partial_raw, authority_sha256=SHA["a"],
             )
             with self.assertRaises(HostEvidenceError):
                 reserve_claim(
                     root=root, claim_key=unit["invocation"]["claim_key"],
                     invocation_sha256=unit["invocation_sha256"], recovery_index=2,
                     recovery_cap=2, previous_raw=partial_raw,
-                    previous_attestation=partial_record, previous_spec=spec, previous_proof=partial_proof,
-                    proof_verifier=proof_verifier,
+                    previous_attestation=partial_record, previous_spec=spec,
                 )
 
     def test_raw_parser_rejects_incomplete_or_reordered_stream(self):

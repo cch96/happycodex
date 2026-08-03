@@ -29,7 +29,7 @@ python3 -m evaluation.cli verify-release ...
 ```
 
 `authority-request` prints only the digest and bounded invocation inventory.
-An external verifier must authenticate user authority before the provider or
+An external authenticator must validate user authority before the provider or
 release APIs mint a non-serializable process-local capability. Repository
 content cannot authenticate itself.
 
@@ -45,6 +45,14 @@ repair history are absent from workspace, arguments, standard input,
 environment, and sanitized events. Fixed holdouts are exactly three concurrent
 two-arm pairs against the previous released product; all six outputs freeze
 before reveal, and aggregate token and wall ratios must each be at most 1.25.
+
+The fixed external host runner is the trusted capture boundary. `EvalSpec`
+binds its binary, trust domain, tool/permission/workspace configuration, and
+every invocation. Verification always requires the retained raw JSONL and
+recomputes its digest, terminal, report and sanitized-projection hashes, times,
+claim, contract, and invocation links. This is host-observed integrity, not
+cross-host cryptographic non-repudiation; the runner is trusted for the
+raw-to-sanitized projection, and no secret is persisted in an Attestation.
 
 Run all offline checks with:
 

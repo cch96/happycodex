@@ -12,46 +12,44 @@ from evaluation.verify import (
     replay_attestation, verify_evaluation, verify_release,
 )
 from tests.attestation_fixtures import (
-    REVEALED_AT, ROOT, SHA, attest_all, bundle, host_proof, passing_report,
-    proof_verifier, raw_stream, terminal,
+    REVEALED_AT, ROOT, SHA, attest_all, bundle, passing_report, raw_stream,
+    terminal,
 )
 
 
 def positive_evaluation():
     selected, baseline, spec, blind_mapping = bundle()
-    records, raws, proofs = attest_all(selected, baseline, spec)
+    records, raws = attest_all(selected, baseline, spec)
     evaluation = verify_evaluation(
         root=ROOT, product=selected, previous_product=baseline, spec=spec,
-        attestations=records, raw_streams=raws, host_proofs=proofs,
-        proof_verifier=proof_verifier, holdout_mapping=blind_mapping,
+        attestations=records, raw_streams=raws, holdout_mapping=blind_mapping,
         mapping_revealed_at=REVEALED_AT,
     )
-    return selected, baseline, spec, blind_mapping, records, raws, proofs, evaluation
+    return selected, baseline, spec, blind_mapping, records, raws, evaluation
 
 
 class ExternalEvidenceFlowTests(unittest.TestCase):
-    def test_external_raw_proof_full_chain_positive(self):
-        _, _, spec, _, records, _, _, result = positive_evaluation()
+    def test_fixed_host_raw_full_chain_positive(self):
+        _, _, spec, _, records, _, result = positive_evaluation()
         self.assertTrue(result["verified"])
         self.assertTrue(result["holdout"]["passed"])
         self.assertEqual(len(records), len(spec["units"]))
         self.assertEqual(result["usage"]["model_calls"], len(spec["units"]))
 
     def test_forged_terminal_digest_is_rejected(self):
-        *_, records, _, _, _ = positive_evaluation()
+        _, _, _, _, records, _, _ = positive_evaluation()
         forged = deepcopy(records[0])
         forged["terminal"]["input_tokens"] += 1
         with self.assertRaises(RecordError):
             validate_record(forged)
 
-    def test_missing_external_proof_is_rejected(self):
-        selected, baseline, spec, blind_mapping, records, raws, proofs, _ = positive_evaluation()
-        proofs.pop(records[0]["unit_id"])
+    def test_missing_fixed_host_raw_is_rejected(self):
+        selected, baseline, spec, blind_mapping, records, raws, _ = positive_evaluation()
+        raws.pop(records[0]["unit_id"])
         with self.assertRaises(VerificationError):
             verify_evaluation(
                 root=ROOT, product=selected, previous_product=baseline, spec=spec,
-                attestations=records, raw_streams=raws, host_proofs=proofs,
-                proof_verifier=proof_verifier, holdout_mapping=blind_mapping,
+                attestations=records, raw_streams=raws, holdout_mapping=blind_mapping,
                 mapping_revealed_at=REVEALED_AT,
             )
 
@@ -59,15 +57,13 @@ class ExternalEvidenceFlowTests(unittest.TestCase):
         selected, baseline, spec, _ = bundle()
         unit = next(item for item in spec["units"] if item["unit_id"] == "goal-divergence")
         raw = raw_stream(unit, report={"safety": {"goal_closed": True}})
-        proof = host_proof(unit, raw, spec)
         record = attestation_from_raw(
             root=ROOT, product=selected, spec=spec, unit_id=unit["unit_id"],
-            raw=raw, authority_sha256=SHA["a"], host_proof=proof,
+            raw=raw, authority_sha256=SHA["a"],
         )
         result = verify_evaluation(
             root=ROOT, product=selected, previous_product=baseline, spec=spec,
             attestations=[record], raw_streams={unit["unit_id"]: raw},
-            host_proofs={unit["unit_id"]: proof}, proof_verifier=proof_verifier,
         )
         self.assertFalse(result["verified"])
         self.assertEqual(result["failures"][0]["unit_id"], "goal-divergence")
@@ -77,15 +73,13 @@ class ExternalEvidenceFlowTests(unittest.TestCase):
         unit = next(item for item in spec["units"] if item["unit_id"] == "goal-divergence")
         partial = terminal(classification="ambiguous_or_partial", complete=False)
         raw = raw_stream(unit, terminal_value=partial)
-        proof = host_proof(unit, raw, spec)
         record = attestation_from_raw(
             root=ROOT, product=selected, spec=spec, unit_id=unit["unit_id"],
-            raw=raw, authority_sha256=SHA["a"], host_proof=proof,
+            raw=raw, authority_sha256=SHA["a"],
         )
         result = verify_evaluation(
             root=ROOT, product=selected, previous_product=baseline, spec=spec,
             attestations=[record], raw_streams={unit["unit_id"]: raw},
-            host_proofs={unit["unit_id"]: proof}, proof_verifier=proof_verifier,
         )
         self.assertEqual(result["failures"][0]["classification"], "ambiguous_or_partial")
 
@@ -98,15 +92,14 @@ class FixedHoldoutTests(unittest.TestCase):
 
     def test_pair_arms_must_overlap(self):
         selected, baseline, spec, blind_mapping = bundle()
-        records, raws, proofs = attest_all(
+        records, raws = attest_all(
             selected, baseline, spec,
             starts={"holdout-recovery-arm-b": datetime(2026, 8, 2, 0, 0, 31, tzinfo=timezone.utc)},
         )
         with self.assertRaises(ValueError):
             verify_evaluation(
                 root=ROOT, product=selected, previous_product=baseline, spec=spec,
-                attestations=records, raw_streams=raws, host_proofs=proofs,
-                proof_verifier=proof_verifier, holdout_mapping=blind_mapping,
+                attestations=records, raw_streams=raws, holdout_mapping=blind_mapping,
                 mapping_revealed_at="2026-08-02T00:00:45Z",
             )
 
@@ -116,12 +109,11 @@ class FixedHoldoutTests(unittest.TestCase):
             f"{sample}-arm-a": terminal(input_tokens=20, output_tokens=2, wall_milliseconds=20)
             for sample in ("holdout-recovery", "holdout-safety", "holdout-scope")
         }
-        records, raws, proofs = attest_all(selected, baseline, spec, terminals=expensive)
+        records, raws = attest_all(selected, baseline, spec, terminals=expensive)
         with self.assertRaisesRegex(VerificationError, "calls continued after fixed-holdout failure"):
             verify_evaluation(
                 root=ROOT, product=selected, previous_product=baseline, spec=spec,
-                attestations=records, raw_streams=raws, host_proofs=proofs,
-                proof_verifier=proof_verifier, holdout_mapping=blind_mapping,
+                attestations=records, raw_streams=raws, holdout_mapping=blind_mapping,
                 mapping_revealed_at=REVEALED_AT,
             )
 
@@ -131,14 +123,12 @@ class FixedHoldoutTests(unittest.TestCase):
             f"{sample}-arm-a": terminal(input_tokens=20, output_tokens=2, wall_milliseconds=20)
             for sample in ("holdout-recovery", "holdout-safety", "holdout-scope")
         }
-        records, raws, proofs = attest_all(selected, baseline, spec, terminals=expensive)
+        records, raws = attest_all(selected, baseline, spec, terminals=expensive)
         records = [record for record in records if record["unit_id"] != "exact-final"]
         raws.pop("exact-final")
-        proofs.pop("exact-final")
         result = verify_evaluation(
             root=ROOT, product=selected, previous_product=baseline, spec=spec,
-            attestations=records, raw_streams=raws, host_proofs=proofs,
-            proof_verifier=proof_verifier, holdout_mapping=blind_mapping,
+            attestations=records, raw_streams=raws, holdout_mapping=blind_mapping,
             mapping_revealed_at=REVEALED_AT,
         )
         self.assertFalse(result["verified"])
@@ -152,22 +142,18 @@ class ExactFinalAndReleaseTests(unittest.TestCase):
         report = passing_report(unit)
         report["decision"] = "NOT_YET"
         raw = raw_stream(unit, report=report)
-        proof = host_proof(
-            unit, raw, spec,
-            product_artifact_sha256=selected["package_artifact_sha256"],
-        )
         adverse = attestation_from_raw(
             root=ROOT, product=selected, spec=spec, unit_id="exact-final", raw=raw,
-            authority_sha256=SHA["a"], host_proof=proof,
+            authority_sha256=SHA["a"],
         )
         self.assertEqual(adverse["verdict"], "fail")
-        _, _, _, _, friendly_records, _, _, _ = positive_evaluation()
+        _, _, _, _, friendly_records, _, _ = positive_evaluation()
         friendly = next(item for item in friendly_records if item["unit_id"] == "exact-final")
         with self.assertRaises(VerificationError):
             append_attestation([adverse], friendly)
 
     def test_behavior_replay_reuses_frozen_external_observation(self):
-        _, _, old_spec, _, records, raws, _, _ = positive_evaluation()
+        _, _, old_spec, _, records, raws, _ = positive_evaluation()
         parent = next(item for item in records if item["unit_id"] == "goal-divergence")
         units = deepcopy(old_spec["units"])
         next(unit for unit in units if unit["unit_id"] == "goal-divergence")["oracle_sha256"] = SHA["b"]
@@ -185,18 +171,15 @@ class ExactFinalAndReleaseTests(unittest.TestCase):
             profiles=old_spec["profiles"], units=units, holdouts=old_spec["holdouts"],
             total_cap=old_spec["total_cap"], previous_product_record_sha256=old_spec["previous_product_record_sha256"],
         )
-        unit = next(item for item in new_spec["units"] if item["unit_id"] == "goal-divergence")
-        proof = host_proof(unit, raws["goal-divergence"], new_spec)
         replay = replay_attestation(
             parent=parent, spec=new_spec, oracle=lambda _report: (True, []),
-            host_proof=proof,
         )
         self.assertEqual(replay["observation"]["raw_events_sha256"], parent["observation"]["raw_events_sha256"])
         self.assertEqual(replay["terminal"], parent["terminal"])
         self.assertEqual(replay["observation"]["parent_attestation_sha256"], parent["record_sha256"])
 
     def _release_fixture(self):
-        selected, _, _, _, _, _, _, evaluation = positive_evaluation()
+        selected, _, _, _, _, _, evaluation = positive_evaluation()
         destination = {"kind": "plugin-cache", "identity_sha256": SHA["b"]}
         rollback = {"artifact_sha256": SHA["c"], "config_sha256": SHA["d"], "ready": True}
         request = release_authority_request(

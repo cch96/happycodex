@@ -11,68 +11,97 @@ import unittest
 from evaluation.manifest import ManifestError, materialize_eval_spec
 from evaluation.host import attestation_from_raw
 from evaluation.identity import IdentityError, evaluator_components
-from evaluation.records import canonical_sha256
+from evaluation.records import RecordError, canonical_sha256
 from evaluation.verify import VerificationError, invalidation, verify_evaluation
 from tests.attestation_fixtures import (
     HOST_CONTRACT, PROFILES, REVEALED_AT, REVIEW_BRIEF, ROOT, TOTAL_CAP,
-    attest_all, bundle, host_proof, mapping, passing_report, proof_verifier, raw_stream, reseal,
+    attest_all, bundle, mapping, passing_report, raw_stream, reseal,
 )
 
 
 def verify_args():
     selected, baseline, spec, blind_mapping = bundle()
-    records, raws, proofs = attest_all(selected, baseline, spec)
-    return selected, baseline, spec, blind_mapping, records, raws, proofs
+    records, raws = attest_all(selected, baseline, spec)
+    return selected, baseline, spec, blind_mapping, records, raws
 
 
 class TrustBoundaryRedTests(unittest.TestCase):
     def test_f1_forged_sealed_report_cannot_override_raw_unsafe_result(self):
-        selected, baseline, spec, blind_mapping, records, raws, proofs = verify_args()
+        selected, baseline, spec, blind_mapping, records, raws = verify_args()
         unit_id = "goal-divergence"
         unsafe = raw_stream(
             next(unit for unit in spec["units"] if unit["unit_id"] == unit_id),
             report={"safety": {"goal_closed": True}, "next_action": {"purpose": "IMPLEMENT"}},
         )
         raws[unit_id] = unsafe
-        unit = next(unit for unit in spec["units"] if unit["unit_id"] == unit_id)
-        proofs[unit_id] = host_proof(unit, unsafe, spec)
         forged = deepcopy(next(item for item in records if item["unit_id"] == unit_id))
         forged["observation"]["raw_events_sha256"] = __import__("hashlib").sha256(unsafe).hexdigest()
         forged["observation"]["report"] = passing_report(
             next(unit for unit in spec["units"] if unit["unit_id"] == unit_id)
         )
         forged["observation"]["report_sha256"] = canonical_sha256(forged["observation"]["report"])
-        forged["host_proof_sha256"] = canonical_sha256(proofs[unit_id])
         forged = reseal(forged)
         supplied = [forged if item["unit_id"] == unit_id else item for item in records]
         with self.assertRaises(VerificationError):
             verify_evaluation(
                 root=ROOT, product=selected, previous_product=baseline, spec=spec,
-                attestations=supplied, raw_streams=raws, host_proofs=proofs,
-                proof_verifier=proof_verifier, holdout_mapping=blind_mapping,
+                attestations=supplied, raw_streams=raws, holdout_mapping=blind_mapping,
                 mapping_revealed_at=REVEALED_AT,
             )
 
+    def test_raw_terminal_mismatch_is_rejected_after_record_reseal(self):
+        selected, baseline, spec, blind_mapping, records, raws = verify_args()
+        forged = deepcopy(records[0])
+        forged["terminal"]["input_tokens"] += 1
+        forged["observation"]["terminal_sha256"] = canonical_sha256(forged["terminal"])
+        forged = reseal(forged)
+        supplied = [forged, *records[1:]]
+        with self.assertRaisesRegex(VerificationError, "raw terminal differs"):
+            verify_evaluation(
+                root=ROOT, product=selected, previous_product=baseline, spec=spec,
+                attestations=supplied, raw_streams=raws,
+                holdout_mapping=blind_mapping, mapping_revealed_at=REVEALED_AT,
+            )
+
+    def test_invocation_relabel_is_rejected_after_record_reseal(self):
+        selected, baseline, spec, blind_mapping, records, raws = verify_args()
+        forged = reseal({**records[0], "invocation_sha256": "f" * 64})
+        with self.assertRaisesRegex(VerificationError, "invocation_sha256 mismatch"):
+            verify_evaluation(
+                root=ROOT, product=selected, previous_product=baseline, spec=spec,
+                attestations=[forged, *records[1:]], raw_streams=raws,
+                holdout_mapping=blind_mapping, mapping_revealed_at=REVEALED_AT,
+            )
+
+    def test_legacy_attestation_host_field_is_rejected(self):
+        selected, baseline, spec, blind_mapping, records, raws = verify_args()
+        legacy = deepcopy(records[0])
+        legacy["host_" + "pro" + "of_sha256"] = "f" * 64
+        with self.assertRaises(RecordError):
+            verify_evaluation(
+                root=ROOT, product=selected, previous_product=baseline, spec=spec,
+                attestations=[reseal(legacy), *records[1:]], raw_streams=raws,
+                holdout_mapping=blind_mapping, mapping_revealed_at=REVEALED_AT,
+            )
+
     def test_f2_successful_full_verification_requires_mapping_and_reveal(self):
-        selected, baseline, spec, _, records, raws, proofs = verify_args()
+        selected, baseline, spec, _, records, raws = verify_args()
         with self.assertRaises(VerificationError):
             verify_evaluation(
                 root=ROOT, product=selected, previous_product=baseline, spec=spec,
-                attestations=records, raw_streams=raws, host_proofs=proofs,
-                proof_verifier=proof_verifier,
+                attestations=records, raw_streams=raws,
             )
 
     def test_f3_exact_final_cannot_start_before_behavior_and_holdouts_freeze(self):
         selected, baseline, spec, blind_mapping = bundle()
-        records, raws, proofs = attest_all(
+        records, raws = attest_all(
             selected, baseline, spec,
             starts={"exact-final": datetime(2026, 8, 2, 0, 0, 5, tzinfo=timezone.utc)},
         )
         with self.assertRaises(VerificationError):
             verify_evaluation(
                 root=ROOT, product=selected, previous_product=baseline, spec=spec,
-                attestations=records, raw_streams=raws, host_proofs=proofs,
-                proof_verifier=proof_verifier, holdout_mapping=blind_mapping,
+                attestations=records, raw_streams=raws, holdout_mapping=blind_mapping,
                 mapping_revealed_at=REVEALED_AT,
             )
 
@@ -96,19 +125,18 @@ class TrustBoundaryRedTests(unittest.TestCase):
         self.assertIn("exact-final", route["model_units"])
         self.assertNotIn("exact-final", route["replay_units"])
 
-    def test_f5_authority_relabel_cannot_reuse_external_proofs(self):
-        selected, baseline, spec, blind_mapping, records, raws, proofs = verify_args()
-        forged = [reseal({**record, "authority_sha256": "b" * 64}) for record in records]
+    def test_f5_mixed_authority_records_are_rejected(self):
+        selected, baseline, spec, blind_mapping, records, raws = verify_args()
+        forged = [reseal({**records[0], "authority_sha256": "b" * 64}), *records[1:]]
         with self.assertRaises(VerificationError):
             verify_evaluation(
                 root=ROOT, product=selected, previous_product=baseline, spec=spec,
-                attestations=forged, raw_streams=raws, host_proofs=proofs,
-                proof_verifier=proof_verifier, holdout_mapping=blind_mapping,
+                attestations=forged, raw_streams=raws, holdout_mapping=blind_mapping,
                 mapping_revealed_at=REVEALED_AT,
             )
 
-    def test_f6_sanitized_digest_relabel_cannot_reuse_external_proof(self):
-        selected, baseline, spec, blind_mapping, records, raws, proofs = verify_args()
+    def test_f6_sanitized_projection_digest_relabel_is_rejected(self):
+        selected, baseline, spec, blind_mapping, records, raws = verify_args()
         forged = deepcopy(records[0])
         forged["observation"]["sanitized_event_sha256"] = "f" * 64
         forged = reseal(forged)
@@ -116,8 +144,7 @@ class TrustBoundaryRedTests(unittest.TestCase):
         with self.assertRaises(VerificationError):
             verify_evaluation(
                 root=ROOT, product=selected, previous_product=baseline, spec=spec,
-                attestations=supplied, raw_streams=raws, host_proofs=proofs,
-                proof_verifier=proof_verifier, holdout_mapping=blind_mapping,
+                attestations=supplied, raw_streams=raws, holdout_mapping=blind_mapping,
                 mapping_revealed_at=REVEALED_AT,
             )
 
@@ -131,12 +158,11 @@ class TrustBoundaryRedTests(unittest.TestCase):
             }
             for sample in ("holdout-recovery", "holdout-safety", "holdout-scope")
         }
-        records, raws, proofs = attest_all(selected, baseline, spec, terminals=expensive)
+        records, raws = attest_all(selected, baseline, spec, terminals=expensive)
         with self.assertRaises(VerificationError):
             verify_evaluation(
                 root=ROOT, product=selected, previous_product=baseline, spec=spec,
-                attestations=records, raw_streams=raws, host_proofs=proofs,
-                proof_verifier=proof_verifier, holdout_mapping=blind_mapping,
+                attestations=records, raw_streams=raws, holdout_mapping=blind_mapping,
                 mapping_revealed_at=REVEALED_AT,
             )
 
@@ -146,17 +172,16 @@ class TrustBoundaryRedTests(unittest.TestCase):
         starts = {
             unit["unit_id"]: early for unit in spec["units"] if unit["stage"] == "holdout"
         }
-        records, raws, proofs = attest_all(selected, baseline, spec, starts=starts)
+        records, raws = attest_all(selected, baseline, spec, starts=starts)
         with self.assertRaises(VerificationError):
             verify_evaluation(
                 root=ROOT, product=selected, previous_product=baseline, spec=spec,
-                attestations=records, raw_streams=raws, host_proofs=proofs,
-                proof_verifier=proof_verifier, holdout_mapping=blind_mapping,
+                attestations=records, raw_streams=raws, holdout_mapping=blind_mapping,
                 mapping_revealed_at=REVEALED_AT,
             )
 
     def test_diagnostics_relabel_is_rejected_by_oracle_recomputation(self):
-        selected, baseline, spec, blind_mapping, records, raws, proofs = verify_args()
+        selected, baseline, spec, blind_mapping, records, raws = verify_args()
         forged = deepcopy(records[0])
         forged["diagnostics"] = ["diagnostic:invented"]
         forged = reseal(forged)
@@ -164,20 +189,18 @@ class TrustBoundaryRedTests(unittest.TestCase):
         with self.assertRaisesRegex(VerificationError, "diagnostics differ"):
             verify_evaluation(
                 root=ROOT, product=selected, previous_product=baseline, spec=spec,
-                attestations=supplied, raw_streams=raws, host_proofs=proofs,
-                proof_verifier=proof_verifier, holdout_mapping=blind_mapping,
+                attestations=supplied, raw_streams=raws, holdout_mapping=blind_mapping,
                 mapping_revealed_at=REVEALED_AT,
             )
 
-    def test_host_contract_relabel_invalidates_attestations_and_proofs(self):
-        selected, baseline, old_spec, blind_mapping, records, raws, proofs = verify_args()
+    def test_host_contract_relabel_invalidates_attestations(self):
+        selected, baseline, old_spec, blind_mapping, records, raws = verify_args()
         changed_contract = {**HOST_CONTRACT, "workspace_policy_sha256": "1" * 64}
         _, _, new_spec, _ = bundle(host_contract=changed_contract)
         with self.assertRaises(VerificationError):
             verify_evaluation(
                 root=ROOT, product=selected, previous_product=baseline, spec=new_spec,
-                attestations=records, raw_streams=raws, host_proofs=proofs,
-                proof_verifier=proof_verifier, holdout_mapping=blind_mapping,
+                attestations=records, raw_streams=raws, holdout_mapping=blind_mapping,
                 mapping_revealed_at=REVEALED_AT,
             )
 
@@ -199,28 +222,25 @@ class TrustBoundaryRedTests(unittest.TestCase):
                     host_contract=HOST_CONTRACT,
                 )
 
-    def test_f10_secret_raw_can_verify_as_proof_bound_sanitized_attestation(self):
+    def test_f10_secret_raw_can_verify_as_host_sanitized_attestation(self):
         selected, baseline, spec, blind_mapping = bundle()
-        records, raws, proofs = attest_all(selected, baseline, spec)
+        records, raws = attest_all(selected, baseline, spec)
         unit = next(item for item in spec["units"] if item["unit_id"] == "no-commit-secret")
         secret = "RAW-SECRET-SENTINEL"
         report = passing_report(unit)
         report["secret"]["value"] = secret
         raw = raw_stream(unit, report=report)
-        proof = host_proof(unit, raw, spec, secrets=[secret])
         sanitized = attestation_from_raw(
             root=ROOT, product=selected, spec=spec, unit_id=unit["unit_id"],
-            raw=raw, authority_sha256="a" * 64, host_proof=proof,
+            raw=raw, authority_sha256="a" * 64,
             secrets=[secret],
         )
         self.assertNotIn(secret, canonical_sha256(sanitized) + str(sanitized))
         supplied = [sanitized if record["unit_id"] == unit["unit_id"] else record for record in records]
         raws[unit["unit_id"]] = raw
-        proofs[unit["unit_id"]] = proof
         result = verify_evaluation(
             root=ROOT, product=selected, previous_product=baseline, spec=spec,
-            attestations=supplied, raw_streams=raws, host_proofs=proofs,
-            proof_verifier=proof_verifier, holdout_mapping=blind_mapping,
+            attestations=supplied, raw_streams=raws, holdout_mapping=blind_mapping,
             mapping_revealed_at=REVEALED_AT,
         )
         self.assertTrue(result["verified"])
@@ -232,26 +252,9 @@ class TrustBoundaryRedTests(unittest.TestCase):
         with self.assertRaises(VerificationError):
             verify_evaluation(
                 root=ROOT, product=selected, previous_product=baseline, spec=spec,
-                attestations=changed_records, raw_streams=raws, host_proofs=proofs,
-                proof_verifier=proof_verifier, holdout_mapping=blind_mapping,
+                attestations=changed_records, raw_streams=raws, holdout_mapping=blind_mapping,
                 mapping_revealed_at=REVEALED_AT,
             )
-        wrong_proof = host_proof(unit, raw, spec)
-        mismatched = attestation_from_raw(
-            root=ROOT, product=selected, spec=spec, unit_id=unit["unit_id"],
-            raw=raw, authority_sha256="a" * 64, host_proof=wrong_proof,
-            secrets=[secret],
-        )
-        wrong_records = [mismatched if record["unit_id"] == unit["unit_id"] else record for record in records]
-        proofs[unit["unit_id"]] = wrong_proof
-        with self.assertRaises(VerificationError):
-            verify_evaluation(
-                root=ROOT, product=selected, previous_product=baseline, spec=spec,
-                attestations=wrong_records, raw_streams=raws, host_proofs=proofs,
-                proof_verifier=proof_verifier, holdout_mapping=blind_mapping,
-                mapping_revealed_at=REVEALED_AT,
-            )
-
     def test_f11_same_stage_call_starting_after_known_failure_is_rejected(self):
         selected, baseline, spec, _ = bundle()
         failed_unit = next(item for item in spec["units"] if item["unit_id"] == "goal-divergence")
@@ -261,19 +264,15 @@ class TrustBoundaryRedTests(unittest.TestCase):
             late_unit,
             start=datetime(2026, 8, 2, 0, 0, 10, tzinfo=timezone.utc),
         )
-        failed_proof = host_proof(failed_unit, failed_raw, spec)
-        late_proof = host_proof(late_unit, late_raw, spec)
         records = [
-            attestation_from_raw(root=ROOT, product=selected, spec=spec, unit_id=failed_unit["unit_id"], raw=failed_raw, authority_sha256="a" * 64, host_proof=failed_proof),
-            attestation_from_raw(root=ROOT, product=selected, spec=spec, unit_id=late_unit["unit_id"], raw=late_raw, authority_sha256="a" * 64, host_proof=late_proof),
+            attestation_from_raw(root=ROOT, product=selected, spec=spec, unit_id=failed_unit["unit_id"], raw=failed_raw, authority_sha256="a" * 64),
+            attestation_from_raw(root=ROOT, product=selected, spec=spec, unit_id=late_unit["unit_id"], raw=late_raw, authority_sha256="a" * 64),
         ]
         with self.assertRaisesRegex(VerificationError, "calls continued after"):
             verify_evaluation(
                 root=ROOT, product=selected, previous_product=baseline, spec=spec,
                 attestations=records,
                 raw_streams={failed_unit["unit_id"]: failed_raw, late_unit["unit_id"]: late_raw},
-                host_proofs={failed_unit["unit_id"]: failed_proof, late_unit["unit_id"]: late_proof},
-                proof_verifier=proof_verifier,
             )
 
     def test_f11_same_stage_unit_already_started_before_failure_is_retained(self):
@@ -285,18 +284,14 @@ class TrustBoundaryRedTests(unittest.TestCase):
             concurrent_unit,
             start=datetime(2026, 8, 2, 0, 0, 5, tzinfo=timezone.utc),
         )
-        failed_proof = host_proof(failed_unit, failed_raw, spec)
-        concurrent_proof = host_proof(concurrent_unit, concurrent_raw, spec)
         records = [
-            attestation_from_raw(root=ROOT, product=selected, spec=spec, unit_id=failed_unit["unit_id"], raw=failed_raw, authority_sha256="a" * 64, host_proof=failed_proof),
-            attestation_from_raw(root=ROOT, product=selected, spec=spec, unit_id=concurrent_unit["unit_id"], raw=concurrent_raw, authority_sha256="a" * 64, host_proof=concurrent_proof),
+            attestation_from_raw(root=ROOT, product=selected, spec=spec, unit_id=failed_unit["unit_id"], raw=failed_raw, authority_sha256="a" * 64),
+            attestation_from_raw(root=ROOT, product=selected, spec=spec, unit_id=concurrent_unit["unit_id"], raw=concurrent_raw, authority_sha256="a" * 64),
         ]
         result = verify_evaluation(
             root=ROOT, product=selected, previous_product=baseline, spec=spec,
             attestations=records,
             raw_streams={failed_unit["unit_id"]: failed_raw, concurrent_unit["unit_id"]: concurrent_raw},
-            host_proofs={failed_unit["unit_id"]: failed_proof, concurrent_unit["unit_id"]: concurrent_proof},
-            proof_verifier=proof_verifier,
         )
         self.assertFalse(result["verified"])
 

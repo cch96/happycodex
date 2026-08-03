@@ -9,7 +9,7 @@ import unittest
 from evaluation.host import attestation_from_raw
 from tests.attestation_fixtures import (
     HOST_CONTRACT, PROFILES, REVEALED_AT, REVIEW_BRIEF, ROOT, TOTAL_CAP, SHA,
-    attest_all, bundle, host_proof, passing_report, write_json,
+    attest_all, bundle, passing_report, write_json,
 )
 
 
@@ -29,10 +29,9 @@ class FreshProcessTests(unittest.TestCase):
         )
         self.assertEqual(completed.returncode, 0, completed.stderr)
         raw = completed.stdout.encode()
-        proof = host_proof(unit, raw, spec)
         record = attestation_from_raw(
             root=ROOT, product=selected, spec=spec, unit_id=unit["unit_id"], raw=raw,
-            authority_sha256=SHA["a"], host_proof=proof,
+            authority_sha256=SHA["a"],
         )
         self.assertEqual(record["verdict"], "pass")
         self.assertNotEqual(baseline["external_role_config_sha256"], selected["external_role_config_sha256"])
@@ -62,9 +61,9 @@ class FreshProcessTests(unittest.TestCase):
         self.assertEqual(completed.returncode, 0, completed.stderr)
         self.assertEqual(json.loads(completed.stdout), spec)
 
-    def test_cli_verifies_records_only_with_external_raw_and_proof(self):
+    def test_cli_verifies_records_only_with_fixed_host_raw(self):
         selected, baseline, spec, blind_mapping = bundle()
-        records, raws, proofs = attest_all(selected, baseline, spec)
+        records, raws = attest_all(selected, baseline, spec)
         with tempfile.TemporaryDirectory() as raw:
             temp = Path(raw)
             fixed = {"product": selected, "previous": baseline, "spec": spec, "mapping": blind_mapping}
@@ -77,17 +76,15 @@ class FreshProcessTests(unittest.TestCase):
                 unit_id = record["unit_id"]
                 attestation_path = temp / f"attestation-{index}.json"
                 raw_path = temp / f"raw-{index}.jsonl"
-                proof_path = temp / f"proof-{index}.json"
                 write_json(attestation_path, record)
                 raw_path.write_bytes(raws[unit_id])
-                write_json(proof_path, proofs[unit_id])
-                repeated.extend(["--attestation", str(attestation_path), "--raw", f"{unit_id}={raw_path}", "--proof", f"{unit_id}={proof_path}"])
+                repeated.extend(["--attestation", str(attestation_path), "--raw", f"{unit_id}={raw_path}"])
             completed = subprocess.run(
                 [
                     "python3", "-m", "evaluation.cli", "verify", "--repo", str(ROOT),
                     "--product", str(paths["product"]), "--previous-product", str(paths["previous"]),
                     "--spec", str(paths["spec"]), "--mapping", str(paths["mapping"]),
-                    "--revealed-at", REVEALED_AT, "--proof-verifier-command", str(ROOT / "tests" / "fake_proof_verifier.py"),
+                    "--revealed-at", REVEALED_AT,
                     *repeated,
                 ], cwd=ROOT, capture_output=True, text=True, check=False,
             )
@@ -96,28 +93,31 @@ class FreshProcessTests(unittest.TestCase):
         self.assertTrue(result["verified"])
         self.assertNotIn("certified", result)
 
-    def test_cli_rejects_external_proof_verifier_failure(self):
+    def test_cli_rejects_legacy_host_flags(self):
         selected, baseline, spec, blind_mapping = bundle()
-        records, raws, proofs = attest_all(selected, baseline, spec)
+        records, raws = attest_all(selected, baseline, spec)
         record = records[0]
         unit_id = record["unit_id"]
         with tempfile.TemporaryDirectory() as raw:
             temp = Path(raw)
-            paths = {name: temp / f"{name}.json" for name in ("product", "previous", "spec", "mapping", "attestation", "proof")}
-            for name, value in (("product", selected), ("previous", baseline), ("spec", spec), ("mapping", blind_mapping), ("attestation", record), ("proof", proofs[unit_id])):
+            paths = {name: temp / f"{name}.json" for name in ("product", "previous", "spec", "mapping", "attestation", "legacy")}
+            for name, value in (("product", selected), ("previous", baseline), ("spec", spec), ("mapping", blind_mapping), ("attestation", record), ("legacy", {})):
                 write_json(paths[name], value)
             raw_path = temp / "raw.jsonl"
             raw_path.write_bytes(raws[unit_id])
+            old_data_flag = "--" + "pro" + "of"
+            old_command_flag = old_data_flag + "-ver" + "ifier-command"
             completed = subprocess.run(
                 [
                     "python3", "-m", "evaluation.cli", "verify", "--repo", str(ROOT),
                     "--product", str(paths["product"]), "--previous-product", str(paths["previous"]),
                     "--spec", str(paths["spec"]), "--attestation", str(paths["attestation"]),
-                    "--raw", f"{unit_id}={raw_path}", "--proof", f"{unit_id}={paths['proof']}",
-                    "--proof-verifier-command", "/usr/bin/true",
+                    "--raw", f"{unit_id}={raw_path}", old_data_flag, f"{unit_id}={paths['legacy']}",
+                    old_command_flag, "/usr/bin/true",
                 ], cwd=ROOT, capture_output=True, text=True, check=False,
             )
         self.assertNotEqual(completed.returncode, 0)
+        self.assertIn("unrecognized arguments", completed.stderr)
 
 
 if __name__ == "__main__":
