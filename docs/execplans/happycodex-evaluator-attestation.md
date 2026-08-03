@@ -14,8 +14,9 @@ has been implemented or certified.
   ledger is required, one bounded evaluation authority bundle normally covers
   behavior evaluation plus exact-final, and one separate release authority
   covers install/release. Provider input never contains the expected answer.
-  An adverse exact-final result is durable and is not rerun against the same
-  product identity.
+  A substantive adverse exact-final that completed frozen-candidate coverage
+  is durable and is not rerun against the same product identity. A narrowly
+  proven fixed-host `infrastructure-no-coverage` result follows GRANT-24 below.
 - Preserve exactly: every packaged product byte at `v0.6.5`, the external role
   configuration, and the active installation and rollback state. Evaluator
   work must not change `skills/happycodex/**` or any package/runtime surface.
@@ -154,25 +155,38 @@ The one neutral exact-final reached a successful terminal but durably returned
 incomplete. CLI verification retained exact-final as the sole failure. Total
 usage was 12 calls, 184,406 input, 5,507 output, and 193,661ms; no retry ran.
 
-### Active offline grant: GRANT-23
+### Closed offline grant: GRANT-23
 
-The user's `改一下` authorizes one offline repair from clean commit/tree
-`d6e1a7f3d78ad35b60ffc8f9dc8746f55c38bbf3` /
-`27806c240d678aac475af7299fd6ba5c37de6cc4`. Only this plan,
-`evaluation/provider.py`, `evaluation/host.py`, and
-`tests/test_fixed_host_transaction_v2.py` may change. Each isolated unit gets a
-private `command-bin/codex-linux-sandbox` hard link to the policy-bound exact
-Codex binary. The frozen directory and alias must prove executable regular-file
-identity and same device/inode; PATH is exactly that directory plus
-`/usr/bin:/bin`, identical in host and model shell environments. The existing
-policy/contract binds this template and relationship.
+The user's `改一下` authorized the private frozen sandbox hard link and exact
+PATH repair from `d6e1a7f` / `27806c2`. Repair `07c326e` / `c40eeef` passed
+focused `20/20` and cumulative `111/111`; receipt `56d539b` left product,
+semantic inputs, config, binary, and GRANT-22 evidence unchanged with no live
+effect.
 
-Write narrow RED for missing legacy helper, valid resolution, and minimal
-tamper/path/mode/identity refusal; then one repair, focused suite, cumulative
-suite, static/input/product checks, and a post-effect receipt. GRANT-22 evidence
-is read-only and must remain content-identical. No fresh request, provider,
-network, install, release, activation, new module/runner/gate/record, or semantic
-product/Runtime/case/oracle/threshold/config change is authorized.
+### Active offline grant: GRANT-24
+
+The user authorizes an `infrastructure-no-coverage` Outcome amendment and one
+fresh request/spec only. The exception applies because old exact-final has
+`coverage.complete=false`, Root independently proved the fixed-host defect,
+product/Runtime/oracle/case/threshold/config are unchanged, GRANT-23 repaired
+the host contract, and the adverse evidence remains complete. It permits one
+new host contract plus fresh EvalSpec and, only under later exact authority,
+exactly one complete fresh 12-call certification. The same infrastructure
+family recurring stops. This is not review shopping, replay, evidence reuse,
+or retry of the same request.
+
+After this intent commit, revalidate clean prestate `56d539b` / `b9832de`,
+manifest `858fe5a4...`, inventory, absent exact archive target, and same device.
+Atomically rename the entire active root to
+`happycodex-evaluator-attestation-release.failed-grant22-48465f7d`, prove it
+unchanged, then materialize a fresh mode-0700 root through existing CLI paths.
+Archive bytes are preservation evidence only, never semantic, authority, or
+model input. Fresh execution must be `0/0/0/0`, with no auth or unit roots.
+Only this plan and those two exact external paths may change. No evaluator,
+test, Runtime, package, config, install, cache, rollback, provider/model/network,
+release/activation, new gate/record/runner/replay, or evidence reuse is allowed.
+Any drift, mismatch, unknown file, nonempty evidence, or need to widen stops
+without retry or cleanup.
 
 ## Baseline
 
@@ -325,26 +339,8 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `grant23_offline_repair_green`. Durable intent is commit `60ec018`.
-  Narrow RED produced one pass plus two intended errors: legacy PATH lacked the
-  helper; the transaction lacked private `command-bin` and tamper validation.
-  Repair `07c326e` / tree `c40eeef` freezes a per-unit hard link and PATH;
-  mode, template, inode, or cross-filesystem failure stops before effect.
-- Focused `tests.test_fixed_host_transaction_v2` is `20/20` GREEN in 2.287s;
-  cumulative offline is `111/111` GREEN in 8.576s. Evaluator Python is 2,867
-  lines, max module 556. Inventory has four records, no active ledger, and
-  bundle/provider/oracle/harness
-  `8e1b3255...` / `a47f4a11...` / `e7e46f93...` / `0e3ffa56...`.
-  Product/Runtime, semantic inputs, role config `d98fac1a...`, and binary
-  `cb5e8cb8...` are unchanged; binary and root share device 64769. The corrected
-  bounded-plan test passed.
-- GRANT-22 remains read-only at `12/12/12/12`, 912 files, three top-level
-  exact-final-source files, and no auth/tool-bin/command-bin. Root's
-  independently captured like-for-like content digest remains exactly
-  `6e79c00cd4f587df2ddcb6bc6fe0f1a2b51903c88929a2868aa8369812e34b23`.
-  Historical `bd8be130...` remains above, but its unrecorded canonicalization
-  was not relabeled as reproduced.
-- GRANT-23 made no provider/model/network/install/release/activation effect or
-  fresh request. GRANT-22 is not replayable. Future evaluation needs a fresh
-  frozen request/spec and separate authority; this repair decides no release or
-  completion.
+- Phase: `grant24_intent`. Prestate is clean `56d539b` / `b9832de`; active
+  relative-path manifest is `858fe5a4...`, 912 files and `12/12/12/12`, with
+  three exact-final-source top files and no auth/tool-bin/command-bin. Archive
+  target is absent and both paths are on device 64769. Next is the authorized
+  post-intent recheck, atomic archive, equality proof, and fresh materialization.
