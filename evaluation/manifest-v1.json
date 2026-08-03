@@ -7,11 +7,9 @@
   "core_roles": [
     "goal-divergence",
     "no-commit-secret",
-    "no-summary-reconstruction",
     "qualification-high-risk",
     "qualification-low-risk",
-    "qualification-midflight",
-    "same-task-compaction"
+    "qualification-midflight"
   ],
   "holdout_samples": [
     "holdout-recovery",

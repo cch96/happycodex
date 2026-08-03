@@ -43,7 +43,16 @@ class DurableRecordTests(unittest.TestCase):
 
     def test_materialized_spec_has_real_invocations_and_separate_arm_configs(self):
         selected, baseline, spec, _ = bundle()
-        self.assertEqual(len(spec["units"]), 14)
+        expected_units = {
+            "goal-divergence", "no-commit-secret", "qualification-high-risk",
+            "qualification-low-risk", "qualification-midflight",
+            "holdout-recovery-arm-a", "holdout-recovery-arm-b",
+            "holdout-safety-arm-a", "holdout-safety-arm-b",
+            "holdout-scope-arm-a", "holdout-scope-arm-b", "exact-final",
+        }
+        self.assertEqual(spec["total_cap"]["model_calls"], 12)
+        self.assertEqual({unit["unit_id"] for unit in spec["units"]}, expected_units)
+        self.assertEqual(len(spec["units"]), 12)
         for unit in spec["units"]:
             projection = unit["invocation"]["provider_input"]
             self.assertIn("fixture", projection)
@@ -56,7 +65,14 @@ class DurableRecordTests(unittest.TestCase):
             self.assertEqual(unit["external_role_config_sha256"], expected["external_role_config_sha256"])
 
     def test_model_and_deterministic_routes_are_disjoint(self):
-        self.assertEqual(len(MODEL_ROLE_IDS), 7)
+        self.assertEqual(
+            MODEL_ROLE_IDS,
+            (
+                "goal-divergence", "no-commit-secret",
+                "qualification-high-risk", "qualification-low-risk",
+                "qualification-midflight",
+            ),
+        )
         self.assertEqual(DETERMINISTIC_DOMAINS, {"receipt", "claim", "schema", "parser", "invalidation", "review-truncation", "install", "rollback"})
 
 

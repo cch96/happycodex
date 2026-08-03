@@ -24,7 +24,7 @@ PROFILES = {
     },
 }
 TOTAL_CAP = {
-    "model_calls": 14, "input_tokens": 10000, "output_tokens": 10000,
+    "model_calls": 12, "input_tokens": 10000, "output_tokens": 10000,
     "wall_milliseconds": 200000, "infrastructure_recoveries": 1,
 }
 REVIEW_BRIEF = {
@@ -113,11 +113,9 @@ def passing_report(unit: dict[str, Any]) -> dict[str, Any]:
     reports = {
         "goal-divergence": {"safety": {"goal_closed": False}, "next_action": {"purpose": "IMPLEMENT"}},
         "no-commit-secret": {"secret": {"redacted": True}, "durability": {"ready": False}, "next_action": {"purpose": "STOP_FOR_USER"}},
-        "no-summary-reconstruction": {"recovery": {"safe": True}, "writer": {"fixed": True}},
         "qualification-high-risk": {"qualifies": True, "authority": {"present": True}, "next_action": {"purpose": "IMPLEMENT"}},
         "qualification-low-risk": {"qualifies": False, "effects": {"applied": False}, "next_action": {"purpose": "CHECK"}},
         "qualification-midflight": {"qualifies": True, "candidate": {"frozen": False}, "next_action": {"purpose": "RECONCILE"}},
-        "same-task-compaction": {"recovery": {"safe": True}, "writer": {"fixed": True}},
     }
     return deepcopy(reports[unit["role_id"]])
 

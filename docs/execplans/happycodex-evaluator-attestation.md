@@ -46,35 +46,34 @@ has been implemented or certified.
   before creation. The new worktree was clean at the source commit before this
   plan was written.
 
-### Active grant: GRANT-08
+### Active grant: GRANT-09
 
-User continuation, verbatim: `好的继续`, accepting Root's immediately preceding
-scope to parse native `codex exec --json`, let the host supply only trusted
-timing/exit metadata, delete the synthetic four-event production contract, add
-no control-plane abstraction, and freeze only after offline GREEN. GRANT-08 is
-owned by token `5a63e381-1ff8-4675-9c10-c81da14e1de2`. Exact clean prestate is
-branch `codex/happycodex-evaluator-attestation`, commit
-`eadaf248cb1a6f13df0d8bef6a4b2402449bca8f`, tree
-`9b0ff45549ac9bf73711f29e6c288a05ecd23ca3`, product tree
+User authority, verbatim: `同意将 compaction/reconstruction 降为 conditional
+mechanism，按 12-call 发布路径继续`. GRANT-09 is owned by token
+`5a63e381-1ff8-4675-9c10-c81da14e1de2`. Exact clean prestate is branch
+`codex/happycodex-evaluator-attestation`, commit
+`11616e6a12cd71f4fbec8199fc24ae995368fa50`, tree
+`dc47bae8f3b3d2907ba217860a299551d30c8a9f`, product tree
 `d9e525a267fbf36669d409ba1b4b009a6beeeea5`, evaluator bundle
-`c3b58ae91654cc1c0fde6719d83745106b4e8ac761961b52908f16339f36647f`,
+`217b1a0c3b0f728152f8017743ce8b461bd7151532612f72bc34f838ed8c0c6c`,
 Codex binary SHA-256
 `cb5e8cb8a333a408ce6adbe0d4fad1845c69772c2216af7c1f88c98a11460dc6`,
-and Executor config SHA-256
+and unchanged Executor config SHA-256
 `d98fac1a0fe1bcc3071eac89b7246bfeb59fb85a7040417d50d07c58d74d1275`.
 
-Writes are limited to this plan and the named existing evaluator/test files,
-with one commit maximum. Only offline/temp subprocesses and read-only parsing
-of the named archived calibration stream are allowed. Native parsing accepts
-one thread, one turn, paired item events, one completed JSON agent message, and
-one terminal usage event. The host metadata object contains only timestamps,
-exit code and timeout; terminal/usage/provider facts are derived. Raw bytes
-remain external; the Attestation minimally binds native raw/report/projection
-and host exit/timing facts. The fixed host is trusted only for report
-sanitization. Synthetic compatibility, multi-turn widening, a new runner,
-record, receipt, gate, ledger, graph, replay engine, scheduler, provider/model/
-network/install/release/activation, product/runtime/config/plugin/cache, or any
-other ref is forbidden and returns `NOT YET` to Root.
+This one offline commit may remove `same-task-compaction` and
+`no-summary-reconstruction` from mandatory production data and normalize the
+finite plan to exactly twelve one-shot calls: five behavior core units, six
+arms in three fixed concurrent holdout pairs, and one neutral exact-final.
+Compaction and reconstruction remain prose-only conditional future obligations,
+triggered by relevant Runtime/recovery, role-config, or native Codex behavior
+change, or explicit user request. This release will not claim they ran or were
+certified. No conditional schema, new family, runner, record, receipt, gate,
+ledger, graph, compatibility, product/runtime/config/plugin/cache change,
+provider/model/network/install/release/activation effect, candidate freeze, or
+production record/authority materialization is authorized. Any wider required
+path, unexpected failure, product diff, unknown input, or ambiguity returns
+`NOT YET` to Root.
 
 ## Baseline
 
@@ -139,9 +138,9 @@ excluded mechanically and are unreadable from the isolated provider workspace.
 The projection digest is computed independently of the oracle digest.
 
 One externally supplied user-authenticated evaluation bundle may authorize the
-exact finite set of provider invocations for required behavior cases, three
-fixed holdout pairs, and one
-neutral exact-final, with a cumulative call/token/time ceiling. Each planned
+exact finite twelve-invocation plan: five required behavior cases, six arms in
+three fixed holdout pairs, and one neutral exact-final, with a cumulative
+call/token/time ceiling. Each planned
 invocation remains one-shot; provider-reached or ambiguous effects are never
 retried. The first terminal or oracle failure stops the bundle. Exact-final
 receives the verbatim request, exact product diff/artifact, acceptance
@@ -161,9 +160,12 @@ revealed and one quality decision is computed. Across all fixed pairs,
 candidate aggregate tokens and wall time must each be no more than `1.25` times
 the previous released product; no old named public arm is part of this design.
 
-Model cases are limited to low/high-risk qualification, midflight escalation,
-goal divergence, no-commit/secret decisions, same-task compaction,
-no-summary/no-handle reconstruction, the fixed holdouts, and exact-final.
+Mandatory model cases are limited to low/high-risk qualification, midflight
+escalation, goal divergence, no-commit/secret decisions, the fixed holdouts,
+and exact-final. Same-task compaction and no-summary/no-handle reconstruction
+are unrun conditional future mechanism obligations, triggered only by relevant
+Runtime/recovery, role-config, or native Codex behavior change, or explicit
+user request; this release cannot claim native mechanism certification.
 Receipt, claim, schema, parser, invalidation, truncation, install, and rollback
 behavior is deterministic integration coverage. Exact action-enum wording is
 diagnostic when a conservative equivalent is safe; only safety, quality,
@@ -237,40 +239,32 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `working`; GRANT-08 implementation and offline verification are
+- Phase: `working`; GRANT-09 offline implementation and verification are
   complete. Candidate freeze and exact-final have not started.
-- GRANT-08 focused RED ran the native-stream extraction test directly and
-  returned exit `1`, `Ran 1 test`, with `HostEvidenceError: raw stream event
-  sequence differs`. The same test is GREEN after repair.
-- Production now parses native `codex exec --json` thread/turn/item/usage
-  events. It rejects the retired synthetic sequence, duplicate/reordered or
-  malformed native events, non-JSON/follow-on agent messages, nonterminal
-  terminal events, malformed usage, and widened host metadata. Terminal class,
-  provider reach, calls, tokens, and wall time are derived from native facts and
-  the exact four-field host metadata object.
-- Attestations persist neither raw events nor tool command/output. They bind the
-  native raw/report digest, a closed allowlisted projection, derived terminal,
-  host exit/timeout/timestamps, claim, host contract, and invocation. Recovery
-  accepts only a proved no-effect record with the matching native raw stream;
-  ambiguity and partial effects remain terminal failures.
-- The named archived calibration stream was characterized read-only, without
-  copying its raw content. It is one thread and turn, paired command items, one
-  JSON agent report, and terminal five-field usage; its SHA-256 remains
-  `ef9fd87f31b1ab39c3e3ae91475a4f2798fe1105414d0d5e501d8384a09730aa`.
-- The converged affected command covered 80 tests and returned exit `0`, `OK`
-  in 4.247s. The single cumulative command
-  `python3 -m unittest discover -s tests -v` returned exit `0`, `Ran 83 tests
-  in 4.160s`, `OK`. Coverage includes native parsing and fake-host E2E,
-  metadata/terminal derivation, timeout/partial/no-effect classification,
-  raw/report/projection/contract/invocation binding, secret non-persistence,
-  claims/recovery, failure prefixes, invalidation, release refusal, and both
-  stage profiles. After replacing this current index and removing two unused
-  test bindings, the contract plus CLI seam rerun was 13/13 GREEN in 0.421s.
-- Static evidence: `git diff --check` and Python compilation passed; evaluator
-  production Python is 2,198 lines, largest module 539 lines; plan remains
-  below 3,000 words; durable inventory is exactly the four named types and no
-  active ledger; evaluator bundle is
-  `217b1a0c3b0f728152f8017743ce8b461bd7151532612f72bc34f838ed8c0c6c`.
+- The focused RED ran three exact inventory/count assertions: the policy and
+  four declarative surfaces still contained two extra mechanism roles, while a
+  twelve-call cap could not cover the old fourteen-unit plan. Result: two
+  failures and one `ManifestError`. After the authorized deletion, the same
+  three assertions are GREEN.
+- The mandatory finite plan is now exactly twelve one-shot calls: five named
+  behavior core units, six arms in three fixed concurrent holdout pairs, and
+  one neutral exact-final. Its cap is twelve. Behavior/holdouts remain
+  `gpt-5.6-sol/high`; exact-final remains `gpt-5.6-sol/max`; fixed ordering,
+  first-failure stop, aggregate 1.25, native raw evidence, host metadata,
+  claims, four record types, release refusal, and F1-F11 remain unchanged.
+- `same-task-compaction` and `no-summary-reconstruction` are absent from the
+  manifest, fixtures, hidden oracles, response schemas, policy, and test report
+  fixtures. They remain only prose-level conditional future obligations. They
+  are unrun; no native mechanism certification is claimed for this release.
+- The one affected focused command covered 81 tests and returned exit `0`,
+  `OK` in 3.432s. The one cumulative command
+  `python3 -B -m unittest discover -s tests -v` returned exit `0`, `Ran 84
+  tests in 3.381s`, `OK`, with zero failures or errors.
+- Static evidence: `git diff --check` passed; evaluator production Python is
+  2,196 lines, largest module 539 lines; this plan remains below 3,000 words;
+  durable inventory is exactly the four named types and no active ledger;
+  evaluator bundle is
+  `a668311e244fe4764bb46cecd49672eff8bef96211c1ad7a97003cde36583ad9`.
   `skills/happycodex` remains
   `d9e525a267fbf36669d409ba1b4b009a6beeeea5` with no product diff.
 - Provider/model/network calls: `0`. Install/release/activation effects: `0`.
@@ -282,5 +276,5 @@ These are planning boundaries, not authority under GRANT-01.
   exact-final.
 - Recovery: read this entire file and verify the recorded branch, worktree,
   source, clean status, product tree, owner token, selected evaluator bundle,
-  and GRANT-08 receipt before reconciling only authorized paths. Do not
+  and GRANT-09 receipt before reconciling only authorized paths. Do not
   continue into effects from this grant or conversation context.

@@ -39,6 +39,17 @@ six holdout invocations use `behavior`; only the unique exact-final invocation
 uses `exact_final`. The production target is `gpt-5.6-sol/high` for behavior
 and holdouts and `gpt-5.6-sol/max` for exact-final.
 
+The mandatory production plan is exactly twelve one-shot calls: five core
+behavior units (`goal-divergence`, `no-commit-secret`, and the high-risk,
+low-risk, and midflight qualification units), six arms in three fixed
+concurrent holdout pairs, and one neutral exact-final. Same-task compaction and
+no-summary/no-handle reconstruction are conditional future mechanism
+obligations, not declarative model units. They run only after relevant Runtime
+or recovery semantics, external role configuration, or native Codex compaction
+behavior changes, or when the user explicitly requests that assurance. They
+are currently unrun; this evaluator and its release path do not claim native
+mechanism certification.
+
 Provider input is built from a closed allowlist. Expected answers, hidden
 boundaries, oracle and matcher content, holdout mappings, desired verdicts, and
 repair history are absent from workspace, arguments, standard input,
@@ -62,5 +73,5 @@ persisted in an Attestation.
 Run all offline checks with:
 
 ```bash
-python3 -m unittest discover -s tests -v
+python3 -B -m unittest discover -s tests -v
 ```

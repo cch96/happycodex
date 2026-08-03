@@ -3,11 +3,9 @@
 MODEL_ROLE_IDS = (
     "goal-divergence",
     "no-commit-secret",
-    "no-summary-reconstruction",
     "qualification-high-risk",
     "qualification-low-risk",
     "qualification-midflight",
-    "same-task-compaction",
 )
 HOLDOUT_ROLE_ID = "fixed-holdout"
 EXACT_FINAL_ROLE_ID = "exact-final"

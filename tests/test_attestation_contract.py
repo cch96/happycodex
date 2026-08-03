@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+import json
 from pathlib import Path
 import subprocess
 import unittest
@@ -94,6 +95,23 @@ class RepositoryContractTests(unittest.TestCase):
             {"evaluator_bundle_sha256", "provider_component_sha256", "oracle_component_sha256", "harness_component_sha256"},
         )
         self.assertEqual(len(set(components.values())), 4)
+
+    def test_production_inventory_excludes_conditional_mechanisms(self):
+        evaluation = ROOT / "evaluation"
+        manifest = json.loads((evaluation / "manifest-v1.json").read_text())
+        fixtures = json.loads((evaluation / "provider-fixtures-v1.json").read_text())
+        oracles = json.loads((evaluation / "hidden-oracles-v1.json").read_text())
+        schemas = json.loads((evaluation / "report-schemas-v1.json").read_text())
+        expected = {
+            "goal-divergence", "no-commit-secret", "qualification-high-risk",
+            "qualification-low-risk", "qualification-midflight",
+        }
+        self.assertEqual(set(manifest["core_roles"]), expected)
+        self.assertEqual(set(fixtures["core"]), expected)
+        self.assertEqual(set(oracles["core"]), expected)
+        self.assertEqual(set(schemas["core"]), expected)
+        for retired in ("same-task-compaction", "no-summary-reconstruction"):
+            self.assertNotIn(retired, str((manifest, fixtures, oracles, schemas)))
 
 
 if __name__ == "__main__":
