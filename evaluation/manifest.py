@@ -25,7 +25,7 @@ class ManifestError(ValueError):
 def _validate_structural_schema(node: Any) -> None:
     if type(node) is not dict or "type" not in node:
         raise ManifestError("response schema node lacks a structural type")
-    allowed = {"type", "required", "properties", "items"}
+    allowed = {"type", "required", "properties", "items", "additionalProperties"}
     if set(node) - allowed:
         raise ManifestError("response schema contains a non-structural keyword")
     schema_type = node["type"]
@@ -36,8 +36,10 @@ def _validate_structural_schema(node: Any) -> None:
         required = node.get("required", [])
         if type(properties) is not dict or type(required) is not list or not all(type(item) is str for item in required):
             raise ManifestError("response schema object shape is malformed")
-        if len(required) != len(set(required)) or not set(required).issubset(properties):
-            raise ManifestError("response schema required fields differ from properties")
+        if node.get("additionalProperties") is not False:
+            raise ManifestError("response schema object must forbid additional properties")
+        if len(required) != len(set(required)) or set(required) != set(properties):
+            raise ManifestError("response schema required fields must equal properties")
         if "items" in node:
             raise ManifestError("response schema object cannot contain items")
         for child in properties.values():

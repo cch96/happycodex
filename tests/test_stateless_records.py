@@ -108,6 +108,10 @@ class DurableRecordTests(unittest.TestCase):
                 clone, BASELINE_REVISION,
                 external_role_config_sha256=SHA["3"],
             )
+            schema = ROOT / "evaluation" / "report-schemas-v1.json"
+            (clone / "evaluation" / "report-schemas-v1.json").write_bytes(
+                schema.read_bytes()
+            )
             dirty = "DIRTY MUTABLE RUNTIME MUST NEVER REACH AN ARM\n"
             (clone / "skills" / "happycodex" / "SKILL.md").write_text(dirty)
             _, _, spec, _ = bundle(
@@ -312,9 +316,15 @@ class ExternalHostClaimTests(unittest.TestCase):
             self.assertTrue(Path(first["path"]).exists())
             completed = subprocess.run(
                 [
-                    "python3", "-m", "evaluation.cli", "claim",
-                    "--claim-root", str(root), "--claim-key", SHA["1"],
-                    "--invocation-sha256", SHA["2"],
+                    "python3", "-c",
+                    (
+                        "from pathlib import Path; "
+                        "from evaluation.host import reserve_claim; "
+                        "reserve_claim(root=Path(__import__('sys').argv[1]), "
+                        "claim_key=__import__('sys').argv[2], "
+                        "invocation_sha256=__import__('sys').argv[3])"
+                    ),
+                    str(root), SHA["1"], SHA["2"],
                 ], cwd=ROOT, capture_output=True, text=True, check=False,
             )
             self.assertNotEqual(completed.returncode, 0)

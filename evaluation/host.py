@@ -6,11 +6,17 @@ import os
 from datetime import datetime, timezone
 from pathlib import Path
 import stat
-from typing import Any
+import subprocess
+from typing import Any, Callable
 
+from evaluation.holdout import judge_fixed_holdouts
 from evaluation.manifest import load_production_inputs
 from evaluation.oracle import hidden_oracle_for, score_hidden
-from evaluation.provider import sanitize_events
+from evaluation.provider import (
+    EvaluationCapability, accept_evaluation_authority,
+    build_fixed_host_policy, fixed_host_argv, fixed_host_instruction,
+    host_contract_from_policy, rebind_evaluation_capability, sanitize_events,
+)
 from evaluation.records import (
     build_attestation,
     canonical_json,
@@ -59,6 +65,8 @@ def parse_raw_stream(raw: bytes) -> dict[str, Any]:
     thread_id: str | None = None
     turn_started = False
     turn_completed = False
+    turn_failed = False
+    failure_message: str | None = None
     open_items: dict[str, str] = {}
     completed_items: set[str] = set()
     item_facts: list[dict[str, str]] = []
@@ -108,6 +116,26 @@ def parse_raw_stream(raw: bytes) -> dict[str, Any]:
                 del open_items[item_id]
                 completed_items.add(item_id)
             item_facts.append({"event": kind, "id": item_id, "type": item_type})
+        elif kind == "error":
+            _exact(event, {"type", "message"}, "error")
+            if (
+                not turn_started or turn_completed or turn_failed
+                or report is not None or failure_message is not None
+                or type(event["message"]) is not str or not event["message"]
+            ):
+                raise HostEvidenceError("native error event is invalid")
+            failure_message = event["message"]
+        elif kind == "turn.failed":
+            _exact(event, {"type", "error"}, "turn.failed")
+            error = event["error"]
+            if (
+                index != len(events) - 1 or not turn_started or turn_completed
+                or turn_failed or report is not None or open_items
+                or type(error) is not dict or set(error) != {"message"}
+                or error.get("message") != failure_message
+            ):
+                raise HostEvidenceError("native failed terminal is invalid")
+            turn_failed = True
         elif kind == "turn.completed":
             _exact(event, {"type", "usage"}, "turn.completed")
             if index != len(events) - 1 or not turn_started or turn_completed or open_items or report is None:
@@ -118,10 +146,17 @@ def parse_raw_stream(raw: bytes) -> dict[str, Any]:
             raise HostEvidenceError("native stream event type is forbidden")
     if events and thread_id is None:
         raise HostEvidenceError("native stream lacks a thread start")
+    if failure_message is not None and not turn_failed:
+        raise HostEvidenceError("native error lacks its exact failed terminal")
     return {
         "events": events, "thread_id": thread_id,
         "turn_started": turn_started, "turn_completed": turn_completed,
+        "turn_failed": turn_failed,
         "item_facts": item_facts, "report": report, "usage": usage,
+        "failure_message_sha256": (
+            hashlib.sha256(failure_message.encode()).hexdigest()
+            if failure_message is not None else None
+        ),
         "raw_events_sha256": hashlib.sha256(raw).hexdigest(),
     }
 
@@ -175,6 +210,8 @@ def _sanitized_projection(parsed: dict[str, Any], report: dict[str, Any]) -> dic
         "thread_id": parsed["thread_id"],
         "turn_started": parsed["turn_started"],
         "turn_completed": parsed["turn_completed"],
+        "turn_failed": parsed["turn_failed"],
+        "failure_message_sha256": parsed["failure_message_sha256"],
         "items": parsed["item_facts"],
         "agent_report": report if parsed["report"] is not None else None,
         "usage": parsed["usage"],
@@ -332,3 +369,231 @@ def reserve_claim(
     finally:
         os.close(directory)
     return {**payload, "path": str(path), "file_sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
+
+
+def _regular(path: Path, mode: int | None = None) -> Path:
+    path = path.absolute()
+    if path.is_symlink() or not path.is_file() or (mode is not None and stat.S_IMODE(path.stat().st_mode) != mode):
+        raise HostEvidenceError(f"private file is not regular mode-{mode:04o}: {path}")
+    return path
+
+
+def _directory(path: Path, mode: int) -> Path:
+    path = path.absolute()
+    if path.is_symlink() or not path.is_dir() or stat.S_IMODE(path.stat().st_mode) != mode:
+        raise HostEvidenceError(f"private directory is not real mode-{mode:04o}: {path}")
+    return path
+
+
+def _sync_directory(path: Path) -> None:
+    descriptor = os.open(path, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+
+
+def _exclusive(path: Path, body: bytes, mode: int) -> None:
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
+    descriptor = os.open(path, flags, mode)
+    try:
+        os.write(descriptor, body)
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+    _sync_directory(path.parent)
+
+
+def _freeze(path: Path) -> None:
+    for child in sorted(path.rglob("*"), reverse=True):
+        if child.is_symlink():
+            raise HostEvidenceError("prepared workspace contains a symlink")
+        child.chmod(0o500 if child.is_dir() else 0o400)
+    path.chmod(0o500)
+
+
+def _prepare_unit(policy: dict[str, Any], unit: dict[str, Any]) -> dict[str, Path]:
+    workspace = policy["workspace_policy"]
+    units = _directory(Path(workspace["units_root"]), 0o700)
+    if not unit["unit_id"].replace("-", "").isalnum():
+        raise HostEvidenceError("unit id is unsafe for a private path")
+    unit_root = units / unit["unit_id"]
+    os.mkdir(unit_root, 0o700)
+    home, codex_home = unit_root / "home", unit_root / "codex-home"
+    os.mkdir(home, 0o700); os.mkdir(codex_home, 0o700)
+    schema = unit_root / "output-schema.json"
+    _exclusive(schema, (canonical_json(unit["invocation"]["provider_input"]["response_schema"]) + "\n").encode(), 0o600)
+    schema.chmod(0o400)
+    with schema.open("rb") as frozen_schema:
+        os.fsync(frozen_schema.fileno())
+    if unit["stage"] == "exact_final":
+        cwd = _directory(Path(workspace["exact_final_source"]), 0o500)
+    else:
+        cwd = unit_root / "workspace"; os.mkdir(cwd, 0o700)
+        git = cwd / ".git"; os.mkdir(git, 0o700)
+        for name in ("objects", "refs"): os.mkdir(git / name, 0o700)
+        os.mkdir(git / "objects" / "info", 0o700); os.mkdir(git / "objects" / "pack", 0o700)
+        os.mkdir(git / "refs" / "heads", 0o700); os.mkdir(git / "refs" / "tags", 0o700)
+        _exclusive(git / "HEAD", b"ref: refs/heads/main\n", 0o600)
+        _exclusive(git / "config", b"[core]\n\trepositoryformatversion = 0\n\tbare = false\n", 0o600)
+        _freeze(cwd)
+    return {"unit_root": unit_root, "home": home, "codex_home": codex_home, "cwd": cwd, "schema": schema}
+
+def _durable_attestations(spec: dict[str, Any], policy: dict[str, Any], unit_ids: set[str]) -> list[dict[str, Any]]:
+    root = _directory(Path(policy["workspace_policy"]["attestations_root"]), 0o700)
+    records = []
+    planned = {unit["unit_id"]: unit for unit in spec["units"]}
+    for unit_id in sorted(unit_ids):
+        path = root / f"{unit_id}.json"
+        if not path.exists():
+            raise HostEvidenceError("required durable predecessor Attestation is absent")
+        record = json.loads(_regular(path, 0o600).read_text(encoding="utf-8"))
+        validate_attestation(record)
+        if record["unit_id"] != unit_id or record["invocation_sha256"] != planned[unit_id]["invocation_sha256"] or record["verdict"] != "pass" or record["terminal"]["classification"] != "success":
+            raise HostEvidenceError("required durable predecessor Attestation failed")
+        records.append(record)
+    return records
+
+
+def reveal_holdout_mapping(
+    *, spec: dict[str, Any], policy: dict[str, Any],
+    candidate_product: dict[str, Any] | None = None,
+    previous_product: dict[str, Any] | None = None,
+    authority_sha256: str | None = None,
+    now: Callable[[], datetime] = lambda: datetime.now(timezone.utc),
+) -> dict[str, Any]:
+    validate_eval_spec(spec)
+    holdout_ids = {item for pair in spec["holdouts"] for item in pair["unit_ids"]}
+    try:
+        records = _durable_attestations(spec, policy, holdout_ids)
+    except HostEvidenceError as exc:
+        raise HostEvidenceError("all six durable holdout Attestations are required before mapping reveal") from exc
+    if authority_sha256 is not None and any(item["authority_sha256"] != authority_sha256 for item in records):
+        raise HostEvidenceError("holdout Attestations bind another authority")
+    if candidate_product is None or previous_product is None:
+        raise HostEvidenceError("holdout products are required after six durable Attestations")
+    mapping_path = _regular(Path(policy["workspace_policy"]["holdout_mapping_path"]), 0o600)
+    mapping = json.loads(mapping_path.read_text(encoding="utf-8"))
+    if canonical_sha256(mapping) != policy["workspace_policy"]["holdout_mapping_sha256"]:
+        raise HostEvidenceError("holdout mapping identity drift")
+    revealed_at = now().astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+    inputs = load_production_inputs(Path(__file__).resolve().parents[1])
+    units = {unit["unit_id"]: unit for unit in spec["units"]}
+    assessments = {record["unit_id"]: score_hidden(record["observation"]["report"], hidden_oracle_for(inputs, units[record["unit_id"]]), stage="holdout") for record in records}
+    judged = judge_fixed_holdouts(
+        spec=spec, attestations=records, assessments=assessments, mapping=mapping,
+        revealed_at=revealed_at, candidate_product=candidate_product,
+        previous_product=previous_product,
+    )
+    if not judged["passed"]:
+        raise HostEvidenceError("fixed holdout decision failed")
+    return {"mapping": mapping, "revealed_at": revealed_at, "judgment": judged}
+
+
+def _run_provider_once(
+    capability: EvaluationCapability, spec: dict[str, Any], *, argv: list[str],
+    stdin: bytes, env: dict[str, str], cwd: Path, timeout_seconds: int,
+    stdout_fd: int, runner: Callable[..., tuple[int, bool]] | None,
+) -> tuple[int, bool]:
+    rebind_evaluation_capability(capability, spec)
+    if runner is not None:
+        return runner(argv=argv, stdin=stdin, env=env, cwd=cwd, timeout_seconds=timeout_seconds, stdout_fd=stdout_fd)
+    process = subprocess.Popen(
+        argv, stdin=subprocess.PIPE, stdout=stdout_fd, stderr=subprocess.DEVNULL,
+        cwd=cwd, env=env, start_new_session=True,
+    )
+    try:
+        process.communicate(stdin, timeout=timeout_seconds)
+        return process.returncode, False
+    except subprocess.TimeoutExpired:
+        process.kill(); process.communicate()
+        return process.returncode if process.returncode is not None else -9, True
+
+
+def execute_fixed_host_transaction(
+    *, repo_root: Path, product: dict[str, Any], previous_product: dict[str, Any],
+    spec: dict[str, Any], unit_id: str, policy: dict[str, Any],
+    authority_line: str, supplied_authority: dict[str, Any],
+    authenticate_line: Callable[[str, dict[str, Any]], bool], provider_auth: bytes,
+    run_provider: Callable[..., tuple[int, bool]] | None = None,
+    clock: Callable[[], datetime] = lambda: datetime.now(timezone.utc),
+) -> dict[str, Any]:
+    validate_product_artifact(product); validate_product_artifact(previous_product); validate_eval_spec(spec)
+    if host_contract_from_policy(policy) != spec["host_contract"]:
+        raise HostEvidenceError("host policy differs from authority-bound contract")
+    expected_line = f"APPROVE HAPPYCODEX EVALUATION {spec['authority_request_sha256']}"
+    if authority_line != expected_line:
+        raise HostEvidenceError("evaluation authority line differs")
+    capability = accept_evaluation_authority(
+        spec, supplied_authority,
+        lambda value: authenticate_line(authority_line, value),
+    )
+    rebind_evaluation_capability(capability, spec)
+    unit = next((item for item in spec["units"] if item["unit_id"] == unit_id), None)
+    if unit is None:
+        raise HostEvidenceError("unit is absent from EvalSpec")
+    if unit["stage"] == "holdout":
+        prior = {item["unit_id"] for item in spec["units"] if item["stage"] == "behavior"}
+        if any(item["authority_sha256"] != capability.authority_sha256 for item in _durable_attestations(spec, policy, prior)):
+            raise HostEvidenceError("behavior predecessors bind another authority")
+    elif unit["stage"] == "exact_final":
+        prior = {item["unit_id"] for item in spec["units"] if item["stage"] == "behavior"}
+        if any(item["authority_sha256"] != capability.authority_sha256 for item in _durable_attestations(spec, policy, prior)):
+            raise HostEvidenceError("behavior predecessors bind another authority")
+        reveal_holdout_mapping(
+            spec=spec, policy=policy, candidate_product=product,
+            previous_product=previous_product, authority_sha256=capability.authority_sha256,
+            now=clock,
+        )
+    instruction = fixed_host_instruction(policy, unit)
+    paths = _prepare_unit(policy, unit)
+    argv = fixed_host_argv(policy, unit, paths, instruction)
+    env = {
+        "CODEX_HOME": str(paths["codex_home"]), "HOME": str(paths["home"]),
+        "PATH": "/usr/bin:/bin", "LANG": "C.UTF-8", "LC_ALL": "C.UTF-8",
+        "GIT_CONFIG_GLOBAL": "/dev/null", "GIT_CONFIG_NOSYSTEM": "1",
+        "GIT_OPTIONAL_LOCKS": "0", "GIT_TERMINAL_PROMPT": "0",
+    }
+    stdin = (canonical_json(unit["invocation"]["provider_input"]) + "\n").encode()
+    if type(provider_auth) is not bytes or not provider_auth or provider_auth in (stdin + canonical_json({"argv": argv, "env": env}).encode()):
+        raise HostEvidenceError("provider auth is invalid or visible")
+    claim = reserve_claim(
+        root=Path(policy["workspace_policy"]["claims_root"]),
+        claim_key=unit["invocation"]["claim_key"], invocation_sha256=unit["invocation_sha256"],
+    )
+    raw_path = Path(policy["workspace_policy"]["raw_root"]) / f"{unit_id}.jsonl"
+    raw_fd = os.open(raw_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0), 0o600)
+    _sync_directory(raw_path.parent)
+    auth_path = paths["codex_home"] / policy["workspace_policy"]["auth_staging_filename"]
+    _exclusive(auth_path, provider_auth, 0o600)
+    started = clock()
+    try:
+        exit_code, timed_out = _run_provider_once(
+            capability, spec, argv=argv, stdin=stdin, env=env, cwd=paths["cwd"],
+            timeout_seconds=unit["invocation"]["timeout_seconds"], stdout_fd=raw_fd,
+            runner=run_provider,
+        )
+        os.fsync(raw_fd)
+    finally:
+        os.close(raw_fd)
+        if auth_path.exists(): auth_path.unlink(); _sync_directory(paths["codex_home"])
+    frozen = clock()
+    raw = _regular(raw_path, 0o600).read_bytes()
+    if provider_auth in raw:
+        raise HostEvidenceError("provider auth reached raw events")
+    metadata = {
+        "started_at": started.astimezone(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "frozen_at": frozen.astimezone(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "exit_code": exit_code, "timed_out": timed_out,
+    }
+    record = attestation_from_raw(
+        root=repo_root, product=product, spec=spec, unit_id=unit_id, raw=raw,
+        host_metadata=metadata, authority_sha256=capability.authority_sha256,
+    )
+    verify_host_evidence(record=record, unit=unit, spec=spec, raw=raw)
+    attestation_path = Path(policy["workspace_policy"]["attestations_root"]) / f"{unit_id}.json"
+    _exclusive(attestation_path, (canonical_json(record) + "\n").encode(), 0o600)
+    return {
+        "attestation": record, "attestation_path": str(attestation_path),
+        "raw_path": str(raw_path), "claim": claim, "argv": argv,
+    }

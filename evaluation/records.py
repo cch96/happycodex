@@ -168,10 +168,14 @@ def _validate_cap(cap: dict[str, Any]) -> None:
 def _validate_host_contract(contract: dict[str, Any]) -> None:
     _exact(
         contract,
-        {"schema_version", "trust_domain", "provider_binary_sha256", "tool_config_sha256", "permission_profile_sha256", "workspace_policy_sha256"},
+        {
+            "schema_version", "trust_domain", "provider_binary_sha256",
+            "provider_policy_sha256", "tool_config_sha256",
+            "permission_profile_sha256", "workspace_policy_sha256",
+        },
         "host_contract",
     )
-    _require(contract["schema_version"] == 1, "host contract schema differs")
+    _require(contract["schema_version"] == 2, "host contract schema differs")
     _text(contract["trust_domain"], "host_contract.trust_domain")
     for field in set(contract) - {"schema_version", "trust_domain"}:
         _sha(contract[field], f"host_contract.{field}")
@@ -469,8 +473,11 @@ def validate_attestation(record: dict[str, Any]) -> dict[str, Any]:
     if record["kind"] == "exact_final":
         _sha(record["product_artifact_sha256"], "exact-final product artifact")
         report = record["observation"]["report"]
-        _require(report.get("neutral") is True and report.get("decision") in {"GO", "NOT_YET"}, "exact-final report is not neutral and typed")
-        _require((report["decision"] == "GO") == (record["verdict"] == "pass"), "exact-final decision and verdict differ")
+        if record["terminal"]["complete"]:
+            _require(report.get("neutral") is True and report.get("decision") in {"GO", "NOT_YET"}, "exact-final report is not neutral and typed")
+            _require((report["decision"] == "GO") == (record["verdict"] == "pass"), "exact-final decision and verdict differ")
+        else:
+            _require(report == {} and record["verdict"] == "fail", "incomplete exact-final must retain an empty adverse report")
     _validate_seal(record)
     return record
 

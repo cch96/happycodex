@@ -63,8 +63,17 @@ mapped product source Runtime. Mutable working-tree bytes are never substituted
 for either frozen source, and mapping labels remain outside provider input.
 
 The fixed external host is the trusted capture boundary. `EvalSpec`
-binds its binary, trust domain, tool/permission/workspace configuration, and
-every invocation. The raw input is native `codex exec --json`: one thread, one
+binds its binary, complete provider argv/role policy, trust domain,
+tool/permission/workspace configuration, and every invocation. The public CLI
+never reserves a claim or writes execution evidence. After an external
+authenticator accepts the exact authority line, the same process calls the
+single `evaluation.host.execute_fixed_host_transaction` path: prepare and
+freeze inputs, reserve one effective-digest claim, launch once, fsync raw JSONL,
+derive and verify, and exclusively persist one Attestation. Provider auth is
+temporarily staged only in isolated `CODEX_HOME` and removed after the launch;
+the model shell never receives that path or material. Holdout mapping is read
+only after all six arm Attestations are durable. The raw input is native
+`codex exec --json`: one thread, one
 turn, paired item events, one JSON agent message and one terminal usage event.
 The host supplies only start/freeze timestamps, exit code and timeout status;
 all terminal and usage facts are derived. Verification requires the retained

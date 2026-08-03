@@ -371,7 +371,9 @@ class InvalidationMatrixTests(unittest.TestCase):
             root = self._copy_root(directory)
             path = root / "evaluation" / "report-schemas-v1.json"
             value = json.loads(path.read_text(encoding="utf-8"))
-            value["core"]["qualification-low-risk"]["properties"]["explanation"] = {"type": "string"}
+            schema = value["core"]["qualification-low-risk"]
+            schema["properties"]["explanation"] = {"type": "string"}
+            schema["required"].append("explanation")
             path.write_text(json.dumps(value), encoding="utf-8")
             current = self._materialize(root)
         self.assertEqual(invalidation(previous, current)["model_units"], ["qualification-low-risk"])
@@ -405,7 +407,7 @@ class InvalidationMatrixTests(unittest.TestCase):
 
     def test_host_tool_permission_workspace_or_provider_drift_invalidates_full_plan(self):
         _, _, previous, _ = bundle()
-        for field in ("provider_binary_sha256", "tool_config_sha256", "permission_profile_sha256", "workspace_policy_sha256"):
+        for field in ("provider_binary_sha256", "provider_policy_sha256", "tool_config_sha256", "permission_profile_sha256", "workspace_policy_sha256"):
             changed = {**HOST_CONTRACT, field: "1" * 64}
             _, _, current, _ = bundle(host_contract=changed)
             with self.subTest(field=field):

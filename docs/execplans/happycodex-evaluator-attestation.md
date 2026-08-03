@@ -46,55 +46,71 @@ has been implemented or certified.
   before creation. The new worktree was clean at the source commit before this
   plan was written.
 
-### Last grant: GRANT-12 (complete)
+### Active grant: GRANT-14 (in progress)
 
-Under the active user amendment `同意将 compaction/reconstruction 降为
-conditional mechanism，按 12-call 发布路径继续`, GRANT-11 authorizes only
-offline freeze/materialization. It is owned by token
-`5a63e381-1ff8-4675-9c10-c81da14e1de2`. Exact clean prestate is branch
-`codex/happycodex-evaluator-attestation`, commit
-`46b71f3a22e2246527be543f85da9b5ae77dcce4`, tree
-`32b4418162331745239a17dfe10b89f9237a2b5a`, product tree
-`d9e525a267fbf36669d409ba1b4b009a6beeeea5`, evaluator bundle
-`b42afeee7e878dc263e61ff7f569519bb8509d04f140911a601c05420964805b`,
-Codex binary SHA-256
-`cb5e8cb8a333a408ce6adbe0d4fad1845c69772c2216af7c1f88c98a11460dc6`,
-and unchanged Executor config SHA-256
-`d98fac1a0fe1bcc3071eac89b7246bfeb59fb85a7040417d50d07c58d74d1275`.
+The user explicitly approved the bounded `fixed-host-transaction-v2` repair.
+Executor ownership remains token `5a63e381-1ff8-4675-9c10-c81da14e1de2`.
+The verified clean prestate is commit
+`a0d982db94e5f20c4542e54d982faf29075bab40`, tree
+`36b68fd1b473a4df0461d3514145477b66b6be87`, product tree
+`d9e525a267fbf36669d409ba1b4b009a6beeeea5`, role-config SHA-256
+`d98fac1a0fe1bcc3071eac89b7246bfeb59fb85a7040417d50d07c58d74d1275`,
+and Codex-binary SHA-256
+`cb5e8cb8a333a408ce6adbe0d4fad1845c69772c2216af7c1f88c98a11460dc6`.
 
-Repository writes are limited to this plan and one plan-only commit. External
-writes are limited to one new private mode-0700 root
-`/home/caichenghang/.codex/happycodex-evaluator-attestation-release`, private
-JSON inputs/generated records, and empty future execution directories. Only
-the existing `python3 -m evaluation.cli` may materialize the two exact products,
-twelve-unit EvalSpec, validation, and one combined authority request. The host
-policy/contract must close all environment, isolation, native JSONL, per-arm
-Runtime, concurrency, and no-retry preimages. No test, provider/model/network,
-claim, attestation, raw stream, install/cache/release/activation, authority
-mint, new code/schema/runner/record/gate/ledger/graph, or product/config change
-is authorized. Any identity, shape, permission, or effect ambiguity returns
-`NOT YET` before paid execution.
+This one coherent offline batch may change this plan, evaluator-only files, and
+directly affected tests. It closes provider schemas, exact native failure
+capture, provider-policy/role binding, and one existing fixed-host transaction:
+authenticate and mint a process-local capability; deterministically prepare
+and freeze private inputs; exclusively reserve the effective claim; spawn once;
+exclusively capture and fsync raw JSONL; derive and verify; then exclusively
+persist one Attestation. It also closes path/mode/no-symlink rules, exact-final
+cwd, private auth staging, and post-six-arm holdout reveal. The public
+write-capable claim CLI and empty tool-bin indirection are removed.
 
-GRANT-11 terminated `NOT YET` after an offline configuration probe produced
-unexpected local files in a directory required to remain empty. GRANT-12,
-under the same user amendment and owner token, authorizes recovery plus one
-fresh offline freeze only. Its exact prestate is clean commit
-`b72e5b1e722bfc50d22cf8dbab9948ad48bfb84f`, tree
-`2d288cf8b9c81f98b16daa6343d42b0fdec28c8f`, and the unchanged product,
-evaluator, binary, and role-config identities above.
+Tests use only a fake subprocess. No real `codex exec`, provider/model/network,
+authority mint, claim/raw/Attestation, install, release, activation, product,
+Runtime, oracle, case, gate, record-family, threshold, role-config, active
+install/cache, or rollback mutation is allowed. After RED, repair, one focused
+run, one cumulative offline run, static checks, and a coherent source commit,
+the invalid external root is atomically moved without edits to
+`/home/caichenghang/.codex/happycodex-evaluator-attestation-release.invalid-1ad0228e`.
+A fresh mode-0700 root and request are then regenerated from committed source,
+followed by one plan-only receipt commit. The obsolete `1ad0228e...` request is
+never consumed or reused. Any scope expansion, identity drift, test failure,
+ambiguous effect, or inability to close this transaction returns `NOT YET`.
 
-The whole GRANT-11 root must be atomically quarantined at
-`/home/caichenghang/.codex/happycodex-evaluator-attestation-release.failed-grant11-b604ef4f`
-without deletion, editing, or reuse. Every fresh input is regenerated from the
-fixed sources. No Codex command may run. Exact-final receives a deterministic,
-rules-free, one-commit projection of only `evaluation/**`, `tests/**`,
-`.agents/**`, `.codex-plugin/**`, `README.md`, and `skills/**`, plus the exact
-aggregate source diff and a manifest binding all projected objects and
-exclusions. Original history, plans, instructions, findings, mappings, and
-quarantine remain unavailable. The snapshot becomes read-only before effects.
-Repository writes remain this plan plus one plan-only commit. No tests,
-provider/model/network, claim/raw/attestation, install/release/activation, or
-authority mint is authorized; ambiguity returns `NOT YET`.
+### Active correction: GRANT-15
+
+The GRANT-14 focused run stopped before test bodies because the bound Python
+3.10 interpreter has no stdlib `tomllib`. Root authorized one narrow correction
+from the unchanged source and external-effect prestate, whose tracked-diff and
+new-test SHA-256 values were respectively
+`681a0f35389b2c29e6f767cde65421a68f65ec8b26fd53422bd0a25b4e18204c`
+and `297722f74564d21475119cfd77c596a5b83d50d462023294aa9312dda64303c8`.
+Remove that import without adding a dependency, fallback, parser, module, or
+generic config engine. The authority-bound provider policy carries the exact
+behavior instruction literal and expected model/effort; the fixed host checks
+the unchanged external config by whole-file SHA plus unique exact byte blocks
+for that literal and the fixed name/model/effort/plugins settings. Invocation
+uses the policy literal, never parsed config content. All GRANT-14 semantics and
+limits remain fixed. The same focused command may run once after this import
+falsifier; if GREEN, resume the one cumulative suite and remaining offline
+freeze transaction. Any different failure or drift stops again.
+
+### Active test adaptation: GRANT-16
+
+The GRANT-15 focused run proved Python 3.10 import compatibility and exposed
+only test-shape drift. Root authorized one final narrow adaptation from tracked
+diff SHA-256
+`27c010f57ed6844f7ac0cd2924bf339b86eed2b2cdc523615a731965bca88368`
+and transaction-test SHA-256
+`89c8e65bf64880442fcaccbeafa4abb183c640f08fd8aa63a356b966b281d564`.
+The tests may assert the exact structured config argument, keep synthetic
+schema mutations closed and exactly required while changing identity, and use
+the package-qualified fixture import. Production behavior and every GRANT-14
+invariant remain unchanged. Run the identical focused command once, then only
+if GREEN run the one cumulative offline suite and resume the frozen transaction.
 
 ## Baseline
 
@@ -261,73 +277,27 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `candidate_frozen`; GRANT-12 recovery and fresh offline freeze are
-  complete. Paid evidence, exact-final, install, release, and activation have
-  not started.
-- The exact RED ran three tests and produced four assertion failures: baseline
-  holdouts received candidate Runtime, a dirty temporary checkout replaced
-  frozen Runtime bytes, a forged source tree was accepted, and an unavailable
-  source commit was accepted. After repair the same three tests are 3/3 GREEN.
-- Materialization now reconstructs both supplied ProductArtifacts from their
-  exact Git source commits and external-role-config digest, rejects any
-  mismatch/unavailable source, and requires the comparison products to share
-  one role config. It reads Runtime as exact Git blob bytes decoded as UTF-8;
-  mutable working-tree Runtime is never used.
-- Candidate behavior/exact-final and candidate holdout arms bind Runtime SHA
-  `07421636583ddec11308bf235fe4b49b2d0b11598944303f5287574f631d4bb5`.
-  Baseline holdout arms bind exact source
-  `3b9c11fac1f97df75263e0bfc6421c575e04e8b2` Runtime SHA
-  `aa090bbd0d7af6e6ac05e5afc959ee93268393f8621bd5ebf00e745d04e3ce55`.
-  Profiles, tools, timeout and role config remain identical across each pair;
-  mapping labels remain outside provider input.
-- The twelve-call inventory, three fixed pairs, aggregate 1.25, ordering,
-  first-failure stop, native evidence, host metadata, authority, four records,
-  release refusal, F1-F11, and conditional-mechanism absence are unchanged.
-- The affected focused command was 83/83 GREEN in 6.146s. The one cumulative
-  `python3 -B -m unittest discover -s tests -v` was 86/86 GREEN in 6.022s.
-  A final two-assertion fairness/source check after the exact config invariant
-  was added was 2/2 GREEN in 0.070s.
-- Static evidence: `git diff --check` passed; evaluator production Python is
-  2,227 lines, largest module 539 lines; this plan remains below 3,000
-  words; durable inventory is exactly the four named types and no active
-  ledger; evaluator bundle is
-  `b42afeee7e878dc263e61ff7f569519bb8509d04f140911a601c05420964805b`.
-  `skills/happycodex` remains
-  `d9e525a267fbf36669d409ba1b4b009a6beeeea5` with no product diff.
-- GRANT-11's entire root is preserved without edits at
-  `/home/caichenghang/.codex/happycodex-evaluator-attestation-release.failed-grant11-b604ef4f`.
-  The fresh active root was regenerated without reading or reusing quarantine.
-- Candidate and baseline ProductArtifact record SHA-256 values are
-  `d77ecb6af42ad35a6cf4f37787b6b7472bffe1faf4a103e145742bd2fe115fed`
-  and `ec4fc2dfb65be9ce8cc8d725a878d4166844cbd1ebbb686a4396116c17ecc9bf`.
-- Exact-final uses a rules-free, read-only, one-commit synthetic repo. Its
-  commit/tree are `e9b54ef548242b67407f0371a64d6588897265c3` /
-  `2a141a32ef19b90d762f8c46952eb6d54cde87a6`; its untyped support-manifest
-  SHA-256 is `dc7f6f26784ae4efec02eeb17b30f704f8da649f36ce034f10256c97ff937580`
-  and aggregate-diff SHA-256 is
-  `980dec3e23b36b2c818159ed8e5340ebd8d470f49d91f9ee674df1b52b73b2d7`.
-  It contains only the 32 projected source files, manifest, diff, and synthetic
-  Git metadata; no original refs, plan, instructions, history, or quarantine.
-- Granular host policy SHA-256 is
-  `e2ed2809285a45bf8b55581308c5a1e809718d96639354628aac3c2972f9f215`;
-  host-contract SHA-256 is
-  `2eae2c42e90902b7ae1afb94230e5cd14abd05c4131bea963c2495b65fdfdf6e`.
-  Model shell inherits nothing, sees only isolated HOME and restricted PATH,
-  never CODEX_HOME, and has default-deny granular reads plus network false.
-- Fresh EvalSpec record SHA-256 is
-  `abcfa7d086912a0901d000aaed0d4c5cb35a816dc7ee57dc23caf1e3cd6c5f83`.
-  The sole combined approval-request digest is
-  `1ad0228eb1024aaabb70a2385f829b56518e8a21158c28469cb9c45e50fb1919`
-  for exactly 12 calls, 600,000 input tokens, 100,000 output tokens,
-  2,400,000 wall milliseconds, and zero infrastructure recoveries.
-- GRANT-12 reran no tests and no Codex command. Provider/model/network calls:
-  `0`; claim/raw/attestation/authority/release records: `0`; install,
-  release, and activation effects: `0`. Future unit, raw, attestation, claim,
-  and tool-bin directories are mode 0700 and empty.
-- Open effects: authenticated evaluation execution, exact-final, isolated
-  install, release, and activation remain unrun and unauthorized.
-- Recovery: read this entire file and verify the recorded branch, worktree,
-  source, clean status, product tree, owner token, selected evaluator bundle,
-  GRANT-12 snapshot/contract/EvalSpec/request identities, quarantine, and empty
-  future directories. Do not execute or treat the materialized request as
-  authority without a new exact authenticated grant.
+- Phase: `repair_green_pending_commit`. The obsolete request beginning
+  `1ad0228e` is invalid and must never be consumed or reused. Its active root is
+  unchanged and awaits the exact recoverable quarantine named in GRANT-14.
+- GRANT-14 RED reproduced open provider objects, unbound provider policy,
+  incomplete native-failure capture, public claim writing, and the missing
+  fixed transaction. GRANT-15 removed the Python-3.11-only import without a
+  parser or dependency; GRANT-16 adapted only affected test shapes.
+- Final affected suite: 79/79 GREEN in 6.085s. Single cumulative suite:
+  92/92 GREEN in 6.109s. `git diff --check` and AST checks passed.
+- Production evaluator Python is 2,701 lines; largest module is `host.py` at
+  599. This plan is below 3,000 words. Durable inventory remains exactly
+  ProductArtifact, EvalSpec, Attestation, and ReleaseReceipt. CLI commands are
+  read-only/materialization/verification surfaces with no claim command.
+- The bound Codex 0.146.0 binary exposes every fixed exec flag and all 29
+  explicitly disabled features. The fixed policy validates the external role
+  config by whole-file SHA and unique exact byte blocks and binds the literal
+  behavior instructions. Exact-final remains neutral and read-only.
+- `skills/happycodex` remains tree
+  `d9e525a267fbf36669d409ba1b4b009a6beeeea5`; role-config SHA-256 remains
+  `d98fac1a0fe1bcc3071eac89b7246bfeb59fb85a7040417d50d07c58d74d1275`;
+  binary SHA-256 remains
+  `cb5e8cb8a333a408ce6adbe0d4fad1845c69772c2216af7c1f88c98a11460dc6`.
+- Provider/model/network calls, authority consumption, claims, raw events,
+  Attestations, install, release, and activation effects are all zero.

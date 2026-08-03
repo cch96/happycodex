@@ -5,7 +5,6 @@ import json
 from pathlib import Path
 from typing import Any
 
-from evaluation.host import reserve_claim
 from evaluation.identity import evaluator_components, load_json, product_artifact_from_git
 from evaluation.manifest import materialize_eval_spec
 from evaluation.records import RECORD_TYPES, validate_eval_spec, validate_record
@@ -139,21 +138,6 @@ def record_command(args: argparse.Namespace) -> int:
     return 0
 
 
-def claim_command(args: argparse.Namespace) -> int:
-    previous_spec = validate_record(load_json(args.previous_spec.resolve())) if args.previous_spec else None
-    _print(
-        reserve_claim(
-            root=args.claim_root.resolve(), claim_key=args.claim_key,
-            invocation_sha256=args.invocation_sha256,
-            recovery_index=args.recovery_index, recovery_cap=args.recovery_cap,
-            previous_raw=args.previous_raw.read_bytes() if args.previous_raw else None,
-            previous_attestation=(validate_record(load_json(args.previous_attestation.resolve())) if args.previous_attestation else None),
-            previous_spec=previous_spec,
-        )
-    )
-    return 0
-
-
 def _add_evidence_arguments(command: argparse.ArgumentParser) -> None:
     command.add_argument("--repo", type=Path, default=Path.cwd())
     command.add_argument("--raw", action="append", required=True, help="UNIT=PATH")
@@ -215,16 +199,6 @@ def parser() -> argparse.ArgumentParser:
     record.add_argument("path", type=Path)
     record.set_defaults(handler=record_command)
 
-    claim = sub.add_parser("claim")
-    claim.add_argument("--claim-root", type=Path, required=True)
-    claim.add_argument("--claim-key", required=True)
-    claim.add_argument("--invocation-sha256", required=True)
-    claim.add_argument("--recovery-index", type=int, default=0)
-    claim.add_argument("--recovery-cap", type=int, default=0)
-    claim.add_argument("--previous-raw", type=Path)
-    claim.add_argument("--previous-attestation", type=Path)
-    claim.add_argument("--previous-spec", type=Path)
-    claim.set_defaults(handler=claim_command)
     return result
 
 

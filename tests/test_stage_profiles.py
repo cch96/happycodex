@@ -11,7 +11,7 @@ from evaluation.records import (
     validate_eval_spec,
 )
 from evaluation.verify import invalidation
-from attestation_fixtures import (
+from tests.attestation_fixtures import (
     HOST_CONTRACT,
     PROFILES,
     REVIEW_BRIEF,

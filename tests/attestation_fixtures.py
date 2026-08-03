@@ -37,8 +37,9 @@ REVIEW_BRIEF = {
 }
 REVEALED_AT = "2026-08-02T00:00:35Z"
 HOST_CONTRACT = {
-    "schema_version": 1, "trust_domain": "happycodex-offline-test-host-v1",
+    "schema_version": 2, "trust_domain": "happycodex-offline-test-host-v2",
     "provider_binary_sha256": __import__("hashlib").sha256((ROOT / "tests" / "fake_external_host.py").read_bytes()).hexdigest(),
+    "provider_policy_sha256": canonical_sha256({"argv": "fixed-fake-v2"}),
     "tool_config_sha256": canonical_sha256({"tools": ["command_execution"]}),
     "permission_profile_sha256": canonical_sha256({"network": False, "filesystem": "temporary"}),
     "workspace_policy_sha256": canonical_sha256({"cwd": "fresh-temporary-repo", "home": "fresh-temporary-home"}),
