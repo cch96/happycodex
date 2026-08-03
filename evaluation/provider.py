@@ -412,6 +412,8 @@ def fixed_host_argv(policy: dict[str, Any], unit: dict[str, Any], paths: dict[st
     provider, permission = policy["provider_policy"], policy["permission_profile"]
     profile = permission["profile_name"]
     command_path = fixed_command_path(policy, paths["command_bin"])
+    helper = paths["command_bin"] / provider["sandbox_alias_name"] if unit["stage"] == "exact_final" else None
+    filesystem = '{":minimal"="read",":workspace_roots"={"."="read"}' + (f',{json.dumps(str(helper))}="read"' if helper else "") + "}"
     argv = [
         provider["binary_path"], "exec", "--json", "--ephemeral", "--ignore-user-config",
         "--ignore-rules", "--strict-config", "--color", "never", "--model", unit["invocation"]["model"],
@@ -419,7 +421,7 @@ def fixed_host_argv(policy: dict[str, Any], unit: dict[str, Any], paths: dict[st
         "--config", 'approval_policy="never"', "--config", 'web_search="disabled"',
         "--config", f'default_permissions="{profile}"',
         "--config", f'permissions.{profile}.description="fixture read only"',
-        "--config", f'permissions.{profile}.filesystem={{":minimal"="read",":workspace_roots"={{"."="read"}}}}',
+        "--config", f"permissions.{profile}.filesystem={filesystem}",
         "--config", f"permissions.{profile}.network.enabled=false",
         "--config", 'shell_environment_policy.inherit="none"',
         "--config", "shell_environment_policy.ignore_default_excludes=false",

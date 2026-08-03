@@ -525,6 +525,14 @@ class FixedHostTransactionTests(unittest.TestCase):
             self.assertEqual(exact_paths["cwd"], Path(policy["workspace_policy"]["exact_final_source"]))
             self.assertIn("neutral, read-only", exact_instruction)
             self.assertNotIn(EXECUTOR_INSTRUCTIONS, " ".join(exact_argv))
+            behavior_filesystem = next(value for value in config_values if ".filesystem=" in value)
+            exact_configs = [exact_argv[index + 1] for index, value in enumerate(exact_argv[:-1]) if value == "--config"]
+            exact_filesystem = next(value for value in exact_configs if ".filesystem=" in value)
+            helper = exact_paths["command_bin"] / "codex-linux-sandbox"
+            self.assertEqual(behavior_filesystem, 'permissions.happycodex_evaluator.filesystem={":minimal"="read",":workspace_roots"={"."="read"}}')
+            self.assertIn(f'{json.dumps(str(helper))}="read"', exact_filesystem)
+            self.assertNotIn(json.dumps(str(exact_paths["command_bin"])) + "=", exact_filesystem)
+            self.assertNotIn(":root", exact_filesystem)
 
     def test_legacy_path_lacks_required_sandbox_helper(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -534,6 +542,41 @@ class FixedHostTransactionTests(unittest.TestCase):
             self.assertIsNone(
                 shutil.which("codex-linux-sandbox", path=f"{legacy_usr}:{legacy_bin}")
             )
+
+    def test_real_linux_sandbox_needs_only_exact_helper_file_read(self):
+        if os.uname().sysname != "Linux" or shutil.which("codex") is None:
+            self.skipTest("real Codex Linux sandbox is unavailable")
+        binary = Path(shutil.which("codex")).resolve()
+        with tempfile.TemporaryDirectory(prefix="happycodex-sandbox-probe-") as directory:
+            base = Path(directory); command_bin = base / "command-bin"
+            command_bin.mkdir(mode=0o700)
+            helper = command_bin / "codex-linux-sandbox"
+            os.link(binary, helper); command_bin.chmod(0o500)
+            cwd = base / "frozen-source"; cwd.mkdir(mode=0o500)
+            home = base / "home"; home.mkdir(mode=0o700)
+            codex_home = base / "codex-home"; codex_home.mkdir(mode=0o700)
+            env = {"PATH": f"{command_bin}:/usr/bin:/bin", "HOME": str(home),
+                   "CODEX_HOME": str(codex_home), "LANG": "C.UTF-8", "LC_ALL": "C.UTF-8"}
+            base_permissions = '{":minimal"="read",":workspace_roots"={"."="read"}'
+
+            def run(extra: str):
+                filesystem = base_permissions + extra + "}"
+                return subprocess.run(
+                    [str(binary), "-c", 'permissions.probe.description="probe read only"',
+                     "-c", f"permissions.probe.filesystem={filesystem}",
+                     "-c", "permissions.probe.network.enabled=false",
+                     "sandbox", "-P", "probe", "-C", str(cwd), "/bin/pwd"],
+                    env=env, capture_output=True, text=True, timeout=20, check=False,
+                )
+
+            negative = run("")
+            positive = run(f',{json.dumps(str(helper))}="read"')
+            self.assertNotEqual(negative.returncode, 0)
+            self.assertEqual(negative.stdout, "")
+            self.assertNotEqual(negative.stderr, "")
+            self.assertEqual(positive.returncode, 0)
+            self.assertEqual(positive.stdout.strip(), str(cwd))
+            self.assertIsInstance(positive.stderr, str)
 
     def test_private_sandbox_alias_tamper_fails_closed(self):
         from evaluation.host import _prepare_unit

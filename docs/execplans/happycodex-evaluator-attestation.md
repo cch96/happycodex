@@ -238,31 +238,33 @@ These are planning boundaries, not authority under GRANT-01.
   effect followed. Release remains excluded; a new Root decision is required
   for any repair or new evaluation identity.
 
-### GRANT-32 durable intent
+### GRANT-33 simplification receipt
 
-- Root authorized one offline continuation repair at clean commit/tree
+- Phase: `grant33_offline_green`. GRANT-32 began at clean commit/tree
   `c19908bc7c2e05ae9f670a0ec7c695ca4935471c` /
-  `c479a0cf1f52ee44de653048f0e3d56d8e3e3ecf`. Resource receipt
-  `/home/caichenghang/.codex/happycodex-evaluator-attestation-grant32-resource-claim.json`
-  binds owner token `dc025eb9...` to this worktree, branch ref, and plan. The
-  immutable GRANT-31 evidence root is read-only.
-- Amendment: a fixed-host sandbox-helper visibility change isolated to
-  exact-final invalidates exactly that unit, not unchanged behavior or holdout
-  provider inputs. A fresh one-unit exact-final continuation must bind and
-  reverify the immutable eleven-unit predecessor prefix, candidate/baseline,
-  role config, original spec and authority, mapping/reveal judgment, relevant
-  component identities, and frozen source. It uses only `EvalSpec` and
-  `Attestation`; release requires the proven prefix plus the fresh exact-final.
-- Preflight mechanically reproduced all eleven predecessor raw streams and
-  Attestations as success/pass under original authority `05825e35...`, with
-  holdout GREEN and zero `command_execution` items. The old failed exact-final
-  remains preserved but is ineligible as continuation evidence.
-- Implement only an exact-file `read` grant for validated per-unit
-  `command-bin/codex-linux-sandbox`, materialized from the contract-bound
-  template. Keep stdout JSONL separate from stderr and preserve network,
-  approval, isolation, cases, oracles, thresholds, Runtime, four record types,
-  release boundary, and no-retry semantics. RED tests precede the smallest
-  implementation; focused, cumulative offline, and real no-model Linux sandbox
-  probes must be GREEN. No model, API, network, dependency, external-output,
-  product, install, release, activation, cache, marketplace, or rollback effect
-  is authorized.
+  `c479a0cf1f52ee44de653048f0e3d56d8e3e3ecf`; durable intent is commit
+  `ba5af32`. Its resource receipt and immutable GRANT-31 evidence root remained
+  valid and read-only throughout.
+- The proposed one-call bridge was abandoned after its readable shared-engine
+  form still required a 162-line continuation module plus schema, host, policy,
+  and invalidation branches. It raised evaluator Python to 3,354 lines and
+  exceeded the 3,200/600 repository limits. Compressing that state machine only
+  to reuse eleven historical calls would contradict this clean-break Outcome.
+  No continuation form, composition API, host parameter, special invalidation,
+  documentation promise, or standalone test remains. Future live evaluation
+  therefore uses a fresh ordinary twelve-unit `EvalSpec` and authority.
+- The retained repair is two derived lines in `evaluation/provider.py`.
+  Behavior filesystem permissions remain byte-for-byte unchanged. Exact-final
+  alone adds `read` for the already validated per-unit
+  `command-bin/codex-linux-sandbox` hard link, derived from its bound stage,
+  command-bin, and `sandbox_alias_name`; no new policy field or record exists.
+  Network remains false and approval remains `never`.
+- Focused fixed-host plus repository-contract checks are GREEN `36/36`.
+  The real Linux no-model probe fails with the base read profile, then succeeds
+  with only the exact helper file readable while stdout and stderr remain
+  separate. The full offline suite is GREEN `117/117` in 10.315s. Evaluator
+  Python is 3,018 lines total and every file is at most 600 lines.
+- No model, API, network, dependency, external-output, package, Runtime, case,
+  oracle, threshold, config, install, release, activation, cache, marketplace,
+  rollback, or GRANT-31 evidence mutation occurred. Release remains excluded;
+  any fresh twelve-call evaluation requires a later exact Root authority.
