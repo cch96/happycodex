@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from evaluation.identity import evaluator_components
+from evaluation.identity import evaluator_components, runtime_from_product_artifact
 from evaluation.policy import EXACT_FINAL_ROLE_ID, HOLDOUT_ROLE_ID, MODEL_ROLE_IDS
 from evaluation.provider import provider_projection
 from evaluation.records import (
@@ -186,8 +186,11 @@ def materialize_eval_spec(
 ) -> dict[str, Any]:
     validate_product_artifact(candidate)
     validate_product_artifact(previous)
+    if candidate["external_role_config_sha256"] != previous["external_role_config_sha256"]:
+        raise ManifestError("comparison products require one external role config")
+    candidate_runtime = runtime_from_product_artifact(root, candidate)
+    previous_runtime = runtime_from_product_artifact(root, previous)
     inputs = load_production_inputs(root)
-    runtime = (root.resolve() / "skills" / "happycodex" / "SKILL.md").read_text(encoding="utf-8")
     brief_text = neutral_review_brief(inputs, candidate, review_brief)
     brief_sha = canonical_sha256(brief_text)
     host_contract_sha = canonical_sha256(host_contract)
@@ -203,7 +206,7 @@ def materialize_eval_spec(
             _unit(
                 unit_id=role_id, role_id=role_id, sample_id=None, stage="behavior",
                 arm_product=candidate,
-                case={**fixture, "runtime": runtime, "response_schema": inputs["schemas"]["core"][role_id]}, profile=behavior_profile,
+                case={**fixture, "runtime": candidate_runtime, "response_schema": inputs["schemas"]["core"][role_id]}, profile=behavior_profile,
                 oracle_sha256=canonical_sha256(inputs["oracles"]["core"][role_id]),
                 harness_sha256=harness_sha, review_brief_sha256=None,
                 host_contract_sha256=host_contract_sha,
@@ -222,11 +225,12 @@ def materialize_eval_spec(
         fixture = inputs["fixtures"]["holdouts"][sample_id]
         for unit_id in unit_ids:
             arm_product = candidate if mapping[unit_id] == "candidate" else previous
+            arm_runtime = candidate_runtime if arm_product is candidate else previous_runtime
             units.append(
                 _unit(
                     unit_id=unit_id, role_id=HOLDOUT_ROLE_ID, sample_id=sample_id,
                     stage="holdout", arm_product=arm_product,
-                    case={**fixture, "runtime": runtime, "response_schema": inputs["schemas"]["holdout"]}, profile=behavior_profile,
+                    case={**fixture, "runtime": arm_runtime, "response_schema": inputs["schemas"]["holdout"]}, profile=behavior_profile,
                     oracle_sha256=canonical_sha256(inputs["oracles"]["holdouts"][sample_id]),
                     harness_sha256=harness_sha, review_brief_sha256=None,
                     host_contract_sha256=host_contract_sha,
@@ -239,7 +243,7 @@ def materialize_eval_spec(
             case={
                 "prompt": "Perform the neutral exact-final review.",
                 "fixture": {"artifact_sha256": candidate["package_artifact_sha256"]},
-                "workspace": {"brief_sha256": brief_sha}, "runtime": runtime,
+                "workspace": {"brief_sha256": brief_sha}, "runtime": candidate_runtime,
                 "neutral_review_brief": brief_text,
                 "response_schema": inputs["schemas"]["exact_final"],
             },

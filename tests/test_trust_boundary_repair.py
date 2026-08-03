@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 import json
 from pathlib import Path
 import shutil
+import subprocess
 import tempfile
 import unittest
 
@@ -24,6 +25,16 @@ def verify_args():
     selected, baseline, spec, blind_mapping = bundle()
     records, raws = attest_all(selected, baseline, spec)
     return selected, baseline, spec, blind_mapping, records, raws
+
+
+def isolated_checkout(directory: str) -> Path:
+    root = Path(directory) / "repo"
+    subprocess.run(
+        ["git", "clone", "--shared", "--quiet", str(ROOT), str(root)],
+        check=True,
+    )
+    shutil.copytree(ROOT / "evaluation", root / "evaluation", dirs_exist_ok=True)
+    return root
 
 
 class TrustBoundaryRedTests(unittest.TestCase):
@@ -122,9 +133,7 @@ class TrustBoundaryRedTests(unittest.TestCase):
     def test_f4_exact_final_oracle_change_requires_a_fresh_model_unit(self):
         _, _, old_spec, blind_mapping = bundle()
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            shutil.copytree(ROOT / "evaluation", root / "evaluation")
-            shutil.copytree(ROOT / "skills", root / "skills")
+            root = isolated_checkout(directory)
             oracle_path = root / "evaluation" / "hidden-oracles-v1.json"
             oracle = json.loads(oracle_path.read_text(encoding="utf-8"))
             oracle["exact_final"]["passing_decision"] = "APPROVE"
@@ -220,9 +229,7 @@ class TrustBoundaryRedTests(unittest.TestCase):
 
     def test_f9_answer_bearing_const_schema_is_rejected_before_projection(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            shutil.copytree(ROOT / "evaluation", root / "evaluation")
-            shutil.copytree(ROOT / "skills", root / "skills")
+            root = isolated_checkout(directory)
             path = root / "evaluation" / "report-schemas-v1.json"
             value = json.loads(path.read_text(encoding="utf-8"))
             value["core"]["goal-divergence"]["properties"]["safety"]["properties"]["goal_closed"]["const"] = False
@@ -312,10 +319,7 @@ class TrustBoundaryRedTests(unittest.TestCase):
 
 class InvalidationMatrixTests(unittest.TestCase):
     def _copy_root(self, directory: str) -> Path:
-        root = Path(directory)
-        shutil.copytree(ROOT / "evaluation", root / "evaluation")
-        shutil.copytree(ROOT / "skills", root / "skills")
-        return root
+        return isolated_checkout(directory)
 
     def _materialize(self, root: Path):
         selected, baseline, _, blind_mapping = bundle()

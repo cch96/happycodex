@@ -7,11 +7,14 @@ from pathlib import Path
 from typing import Any
 
 from evaluation.host import attestation_from_raw
+from evaluation.identity import product_artifact_from_git
 from evaluation.manifest import load_production_inputs, materialize_eval_spec
-from evaluation.records import build_product_artifact, canonical_sha256
+from evaluation.records import canonical_sha256
 
 
 ROOT = Path(__file__).resolve().parents[1]
+CANDIDATE_REVISION = "v0.6.5"
+BASELINE_REVISION = "3b9c11fac1f97df75263e0bfc6421c575e04e8b2"
 SHA = {letter: letter * 64 for letter in "123456789abcdef"}
 PROFILES = {
     "behavior": {
@@ -40,20 +43,15 @@ HOST_CONTRACT = {
     "permission_profile_sha256": canonical_sha256({"network": False, "filesystem": "temporary"}),
     "workspace_policy_sha256": canonical_sha256({"cwd": "fresh-temporary-repo", "home": "fresh-temporary-home"}),
 }
-def product(*, artifact: str = SHA["1"], semantic: str = SHA["2"], role: str = SHA["3"]):
-    return build_product_artifact(
-        source_commit="a" * 40, source_tree="b" * 40, package_tree="c" * 40,
-        package_artifact_sha256=artifact,
-        package_semantic_sha256=semantic,
-        external_role_config_sha256=role,
+def product(*, root: Path = ROOT, role: str = SHA["3"]):
+    return product_artifact_from_git(
+        root, CANDIDATE_REVISION, external_role_config_sha256=role,
     )
 
 
-def previous_product():
-    return build_product_artifact(
-        source_commit="d" * 40, source_tree="e" * 40, package_tree="f" * 40,
-        package_artifact_sha256=SHA["4"], package_semantic_sha256=SHA["5"],
-        external_role_config_sha256=SHA["6"],
+def previous_product(*, root: Path = ROOT, role: str = SHA["3"]):
+    return product_artifact_from_git(
+        root, BASELINE_REVISION, external_role_config_sha256=role,
     )
 
 

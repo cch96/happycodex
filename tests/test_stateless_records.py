@@ -9,17 +9,33 @@ import tempfile
 import unittest
 
 from evaluation.host import HostEvidenceError, attestation_from_raw, parse_raw_stream, reserve_claim
-from evaluation.identity import DETERMINISTIC_DOMAINS, MODEL_ROLE_IDS
+from evaluation.identity import (
+    DETERMINISTIC_DOMAINS, MODEL_ROLE_IDS, IdentityError,
+    product_artifact_from_git,
+)
+from evaluation.manifest import ManifestError
 from evaluation.provider import (
     EvaluationCapability, ProviderError, accept_evaluation_authority,
     assert_provider_blind, provider_projection, sanitize_events,
 )
-from evaluation.records import RECORD_TYPES, TERMINAL_CLASSES, RecordError, validate_record
+from evaluation.records import (
+    RECORD_TYPES, TERMINAL_CLASSES, RecordError, build_product_artifact,
+    validate_record,
+)
 from evaluation.verify import evaluate_runtime_decision
 from tests.attestation_fixtures import (
-    HOST_CONTRACT, PROFILES, ROOT, SHA, bundle, host_metadata, product,
-    raw_stream, terminal,
+    BASELINE_REVISION, CANDIDATE_REVISION, HOST_CONTRACT, PROFILES, ROOT, SHA,
+    bundle, host_metadata, product, raw_stream, terminal,
 )
+
+
+def source_runtime(root: Path, product_record: dict) -> str:
+    return subprocess.check_output(
+        [
+            "git", "-C", str(root), "show",
+            f"{product_record['source_commit']}:skills/happycodex/SKILL.md",
+        ]
+    ).decode()
 
 
 class DurableRecordTests(unittest.TestCase):
@@ -51,8 +67,14 @@ class DurableRecordTests(unittest.TestCase):
             "holdout-scope-arm-a", "holdout-scope-arm-b", "exact-final",
         }
         self.assertEqual(spec["total_cap"]["model_calls"], 12)
+        self.assertEqual(baseline["source_commit"], BASELINE_REVISION)
         self.assertEqual({unit["unit_id"] for unit in spec["units"]}, expected_units)
         self.assertEqual(len(spec["units"]), 12)
+        expected_runtimes = {
+            selected["package_semantic_sha256"]: source_runtime(ROOT, selected),
+            baseline["package_semantic_sha256"]: source_runtime(ROOT, baseline),
+        }
+        self.assertNotEqual(*expected_runtimes.values())
         for unit in spec["units"]:
             projection = unit["invocation"]["provider_input"]
             self.assertIn("fixture", projection)
@@ -63,6 +85,63 @@ class DurableRecordTests(unittest.TestCase):
             self.assertNotIn("expected", str(projection["response_schema"]).lower())
             expected = selected if unit["product_semantic_sha256"] == selected["package_semantic_sha256"] else baseline
             self.assertEqual(unit["external_role_config_sha256"], expected["external_role_config_sha256"])
+            self.assertEqual(projection["runtime"], expected_runtimes[unit["product_semantic_sha256"]])
+        units = {unit["unit_id"]: unit for unit in spec["units"]}
+        for pair in spec["holdouts"]:
+            left, right = (units[unit_id] for unit_id in pair["unit_ids"])
+            for field in ("model", "effort", "tools", "timeout_seconds"):
+                self.assertEqual(left["invocation"][field], right["invocation"][field])
+            self.assertEqual(left["external_role_config_sha256"], right["external_role_config_sha256"])
+
+    def test_dirty_worktree_runtime_cannot_replace_frozen_arm_sources(self):
+        with tempfile.TemporaryDirectory() as raw:
+            clone = Path(raw) / "repo"
+            subprocess.run(
+                ["git", "clone", "--shared", "--quiet", str(ROOT), str(clone)],
+                check=True,
+            )
+            selected = product_artifact_from_git(
+                clone, CANDIDATE_REVISION,
+                external_role_config_sha256=SHA["3"],
+            )
+            baseline = product_artifact_from_git(
+                clone, BASELINE_REVISION,
+                external_role_config_sha256=SHA["3"],
+            )
+            dirty = "DIRTY MUTABLE RUNTIME MUST NEVER REACH AN ARM\n"
+            (clone / "skills" / "happycodex" / "SKILL.md").write_text(dirty)
+            _, _, spec, _ = bundle(
+                root=clone, selected_product=selected, baseline_product=baseline,
+            )
+            expected = {
+                selected["package_semantic_sha256"]: source_runtime(clone, selected),
+                baseline["package_semantic_sha256"]: source_runtime(clone, baseline),
+            }
+            for unit in spec["units"]:
+                runtime = unit["invocation"]["provider_input"]["runtime"]
+                self.assertEqual(runtime, expected[unit["product_semantic_sha256"]])
+                self.assertNotEqual(runtime, dirty)
+
+    def test_forged_or_unavailable_product_source_fails_closed(self):
+        selected = product()
+        for name, source_commit, source_tree in (
+            ("forged", selected["source_commit"], "0" * 40),
+            ("unavailable", "0" * 40, selected["source_tree"]),
+        ):
+            forged = build_product_artifact(
+                source_commit=source_commit, source_tree=source_tree,
+                package_tree=selected["package_tree"],
+                package_artifact_sha256=selected["package_artifact_sha256"],
+                package_semantic_sha256=selected["package_semantic_sha256"],
+                external_role_config_sha256=selected["external_role_config_sha256"],
+            )
+            with self.subTest(name=name), self.assertRaises(IdentityError):
+                bundle(selected_product=forged)
+        mismatched_config = product_artifact_from_git(
+            ROOT, BASELINE_REVISION, external_role_config_sha256=SHA["6"],
+        )
+        with self.assertRaisesRegex(ManifestError, "one external role config"):
+            bundle(baseline_product=mismatched_config)
 
     def test_model_and_deterministic_routes_are_disjoint(self):
         self.assertEqual(

@@ -34,7 +34,7 @@ class FreshProcessTests(unittest.TestCase):
             authority_sha256=SHA["a"],
         )
         self.assertEqual(record["verdict"], "pass")
-        self.assertNotEqual(baseline["external_role_config_sha256"], selected["external_role_config_sha256"])
+        self.assertEqual(baseline["external_role_config_sha256"], selected["external_role_config_sha256"])
 
     def test_cli_materializes_from_versioned_production_inputs(self):
         selected, baseline, spec, blind_mapping = bundle()

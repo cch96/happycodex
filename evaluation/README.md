@@ -56,6 +56,11 @@ repair history are absent from workspace, arguments, standard input,
 environment, and sanitized events. Fixed holdouts are exactly three concurrent
 two-arm pairs against the previous released product; all six outputs freeze
 before reveal, and aggregate token and wall ratios must each be at most 1.25.
+Before materialization, each supplied `ProductArtifact` is reconstructed from
+its exact Git source and external-role-config digest. Core behavior and
+exact-final receive the candidate source Runtime; each holdout arm receives its
+mapped product source Runtime. Mutable working-tree bytes are never substituted
+for either frozen source, and mapping labels remain outside provider input.
 
 The fixed external host is the trusted capture boundary. `EvalSpec`
 binds its binary, trust domain, tool/permission/workspace configuration, and

@@ -46,34 +46,38 @@ has been implemented or certified.
   before creation. The new worktree was clean at the source commit before this
   plan was written.
 
-### Active grant: GRANT-09
+### Active grant: GRANT-10
 
-User authority, verbatim: `同意将 compaction/reconstruction 降为 conditional
-mechanism，按 12-call 发布路径继续`. GRANT-09 is owned by token
+Under the active user amendment `同意将 compaction/reconstruction 降为
+conditional mechanism，按 12-call 发布路径继续`, GRANT-10 repairs only exact
+per-arm Runtime binding. It is owned by token
 `5a63e381-1ff8-4675-9c10-c81da14e1de2`. Exact clean prestate is branch
 `codex/happycodex-evaluator-attestation`, commit
-`11616e6a12cd71f4fbec8199fc24ae995368fa50`, tree
-`dc47bae8f3b3d2907ba217860a299551d30c8a9f`, product tree
+`af7534d175abc146c813ad5414aded921c00c125`, tree
+`c014a2b3214d09ae7a60f53597e0bf147b5ed01d`, product tree
 `d9e525a267fbf36669d409ba1b4b009a6beeeea5`, evaluator bundle
-`217b1a0c3b0f728152f8017743ce8b461bd7151532612f72bc34f838ed8c0c6c`,
+`a668311e244fe4764bb46cecd49672eff8bef96211c1ad7a97003cde36583ad9`,
 Codex binary SHA-256
 `cb5e8cb8a333a408ce6adbe0d4fad1845c69772c2216af7c1f88c98a11460dc6`,
 and unchanged Executor config SHA-256
 `d98fac1a0fe1bcc3071eac89b7246bfeb59fb85a7040417d50d07c58d74d1275`.
 
-This one offline commit may remove `same-task-compaction` and
-`no-summary-reconstruction` from mandatory production data and normalize the
-finite plan to exactly twelve one-shot calls: five behavior core units, six
-arms in three fixed concurrent holdout pairs, and one neutral exact-final.
-Compaction and reconstruction remain prose-only conditional future obligations,
-triggered by relevant Runtime/recovery, role-config, or native Codex behavior
-change, or explicit user request. This release will not claim they ran or were
-certified. No conditional schema, new family, runner, record, receipt, gate,
-ledger, graph, compatibility, product/runtime/config/plugin/cache change,
-provider/model/network/install/release/activation effect, candidate freeze, or
-production record/authority materialization is authorized. Any wider required
-path, unexpected failure, product diff, unknown input, or ambiguity returns
-`NOT YET` to Root.
+Root's exact reproduced falsifier is durable input: all candidate and baseline
+holdout units currently carry candidate Runtime SHA-256
+`07421636583ddec11308bf235fe4b49b2d0b11598944303f5287574f631d4bb5`,
+while exact baseline source `3b9c11fac1f97df75263e0bfc6421c575e04e8b2`
+has Runtime SHA-256
+`aa090bbd0d7af6e6ac05e5afc959ee93268393f8621bd5ebf00e745d04e3ce55`.
+Thus the 1.25 comparison is not yet real. This one offline commit may validate
+each ProductArtifact against its exact Git source and bind each unit to that
+source's exact Runtime. It may change only the plan, `identity.py`,
+`manifest.py`, README if needed, and directly affected existing tests. The
+twelve calls, cases, profiles, thresholds, evidence boundary, records,
+conditional mechanisms, Runtime/package/config, and effects remain unchanged.
+No fallback, override, adapter, new file/abstraction, production record,
+provider/model/network/install/release/activation, candidate freeze, or
+exact-final is authorized. Any unavailable/forged product, wider path, product
+diff, unexpected failure, unknown input, or ambiguity returns `NOT YET`.
 
 ## Baseline
 
@@ -239,32 +243,36 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `working`; GRANT-09 offline implementation and verification are
-  complete. Candidate freeze and exact-final have not started.
-- The focused RED ran three exact inventory/count assertions: the policy and
-  four declarative surfaces still contained two extra mechanism roles, while a
-  twelve-call cap could not cover the old fourteen-unit plan. Result: two
-  failures and one `ManifestError`. After the authorized deletion, the same
-  three assertions are GREEN.
-- The mandatory finite plan is now exactly twelve one-shot calls: five named
-  behavior core units, six arms in three fixed concurrent holdout pairs, and
-  one neutral exact-final. Its cap is twelve. Behavior/holdouts remain
-  `gpt-5.6-sol/high`; exact-final remains `gpt-5.6-sol/max`; fixed ordering,
-  first-failure stop, aggregate 1.25, native raw evidence, host metadata,
-  claims, four record types, release refusal, and F1-F11 remain unchanged.
-- `same-task-compaction` and `no-summary-reconstruction` are absent from the
-  manifest, fixtures, hidden oracles, response schemas, policy, and test report
-  fixtures. They remain only prose-level conditional future obligations. They
-  are unrun; no native mechanism certification is claimed for this release.
-- The one affected focused command covered 81 tests and returned exit `0`,
-  `OK` in 3.432s. The one cumulative command
-  `python3 -B -m unittest discover -s tests -v` returned exit `0`, `Ran 84
-  tests in 3.381s`, `OK`, with zero failures or errors.
+- Phase: `working`; GRANT-10 offline repair and verification are complete.
+  Candidate freeze and exact-final have not started.
+- The exact RED ran three tests and produced four assertion failures: baseline
+  holdouts received candidate Runtime, a dirty temporary checkout replaced
+  frozen Runtime bytes, a forged source tree was accepted, and an unavailable
+  source commit was accepted. After repair the same three tests are 3/3 GREEN.
+- Materialization now reconstructs both supplied ProductArtifacts from their
+  exact Git source commits and external-role-config digest, rejects any
+  mismatch/unavailable source, and requires the comparison products to share
+  one role config. It reads Runtime as exact Git blob bytes decoded as UTF-8;
+  mutable working-tree Runtime is never used.
+- Candidate behavior/exact-final and candidate holdout arms bind Runtime SHA
+  `07421636583ddec11308bf235fe4b49b2d0b11598944303f5287574f631d4bb5`.
+  Baseline holdout arms bind exact source
+  `3b9c11fac1f97df75263e0bfc6421c575e04e8b2` Runtime SHA
+  `aa090bbd0d7af6e6ac05e5afc959ee93268393f8621bd5ebf00e745d04e3ce55`.
+  Profiles, tools, timeout and role config remain identical across each pair;
+  mapping labels remain outside provider input.
+- The twelve-call inventory, three fixed pairs, aggregate 1.25, ordering,
+  first-failure stop, native evidence, host metadata, authority, four records,
+  release refusal, F1-F11, and conditional-mechanism absence are unchanged.
+- The affected focused command was 83/83 GREEN in 6.146s. The one cumulative
+  `python3 -B -m unittest discover -s tests -v` was 86/86 GREEN in 6.022s.
+  A final two-assertion fairness/source check after the exact config invariant
+  was added was 2/2 GREEN in 0.070s.
 - Static evidence: `git diff --check` passed; evaluator production Python is
-  2,196 lines, largest module 539 lines; this plan remains below 3,000 words;
-  durable inventory is exactly the four named types and no active ledger;
-  evaluator bundle is
-  `a668311e244fe4764bb46cecd49672eff8bef96211c1ad7a97003cde36583ad9`.
+  2,227 lines, largest module 539 lines; this plan remains below 3,000
+  words; durable inventory is exactly the four named types and no active
+  ledger; evaluator bundle is
+  `b42afeee7e878dc263e61ff7f569519bb8509d04f140911a601c05420964805b`.
   `skills/happycodex` remains
   `d9e525a267fbf36669d409ba1b4b009a6beeeea5` with no product diff.
 - Provider/model/network calls: `0`. Install/release/activation effects: `0`.
@@ -276,5 +284,5 @@ These are planning boundaries, not authority under GRANT-01.
   exact-final.
 - Recovery: read this entire file and verify the recorded branch, worktree,
   source, clean status, product tree, owner token, selected evaluator bundle,
-  and GRANT-09 receipt before reconciling only authorized paths. Do not
+  and GRANT-10 receipt before reconciling only authorized paths. Do not
   continue into effects from this grant or conversation context.

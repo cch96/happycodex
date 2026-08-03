@@ -5,7 +5,9 @@ from pathlib import Path
 import subprocess
 from typing import Any
 
-from evaluation.records import build_product_artifact, canonical_sha256
+from evaluation.records import (
+    build_product_artifact, canonical_sha256, validate_product_artifact,
+)
 from evaluation.policy import DETERMINISTIC_DOMAINS, MODEL_ROLE_IDS
 
 
@@ -56,6 +58,31 @@ def product_artifact_from_git(
         package_semantic_sha256=canonical_sha256(semantic_entries),
         external_role_config_sha256=external_role_config_sha256,
     )
+
+
+def runtime_from_product_artifact(repo: Path, product: dict[str, Any]) -> str:
+    """Validate a product against Git and return its exact frozen Runtime text."""
+    validate_product_artifact(product)
+    expected = product_artifact_from_git(
+        repo, product["source_commit"],
+        external_role_config_sha256=product["external_role_config_sha256"],
+    )
+    if expected != product:
+        raise IdentityError("ProductArtifact differs from its exact Git source")
+    completed = subprocess.run(
+        [
+            "git", "-C", str(repo.resolve()), "cat-file", "blob",
+            f"{product['source_commit']}:skills/happycodex/SKILL.md",
+        ],
+        capture_output=True, check=False,
+        env={"PATH": "/usr/bin:/bin", "LC_ALL": "C"},
+    )
+    if completed.returncode:
+        raise IdentityError("exact product Runtime is unavailable")
+    try:
+        return completed.stdout.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise IdentityError("exact product Runtime is not UTF-8") from exc
 
 
 def _file_entries(root: Path, paths: list[Path]) -> list[dict[str, Any]]:
