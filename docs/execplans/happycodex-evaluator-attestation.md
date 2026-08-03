@@ -164,6 +164,29 @@ empty 12-call request. No provider/model/network, replay, install, release, or
 activation is authorized. Any different failure, drift, archive conflict, or
 need outside this family stops.
 
+### Active evaluation grant: GRANT-22
+
+The user supplied exactly `APPROVE HAPPYCODEX EVALUATION
+48465f7d40ff98b5c2a12bad2f05098561d5708a57a88f77739c404e4b122129`
+for task nonce `019fadac-efd9-7133-b571-6db612c50971`. It binds candidate /
+baseline `d77ecb6a...` / `ec4fc2df...`, EvalSpec `50c6c72f...`, bundle /
+provider/oracle/harness `2df2c03e...` / `f1d31e91...` / `e7e46f93...` /
+`24982b3d...`, host contract `b8b51f13...`, product/config/binary
+`d9e525a2...` / `d98fac1a...` / `cb5e8cb8...`, and the clean empty root.
+Ceilings are 12 calls, 600,000 input, 100,000 output, 2,400,000ms, and zero
+recoveries; behavior/holdout is `gpt-5.6-sol high/300s`, exact-final is
+`gpt-5.6-sol max/600s`.
+
+Run low-risk canary; then the other four behavior units concurrently; then all
+six holdout arms as three pairs. A holdout semantic fail with a successful
+terminal waits for all six; any non-success terminal or integrity/cap failure
+stops. Exact-final preflight reveals mapping once and judges candidate absolute
+safety, candidate score at least baseline, and aggregate token/wall ratios at
+most 1.25. Failure returns before exact-final effect; success permits one
+neutral exact-final. Preserve every effect, never retry, replay, recover, or
+substitute. Stage checks need no new gate. No source/config/spec/evaluator,
+archive, install, release, activation, cache, or rollback mutation is allowed.
+
 ## Baseline
 
 Command, run once in the new clean worktree:
@@ -329,34 +352,11 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `fresh_request_awaiting_separate_authority`. GRANT-21 repair commit/tree
-  are `5a5ceeeb112dcb1379486c8c9b60a7e10ffda278` /
-  `6381c2e7d554b99e32445a429d655865016cb30d`. Only evaluator internals, fixture,
-  and tests changed; Runtime, schema, oracle, role config, and product did not.
-- Five narrow RED checks failed as intended; focused/cumulative suites were
-  71/71 and 108/108 GREEN. Static, blindness, and rematerialization checks passed.
-- The complete failed GRANT-20 root is recoverably preserved at
-  `/home/caichenghang/.codex/happycodex-evaluator-attestation-release.failed-grant20-04666961`
-  with units/claims/raw/Attestations `11/11/11/11`. The fresh mode-0700 root is
-  `0/0/0/0`, with no auth or JSONL, and reused no failed authority or evidence.
-- Candidate/baseline records remain
-  `d77ecb6af42ad35a6cf4f37787b6b7472bffe1faf4a103e145742bd2fe115fed` /
-  `ec4fc2dfb65be9ce8cc8d725a878d4166844cbd1ebbb686a4396116c17ecc9bf`.
-  Fresh EvalSpec/request are
-  `50c6c72ff45932025d7bcbfa96ac283529da3dac670656a60df1f52084e5d540` /
-  `48465f7d40ff98b5c2a12bad2f05098561d5708a57a88f77739c404e4b122129`.
-- Bundle/provider/oracle/harness identities are
-  `2df2c03e83aeea91abbba0f312e0a632f19b05a12a4d160ba7062a2bcbb4ae49`,
-  `f1d31e912ce5fa7996916583d436bed1bd0a03f123c204ba6fa128c20779c60a`,
-  `e7e46f93f78714ec0ae6325b92b1d07952faf0827efa77d05ea7e878ff9eb07a`,
-  and `24982b3de3bc1044577d86939dd722b5822c70a6c0bafebb52c111273fedad6d`.
-- The fresh exact-final projection has 33 files and isolated commit/tree
-  `0d625fff1fa16ce50a0e6ba54cda44ac4ba86104` /
-  `689ab765db5a8185ea2d72e68eea9bd04f1175a6`; aggregate diff SHA-256 is
-  `f6887e77f554b052c76c4cd6c670449e56ae233809bd6322927f744c2428841d`.
-  Product tree/config/binary SHA-256 remain `d9e525a267fbf36669d409ba1b4b009a6beeeea5`,
-  `d98fac1a0fe1bcc3071eac89b7246bfeb59fb85a7040417d50d07c58d74d1275`,
-  and `cb5e8cb8a333a408ce6adbe0d4fad1845c69772c2216af7c1f88c98a11460dc6`.
-- GRANT-21 made zero provider/model/network calls and no install, release,
-  activation, replay, or authority-consumption effect. A future run requires
-  separate exact authority for the new request; this checkpoint grants none.
+- Phase: `grant22_authorized_intent`. Pre-intent commit/tree are
+  `8c371cf2e2f11517e1f45c709a13d8c96cb381d3` /
+  `4f98383260696e0ff50c96017eeff8ec110aa4dc`. All GRANT-22 identities and the
+  active mode-0700 `0/0/0/0` inventory revalidated before this write; no auth,
+  JSONL, or tool-bin exists.
+- GRANT-20 and GRANT-18 archives remain excluded from all reads and effects.
+  Provider/model effects are still zero. The next and only effect is the
+  `qualification-low-risk` canary under the exact active grant above.
