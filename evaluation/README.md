@@ -68,11 +68,18 @@ tool/permission/workspace configuration, and every invocation. The public CLI
 never reserves a claim or writes execution evidence. After an external
 authenticator accepts the exact authority line, the same process calls the
 single `evaluation.host.execute_fixed_host_transaction` path: prepare and
-freeze inputs, reserve one effective-digest claim, launch once, fsync raw JSONL,
-derive and verify, and exclusively persist one Attestation. Provider auth is
+freeze inputs, atomically publish one raw/claim pair under a cross-process
+claims-directory lock, launch once, fsync raw JSONL, derive and verify, and
+publish one Attestation under the same lock. Every launch verifies the complete
+known raw/Attestation prefix, authority, oracle result, stage and aggregate cap;
+only planned in-flight units at the same stage/order are permitted. Provider auth is
 temporarily staged only in isolated `CODEX_HOME` and removed after the launch;
-the model shell never receives that path or material. Holdout mapping is read
-only after all six arm Attestations are durable. The raw input is native
+the model shell never receives that path or material. Spawn failure becomes a
+durable pre-provider/no-effect Attestation, timeout kills and reaps the process
+group, and any current failure or cap overrun is persisted before stop. Holdout
+mapping is raw-verified only after all six arm Attestations are durable, and its
+authoritative reveal timestamp is returned for final verification. Exact-final
+uses closed `GO | NOT_YET`; every typed adverse report remains durable. The raw input is native
 `codex exec --json`: one thread, one
 turn, paired item events, one JSON agent message and one terminal usage event.
 The host supplies only start/freeze timestamps, exit code and timeout status;

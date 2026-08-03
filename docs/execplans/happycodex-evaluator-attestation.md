@@ -46,71 +46,35 @@ has been implemented or certified.
   before creation. The new worktree was clean at the source commit before this
   plan was written.
 
-### Active grant: GRANT-14 (in progress)
+### Active grant: GRANT-17
 
-The user explicitly approved the bounded `fixed-host-transaction-v2` repair.
-Executor ownership remains token `5a63e381-1ff8-4675-9c10-c81da14e1de2`.
-The verified clean prestate is commit
-`a0d982db94e5f20c4542e54d982faf29075bab40`, tree
-`36b68fd1b473a4df0461d3514145477b66b6be87`, product tree
-`d9e525a267fbf36669d409ba1b4b009a6beeeea5`, role-config SHA-256
-`d98fac1a0fe1bcc3071eac89b7246bfeb59fb85a7040417d50d07c58d74d1275`,
-and Codex-binary SHA-256
-`cb5e8cb8a333a408ce6adbe0d4fad1845c69772c2216af7c1f88c98a11460dc6`.
+The user approved one offline `fixed-host-transaction` closure. Verified
+prestate is clean commit/tree `220befd6c10b6b72d41ea3d70019023dd2bd21bd` /
+`3c4fd90320071c34c86932c87e1900aff6cce4b2`; active request/spec are
+`52657eb39b065a00edb411f3e525a684996cd3c31c2dd82d6239f7784922cd39` /
+`7e99db10ef712147ed3f77aa3233f6349c503e6a01c78f3a3db94cccace4dcbe`,
+with empty evidence directories and absent quarantine target
+`/home/caichenghang/.codex/happycodex-evaluator-attestation-release.invalid-52657eb3`.
 
-This one coherent offline batch may change this plan, evaluator-only files, and
-directly affected tests. It closes provider schemas, exact native failure
-capture, provider-policy/role binding, and one existing fixed-host transaction:
-authenticate and mint a process-local capability; deterministically prepare
-and freeze private inputs; exclusively reserve the effective claim; spawn once;
-exclusively capture and fsync raw JSONL; derive and verify; then exclusively
-persist one Attestation. It also closes path/mode/no-symlink rules, exact-final
-cwd, private auth staging, and post-six-arm holdout reveal. The public
-write-capable claim CLI and empty tool-bin indirection are removed.
+Root reproduced five same-family gaps: exact-final discards its real mapping
+reveal timestamp; auth/spawn failures can leave claim plus raw without an
+Attestation; timeout kills only the parent; the host checks stage prerequisites
+but not verified durable prefix/failure/cumulative cap before every launch; and
+schema-valid adverse exact-final reports can be rejected by record validation.
+This batch must make reveal metadata round-trip, preflight all mechanical paths,
+guard cleanup, classify spawn failure as pre-provider/no-effect, kill/reap the
+process group, verify known raw/Attestation prefix and authority, enforce the
+fixed cap before launch, preserve each representable terminal after claim, and
+type exact-final decision as `GO|NOT_YET` while durably retaining every adverse
+report. Fixed holdout-pair concurrency remains unchanged.
 
-Tests use only a fake subprocess. No real `codex exec`, provider/model/network,
-authority mint, claim/raw/Attestation, install, release, activation, product,
-Runtime, oracle, case, gate, record-family, threshold, role-config, active
-install/cache, or rollback mutation is allowed. After RED, repair, one focused
-run, one cumulative offline run, static checks, and a coherent source commit,
-the invalid external root is atomically moved without edits to
-`/home/caichenghang/.codex/happycodex-evaluator-attestation-release.invalid-1ad0228e`.
-A fresh mode-0700 root and request are then regenerated from committed source,
-followed by one plan-only receipt commit. The obsolete `1ad0228e...` request is
-never consumed or reused. Any scope expansion, identity drift, test failure,
-ambiguous effect, or inability to close this transaction returns `NOT YET`.
-
-### Active correction: GRANT-15
-
-The GRANT-14 focused run stopped before test bodies because the bound Python
-3.10 interpreter has no stdlib `tomllib`. Root authorized one narrow correction
-from the unchanged source and external-effect prestate, whose tracked-diff and
-new-test SHA-256 values were respectively
-`681a0f35389b2c29e6f767cde65421a68f65ec8b26fd53422bd0a25b4e18204c`
-and `297722f74564d21475119cfd77c596a5b83d50d462023294aa9312dda64303c8`.
-Remove that import without adding a dependency, fallback, parser, module, or
-generic config engine. The authority-bound provider policy carries the exact
-behavior instruction literal and expected model/effort; the fixed host checks
-the unchanged external config by whole-file SHA plus unique exact byte blocks
-for that literal and the fixed name/model/effort/plugins settings. Invocation
-uses the policy literal, never parsed config content. All GRANT-14 semantics and
-limits remain fixed. The same focused command may run once after this import
-falsifier; if GREEN, resume the one cumulative suite and remaining offline
-freeze transaction. Any different failure or drift stops again.
-
-### Active test adaptation: GRANT-16
-
-The GRANT-15 focused run proved Python 3.10 import compatibility and exposed
-only test-shape drift. Root authorized one final narrow adaptation from tracked
-diff SHA-256
-`27c010f57ed6844f7ac0cd2924bf339b86eed2b2cdc523615a731965bca88368`
-and transaction-test SHA-256
-`89c8e65bf64880442fcaccbeafa4abb183c640f08fd8aa63a356b966b281d564`.
-The tests may assert the exact structured config argument, keep synthetic
-schema mutations closed and exactly required while changing identity, and use
-the package-qualified fixture import. Production behavior and every GRANT-14
-invariant remain unchanged. Run the identical focused command once, then only
-if GREEN run the one cumulative offline suite and resume the frozen transaction.
+Only this plan, existing evaluator modules, schemas, and affected tests are
+owned. No new module/runner/gate/record, Runtime/product/oracle/case/threshold,
+real `codex exec`, provider/model/network/install/release, paid authority, or
+evidence reuse is allowed. Write RED, one repair wave, one focused suite, then
+one cumulative suite and static budgets. Only after GREEN+commit may the active
+root move recoverably to the exact quarantine and a fresh empty request be
+generated. Any different semantic failure or identity/path drift pauses.
 
 ## Baseline
 
@@ -278,16 +242,23 @@ These are planning boundaries, not authority under GRANT-01.
 ## Current checkpoint
 
 - Phase: `repair_green_pending_commit`. The obsolete request beginning
-  `1ad0228e` is invalid and must never be consumed or reused. Its active root is
-  unchanged and awaits the exact recoverable quarantine named in GRANT-14.
-- GRANT-14 RED reproduced open provider objects, unbound provider policy,
-  incomplete native-failure capture, public claim writing, and the missing
-  fixed transaction. GRANT-15 removed the Python-3.11-only import without a
-  parser or dependency; GRANT-16 adapted only affected test shapes.
-- Final affected suite: 79/79 GREEN in 6.085s. Single cumulative suite:
-  92/92 GREEN in 6.109s. `git diff --check` and AST checks passed.
-- Production evaluator Python is 2,701 lines; largest module is `host.py` at
-  599. This plan is below 3,000 words. Durable inventory remains exactly
+  `52657eb3` is invalid and must never be consumed or reused. Its active root is
+  unchanged, its evidence directories remain empty, and it awaits the exact
+  recoverable quarantine named in GRANT-17.
+- GRANT-17 RED reproduced all five diagnosed transaction gaps plus forged-prefix,
+  known-failure, cumulative-cap, orphaned-in-flight, and cross-process races.
+  Repair now verifies the durable prefix before every launch/finalization,
+  serializes publication without blocking fixed paired provider work, preserves
+  adverse exact-final reports and authoritative reveal metadata, cleans every
+  preclaim failure, classifies spawn failure as no-effect, and kills/reaps the
+  provider process group on timeout.
+- Final affected suite: 88/88 GREEN in 7.750s. Single cumulative suite:
+  101/101 GREEN in 7.769s. `git diff --check`, AST, and production schema-load
+  checks passed.
+- Production evaluator Python is 2,777 lines; largest module is `records.py` at
+  556. Evaluator bundle identity is
+  `4f38b83a91d90f5b170d5c1e27b21f26643e631976f10d4b98aa33c9c8d7bf38`.
+  This plan is below 3,000 words. Durable inventory remains exactly
   ProductArtifact, EvalSpec, Attestation, and ReleaseReceipt. CLI commands are
   read-only/materialization/verification surfaces with no claim command.
 - The bound Codex 0.146.0 binary exposes every fixed exec flag and all 29

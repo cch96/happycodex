@@ -473,9 +473,19 @@ def validate_attestation(record: dict[str, Any]) -> dict[str, Any]:
     if record["kind"] == "exact_final":
         _sha(record["product_artifact_sha256"], "exact-final product artifact")
         report = record["observation"]["report"]
-        if record["terminal"]["complete"]:
-            _require(report.get("neutral") is True and report.get("decision") in {"GO", "NOT_YET"}, "exact-final report is not neutral and typed")
-            _require((report["decision"] == "GO") == (record["verdict"] == "pass"), "exact-final decision and verdict differ")
+        if report:
+            _require(
+                set(report) == {"neutral", "coverage", "decision", "findings"}
+                and type(report.get("neutral")) is bool
+                and type(report.get("coverage")) is dict and set(report["coverage"]) == {"complete"}
+                and type(report["coverage"].get("complete")) is bool
+                and report.get("decision") in {"GO", "NOT_YET"}
+                and type(report.get("findings")) is list
+                and all(type(item) is dict and set(item) == {"summary"} and type(item["summary"]) is str for item in report["findings"]),
+                "exact-final report is not typed",
+            )
+            passing = record["terminal"]["classification"] == "success" and report["neutral"] and report["coverage"]["complete"] and report["decision"] == "GO"
+            _require((record["verdict"] == "pass") == passing, "exact-final decision and verdict differ")
         else:
             _require(report == {} and record["verdict"] == "fail", "incomplete exact-final must retain an empty adverse report")
     _validate_seal(record)

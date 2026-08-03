@@ -25,7 +25,7 @@ class ManifestError(ValueError):
 def _validate_structural_schema(node: Any) -> None:
     if type(node) is not dict or "type" not in node:
         raise ManifestError("response schema node lacks a structural type")
-    allowed = {"type", "required", "properties", "items", "additionalProperties"}
+    allowed = {"type", "required", "properties", "items", "additionalProperties", "enum"}
     if set(node) - allowed:
         raise ManifestError("response schema contains a non-structural keyword")
     schema_type = node["type"]
@@ -48,6 +48,9 @@ def _validate_structural_schema(node: Any) -> None:
         if set(node) != {"type", "items"}:
             raise ManifestError("response schema array shape is malformed")
         _validate_structural_schema(node["items"])
+    elif schema_type == "string" and "enum" in node:
+        if set(node) != {"type", "enum"} or node["enum"] != ["GO", "NOT_YET"]:
+            raise ManifestError("response schema string enum differs from exact-final decisions")
     elif set(node) != {"type"}:
         raise ManifestError("response schema scalar contains non-structural fields")
 
