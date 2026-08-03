@@ -343,8 +343,10 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `grant25_intent`; state is reopened to `working` for O-BLIND and
-  exact-final source identity closure. Prestate is clean `00e427c` / `0cd44c8`.
-  Active root inode 12026767 is mode 0700 on device 64769, manifest
-  `359657ee...`, 112 files, `0/0/0/0`, with two untracked support files and no
-  forbidden evidence. Both exact archive and staging targets are absent.
+- Phase: `grant26_offline_continuation`; GRANT-25 intent is `01a419f`. Its first
+  focused module was `22/23`: only the spawn/no-effect test errored because its
+  shared-stdlib `Popen` patch intercepted source-validation Git. No cumulative,
+  external, or live effect ran. Bound provider/test dirt is `193b5967...`.
+  GRANT-26 permits only moving that mock to the existing `run_provider` seam and
+  closing realistic prefixed hidden-oracle diff copying, then one focused and
+  one cumulative run. The invalid `a279adc7...` root remains untouched.
