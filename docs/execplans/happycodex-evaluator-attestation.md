@@ -76,6 +76,34 @@ one cumulative suite and static budgets. Only after GREEN+commit may the active
 root move recoverably to the exact quarantine and a fresh empty request be
 generated. Any different semantic failure or identity/path drift pauses.
 
+### Active grant: GRANT-18
+
+Root supplied the direct user line
+`APPROVE HAPPYCODEX EVALUATION f21ff642c3925164c2b89b4e45efc0864895c83dfd701e8825fe656b0e9dd233`
+from task nonce `019fadac-efd9-7133-b571-6db612c50971`. Its fixed external
+projection is `{"nonce":"019fadac-efd9-7133-b571-6db612c50971","request_sha256":"f21ff642c3925164c2b89b4e45efc0864895c83dfd701e8825fe656b0e9dd233","scope":"evaluation","signature":"0b8a53aa223ac5b87ff335a01057d879ceb162cc47746cc5ef441f776c31be87"}`,
+canonical SHA-256
+`0f81ef0a5ab6e93eceaa5fb928039c5e95ac000f0eafed12cb56cd4dc5877abb`.
+Only an exact match of both values authenticates this bundle.
+
+This grant authorizes the frozen 12-unit request only: five concurrent order-1
+behavior calls, then six order-2 holdout calls as three concurrent pairs, then
+one neutral order-3 exact-final. Behavior/holdout use `gpt-5.6-sol high` with
+300-second unit timeouts; exact-final uses `gpt-5.6-sol max` with 600 seconds.
+Aggregate ceilings are 12 calls, 600,000 input tokens, 100,000 output tokens,
+2,400,000 wall milliseconds, and zero infrastructure recovery. Existing
+`execute_fixed_host_transaction` is the sole execution path. Private auth is
+read only into process memory and must never be printed, persisted in the repo,
+or retained after host cleanup.
+
+Each stage freezes and reconciles all returned Attestations before the next.
+Stop without retry or cleanup on non-success, adverse oracle/verdict, ambiguity,
+cap/ratio failure, identity or inventory drift, secret exposure, host exception,
+unexpected source mutation, or missing artifact. Preserve evidence and report
+the exact prefix. The grant excludes replay, substitution, install, release,
+activation, cache, marketplace, source/test/schema/Runtime edits, and any new
+runner, module, record, gate, or receipt.
+
 ## Baseline
 
 Command, run once in the new clean worktree:
@@ -241,7 +269,7 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `frozen_request_awaiting_separate_authority`. GRANT-17 repair commit/tree
+- Phase: `live_authority_intent_pending_commit`. GRANT-17 repair commit/tree
   are `40686ef5163bbd9fa4a23223bff106502a3017be` /
   `3f06667194de306aa1d32e72bb5780047069b0fd`; the coherent repair commit changed
   only this plan, existing evaluator files/schema, and affected tests.
@@ -290,3 +318,9 @@ These are planning boundaries, not authority under GRANT-01.
   `cb5e8cb8a333a408ce6adbe0d4fad1845c69772c2216af7c1f88c98a11460dc6`.
 - Provider/model/network calls, authority consumption, claims, raw events,
   Attestations, install, release, and activation effects are all zero.
+- GRANT-18 starts from clean HEAD/tree
+  `3caa7151fa0c82d194fe268ada373f211dc62c69` /
+  `9a9848b261f85a51004a567527daa871c4e826d0` and empty external inventories.
+  Stage commands are the exact order-1, order-2, and order-3 unit sets already
+  bound in `authority-request.json`; no later stage begins unless the prior
+  stage is fully durable, successful, within cap, and identity-clean.
