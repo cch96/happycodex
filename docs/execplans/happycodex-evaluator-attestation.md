@@ -46,7 +46,7 @@ has been implemented or certified.
   before creation. The new worktree was clean at the source commit before this
   plan was written.
 
-### Active grant: GRANT-17
+### Closed offline grant: GRANT-17
 
 The user approved one offline `fixed-host-transaction` closure. Verified
 prestate is clean commit/tree `220befd6c10b6b72d41ea3d70019023dd2bd21bd` /
@@ -76,7 +76,7 @@ one cumulative suite and static budgets. Only after GREEN+commit may the active
 root move recoverably to the exact quarantine and a fresh empty request be
 generated. Any different semantic failure or identity/path drift pauses.
 
-### Active grant: GRANT-18
+### Consumed failed evaluation grant: GRANT-18
 
 Root supplied the direct user line
 `APPROVE HAPPYCODEX EVALUATION f21ff642c3925164c2b89b4e45efc0864895c83dfd701e8825fe656b0e9dd233`
@@ -104,7 +104,7 @@ the exact prefix. The grant excludes replay, substitution, install, release,
 activation, cache, marketplace, source/test/schema/Runtime edits, and any new
 runner, module, record, gate, or receipt.
 
-### Active grant: GRANT-19
+### Closed offline grant: GRANT-19
 
 GRANT-18 stopped before Attestation publication after exactly five behavior
 calls consumed 80,484 input and 1,396 output tokens. The preserved root contains
