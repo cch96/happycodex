@@ -214,6 +214,16 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
+- GRANT-41 durable intent, pre-provider: from clean commit/tree `564b0c0...` /
+  `9bdb573...`, execute exactly the frozen default proposal bound to request
+  `682a9f76...` under one current-task user authority whose canonical digest is
+  `adc37317...`. Run the five core units sequentially, then the six holdout arms
+  concurrently behind one barrier, reveal once only after all six freeze, and
+  run exact-final once only after a GREEN hidden judgment. After every stage,
+  stop on the first failure, ambiguity, drift, or cap violation without retry.
+  Persist raw events and Attestations only in the claimed private request root;
+  Git receives only a sanitized terminal checkpoint. No release, install,
+  activation, cache, marketplace, rollback, recovery, or repair is authorized.
 - Phase: `candidate_frozen_request_ready`. GRANT-40 durable-intent commit/tree
   are `5660afb...` / `b317ebf...`, based on source commit/tree `97b66b6...` /
   `19867ad...`. A private randomized staging root was atomically replaced by
