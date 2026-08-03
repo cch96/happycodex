@@ -246,10 +246,10 @@ authority, but may never treat self-generated text or records as authority.
 Each fixed holdout has candidate and previous-released-product arms, run
 concurrently with identical settings. All six outputs freeze before mapping is
 revealed and one quality decision is computed. Across all fixed pairs,
-candidate aggregate tokens must be no more than `1.25` times the previous
-released product. The corresponding relative wall ratio remains reported but
-is diagnostic; per-unit timeout and absolute cumulative wall cap stay hard. No
-old named public arm is part of this design.
+candidate aggregate total input plus output tokens must be no more than `1.25`
+times the previous released product. The corresponding relative wall ratio
+remains reported but is diagnostic; per-unit timeout and absolute cumulative
+wall cap stay hard. No old named public arm is part of this design.
 
 Mandatory model cases are limited to low/high-risk qualification, midflight
 escalation, goal divergence, no-commit/secret decisions, the fixed holdouts,
@@ -271,7 +271,7 @@ identity, effect, and goal-closure invariants are fatal.
 | A role's fixture or public prompt | Change only that role's provider-input identity and rerun only that role. |
 | Shared provider instructions, model, effort, tools, isolation, or timeout | Change every affected provider-input identity and rerun those roles. |
 | Behavior/holdout expected answer, oracle, or matcher only | Change only the affected oracle identity; replay the frozen observation with zero new model calls when provider-input identity is unchanged. |
-| Holdout comparison policy only | Create a new oracle identity and `EvalSpec`; replay unchanged behavior/holdout observations, and require a fresh exact-final without rerunning provider inputs. |
+| Holdout comparison policy only | Change oracle/evaluator/source identity and require a fresh `EvalSpec` and request. Any reuse or next-call plan must be mechanically proven under the single-authority contract; an incomplete adverse prefix grants no implicit continuation. |
 | Exact-final rubric or oracle | Run a fresh exact-final unit; a terminal review cannot be reinterpreted as a new neutral review. |
 | Scheduler, serialization, receipt verifier, or other harness only | Run offline harness/adversarial checks; never call the model unless provider input also changed. |
 | Case added, removed, or requirement policy changed | Create a new `EvalSpec`; reuse still-valid attestations by exact component identity and run only newly required provider inputs. |
@@ -333,8 +333,10 @@ These are planning boundaries, not authority under GRANT-01.
 ## Current checkpoint
 
 - Phase: `grant28_offline_green`. Relative wall remains computed/false but is
-  diagnostic; semantic, token 1.25, terminal/integrity, timeout, and absolute
-  wall controls stay hard. Focused is `12/12`; cumulative is `115/115`.
+  diagnostic; semantic, aggregate input-plus-output token 1.25,
+  terminal/integrity, timeout, and absolute
+  wall controls stay hard. Wall-cap-only coverage is GREEN; focused is `13/13`
+  and cumulative is `116/116`.
   Product `d77ecb6a...`, package `d9e525a2...`, Runtime `07421636...`, and config
   `d98fac1a...` are unchanged; evaluator is 3,016 lines, max module 598, four
   record types. Active inode 12026776, manifest `525f0def...`, prefix
@@ -343,3 +345,4 @@ These are planning boundaries, not authority under GRANT-01.
   minted per-GRANT claim token `88cb93846c2b42289777440bdbb30671677704787d0ed187812d5327a369d11f`
   verifies three sorted resources for the same Executor/task/ExecPlan. No model,
   active-root, spec/request, package, archive, install, or release effect occurred.
+  A fresh spec/request is required; reuse and continuation remain unproven.

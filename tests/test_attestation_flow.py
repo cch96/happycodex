@@ -12,8 +12,8 @@ from evaluation.verify import (
     replay_attestation, verify_evaluation, verify_release,
 )
 from tests.attestation_fixtures import (
-    REVEALED_AT, ROOT, SHA, attest_all, bundle, host_metadata, passing_report,
-    raw_stream, terminal,
+    REVEALED_AT, ROOT, SHA, TOTAL_CAP, attest_all, bundle, host_metadata,
+    passing_report, raw_stream, terminal,
 )
 
 
@@ -144,6 +144,21 @@ class FixedHoldoutTests(unittest.TestCase):
         }
         records, raws = attest_all(selected, baseline, spec, terminals=expensive)
         with self.assertRaisesRegex(VerificationError, "calls continued after fixed-holdout failure"):
+            verify_evaluation(
+                root=ROOT, product=selected, previous_product=baseline, spec=spec,
+                attestations=records, raw_streams=raws, holdout_mapping=blind_mapping,
+                mapping_revealed_at=REVEALED_AT,
+            )
+
+    def test_absolute_cumulative_wall_cap_is_independently_hard(self):
+        cap = {**TOTAL_CAP, "wall_milliseconds": 119_999}
+        selected, baseline, spec, blind_mapping = bundle(total_cap=cap)
+        records, raws = attest_all(selected, baseline, spec)
+        self.assertTrue(all(record["terminal"]["classification"] == "success" for record in records))
+        self.assertLess(sum(record["terminal"]["input_tokens"] for record in records), cap["input_tokens"])
+        self.assertLess(sum(record["terminal"]["output_tokens"] for record in records), cap["output_tokens"])
+        self.assertEqual(sum(record["terminal"]["wall_milliseconds"] for record in records), 120_000)
+        with self.assertRaisesRegex(VerificationError, "evaluation exceeds total cap: wall_milliseconds"):
             verify_evaluation(
                 root=ROOT, product=selected, previous_product=baseline, spec=spec,
                 attestations=records, raw_streams=raws, holdout_mapping=blind_mapping,
