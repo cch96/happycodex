@@ -301,3 +301,20 @@ These are planning boundaries, not authority under GRANT-01.
   package, Runtime, config, install, release, activation, cache, marketplace, or
   rollback effect occurred. The request grants no permission; live execution
   requires the exact external affirmative line for `78be8bc8...`.
+
+### GRANT-36 durable intent
+
+- Root supplied the exact current affirmative line for request `78be8bc8...`
+  and authorized its already-frozen ordinary twelve-unit bundle. Pre-effect
+  commit/tree are `1684df1e...` / `0f6edb9e...`; claim receipt
+  `/home/caichenghang/.codex/happycodex-evaluator-attestation-grant36-resource-claim.json`
+  binds this worktree/ref/plan and the existing evaluation root.
+- Immediately before the first provider effect, revalidate the clean checkpoint,
+  authority text, credentials, zero prefix, request/spec/host/source identities,
+  every invocation, high/max profiles, fixed mapping, and exact cap. Then run
+  five core units, all three concurrent holdout pairs, one post-freeze reveal and
+  unified judgment, and exact-final only after GREEN. No retry or recovery.
+- Persist raw/claims/Attestations only in the external root. Stop on any failure,
+  ambiguity, drift, partial completion, or cap breach. Offline reconciliation
+  and checkpoint commits require no intermediate gate; installation, activation,
+  release, package/config changes, and any unfrozen input remain excluded.
