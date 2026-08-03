@@ -237,3 +237,32 @@ These are planning boundaries, not authority under GRANT-01.
   source, config, install, release, activation, cache, marketplace, or rollback
   effect followed. Release remains excluded; a new Root decision is required
   for any repair or new evaluation identity.
+
+### GRANT-32 durable intent
+
+- Root authorized one offline continuation repair at clean commit/tree
+  `c19908bc7c2e05ae9f670a0ec7c695ca4935471c` /
+  `c479a0cf1f52ee44de653048f0e3d56d8e3e3ecf`. Resource receipt
+  `/home/caichenghang/.codex/happycodex-evaluator-attestation-grant32-resource-claim.json`
+  binds owner token `dc025eb9...` to this worktree, branch ref, and plan. The
+  immutable GRANT-31 evidence root is read-only.
+- Amendment: a fixed-host sandbox-helper visibility change isolated to
+  exact-final invalidates exactly that unit, not unchanged behavior or holdout
+  provider inputs. A fresh one-unit exact-final continuation must bind and
+  reverify the immutable eleven-unit predecessor prefix, candidate/baseline,
+  role config, original spec and authority, mapping/reveal judgment, relevant
+  component identities, and frozen source. It uses only `EvalSpec` and
+  `Attestation`; release requires the proven prefix plus the fresh exact-final.
+- Preflight mechanically reproduced all eleven predecessor raw streams and
+  Attestations as success/pass under original authority `05825e35...`, with
+  holdout GREEN and zero `command_execution` items. The old failed exact-final
+  remains preserved but is ineligible as continuation evidence.
+- Implement only an exact-file `read` grant for validated per-unit
+  `command-bin/codex-linux-sandbox`, materialized from the contract-bound
+  template. Keep stdout JSONL separate from stderr and preserve network,
+  approval, isolation, cases, oracles, thresholds, Runtime, four record types,
+  release boundary, and no-retry semantics. RED tests precede the smallest
+  implementation; focused, cumulative offline, and real no-model Linux sandbox
+  probes must be GREEN. No model, API, network, dependency, external-output,
+  product, install, release, activation, cache, marketplace, or rollback effect
+  is authorized.
