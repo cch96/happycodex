@@ -332,17 +332,16 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `grant28_offline_green`. Relative wall remains computed/false but is
-  diagnostic; semantic, aggregate input-plus-output token 1.25,
-  terminal/integrity, timeout, and absolute
-  wall controls stay hard. Wall-cap-only coverage is GREEN; focused is `13/13`
-  and cumulative is `116/116`.
-  Product `d77ecb6a...`, package `d9e525a2...`, Runtime `07421636...`, and config
-  `d98fac1a...` are unchanged; evaluator is 3,016 lines, max module 598, four
-  record types. Active inode 12026776, manifest `525f0def...`, prefix
-  `11/11/11/11`, and absent exact-final are unchanged. Bootstrap token
-  `5a63e381-1ff8-4675-9c10-c81da14e1de2` remains writer lineage; independently
-  minted per-GRANT claim token `88cb93846c2b42289777440bdbb30671677704787d0ed187812d5327a369d11f`
-  verifies three sorted resources for the same Executor/task/ExecPlan. No model,
-  active-root, spec/request, package, archive, install, or release effect occurred.
-  A fresh spec/request is required; reuse and continuation remain unproven.
+- Phase: `grant29_authorized_pending_generation`. Claim token
+  `52df89da7d38f272bdaf775650db5513cd81de91fc17890d4c35db95e93bad36`
+  verifies five sorted active/archive/staging/worktree/ref resources. Freeze the
+  resulting plan-only commit/tree as the source anchor. Atomically archive active
+  inode 12026776, manifest `525f0def...`, and prefix `11/11/11/11`; then generate
+  an empty current-root request from committed source only. Bind product/baseline
+  `d77ecb6a...`/`ec4fc2df...`, evaluator
+  `c01cbafb...`/`2240e900...`/`74d459a4...`/`0e3ffa56...`, config
+  `d98fac1a...`, binary `cb5e8cb8...`, profiles high/300 and max/600, and cap
+  12/600000/100000/2400000/0. Validate source, host, spec, request, empty prefix,
+  and exact archive preservation. Provider, network, install, release, package,
+  schema, test, and retry budgets are zero; stop on drift, collision, or partial
+  effect.
