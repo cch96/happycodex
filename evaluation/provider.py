@@ -111,16 +111,28 @@ def _private_oracle_metadata(path: Path) -> tuple[dict[str, Any], bytes]:
 
 def _reject_oracle_diff(diff: bytes, oracle: bytes) -> None:
     private_path = b"evaluation/hidden-oracles-v1.json"
-    if private_path in diff or oracle in diff:
-        raise ProviderError("hidden oracle reached exact-final diff")
-    for prefix in (b"+", b"-", b" "):
-        header = {b"+": b"+++ ", b"-": b"--- "}.get(prefix)
-        payload = b"".join(
-            line[1:] for line in diff.splitlines(keepends=True)
-            if line.startswith(prefix) and (header is None or not line.startswith(header))
-        )
-        if oracle in payload:
+    old, new, in_hunk = bytearray(), bytearray(), False
+
+    def reject_payload() -> None:
+        if oracle in old or oracle in new:
             raise ProviderError("hidden oracle content reached exact-final diff")
+
+    for line in diff.splitlines(keepends=True):
+        if line.startswith(b"diff --git "):
+            reject_payload(); old.clear(); new.clear(); in_hunk = False
+        if line.startswith((b"diff --git ", b"--- ", b"+++ ", b"rename from ", b"rename to ", b"copy from ", b"copy to ", b"Binary files ")) and private_path in line:
+            raise ProviderError("hidden oracle file reached exact-final diff")
+        if line.startswith(b"@@"):
+            in_hunk = True
+        elif in_hunk and line.startswith(b" "):
+            old.extend(line[1:]); new.extend(line[1:])
+        elif in_hunk and line.startswith(b"-"):
+            old.extend(line[1:])
+        elif in_hunk and line.startswith(b"+"):
+            new.extend(line[1:])
+    reject_payload()
+    if oracle in diff:
+        raise ProviderError("hidden oracle content reached exact-final diff")
 
 
 def exact_final_source_identity(root: Path, private_oracle_path: Path) -> str:

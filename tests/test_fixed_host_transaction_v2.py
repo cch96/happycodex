@@ -59,6 +59,7 @@ def _freeze_tree(root: Path) -> None:
 
 def _synthetic_snapshot(
     base: Path, *, hidden_file: bool = False, hidden_diff: bool = False,
+    private_file_diff: bool = False, path_mention: bool = False,
     untracked_support: bool = False,
 ) -> tuple[Path, Path]:
     snapshot = base / "execution" / "exact-final-source"
@@ -76,6 +77,18 @@ def _synthetic_snapshot(
             b"--- a/public-copy.json\n+++ b/public-copy.json\n@@ -1,22 +1,22 @@\n"
             + b"".join(b" " + line for line in body.splitlines(keepends=True))
             + b"-old trailer\n+new trailer\n"
+        )
+    elif private_file_diff:
+        diff.write_bytes(
+            b"diff --git a/evaluation/hidden-oracles-v1.json b/evaluation/hidden-oracles-v1.json\n"
+            b"--- a/evaluation/hidden-oracles-v1.json\n"
+            b"+++ b/evaluation/hidden-oracles-v1.json\n@@ -1 +1 @@\n-old\n+new\n"
+        )
+    elif path_mention:
+        diff.write_bytes(
+            b"diff --git a/evaluation/provider.py b/evaluation/provider.py\n"
+            b"--- a/evaluation/provider.py\n+++ b/evaluation/provider.py\n@@ -1 +1,2 @@\n"
+            b" context\n+PRIVATE_PATH = 'evaluation/hidden-oracles-v1.json'\n"
         )
     else:
         diff.write_bytes(
@@ -304,6 +317,17 @@ class FixedHostTransactionTests(unittest.TestCase):
                 )
                 with self.assertRaisesRegex(ProviderError, "hidden oracle"):
                     exact_final_source_identity(source, private)
+
+        with tempfile.TemporaryDirectory() as directory:
+            base = Path(directory); (base / "execution").mkdir(mode=0o700)
+            source, private = _synthetic_snapshot(base, private_file_diff=True)
+            with self.assertRaisesRegex(ProviderError, "hidden oracle file"):
+                exact_final_source_identity(source, private)
+
+        with tempfile.TemporaryDirectory() as directory:
+            base = Path(directory); (base / "execution").mkdir(mode=0o700)
+            source, private = _synthetic_snapshot(base, path_mention=True)
+            self.assertEqual(len(exact_final_source_identity(source, private)), 64)
 
         with tempfile.TemporaryDirectory() as directory:
             base = Path(directory); (base / "execution").mkdir(mode=0o700)
