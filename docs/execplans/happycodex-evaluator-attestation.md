@@ -212,7 +212,7 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `grant31_canary_green`. Pre-intent commit/tree are
+- Phase: `grant31_behavior_green`. Pre-intent commit/tree are
   `a139b51414f8635041c41b05a79a956296cdb7a1` /
   `de5870fb8cf2169211b3ddac7831fafa8ad2577d`; post-intent commit/tree are the
   commit carrying this checkpoint and must be reported before effect.
@@ -239,7 +239,9 @@ These are planning boundaries, not authority under GRANT-01.
   ambiguity, partial-effect, or cap failure stops with exact evidence preserved.
   No retry, recovery, cleanup, product/evaluator/source/config mutation, install,
   release, activation, cache, marketplace, or rollback is authorized.
-- Canary `qualification-low-risk` froze success/pass as Attestation
-  `40078f3d...`; cumulative usage is 1 call, 10,946 input, 110 output, and
-  5,085ms. Prefix is `1/1/1/1`; no cap or stop condition fired. Next are the
-  other four behavior units concurrently under the same authority.
+- All five behavior units froze success/pass. Attestations for goal, secret,
+  high-risk, low-risk, and midflight are `dc2d7afb...`, `7021d1ba...`,
+  `f10b1871...`, `40078f3d...`, and `f450d82a...`. Cumulative usage is 5 calls,
+  54,597 input, 1,043 output, and 41,136ms; prefix is `5/5/5/5`, auth staging is
+  absent, and no cap or stop condition fired. Next are all six holdout arms
+  concurrently under the same authority.
