@@ -329,11 +329,10 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `grant27_oracle_diff_clarification`. Repair `2419d90` passed focused
-  `23/23` and cumulative `114/114`. Invalid `a279adc7...` is now atomically
-  archived unchanged at inode 12026767, manifest `359657ee...`, 112 files and
-  `0/0/0/0`; active/staging are absent. The private pathname may appear in code
-  and hash-only exclusion metadata. Only the actual private file diff or a
-  reconstructed complete oracle payload is forbidden. GRANT-27 permits this
-  narrow provider/test correction, one focused/full validation, and then fresh
-  history-free staging; no live effect is authorized.
+- Phase: `grant27_offline_green`. Repair `dd1782f` / tree `4db7aba6` permits
+  ordinary private-path source mentions while rejecting the actual private-file
+  diff and complete reconstructed payload. Focused is `23/23` in 3.652s;
+  cumulative is `114/114` in 10.214s. Evaluator is 3,016 lines, max module 598.
+  Invalid `a279adc7...` remains archived unchanged at inode 12026767, manifest
+  `359657ee...`, 112 files and `0/0/0/0`; active/staging remain absent. Next is
+  clean fully tracked, history-free fresh staging and zero-effect request freeze.
