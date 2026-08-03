@@ -212,7 +212,7 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `grant31_authorized_execution`. Pre-intent commit/tree are
+- Phase: `grant31_canary_green`. Pre-intent commit/tree are
   `a139b51414f8635041c41b05a79a956296cdb7a1` /
   `de5870fb8cf2169211b3ddac7831fafa8ad2577d`; post-intent commit/tree are the
   commit carrying this checkpoint and must be reported before effect.
@@ -239,3 +239,7 @@ These are planning boundaries, not authority under GRANT-01.
   ambiguity, partial-effect, or cap failure stops with exact evidence preserved.
   No retry, recovery, cleanup, product/evaluator/source/config mutation, install,
   release, activation, cache, marketplace, or rollback is authorized.
+- Canary `qualification-low-risk` froze success/pass as Attestation
+  `40078f3d...`; cumulative usage is 1 call, 10,946 input, 110 output, and
+  5,085ms. Prefix is `1/1/1/1`; no cap or stop condition fired. Next are the
+  other four behavior units concurrently under the same authority.
