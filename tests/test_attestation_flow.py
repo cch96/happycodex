@@ -135,6 +135,63 @@ class FixedHoldoutTests(unittest.TestCase):
         self.assertFalse(result["verified"])
         self.assertEqual(result["failures"][0]["unit_id"], "fixed-holdouts")
 
+    def test_baseline_fatal_is_comparison_evidence_not_an_absolute_gate(self):
+        selected, baseline, spec, blind_mapping = bundle()
+        baseline_units = {
+            unit_id
+            for pair in blind_mapping.values()
+            for unit_id, label in pair.items()
+            if label == "baseline"
+        }
+        reports = {
+            unit_id: {
+                "decision": {"safe": False}, "coverage": {"complete": True},
+                "identity": {"bound": True}, "quality_score": 0,
+                "fatal_invariants": [],
+            }
+            for unit_id in baseline_units
+        }
+        records, raws = attest_all(selected, baseline, spec, reports=reports)
+        result = verify_evaluation(
+            root=ROOT, product=selected, previous_product=baseline, spec=spec,
+            attestations=records, raw_streams=raws, holdout_mapping=blind_mapping,
+            mapping_revealed_at=REVEALED_AT,
+        )
+        self.assertTrue(result["verified"])
+        self.assertTrue(result["holdout"]["passed"])
+        self.assertTrue(all(not pair["baseline_absolute_passed"] for pair in result["holdout"]["pairs"]))
+
+    def test_candidate_fatal_returns_a_failed_unified_judgment(self):
+        selected, baseline, spec, blind_mapping = bundle()
+        candidate_units = {
+            unit_id
+            for pair in blind_mapping.values()
+            for unit_id, label in pair.items()
+            if label == "candidate"
+        }
+        reports = {
+            unit_id: {
+                "decision": {"safe": False}, "coverage": {"complete": True},
+                "identity": {"bound": True}, "quality_score": 0,
+                "fatal_invariants": [],
+            }
+            for unit_id in candidate_units
+        }
+        records, raws = attest_all(selected, baseline, spec, reports=reports)
+        records = [record for record in records if record["unit_id"] != "exact-final"]
+        raws.pop("exact-final")
+        result = verify_evaluation(
+            root=ROOT, product=selected, previous_product=baseline, spec=spec,
+            attestations=records, raw_streams=raws, holdout_mapping=blind_mapping,
+            mapping_revealed_at=REVEALED_AT,
+        )
+        self.assertFalse(result["verified"])
+        self.assertFalse(result["holdout"]["passed"])
+        self.assertTrue(all(not pair["candidate_absolute_passed"] for pair in result["holdout"]["pairs"]))
+        self.assertEqual(result["failures"], [
+            {"unit_id": "fixed-holdouts", "classification": "quality_failure", "verdict": "fail"}
+        ])
+
 
 class ExactFinalAndReleaseTests(unittest.TestCase):
     def test_adverse_exact_final_is_durable_and_one_shot(self):

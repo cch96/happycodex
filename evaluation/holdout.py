@@ -76,13 +76,17 @@ def judge_fixed_holdouts(
             raise HoldoutError("baseline arm does not bind previous role config")
         for label, item in labelled.items():
             assessment = assessments[item["unit_id"]]
-            if type(assessment) is not dict or type(assessment.get("score")) is not int:
+            if (
+                type(assessment) is not dict
+                or type(assessment.get("score")) is not int
+                or type(assessment.get("passed")) is not bool
+            ):
                 raise HoldoutError(f"{label} hidden assessment is not typed")
-            if assessment.get("passed") is not True:
-                raise HoldoutError(f"{label} holdout has a fatal quality failure")
         candidate_score = assessments[candidate["unit_id"]]["score"]
         baseline_score = assessments[baseline["unit_id"]]["score"]
-        pair_passed = candidate_score >= baseline_score
+        candidate_absolute_passed = assessments[candidate["unit_id"]]["passed"]
+        baseline_absolute_passed = assessments[baseline["unit_id"]]["passed"]
+        pair_passed = candidate_absolute_passed and candidate_score >= baseline_score
         candidate_tokens += candidate["terminal"]["input_tokens"] + candidate["terminal"]["output_tokens"]
         baseline_tokens += baseline["terminal"]["input_tokens"] + baseline["terminal"]["output_tokens"]
         candidate_wall += candidate["terminal"]["wall_milliseconds"]
@@ -90,7 +94,10 @@ def judge_fixed_holdouts(
         pair_results.append(
             {
                 "pair_id": pair["pair_id"], "candidate_score": candidate_score,
-                "baseline_score": baseline_score, "passed": pair_passed,
+                "baseline_score": baseline_score,
+                "candidate_absolute_passed": candidate_absolute_passed,
+                "baseline_absolute_passed": baseline_absolute_passed,
+                "passed": pair_passed,
             }
         )
     token_ratio_ok = _ratio_ok(candidate_tokens, baseline_tokens)

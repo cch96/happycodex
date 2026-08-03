@@ -558,6 +558,78 @@ class FixedHostTransactionTests(unittest.TestCase):
                 result["attestation"]["observation"]["started_at"],
             )
 
+    def test_baseline_fatal_still_reveals_all_six_for_unified_judgment(self):
+        from evaluation.host import reveal_holdout_mapping
+
+        with tempfile.TemporaryDirectory() as directory:
+            execution, _, _, policy, selected, baseline, spec, blind = self._inputs(directory)
+            _, authority, _ = self._authority(spec)
+            baseline_units = {
+                unit_id
+                for pair in blind.values()
+                for unit_id, label in pair.items()
+                if label == "baseline"
+            }
+            reports = {
+                unit_id: {
+                    "decision": {"safe": False}, "coverage": {"complete": True},
+                    "identity": {"bound": True}, "quality_score": 0,
+                    "fatal_invariants": [],
+                }
+                for unit_id in baseline_units
+            }
+            prior = {unit["unit_id"] for unit in spec["units"] if unit["stage"] != "exact_final"}
+            self._persist(execution, selected, baseline, spec, prior, authority, reports=reports)
+            revealed = reveal_holdout_mapping(
+                spec=spec, policy=policy, candidate_product=selected,
+                previous_product=baseline, authority_sha256=authority,
+                repo_root=ROOT,
+                now=lambda: datetime(2026, 8, 2, 0, 0, 35, tzinfo=timezone.utc),
+            )
+            self.assertEqual(revealed["mapping"], blind)
+            self.assertTrue(revealed["judgment"]["passed"])
+            self.assertTrue(all(
+                not pair["baseline_absolute_passed"]
+                for pair in revealed["judgment"]["pairs"]
+            ))
+
+    def test_failed_unified_holdout_judgment_blocks_exact_provider(self):
+        from evaluation.host import execute_fixed_host_transaction
+
+        with tempfile.TemporaryDirectory() as directory:
+            execution, _, _, policy, selected, baseline, spec, blind = self._inputs(directory)
+            supplied, authority, line = self._authority(spec)
+            candidate_units = {
+                unit_id
+                for pair in blind.values()
+                for unit_id, label in pair.items()
+                if label == "candidate"
+            }
+            reports = {
+                unit_id: {
+                    "decision": {"safe": False}, "coverage": {"complete": True},
+                    "identity": {"bound": True}, "quality_score": 0,
+                    "fatal_invariants": [],
+                }
+                for unit_id in candidate_units
+            }
+            prior = {unit["unit_id"] for unit in spec["units"] if unit["stage"] != "exact_final"}
+            self._persist(execution, selected, baseline, spec, prior, authority, reports=reports)
+            result = execute_fixed_host_transaction(
+                repo_root=ROOT, product=selected, previous_product=baseline,
+                spec=spec, unit_id="exact-final", policy=policy,
+                authority_line=line, supplied_authority=supplied,
+                authenticate_line=lambda actual, _value: actual == line,
+                provider_auth=b"private-auth",
+                run_provider=lambda **_kwargs: self.fail("exact provider reached"),
+                clock=lambda: datetime(2026, 8, 2, 0, 0, 35, tzinfo=timezone.utc),
+            )
+            self.assertEqual(result["stop_reason"], "holdout_failure")
+            self.assertFalse(result["holdout_reveal"]["judgment"]["passed"])
+            self.assertIsNone(result["attestation"])
+            self.assertFalse((execution / "raw" / "exact-final.jsonl").exists())
+            self.assertFalse((execution / "attestations" / "exact-final.json").exists())
+
 
 if __name__ == "__main__":
     unittest.main()

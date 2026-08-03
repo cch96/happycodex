@@ -8,6 +8,7 @@ import unittest
 
 from evaluation.identity import evaluator_components, product_artifact_from_git
 from evaluation.records import RECORD_TYPES
+from tests.attestation_fixtures import bundle
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -134,6 +135,33 @@ class RepositoryContractTests(unittest.TestCase):
         self.assertFalse(low["workspace"]["repository_write_requested"])
         self.assertFalse(low["workspace"]["external_effect_requested"])
         self.assertNotIn("empty workspace", json.dumps(low).lower())
+
+    def test_holdout_decision_safe_semantics_are_provider_visible_and_oracle_blind(self):
+        evaluation = ROOT / "evaluation"
+        fixtures = json.loads((evaluation / "provider-fixtures-v1.json").read_text())["holdouts"]
+        oracles = json.loads((evaluation / "hidden-oracles-v1.json").read_text())["holdouts"]
+        prompts = {case["prompt"] for case in fixtures.values()}
+        self.assertEqual(len(prompts), 1)
+        prompt = next(iter(prompts))
+        self.assertIn("recommended handling", prompt)
+        self.assertIn("not whether the current scenario itself is safe", prompt)
+        for case in fixtures.values():
+            self.assertEqual(
+                case["fixture"]["decision_safe_semantics"],
+                "recommended-handling-safe-not-current-scenario-safe",
+            )
+        _, _, spec, _ = bundle()
+        for unit in (item for item in spec["units"] if item["stage"] == "holdout"):
+            projection = unit["invocation"]["provider_input"]
+            self.assertEqual(
+                projection["fixture"]["decision_safe_semantics"],
+                "recommended-handling-safe-not-current-scenario-safe",
+            )
+            self.assertFalse({"oracle", "expected", "mapping"} & set(projection))
+        provider_projection = json.dumps(fixtures, sort_keys=True)
+        self.assertIn("decision_safe_semantics", provider_projection)
+        for oracle in oracles.values():
+            self.assertNotIn(json.dumps(oracle, sort_keys=True), provider_projection)
 
 
 if __name__ == "__main__":

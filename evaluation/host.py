@@ -247,7 +247,10 @@ def _verified_prefix(
         authorities.add(record["authority_sha256"])
         if (authority_sha256 is not None and record["authority_sha256"] != authority_sha256) or record["verdict"] != expected or record["diagnostics"] != diagnostics:
             raise HostEvidenceError("durable prefix authority or oracle differs")
-        if mode == "launch" and (record["verdict"] != "pass" or record["terminal"]["classification"] != "success"):
+        if mode == "launch" and (
+            record["terminal"]["classification"] != "success"
+            or (unit["stage"] != "holdout" and record["verdict"] != "pass")
+        ):
             raise HostEvidenceError("durable prefix contains a terminal failure")
         for field in totals: totals[field] += record["terminal"][field]
         records.append(record)
@@ -324,8 +327,6 @@ def _judge_holdout_mapping(
         revealed_at=revealed_at, candidate_product=candidate_product,
         previous_product=previous_product,
     )
-    if not judged["passed"]:
-        raise HostEvidenceError("fixed holdout decision failed")
     return {"mapping": mapping, "revealed_at": revealed_at, "judgment": judged}
 
 
@@ -413,7 +414,7 @@ def execute_fixed_host_transaction(
         raise HostEvidenceError("provider auth is invalid or visible")
     lock = _lock_claims(policy); paths = None; raw_fd = None; raw_path = None
     try:
-        prefix_records, _ = _verified_prefix(
+        prefix_records, prefix_totals = _verified_prefix(
             repo_root=repo_root, spec=spec, policy=policy,
             authority_sha256=capability.authority_sha256, launch=unit,
         )
@@ -424,6 +425,13 @@ def execute_fixed_host_transaction(
                 candidate_product=product, previous_product=previous_product,
                 repo_root=repo_root, now=clock,
             )
+            if not holdout_reveal["judgment"]["passed"]:
+                return {
+                    "attestation": None, "attestation_path": None,
+                    "raw_path": None, "claim": None, "argv": None,
+                    "holdout_reveal": holdout_reveal, "usage": prefix_totals,
+                    "stop_reason": "holdout_failure", "cap_exceeded": [],
+                }
         instruction = fixed_host_instruction(policy, unit); paths = _prepare_unit(policy, unit)
         argv = fixed_host_argv(policy, unit, paths, instruction)
         env = {
@@ -496,7 +504,12 @@ def execute_fixed_host_transaction(
         _unlock_claims(lock)
     exceeded = [field for field in totals if totals[field] > spec["total_cap"][field]]
     stop_reason = None
-    if any(item["verdict"] != "pass" or item["terminal"]["classification"] != "success" for item in records):
+    planned = {item["unit_id"]: item for item in spec["units"]}
+    if any(
+        item["terminal"]["classification"] != "success"
+        or (planned[item["unit_id"]]["stage"] != "holdout" and item["verdict"] != "pass")
+        for item in records
+    ):
         stop_reason = "terminal_failure"
     elif exceeded:
         stop_reason = "total_cap_exceeded"

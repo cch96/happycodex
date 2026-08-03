@@ -398,7 +398,8 @@ def verify_evaluation(
     failures = [
         {"unit_id": unit_id, "classification": record["terminal"]["classification"], "verdict": record["verdict"]}
         for unit_id, record in by_unit.items()
-        if record["verdict"] != "pass" or record["terminal"]["classification"] != "success"
+        if record["terminal"]["classification"] != "success"
+        or (planned[unit_id]["stage"] != "holdout" and record["verdict"] != "pass")
     ]
     stage_units = {
         stage: {unit["unit_id"] for unit in planned.values() if unit["stage"] == stage}
