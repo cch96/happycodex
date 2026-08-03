@@ -104,6 +104,34 @@ the exact prefix. The grant excludes replay, substitution, install, release,
 activation, cache, marketplace, source/test/schema/Runtime edits, and any new
 runner, module, record, gate, or receipt.
 
+### Active grant: GRANT-19
+
+GRANT-18 stopped before Attestation publication after exactly five behavior
+calls consumed 80,484 input and 1,396 output tokens. The preserved root contains
+five units, claims, and raw streams and zero Attestations. Sanitized inspection
+showed deprecated pre-turn error items followed by schema-valid reports; the
+strict parser correctly rejected that stream shape. No holdout or exact-final
+call ran, and no retry or recovery occurred.
+
+The user authorized one bounded offline repair from clean commit/tree
+`905b689219680169f3f636b5a565f13a13dab0a9` /
+`8f177d251d5cc7a5412fd63d0a30db63a54fa07b`. Remove only the two deprecated web
+search disable flags, bind top-level `web_search="disabled"` into the existing
+provider policy/argv, accept multiple same-turn completed agent messages with
+the last as canonical while retaining strict stream/id ordering, and clarify the
+three qualification fixtures without changing hidden oracles. Add narrow RED,
+run one focused and one cumulative offline suite, then commit.
+
+After GREEN, atomically preserve the entire failed root as
+`/home/caichenghang/.codex/happycodex-evaluator-attestation-release.failed-grant18-f21ff642`
+and generate a fresh empty 12-call request from committed source. It must retain
+one bundle and no new gate/call: `qualification-low-risk` is internal canary,
+then four behavior calls, three concurrent holdout pairs, and exact-final. No
+failed authority/evidence reuse, provider/model/network, Runtime/schema/oracle,
+install, release, activation, replay, reviewer, gate, receipt, or new engine is
+authorized. Any drift, test failure, target conflict, or nonempty fresh evidence
+stops.
+
 ## Baseline
 
 Command, run once in the new clean worktree:
@@ -269,7 +297,7 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `live_authority_intent_pending_commit`. GRANT-17 repair commit/tree
+- Phase: `grant19_offline_repair_intent`. GRANT-17 repair commit/tree
   are `40686ef5163bbd9fa4a23223bff106502a3017be` /
   `3f06667194de306aa1d32e72bb5780047069b0fd`; the coherent repair commit changed
   only this plan, existing evaluator files/schema, and affected tests.
@@ -318,9 +346,8 @@ These are planning boundaries, not authority under GRANT-01.
   `cb5e8cb8a333a408ce6adbe0d4fad1845c69772c2216af7c1f88c98a11460dc6`.
 - Provider/model/network calls, authority consumption, claims, raw events,
   Attestations, install, release, and activation effects are all zero.
-- GRANT-18 starts from clean HEAD/tree
+- GRANT-18 started from clean HEAD/tree
   `3caa7151fa0c82d194fe268ada373f211dc62c69` /
   `9a9848b261f85a51004a567527daa871c4e826d0` and empty external inventories.
-  Stage commands are the exact order-1, order-2, and order-3 unit sets already
-  bound in `authority-request.json`; no later stage begins unless the prior
-  stage is fully durable, successful, within cap, and identity-clean.
+  It stopped with the sanitized failure facts recorded in GRANT-19; the failed
+  evidence remains intact and no later stage began.
