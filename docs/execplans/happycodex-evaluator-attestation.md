@@ -165,7 +165,7 @@ Repair `07c326e` bound the private sandbox hard link and PATH, passed focused
 Intent `088dfab` produced request `a279adc7...`, but its synthetic source left
 the manifest and diff untracked. It is invalid, unconsumed, and not evidence.
 
-### Active offline grant: GRANT-25
+### Closed offline grants: GRANT-25/26
 
 Verbatim amendment:
 
@@ -173,25 +173,11 @@ Verbatim amendment:
 同意归档未消费的 request a279adc7dbe3d121435982f35d41c475de3af3195605a93b6a2a120ad8263875；执行最小 exact-final source-sealing 修复：所有 reviewer-visible 文件形成 clean synthetic commit，并以 SHA-256 纳入现有 host contract、执行前重新验证；hidden oracle bytes 从 reviewer workspace/diff 排除但继续由 EvalSpec oracle identity 精确绑定；neutral brief 删除 grant/commit/repair history。保持 Runtime、case、阈值、12-call 计划、gate、record 和 receipt 类型不变；离线 GREEN 后生成 fresh request，暂不调用模型。
 ```
 
-From clean `00e427c` / `0cd44c8`, only this plan, `evaluation/provider.py`,
-mechanically necessary `evaluation/host.py`, and focused existing tests may
-change. Add RED, then bind a relocation-invariant SHA-256 identity over every
-reviewer-visible file and effective Git metadata/config inside the existing
-workspace policy. Contract validation must reject drift before authority or
-provider preparation, symlinks, dirty or multi-commit repos, remotes, missing
-or untracked support files, and hidden-oracle file/diff exposure. No new record,
-gate, receipt, graph, builder, phase, product/Runtime/case/oracle/threshold, or
-schema semantics are allowed.
-
-After one focused and one cumulative offline GREEN, commit repair and receipt;
-then recheck and atomically archive the unchanged unconsumed active root at the
-exact invalid-request target. Build a fresh staging root without archived
-semantic input: private entropy mapping, current neutral brief, clean fully
-tracked projection excluding hidden oracle bytes, existing CLI records, and the
-unchanged 12-call profiles/caps. Atomically publish only after all identity,
-privacy, byte-equality, empty-evidence, and zero-effect checks pass. Any drift,
-test failure, wider need, hidden byte, nonempty evidence, or live reach stops
-without retry or cleanup.
+Repair `2419d90` / tree `0df90a85` binds the clean relocation-invariant source
+and all Git metadata inside the existing workspace-policy digest, revalidates
+before capability effect, and excludes hidden oracle bytes from workspace and
+diff. GRANT-26 moved the spawn mock to `run_provider` and closed realistic
+prefixed diff copying. No record, gate, phase, product, or semantic input grew.
 
 ## Baseline
 
@@ -300,7 +286,7 @@ full refresh.
 | `O-FOUR` | Only the four named durable record schemas exist. | A ledger, plan/receipt/gate/review family, join, or generic graph is required. | Closed schema inventory and unknown-input rejection tests. | verified |
 | `O-SEPARATE` | Product identity does not depend on evaluator bytes; evaluator changes do not rewrite product identity. | Oracle/harness edits change `ProductArtifact`. | Differential identity tests. | verified |
 | `O-STATELESS` | Verification derives status from immutable input records without active mutable state. | Certification needs ledger order, promotion, or reconciliation. | Fresh-process replay and missing/tampered-record tests. | verified |
-| `O-BLIND` | Provider input cannot contain or read expected answers or mappings. | Sentinel oracle bytes appear in projection/workspace/events. | Differential sentinel and isolation tests. | reopened by GRANT-25 |
+| `O-BLIND` | Provider input cannot contain or read expected answers or mappings. | Sentinel oracle bytes appear in projection/workspace/events. | Differential sentinel and isolation tests. | offline verified |
 | `O-INVALIDATE` | The table above causes only necessary model calls. | Oracle-only change calls a model, or provider-input drift reuses an observation. | Per-component mutation matrix with call counters. | verified |
 | `O-AUTH` | One bounded evaluation authority plus one distinct release authority suffices by default; neither implies the other. | Hidden micro-authority gates appear or release uses evaluation authority. | Exact digest/cap/refusal tests. | offline verified |
 | `O-ADVERSE` | Adverse exact-final is durable for unchanged artifact bytes. | Unchanged artifact can discard or rerun it for a friendlier result. | Persistent negative and changed-artifact tests. | verified |
@@ -343,9 +329,10 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `grant26_offline_continuation`; GRANT-25 intent is `01a419f`. Its first
-  focused module was `22/23`: the spawn test's global `Popen` mock intercepted
-  Git validation. No cumulative or external/live effect ran. Bound dirt is
-  `193b5967...`. GRANT-26 permits only the existing `run_provider` seam and
-  realistic prefixed oracle-diff closure, then focused and cumulative runs.
-  Invalid `a279adc7...` remains untouched.
+- Phase: `grant26_offline_green`. RED captured the absent identity boundary;
+  the first focused attempt stopped at `22/23` on a shared mock. Authorized
+  continuation passed focused `23/23` in 3.600s and cumulative `114/114` in
+  9.964s. Repair is `2419d90` / `0df90a85`; `host.py`, Runtime, product,
+  oracle/case/threshold/schema, and record/gate families are unchanged. No live
+  or external effect ran. Next is exact `a279adc7...` prestate reconciliation,
+  atomic invalid archive, and source-clean fresh staging/materialization.
