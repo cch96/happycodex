@@ -332,16 +332,17 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `grant29_authorized_pending_generation`. Claim token
-  `52df89da7d38f272bdaf775650db5513cd81de91fc17890d4c35db95e93bad36`
-  verifies five sorted active/archive/staging/worktree/ref resources. Freeze the
-  resulting plan-only commit/tree as the source anchor. Atomically archive active
-  inode 12026776, manifest `525f0def...`, and prefix `11/11/11/11`; then generate
-  an empty current-root request from committed source only. Bind product/baseline
-  `d77ecb6a...`/`ec4fc2df...`, evaluator
-  `c01cbafb...`/`2240e900...`/`74d459a4...`/`0e3ffa56...`, config
-  `d98fac1a...`, binary `cb5e8cb8...`, profiles high/300 and max/600, and cap
-  12/600000/100000/2400000/0. Validate source, host, spec, request, empty prefix,
-  and exact archive preservation. Provider, network, install, release, package,
-  schema, test, and retry budgets are zero; stop on drift, collision, or partial
-  effect.
+- Phase: `grant29_stopped_partial`. Intent commit/tree is `a03ad7e...` /
+  `1f36937b...`; claim token `52df89da...` still holds all five resources. The
+  old root was atomically archived as `.failed-grant27-09e13f1e`, retaining
+  inode 12026776, manifest `525f0def...`, and prefix `11/11/11/11` exactly.
+  Active is absent. Fresh staging inode 15024876 has manifest `201820a7...`,
+  112 files/69 directories, source `a53ec149...`, host `451dddd4...`, spec
+  `bfc93edb...`, request `e9295933...`, and empty `0/0/0/0` prefix.
+- Generation stopped before publish because its closing assertion incorrectly
+  required `execution/` itself to be empty; it correctly contains the frozen
+  source plus the four empty prefix directories. This is a partial effect even
+  though subsequent read-only diagnosis validated those generated identities.
+  Staging was not repaired, rerun, published, or cleaned. No provider, model,
+  network, install, release, package, schema, test, or retry effect occurred.
+  Root must decide the disposition and any new authority.
