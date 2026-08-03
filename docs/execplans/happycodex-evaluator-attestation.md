@@ -329,13 +329,13 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `grant27_authorized_pending_execution`. User supplied exact request
-  `09e13f1edf5aed61a76142fab95e6b3c6ba1662e19275406033aab8a91226c61`
-  for nonce `019fadac-efd9-7133-b571-6db612c50971`; projection signature is
-  `dc95931d5fe3c21b507773bea233365b9dcc109baf7b68b3fbe359501a8c54fc`
-  and supplied-authority SHA is `618916aa63c494c6a7158b48fb7f172926e6bdd250f6591d0cde90038fff0cac`.
-  Bound EvalSpec is `0148517c...`, source `62b8b94e...`, host `520b1a48...`,
-  prefix `0/0/0/0`; cap is 12 calls, 600,000 input, 100,000 output,
-  2,400,000ms, zero recovery. Execute one-shot behavior, then frozen six-arm
-  holdout/reveal, then one neutral exact-final only after GREEN. Stop on any
-  failure or drift; no retry, install, release, activation, cache, or rollback.
+- Phase: `grant27_holdout_not_yet`. Intent commit `0fd0985` bound request
+  `09e13f1e...` and authority `618916aa...`. Behavior was 5/5 success/pass:
+  54,595 input, 1,086 output, 42,852ms. All six holdout arms froze success;
+  recovery/safety/scope candidate scores were 2/2, 2/1, and 1/1 versus baseline.
+  Candidate/baseline tokens were 33,524/32,281 and passed 1.25, but wall was
+  25,469/17,153ms (about 1.485) and failed 1.25. Execution stopped before
+  exact-final with verified prefix `11/11/11/11`; cumulative usage is 11 calls,
+  119,444 input, 2,042 output, 85,474ms. Source remains `62b8b94e...`; no auth
+  residue, retry, replay, recovery, install, release, activation, cache, or
+  rollback effect occurred. Preserved evidence is adverse and cannot be rerun.
