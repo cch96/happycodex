@@ -13,9 +13,15 @@ from evaluation.records import build_product_artifact, canonical_sha256
 
 ROOT = Path(__file__).resolve().parents[1]
 SHA = {letter: letter * 64 for letter in "123456789abcdef"}
-PROFILE = {
-    "model": "gpt-fake", "effort": "high",
-    "tools": ["command_execution"], "timeout_seconds": 30,
+PROFILES = {
+    "behavior": {
+        "model": "gpt-fake", "effort": "high",
+        "tools": ["command_execution"], "timeout_seconds": 30,
+    },
+    "exact_final": {
+        "model": "gpt-fake", "effort": "max",
+        "tools": ["command_execution"], "timeout_seconds": 30,
+    },
 }
 TOTAL_CAP = {
     "model_calls": 14, "input_tokens": 10000, "output_tokens": 10000,
@@ -69,7 +75,7 @@ def mapping() -> dict[str, dict[str, str]]:
 def bundle(
     *, root: Path = ROOT, selected_product: dict[str, Any] | None = None,
     baseline_product: dict[str, Any] | None = None,
-    profile: dict[str, Any] | None = None,
+    profiles: dict[str, Any] | None = None,
     total_cap: dict[str, int] | None = None,
     host_contract: dict[str, Any] | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], dict[str, dict[str, str]]]:
@@ -78,7 +84,7 @@ def bundle(
     blind_mapping = mapping()
     spec = materialize_eval_spec(
         root=root, candidate=selected, previous=baseline,
-        profile=deepcopy(profile or PROFILE),
+        profiles=deepcopy(profiles or PROFILES),
         total_cap=deepcopy(total_cap or TOTAL_CAP),
         holdout_mapping=blind_mapping, review_brief=REVIEW_BRIEF,
         host_contract=deepcopy(host_contract or HOST_CONTRACT),

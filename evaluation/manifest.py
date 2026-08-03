@@ -180,7 +180,7 @@ def _unit(
 
 def materialize_eval_spec(
     *, root: Path, candidate: dict[str, Any], previous: dict[str, Any],
-    profile: dict[str, Any], total_cap: dict[str, int],
+    profiles: dict[str, Any], total_cap: dict[str, int],
     holdout_mapping: dict[str, dict[str, str]], review_brief: dict[str, Any],
     host_contract: dict[str, Any],
 ) -> dict[str, Any]:
@@ -192,6 +192,10 @@ def materialize_eval_spec(
     brief_sha = canonical_sha256(brief_text)
     host_contract_sha = canonical_sha256(host_contract)
     harness_sha = canonical_sha256({"raw_stream": "jsonl-v1", "proof": "external-host-v1"})
+    if type(profiles) is not dict or set(profiles) != {"behavior", "exact_final"}:
+        raise ManifestError("profiles must contain exactly behavior and exact_final")
+    behavior_profile = profiles["behavior"]
+    exact_final_profile = profiles["exact_final"]
     units: list[dict[str, Any]] = []
     for role_id in MODEL_ROLE_IDS:
         fixture = inputs["fixtures"]["core"][role_id]
@@ -199,7 +203,7 @@ def materialize_eval_spec(
             _unit(
                 unit_id=role_id, role_id=role_id, sample_id=None, stage="behavior",
                 arm_product=candidate,
-                case={**fixture, "runtime": runtime, "response_schema": inputs["schemas"]["core"][role_id]}, profile=profile,
+                case={**fixture, "runtime": runtime, "response_schema": inputs["schemas"]["core"][role_id]}, profile=behavior_profile,
                 oracle_sha256=canonical_sha256(inputs["oracles"]["core"][role_id]),
                 harness_sha256=harness_sha, review_brief_sha256=None,
                 host_contract_sha256=host_contract_sha,
@@ -222,7 +226,7 @@ def materialize_eval_spec(
                 _unit(
                     unit_id=unit_id, role_id=HOLDOUT_ROLE_ID, sample_id=sample_id,
                     stage="holdout", arm_product=arm_product,
-                    case={**fixture, "runtime": runtime, "response_schema": inputs["schemas"]["holdout"]}, profile=profile,
+                    case={**fixture, "runtime": runtime, "response_schema": inputs["schemas"]["holdout"]}, profile=behavior_profile,
                     oracle_sha256=canonical_sha256(inputs["oracles"]["holdouts"][sample_id]),
                     harness_sha256=harness_sha, review_brief_sha256=None,
                     host_contract_sha256=host_contract_sha,
@@ -239,7 +243,7 @@ def materialize_eval_spec(
                 "neutral_review_brief": brief_text,
                 "response_schema": inputs["schemas"]["exact_final"],
             },
-            profile=profile,
+            profile=exact_final_profile,
             oracle_sha256=canonical_sha256(inputs["oracles"]["exact_final"]),
             harness_sha256=harness_sha, review_brief_sha256=brief_sha,
             host_contract_sha256=host_contract_sha,
@@ -253,7 +257,7 @@ def materialize_eval_spec(
         product_semantic_sha256=candidate["package_semantic_sha256"],
         external_role_config_sha256=candidate["external_role_config_sha256"],
         previous_product_record_sha256=previous["record_sha256"],
-        profile=profile, units=units, holdouts=holdouts, total_cap=total_cap,
+        profiles=profiles, units=units, holdouts=holdouts, total_cap=total_cap,
         neutral_review_brief_sha256=brief_sha,
         manifest_sha256=inputs["manifest_sha256"],
         fixtures_sha256=inputs["fixtures_sha256"],

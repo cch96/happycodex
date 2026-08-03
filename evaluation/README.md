@@ -5,7 +5,8 @@ database and accepts exactly four immutable durable records:
 
 - `ProductArtifact` identifies product bytes and external role configuration.
 - `EvalSpec` identifies evaluator components, the exact finite sample plan,
-  model profile, previous released product, authority request, and total cap.
+  exact behavior and exact-final profiles, previous released product, authority
+  request, and total cap.
 - `Attestation` freezes a behavior observation, zero-call oracle replay, or one
   neutral exact-final result with typed terminal provenance.
 - `ReleaseReceipt` binds a separately authorized release to exact product,
@@ -16,6 +17,8 @@ The command surface is deliberately read-only:
 ```bash
 python3 -m evaluation.cli inventory
 python3 -m evaluation.cli product --revision REV --external-role-config-sha256 SHA
+python3 -m evaluation.cli materialize --product PRODUCT.json \
+  --previous-product PREVIOUS.json --profiles PROFILES.json ...
 python3 -m evaluation.cli authority-request --spec SPEC.json
 python3 -m evaluation.cli validate-record RECORD.json
 python3 -m evaluation.cli verify --product PRODUCT.json \
@@ -29,6 +32,12 @@ python3 -m evaluation.cli verify-release ...
 An external verifier must authenticate user authority before the provider or
 release APIs mint a non-serializable process-local capability. Repository
 content cannot authenticate itself.
+
+`PROFILES.json` has exactly `behavior` and `exact_final`, each with the existing
+`model`, `effort`, `tools`, and `timeout_seconds` fields. Core behavior and all
+six holdout invocations use `behavior`; only the unique exact-final invocation
+uses `exact_final`. The production target is `gpt-5.6-sol/high` for behavior
+and holdouts and `gpt-5.6-sol/max` for exact-final.
 
 Provider input is built from a closed allowlist. Expected answers, hidden
 boundaries, oracle and matcher content, holdout mappings, desired verdicts, and

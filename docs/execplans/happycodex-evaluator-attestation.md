@@ -46,32 +46,33 @@ has been implemented or certified.
   before creation. The new worktree was clean at the source commit before this
   plan was written.
 
-### Active grant: GRANT-05
+### Active grant: GRANT-06
 
-User amendment, verbatim: `继续修这3项`. GRANT-05 is the final bounded
-three-falsifier closure, owned by token
+User amendment, verbatim: `同意 per-stage profile`. GRANT-06 is the bounded
+clean-break two-stage profile amendment, owned by token
 `5a63e381-1ff8-4675-9c10-c81da14e1de2`. Exact clean prestate is commit
-`b0792a8b980e8b3ced5d5edcb775829c24388ba9`, tree
-`e94e07066006e532f61059c3499049bf736c9d5b`; preserved `skills/happycodex`
-tree is `d9e525a267fbf36669d409ba1b4b009a6beeeea5`. Writes are limited to this
-plan, `evaluation/**`, `tests/**`, and this branch, with one commit maximum.
-Only offline/temp subprocesses are allowed. Product/runtime/config/plugin
-changes, other refs, provider/model/network/install/release/activation, a fifth
-record, gate, scheduler, graph, ledger, PKI, generic schema engine, and
-compatibility layer are forbidden. This is the durable intent persisted before
-GRANT-05 implementation.
+`a9b8ee30627f8b6ac637a71cfe4f5505199af84d`, tree
+`a60a2dec90ff8b5b8b886ad6e39b5fe3f7d301ca`; preserved `skills/happycodex`
+tree is `d9e525a267fbf36669d409ba1b4b009a6beeeea5`. Root observed external Executor
+configuration SHA-256
+`d98fac1a0fe1bcc3071eac89b7246bfeb59fb85a7040417d50d07c58d74d1275`;
+this grant records but does not read or mutate that external configuration.
+Writes are limited to this plan, `evaluation/**`, `tests/**`, and this branch,
+with one commit maximum. Only offline/temp subprocesses are allowed.
+Product/runtime/config/plugin changes, other refs, provider/model/network/
+install/release/activation, a new record, gate, scheduler, graph, ledger, host
+verifier, replay engine, compatibility reader, alias, or generic profile engine
+are forbidden. This is the durable intent persisted before implementation.
 
-Root reproduced exactly three falsifiers: `F9`, answer-bearing JSON Schema
-keywords can reach provider input; `F10`, a genuinely sanitized durable report
-cannot verify because raw and sanitized reports must be equal; and `F11`, a
-same-stage provider unit may start after another unit's failing terminal is
-already known. The finite repair closes the existing schema subset to
-structural keywords only, binds raw and sanitized report/projection identities
-through the trusted host proof while scoring the sanitized report, and applies
-the earliest failing frozen timestamp as the cutoff for later starts while
-preserving already-started concurrent units. A broader trust system, secret
-leak, schema incompatibility, or remaining same-family bypass is an immediate
-`NOT YET` return.
+`EvalSpec.profiles` has exactly `behavior` and `exact_final`, each using the
+existing profile shape; the former binds every core and holdout invocation and
+the latter binds the unique exact-final invocation. No legacy single-profile
+alias or fallback is accepted. Materialization and CLI accept the exact object,
+authority binds both profiles and all resulting invocations, and per-unit
+provider identity preserves minimal invalidation. The production target is
+`gpt-5.6-sol/high` for behavior and holdouts and `gpt-5.6-sol/max` for
+exact-final. Any wider design need, external effect, or identity drift returns
+`NOT YET` to Root.
 
 ## Baseline
 
@@ -233,21 +234,27 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `candidate-pre-freeze`; GRANT-05 three-falsifier closure complete
+- Phase: `candidate-pre-freeze`; GRANT-06 per-stage profile amendment complete
   offline. Candidate freeze and exact-final have not started.
+- Focused RED command
+  `python3 -m unittest discover -s tests -p 'test_stage_profiles.py' -v`
+  returned exit `1`, `Ran 2 tests`, with two errors. Both were the exact
+  `TypeError` that `materialize_eval_spec()` does not accept `profiles`, proving
+  the single-profile materializer cannot represent the authorized contract or
+  its stage-local invalidation.
 - Selected checkpoint source: `v0.6.5` commit/tree recorded above.
 - Baseline: one authorized run recorded above; unchanged 204/205 known failure.
-- GRANT-05 exact prestate is recorded in its active-grant section. Focused
-  prestate characterization produced `F9` FAIL (`ManifestError` absent), `F10`
-  ERROR (sanitized proof rejected), and `F11` FAIL (late same-stage call not
-  rejected); its already-started concurrent control passed. The identical
-  focused set is now 4/4 GREEN and prior `F1`-`F8` remain GREEN.
-- The final cumulative command
-  `python3 -m unittest discover -s tests -v` returned exit `0`, `Ran 68 tests
-  in 7.276s`, `OK`. It includes full raw-subprocess evidence, bound fake
+- Focused post-repair profile suite is 6/6 GREEN. It proves exact two-key
+  materialization, both stage-drift directions fail closed, the legacy
+  top-level `profile` is rejected, authority binds both profiles and every
+  invocation, the production `gpt-5.6-sol` high/max target, and stage-local
+  invalidation. The prior `F1`-`F11` control file is 24/24 GREEN.
+- The one final cumulative command
+  `python3 -m unittest discover -s tests -v` returned exit `0`, `Ran 74 tests
+  in 6.765s`, `OK`. It includes full raw-subprocess evidence, bound fake
   verifier and unbound-binary refusal, claims/recovery, failure prefixes,
-  release refusal, public-schema/invalidation, stage-order, relabelling, and
-  diagnostics-tamper coverage.
+  release refusal, public-schema/invalidation, stage-order, relabelling,
+  diagnostics-tamper, and per-stage profile coverage.
 - GRANT-05 closes provider-visible schemas to the structural subset and rejects
   answer annotations, unknown keywords, and malformed required relationships.
   Host proofs bind distinct raw-report, sanitized-report, and sanitized-event
@@ -255,10 +262,14 @@ These are planning boundaries, not authority under GRANT-01.
   secret enters an Attestation. The earliest failing frozen terminal is the
   temporal cutoff for later starts, including same-stage units; already-started
   concurrent work remains valid evidence.
-- No model scheduler, signing system, PKI, graph, ledger, gate family, or fifth
-  record was added.
+- `EvalSpec.profiles`, materialization, CLI, validator, and authority now bind
+  behavior/holdout to the behavior profile and the unique exact-final unit to
+  the exact-final profile. Profile-only invalidation follows changed per-unit
+  provider identities rather than a global profile switch. No compatibility
+  alias, generic profile engine, model scheduler, signing system, PKI, graph,
+  ledger, gate family, or fifth record was added.
 - Static evidence: `git diff --check` and Python compilation passed; evaluator
-  production Python is 2,130 lines, largest module 517 lines; plan remains
+  production Python is 2,155 lines, largest module 537 lines; plan remains
   below 3,000 words; durable type inventory is exactly four; unknown evaluator
   inputs fail closed; `skills/happycodex` remains
   `d9e525a267fbf36669d409ba1b4b009a6beeeea5` with no product diff.
@@ -270,5 +281,5 @@ These are planning boundaries, not authority under GRANT-01.
   activation remain unrun and unauthorized. This grant stops before
   exact-final.
 - Recovery: read this entire file, verify branch/worktree/source/status and
-  owner token and GRANT-05 prestate, then reconcile only authorized paths. Do
+  owner token and GRANT-06 prestate, then reconcile only authorized paths. Do
   not continue into effects from this grant or conversation context.

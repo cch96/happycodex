@@ -14,7 +14,7 @@ from evaluation.identity import IdentityError, evaluator_components
 from evaluation.records import canonical_sha256
 from evaluation.verify import VerificationError, invalidation, verify_evaluation
 from tests.attestation_fixtures import (
-    HOST_CONTRACT, PROFILE, REVEALED_AT, REVIEW_BRIEF, ROOT, TOTAL_CAP,
+    HOST_CONTRACT, PROFILES, REVEALED_AT, REVIEW_BRIEF, ROOT, TOTAL_CAP,
     attest_all, bundle, host_proof, mapping, passing_report, proof_verifier, raw_stream, reseal,
 )
 
@@ -88,7 +88,7 @@ class TrustBoundaryRedTests(unittest.TestCase):
             oracle_path.write_text(json.dumps(oracle), encoding="utf-8")
             selected, baseline, _, _ = bundle()
             current = materialize_eval_spec(
-                root=root, candidate=selected, previous=baseline, profile=PROFILE,
+                root=root, candidate=selected, previous=baseline, profiles=PROFILES,
                 total_cap=TOTAL_CAP, holdout_mapping=blind_mapping,
                 review_brief=REVIEW_BRIEF, host_contract=old_spec["host_contract"],
             )
@@ -194,7 +194,7 @@ class TrustBoundaryRedTests(unittest.TestCase):
             with self.assertRaises(ManifestError):
                 materialize_eval_spec(
                     root=root, candidate=selected, previous=baseline,
-                    profile=PROFILE, total_cap=TOTAL_CAP,
+                    profiles=PROFILES, total_cap=TOTAL_CAP,
                     holdout_mapping=blind_mapping, review_brief=REVIEW_BRIEF,
                     host_contract=HOST_CONTRACT,
                 )
@@ -311,7 +311,7 @@ class InvalidationMatrixTests(unittest.TestCase):
     def _materialize(self, root: Path):
         selected, baseline, _, blind_mapping = bundle()
         return materialize_eval_spec(
-            root=root, candidate=selected, previous=baseline, profile=PROFILE,
+            root=root, candidate=selected, previous=baseline, profiles=PROFILES,
             total_cap=TOTAL_CAP, holdout_mapping=blind_mapping, review_brief=REVIEW_BRIEF,
             host_contract=HOST_CONTRACT,
         )

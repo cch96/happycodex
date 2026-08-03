@@ -52,6 +52,7 @@ def request_command(args: argparse.Namespace) -> int:
             "eval_spec_sha256": spec["record_sha256"],
             "host_contract": spec["host_contract"],
             "host_contract_sha256": spec["host_contract_sha256"],
+            "profiles": spec["profiles"],
             "total_cap": spec["total_cap"],
             "invocations": [
                 {"unit_id": unit["unit_id"], "invocation_sha256": unit["invocation_sha256"]}
@@ -67,7 +68,7 @@ def materialize_command(args: argparse.Namespace) -> int:
         materialize_eval_spec(
             root=args.repo.resolve(), candidate=validate_record(load_json(args.product.resolve())),
             previous=validate_record(load_json(args.previous_product.resolve())),
-            profile=load_json(args.profile.resolve()), total_cap=load_json(args.total_cap.resolve()),
+            profiles=load_json(args.profiles.resolve()), total_cap=load_json(args.total_cap.resolve()),
             holdout_mapping=load_json(args.mapping.resolve()),
             review_brief=load_json(args.review_brief.resolve()),
             host_contract=load_json(args.host_contract.resolve()),
@@ -191,7 +192,7 @@ def parser() -> argparse.ArgumentParser:
     materialize.add_argument("--repo", type=Path, default=Path.cwd())
     materialize.add_argument("--product", type=Path, required=True)
     materialize.add_argument("--previous-product", type=Path, required=True)
-    materialize.add_argument("--profile", type=Path, required=True)
+    materialize.add_argument("--profiles", type=Path, required=True)
     materialize.add_argument("--total-cap", type=Path, required=True)
     materialize.add_argument("--mapping", type=Path, required=True)
     materialize.add_argument("--review-brief", type=Path, required=True)

@@ -8,7 +8,7 @@ import unittest
 
 from evaluation.host import attestation_from_raw
 from tests.attestation_fixtures import (
-    HOST_CONTRACT, PROFILE, REVEALED_AT, REVIEW_BRIEF, ROOT, TOTAL_CAP, SHA,
+    HOST_CONTRACT, PROFILES, REVEALED_AT, REVIEW_BRIEF, ROOT, TOTAL_CAP, SHA,
     attest_all, bundle, host_proof, passing_report, write_json,
 )
 
@@ -42,7 +42,7 @@ class FreshProcessTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as raw:
             temp = Path(raw)
             values = {
-                "product": selected, "previous": baseline, "profile": PROFILE,
+                "product": selected, "previous": baseline, "profiles": PROFILES,
                 "cap": TOTAL_CAP, "mapping": blind_mapping, "brief": REVIEW_BRIEF,
                 "host": HOST_CONTRACT,
             }
@@ -54,7 +54,7 @@ class FreshProcessTests(unittest.TestCase):
                 [
                     "python3", "-m", "evaluation.cli", "materialize", "--repo", str(ROOT),
                     "--product", str(paths["product"]), "--previous-product", str(paths["previous"]),
-                    "--profile", str(paths["profile"]), "--total-cap", str(paths["cap"]),
+                    "--profiles", str(paths["profiles"]), "--total-cap", str(paths["cap"]),
                     "--mapping", str(paths["mapping"]), "--review-brief", str(paths["brief"]),
                     "--host-contract", str(paths["host"]),
                 ], cwd=ROOT, capture_output=True, text=True, check=False,

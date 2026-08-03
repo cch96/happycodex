@@ -41,7 +41,7 @@ def invalidation(previous: dict[str, Any], current: dict[str, Any]) -> dict[str,
     global_provider_change = any(
         previous[field] != current[field]
         for field in ("product_semantic_sha256", "external_role_config_sha256", "provider_component_sha256", "host_contract_sha256")
-    ) or previous["profile"] != current["profile"]
+    )
     global_oracle_change = previous["oracle_component_sha256"] != current["oracle_component_sha256"]
     for unit_id, unit in new.items():
         prior = old.get(unit_id)

@@ -182,7 +182,7 @@ class ExactFinalAndReleaseTests(unittest.TestCase):
             oracles_sha256=SHA["d"], neutral_review_brief_sha256=old_spec["neutral_review_brief_sha256"],
             response_schemas_sha256=old_spec["response_schemas_sha256"],
             host_contract=old_spec["host_contract"], host_contract_sha256=old_spec["host_contract_sha256"],
-            profile=old_spec["profile"], units=units, holdouts=old_spec["holdouts"],
+            profiles=old_spec["profiles"], units=units, holdouts=old_spec["holdouts"],
             total_cap=old_spec["total_cap"], previous_product_record_sha256=old_spec["previous_product_record_sha256"],
         )
         unit = next(item for item in new_spec["units"] if item["unit_id"] == "goal-divergence")

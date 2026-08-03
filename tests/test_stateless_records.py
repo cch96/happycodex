@@ -16,7 +16,7 @@ from evaluation.provider import (
 from evaluation.records import RECORD_TYPES, TERMINAL_CLASSES, RecordError, validate_record
 from evaluation.verify import evaluate_runtime_decision
 from tests.attestation_fixtures import (
-    HOST_CONTRACT, PROFILE, ROOT, SHA, bundle, host_proof, product, proof_verifier, raw_stream, terminal,
+    HOST_CONTRACT, PROFILES, ROOT, SHA, bundle, host_proof, product, proof_verifier, raw_stream, terminal,
 )
 
 
@@ -68,7 +68,7 @@ class ProviderBoundaryTests(unittest.TestCase):
         }
         value = provider_projection(
             case=case, product_semantic_sha256=SHA["2"],
-            external_role_config_sha256=SHA["3"], profile=PROFILE,
+            external_role_config_sha256=SHA["3"], profile=PROFILES["behavior"],
         )
         self.assertNotIn("HIDDEN", str(value))
         self.assertEqual(value["runtime"], "runtime")
@@ -78,7 +78,7 @@ class ProviderBoundaryTests(unittest.TestCase):
             provider_projection(
                 case={"role_id": "x", "prompt": "x", "fixture_sha256": SHA["1"]},
                 product_semantic_sha256=SHA["2"], external_role_config_sha256=SHA["3"],
-                profile=PROFILE,
+                profile=PROFILES["behavior"],
             )
 
     def test_every_visible_surface_rejects_sentinel(self):

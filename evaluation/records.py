@@ -153,6 +153,12 @@ def _validate_profile(profile: dict[str, Any]) -> None:
     _integer(profile["timeout_seconds"], "profile.timeout_seconds", minimum=1)
 
 
+def _validate_profiles(profiles: dict[str, Any]) -> None:
+    _exact(profiles, {"behavior", "exact_final"}, "profiles")
+    _validate_profile(profiles["behavior"])
+    _validate_profile(profiles["exact_final"])
+
+
 def _validate_cap(cap: dict[str, Any]) -> None:
     _exact(cap, {"model_calls", "input_tokens", "output_tokens", "wall_milliseconds", "infrastructure_recoveries"}, "total_cap")
     for field in cap:
@@ -191,7 +197,15 @@ def _validate_unit(unit: dict[str, Any]) -> None:
     _require(type(unit["invocation"]["provider_input"]) is dict, "invocation provider input must be an object")
     _sha(unit["invocation"]["host_contract_sha256"], "invocation.host_contract_sha256")
     _require(canonical_sha256(unit["invocation"]["provider_input"]) == unit["provider_input_sha256"], "provider input digest mismatch")
-    _validate_profile({key: unit["invocation"][key] for key in ("model", "effort", "tools", "timeout_seconds")})
+    invocation_profile = {
+        key: unit["invocation"][key]
+        for key in ("model", "effort", "tools", "timeout_seconds")
+    }
+    _validate_profile(invocation_profile)
+    _require(
+        unit["invocation"]["provider_input"].get("profile") == invocation_profile,
+        "provider input profile differs from invocation",
+    )
     _sha(unit["invocation"]["claim_key"], "invocation.claim_key")
     _require(canonical_sha256(unit["invocation"]) == unit["invocation_sha256"], "invocation digest mismatch")
     if unit["stage"] == "exact_final":
@@ -217,7 +231,7 @@ def evaluation_authority_request_payload(spec: dict[str, Any]) -> dict[str, Any]
         "evaluator_bundle_sha256": spec["evaluator_bundle_sha256"],
         "host_contract": spec["host_contract"],
         "host_contract_sha256": spec["host_contract_sha256"],
-        "profile": spec["profile"],
+        "profiles": spec["profiles"],
         "invocations": [
             {"unit_id": unit["unit_id"], "stage": unit["stage"], "invocation": unit["invocation"], "invocation_sha256": unit["invocation_sha256"]}
             for unit in spec["units"]
@@ -242,7 +256,7 @@ def build_eval_spec(
     host_contract: dict[str, Any],
     host_contract_sha256: str,
     neutral_review_brief_sha256: str,
-    profile: dict[str, Any],
+    profiles: dict[str, Any],
     units: list[dict[str, Any]],
     holdouts: list[dict[str, Any]],
     total_cap: dict[str, int],
@@ -264,7 +278,7 @@ def build_eval_spec(
         "host_contract": host_contract,
         "host_contract_sha256": host_contract_sha256,
         "neutral_review_brief_sha256": neutral_review_brief_sha256,
-        "profile": profile,
+        "profiles": profiles,
         "units": units,
         "holdouts": holdouts,
         "total_cap": total_cap,
@@ -283,7 +297,7 @@ def validate_eval_spec(record: dict[str, Any]) -> dict[str, Any]:
             "provider_component_sha256", "oracle_component_sha256",
             "harness_component_sha256", "manifest_sha256", "fixtures_sha256",
             "oracles_sha256", "response_schemas_sha256", "host_contract",
-            "host_contract_sha256", "neutral_review_brief_sha256", "profile", "units", "holdouts",
+            "host_contract_sha256", "neutral_review_brief_sha256", "profiles", "units", "holdouts",
             "total_cap", "previous_product_record_sha256",
             "authority_request_sha256", "record_sha256",
         },
@@ -301,12 +315,18 @@ def validate_eval_spec(record: dict[str, Any]) -> dict[str, Any]:
         _sha(record[field], field)
     _validate_host_contract(record["host_contract"])
     _require(record["host_contract_sha256"] == canonical_sha256(record["host_contract"]), "host contract digest mismatch")
-    _validate_profile(record["profile"])
+    _validate_profiles(record["profiles"])
     _validate_cap(record["total_cap"])
     _require(type(record["units"]) is list and bool(record["units"]), "EvalSpec units must be non-empty")
     for unit in record["units"]:
         _validate_unit(unit)
         _require(unit["invocation"]["host_contract_sha256"] == record["host_contract_sha256"], "unit host contract differs")
+        expected_profile = record["profiles"]["exact_final" if unit["stage"] == "exact_final" else "behavior"]
+        actual_profile = {
+            key: unit["invocation"][key]
+            for key in ("model", "effort", "tools", "timeout_seconds")
+        }
+        _require(actual_profile == expected_profile, "unit stage profile differs")
     unit_ids = [unit["unit_id"] for unit in record["units"]]
     expected_order = [
         unit["unit_id"]
