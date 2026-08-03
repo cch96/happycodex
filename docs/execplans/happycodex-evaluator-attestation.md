@@ -329,10 +329,13 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `grant27_offline_green`. Repair `dd1782f` / tree `4db7aba6` permits
-  ordinary private-path source mentions while rejecting the actual private-file
-  diff and complete reconstructed payload. Focused is `23/23` in 3.652s;
-  cumulative is `114/114` in 10.214s. Evaluator is 3,016 lines, max module 598.
-  Invalid `a279adc7...` remains archived unchanged at inode 12026767, manifest
-  `359657ee...`, 112 files and `0/0/0/0`; active/staging remain absent. Next is
-  clean fully tracked, history-free fresh staging and zero-effect request freeze.
+- Phase: `fresh_request_frozen`. Repair `dd1782f` / tree `4db7aba6` is offline
+  GREEN: focused `23/23`, cumulative `114/114`. Active mode-0700 root is
+  `/home/caichenghang/.codex/happycodex-evaluator-attestation-release` with
+  candidate/baseline `d77ecb6a...` / `ec4fc2d...`, source `62b8b94e...`, host
+  contract `520b1a48...`, EvalSpec `0148517c...`, and request `09e13f1e...`.
+  Synthetic source is one clean 34-file commit; hidden oracle is absent and
+  externally hash-bound. Prefix remains `0/0/0/0`; no model, network, install,
+  release, cache, or activation effect occurred. Invalid request inode 12026767
+  remains unchanged; the rejected projection source is separately archived.
+  Next authority, if granted, must exactly approve request `09e13f1e...`.
