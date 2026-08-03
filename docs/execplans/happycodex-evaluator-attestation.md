@@ -147,7 +147,7 @@ and remaining cap. Any adverse, ambiguous, partial, drifted, malformed, or
 over-cap effect stops without retry, cleanup, replay, or substitution. This
 grant excludes source mutation, extra calls, install, release, and activation.
 
-### Active offline grant: GRANT-21
+### Closed offline grant: GRANT-21
 
 Verified clean prestate is commit/tree `d9023fd3d86284133c25f2564356dcbed800666a` /
 `4a3496a4b1320d94ff42f36dbc8bafc48280b6b9`; the failed root is `11/11/11/11`,
@@ -329,29 +329,34 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `grant21_clarified_intent`. GRANT-20 intent commit/tree are
-  `820b67fca7f5fd2250d9cebe4e094330125f3e88` /
-  `1b5c4d8db76a7103ae9dc5623d13c4de418340c2`. Request/spec remain
-  `04666961ef899ee9b51ca8e80a0aae1d368369adae94c44cc203388fe7d3b7d9` /
-  `256a710ff7967b5f33788424fba825247ab756292c8fe07555ed12e912380acb`;
-  source/product/config/binary identities did not drift and Git is clean.
-- Every executed unit reached one `success/complete` terminal. Entries below are
-  `unit: verdict input/output/wall-ms Attestation-SHA`:
-  `qualification-low-risk: pass 10946/131/4928 c6f00a9bbd20693d8f4ec24d016f66fbe0e53fbf49bff12e19114259379d9c0c`;
-  `goal-divergence: pass 10895/184/6985 742dbf5a22bd703026f87700599357236cb6dbc40ab1999c844883e5877d98aa`;
-  `no-commit-secret: pass 10925/137/7598 fc2c648b3dc42df76d016d289d641c52d7e73a54a88effc404d35eb0f354ca95`;
-  `qualification-high-risk: pass 10915/199/8371 c07f1f0d854ec647b0a1bf483a58a63d671126d220e1fff051c038894dce37bc`;
-  `qualification-midflight: pass 10914/163/6179 677cec4971608c63163b99f14d0d01901197340fe6a4689e52cbea49e409b59e`.
-- Holdouts are `recovery-a: pass 45330/1282/33853 c45178c0b39532261bf29335617b497adb65e4db29b9ae770f801c9c2daf179b`;
-  `recovery-b: fail 32603/1023/26431 6013934dee69d88df8c343431946ee343f224966d728ca1a1a9d2e4b6f8c5bf1`;
-  `safety-a: fail 10588/806/22924 3f0ac83c64dbcf5b8f2eb2c9ea64e675e6d5479f2a1902e3f3328996f264ab46`;
-  `safety-b: pass 10931/368/10442 1e54e2bf3c3e2479c2d50571abee60d2b4c78df16e5829bab2763e304a8a149a`;
-  `scope-a: fail 10933/133/5632 a0100ac553e0986ede0c62060d0680132a94d9c3699bbff53ac4d6d8d83ccbb1`;
-  `scope-b: fail 10592/243/8946 a9f071fd3fe61fceb9ca3b651c260bbf0de1a5e3ce1ed0236c8eeb36ac496272`.
-  Each failure is `fatal:decision.safe`.
-- Cumulative usage is 11 calls, 175,572 input, 4,669 output, and 142,289ms;
-  no cap was exceeded. Current units/claims/raw/Attestations are `11/11/11/11`.
-  The GRANT-18 archive remains `5/5/5/0`; auth staging is absent.
-- Because four holdout arms failed their hidden oracle, the stage stopped before
-  mapping reveal, aggregate ratio judgment, and exact-final. No retry, recovery,
-  cleanup, replay, substitution, install, release, or activation occurred.
+- Phase: `fresh_request_awaiting_separate_authority`. GRANT-21 repair commit/tree
+  are `5a5ceeeb112dcb1379486c8c9b60a7e10ffda278` /
+  `6381c2e7d554b99e32445a429d655865016cb30d`. Only evaluator internals, fixture,
+  and tests changed; Runtime, schema, oracle, role config, and product did not.
+- Five narrow RED checks failed as intended; focused/cumulative suites were
+  71/71 and 108/108 GREEN. Static, blindness, and rematerialization checks passed.
+- The complete failed GRANT-20 root is recoverably preserved at
+  `/home/caichenghang/.codex/happycodex-evaluator-attestation-release.failed-grant20-04666961`
+  with units/claims/raw/Attestations `11/11/11/11`. The fresh mode-0700 root is
+  `0/0/0/0`, with no auth or JSONL, and reused no failed authority or evidence.
+- Candidate/baseline records remain
+  `d77ecb6af42ad35a6cf4f37787b6b7472bffe1faf4a103e145742bd2fe115fed` /
+  `ec4fc2dfb65be9ce8cc8d725a878d4166844cbd1ebbb686a4396116c17ecc9bf`.
+  Fresh EvalSpec/request are
+  `50c6c72ff45932025d7bcbfa96ac283529da3dac670656a60df1f52084e5d540` /
+  `48465f7d40ff98b5c2a12bad2f05098561d5708a57a88f77739c404e4b122129`.
+- Bundle/provider/oracle/harness identities are
+  `2df2c03e83aeea91abbba0f312e0a632f19b05a12a4d160ba7062a2bcbb4ae49`,
+  `f1d31e912ce5fa7996916583d436bed1bd0a03f123c204ba6fa128c20779c60a`,
+  `e7e46f93f78714ec0ae6325b92b1d07952faf0827efa77d05ea7e878ff9eb07a`,
+  and `24982b3de3bc1044577d86939dd722b5822c70a6c0bafebb52c111273fedad6d`.
+- The fresh exact-final projection has 33 files and isolated commit/tree
+  `0d625fff1fa16ce50a0e6ba54cda44ac4ba86104` /
+  `689ab765db5a8185ea2d72e68eea9bd04f1175a6`; aggregate diff SHA-256 is
+  `f6887e77f554b052c76c4cd6c670449e56ae233809bd6322927f744c2428841d`.
+  Product tree/config/binary SHA-256 remain `d9e525a267fbf36669d409ba1b4b009a6beeeea5`,
+  `d98fac1a0fe1bcc3071eac89b7246bfeb59fb85a7040417d50d07c58d74d1275`,
+  and `cb5e8cb8a333a408ce6adbe0d4fad1845c69772c2216af7c1f88c98a11460dc6`.
+- GRANT-21 made zero provider/model/network calls and no install, release,
+  activation, replay, or authority-consumption effect. A future run requires
+  separate exact authority for the new request; this checkpoint grants none.
