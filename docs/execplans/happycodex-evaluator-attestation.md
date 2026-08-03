@@ -212,16 +212,19 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `grant30_authorized_pending_publish`. GRANT-29 intent anchor is
-  `a03ad7e...` / `1f36937b...`; claim token `52df89da...` holds active,
-  archive, staging, worktree, and ref. Archive inode 12026776 retains manifest
-  `525f0def...` and prefix `11/11/11/11`; active is absent. Existing staging
-  inode 15024876 has manifest `201820a7...`, source `a53ec149...`, host
-  `451dddd4...`, spec `bfc93edb...`, request `e9295933...`, and prefix
-  `0/0/0/0`.
-- Reuse only those unchanged staging bytes. Current included-path projection is
-  byte-identical to the sealed anchor (`faa24c46...`, 1,030,875 bytes). Validate
-  that `execution/` contains exactly the sealed source and four empty prefix
-  directories, then atomically publish and validate. No regeneration, model,
-  provider, network, install, release, package, evaluator, schema, test, or
-  retry effect is authorized; stop on any mismatch or partial effect.
+- Phase: `fresh_request_frozen`. GRANT-30 intent is `9eccd2e...` /
+  `230f075...`; closure is the commit carrying this checkpoint. Active inode
+  15024876 has manifest `201820a7...`, 112 files/69 directories, sealed source
+  `a53ec149...`, host `451dddd4...`, spec `bfc93edb...`, request
+  `e9295933...`, and empty `0/0/0/0` prefix. Archive inode 12026776 retains
+  manifest `525f0def...`, 865 files/533 directories, and `11/11/11/11` prefix.
+- Product/baseline are `d77ecb6a...` / `ec4fc2df...`; package/Runtime/config/
+  binary are `d9e525a2...` / `07421636...` / `d98fac1a...` / `cb5e8cb8...`.
+  Evaluator bundle/provider/oracle/harness are `c01cbafb...` / `2240e900...` /
+  `74d459a4...` / `0e3ffa56...`. The inherited offline suite is `116/116`.
+  Behavior is `gpt-5.6-sol high/300s`; exact-final is `gpt-5.6-sol max/600s`;
+  cap is 12/600000/100000/2400000/0. No staging regeneration, model, provider,
+  network, install, release, activation, cache, marketplace, rollback, package,
+  evaluator, schema, test, or retry effect occurred.
+- Next authority must be exactly `APPROVE HAPPYCODEX EVALUATION
+  e92959332dc30697c173791886818747989b102ba312346dae84e21250b8fe27`.
