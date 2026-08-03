@@ -394,7 +394,7 @@ def _validate_terminal(terminal: dict[str, Any]) -> None:
 def _validate_observation(observation: dict[str, Any], kind: str) -> None:
     _exact(
         observation,
-        {"raw_events_sha256", "raw_report_sha256", "sanitized_event_sha256", "terminal_sha256", "report", "report_sha256", "provenance", "parent_attestation_sha256", "started_at", "frozen_at"},
+        {"raw_events_sha256", "raw_report_sha256", "sanitized_event_sha256", "terminal_sha256", "report", "report_sha256", "provenance", "parent_attestation_sha256", "started_at", "frozen_at", "exit_code", "timed_out"},
         "observation",
     )
     for field in ("raw_events_sha256", "raw_report_sha256", "sanitized_event_sha256", "terminal_sha256", "report_sha256"):
@@ -406,6 +406,8 @@ def _validate_observation(observation: dict[str, Any], kind: str) -> None:
     _validate_profile({key: observation["provenance"][key] for key in ("model", "effort", "tools", "timeout_seconds")})
     _text(observation["started_at"], "observation.started_at")
     _text(observation["frozen_at"], "observation.frozen_at")
+    _require(type(observation["exit_code"]) is int, "observation.exit_code is invalid")
+    _require(type(observation["timed_out"]) is bool, "observation.timed_out is invalid")
     if kind == "replay":
         _sha(observation["parent_attestation_sha256"], "parent_attestation_sha256")
     else:

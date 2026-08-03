@@ -7,10 +7,10 @@ import sys
 def main() -> int:
     request = json.load(sys.stdin)
     for event in (
-        {"type": "started", "at": request["started_at"]},
-        {"type": "report", "report": request["report"]},
-        {"type": "usage", **request["usage"]},
-        {"type": "terminal", **request["terminal"], "at": request["frozen_at"]},
+        {"type": "thread.started", "thread_id": "fake-thread"},
+        {"type": "turn.started"},
+        {"type": "item.completed", "item": {"id": "fake-message", "type": "agent_message", "text": json.dumps(request["report"], sort_keys=True)}},
+        {"type": "turn.completed", "usage": request["usage"]},
     ):
         print(json.dumps(event, sort_keys=True))
     return 0

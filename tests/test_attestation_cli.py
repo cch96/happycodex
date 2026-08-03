@@ -20,8 +20,7 @@ class FreshProcessTests(unittest.TestCase):
         payload = {
             "started_at": "2026-08-02T00:00:00Z", "frozen_at": "2026-08-02T00:00:10Z",
             "report": passing_report(unit),
-            "usage": {"model_calls": 1, "input_tokens": 10, "output_tokens": 2, "wall_milliseconds": 10},
-            "terminal": {"classification": "success", "provider_reached": True, "complete": True},
+            "usage": {"input_tokens": 10, "cached_input_tokens": 0, "cache_write_input_tokens": 0, "output_tokens": 2, "reasoning_output_tokens": 0},
         }
         completed = subprocess.run(
             ["python3", str(ROOT / "tests" / "fake_external_host.py")],
@@ -31,6 +30,7 @@ class FreshProcessTests(unittest.TestCase):
         raw = completed.stdout.encode()
         record = attestation_from_raw(
             root=ROOT, product=selected, spec=spec, unit_id=unit["unit_id"], raw=raw,
+            host_metadata={key: payload[key] for key in ("started_at", "frozen_at")} | {"exit_code": 0, "timed_out": False},
             authority_sha256=SHA["a"],
         )
         self.assertEqual(record["verdict"], "pass")

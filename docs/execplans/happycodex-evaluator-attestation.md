@@ -46,35 +46,35 @@ has been implemented or certified.
   before creation. The new worktree was clean at the source commit before this
   plan was written.
 
-### Active grant: GRANT-07
+### Active grant: GRANT-08
 
-User amendment, verbatim: `同意将 external proof verifier 简化为固定 host runner 的原始流捕获与摘要绑定；不新增签名系统、gate、record 或 receipt`.
-GRANT-07 is the bounded fixed-host raw-capture simplification, owned by token
-`5a63e381-1ff8-4675-9c10-c81da14e1de2`. Exact clean prestate is branch
-`codex/happycodex-evaluator-attestation`, commit
-`9e5660d6235b1c7490753d39c8782aeafb74c53a`, tree
-`0fe577a049c8e547904c0ac0c18a01821f8acd84`; preserved `skills/happycodex`
-tree is `d9e525a267fbf36669d409ba1b4b009a6beeeea5`. Writes are limited to this
-plan, directly affected existing files under `evaluation/**` and `tests/**`,
-deletion of `tests/fake_proof_verifier.py`, and this branch, with one coherent
-commit maximum. Only offline/temp fake subprocesses are allowed.
+User continuation, verbatim: `好的继续`, accepting Root's immediately preceding
+scope to parse native `codex exec --json`, let the host supply only trusted
+timing/exit metadata, delete the synthetic four-event production contract, add
+no control-plane abstraction, and freeze only after offline GREEN. GRANT-08 is
+owned by token `5a63e381-1ff8-4675-9c10-c81da14e1de2`. Exact clean prestate is
+branch `codex/happycodex-evaluator-attestation`, commit
+`eadaf248cb1a6f13df0d8bef6a4b2402449bca8f`, tree
+`9b0ff45549ac9bf73711f29e6c288a05ecd23ca3`, product tree
+`d9e525a267fbf36669d409ba1b4b009a6beeeea5`, evaluator bundle
+`c3b58ae91654cc1c0fde6719d83745106b4e8ac761961b52908f16339f36647f`,
+Codex binary SHA-256
+`cb5e8cb8a333a408ce6adbe0d4fad1845c69772c2216af7c1f88c98a11460dc6`,
+and Executor config SHA-256
+`d98fac1a0fe1bcc3071eac89b7246bfeb59fb85a7040417d50d07c58d74d1275`.
 
-The clean break removes the external verifier, proof/challenge helpers and
-fields, proof maps, and proof CLI flags without aliases or fallbacks. The fixed
-external host runner is the trusted trust boundary; `EvalSpec` continues
-to bind its trust domain, binary, tools, permissions, workspace, invocation,
-claim, and evaluator harness identity. Every non-replay Attestation requires
-the retained raw JSONL and binds its digest plus parsed/sanitized record facts;
-verification recomputes all mechanically checkable links while explicitly
-trusting the runner for raw-to-sanitized projection. Recovery remains limited
-to matching raw evidence for proven pre-provider `infrastructure_no_effect`
-under existing caps and one-shot claims. Product/runtime/config/plugin/cache,
-other refs, provider/model/network/install/release/activation, signing/PKI, a
-new gate, record, receipt, ledger, graph, replay engine, scheduler, generic host
-framework, or any wider design are forbidden and return `NOT YET` to Root.
-The GRANT-07 receipt correction is plan-only: it replaces two inaccurate
-current-index statements and amends the same unpushed coherent commit without
-changing evaluator, test, product, or effect state.
+Writes are limited to this plan and the named existing evaluator/test files,
+with one commit maximum. Only offline/temp subprocesses and read-only parsing
+of the named archived calibration stream are allowed. Native parsing accepts
+one thread, one turn, paired item events, one completed JSON agent message, and
+one terminal usage event. The host metadata object contains only timestamps,
+exit code and timeout; terminal/usage/provider facts are derived. Raw bytes
+remain external; the Attestation minimally binds native raw/report/projection
+and host exit/timing facts. The fixed host is trusted only for report
+sanitization. Synthetic compatibility, multi-turn widening, a new runner,
+record, receipt, gate, ledger, graph, replay engine, scheduler, provider/model/
+network/install/release/activation, product/runtime/config/plugin/cache, or any
+other ref is forbidden and returns `NOT YET` to Root.
 
 ## Baseline
 
@@ -237,56 +237,41 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `candidate-pre-freeze`; GRANT-07 fixed-host raw-capture simplification
-  complete offline. Candidate freeze and exact-final have not started.
-- GRANT-07 focused RED command
-  `python3 -m unittest discover -s tests -p 'test_attestation_contract.py' -v`
-  returned exit `1`, `Ran 9 tests`, with the fixed-host surface test failing.
-  It found 13 evaluator/test artifacts still carrying the legacy verification
-  contract, including the external executable test artifact; the other eight
-  repository contract tests passed.
-- Focused RED command
-  `python3 -m unittest discover -s tests -p 'test_stage_profiles.py' -v`
-  returned exit `1`, `Ran 2 tests`, with two errors. Both were the exact
-  `TypeError` that `materialize_eval_spec()` does not accept `profiles`, proving
-  the single-profile materializer cannot represent the authorized contract or
-  its stage-local invalidation.
-- Selected checkpoint source: `v0.6.5` commit/tree recorded above.
-- Selected evaluator checkpoint bundle:
-  `c3b58ae91654cc1c0fde6719d83745106b4e8ac761961b52908f16339f36647f`.
-- Baseline: one authorized run recorded above; unchanged 204/205 known failure.
-- Focused post-repair profile suite is 6/6 GREEN. It proves exact two-key
-  materialization, both stage-drift directions fail closed, the legacy
-  top-level `profile` is rejected, authority binds both profiles and every
-  invocation, the production `gpt-5.6-sol` high/max target, and stage-local
-  invalidation. The prior `F1`-`F11` control file is 24/24 GREEN.
-- GRANT-07's converged affected command covered 75 tests and returned `OK` in
-  4.052s. Root independently reproduced the cumulative command
-  `python3 -m unittest discover -s tests -v` returned exit `0`, `Ran 78 tests
-  in 4.017s`, `OK`. Coverage includes raw-only CLI and fake-runner E2E, legacy
-  field/flag refusal, missing/tampered raw, terminal/report/projection/contract/
-  invocation binding, secret non-persistence, matching-raw recovery, claims,
-  failure prefixes, release refusal, invalidation, and per-stage profiles.
-- Provider-visible schemas remain closed to structural keywords. The fixed
-  runner binds raw-stream, raw-report, terminal, sanitized-report and
-  sanitized-event identities without claiming cryptographic provenance;
-  verification scores only the host-sanitized report, so no secret enters an
-  Attestation. The earliest failing frozen terminal remains the temporal cutoff
-  for later starts while already-started concurrent work remains valid.
-- `EvalSpec.profiles`, materialization, CLI, validator, and authority now bind
-  behavior/holdout to the behavior profile and the unique exact-final unit to
-  the exact-final profile. Profile-only invalidation follows changed per-unit
-  provider identities rather than a global profile switch. No compatibility
-  alias, generic profile engine, model scheduler, signing system, PKI, graph,
-  ledger, gate family, or fifth record was added.
-- External verification/challenge APIs, fields, maps and CLI flags were removed
-  cleanly, including the executable fake artifact. Recovery now consumes only
-  the prior EvalSpec, Attestation and matching raw stream. This is host-observed
-  integrity, not cross-host cryptographic non-repudiation.
+- Phase: `working`; GRANT-08 implementation and offline verification are
+  complete. Candidate freeze and exact-final have not started.
+- GRANT-08 focused RED ran the native-stream extraction test directly and
+  returned exit `1`, `Ran 1 test`, with `HostEvidenceError: raw stream event
+  sequence differs`. The same test is GREEN after repair.
+- Production now parses native `codex exec --json` thread/turn/item/usage
+  events. It rejects the retired synthetic sequence, duplicate/reordered or
+  malformed native events, non-JSON/follow-on agent messages, nonterminal
+  terminal events, malformed usage, and widened host metadata. Terminal class,
+  provider reach, calls, tokens, and wall time are derived from native facts and
+  the exact four-field host metadata object.
+- Attestations persist neither raw events nor tool command/output. They bind the
+  native raw/report digest, a closed allowlisted projection, derived terminal,
+  host exit/timeout/timestamps, claim, host contract, and invocation. Recovery
+  accepts only a proved no-effect record with the matching native raw stream;
+  ambiguity and partial effects remain terminal failures.
+- The named archived calibration stream was characterized read-only, without
+  copying its raw content. It is one thread and turn, paired command items, one
+  JSON agent report, and terminal five-field usage; its SHA-256 remains
+  `ef9fd87f31b1ab39c3e3ae91475a4f2798fe1105414d0d5e501d8384a09730aa`.
+- The converged affected command covered 80 tests and returned exit `0`, `OK`
+  in 4.247s. The single cumulative command
+  `python3 -m unittest discover -s tests -v` returned exit `0`, `Ran 83 tests
+  in 4.160s`, `OK`. Coverage includes native parsing and fake-host E2E,
+  metadata/terminal derivation, timeout/partial/no-effect classification,
+  raw/report/projection/contract/invocation binding, secret non-persistence,
+  claims/recovery, failure prefixes, invalidation, release refusal, and both
+  stage profiles. After replacing this current index and removing two unused
+  test bindings, the contract plus CLI seam rerun was 13/13 GREEN in 0.421s.
 - Static evidence: `git diff --check` and Python compilation passed; evaluator
-  production Python is 2,066 lines, largest module 537 lines; plan remains
-  below 3,000 words; durable type inventory is exactly four; unknown evaluator
-  inputs fail closed; `skills/happycodex` remains
+  production Python is 2,198 lines, largest module 539 lines; plan remains
+  below 3,000 words; durable inventory is exactly the four named types and no
+  active ledger; evaluator bundle is
+  `217b1a0c3b0f728152f8017743ce8b461bd7151532612f72bc34f838ed8c0c6c`.
+  `skills/happycodex` remains
   `d9e525a267fbf36669d409ba1b4b009a6beeeea5` with no product diff.
 - Provider/model/network calls: `0`. Install/release/activation effects: `0`.
 - The four typed formats and stateless verifier are implemented; no task
@@ -297,5 +282,5 @@ These are planning boundaries, not authority under GRANT-01.
   exact-final.
 - Recovery: read this entire file and verify the recorded branch, worktree,
   source, clean status, product tree, owner token, selected evaluator bundle,
-  and GRANT-07 receipt before reconciling only authorized paths. Do not
+  and GRANT-08 receipt before reconciling only authorized paths. Do not
   continue into effects from this grant or conversation context.

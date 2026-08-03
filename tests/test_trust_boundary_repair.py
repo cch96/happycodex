@@ -15,7 +15,8 @@ from evaluation.records import RecordError, canonical_sha256
 from evaluation.verify import VerificationError, invalidation, verify_evaluation
 from tests.attestation_fixtures import (
     HOST_CONTRACT, PROFILES, REVEALED_AT, REVIEW_BRIEF, ROOT, TOTAL_CAP,
-    attest_all, bundle, mapping, passing_report, raw_stream, reseal,
+    attest_all, bundle, host_metadata, mapping, passing_report, raw_stream,
+    reseal,
 )
 
 
@@ -62,6 +63,19 @@ class TrustBoundaryRedTests(unittest.TestCase):
                 attestations=supplied, raw_streams=raws,
                 holdout_mapping=blind_mapping, mapping_revealed_at=REVEALED_AT,
             )
+
+    def test_host_exit_metadata_relabel_is_rejected_after_record_reseal(self):
+        selected, baseline, spec, blind_mapping, records, raws = verify_args()
+        for field, value in (("exit_code", 1), ("timed_out", True)):
+            forged = deepcopy(records[0])
+            forged["observation"][field] = value
+            forged = reseal(forged)
+            with self.subTest(field=field), self.assertRaisesRegex(VerificationError, "raw terminal differs"):
+                verify_evaluation(
+                    root=ROOT, product=selected, previous_product=baseline, spec=spec,
+                    attestations=[forged, *records[1:]], raw_streams=raws,
+                    holdout_mapping=blind_mapping, mapping_revealed_at=REVEALED_AT,
+                )
 
     def test_invocation_relabel_is_rejected_after_record_reseal(self):
         selected, baseline, spec, blind_mapping, records, raws = verify_args()
@@ -232,7 +246,7 @@ class TrustBoundaryRedTests(unittest.TestCase):
         raw = raw_stream(unit, report=report)
         sanitized = attestation_from_raw(
             root=ROOT, product=selected, spec=spec, unit_id=unit["unit_id"],
-            raw=raw, authority_sha256="a" * 64,
+            raw=raw, host_metadata=host_metadata(unit), authority_sha256="a" * 64,
             secrets=[secret],
         )
         self.assertNotIn(secret, canonical_sha256(sanitized) + str(sanitized))
@@ -265,8 +279,8 @@ class TrustBoundaryRedTests(unittest.TestCase):
             start=datetime(2026, 8, 2, 0, 0, 10, tzinfo=timezone.utc),
         )
         records = [
-            attestation_from_raw(root=ROOT, product=selected, spec=spec, unit_id=failed_unit["unit_id"], raw=failed_raw, authority_sha256="a" * 64),
-            attestation_from_raw(root=ROOT, product=selected, spec=spec, unit_id=late_unit["unit_id"], raw=late_raw, authority_sha256="a" * 64),
+            attestation_from_raw(root=ROOT, product=selected, spec=spec, unit_id=failed_unit["unit_id"], raw=failed_raw, host_metadata=host_metadata(failed_unit), authority_sha256="a" * 64),
+            attestation_from_raw(root=ROOT, product=selected, spec=spec, unit_id=late_unit["unit_id"], raw=late_raw, host_metadata=host_metadata(late_unit, start=datetime(2026, 8, 2, 0, 0, 10, tzinfo=timezone.utc)), authority_sha256="a" * 64),
         ]
         with self.assertRaisesRegex(VerificationError, "calls continued after"):
             verify_evaluation(
@@ -285,8 +299,8 @@ class TrustBoundaryRedTests(unittest.TestCase):
             start=datetime(2026, 8, 2, 0, 0, 5, tzinfo=timezone.utc),
         )
         records = [
-            attestation_from_raw(root=ROOT, product=selected, spec=spec, unit_id=failed_unit["unit_id"], raw=failed_raw, authority_sha256="a" * 64),
-            attestation_from_raw(root=ROOT, product=selected, spec=spec, unit_id=concurrent_unit["unit_id"], raw=concurrent_raw, authority_sha256="a" * 64),
+            attestation_from_raw(root=ROOT, product=selected, spec=spec, unit_id=failed_unit["unit_id"], raw=failed_raw, host_metadata=host_metadata(failed_unit), authority_sha256="a" * 64),
+            attestation_from_raw(root=ROOT, product=selected, spec=spec, unit_id=concurrent_unit["unit_id"], raw=concurrent_raw, host_metadata=host_metadata(concurrent_unit, start=datetime(2026, 8, 2, 0, 0, 5, tzinfo=timezone.utc)), authority_sha256="a" * 64),
         ]
         result = verify_evaluation(
             root=ROOT, product=selected, previous_product=baseline, spec=spec,

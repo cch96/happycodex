@@ -46,13 +46,18 @@ environment, and sanitized events. Fixed holdouts are exactly three concurrent
 two-arm pairs against the previous released product; all six outputs freeze
 before reveal, and aggregate token and wall ratios must each be at most 1.25.
 
-The fixed external host runner is the trusted capture boundary. `EvalSpec`
+The fixed external host is the trusted capture boundary. `EvalSpec`
 binds its binary, trust domain, tool/permission/workspace configuration, and
-every invocation. Verification always requires the retained raw JSONL and
-recomputes its digest, terminal, report and sanitized-projection hashes, times,
-claim, contract, and invocation links. This is host-observed integrity, not
-cross-host cryptographic non-repudiation; the runner is trusted for the
-raw-to-sanitized projection, and no secret is persisted in an Attestation.
+every invocation. The raw input is native `codex exec --json`: one thread, one
+turn, paired item events, one JSON agent message and one terminal usage event.
+The host supplies only start/freeze timestamps, exit code and timeout status;
+all terminal and usage facts are derived. Verification requires the retained
+native JSONL and recomputes its digest, terminal, report and allowlisted
+sanitized-projection hashes, times, claim, contract, and invocation links.
+Command/tool output is excluded from the projection. This is host-observed
+integrity, not cross-host cryptographic non-repudiation; the host is trusted
+only for raw-to-sanitized report transformation, and no secret or raw event is
+persisted in an Attestation.
 
 Run all offline checks with:
 

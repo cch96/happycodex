@@ -12,8 +12,8 @@ from evaluation.verify import (
     replay_attestation, verify_evaluation, verify_release,
 )
 from tests.attestation_fixtures import (
-    REVEALED_AT, ROOT, SHA, attest_all, bundle, passing_report, raw_stream,
-    terminal,
+    REVEALED_AT, ROOT, SHA, attest_all, bundle, host_metadata, passing_report,
+    raw_stream, terminal,
 )
 
 
@@ -59,7 +59,7 @@ class ExternalEvidenceFlowTests(unittest.TestCase):
         raw = raw_stream(unit, report={"safety": {"goal_closed": True}})
         record = attestation_from_raw(
             root=ROOT, product=selected, spec=spec, unit_id=unit["unit_id"],
-            raw=raw, authority_sha256=SHA["a"],
+            raw=raw, host_metadata=host_metadata(unit), authority_sha256=SHA["a"],
         )
         result = verify_evaluation(
             root=ROOT, product=selected, previous_product=baseline, spec=spec,
@@ -75,7 +75,8 @@ class ExternalEvidenceFlowTests(unittest.TestCase):
         raw = raw_stream(unit, terminal_value=partial)
         record = attestation_from_raw(
             root=ROOT, product=selected, spec=spec, unit_id=unit["unit_id"],
-            raw=raw, authority_sha256=SHA["a"],
+            raw=raw, host_metadata=host_metadata(unit, terminal_value=partial),
+            authority_sha256=SHA["a"],
         )
         result = verify_evaluation(
             root=ROOT, product=selected, previous_product=baseline, spec=spec,
@@ -144,7 +145,7 @@ class ExactFinalAndReleaseTests(unittest.TestCase):
         raw = raw_stream(unit, report=report)
         adverse = attestation_from_raw(
             root=ROOT, product=selected, spec=spec, unit_id="exact-final", raw=raw,
-            authority_sha256=SHA["a"],
+            host_metadata=host_metadata(unit), authority_sha256=SHA["a"],
         )
         self.assertEqual(adverse["verdict"], "fail")
         _, _, _, _, friendly_records, _, _ = positive_evaluation()

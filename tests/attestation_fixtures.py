@@ -25,7 +25,7 @@ PROFILES = {
 }
 TOTAL_CAP = {
     "model_calls": 14, "input_tokens": 10000, "output_tokens": 10000,
-    "wall_milliseconds": 100000, "infrastructure_recoveries": 1,
+    "wall_milliseconds": 200000, "infrastructure_recoveries": 1,
 }
 REVIEW_BRIEF = {
     "request": "Certify the frozen evaluator artifact.",
@@ -127,6 +127,32 @@ def raw_stream(
     terminal_value: dict[str, Any] | None = None,
     start: datetime | None = None, duration_seconds: int = 10,
 ) -> bytes:
+    usage = terminal_value or terminal()
+    if usage["classification"] == "infrastructure_no_effect":
+        return b""
+    events = [
+        {"type": "thread.started", "thread_id": f"thread-{unit['unit_id']}"},
+        {"type": "turn.started"},
+    ]
+    if usage["classification"] == "success":
+        events.extend(
+            [
+                {"type": "item.completed", "item": {"id": f"message-{unit['unit_id']}", "type": "agent_message", "text": json.dumps(deepcopy(report or passing_report(unit)), sort_keys=True)}},
+                {"type": "turn.completed", "usage": {
+                    "input_tokens": usage["input_tokens"], "cached_input_tokens": 0,
+                    "cache_write_input_tokens": 0, "output_tokens": usage["output_tokens"],
+                    "reasoning_output_tokens": 0,
+                }},
+            ]
+        )
+    return b"".join((json.dumps(event, sort_keys=True) + "\n").encode() for event in events)
+
+
+def host_metadata(
+    unit: dict[str, Any], *, terminal_value: dict[str, Any] | None = None,
+    start: datetime | None = None, duration_seconds: int = 10,
+    exit_code: int | None = None, timed_out: bool = False,
+) -> dict[str, Any]:
     stage_start = {
         "behavior": datetime(2026, 8, 2, 0, 0, 0, tzinfo=timezone.utc),
         "holdout": datetime(2026, 8, 2, 0, 0, 20, tzinfo=timezone.utc),
@@ -134,14 +160,14 @@ def raw_stream(
     }[unit["stage"]]
     started = start or stage_start
     frozen = started + timedelta(seconds=duration_seconds)
-    usage = terminal_value or terminal()
-    events = [
-        {"type": "started", "at": started.isoformat().replace("+00:00", "Z")},
-        {"type": "report", "report": deepcopy(report or passing_report(unit))},
-        {"type": "usage", **{key: usage[key] for key in ("model_calls", "input_tokens", "output_tokens", "wall_milliseconds")}},
-        {"type": "terminal", **{key: usage[key] for key in ("classification", "provider_reached", "complete")}, "at": frozen.isoformat().replace("+00:00", "Z")},
-    ]
-    return b"".join((json.dumps(event, sort_keys=True) + "\n").encode() for event in events)
+    classification = (terminal_value or terminal())["classification"]
+    derived_exit = 0 if classification == "success" else 1
+    return {
+        "started_at": started.isoformat().replace("+00:00", "Z"),
+        "frozen_at": frozen.isoformat().replace("+00:00", "Z"),
+        "exit_code": derived_exit if exit_code is None else exit_code,
+        "timed_out": timed_out,
+    }
 
 
 def attest_all(
@@ -160,6 +186,10 @@ def attest_all(
         )
         record = attestation_from_raw(
             root=ROOT, product=arm, spec=spec, unit_id=unit["unit_id"], raw=raw,
+            host_metadata=host_metadata(
+                unit, terminal_value=(terminals or {}).get(unit["unit_id"]),
+                start=(starts or {}).get(unit["unit_id"]),
+            ),
             authority_sha256=SHA["a"],
         )
         records.append(record)

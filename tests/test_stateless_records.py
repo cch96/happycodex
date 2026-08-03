@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+import json
 import pickle
 from pathlib import Path
 import subprocess
@@ -16,7 +17,8 @@ from evaluation.provider import (
 from evaluation.records import RECORD_TYPES, TERMINAL_CLASSES, RecordError, validate_record
 from evaluation.verify import evaluate_runtime_decision
 from tests.attestation_fixtures import (
-    HOST_CONTRACT, PROFILES, ROOT, SHA, bundle, product, raw_stream, terminal,
+    HOST_CONTRACT, PROFILES, ROOT, SHA, bundle, host_metadata, product,
+    raw_stream, terminal,
 )
 
 
@@ -112,6 +114,101 @@ class ProviderBoundaryTests(unittest.TestCase):
 
 
 class ExternalHostClaimTests(unittest.TestCase):
+    def test_native_codex_stream_extracts_single_agent_report_and_usage(self):
+        selected, _, spec, _ = bundle()
+        unit = next(item for item in spec["units"] if item["unit_id"] == "goal-divergence")
+        report = {"safety": {"goal_closed": False}, "next_action": {"purpose": "IMPLEMENT"}}
+        secret = "RAW-TOOL-OUTPUT-SENTINEL"
+        events = [
+            {"type": "thread.started", "thread_id": "thread-1"},
+            {"type": "turn.started"},
+            {"type": "item.started", "item": {"id": "item-1", "type": "command_execution", "status": "in_progress", "command": secret, "aggregated_output": "", "exit_code": None}},
+            {"type": "item.completed", "item": {"id": "item-1", "type": "command_execution", "status": "completed", "command": secret, "aggregated_output": secret, "exit_code": 0}},
+            {"type": "item.completed", "item": {"id": "message-1", "type": "agent_message", "text": json.dumps(report)}},
+            {"type": "turn.completed", "usage": {"input_tokens": 12, "cached_input_tokens": 3, "cache_write_input_tokens": 0, "output_tokens": 4, "reasoning_output_tokens": 2}},
+        ]
+        raw = b"".join((json.dumps(event, sort_keys=True) + "\n").encode() for event in events)
+        parsed = parse_raw_stream(raw)
+        self.assertEqual(parsed["report"], report)
+        self.assertEqual(parsed["usage"]["input_tokens"], 12)
+        self.assertTrue(parsed["turn_started"])
+        self.assertTrue(parsed["turn_completed"])
+        record = attestation_from_raw(
+            root=ROOT, product=selected, spec=spec, unit_id=unit["unit_id"],
+            raw=raw, host_metadata=host_metadata(unit), authority_sha256=SHA["a"],
+        )
+        self.assertNotIn(secret, str(record))
+
+    def test_native_parser_rejects_legacy_duplicate_and_malformed_shapes(self):
+        selected, _, spec, _ = bundle()
+        unit = next(item for item in spec["units"] if item["unit_id"] == "goal-divergence")
+        valid = [json.loads(line) for line in raw_stream(unit).decode().splitlines()]
+        legacy = [
+            {"type": "started", "at": "2026-08-02T00:00:00Z"},
+            {"type": "report", "report": {}},
+            {"type": "usage", "model_calls": 1, "input_tokens": 1, "output_tokens": 1, "wall_milliseconds": 1},
+            {"type": "terminal", "classification": "success", "provider_reached": True, "complete": True, "at": "2026-08-02T00:00:01Z"},
+        ]
+        duplicate_turn = [*valid[:2], {"type": "turn.started"}, *valid[2:]]
+        missing_message = [*valid[:2], valid[-1]]
+        malformed_message = deepcopy(valid)
+        malformed_message[-2]["item"]["text"] = "not-json"
+        terminal_not_last = [*valid, {"type": "turn.started"}]
+        malformed_usage = deepcopy(valid)
+        del malformed_usage[-1]["usage"]["cached_input_tokens"]
+        duplicate_message = [*valid[:-1], deepcopy(valid[-2]), valid[-1]]
+        forbidden_terminal = [*valid[:-1], {"type": "turn.failed", "error": "x"}]
+        for name, events in (
+            ("legacy", legacy),
+            ("duplicate-turn", duplicate_turn),
+            ("missing-message", missing_message),
+            ("malformed-message", malformed_message),
+            ("terminal-order", terminal_not_last),
+            ("usage", malformed_usage),
+            ("duplicate-message", duplicate_message),
+            ("forbidden-terminal", forbidden_terminal),
+        ):
+            raw = b"".join((json.dumps(event, sort_keys=True) + "\n").encode() for event in events)
+            with self.subTest(name=name), self.assertRaises(HostEvidenceError):
+                parse_raw_stream(raw)
+
+    def test_host_metadata_is_closed_and_terminal_facts_are_derived(self):
+        selected, _, spec, _ = bundle()
+        unit = next(item for item in spec["units"] if item["unit_id"] == "goal-divergence")
+        raw = raw_stream(unit)
+        metadata = host_metadata(unit)
+        record = attestation_from_raw(
+            root=ROOT, product=selected, spec=spec, unit_id=unit["unit_id"],
+            raw=raw, host_metadata=metadata, authority_sha256=SHA["a"],
+        )
+        self.assertEqual(record["terminal"]["classification"], "success")
+        self.assertEqual(record["terminal"]["wall_milliseconds"], 10000)
+        self.assertEqual(record["terminal"]["model_calls"], 1)
+        self.assertEqual(record["terminal"]["input_tokens"], 10)
+        with self.assertRaises(HostEvidenceError):
+            attestation_from_raw(
+                root=ROOT, product=selected, spec=spec, unit_id=unit["unit_id"],
+                raw=raw, host_metadata={**metadata, "report": {}},
+                authority_sha256=SHA["a"],
+            )
+
+    def test_timeout_post_turn_nonzero_and_exit_zero_empty_are_ambiguous(self):
+        selected, _, spec, _ = bundle()
+        unit = next(item for item in spec["units"] if item["unit_id"] == "goal-divergence")
+        success_raw = raw_stream(unit)
+        cases = (
+            (success_raw, host_metadata(unit, timed_out=True)),
+            (success_raw, host_metadata(unit, exit_code=1)),
+            (b"", host_metadata(unit, exit_code=0)),
+        )
+        for raw, metadata in cases:
+            record = attestation_from_raw(
+                root=ROOT, product=selected, spec=spec, unit_id=unit["unit_id"],
+                raw=raw, host_metadata=metadata, authority_sha256=SHA["a"],
+            )
+            self.assertEqual(record["terminal"]["classification"], "ambiguous_or_partial")
+            self.assertFalse(record["terminal"]["complete"])
+
     def test_claim_is_cross_process_durable_and_one_shot(self):
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)
@@ -138,8 +235,10 @@ class ExternalHostClaimTests(unittest.TestCase):
             no_effect_raw = raw_stream(unit, terminal_value=no_effect)
             no_effect_record = attestation_from_raw(
                 root=ROOT, product=selected, spec=spec, unit_id=unit["unit_id"],
-                raw=no_effect_raw, authority_sha256=SHA["a"],
+                raw=no_effect_raw, host_metadata=host_metadata(unit, terminal_value=no_effect),
+                authority_sha256=SHA["a"],
             )
+            self.assertEqual(no_effect_record["terminal"]["classification"], "infrastructure_no_effect")
             reserve_claim(root=root, claim_key=unit["invocation"]["claim_key"], invocation_sha256=unit["invocation_sha256"])
             with self.assertRaises(HostEvidenceError):
                 reserve_claim(
@@ -154,7 +253,7 @@ class ExternalHostClaimTests(unittest.TestCase):
                 previous_attestation=no_effect_record, previous_spec=spec,
             )
             self.assertEqual(recovered["recovery_index"], 1)
-            mismatched_raw = raw_stream(unit, terminal_value=no_effect, duration_seconds=11)
+            mismatched_raw = (json.dumps({"type": "thread.started", "thread_id": "mismatch"}) + "\n").encode()
             with self.assertRaises(HostEvidenceError):
                 reserve_claim(
                     root=root, claim_key=unit["invocation"]["claim_key"],
@@ -165,7 +264,8 @@ class ExternalHostClaimTests(unittest.TestCase):
             partial_raw = raw_stream(unit, terminal_value=partial)
             partial_record = attestation_from_raw(
                 root=ROOT, product=selected, spec=spec, unit_id=unit["unit_id"],
-                raw=partial_raw, authority_sha256=SHA["a"],
+                raw=partial_raw, host_metadata=host_metadata(unit, terminal_value=partial),
+                authority_sha256=SHA["a"],
             )
             with self.assertRaises(HostEvidenceError):
                 reserve_claim(
