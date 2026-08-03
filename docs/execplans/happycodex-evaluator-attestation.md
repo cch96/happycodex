@@ -297,57 +297,45 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `grant19_offline_repair_intent`. GRANT-17 repair commit/tree
-  are `40686ef5163bbd9fa4a23223bff106502a3017be` /
-  `3f06667194de306aa1d32e72bb5780047069b0fd`; the coherent repair commit changed
-  only this plan, existing evaluator files/schema, and affected tests.
-- RED covered the five diagnosed transaction gaps and forged-prefix,
-  known-failure, cap, orphan, cross-process, process-group, and adverse-review
-  paths. The focused suite was 88/88 GREEN in 7.750s; the single cumulative suite
-  was 101/101 GREEN in 7.769s. Diff, AST, schema-load, replay, and static-budget
-  checks passed. Production evaluator Python is 2,777 lines, largest module 556;
-  this plan remains below 3,000 words.
-- The invalid request `52657eb39b065a00edb411f3e525a684996cd3c31c2dd82d6239f7784922cd39`
-  was never consumed. Its evidence-empty root moved atomically and recoverably to
-  `/home/caichenghang/.codex/happycodex-evaluator-attestation-release.invalid-52657eb3`.
-  No file from it was reused after quarantine.
-- A fresh mode-0700 root was generated from the repair commit. New EvalSpec /
-  authority request are
-  `f3bb8c6c2551441fcc7e751adcadbdb1927e0fd5950f2d79b9fc08c6866a1591` /
-  `f21ff642c3925164c2b89b4e45efc0864895c83dfd701e8825fe656b0e9dd233`.
-  Candidate/baseline ProductArtifact records are
+- Phase: `fresh_request_awaiting_separate_authority`. GRANT-19 intent commit was
+  `587dcf2fffe5293f4a79a3aeb591c87596d32ab1`; source repair commit/tree are
+  `b53bb183d85efe28a73a5a800898dc8b10c11b2b` /
+  `b4f2ec9b2ce9327c97bd27c26b8081758e994f52`. It changed only provider policy,
+  raw verification, provider fixtures, README, and three existing test files.
+- Narrow RED produced exactly three expected errors. Focused tests were 50/50
+  GREEN in 2.298s; the single cumulative offline suite was 103/103 GREEN in
+  7.895s. Static/JSON/AST checks passed; evaluator Python is 2,781 lines with a
+  556-line maximum. Runtime, hidden oracle, response schema, thresholds, product
+  tree, role config, and binary did not change.
+- The complete failed GRANT-18 root is recoverably preserved at
+  `/home/caichenghang/.codex/happycodex-evaluator-attestation-release.failed-grant18-f21ff642`
+  with units/claims/raw/Attestations `5/5/5/0`; it was not read or reused after
+  archive. The fresh mode-0700 root has `0/0/0/0`, no auth/JSONL/tool-bin, and no
+  failed authority or evidence.
+- Fresh candidate/baseline records remain
   `d77ecb6af42ad35a6cf4f37787b6b7472bffe1faf4a103e145742bd2fe115fed` /
-  `ec4fc2dfb65be9ce8cc8d725a878d4166844cbd1ebbb686a4396116c17ecc9bf`;
-  host policy/contract are
-  `81b577bfaab4122842cbffacd960c846da9aed15b2e7f2efe740a215cb42e83b` /
-  `0652d84a248a910ecda8815442b94bfb23688134a116e5ad3775d0f371b8a8f8`.
-- Evaluator bundle/provider/oracle/harness identities are
-  `4f38b83a91d90f5b170d5c1e27b21f26643e631976f10d4b98aa33c9c8d7bf38`,
-  `0df713cbac6eea38af29144bec01152c94c266e406c51302cdac364a0a295abf`,
-  `c4e033ffe6ffcb91cf31254cbad2c87b28995e8915d06e80ef5ba4b801778934`,
-  and `a6c47f6aaabcfa844838602ba72230c28e81d28487c13dc7d58c3e854de8abf`.
-- The exact-final projection has 33 Git-verified files and one isolated synthetic
-  commit/tree `a474ef066c188d84cec1c05590a3cbcbf0c66835` /
-  `2120e71bec6aee910ff66d527adeb1cdbeaf161d`. Manifest/diff SHA-256 are
-  `fbd5b2d7531b5bc2fa67104f55d35a364e5a35c6a862b6b749cfac2df7d97ff0` /
-  `4f8f8dcea68ebb645cfe5981933ba15cf430b89269efbdceaf50af8109f98d23`.
-- CLI rematerialization is byte-identical. The spec contains exactly five core,
-  six blinded holdout, and one exact-final unit under a twelve-call cap; mapping
-  and oracle material are absent from provider input. All fresh claims, raw,
-  Attestation, and unit directories are empty; no auth, JSONL, or tool-bin exists.
-- The bound Codex 0.146.0 binary exposes every fixed exec flag and all 29
-  explicitly disabled features. The fixed policy validates the external role
-  config by whole-file SHA and unique exact byte blocks and binds the literal
-  behavior instructions. Exact-final remains neutral and read-only.
-- `skills/happycodex` remains tree
-  `d9e525a267fbf36669d409ba1b4b009a6beeeea5`; role-config SHA-256 remains
-  `d98fac1a0fe1bcc3071eac89b7246bfeb59fb85a7040417d50d07c58d74d1275`;
-  binary SHA-256 remains
-  `cb5e8cb8a333a408ce6adbe0d4fad1845c69772c2216af7c1f88c98a11460dc6`.
-- Provider/model/network calls, authority consumption, claims, raw events,
-  Attestations, install, release, and activation effects are all zero.
-- GRANT-18 started from clean HEAD/tree
-  `3caa7151fa0c82d194fe268ada373f211dc62c69` /
-  `9a9848b261f85a51004a567527daa871c4e826d0` and empty external inventories.
-  It stopped with the sanitized failure facts recorded in GRANT-19; the failed
-  evidence remains intact and no later stage began.
+  `ec4fc2dfb65be9ce8cc8d725a878d4166844cbd1ebbb686a4396116c17ecc9bf`.
+  EvalSpec/request are `256a710ff7967b5f33788424fba825247ab756292c8fe07555ed12e912380acb` /
+  `04666961ef899ee9b51ca8e80a0aae1d368369adae94c44cc203388fe7d3b7d9`.
+  Profile/host-policy/host-contract identities are
+  `061a4a014fe2230e14485e4ce3a0751bb3d50c4f5cbf38a1b5e4ff582d83f8b7`,
+  `900bd6ce3822fbd7c2cb45eebd975fbc8c4df91644843b8289f142daad651882`,
+  and `b8b51f13b2542f3b25c8689c1ebfcf2b09a8c29b305cb5747466c6fde6ce0543`.
+- Bundle/provider/oracle/harness identities are `361e20c227b368ed26292406e93f2040a84774d36ffee868e9bab23e5588e789`,
+  `f1d31e912ce5fa7996916583d436bed1bd0a03f123c204ba6fa128c20779c60a`,
+  `a0bc97fa8659a4204973e321b4d1b5cf21ffd2725d210899b330a8af4b8cdf17`,
+  and `a6c47f6aaabcfa844838602ba72230c28e81d28487c13dc7d58c3e854de8abf3`.
+- Frozen synthetic commit/tree are `7ad3d79279ff68da8c0b5cacf9681251e3b95712` /
+  `c7a990370665cbdc3c15978746fc008b6f4c427d`; manifest/diff SHA-256 are
+  `fe5f945b4fd5cacc6b38a137aa9e42853a8db590762ed54187e6cd412d051ea3` /
+  `6307507aeb06872e84721c711dd32f619f3fe465a2df44f8abf56e218f4f9a2e`.
+- Next launch metadata is fixed without a new gate: run
+  `qualification-low-risk` as the internal canary; on pass run the other four
+  behavior units concurrently, then three holdout pairs concurrently, then
+  exact-final. The exact canonical approval line is
+  `APPROVE HAPPYCODEX EVALUATION 04666961ef899ee9b51ca8e80a0aae1d368369adae94c44cc203388fe7d3b7d9`.
+  This request has not been approved or executed.
+- Product tree/config/binary SHA-256 remain
+  `d9e525a267fbf36669d409ba1b4b009a6beeeea5`,
+  `d98fac1a0fe1bcc3071eac89b7246bfeb59fb85a7040417d50d07c58d74d1275`,
+  and `cb5e8cb8a333a408ce6adbe0d4fad1845c69772c2216af7c1f88c98a11460dc6`.
