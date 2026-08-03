@@ -46,7 +46,7 @@ has been implemented or certified.
   before creation. The new worktree was clean at the source commit before this
   plan was written.
 
-### Last grant: GRANT-11 (stopped)
+### Last grant: GRANT-12 (complete)
 
 Under the active user amendment `同意将 compaction/reconstruction 降为
 conditional mechanism，按 12-call 发布路径继续`, GRANT-11 authorizes only
@@ -76,8 +76,25 @@ is authorized. Any identity, shape, permission, or effect ambiguity returns
 `NOT YET` before paid execution.
 
 GRANT-11 terminated `NOT YET` after an offline configuration probe produced
-unexpected local files in a directory required to remain empty. No later
-effect is authorized from this stopped grant.
+unexpected local files in a directory required to remain empty. GRANT-12,
+under the same user amendment and owner token, authorizes recovery plus one
+fresh offline freeze only. Its exact prestate is clean commit
+`b72e5b1e722bfc50d22cf8dbab9948ad48bfb84f`, tree
+`2d288cf8b9c81f98b16daa6343d42b0fdec28c8f`, and the unchanged product,
+evaluator, binary, and role-config identities above.
+
+The whole GRANT-11 root must be atomically quarantined at
+`/home/caichenghang/.codex/happycodex-evaluator-attestation-release.failed-grant11-b604ef4f`
+without deletion, editing, or reuse. Every fresh input is regenerated from the
+fixed sources. No Codex command may run. Exact-final receives a deterministic,
+rules-free, one-commit projection of only `evaluation/**`, `tests/**`,
+`.agents/**`, `.codex-plugin/**`, `README.md`, and `skills/**`, plus the exact
+aggregate source diff and a manifest binding all projected objects and
+exclusions. Original history, plans, instructions, findings, mappings, and
+quarantine remain unavailable. The snapshot becomes read-only before effects.
+Repository writes remain this plan plus one plan-only commit. No tests,
+provider/model/network, claim/raw/attestation, install/release/activation, or
+authority mint is authorized; ambiguity returns `NOT YET`.
 
 ## Baseline
 
@@ -244,8 +261,9 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `working / NOT YET`; GRANT-11 is stopped. Paid evidence, exact-final,
-  install, release, and activation have not started.
+- Phase: `candidate_frozen`; GRANT-12 recovery and fresh offline freeze are
+  complete. Paid evidence, exact-final, install, release, and activation have
+  not started.
 - The exact RED ran three tests and produced four assertion failures: baseline
   holdouts received candidate Runtime, a dirty temporary checkout replaced
   frozen Runtime bytes, a forged source tree was accepted, and an unavailable
@@ -276,30 +294,40 @@ These are planning boundaries, not authority under GRANT-01.
   `b42afeee7e878dc263e61ff7f569519bb8509d04f140911a601c05420964805b`.
   `skills/happycodex` remains
   `d9e525a267fbf36669d409ba1b4b009a6beeeea5` with no product diff.
-- Provider/model/network calls: `0`. Install/release/activation effects: `0`.
-- GRANT-11 materialized private `ProductArtifact` inputs and a twelve-unit
-  `EvalSpec` at external root
-  `/home/caichenghang/.codex/happycodex-evaluator-attestation-release`.
-  EvalSpec record SHA-256 is
-  `52a23223dabed162caf6cf7a85b4be2e6d5f406c3f6cb3ba639d876895bdfbd4`;
-  its combined approval-request digest is
-  `b604ef4f4164ec0363afd1988f7d388c51cb0142aa0e480097c33eb415ea4c5f`.
-  These files are unexecuted and are not authority or qualifying evidence.
-- The host policy passed component-hash checks and `codex debug prompt-input`
-  parsed its exact permission/config overrides locally. That command did not
-  contact a provider, but it unexpectedly populated the supplied isolated
-  `CODEX_HOME` under `execution/units` with `skills/`, `tmp/`,
-  `.sandbox_migration`, and `installation_id`. The other execution directories
-  remain empty; no claim, attestation, raw stream, or authority was minted.
-- Because GRANT-11 required empty future execution directories, this partial
-  local effect invalidates the freeze. Nothing was deleted or retried after
-  discovery. Root must decide a new exact cleanup/rematerialization grant; the
-  recommended repair is a fresh external root plus a distinct disposable
-  config-probe `CODEX_HOME`, never the frozen execution root.
-- Open effects: cleanup/rematerialization, real provider, exact-final, isolated
+- GRANT-11's entire root is preserved without edits at
+  `/home/caichenghang/.codex/happycodex-evaluator-attestation-release.failed-grant11-b604ef4f`.
+  The fresh active root was regenerated without reading or reusing quarantine.
+- Candidate and baseline ProductArtifact record SHA-256 values are
+  `d77ecb6af42ad35a6cf4f37787b6b7472bffe1faf4a103e145742bd2fe115fed`
+  and `ec4fc2dfb65be9ce8cc8d725a878d4166844cbd1ebbb686a4396116c17ecc9bf`.
+- Exact-final uses a rules-free, read-only, one-commit synthetic repo. Its
+  commit/tree are `e9b54ef548242b67407f0371a64d6588897265c3` /
+  `2a141a32ef19b90d762f8c46952eb6d54cde87a6`; its untyped support-manifest
+  SHA-256 is `dc7f6f26784ae4efec02eeb17b30f704f8da649f36ce034f10256c97ff937580`
+  and aggregate-diff SHA-256 is
+  `980dec3e23b36b2c818159ed8e5340ebd8d470f49d91f9ee674df1b52b73b2d7`.
+  It contains only the 32 projected source files, manifest, diff, and synthetic
+  Git metadata; no original refs, plan, instructions, history, or quarantine.
+- Granular host policy SHA-256 is
+  `e2ed2809285a45bf8b55581308c5a1e809718d96639354628aac3c2972f9f215`;
+  host-contract SHA-256 is
+  `2eae2c42e90902b7ae1afb94230e5cd14abd05c4131bea963c2495b65fdfdf6e`.
+  Model shell inherits nothing, sees only isolated HOME and restricted PATH,
+  never CODEX_HOME, and has default-deny granular reads plus network false.
+- Fresh EvalSpec record SHA-256 is
+  `abcfa7d086912a0901d000aaed0d4c5cb35a816dc7ee57dc23caf1e3cd6c5f83`.
+  The sole combined approval-request digest is
+  `1ad0228eb1024aaabb70a2385f829b56518e8a21158c28469cb9c45e50fb1919`
+  for exactly 12 calls, 600,000 input tokens, 100,000 output tokens,
+  2,400,000 wall milliseconds, and zero infrastructure recoveries.
+- GRANT-12 reran no tests and no Codex command. Provider/model/network calls:
+  `0`; claim/raw/attestation/authority/release records: `0`; install,
+  release, and activation effects: `0`. Future unit, raw, attestation, claim,
+  and tool-bin directories are mode 0700 and empty.
+- Open effects: authenticated evaluation execution, exact-final, isolated
   install, release, and activation remain unrun and unauthorized.
 - Recovery: read this entire file and verify the recorded branch, worktree,
   source, clean status, product tree, owner token, selected evaluator bundle,
-  and this GRANT-11 stopped receipt before reconciling only paths named by a
-  new grant. Do not execute or treat the materialized approval request as
-  authority from this grant or conversation context.
+  GRANT-12 snapshot/contract/EvalSpec/request identities, quarantine, and empty
+  future directories. Do not execute or treat the materialized request as
+  authority without a new exact authenticated grant.
