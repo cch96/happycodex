@@ -214,6 +214,15 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
+- GRANT-42 durable intent, pre-repair: from clean commit/tree `a799d0a...` /
+  `b833665...`, characterize and remove only the exact-final unit-private
+  launcher/sandbox discovery defect using zero-model native probes. Preserve
+  the four-record/default-twelve protocol, one-shot semantics, Runtime,
+  package/config, cases/oracles/thresholds, neutral review, and release
+  separation. The failed request `682a9f76...`, exact Attestation `6ecb2194...`,
+  and raw `cefae864...` remain immutable adverse evidence and cannot qualify by
+  reinterpretation. No provider/model/network, live evidence, install, release,
+  activation, cache, marketplace, rollback, or retry effect is authorized.
 - Phase: `evaluation_terminal_not_yet`. GRANT-41 durable-intent commit/tree are
   `1006e05...` / `ec68caa...`. The exact request `682a9f76...` ran once under
   the sole authority digest `adc37317...`, without retry or recovery. All five
