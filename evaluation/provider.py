@@ -28,7 +28,7 @@ DISABLED_FEATURES = tuple(
     "in_app_browser memories multi_agent multi_agent_v2 network_proxy plugins "
     "remote_compaction_v2 remote_plugin request_permissions_tool shell_snapshot "
     "skill_mcp_dependency_install skill_search standalone_web_search "
-    "tool_call_mcp_elicitation tool_suggest web_search_cached web_search_request "
+    "tool_call_mcp_elicitation tool_suggest "
     "workspace_dependencies".split()
 )
 NEUTRAL_EXACT_FINAL_INSTRUCTIONS = (
@@ -132,7 +132,8 @@ def build_fixed_host_policy(
         "behavior_developer_instructions_sha256": canonical_sha256(behavior_developer_instructions),
         "behavior_model": behavior_model, "behavior_effort": behavior_effort,
         "exact_final_developer_instructions": NEUTRAL_EXACT_FINAL_INSTRUCTIONS,
-        "disabled_features": list(DISABLED_FEATURES), "command_path": "/usr/bin:/bin",
+        "disabled_features": list(DISABLED_FEATURES), "web_search": "disabled",
+        "command_path": "/usr/bin:/bin",
         "stdin_source": "EvalSpec.units[].invocation.provider_input",
         "output_schema_source": "provider_input.response_schema",
         "cwd_by_stage": {"behavior": "prepared-empty-git", "holdout": "prepared-empty-git", "exact_final": "exact-final-source"},
@@ -161,7 +162,7 @@ def host_contract_from_policy(policy: dict[str, Any]) -> dict[str, Any]:
         "binary_path", "binary_sha256", "external_role_config_path",
         "external_role_config_sha256", "behavior_developer_instructions",
         "behavior_developer_instructions_sha256", "behavior_model", "behavior_effort",
-        "exact_final_developer_instructions", "disabled_features", "command_path",
+        "exact_final_developer_instructions", "disabled_features", "web_search", "command_path",
         "stdin_source", "output_schema_source", "cwd_by_stage", "retry", "resume",
     }
     workspace_fields = {
@@ -173,7 +174,7 @@ def host_contract_from_policy(policy: dict[str, Any]) -> dict[str, Any]:
     }
     if type(provider) is not dict or set(provider) != provider_fields or type(policy["workspace_policy"]) is not dict or set(policy["workspace_policy"]) != workspace_fields:
         raise ProviderError("host policy nested fields differ")
-    if policy["schema_version"] != 2 or provider["retry"] is not False or provider["resume"] is not False or provider["disabled_features"] != list(DISABLED_FEATURES) or provider["command_path"] != "/usr/bin:/bin":
+    if policy["schema_version"] != 2 or provider["retry"] is not False or provider["resume"] is not False or provider["disabled_features"] != list(DISABLED_FEATURES) or provider["web_search"] != "disabled" or provider["command_path"] != "/usr/bin:/bin":
         raise ProviderError("host provider policy differs")
     if _file_sha(Path(provider["binary_path"])) != provider["binary_sha256"]:
         raise ProviderError("host provider binary drift")
@@ -222,7 +223,8 @@ def fixed_host_argv(policy: dict[str, Any], unit: dict[str, Any], paths: dict[st
         provider["binary_path"], "exec", "--json", "--ephemeral", "--ignore-user-config",
         "--ignore-rules", "--strict-config", "--color", "never", "--model", unit["invocation"]["model"],
         "--config", f'model_reasoning_effort="{unit["invocation"]["effort"]}"',
-        "--config", 'approval_policy="never"', "--config", f'default_permissions="{profile}"',
+        "--config", 'approval_policy="never"', "--config", 'web_search="disabled"',
+        "--config", f'default_permissions="{profile}"',
         "--config", f'permissions.{profile}.description="fixture read only"',
         "--config", f'permissions.{profile}.filesystem={{":minimal"="read",":workspace_roots"={{"."="read"}}}}',
         "--config", f"permissions.{profile}.network.enabled=false",

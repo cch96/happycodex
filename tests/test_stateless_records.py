@@ -238,6 +238,41 @@ class ExternalHostClaimTests(unittest.TestCase):
         )
         self.assertNotIn(secret, str(record))
 
+    def test_native_parser_uses_last_same_turn_agent_report_and_keeps_all_items(self):
+        first = {"safety": {"goal_closed": True}}
+        final = {"safety": {"goal_closed": False}, "next_action": {"purpose": "IMPLEMENT"}}
+        events = [
+            {"type": "thread.started", "thread_id": "thread-multiple"},
+            {"type": "turn.started"},
+            {"type": "item.completed", "item": {"id": "message-1", "type": "agent_message", "text": json.dumps(first)}},
+            {"type": "item.completed", "item": {"id": "message-2", "type": "agent_message", "text": json.dumps(final)}},
+            {"type": "turn.completed", "usage": {"input_tokens": 12, "cached_input_tokens": 0, "cache_write_input_tokens": 0, "output_tokens": 4, "reasoning_output_tokens": 2}},
+        ]
+        raw = b"".join((json.dumps(event, sort_keys=True) + "\n").encode() for event in events)
+        parsed = parse_raw_stream(raw)
+        self.assertEqual(parsed["report"], final)
+        self.assertEqual(
+            parsed["item_facts"],
+            [
+                {"event": "item.completed", "id": "message-1", "type": "agent_message"},
+                {"event": "item.completed", "id": "message-2", "type": "agent_message"},
+            ],
+        )
+        self.assertEqual(parsed["raw_events_sha256"], __import__("hashlib").sha256(raw).hexdigest())
+
+        duplicate = deepcopy(events)
+        duplicate[3]["item"]["id"] = "message-1"
+        non_agent_after_report = [
+            *events[:3],
+            {"type": "item.started", "item": {"id": "tool-1", "type": "command_execution"}},
+            {"type": "item.completed", "item": {"id": "tool-1", "type": "command_execution"}},
+            events[-1],
+        ]
+        for name, invalid in (("duplicate-id", duplicate), ("non-agent-after-report", non_agent_after_report)):
+            encoded = b"".join((json.dumps(event, sort_keys=True) + "\n").encode() for event in invalid)
+            with self.subTest(name=name), self.assertRaises(HostEvidenceError):
+                parse_raw_stream(encoded)
+
     def test_native_parser_rejects_legacy_duplicate_and_malformed_shapes(self):
         selected, _, spec, _ = bundle()
         unit = next(item for item in spec["units"] if item["unit_id"] == "goal-divergence")

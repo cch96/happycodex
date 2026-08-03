@@ -285,6 +285,20 @@ class FixedHostTransactionTests(unittest.TestCase):
                 "developer_instructions=" + json.dumps(EXECUTOR_INSTRUCTIONS),
                 captured["argv"],
             )
+            config_values = [
+                captured["argv"][index + 1]
+                for index, value in enumerate(captured["argv"][:-1])
+                if value == "--config"
+            ]
+            disabled_values = [
+                captured["argv"][index + 1]
+                for index, value in enumerate(captured["argv"][:-1])
+                if value == "--disable"
+            ]
+            self.assertEqual(policy["provider_policy"]["web_search"], "disabled")
+            self.assertEqual(config_values.count('web_search="disabled"'), 1)
+            self.assertNotIn("web_search_cached", disabled_values)
+            self.assertNotIn("web_search_request", disabled_values)
             claim = list((execution / "claims").iterdir())
             self.assertEqual(len(claim), 1)
             self.assertEqual(claim[0].name, result["claim"]["effective_claim_key"] + ".json")

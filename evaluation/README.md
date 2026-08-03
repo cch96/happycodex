@@ -79,9 +79,13 @@ durable pre-provider/no-effect Attestation, timeout kills and reaps the process
 group, and any current failure or cap overrun is persisted before stop. Holdout
 mapping is raw-verified only after all six arm Attestations are durable, and its
 authoritative reveal timestamp is returned for final verification. Exact-final
-uses closed `GO | NOT_YET`; every typed adverse report remains durable. The raw input is native
-`codex exec --json`: one thread, one
-turn, paired item events, one JSON agent message and one terminal usage event.
+uses closed `GO | NOT_YET`; every typed adverse report remains durable. The raw
+input is native `codex exec --json`: one thread, one turn, paired item events,
+one or more completed JSON agent messages with unique IDs, and one terminal
+usage event. The last same-turn agent message is canonical; all earlier messages
+and the complete event order remain digest-bound. A non-agent item after the
+first report is invalid. Native web search is bound once as top-level
+`web_search="disabled"`; deprecated feature-disable flags are never emitted.
 The host supplies only start/freeze timestamps, exit code and timeout status;
 all terminal and usage facts are derived. Verification requires the retained
 native JSONL and recomputes its digest, terminal, report and allowlisted

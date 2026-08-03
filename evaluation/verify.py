@@ -76,7 +76,7 @@ def parse_raw_stream(raw: bytes) -> dict[str, Any]:
             _exact_native(event, {"type", "item"}, kind); item = event["item"]
             if type(item) is not dict or type(item.get("id")) is not str or not item["id"] or type(item.get("type")) is not str or not item["type"]:
                 raise HostEvidenceError("native item identity is invalid")
-            if not turn_started or turn_completed or report is not None:
+            if not turn_started or turn_completed:
                 raise HostEvidenceError("native item is outside the single unfinished turn")
             item_id, item_type = item["id"], item["type"]
             if item_type == "agent_message":
@@ -85,7 +85,9 @@ def parse_raw_stream(raw: bytes) -> dict[str, Any]:
                 try: value = json.loads(item["text"])
                 except json.JSONDecodeError as exc: raise HostEvidenceError("native final agent message is not JSON") from exc
                 if type(value) is not dict: raise HostEvidenceError("native final agent message is not an object")
-                report = value
+                report = value; completed_items.add(item_id)
+            elif report is not None:
+                raise HostEvidenceError("native non-agent item follows an agent report")
             elif kind == "item.started":
                 if item_id in open_items or item_id in completed_items: raise HostEvidenceError("native item start is duplicated")
                 open_items[item_id] = item_type

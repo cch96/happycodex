@@ -113,6 +113,28 @@ class RepositoryContractTests(unittest.TestCase):
         for retired in ("same-task-compaction", "no-summary-reconstruction"):
             self.assertNotIn(retired, str((manifest, fixtures, oracles, schemas)))
 
+    def test_qualification_fixtures_define_one_activation_boundary_without_execution(self):
+        fixtures = json.loads((ROOT / "evaluation" / "provider-fixtures-v1.json").read_text())["core"]
+        expected_boundaries = {
+            "qualification-high-risk": "pre-selection",
+            "qualification-low-risk": "pre-selection",
+            "qualification-midflight": "after-new-fact",
+        }
+        for role_id, boundary in expected_boundaries.items():
+            case = fixtures[role_id]
+            self.assertEqual(case["fixture"]["qualification_boundary"], boundary)
+            self.assertIn("qualifies to activate or apply HappyCodex", case["prompt"])
+
+        low = fixtures["qualification-low-risk"]
+        self.assertEqual(
+            {key: low["fixture"][key] for key in ("confirmed", "bounded", "read_only", "local")},
+            {"confirmed": True, "bounded": True, "read_only": True, "local": True},
+        )
+        self.assertFalse(low["workspace"]["execution_required"])
+        self.assertFalse(low["workspace"]["repository_write_requested"])
+        self.assertFalse(low["workspace"]["external_effect_requested"])
+        self.assertNotIn("empty workspace", json.dumps(low).lower())
+
 
 if __name__ == "__main__":
     unittest.main()
