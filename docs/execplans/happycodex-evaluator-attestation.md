@@ -214,11 +214,14 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `grant48_exact_preparation_offline`; release remains `NOT_YET`.
+- Phase: `grant48_request_materialization_failed_offline`; release remains
+  `NOT_YET`.
   Current clean candidate/tree are
   `b34d8275c8a7c83f89e7c687a17c3cabac4b1086` /
   `edfa8d688723bce59d8de61eaec54e3c6153d53f`.
-- GRANT-48 durable intent: create only fresh claimed
+- GRANT-48 durable-intent commit/tree are
+  `0e3b7b48200cab5ed6a6ba2a498094576309ba5b` /
+  `f34b3942046530cbc15fbed5af15ed2fe8e3962b`. It authorized only fresh claimed
   `exact-{inputs,source,refresh}-grant48-68ffd09cbf87` outputs. Rebuild the
   closed 32-path candidate projection and complete private-excluding diff from
   baseline `v0.6.5`; seal one clean root commit, then set every file to `0400`
@@ -229,6 +232,14 @@ These are planning boundaries, not authority under GRANT-01.
   `1 call / 50000 input / 10000 output / 600000 ms / 0 recoveries`. Stop before
   provider effect and on any collision, drift, invalid prerequisite, changed
   projection/cap/profile, or validation failure.
+- GRANT-48 froze 102 files at `0400` and 65 directories at `0500`; source and
+  relocation identity both equal
+  `5d0e0d53f88c8be3b3ae7843cb7de66bc83946d2b36eb8a25d8d52532a5217da`.
+  The one public CLI materialization attempt then stopped before publication:
+  retained-release `eval-spec.json` has the retired host-contract fields and
+  lacks `behavior_sha256`, `holdout_sha256`, and `exact_final_sha256`. No input
+  substitution or retry followed; request/staging remain absent and provider/
+  request execution is zero.
 - GRANT-47 is immutable non-authoritative failure evidence: diff SHA-256
   `d93aab5cd1eab50fdb637795c3994fae840bc0d0ecabce67f132043f37a2b27a`,
   synthetic commit `fb380a801b5d0777c81aa1576e3ce11469145174`; root mode `0700` failed before
