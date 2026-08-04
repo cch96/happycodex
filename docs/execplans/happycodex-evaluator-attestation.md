@@ -214,25 +214,31 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `exact_final_release_preparation_intent`; release is not yet effected.
-  Prestate commit/tree are `591e13d1b480ed0dc13cae435c0a421e1d7bc42f` /
-  `eaf8c67346c77b7894710b16145a1108d3bc0a12`; candidate/tree remain
+- Phase: `exact_final / release_ready`; publication is not yet effected. Status
+  is `GO-with-waivers / uncertified`, never certified. Candidate/tree remain
   `b34d8275c8a7c83f89e7c687a17c3cabac4b1086` /
   `edfa8d688723bce59d8de61eaec54e3c6153d53f`.
 - Outcome amendment is verbatim `可以停止 exact-final 修复，开始发布准备，然后发布`
   (UTF-8+LF SHA-256
   `5218140bf186f32b9cbe3e1dda1f3eadf900044fbb89bbb7fd6f978727ff7f4d`).
-  Stop all exact-final reruns; retain and explicitly waive the terminal
-  `NOT_YET`, five findings, and `3636376/48340` token overrun for this
-  evaluator-only repository publication. Status is `GO-with-waivers` and
-  `uncertified`, never certified.
-- Owner token `1ebe967cf7da2060bbf5e045cd8eb10f2f54d01a4985126fb4e563b046935f3f`
-  claims worktree/ref/private preparation root. Merge local exact remote-main
-  closeout `b66c9009ce8d79e8c2e73874a22cc05ff55d282a`, run only required offline
-  validation, then prepare one content-addressed release request.
+  Stop all exact-final reruns. For this evaluator-only repository publication,
+  explicitly waive the retained `NOT_YET`, token overrun `3636376/48340` versus
+  `50000/10000`, and five findings: raw/report-schema binding;
+  inspection-order/native-item bypass; evaluator components not runtime-bound
+  to EvalSpec; malformed raw lacking typed adverse Attestation; and frozen
+  manifest lineage reconstructing a different source tree.
+- Exact remote-main closeout `b66c9009ce8d79e8c2e73874a22cc05ff55d282a`
+  is incorporated without conflict by merge commit/tree
+  `04b907263c001495250423e84574080c3297d181` /
+  `cd4040a5d10274fa428e68d148739e5dbdafc168`. Full offline suite is `135/135`;
+  plugin validator passes; Runtime is 148 lines / 1,145 words; diff hygiene and
+  exact package/plugin tree equality with v0.6.5 are GREEN. Installed public
+  plugin remains `0.6.5+codex.20260731052854`.
 - Product/Runtime/package/role config stay exactly v0.6.5. This publication has
   no cachebuster, marketplace, install, activation, tag, version, or GitHub
   Release effect. A later authority may permit only regular fast-forward of
-  `git@github.com:cch96/happycodex.git` main from exact prestate `b66c900...` to
-  the prepared commit, read-back, then at most one plan-only closeout
-  fast-forward. No force push or network effect is authorized now.
+  `git@github.com:cch96/happycodex.git` main from exact prestate
+  `b66c9009ce8d79e8c2e73874a22cc05ff55d282a` to the prepared commit, read-back,
+  then at most one plan-only closeout commit/push and read-back. No force push,
+  tag, product release effect, or network effect is authorized now. Next gate is
+  exact user authority for that content-addressed repository publication.
