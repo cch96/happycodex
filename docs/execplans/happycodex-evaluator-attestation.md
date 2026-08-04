@@ -214,6 +214,22 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
+- GRANT-44 durable intent, pre-provider: from clean commit/tree
+  `26dce1e4ca296efe99ec6bfe4bd9e7f6efc3b18d` /
+  `6278544b86610460f2c653674539cee59c91e703`, authenticate only the exact
+  current-task user line for proposal `fb092ae...`; its process-local authority
+  digest is `c066a43f...`. Reproduce every bound identity and the zero prefix,
+  then invoke the committed fixed-host transaction exactly once for
+  `exact-final` at `gpt-5.6-sol/max`, 600 seconds, under cap
+  `1 / 50000 / 10000 / 600000 / 0` for calls/input/output/wall-ms/recoveries.
+  Persist only the raw stream, claim, and Attestation in the claimed request
+  execution root; remove private auth staging at process termination. Any
+  drift, ambiguity, timeout, nonterminal result, cap violation, GO or NOT_YET is
+  terminal for this grant: never retry, resume, recover, repair, or seek another
+  reviewer. Git receives only this intent and a later sanitized terminal
+  checkpoint. No evaluator/product/Runtime/config/request/spec/source/
+  prerequisite mutation, install, release, activation, cache, marketplace, or
+  release authority is authorized.
 - Phase: `exact_request_ready_offline`; release remains `NOT_YET`. The frozen
   CLI-closure commit/tree are `2849916b33826f7c04435bc7f751ef77efbd53b1` /
   `86f61722e8a4e5317d798b42ff5290505252f271`. The public
