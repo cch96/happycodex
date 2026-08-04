@@ -214,11 +214,13 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `grant47_exact_preparation_offline`; release remains `NOT_YET`.
+- Phase: `grant47_source_validation_failed_offline`; release remains `NOT_YET`.
   Current clean candidate/tree are
   `b34d8275c8a7c83f89e7c687a17c3cabac4b1086` /
   `edfa8d688723bce59d8de61eaec54e3c6153d53f`.
-- GRANT-47 durable intent: create fresh claimed
+- GRANT-47 durable-intent commit/tree are
+  `7e124e4251475fdac2368f3306a83f6bfa3101dd` /
+  `4e35e8984ca0e7602b6f32f2192f649024eef47d`. It authorized fresh claimed
   `exact-{inputs,source,refresh}-grant47-b34d8275c8a7` outputs only. Reproduce
   the closed 32-path reviewer source from baseline `v0.6.5`, with the complete
   evaluation/tests diff excluding private `evaluation/hidden-oracles-v1.json`,
@@ -229,6 +231,16 @@ These are planning boundaries, not authority under GRANT-01.
   `1 call / 50000 input / 10000 output / 600000 ms / 0 recoveries`. Stop
   before provider effect and on any collision, drift, invalid prerequisite,
   changed projection/cap/profile, or validation failure.
+- The first source-identity validation stopped GRANT-47 without retry: the
+  32-path projection, manifest, private-excluding 1,093,851-byte diff
+  (`d93aab5cd1eab50fdb637795c3994fae840bc0d0ecabce67f132043f37a2b27a`),
+  and synthetic commit/tree
+  `fb380a801b5d0777c81aa1576e3ce11469145174` /
+  `cc6f80d11c35da2b36ceedd7711ad29894c7efed` were created, but the source root
+  mode was `0700`, not the required frozen `0500`. No identity was minted; the
+  refresh/request destination remains absent and provider/request execution is
+  zero. The partial fresh source and two-file input directory are retained as
+  non-authoritative offline failure evidence.
 - GRANT-45 terminal commit/tree are
   `b34d8275c8a7c83f89e7c687a17c3cabac4b1086` /
   `edfa8d688723bce59d8de61eaec54e3c6153d53f`. Its final focused, relevant,
