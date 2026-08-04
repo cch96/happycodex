@@ -214,21 +214,20 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `grant50_request_preparation_offline`; release remains `NOT_YET`.
+- Phase: `grant50_prerequisite_validation_failed_offline`; release remains
+  `NOT_YET`.
   Current clean candidate/tree are
   `b34d8275c8a7c83f89e7c687a17c3cabac4b1086` /
   `edfa8d688723bce59d8de61eaec54e3c6153d53f`.
-- GRANT-50 durable intent: after only the bound byte/path/mode checks, create
-  fresh `exact-refresh-grant50-9ee1e5d3a23e` through the public offline CLI,
-  using frozen source identity
-  `5d0e0d53f88c8be3b3ae7843cb7de66bc83946d2b36eb8a25d8d52532a5217da`,
-  the exact GRANT-48 inputs, eleven retained non-exact raw-backed GREEN pairs,
-  and schema-v3 previous-spec record
-  `f8e949ff8529e4f4010c9d5ec4043b4753bc33c4cd186135cbfb6068ec117e62`.
-  Select only exact-final with cap
-  `1 call / 50000 input / 10000 output / 600000 ms / 0 recoveries`; stop before
-  provider effect on objective drift or public validator/materializer failure.
-  No inferred semantic or reduced-shape preflight assertion is allowed.
+- GRANT-50 durable-intent commit/tree are
+  `f8b8519073925fc60d5f67cb1906d6c11884a4eb` /
+  `70ad69cb1ec5977709137805dc3dd163bdf3a948`. Its closed byte/path/mode preflight
+  was GREEN, including source identity
+  `5d0e0d53f88c8be3b3ae7843cb7de66bc83946d2b36eb8a25d8d52532a5217da`.
+  The one public materializer call then rejected a retained prerequisite with
+  `attestation invocation_sha256 mismatch`; atomic cleanup left request/staging
+  absent. No diagnosis, substitution, retry, request execution, or provider
+  effect followed.
 - GRANT-49 is terminal zero-effect: objective checks passed, then an invented
   exact profiles-shape assertion stopped before CLI invocation and was never
   relaxed or retried.
