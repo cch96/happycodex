@@ -214,19 +214,28 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `grant56_offline_2400_request_intent`; release remains `NOT_YET`.
-  Prestate commit/tree are `cfaf0b8c4a46cdf72a6f0b1dba84424cb8198568` /
-  `3c3ba0a557175b7cf0ee6034fe298eb8ba4fca9a`; candidate/tree remain
+- Phase: `grant56_offline_2400_request_terminal_green`; release remains
+  `NOT_YET`. Intent commit/tree are
+  `0fc595bf8b3be2de19c45ed73afb176e6a65ff9d` /
+  `17ae47654b48c6738981cf7a16a4d3aa690b5e4d`; candidate/tree remain
   `b34d8275c8a7c83f89e7c687a17c3cabac4b1086` /
   `edfa8d688723bce59d8de61eaec54e3c6153d53f`.
-- Owner token `3ac1f10f72df39ab11cf85db29eb717fe228a7d3a01fc350c86352837182ad48`
-  exclusively claims this worktree/ref and new output root
-  `/home/caichenghang/.codex/happycodex-evaluator-attestation-exact-timeout2400-grant56`;
-  its marker stays outside the root. Destination/staging are absent, eleven
-  canonical prerequisites are GREEN/raw-bound, and GRANT-55 evidence is sealed.
-- Create two preparation inputs by changing only exact timeout `1200→2400` and
-  exact effect wall `1200000→240000`; total cap and every other identity/value
-  remain unchanged. Generate one offline `request`, validate exact-only identity
-  invalidation, run cumulative `135/135` plus bound-index, then record a terminal
-  receipt. Provider auth/capability/host/model/network, install, release, and
-  activation are forbidden; drift, collision, or failure stops without retry.
+- Fresh offline request is
+  `/home/caichenghang/.codex/happycodex-evaluator-attestation-exact-timeout2400-grant56/request`.
+  Request/spec/spec-identity are
+  `d6ba1bbd287c302d50d0abfd005810d0e8f7fa4bc33dbeea8a945ac91f7395a4` /
+  `465ebe2a14bb33839cdae738ce4be9a5e250073bc0a429827c66f3ad214974b7` /
+  `69f88a323bdc1d312ae444ad902862474bcbee458aa07cb4bcab70e4866c7050`.
+  Source/host/evaluator remain
+  `5d0e0d53f88c8be3b3ae7843cb7de66bc83946d2b36eb8a25d8d52532a5217da` /
+  `49b67db41a16537242d8906b2d6a545b8fbdb191b702a3cc6bebcc6e8aee19d7` /
+  `86bc4dccf6a7e5ec6e0c672b4a8cd2fb8a8e73bceb6a651334bbfde54a5c7b06`.
+- Selected units are `[exact-final]`; profile is
+  `gpt-5.6-sol/max/2400s/command_execution`, exact cap is
+  `1/50000/10000/2400000/0`, total cap is unchanged, and prefix is `0/0/0/0`.
+  Eleven prerequisites, package modes/inventory, synthetic seal, GRANT-55 seal,
+  cumulative `135/135`, and bound-index are GREEN. Diff is exactly 8 spec and 9
+  request timeout-dependent paths; all eleven non-exact units are equal. No
+  auth/capability/provider/model/network/install/release/activation occurred.
+- Non-authoritative proposal: `APPROVE HAPPYCODEX EVALUATION
+  d6ba1bbd287c302d50d0abfd005810d0e8f7fa4bc33dbeea8a945ac91f7395a4`.
