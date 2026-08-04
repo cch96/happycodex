@@ -3,7 +3,7 @@
 ## Current checkpoint
 
 - Phase: `candidate_frozen`.
-- Current checkpoint: `HC-RL-006/plan-only-commit-dispatch`.
+- Current checkpoint: `HC-RL-010/release-closeout-commit`.
 - Outcome owner and decision maker: Root.
 - Fixed Executor: `/root/readme_license_release_executor`, the sole
   controlled-domain writer for this task.
@@ -26,9 +26,21 @@
 - Grant `HC-RL-006` (sequence 6) froze the exact Root-supplied GitHub Release
   body in one new external mode-0600 file. Its one final allowed effect is the
   plan-only local commit containing the readiness receipt below; the committed
-  state records this grant consumed and leaves no active grant. Push, tag,
-  GitHub Release, install, active-state mutation, provider/model calls, product
-  edit, amend, and notes-body mutation after freeze remain forbidden.
+  state records this grant consumed.
+- Grant `HC-RL-007` (sequence 7) consumed its one exact non-force fast-forward
+  push of local `refs/heads/main` to remote `refs/heads/main`. Readback and the
+  terminal receipt below are complete.
+- Grant `HC-RL-008` (sequence 8) consumed its one exact local annotated
+  `v0.6.6` tag creation and one exact tag refspec push. Readback and the
+  terminal receipt below are complete.
+- Grant `HC-RL-009` (sequence 9) consumed its one exact public GitHub Release
+  v0.6.6 creation from the verified tag and frozen notes. Readback and the
+  terminal receipt below are complete.
+- Active grant: `HC-RL-010` (sequence 10), record current GitHub visibility and
+  all release closure evidence, then stage only this ExecPlan and create one
+  local plan-only release-closeout commit. Push, tag/Release mutation, install,
+  active-state mutation, provider/model calls, product/notes edit, amend, and
+  any other path remain forbidden.
 
 ## Verbatim request and amendments
 
@@ -653,6 +665,162 @@ It is **not certified by the maintainer evaluator**, and it does not claim certi
   is the consuming commit; its exact Git identity cannot be self-embedded and
   must be returned from the verified branch ref. No publication effect is
   authorized.
+
+### `HC-RL-007` — exact main fast-forward push
+
+- Sequence: 7.
+- Executor: `/root/readme_license_release_executor`; no delegation.
+- Exact prestate: held claims verify; worktree and index are clean; `HEAD` and
+  local `main` are release-target commit
+  `0fda0ed2657103c53b6972a623eb717aa206433f`; local `origin/main` and live
+  remote `refs/heads/main` are
+  `0893092ae2febcccfc4b2ade2e78a3e17a588d60`. The release target is a strict
+  descendant and the complete forward chain contains exactly candidate
+  `03c6707209d0c59a2a6dae03109e08b554a91488` followed by the plan-only
+  readiness commit. Candidate ProductArtifact/product, frozen release notes,
+  fresh review `GO`, isolated-install evidence, protected active state, and
+  v0.6.5 identities all verify exact. Local/remote v0.6.6 tag and GitHub
+  Release are absent.
+- Exact authorized command, once and without retry:
+  `git push origin refs/heads/main:refs/heads/main`. No force and no other
+  refspec are allowed. Capture the true process exit and exact combined output
+  bytes/digest. Any ambiguous or partial result stops without another push.
+- After that sole write, immediately read back live remote
+  `refs/heads/main`, local `origin/main`, `HEAD`/local `main`, exact ancestry,
+  and local/remote tag plus GitHub Release absence. Persist the command and
+  readback receipt using `apply_patch`; it may be the sole worktree dirt and
+  must not be staged or committed.
+- Stop: any claim/ref/identity drift, non-fast-forward chain, unexpected
+  refspec, nonzero or ambiguous push, remote mismatch, tag/Release appearance,
+  protected-state drift, or missing output evidence. Do not repair, retry,
+  force, push another ref, or widen authority.
+- State: `consumed and returned pushed`; main-push budget 1/1 and network-write
+  budget 1/1 used. No retry or other refspec was invoked; this does not
+  authorize a tag, Release, or completion decision.
+
+### `HC-RL-008` — exact annotated tag creation and push
+
+- Sequence: 8.
+- Executor: `/root/readme_license_release_executor`; no delegation.
+- Exact prestate: held claims verify; `HEAD`, local `main`, local `origin/main`,
+  and live remote `refs/heads/main` all equal release target
+  `0fda0ed2657103c53b6972a623eb717aa206433f`. Status is exactly the unstaged
+  HC-RL-007 ExecPlan receipt with empty index and clean product paths.
+  Candidate ProductArtifact/product, frozen release notes, fresh review `GO`,
+  isolated-install evidence, active protected state, and v0.6.5 identities are
+  exact. Local and remote `refs/tags/v0.6.6` and GitHub Release v0.6.6 are
+  absent.
+- Exact local tag command, once:
+  `git tag -a v0.6.6 0fda0ed2657103c53b6972a623eb717aa206433f -m 'HappyCodex 0.6.6'`.
+  Before any network write, verify local object type `tag`, tag name
+  `v0.6.6`, exact message `HappyCodex 0.6.6`, and peeled target
+  `0fda0ed2657103c53b6972a623eb717aa206433f`. Record the tag object SHA.
+- Only after that exact local gate, invoke once without retry, force, or another
+  refspec: `git push origin refs/tags/v0.6.6:refs/tags/v0.6.6`. Capture true
+  process exit and exact combined output bytes/digest. Any ambiguous or partial
+  outcome stops without another push.
+- Immediately read back the remote tag object and peeled target, local tag
+  object/peeled target/message, all four main refs, and GitHub Release absence.
+  Persist the terminal receipt with `apply_patch`; it may remain the sole
+  worktree dirt and must not be staged or committed.
+- Stop: any claim/ref/identity drift, unexpected existing tag, wrong object
+  type/name/message/target, nonzero or ambiguous push, remote-object mismatch,
+  Release appearance, protected-state drift, or missing output evidence. Do
+  not delete, recreate, repair, retry, force, push main/another ref, or widen
+  authority.
+- State: `consumed and returned tagged`; annotated-tag-create budget 1/1,
+  tag-push budget 1/1, and network-write budget 1/1 used. No recreation, retry,
+  force, or other refspec was invoked; this does not authorize GitHub Release
+  creation or completion.
+
+### `HC-RL-009` — exact GitHub Release creation
+
+- Sequence: 9.
+- Executor: `/root/readme_license_release_executor`; no delegation.
+- Exact prestate: held claims verify; local and remote annotated tag object is
+  `ce0428855ef20e998951acc5f51dea15c4fd3c05`, object type `tag`, exact name
+  `v0.6.6`, message `HappyCodex 0.6.6`, and peeled target
+  `0fda0ed2657103c53b6972a623eb717aa206433f`. `HEAD`, local `main`, local
+  `origin/main`, and live remote main all equal that peeled target. Status is
+  exactly the unstaged HC-RL-008 ExecPlan receipt with empty index and clean
+  product paths. Frozen notes path
+  `/home/caichenghang/.codex/happycodex-v0.6.6-release-notes.md` is mode 0600,
+  2,545 bytes, SHA-256
+  `1b4d2668609bbee89ae2cf770d985cee7f2ad9390d519ef1c77d60fb21999244`.
+  Candidate ProductArtifact/product, fresh review `GO`, isolated-install
+  evidence, active protected state, and v0.6.5 identities are exact.
+- `gh auth status --hostname github.com` exited 0 for active account `cch96`
+  with repository write scope. Immediately before the effect, one final
+  `gh release view v0.6.6 --repo cch96/happycodex` must prove absence.
+- Exact sole effect command, once and without retry:
+  `gh release create v0.6.6 --repo cch96/happycodex --verify-tag --title
+  'HappyCodex 0.6.6' --notes-file
+  /home/caichenghang/.codex/happycodex-v0.6.6-release-notes.md`. No assets,
+  draft, prerelease, latest mutation, target override, or generated notes are
+  allowed. Capture true process exit and exact combined output bytes/digest.
+- Immediately read back with `gh release view` JSON sufficient to bind Release
+  id, URL, tag, name, exact body/body SHA-256, `publishedAt`,
+  `isDraft=false`, `isPrerelease=false`, and `targetCommitish`. Verify exact
+  body bytes against frozen notes, remote tag object/peeled target, and all
+  main refs. Persist the terminal receipt with `apply_patch`; it may remain the
+  sole worktree dirt and must not be staged or committed.
+- Stop: any auth/ref/identity drift, pre-effect Release presence, nonzero or
+  ambiguous create, output/readback mismatch, body drift, unexpected flag or
+  target, tag/main mismatch, or protected-state drift. Do not edit/delete/
+  recreate the Release, retry, upload an asset, mutate latest, push another ref,
+  or widen authority.
+- State: `consumed and returned released`; GitHub Release create budget 1/1
+  and network-write budget 1/1 used. No retry, edit, asset upload, or other
+  mutation was invoked; this does not decide task completion.
+
+### `HC-RL-010` — plan-only release closeout commit
+
+- Sequence: 10.
+- Executor: `/root/readme_license_release_executor`; no delegation.
+- Exact prestate: held claims verify; `HEAD`, local `main`, local `origin/main`,
+  and live remote main all equal release target
+  `0fda0ed2657103c53b6972a623eb717aa206433f`. Status is exactly the unstaged
+  HC-RL-009 Release receipt in this ExecPlan, with empty index and clean product
+  paths. Candidate ProductArtifact/product, frozen mode-0600 notes, fresh
+  review `GO`, isolated-install evidence, protected active state, and v0.6.5
+  identities all verify exact.
+- Local and remote annotated tag object is
+  `ce0428855ef20e998951acc5f51dea15c4fd3c05`, type `tag`, exact message
+  `HappyCodex 0.6.6`, peeled to release target
+  `0fda0ed2657103c53b6972a623eb717aa206433f`. GitHub Release readback remains
+  exact: GraphQL id `RE_kwDOTXv7IM4VwkAr`, database id `365051947`, URL
+  `https://github.com/cch96/happycodex/releases/tag/v0.6.6`, tag `v0.6.6`,
+  title `HappyCodex 0.6.6`, body SHA-256
+  `1b4d2668609bbee89ae2cf770d985cee7f2ad9390d519ef1c77d60fb21999244`,
+  `publishedAt=2026-08-04T17:48:35Z`, `isDraft=false`,
+  `isPrerelease=false`, `targetCommitish=main`, and zero assets.
+- Reproduce and record current public visibility: default branch, GitHub license
+  detection, live-main README/LICENSE blob identities and sizes, plus current
+  repository description, homepage, and topics. This is read-only and must not
+  mutate repository metadata.
+- Closed repository write: this ExecPlan only. Stage exactly
+  `docs/execplans/happycodex-0-6-6-readme-license-release.md`, inspect cached
+  path/diff, and create one local commit on `main` with exact message
+  `docs: close HappyCodex 0.6.6 release`; no amend.
+- Post-commit acceptance: sole parent is
+  `0fda0ed2657103c53b6972a623eb717aa206433f`; commit inventory is exactly this
+  ExecPlan; worktree/index are clean; local `main` is ahead 1 while local
+  `origin/main` and live remote `main` remain the parent. Candidate
+  ProductArtifact/product, notes/review/install/tag/Release/protected states
+  remain exact. Return exact closeout commit/tree/diff without pushing it.
+- Outcome evidence boundary: once the exact visibility record and this one
+  plan-only commit are present, every product and publication obligation in
+  this Outcome has evidence. Only a separately authorized final plan-only
+  commit push and Root's independent completion decision remain. This plan
+  must not make or imply Root's completion decision.
+- Stop: any claim/ref/identity/visibility drift, cached-path mismatch,
+  unexpected commit content, Release/tag/main/protected mutation, or other
+  ungranted state. Do not repair, retry, amend, push, edit Release, or widen
+  authority.
+- State in the committed receipt: `consumed and returned closeout-ready`;
+  plan-only commit budget 1/1. The commit containing this line is the consuming
+  commit; its exact Git identity cannot be self-embedded and must be returned
+  from the verified branch ref. No completion decision or push is authorized.
 
 The first formal candidate check wave before Root's discovery amendment
 produced `git diff --check`, manifest-delta, canonical-MIT, and Skill-identity
@@ -1387,3 +1555,257 @@ test_path_relocation_preserves_all_invocation_identities
 - `HC-RL-006` is consumed by the exact plan-only commit containing this
   receipt. Claims and retained external roots remain held. Root must reproduce
   the returned commit/tree and decide publication authority and completion.
+
+## `HC-RL-007` terminal receipt
+
+- Receipt finalized: `2026-08-04T17:42:00Z` UTC. This receipt records one
+  successful main fast-forward push and does not authorize a tag, GitHub
+  Release, or completion decision.
+- Preflight reverified the held claims, clean worktree/index, `HEAD` and local
+  `main` at `0fda0ed2657103c53b6972a623eb717aa206433f`, local `origin/main`
+  and live remote `refs/heads/main` at
+  `0893092ae2febcccfc4b2ade2e78a3e17a588d60`, and absent local/remote v0.6.6
+  tag and GitHub Release. Candidate ProductArtifact/product, frozen release
+  notes, fresh review `GO`, isolated-install evidence, active protected state,
+  and published v0.6.5 identities were exact.
+- Strict fast-forward ancestry was proven before the write: release target
+  `0fda0ed2657103c53b6972a623eb717aa206433f` is a strict descendant of remote
+  baseline `0893092ae2febcccfc4b2ade2e78a3e17a588d60`; the complete forward
+  chain is exactly candidate
+  `03c6707209d0c59a2a6dae03109e08b554a91488` followed by plan-only readiness
+  commit `0fda0ed2657103c53b6972a623eb717aa206433f`.
+- The exact sole write command was invoked once, without force or another
+  refspec: `git push origin refs/heads/main:refs/heads/main`. True process exit
+  was `0`. Exact combined stdout/stderr is 69 bytes, includes its final newline,
+  and has SHA-256
+  `9b74b4c1af9468bbb82ad1cd147c85e86bd6f20f7de6ad98016795ba42a1678a`:
+
+```text
+To github.com:cch96/happycodex.git
+   0893092..0fda0ed  main -> main
+```
+
+- Immediate readback proved live remote `refs/heads/main`, local
+  `refs/remotes/origin/main`, `HEAD`, and local `refs/heads/main` all equal
+  `0fda0ed2657103c53b6972a623eb717aa206433f`. The exact two-commit ancestry
+  remained intact. Local and remote `refs/tags/v0.6.6` remained absent;
+  `gh release view v0.6.6 --repo cch96/happycodex` still returned
+  `release not found`, exit 1.
+- Post-push claims, candidate ProductArtifact/product bytes, frozen mode-0600
+  release notes SHA-256
+  `1b4d2668609bbee89ae2cf770d985cee7f2ad9390d519ef1c77d60fb21999244`,
+  fresh review, retained isolated root/inventories, protected active source/
+  cache/marketplace/config/plugin-list, and v0.6.5 Skill tree all reverified
+  exact. No active-state or retained-evidence byte changed.
+- This unstaged ExecPlan terminal receipt is the only worktree dirt; the index
+  and product paths remain clean. It is deliberately not staged or committed.
+  No second push, retry, force, other refspec, tag, Release, install, product/
+  Runtime/evaluator/test/role edit, provider/model call, notes-body mutation,
+  active-state write, or cleanup occurred.
+- `HC-RL-007` is consumed and returned pushed. Claims and retained external
+  roots remain held. Root must reproduce the remote readback and decide the
+  next exact tag/Release grant and task completion.
+
+## `HC-RL-008` terminal receipt
+
+- Receipt finalized: `2026-08-04T17:45:43Z` UTC. This receipt records one exact
+  annotated tag creation and tag push; it does not authorize GitHub Release
+  creation or decide task completion.
+- Preflight reverified held claims and exact HC-RL-007 poststate: `HEAD`, local
+  `main`, local `origin/main`, and live remote `refs/heads/main` all equaled
+  `0fda0ed2657103c53b6972a623eb717aa206433f`; status was exactly the one
+  unstaged ExecPlan push receipt with empty index and clean product paths.
+  Candidate ProductArtifact/product, mode-0600 frozen notes, fresh review `GO`,
+  isolated-install evidence, protected active state, and v0.6.5 identities
+  were exact. Local and remote `refs/tags/v0.6.6` and GitHub Release v0.6.6
+  were absent.
+- The exact local command was invoked once:
+  `git tag -a v0.6.6 0fda0ed2657103c53b6972a623eb717aa206433f -m 'HappyCodex 0.6.6'`.
+  Before any network write, local `refs/tags/v0.6.6` resolved to tag object
+  `ce0428855ef20e998951acc5f51dea15c4fd3c05`; `git cat-file -t` returned
+  `tag`; the embedded tag name was `v0.6.6`; exact message bytes were
+  `HappyCodex 0.6.6\n`; peeled target was
+  `0fda0ed2657103c53b6972a623eb717aa206433f`.
+- The exact sole network-write command was then invoked once, without force or
+  another refspec:
+  `git push origin refs/tags/v0.6.6:refs/tags/v0.6.6`. True process exit was
+  `0`. Exact combined stdout/stderr is 73 bytes, includes its final newline,
+  and has SHA-256
+  `914f57c5a71ae4c750339bace0ff30ba096b32d866772aa63719c7e9c427981f`:
+
+```text
+To github.com:cch96/happycodex.git
+ * [new tag]         v0.6.6 -> v0.6.6
+```
+
+- Immediate remote readback was exactly:
+
+```text
+ce0428855ef20e998951acc5f51dea15c4fd3c05 refs/tags/v0.6.6
+0fda0ed2657103c53b6972a623eb717aa206433f refs/tags/v0.6.6^{}
+```
+
+  Thus remote tag object and peeled target match local exactly. Re-reading the
+  local object/type/name/message/peeled target produced the same identities.
+- `HEAD`, local `main`, local `origin/main`, and live remote main all remained
+  `0fda0ed2657103c53b6972a623eb717aa206433f`. GitHub Release v0.6.6 remained
+  absent: `gh release view v0.6.6 --repo cch96/happycodex` returned
+  `release not found`, exit 1.
+- Post-tag claims, candidate ProductArtifact/product bytes, frozen notes SHA-256
+  `1b4d2668609bbee89ae2cf770d985cee7f2ad9390d519ef1c77d60fb21999244`,
+  fresh review, retained isolated root/inventories, protected active source/
+  cache/marketplace/config/plugin-list, and v0.6.5 Skill tree all reverified
+  exact. No active-state, product, notes, or retained-evidence byte changed.
+- This unstaged ExecPlan receipt remains the only worktree dirt; the index and
+  product paths are clean. It is deliberately not staged or committed. No tag
+  deletion/recreation, retry, force, second push, other refspec, main push,
+  GitHub Release, install, product/Runtime/evaluator/test/role or notes edit,
+  provider/model call, active-state write, or cleanup occurred.
+- `HC-RL-008` is consumed and returned tagged. Claims and retained external
+  roots remain held. Root must reproduce the tag object/peeled target and
+  decide the next exact GitHub Release grant and task completion.
+
+## `HC-RL-009` terminal receipt
+
+- Receipt finalized: `2026-08-04T17:49:45Z` UTC. This receipt records one exact
+  public GitHub Release creation; it does not decide task completion.
+- Preflight reverified held claims and exact HC-RL-008 poststate. Local and
+  remote annotated tag object was
+  `ce0428855ef20e998951acc5f51dea15c4fd3c05`, type `tag`, exact name
+  `v0.6.6`, message `HappyCodex 0.6.6`, peeled target
+  `0fda0ed2657103c53b6972a623eb717aa206433f`. `HEAD`, local `main`, local
+  `origin/main`, and live remote main all equaled that target. Status was
+  exactly the unstaged HC-RL-008 ExecPlan receipt with empty index and clean
+  product paths.
+- Frozen notes remained exactly
+  `/home/caichenghang/.codex/happycodex-v0.6.6-release-notes.md`, mode 0600,
+  2,545 bytes, SHA-256
+  `1b4d2668609bbee89ae2cf770d985cee7f2ad9390d519ef1c77d60fb21999244`.
+  Candidate ProductArtifact/product, fresh review `GO`, isolated-install
+  evidence, active protected state, and v0.6.5 identities were exact.
+- `gh auth status --hostname github.com` exited 0 for active GitHub account
+  `cch96`; Git protocol was SSH and token scopes included `repo`. Immediately
+  before the effect,
+  `gh release view v0.6.6 --repo cch96/happycodex --json id` exited 1 with
+  exact output `release not found\n`, proving absence.
+- The exact sole effect command was invoked once:
+  `gh release create v0.6.6 --repo cch96/happycodex --verify-tag --title
+  'HappyCodex 0.6.6' --notes-file
+  /home/caichenghang/.codex/happycodex-v0.6.6-release-notes.md`. No assets,
+  draft, prerelease, latest mutation, target override, or generated notes flag
+  was present. True process exit was `0`. Exact combined stdout/stderr is 56
+  bytes, includes its final newline, and has SHA-256
+  `9e23f668d124fdeaa104b209bf8bf883f0b5e28710c8eb53acbc48810fa0fa69`:
+
+```text
+https://github.com/cch96/happycodex/releases/tag/v0.6.6
+```
+
+- Immediate `gh release view` readback exited 0. Its exact compact JSON was
+  2,844 bytes with SHA-256
+  `48a7d3d97c9ea3e0c641b0a7f8654099ffd7e879fd573d2276ff9728e1e03d36`.
+  Parsed identities are:
+  - GraphQL id: `RE_kwDOTXv7IM4VwkAr`
+  - database id: `365051947`
+  - URL: `https://github.com/cch96/happycodex/releases/tag/v0.6.6`
+  - tag: `v0.6.6`
+  - name: `HappyCodex 0.6.6`
+  - publishedAt: `2026-08-04T17:48:35Z`
+  - isDraft: `false`
+  - isPrerelease: `false`
+  - targetCommitish: `main`
+- Readback body encoded to exactly the 2,545 frozen notes bytes and SHA-256
+  `1b4d2668609bbee89ae2cf770d985cee7f2ad9390d519ef1c77d60fb21999244`,
+  including the final newline. An additional read-only assets projection
+  returned count 0. Although `targetCommitish` is `main`, the already existing
+  authoritative local and remote annotated tag objects remained
+  `ce0428855ef20e998951acc5f51dea15c4fd3c05` and both peeled exactly to release
+  target `0fda0ed2657103c53b6972a623eb717aa206433f`.
+- Immediate and post-readback main verification kept `HEAD`, local `main`,
+  local `origin/main`, and live remote main at
+  `0fda0ed2657103c53b6972a623eb717aa206433f`. Post-Release claims, candidate
+  ProductArtifact/product bytes, frozen notes, fresh review, retained isolated
+  root/inventories, protected active source/cache/marketplace/config/plugin-
+  list, and v0.6.5 Skill tree all reverified exact. No product, notes, active-
+  state, or retained-evidence byte changed.
+- This unstaged ExecPlan receipt is the only worktree dirt; the index and
+  product paths remain clean. It is deliberately not staged or committed. No
+  Release edit/delete/recreate, retry, asset upload, draft/prerelease/latest
+  mutation, target override, generated notes, second network write, main/tag
+  push, install, product/Runtime/evaluator/test/role or notes edit,
+  provider/model call, active-state write, or cleanup occurred.
+- `HC-RL-009` is consumed and returned released. Claims and retained external
+  roots remain held. Root must reproduce the Release/tag/main readback and
+  decide task completion and any later receipt-cleanup authority.
+
+## `HC-RL-010` release-closeout receipt
+
+- Receipt body finalized before its consuming commit at
+  `2026-08-04T17:53:37Z` UTC. The one plan-only commit containing this receipt
+  is the terminal HC-RL-010 mutation. Its exact commit/tree identity is returned
+  from Git after creation rather than self-embedded in its own content. This
+  plan does not make Root's completion decision.
+- Preflight reverified held claims and exact HC-RL-009 poststate: `HEAD`, local
+  `main`, local `origin/main`, and live remote main
+  `0fda0ed2657103c53b6972a623eb717aa206433f`; exactly one unstaged ExecPlan
+  receipt; empty index and clean product paths. Candidate ProductArtifact/
+  product, frozen notes, fresh review `GO`, retained isolated-install evidence,
+  protected active state, and published v0.6.5 identities were exact.
+- Local and remote annotated tag object remained
+  `ce0428855ef20e998951acc5f51dea15c4fd3c05`, message
+  `HappyCodex 0.6.6`, peeled target
+  `0fda0ed2657103c53b6972a623eb717aa206433f`. GitHub Release remained exact:
+  GraphQL id `RE_kwDOTXv7IM4VwkAr`, database id `365051947`, URL
+  `https://github.com/cch96/happycodex/releases/tag/v0.6.6`, tag `v0.6.6`,
+  title `HappyCodex 0.6.6`, frozen body SHA-256
+  `1b4d2668609bbee89ae2cf770d985cee7f2ad9390d519ef1c77d60fb21999244`,
+  published at `2026-08-04T17:48:35Z`, public non-draft/non-prerelease,
+  `targetCommitish=main`, and zero assets. The current Release JSON projection
+  SHA-256 was
+  `752083f54fdc412d80d4e2a6d3cc8514ce5c2677f001e94022931cc30cd9affd`.
+- Current GitHub visibility readback is:
+  - default branch: `main`
+  - `licenseInfo.key`: `mit`
+  - `licenseInfo.name`: `MIT License`
+  - live-main `README.md`: Git blob
+    `26b16f53f11678e42625b37b02cfe0fa635ca02e`, 3,012 bytes
+  - live-main `LICENSE`: Git blob
+    `f214f5681e000e63aff406391a267eab806d1336`, 1,069 bytes
+  - description: `OpenAI Codex skill and plugin for reliable long-running,
+    high-risk refactors and migrations, with durable plans, recovery across
+    context compaction, one fixed executor, evidence-backed completion, and
+    fresh review.`
+  - homepage: `https://github.com/cch96/happycodex#install`
+  - topics, sorted: `agent-skills`, `ai-agents`, `ai-coding`, `code-review`,
+    `codex`, `codex-plugin`, `codex-skill`, `coding-agent`, `concurrency`,
+    `developer-tools`, `long-running-tasks`, `migration`, `openai-codex`,
+    `persistence`, `public-contracts`, `refactoring`, `testing`
+- Read-only evidence projection SHA-256 values were
+  `018d60dde57b06fc4b5babc80090d23372069c86c3dae858d436df5fe00fad67`
+  for repository visibility,
+  `ea1d1ec7fe9df5a46c75b23591fe2c8445e5b2db678f2445e61f115338a0adee`
+  for live-main README API JSON, and
+  `ab42c156b5ab6917215d63b472f9e55cbc466a133c56914883c18e3ff64b9f80`
+  for live-main LICENSE API JSON. Description, homepage, and topics were only
+  read and remained unchanged; no repository-metadata mutation occurred.
+- All Outcome product and publication obligations are now evidenced in this
+  plan: frozen candidate/product identities, deterministic validation,
+  independent native review, isolated install, exact Release body, main push,
+  annotated tag, GitHub Release, and public visibility. This evidence statement
+  is not a completion decision. Only the exact plan-only closeout commit in
+  this grant, its later separately authorized push, and Root's independent
+  completion decision remain.
+- The sole commit input is this ExecPlan. Its required parent is
+  `0fda0ed2657103c53b6972a623eb717aa206433f`; exact commit subject is
+  `docs: close HappyCodex 0.6.6 release`; exact inventory is one modified path,
+  `docs/execplans/happycodex-0-6-6-readme-license-release.md`. Cached diff and
+  inventory must verify before the one commit; no amend is allowed.
+- Accepted committed poststate is clean worktree/index, `HEAD == local main`
+  at the new sole-child closeout commit, local branch ahead 1, local
+  `origin/main` and live remote main still the parent, and unchanged candidate
+  ProductArtifact/product, notes/review/install/tag/Release/protected state.
+  Any mismatch returns adverse without repair or retry.
+- `HC-RL-010` is consumed by the exact plan-only commit containing this
+  receipt. Claims and retained external roots remain held. Root must reproduce
+  the returned commit/tree/diff, separately authorize its push if desired, and
+  independently decide task completion.
