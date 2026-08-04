@@ -214,8 +214,8 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `exact_final / release_ready`; publication is not yet effected. Status
-  is `GO-with-waivers / uncertified`, never certified. Candidate/tree remain
+- Phase: `closed`; evaluator repository publication is `GO-with-waivers /
+  uncertified`, never certified. Candidate/tree remain
   `b34d8275c8a7c83f89e7c687a17c3cabac4b1086` /
   `edfa8d688723bce59d8de61eaec54e3c6153d53f`.
 - Outcome amendment is verbatim `可以停止 exact-final 修复，开始发布准备，然后发布`
@@ -234,11 +234,15 @@ These are planning boundaries, not authority under GRANT-01.
   plugin validator passes; Runtime is 148 lines / 1,145 words; diff hygiene and
   exact package/plugin tree equality with v0.6.5 are GREEN. Installed public
   plugin remains `0.6.5+codex.20260731052854`.
-- Product/Runtime/package/role config stay exactly v0.6.5. This publication has
-  no cachebuster, marketplace, install, activation, tag, version, or GitHub
-  Release effect. A later authority may permit only regular fast-forward of
+- Authority request
+  `7adb56e6434e557768d95285397cf79181d51dabfcb9c7668dc074ca27d2a39d`
+  was user-approved. One regular non-force push advanced
   `git@github.com:cch96/happycodex.git` main from exact prestate
-  `b66c9009ce8d79e8c2e73874a22cc05ff55d282a` to the prepared commit, read-back,
-  then at most one plan-only closeout commit/push and read-back. No force push,
-  tag, product release effect, or network effect is authorized now. Next gate is
-  exact user authority for that content-addressed repository publication.
+  `b66c9009ce8d79e8c2e73874a22cc05ff55d282a` to prepared commit
+  `908de57f08c2bb3416193015968d3b6de2f653bb`; exact read-back matched. This is
+  the single allowed plan-only closeout commit and remains subject to exact
+  push/read-back before the private terminal receipt.
+- Product/Runtime/package/role config stay exactly v0.6.5. Cachebuster,
+  marketplace, install, activation, tag, version, GitHub Release, provider/model,
+  and all other product release effects are N/A and did not occur. No force push
+  occurred. The retained waivers above are part of the published result.
