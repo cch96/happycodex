@@ -214,26 +214,25 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `grant52_exact_final_effect_intent`; release remains `NOT_YET`.
+- Phase: `grant52_claim_prefix_collision_no_effect`; release remains `NOT_YET`.
   Current clean candidate/tree are
   `b34d8275c8a7c83f89e7c687a17c3cabac4b1086` /
   `edfa8d688723bce59d8de61eaec54e3c6153d53f`.
-- GRANT-52 durable intent binds control commit/tree
-  `472c14ae399621112c49e1d094993f0421c4be10` /
-  `f439976d8f6f0a6b586a9e03dcae1a2ce6618043`, request/proposal
+- GRANT-52 durable-intent commit/tree are
+  `7ec2fc9317222c44d6336969d0ce6975921973c5` /
+  `b69f8fca2e31dff24d1ef02e081455a7c28d81b7`; they bind request/proposal
   `e9ca0bf1629f75bd29c2fdbca2197677a2ad7ccf166e7219675d388bb7b9a8a7`,
   source `5d0e0d53f88c8be3b3ae7843cb7de66bc83946d2b36eb8a25d8d52532a5217da`,
   prerequisite set
   `3651b335e64d160e5793946a510f6312a3b57b7d960d7a5a70475dd3b4bd8561`,
-  and current Root nonce `019fadac-efd9-7133-b571-6db612c50971`.
-- Accept only exact current-task line `APPROVE HAPPYCODEX EVALUATION
-  e9ca0bf1629f75bd29c2fdbca2197677a2ad7ccf166e7219675d388bb7b9a8a7`.
-  After objective revalidation, mint one process-local capability and launch
-  `exact-final` once at `gpt-5.6-sol/max`, 600 seconds, command execution only,
-  cap `1 / 50000 / 10000 / 600000 / 0`. Persist its one unit/raw/claim and, if
-  derivable, Attestation; privately stage then remove provider auth. No retry,
-  recovery, alternate reviewer, release, install, activation, or cache effect
-  is authorized under any terminal outcome.
+  and Root nonce `019fadac-efd9-7133-b571-6db612c50971`.
+- Pre-effect stopped because exact active output claims necessarily create a
+  `.happycodex-resource-claims` directory inside each of `units`, `raw`,
+  `attestations`, and `claims`, while fixed-host prefix validation rejects those
+  entries as unknown/non-regular artifacts. Claims were not released early or
+  widened; no authority capability or provider auth was minted/read/staged, no
+  unit/raw/Attestation/invocation claim was created, and provider/model/network/
+  request execution remained zero.
 - GRANT-47–50 are immutable zero-provider offline stops retained in Git: source
   mode, stale spec, invented profiles assertion, then forbidden schema-v2 pairs;
   none was retried or made authoritative.
