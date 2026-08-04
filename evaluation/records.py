@@ -6,8 +6,6 @@ import re
 from typing import Any, Callable
 
 from evaluation.policy import EXACT_FINAL_ROLE_ID, HOLDOUT_ROLE_ID, MODEL_ROLE_IDS
-
-
 RECORD_TYPES = frozenset(
     {"ProductArtifact", "EvalSpec", "Attestation", "ReleaseReceipt"}
 )
@@ -28,8 +26,6 @@ _HEX64 = re.compile(r"^[0-9a-f]{64}$")
 
 class RecordError(ValueError):
     pass
-
-
 def canonical_json(value: Any) -> str:
     try:
         return json.dumps(
@@ -108,7 +104,6 @@ def build_product_artifact(
     package_tree: str,
     package_artifact_sha256: str,
     package_semantic_sha256: str,
-    external_role_config_sha256: str,
 ) -> dict[str, Any]:
     record = _sealed(
         {
@@ -119,7 +114,6 @@ def build_product_artifact(
             "package_tree": package_tree,
             "package_artifact_sha256": package_artifact_sha256,
             "package_semantic_sha256": package_semantic_sha256,
-            "external_role_config_sha256": external_role_config_sha256,
         }
     )
     return validate_product_artifact(record)
@@ -131,7 +125,7 @@ def validate_product_artifact(record: dict[str, Any]) -> dict[str, Any]:
         {
             "record_type", "schema_version", "source_commit", "source_tree",
             "package_tree", "package_artifact_sha256", "package_semantic_sha256",
-            "external_role_config_sha256", "record_sha256",
+            "record_sha256",
         },
         "ProductArtifact",
     )
@@ -139,7 +133,7 @@ def validate_product_artifact(record: dict[str, Any]) -> dict[str, Any]:
     _git(record["source_commit"], "source_commit")
     _git(record["source_tree"], "source_tree")
     _git(record["package_tree"], "package_tree")
-    for field in ("package_artifact_sha256", "package_semantic_sha256", "external_role_config_sha256"):
+    for field in ("package_artifact_sha256", "package_semantic_sha256"):
         _sha(record[field], field)
     _validate_seal(record)
     return record
@@ -149,7 +143,7 @@ def _validate_profile(profile: dict[str, Any]) -> None:
     _exact(profile, {"model", "effort", "tools", "timeout_seconds"}, "profile")
     _text(profile["model"], "profile.model")
     _text(profile["effort"], "profile.effort")
-    _string_list(profile["tools"], "profile.tools", sorted_unique=True)
+    _require(profile["tools"] == ["command_execution"], "profile.tools differ from fixed host")
     _integer(profile["timeout_seconds"], "profile.timeout_seconds", minimum=1)
 
 
@@ -159,10 +153,16 @@ def _validate_profiles(profiles: dict[str, Any]) -> None:
     _validate_profile(profiles["exact_final"])
 
 
-def _validate_cap(cap: dict[str, Any]) -> None:
-    _exact(cap, {"model_calls", "input_tokens", "output_tokens", "wall_milliseconds", "infrastructure_recoveries"}, "total_cap")
+def _validate_effect_cap(cap: dict[str, Any]) -> None:
+    _exact(cap, {"model_calls", "wall_milliseconds"}, "effect_cap")
     for field in cap:
-        _integer(cap[field], f"total_cap.{field}")
+        _integer(cap[field], f"effect_cap.{field}")
+
+
+def _validate_token_qualification(cap: dict[str, Any]) -> None:
+    _exact(cap, {"input_tokens", "output_tokens"}, "token_qualification")
+    for field in cap:
+        _integer(cap[field], f"token_qualification.{field}")
 
 
 def _validate_host_contract(contract: dict[str, Any]) -> None:
@@ -170,11 +170,11 @@ def _validate_host_contract(contract: dict[str, Any]) -> None:
         contract,
         {
             "schema_version", "trust_domain", "behavior_sha256",
-            "holdout_sha256", "exact_final_sha256",
+            "holdout_sha256", "exact_final_sha256", "effect_namespace_sha256",
         },
         "host_contract",
     )
-    _require(contract["schema_version"] == 3, "host contract schema differs")
+    _require(contract["schema_version"] == 4, "host contract schema differs")
     _text(contract["trust_domain"], "host_contract.trust_domain")
     for field in set(contract) - {"schema_version", "trust_domain"}:
         _sha(contract[field], f"host_contract.{field}")
@@ -227,15 +227,18 @@ def _validate_holdout(pair: dict[str, Any]) -> None:
 
 
 def evaluation_authority_request_payload(
-    spec: dict[str, Any], *, selected_unit_ids: list[str] | None = None,
-    total_cap: dict[str, int] | None = None,
+    spec: dict[str, Any], *, decision: str = "full_evaluation",
+    effect_cap: dict[str, int] | None = None,
     prerequisites: list[dict[str, str]] | None = None,
     prerequisite_state: dict[str, str] | None = None,
 ) -> dict[str, Any]:
-    selected = selected_unit_ids or [unit["unit_id"] for unit in spec["units"]]
-    units = {unit["unit_id"]: unit for unit in spec["units"]}
+    _require(decision in {"full_evaluation", "exact_final_only"}, "authority decision is invalid")
+    selected = spec["units"] if decision == "full_evaluation" else [
+        unit for unit in spec["units"] if unit["unit_id"] == "exact-final"
+    ]
     return {
         "scope": "evaluation",
+        "decision": decision,
         "eval_spec_identity_sha256": canonical_sha256({key: value for key, value in spec.items() if key not in {"authority_request_sha256", "record_sha256"}}),
         "product_semantic_sha256": spec["product_semantic_sha256"],
         "external_role_config_sha256": spec["external_role_config_sha256"],
@@ -244,43 +247,40 @@ def evaluation_authority_request_payload(
         "profiles": spec["profiles"],
         "invocations": [
             {"unit_id": unit["unit_id"], "stage": unit["stage"], "invocation": unit["invocation"], "invocation_sha256": unit["invocation_sha256"]}
-            for unit in (units[unit_id] for unit_id in selected)
+            for unit in selected
         ],
-        "selected_unit_ids": selected,
-        "total_cap": total_cap or spec["total_cap"],
+        "effect_cap": effect_cap or spec["effect_cap"],
         "prerequisites": prerequisites or [],
         "prerequisite_state": prerequisite_state,
-        "previous_product_record_sha256": spec["previous_product_record_sha256"],
+        "previous_product_artifact_sha256": spec["previous_product_artifact_sha256"],
     }
 
 
 def validate_evaluation_authority_payload(spec: dict[str, Any], proposal: dict[str, Any]) -> dict[str, Any]:
-    planned = [unit["unit_id"] for unit in spec["units"]]
-    selected = proposal.get("selected_unit_ids") if type(proposal) is dict else None
-    cap = proposal.get("total_cap", {}) if type(proposal) is dict else {}
+    decision = proposal.get("decision") if type(proposal) is dict else None
+    cap = proposal.get("effect_cap", {}) if type(proposal) is dict else {}
     prerequisites = proposal.get("prerequisites") if type(proposal) is dict else None
     state = proposal.get("prerequisite_state") if type(proposal) is dict else None
     _require(
-        type(selected) is list and selected and len(selected) == len(set(selected))
-        and selected == [unit_id for unit_id in planned if unit_id in selected]
-        and proposal.get("scope") == "evaluation" and set(cap) == set(spec["total_cap"])
-        and cap.get("model_calls") == len(selected)
-        and all(type(value) is int and 0 <= value <= spec["total_cap"][field] for field, value in cap.items()),
-        "evaluation proposal is not a bounded selected-unit projection",
+        decision in {"full_evaluation", "exact_final_only"}
+        and proposal.get("scope") == "evaluation" and set(cap) == set(spec["effect_cap"])
+        and cap.get("model_calls") == (len(spec["units"]) if decision == "full_evaluation" else 1)
+        and all(type(value) is int and 0 <= value <= spec["effect_cap"][field] for field, value in cap.items()),
+        "evaluation proposal is not one bounded explicit decision",
     )
-    if selected == planned:
+    if decision == "full_evaluation":
         _require(proposal == evaluation_authority_request_payload(spec), "full evaluation proposal differs from EvalSpec")
     else:
-        prior = set(planned) - {"exact-final"}
+        prior = {unit["unit_id"] for unit in spec["units"]} - {"exact-final"}
         valid_prior = type(prerequisites) is list and len(prerequisites) == 11 and all(
             type(item) is dict and set(item) == {"unit_id", "attestation_sha256", "raw_sha256"}
             and item["unit_id"] in prior
             and all(type(item[field]) is str and _HEX64.fullmatch(item[field]) for field in ("attestation_sha256", "raw_sha256"))
             for item in prerequisites
         )
-        _require(selected == ["exact-final"] and valid_prior and {item["unit_id"] for item in prerequisites} == prior, "exact-only proposal lacks its closed prerequisite binding")
+        _require(valid_prior and {item["unit_id"] for item in prerequisites} == prior, "exact-only proposal lacks its closed prerequisite binding")
         _require(type(state) is dict and set(state) == {"mapping_revealed_at", "holdout_judgment_sha256"} and _HEX64.fullmatch(state["holdout_judgment_sha256"]), "exact-only prerequisite state differs")
-        _require(proposal == evaluation_authority_request_payload(spec, selected_unit_ids=selected, total_cap=cap, prerequisites=prerequisites, prerequisite_state=state), "exact-only proposal projection differs")
+        _require(proposal == evaluation_authority_request_payload(spec, decision="exact_final_only", effect_cap=cap, prerequisites=prerequisites, prerequisite_state=state), "exact-only proposal projection differs")
     return proposal
 
 
@@ -302,8 +302,9 @@ def build_eval_spec(
     profiles: dict[str, Any],
     units: list[dict[str, Any]],
     holdouts: list[dict[str, Any]],
-    total_cap: dict[str, int],
-    previous_product_record_sha256: str,
+    effect_cap: dict[str, int],
+    token_qualification: dict[str, int],
+    previous_product_artifact_sha256: str,
 ) -> dict[str, Any]:
     base = {
         "record_type": "EvalSpec",
@@ -324,8 +325,9 @@ def build_eval_spec(
         "profiles": profiles,
         "units": units,
         "holdouts": holdouts,
-        "total_cap": total_cap,
-        "previous_product_record_sha256": previous_product_record_sha256,
+        "effect_cap": effect_cap,
+        "token_qualification": token_qualification,
+        "previous_product_artifact_sha256": previous_product_artifact_sha256,
     }
     request = canonical_sha256(evaluation_authority_request_payload(base))
     return validate_eval_spec(_sealed({**base, "authority_request_sha256": request}))
@@ -341,7 +343,7 @@ def validate_eval_spec(record: dict[str, Any]) -> dict[str, Any]:
             "harness_component_sha256", "manifest_sha256", "fixtures_sha256",
             "oracles_sha256", "response_schemas_sha256", "host_contract",
             "host_contract_sha256", "neutral_review_brief_sha256", "profiles", "units", "holdouts",
-            "total_cap", "previous_product_record_sha256",
+            "effect_cap", "token_qualification", "previous_product_artifact_sha256",
             "authority_request_sha256", "record_sha256",
         },
         "EvalSpec",
@@ -353,13 +355,14 @@ def validate_eval_spec(record: dict[str, Any]) -> dict[str, Any]:
         "oracle_component_sha256", "harness_component_sha256",
         "manifest_sha256", "fixtures_sha256", "oracles_sha256",
         "response_schemas_sha256", "host_contract_sha256", "neutral_review_brief_sha256",
-        "previous_product_record_sha256", "authority_request_sha256",
+        "previous_product_artifact_sha256", "authority_request_sha256",
     ):
         _sha(record[field], field)
     _validate_host_contract(record["host_contract"])
     _require(record["host_contract_sha256"] == canonical_sha256(record["host_contract"]), "host contract digest mismatch")
     _validate_profiles(record["profiles"])
-    _validate_cap(record["total_cap"])
+    _validate_effect_cap(record["effect_cap"])
+    _validate_token_qualification(record["token_qualification"])
     _require(type(record["units"]) is list and bool(record["units"]), "EvalSpec units must be non-empty")
     for unit in record["units"]:
         _validate_unit(unit)
@@ -377,6 +380,7 @@ def validate_eval_spec(record: dict[str, Any]) -> dict[str, Any]:
         for unit in sorted(record["units"], key=lambda item: (item["order"], item["unit_id"]))
     ]
     _require(len(unit_ids) == len(set(unit_ids)) and unit_ids == expected_order, "EvalSpec units must be stage ordered and unique")
+    _require(record["effect_cap"]["model_calls"] == len(unit_ids), "model call cap must equal EvalSpec units")
     exact_final = [unit for unit in record["units"] if unit["kind"] == "exact_final"]
     _require(len(exact_final) == 1, "EvalSpec requires exactly one exact-final unit")
     _require(exact_final[0]["role_id"] == EXACT_FINAL_ROLE_ID, "exact-final role differs from production policy")
@@ -533,7 +537,7 @@ def validate_attestation(record: dict[str, Any]) -> dict[str, Any]:
 
 
 def build_release_receipt(
-    *, product_record_sha256: str, product_artifact_sha256: str,
+    *, product_artifact_sha256: str,
     attestation_sha256s: list[str], exact_final_attestation_sha256: str,
     isolated_install: dict[str, Any], destination: dict[str, Any],
     rollback: dict[str, Any], release_authority_sha256: str,
@@ -542,7 +546,6 @@ def build_release_receipt(
         _sealed(
             {
                 "record_type": "ReleaseReceipt", "schema_version": 1,
-                "product_record_sha256": product_record_sha256,
                 "product_artifact_sha256": product_artifact_sha256,
                 "attestation_sha256s": attestation_sha256s,
                 "exact_final_attestation_sha256": exact_final_attestation_sha256,
@@ -557,11 +560,11 @@ def build_release_receipt(
 def validate_release_receipt(record: dict[str, Any]) -> dict[str, Any]:
     _exact(
         record,
-        {"record_type", "schema_version", "product_record_sha256", "product_artifact_sha256", "attestation_sha256s", "exact_final_attestation_sha256", "isolated_install", "destination", "rollback", "release_authority_sha256", "record_sha256"},
+        {"record_type", "schema_version", "product_artifact_sha256", "attestation_sha256s", "exact_final_attestation_sha256", "isolated_install", "destination", "rollback", "release_authority_sha256", "record_sha256"},
         "ReleaseReceipt",
     )
     _require(record["record_type"] == "ReleaseReceipt" and record["schema_version"] == 1, "invalid ReleaseReceipt header")
-    for field in ("product_record_sha256", "product_artifact_sha256", "exact_final_attestation_sha256", "release_authority_sha256"):
+    for field in ("product_artifact_sha256", "exact_final_attestation_sha256", "release_authority_sha256"):
         _sha(record[field], field)
     _string_list(record["attestation_sha256s"], "attestation_sha256s", sorted_unique=True)
     _require(record["exact_final_attestation_sha256"] in record["attestation_sha256s"], "exact-final is absent from release attestations")

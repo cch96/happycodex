@@ -70,9 +70,9 @@ def judge_fixed_holdouts(
             raise HoldoutError("candidate arm does not bind candidate product")
         if baseline["product_semantic_sha256"] != previous_product["package_semantic_sha256"]:
             raise HoldoutError("baseline arm does not bind previous released product")
-        if candidate["external_role_config_sha256"] != candidate_product["external_role_config_sha256"]:
+        if candidate["external_role_config_sha256"] != spec["external_role_config_sha256"]:
             raise HoldoutError("candidate arm does not bind candidate role config")
-        if baseline["external_role_config_sha256"] != previous_product["external_role_config_sha256"]:
+        if baseline["external_role_config_sha256"] != spec["external_role_config_sha256"]:
             raise HoldoutError("baseline arm does not bind previous role config")
         for label, item in labelled.items():
             assessment = assessments[item["unit_id"]]
@@ -113,5 +113,5 @@ def judge_fixed_holdouts(
             "wall_ratio_within_1_25": wall_ratio_ok,
         },
         "revealed_mapping_sha256": canonical_sha256(mapping),
-        "previous_product_record_sha256": spec["previous_product_record_sha256"],
+        "previous_product_artifact_sha256": spec["previous_product_artifact_sha256"],
     }

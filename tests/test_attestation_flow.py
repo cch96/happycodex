@@ -40,6 +40,16 @@ class ExternalEvidenceFlowTests(unittest.TestCase):
         self.assertEqual(len(records), len(spec["units"]))
         self.assertEqual(result["usage"]["model_calls"], len(spec["units"]))
 
+    def test_single_authority_rejects_purported_mixed_only_inputs(self):
+        selected, baseline, spec, blind_mapping, records, raws, _ = positive_evaluation()
+        with self.assertRaisesRegex(VerificationError, "mixed|authority"):
+            verify_evaluation(
+                root=ROOT, product=selected, previous_product=baseline,
+                previous_spec=spec, spec=spec, attestations=records,
+                raw_streams=raws, holdout_mapping=blind_mapping,
+                mapping_revealed_at=REVEALED_AT, authority_bindings={},
+            )
+
     def test_forged_terminal_digest_is_rejected(self):
         _, _, _, _, records, _, _ = positive_evaluation()
         forged = deepcopy(records[0])
@@ -97,7 +107,7 @@ class ScopedAuthorityCompositionTests(unittest.TestCase):
         _, _, current, _ = bundle(host_contract=contract)
         prior = [record for record in records if record["unit_id"] != "exact-final"]
         prior_raws = {key: value for key, value in raws.items() if key != "exact-final"}
-        cap = {**TOTAL_CAP, "model_calls": 1}
+        cap = {**previous["effect_cap"], "model_calls": 1}
         return selected, baseline, previous, current, mapping, prior, prior_raws, cap
 
     def test_exact_only_proposal_binds_eleven_raw_backed_green_prerequisites(self):
@@ -106,10 +116,10 @@ class ScopedAuthorityCompositionTests(unittest.TestCase):
             root=ROOT, product=selected, previous_product=baseline,
             previous_spec=previous, spec=current, attestations=prior,
             raw_streams=raws, holdout_mapping=mapping,
-            mapping_revealed_at=REVEALED_AT, total_cap=cap,
+            mapping_revealed_at=REVEALED_AT, effect_cap=cap,
         )
-        self.assertEqual(proposal["selected_unit_ids"], ["exact-final"])
-        self.assertEqual(proposal["total_cap"]["model_calls"], 1)
+        self.assertEqual(proposal["decision"], "exact_final_only")
+        self.assertEqual(proposal["effect_cap"]["model_calls"], 1)
         self.assertEqual(len(proposal["prerequisites"]), 11)
         with self.assertRaises(VerificationError):
             exact_final_authority_proposal(
@@ -117,7 +127,7 @@ class ScopedAuthorityCompositionTests(unittest.TestCase):
                 previous_spec=previous, spec=current, attestations=prior[:-1],
                 raw_streams={key: value for key, value in raws.items() if key != prior[-1]["unit_id"]},
                 holdout_mapping=mapping, mapping_revealed_at=REVEALED_AT,
-                total_cap=cap,
+                effect_cap=cap,
             )
         with self.assertRaises(VerificationError):
             exact_final_authority_proposal(
@@ -125,7 +135,7 @@ class ScopedAuthorityCompositionTests(unittest.TestCase):
                 previous_spec=previous, spec=current, attestations=prior,
                 raw_streams={**raws, prior[0]["unit_id"]: raws[prior[0]["unit_id"]] + b"\n"},
                 holdout_mapping=mapping, mapping_revealed_at=REVEALED_AT,
-                total_cap=cap,
+                effect_cap=cap,
             )
         with self.assertRaisesRegex(VerificationError, "cap"):
             exact_final_authority_proposal(
@@ -133,23 +143,24 @@ class ScopedAuthorityCompositionTests(unittest.TestCase):
                 previous_spec=previous, spec=current, attestations=prior,
                 raw_streams=raws, holdout_mapping=mapping,
                 mapping_revealed_at=REVEALED_AT,
-                total_cap={**cap, "model_calls": 2},
+                effect_cap={**cap, "model_calls": 2},
             )
 
     def test_current_exact_attestation_composes_with_prior_authority(self):
         selected, baseline, previous, current, mapping, prior, raws, cap = self._refresh()
+        prior_proposal = evaluation_authority_request_payload(previous)
+        prior_supplied = {"scope": "evaluation", "request_sha256": canonical_sha256(prior_proposal), "nonce": "n1", "signature": "s1"}
+        prior_authority = canonical_sha256(prior_supplied)
+        prior = [reseal({**record, "authority_sha256": prior_authority}) for record in prior]
         proposal = exact_final_authority_proposal(
             root=ROOT, product=selected, previous_product=baseline,
             previous_spec=previous, spec=current, attestations=prior,
             raw_streams=raws, holdout_mapping=mapping,
-            mapping_revealed_at=REVEALED_AT, total_cap=cap,
+            mapping_revealed_at=REVEALED_AT, effect_cap=cap,
         )
-        self.assertEqual(proposal["selected_unit_ids"], ["exact-final"])
-        prior_proposal = evaluation_authority_request_payload(previous)
-        prior_supplied = {"scope": "evaluation", "request_sha256": canonical_sha256(prior_proposal), "nonce": "n1", "signature": "s1"}
+        self.assertEqual(proposal["decision"], "exact_final_only")
         exact_supplied = {"scope": "evaluation", "request_sha256": canonical_sha256(proposal), "nonce": "n2", "signature": "s2"}
-        prior_authority, exact_authority = canonical_sha256(prior_supplied), canonical_sha256(exact_supplied)
-        prior = [reseal({**record, "authority_sha256": prior_authority}) for record in prior]
+        exact_authority = canonical_sha256(exact_supplied)
         unit = next(item for item in current["units"] if item["unit_id"] == "exact-final")
         raw = raw_stream(unit)
         exact = attestation_from_raw(
@@ -159,11 +170,13 @@ class ScopedAuthorityCompositionTests(unittest.TestCase):
         with self.assertRaisesRegex(VerificationError, "bindings"):
             verify_evaluation(
                 root=ROOT, product=selected, previous_product=baseline, spec=current,
+                previous_spec=previous,
                 attestations=[*prior, exact], raw_streams={**raws, "exact-final": raw},
                 holdout_mapping=mapping, mapping_revealed_at=REVEALED_AT,
             )
         result = verify_evaluation(
             root=ROOT, product=selected, previous_product=baseline, spec=current,
+            previous_spec=previous,
             attestations=[*prior, exact], raw_streams={**raws, "exact-final": raw},
             holdout_mapping=mapping, mapping_revealed_at=REVEALED_AT,
             authority_bindings={
@@ -173,6 +186,64 @@ class ScopedAuthorityCompositionTests(unittest.TestCase):
         )
         self.assertTrue(result["verified"])
         self.assertEqual(result["authority_sha256s"], sorted([prior_authority, exact_authority]))
+        forged_proposal = deepcopy(proposal)
+        forged_proposal["prerequisites"][0]["raw_sha256"] = SHA["f"]
+        forged_supplied = {
+            "scope": "evaluation", "request_sha256": canonical_sha256(forged_proposal),
+            "nonce": "n3", "signature": "s3",
+        }
+        forged_authority = canonical_sha256(forged_supplied)
+        forged_exact = reseal({**exact, "authority_sha256": forged_authority})
+        with self.assertRaisesRegex(VerificationError, "prerequisites"):
+            verify_evaluation(
+                root=ROOT, product=selected, previous_product=baseline, spec=current,
+                previous_spec=previous,
+                attestations=[*prior, forged_exact], raw_streams={**raws, "exact-final": raw},
+                holdout_mapping=mapping, mapping_revealed_at=REVEALED_AT,
+                authority_bindings={
+                    prior_authority: {"proposal": prior_proposal, "supplied_authority": prior_supplied},
+                    forged_authority: {"proposal": forged_proposal, "supplied_authority": forged_supplied},
+                },
+            )
+
+    def test_forged_resealed_prior_full_proposal_is_rejected(self):
+        selected, baseline, previous, current, mapping, prior, raws, cap = self._refresh()
+        prior_proposal = evaluation_authority_request_payload(previous)
+        forged_prior = {**prior_proposal, "product_semantic_sha256": SHA["f"]}
+        prior_supplied = {
+            "scope": "evaluation", "request_sha256": canonical_sha256(forged_prior),
+            "nonce": "forged-prior", "signature": "forged-prior",
+        }
+        prior_authority = canonical_sha256(prior_supplied)
+        prior = [reseal({**record, "authority_sha256": prior_authority}) for record in prior]
+        proposal = exact_final_authority_proposal(
+            root=ROOT, product=selected, previous_product=baseline,
+            previous_spec=previous, spec=current, attestations=prior,
+            raw_streams=raws, holdout_mapping=mapping,
+            mapping_revealed_at=REVEALED_AT, effect_cap=cap,
+        )
+        exact_supplied = {
+            "scope": "evaluation", "request_sha256": canonical_sha256(proposal),
+            "nonce": "exact", "signature": "exact",
+        }
+        exact_authority = canonical_sha256(exact_supplied)
+        unit = next(item for item in current["units"] if item["unit_id"] == "exact-final")
+        raw = raw_stream(unit)
+        exact = attestation_from_raw(
+            root=ROOT, product=selected, spec=current, unit_id="exact-final",
+            raw=raw, host_metadata=host_metadata(unit), authority_sha256=exact_authority,
+        )
+        with self.assertRaises(VerificationError):
+            verify_evaluation(
+                root=ROOT, product=selected, previous_product=baseline,
+                previous_spec=previous, spec=current,
+                attestations=[*prior, exact], raw_streams={**raws, "exact-final": raw},
+                holdout_mapping=mapping, mapping_revealed_at=REVEALED_AT,
+                authority_bindings={
+                    prior_authority: {"proposal": forged_prior, "supplied_authority": prior_supplied},
+                    exact_authority: {"proposal": proposal, "supplied_authority": exact_supplied},
+                },
+            )
 
     def test_exact_only_proposal_rejects_adverse_stale_and_mixed_prerequisites(self):
         selected, baseline, previous, current, mapping, prior, raws, cap = self._refresh()
@@ -188,7 +259,7 @@ class ScopedAuthorityCompositionTests(unittest.TestCase):
                 root=ROOT, product=selected, previous_product=baseline,
                 previous_spec=previous, spec=current, attestations=adverse_records,
                 raw_streams={**raws, goal["unit_id"]: adverse_raw}, holdout_mapping=mapping,
-                mapping_revealed_at=REVEALED_AT, total_cap=cap,
+                mapping_revealed_at=REVEALED_AT, effect_cap=cap,
             )
         stale_contract = {
             **current["host_contract"], "behavior_sha256": SHA["5"],
@@ -200,14 +271,14 @@ class ScopedAuthorityCompositionTests(unittest.TestCase):
                 root=ROOT, product=selected, previous_product=baseline,
                 previous_spec=previous, spec=stale, attestations=prior,
                 raw_streams=raws, holdout_mapping=mapping,
-                mapping_revealed_at=REVEALED_AT, total_cap=cap,
+                mapping_revealed_at=REVEALED_AT, effect_cap=cap,
             )
         with self.assertRaises(VerificationError):
             exact_final_authority_proposal(
                 root=ROOT, product=selected, previous_product=selected,
                 previous_spec=previous, spec=current, attestations=prior,
                 raw_streams=raws, holdout_mapping=mapping,
-                mapping_revealed_at=REVEALED_AT, total_cap=cap,
+                mapping_revealed_at=REVEALED_AT, effect_cap=cap,
             )
 
     def test_authority_acceptance_rejects_unbound_or_broader_selection(self):
@@ -218,11 +289,11 @@ class ScopedAuthorityCompositionTests(unittest.TestCase):
             root=ROOT, product=selected, previous_product=baseline,
             previous_spec=previous, spec=current, attestations=prior,
             raw_streams=raws, holdout_mapping=mapping,
-            mapping_revealed_at=REVEALED_AT, total_cap=cap,
+            mapping_revealed_at=REVEALED_AT, effect_cap=cap,
         )
         for changed in (
             {**proposal, "prerequisites": []},
-            {**proposal, "selected_unit_ids": ["goal-divergence", "exact-final"], "total_cap": {**cap, "model_calls": 2}},
+            {**proposal, "decision": "full_evaluation", "effect_cap": {**cap, "model_calls": 2}},
         ):
             request = canonical_sha256(changed)
             supplied = {"scope": "evaluation", "request_sha256": request, "nonce": "n", "signature": "s"}
@@ -234,7 +305,7 @@ class ScopedAuthorityCompositionTests(unittest.TestCase):
         destination = {"kind": "plugin-cache", "identity_sha256": SHA["b"]}
         rollback = {"artifact_sha256": SHA["c"], "config_sha256": SHA["d"], "ready": True}
         request = release_authority_request(
-            product_record_sha256=selected["record_sha256"],
+            product_artifact_sha256=selected["package_artifact_sha256"],
             attestation_sha256s=evaluation["attestation_sha256s"],
             destination_sha256=canonical_sha256(destination),
             rollback_sha256=canonical_sha256(rollback),
@@ -325,7 +396,7 @@ class FixedHoldoutTests(unittest.TestCase):
         self.assertLess(sum(record["terminal"]["input_tokens"] for record in records), cap["input_tokens"])
         self.assertLess(sum(record["terminal"]["output_tokens"] for record in records), cap["output_tokens"])
         self.assertEqual(sum(record["terminal"]["wall_milliseconds"] for record in records), 120_000)
-        with self.assertRaisesRegex(VerificationError, "evaluation exceeds total cap: wall_milliseconds"):
+        with self.assertRaisesRegex(VerificationError, "evaluation exceeds effect cap: wall_milliseconds"):
             verify_evaluation(
                 root=ROOT, product=selected, previous_product=baseline, spec=spec,
                 attestations=records, raw_streams=raws, holdout_mapping=blind_mapping,
@@ -445,7 +516,8 @@ class ExactFinalAndReleaseTests(unittest.TestCase):
             response_schemas_sha256=old_spec["response_schemas_sha256"],
             host_contract=old_spec["host_contract"], host_contract_sha256=old_spec["host_contract_sha256"],
             profiles=old_spec["profiles"], units=units, holdouts=old_spec["holdouts"],
-            total_cap=old_spec["total_cap"], previous_product_record_sha256=old_spec["previous_product_record_sha256"],
+            effect_cap=old_spec["effect_cap"], token_qualification=old_spec["token_qualification"],
+            previous_product_artifact_sha256=old_spec["previous_product_artifact_sha256"],
         )
         replay = replay_attestation(
             parent=parent, spec=new_spec, oracle=lambda _report: (True, []),
@@ -459,7 +531,7 @@ class ExactFinalAndReleaseTests(unittest.TestCase):
         destination = {"kind": "plugin-cache", "identity_sha256": SHA["b"]}
         rollback = {"artifact_sha256": SHA["c"], "config_sha256": SHA["d"], "ready": True}
         request = release_authority_request(
-            product_record_sha256=selected["record_sha256"],
+            product_artifact_sha256=selected["package_artifact_sha256"],
             attestation_sha256s=evaluation["attestation_sha256s"],
             destination_sha256=canonical_sha256(destination), rollback_sha256=canonical_sha256(rollback),
         )

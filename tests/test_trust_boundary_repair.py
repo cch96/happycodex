@@ -10,12 +10,12 @@ import tempfile
 import unittest
 
 from evaluation.manifest import ManifestError, materialize_eval_spec
-from evaluation.host import attestation_from_raw
+from evaluation.host import HostEvidenceError, attestation_from_raw, parse_raw_stream
 from evaluation.identity import IdentityError, evaluator_components
 from evaluation.records import RecordError, canonical_sha256
 from evaluation.verify import VerificationError, invalidation, verify_evaluation
 from tests.attestation_fixtures import (
-    HOST_CONTRACT, PROFILES, REVEALED_AT, REVIEW_BRIEF, ROOT, TOTAL_CAP,
+    HOST_CONTRACT, PROFILES, REVEALED_AT, REVIEW_BRIEF, ROOT, SHA, TOTAL_CAP,
     attest_all, bundle, host_metadata, mapping, passing_report, raw_stream,
     reseal,
 )
@@ -41,17 +41,31 @@ class TrustBoundaryRedTests(unittest.TestCase):
     def test_f1_forged_sealed_report_cannot_override_raw_unsafe_result(self):
         selected, baseline, spec, blind_mapping, records, raws = verify_args()
         unit_id = "goal-divergence"
+        unit = next(item for item in spec["units"] if item["unit_id"] == unit_id)
         unsafe = raw_stream(
-            next(unit for unit in spec["units"] if unit["unit_id"] == unit_id),
+            unit,
             report={"safety": {"goal_closed": True}, "next_action": {"purpose": "IMPLEMENT"}},
         )
+        parsed = parse_raw_stream(unsafe)
         raws[unit_id] = unsafe
         forged = deepcopy(next(item for item in records if item["unit_id"] == unit_id))
         forged["observation"]["raw_events_sha256"] = __import__("hashlib").sha256(unsafe).hexdigest()
-        forged["observation"]["report"] = passing_report(
-            next(unit for unit in spec["units"] if unit["unit_id"] == unit_id)
-        )
+        forged["observation"]["raw_report_sha256"] = canonical_sha256(parsed["report"])
+        forged["observation"]["report"] = passing_report(unit)
         forged["observation"]["report_sha256"] = canonical_sha256(forged["observation"]["report"])
+        forged["observation"]["sanitized_event_sha256"] = canonical_sha256(
+            {
+                "schema_version": 1,
+                "thread_id": parsed["thread_id"],
+                "turn_started": parsed["turn_started"],
+                "turn_completed": parsed["turn_completed"],
+                "turn_failed": parsed["turn_failed"],
+                "failure_message_sha256": parsed["failure_message_sha256"],
+                "items": parsed["item_facts"],
+                "agent_report": forged["observation"]["report"],
+                "usage": parsed["usage"],
+            }
+        )
         forged = reseal(forged)
         supplied = [forged if item["unit_id"] == unit_id else item for item in records]
         with self.assertRaises(VerificationError):
@@ -60,6 +74,20 @@ class TrustBoundaryRedTests(unittest.TestCase):
                 attestations=supplied, raw_streams=raws, holdout_mapping=blind_mapping,
                 mapping_revealed_at=REVEALED_AT,
             )
+
+    def test_runtime_component_drift_is_rejected_against_evalspec(self):
+        selected, baseline, spec, blind_mapping, records, raws = verify_args()
+        with tempfile.TemporaryDirectory() as directory:
+            isolated_root = isolated_checkout(directory)
+            host_path = isolated_root / "evaluation" / "host.py"
+            host_path.write_text(host_path.read_text() + "\n# runtime component drift\n")
+
+            with self.assertRaisesRegex(VerificationError, "component|runtime|evaluator"):
+                verify_evaluation(
+                    root=isolated_root, product=selected, previous_product=baseline,
+                    spec=spec, attestations=records, raw_streams=raws,
+                    holdout_mapping=blind_mapping, mapping_revealed_at=REVEALED_AT,
+                )
 
     def test_raw_terminal_mismatch_is_rejected_after_record_reseal(self):
         selected, baseline, spec, blind_mapping, records, raws = verify_args()
@@ -143,10 +171,10 @@ class TrustBoundaryRedTests(unittest.TestCase):
                 root=root, candidate=selected, previous=baseline, profiles=PROFILES,
                 total_cap=TOTAL_CAP, holdout_mapping=blind_mapping,
                 review_brief=REVIEW_BRIEF, host_contract=old_spec["host_contract"],
+                external_role_config_sha256=SHA["3"],
             )
         route = invalidation(old_spec, current)
-        self.assertIn("exact-final", route["model_units"])
-        self.assertNotIn("exact-final", route["replay_units"])
+        self.assertEqual(route, {"mode": "exact_final_only"})
 
     def test_f5_mixed_authority_records_are_rejected(self):
         selected, baseline, spec, blind_mapping, records, raws = verify_args()
@@ -241,40 +269,21 @@ class TrustBoundaryRedTests(unittest.TestCase):
                     profiles=PROFILES, total_cap=TOTAL_CAP,
                     holdout_mapping=blind_mapping, review_brief=REVIEW_BRIEF,
                     host_contract=HOST_CONTRACT,
+                    external_role_config_sha256=SHA["3"],
                 )
 
-    def test_f10_secret_raw_can_verify_as_host_sanitized_attestation(self):
-        selected, baseline, spec, blind_mapping = bundle()
-        records, raws = attest_all(selected, baseline, spec)
+    def test_f10_secret_bearing_canonical_report_is_rejected(self):
+        selected, _, spec, _ = bundle()
         unit = next(item for item in spec["units"] if item["unit_id"] == "no-commit-secret")
         secret = "RAW-SECRET-SENTINEL"
         report = passing_report(unit)
         report["secret"]["value"] = secret
         raw = raw_stream(unit, report=report)
-        sanitized = attestation_from_raw(
-            root=ROOT, product=selected, spec=spec, unit_id=unit["unit_id"],
-            raw=raw, host_metadata=host_metadata(unit), authority_sha256="a" * 64,
-            secrets=[secret],
-        )
-        self.assertNotIn(secret, canonical_sha256(sanitized) + str(sanitized))
-        supplied = [sanitized if record["unit_id"] == unit["unit_id"] else record for record in records]
-        raws[unit["unit_id"]] = raw
-        result = verify_evaluation(
-            root=ROOT, product=selected, previous_product=baseline, spec=spec,
-            attestations=supplied, raw_streams=raws, holdout_mapping=blind_mapping,
-            mapping_revealed_at=REVEALED_AT,
-        )
-        self.assertTrue(result["verified"])
-        changed_report = deepcopy(sanitized)
-        changed_report["observation"]["report"]["secret"]["value"] = "<different-redaction>"
-        changed_report["observation"]["report_sha256"] = canonical_sha256(changed_report["observation"]["report"])
-        changed_report = reseal(changed_report)
-        changed_records = [changed_report if record["unit_id"] == unit["unit_id"] else record for record in records]
-        with self.assertRaises(VerificationError):
-            verify_evaluation(
-                root=ROOT, product=selected, previous_product=baseline, spec=spec,
-                attestations=changed_records, raw_streams=raws, holdout_mapping=blind_mapping,
-                mapping_revealed_at=REVEALED_AT,
+        with self.assertRaisesRegex(HostEvidenceError, "secret-bearing"):
+            attestation_from_raw(
+                root=ROOT, product=selected, spec=spec, unit_id=unit["unit_id"],
+                raw=raw, host_metadata=host_metadata(unit), authority_sha256="a" * 64,
+                secrets=[secret],
             )
     def test_f11_same_stage_call_starting_after_known_failure_is_rejected(self):
         selected, baseline, spec, _ = bundle()
@@ -358,8 +367,9 @@ class ExactFinalContractRedTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             host_a, host_b = Path(directory) / "host-a", Path(directory) / "host-b"
             host_a.mkdir(); host_b.mkdir()
-            *_, previous, _ = helper._inputs(str(host_a))
-            *_, current, _ = helper._inputs(str(host_b))
+            markers = Path(directory) / "effect-markers"; markers.mkdir(mode=0o700)
+            *_, previous, _ = helper._inputs(str(host_a), effect_marker_root=markers)
+            *_, current, _ = helper._inputs(str(host_b), effect_marker_root=markers)
         prior = {unit["unit_id"]: unit for unit in previous["units"]}
         for unit in current["units"]:
             self.assertEqual(
@@ -372,15 +382,16 @@ class InvalidationMatrixTests(unittest.TestCase):
     def _copy_root(self, directory: str) -> Path:
         return isolated_checkout(directory)
 
-    def _materialize(self, root: Path):
+    def _materialize(self, root: Path, host_contract: dict = HOST_CONTRACT):
         selected, baseline, _, blind_mapping = bundle()
         return materialize_eval_spec(
             root=root, candidate=selected, previous=baseline, profiles=PROFILES,
             total_cap=TOTAL_CAP, holdout_mapping=blind_mapping, review_brief=REVIEW_BRIEF,
-            host_contract=HOST_CONTRACT,
+            host_contract=host_contract,
+            external_role_config_sha256=SHA["3"],
         )
 
-    def test_single_fixture_change_invalidates_only_its_provider_unit(self):
+    def test_single_fixture_change_requires_full_evaluation(self):
         _, _, previous, _ = bundle()
         with tempfile.TemporaryDirectory() as directory:
             root = self._copy_root(directory)
@@ -389,7 +400,7 @@ class InvalidationMatrixTests(unittest.TestCase):
             value["core"]["qualification-high-risk"]["prompt"] += " Explain the boundary."
             path.write_text(json.dumps(value), encoding="utf-8")
             current = self._materialize(root)
-        self.assertEqual(invalidation(previous, current)["model_units"], ["qualification-high-risk"])
+        self.assertEqual(invalidation(previous, current), {"mode": "full_evaluation"})
 
     def test_behavior_oracle_change_replays_only_its_frozen_report(self):
         _, _, previous, _ = bundle()
@@ -401,8 +412,35 @@ class InvalidationMatrixTests(unittest.TestCase):
             path.write_text(json.dumps(value), encoding="utf-8")
             current = self._materialize(root)
         route = invalidation(previous, current)
-        self.assertEqual(route["model_units"], [])
-        self.assertEqual(route["replay_units"], ["goal-divergence"])
+        self.assertEqual(route, {"mode": "oracle_replay"})
+
+    def test_combined_behavior_and_exact_oracle_change_requires_full_evaluation(self):
+        _, _, previous, _ = bundle()
+        with tempfile.TemporaryDirectory() as directory:
+            root = self._copy_root(directory)
+            path = root / "evaluation" / "hidden-oracles-v1.json"
+            value = json.loads(path.read_text(encoding="utf-8"))
+            value["core"]["goal-divergence"]["diagnostic"]["next_action.purpose"] = "CHECK"
+            value["exact_final"]["diagnostic"]["decision"] = "CHECK"
+            path.write_text(json.dumps(value), encoding="utf-8")
+            current = self._materialize(root)
+        self.assertEqual(invalidation(previous, current), {"mode": "full_evaluation"})
+
+    def test_oracle_component_plus_exact_input_requires_full_evaluation(self):
+        _, _, previous, _ = bundle()
+        with tempfile.TemporaryDirectory() as directory:
+            root = self._copy_root(directory)
+            oracle = root / "evaluation" / "oracle.py"
+            oracle.write_text(oracle.read_text() + "\n# oracle component drift\n", encoding="utf-8")
+            current = self._materialize(
+                root, {**HOST_CONTRACT, "exact_final_sha256": SHA["4"]},
+            )
+        changed = [
+            unit["unit_id"] for unit, prior in zip(current["units"], previous["units"])
+            if unit["invocation_sha256"] != prior["invocation_sha256"]
+        ]
+        self.assertEqual(changed, ["exact-final"])
+        self.assertEqual(invalidation(previous, current), {"mode": "full_evaluation"})
 
     def test_harness_only_change_is_offline_only(self):
         _, _, previous, _ = bundle()
@@ -412,9 +450,7 @@ class InvalidationMatrixTests(unittest.TestCase):
             path.write_text(path.read_text(encoding="utf-8") + "\n# harness-only test change\n", encoding="utf-8")
             current = self._materialize(root)
         route = invalidation(previous, current)
-        self.assertEqual(route["model_units"], [])
-        self.assertEqual(route["replay_units"], [])
-        self.assertEqual(route["offline_units"], ["__bundle__"])
+        self.assertEqual(route, {"mode": "offline_only"})
 
     def test_single_public_schema_change_invalidates_only_its_provider_unit(self):
         _, _, previous, _ = bundle()
@@ -427,7 +463,7 @@ class InvalidationMatrixTests(unittest.TestCase):
             schema["required"].append("explanation")
             path.write_text(json.dumps(value), encoding="utf-8")
             current = self._materialize(root)
-        self.assertEqual(invalidation(previous, current)["model_units"], ["qualification-low-risk"])
+        self.assertEqual(invalidation(previous, current), {"mode": "full_evaluation"})
 
     def test_public_schema_rejects_answer_annotations_and_unknown_keywords(self):
         forbidden = {
@@ -460,13 +496,10 @@ class InvalidationMatrixTests(unittest.TestCase):
         _, _, previous, _ = bundle()
         exact = {**HOST_CONTRACT, "exact_final_sha256": "4" * 64}
         _, _, current, _ = bundle(host_contract=exact)
-        self.assertEqual(invalidation(previous, current)["model_units"], ["exact-final"])
+        self.assertEqual(invalidation(previous, current), {"mode": "exact_final_only"})
         behavior = {**HOST_CONTRACT, "behavior_sha256": "4" * 64, "holdout_sha256": "4" * 64}
         _, _, current, _ = bundle(host_contract=behavior)
-        self.assertEqual(
-            invalidation(previous, current)["model_units"],
-            sorted(unit["unit_id"] for unit in current["units"] if unit["stage"] != "exact_final"),
-        )
+        self.assertEqual(invalidation(previous, current), {"mode": "full_evaluation"})
 
     def test_neutral_brief_drift_invalidates_only_exact_final(self):
         selected, baseline, previous, blind_mapping = bundle()
@@ -476,8 +509,9 @@ class InvalidationMatrixTests(unittest.TestCase):
             root=ROOT, candidate=selected, previous=baseline, profiles=PROFILES,
             total_cap=TOTAL_CAP, holdout_mapping=blind_mapping,
             review_brief=brief, host_contract=HOST_CONTRACT,
+            external_role_config_sha256=SHA["3"],
         )
-        self.assertEqual(invalidation(previous, current)["model_units"], ["exact-final"])
+        self.assertEqual(invalidation(previous, current), {"mode": "exact_final_only"})
 
     def test_manifest_identity_change_is_not_silent(self):
         _, _, previous, _ = bundle()
@@ -488,7 +522,7 @@ class InvalidationMatrixTests(unittest.TestCase):
             value["manifest_id"] = "happycodex-production-v1-refresh"
             path.write_text(json.dumps(value), encoding="utf-8")
             current = self._materialize(root)
-        self.assertIn("__manifest__", invalidation(previous, current)["offline_units"])
+        self.assertEqual(invalidation(previous, current), {"mode": "full_evaluation"})
 
     def test_unknown_evaluator_input_fails_closed(self):
         with tempfile.TemporaryDirectory() as directory:

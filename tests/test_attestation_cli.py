@@ -9,25 +9,36 @@ import tempfile
 import unittest
 
 from evaluation.host import attestation_from_raw
+from evaluation.identity import evaluator_components
 from evaluation.manifest import materialize_eval_spec
 from evaluation.provider import (
     BEHAVIOR_DEVELOPER_INSTRUCTIONS, build_fixed_host_policy,
     host_contract_from_policy,
 )
-from evaluation.records import canonical_sha256
+from evaluation.records import canonical_sha256, evaluation_authority_request_payload
 from evaluation.verify import exact_final_authority_proposal
 from tests.attestation_fixtures import (
     HOST_CONTRACT, PROFILES, REVEALED_AT, REVIEW_BRIEF, ROOT, TOTAL_CAP, SHA,
-    attest_all, bundle, passing_report, previous_product, product, reseal,
+    attest_all, bundle, host_metadata, passing_report, previous_product, product, raw_stream, reseal,
     write_json,
 )
-from tests.test_fixed_host_transaction_v2 import _synthetic_snapshot
+from tests.test_fixed_host_transaction_v2 import _exact_kwargs, _synthetic_snapshot
 
 
 class FreshProcessTests(unittest.TestCase):
+    def test_verify_surfaces_require_mixed_authority_inputs(self):
+        for command in ("verify", "verify-release"):
+            completed = subprocess.run(
+                ["python3", "-m", "evaluation.cli", command, "--help"],
+                cwd=ROOT, capture_output=True, text=True, check=False,
+            )
+            self.assertEqual(completed.returncode, 0, completed.stderr)
+            self.assertIn("--previous-spec", completed.stdout)
+            self.assertIn("--prior-authority-binding", completed.stdout)
+            self.assertIn("--exact-authority-binding", completed.stdout)
+
     def _exact_request_fixture(self, temp: Path):
         (temp / "execution").mkdir(mode=0o700)
-        snapshot, oracle = _synthetic_snapshot(temp)
         marker = temp / "provider-reached"
         binary = temp / "provider"
         binary.write_text(f"#!/bin/sh\ntouch {marker}\nexit 99\n", encoding="utf-8")
@@ -41,16 +52,26 @@ class FreshProcessTests(unittest.TestCase):
         )
         role.chmod(0o600)
         role_sha = hashlib.sha256(role.read_bytes()).hexdigest()
-        selected, baseline = product(role=role_sha), previous_product(role=role_sha)
+        selected, baseline = product(), previous_product()
+        snapshot, oracle = _synthetic_snapshot(
+            temp, external_role_config_sha256=role_sha, source_product=selected,
+        )
+        source_repo = temp / "source-repo"
         mapping = bundle()[3]
         mapping_path = temp / "mapping.json"; write_json(mapping_path, mapping); mapping_path.chmod(0o600)
         execution = temp / "reference-execution"; execution.mkdir(mode=0o700)
         for name in ("units", "raw", "attestations", "claims"):
             (execution / name).mkdir(mode=0o700)
+        effect_markers = temp / "effect-markers"; effect_markers.mkdir(mode=0o700)
         policy = build_fixed_host_policy(
             execution_root=execution, binary_path=binary,
             external_role_config_path=role, exact_final_source=snapshot,
             holdout_mapping_path=mapping_path, private_oracle_path=oracle,
+            effect_marker_root=effect_markers, source_repo=temp / "source-repo",
+            source_identity=_exact_kwargs(
+                temp / "source-repo", role_sha256=role_sha, source_product=selected,
+            )["source_identity"],
+            evaluator_identity=evaluator_components(ROOT),
             behavior_model="gpt-fake", behavior_effort="high",
         )
         contract = host_contract_from_policy(policy)
@@ -59,6 +80,7 @@ class FreshProcessTests(unittest.TestCase):
             total_cap=TOTAL_CAP, holdout_mapping=mapping,
             review_brief=REVIEW_BRIEF,
             host_contract={**contract, "exact_final_sha256": SHA["4"]},
+            external_role_config_sha256=role_sha,
         )
         records, raws = attest_all(selected, baseline, previous)
         prior = [record for record in records if record["unit_id"] != "exact-final"]
@@ -66,7 +88,7 @@ class FreshProcessTests(unittest.TestCase):
             "product": selected, "previous-product": baseline,
             "previous-spec": previous, "profiles": PROFILES,
             "total-cap": TOTAL_CAP,
-            "effect-cap": {**TOTAL_CAP, "model_calls": 1},
+            "effect-cap": {**previous["effect_cap"], "model_calls": 1},
             "mapping": mapping, "review-brief": REVIEW_BRIEF,
         }
         paths = {}
@@ -92,7 +114,7 @@ class FreshProcessTests(unittest.TestCase):
             ]
         return [
             "python3", "-m", "evaluation.cli", "prepare-exact-request",
-            "--repo", str(ROOT), "--product", str(paths["product"]),
+            "--repo", str(fixture["source_repo"]), "--product", str(paths["product"]),
             "--previous-product", str(paths["previous-product"]),
             "--previous-spec", str(paths["previous-spec"]),
             "--profiles", str(paths["profiles"]),
@@ -104,6 +126,9 @@ class FreshProcessTests(unittest.TestCase):
             "--external-role-config", str(fixture["role"]),
             "--hidden-oracle", str(fixture["oracle"]),
             "--exact-source", str(fixture["snapshot"]),
+            "--baseline-ref", "refs/heads/baseline-review",
+            "--source-ref", "refs/heads/source-review",
+            "--effect-marker-root", str(fixture["effect_markers"]),
             "--destination", str(destination), *repeated,
         ]
 
@@ -120,17 +145,17 @@ class FreshProcessTests(unittest.TestCase):
             spec = json.loads((destination / "eval-spec.json").read_text())
             request = json.loads((destination / "authority-request.json").read_text())
             expected = exact_final_authority_proposal(
-                root=ROOT, product=fixture["selected"],
+                root=fixture["source_repo"], product=fixture["selected"],
                 previous_product=fixture["baseline"],
                 previous_spec=fixture["previous"], spec=spec,
                 attestations=fixture["prior"], raw_streams={
                     unit_id: path.read_bytes() for unit_id, path in fixture["raw_paths"].items()
                 }, holdout_mapping=fixture["mapping"],
                 mapping_revealed_at=REVEALED_AT,
-                total_cap=json.loads(fixture["paths"]["effect-cap"].read_text()),
+                effect_cap=json.loads(fixture["paths"]["effect-cap"].read_text()),
             )
             self.assertEqual(request["proposal"], expected)
-            self.assertEqual(request["selected_unit_ids"], ["exact-final"])
+            self.assertEqual(request["decision"], "exact_final_only")
             self.assertFalse(request["canonical_approval_line"]["authoritative"])
             self.assertEqual(output["authority_request_sha256"], canonical_sha256(expected))
             self.assertFalse(fixture["marker"].exists())
@@ -200,7 +225,8 @@ class FreshProcessTests(unittest.TestCase):
             authority_sha256=SHA["a"],
         )
         self.assertEqual(record["verdict"], "pass")
-        self.assertEqual(baseline["external_role_config_sha256"], selected["external_role_config_sha256"])
+        self.assertNotIn("external_role_config_sha256", baseline)
+        self.assertNotIn("external_role_config_sha256", selected)
 
     def test_cli_materializes_from_versioned_production_inputs(self):
         selected, baseline, spec, blind_mapping = bundle()
@@ -222,6 +248,7 @@ class FreshProcessTests(unittest.TestCase):
                     "--profiles", str(paths["profiles"]), "--total-cap", str(paths["cap"]),
                     "--mapping", str(paths["mapping"]), "--review-brief", str(paths["brief"]),
                     "--host-contract", str(paths["host"]),
+                    "--external-role-config-sha256", spec["external_role_config_sha256"],
                 ], cwd=ROOT, capture_output=True, text=True, check=False,
             )
         self.assertEqual(completed.returncode, 0, completed.stderr)
@@ -258,6 +285,51 @@ class FreshProcessTests(unittest.TestCase):
         result = json.loads(completed.stdout)
         self.assertTrue(result["verified"])
         self.assertNotIn("certified", result)
+
+    def test_cli_verifies_explicit_mixed_authority_composition(self):
+        selected, baseline, previous, blind_mapping = bundle()
+        records, raws = attest_all(selected, baseline, previous)
+        _, _, current, _ = bundle(host_contract={**previous["host_contract"], "exact_final_sha256": SHA["4"]})
+        prior_proposal = evaluation_authority_request_payload(previous)
+        prior_supplied = {"scope":"evaluation","request_sha256":canonical_sha256(prior_proposal),"nonce":"n1","signature":"s1"}
+        prior_authority = canonical_sha256(prior_supplied)
+        prior = [reseal({**record, "authority_sha256": prior_authority}) for record in records if record["unit_id"] != "exact-final"]
+        prior_raws = {key: value for key, value in raws.items() if key != "exact-final"}
+        proposal = exact_final_authority_proposal(
+            root=ROOT, product=selected, previous_product=baseline,
+            previous_spec=previous, spec=current, attestations=prior,
+            raw_streams=prior_raws, holdout_mapping=blind_mapping,
+            mapping_revealed_at=REVEALED_AT,
+            effect_cap={**current["effect_cap"], "model_calls": 1},
+        )
+        exact_supplied = {"scope":"evaluation","request_sha256":canonical_sha256(proposal),"nonce":"n2","signature":"s2"}
+        exact_unit = next(unit for unit in current["units"] if unit["unit_id"] == "exact-final")
+        exact_raw = raw_stream(exact_unit)
+        exact = attestation_from_raw(
+            root=ROOT, product=selected, spec=current, unit_id="exact-final", raw=exact_raw,
+            host_metadata=host_metadata(exact_unit), authority_sha256=canonical_sha256(exact_supplied),
+        )
+        with tempfile.TemporaryDirectory() as raw:
+            temp = Path(raw); repeated = []
+            values = {"product":selected,"previous-product":baseline,"previous-spec":previous,"spec":current,"mapping":blind_mapping,
+                      "prior-binding":{"proposal":prior_proposal,"supplied_authority":prior_supplied},
+                      "exact-binding":{"proposal":proposal,"supplied_authority":exact_supplied}}
+            paths = {name: temp / f"{name}.json" for name in values}
+            for name, value in values.items(): write_json(paths[name], value)
+            for index, record in enumerate([*prior, exact]):
+                unit_id = record["unit_id"]; attestation = temp / f"attestation-{index}.json"; stream = temp / f"raw-{index}.jsonl"
+                write_json(attestation, record); stream.write_bytes(exact_raw if unit_id == "exact-final" else prior_raws[unit_id])
+                repeated.extend(["--attestation", str(attestation), "--raw", f"{unit_id}={stream}"])
+            completed = subprocess.run([
+                "python3", "-m", "evaluation.cli", "verify", "--repo", str(ROOT),
+                "--product", str(paths["product"]), "--previous-product", str(paths["previous-product"]),
+                "--previous-spec", str(paths["previous-spec"]), "--spec", str(paths["spec"]),
+                "--prior-authority-binding", str(paths["prior-binding"]),
+                "--exact-authority-binding", str(paths["exact-binding"]),
+                "--mapping", str(paths["mapping"]), "--revealed-at", REVEALED_AT, *repeated,
+            ], cwd=ROOT, capture_output=True, text=True, check=False)
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        self.assertTrue(json.loads(completed.stdout)["verified"])
 
     def test_cli_rejects_legacy_host_flags(self):
         selected, baseline, spec, blind_mapping = bundle()

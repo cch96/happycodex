@@ -22,7 +22,7 @@ from evaluation.records import (
     RECORD_TYPES, TERMINAL_CLASSES, RecordError, build_product_artifact,
     validate_record,
 )
-from evaluation.verify import evaluate_runtime_decision, sanitize_events
+from evaluation.verify import evaluate_runtime_decision
 from tests.attestation_fixtures import (
     BASELINE_REVISION, CANDIDATE_REVISION, HOST_CONTRACT, PROFILES, ROOT, SHA,
     bundle, host_metadata, product, raw_stream, terminal,
@@ -50,6 +50,28 @@ class DurableRecordTests(unittest.TestCase):
         self.assertFalse(any("evaluator" in key for key in selected))
         self.assertEqual(validate_record(selected), selected)
 
+    def test_product_identity_is_package_only_and_config_lives_in_evalspec(self):
+        selected, baseline, spec, _ = bundle()
+        same_package_new_provenance = build_product_artifact(
+            source_commit="f" * 40,
+            source_tree="e" * 40,
+            package_tree=selected["package_tree"],
+            package_artifact_sha256=selected["package_artifact_sha256"],
+            package_semantic_sha256=selected["package_semantic_sha256"],
+        )
+
+        with self.subTest("package-only-artifact-and-config"):
+            self.assertEqual(
+                selected["package_artifact_sha256"],
+                same_package_new_provenance["package_artifact_sha256"],
+            )
+            self.assertNotIn("external_role_config_sha256", selected)
+        with self.subTest("package-only-foreign-key"):
+            self.assertEqual(
+                {key: value for key, value in spec.items() if key.startswith("previous_product_")},
+                {"previous_product_artifact_sha256": baseline["package_artifact_sha256"]},
+            )
+
     def test_unknown_field_and_tampered_digest_fail(self):
         selected = product()
         with self.assertRaises(RecordError):
@@ -66,7 +88,7 @@ class DurableRecordTests(unittest.TestCase):
             "holdout-safety-arm-a", "holdout-safety-arm-b",
             "holdout-scope-arm-a", "holdout-scope-arm-b", "exact-final",
         }
-        self.assertEqual(spec["total_cap"]["model_calls"], 12)
+        self.assertEqual(spec["effect_cap"]["model_calls"], 12)
         self.assertEqual(baseline["source_commit"], BASELINE_REVISION)
         self.assertEqual({unit["unit_id"] for unit in spec["units"]}, expected_units)
         self.assertEqual(len(spec["units"]), 12)
@@ -85,7 +107,7 @@ class DurableRecordTests(unittest.TestCase):
             self.assertNotIn("expected", str(projection["response_schema"]).lower())
             expected = selected if unit["product_semantic_sha256"] == selected["package_semantic_sha256"] else baseline
             if unit["stage"] != "exact_final":
-                self.assertEqual(unit["external_role_config_sha256"], expected["external_role_config_sha256"])
+                self.assertEqual(unit["external_role_config_sha256"], spec["external_role_config_sha256"])
             self.assertEqual(projection["runtime"], expected_runtimes[unit["product_semantic_sha256"]])
         units = {unit["unit_id"]: unit for unit in spec["units"]}
         for pair in spec["holdouts"]:
@@ -103,11 +125,9 @@ class DurableRecordTests(unittest.TestCase):
             )
             selected = product_artifact_from_git(
                 clone, CANDIDATE_REVISION,
-                external_role_config_sha256=SHA["3"],
             )
             baseline = product_artifact_from_git(
                 clone, BASELINE_REVISION,
-                external_role_config_sha256=SHA["3"],
             )
             schema = ROOT / "evaluation" / "report-schemas-v1.json"
             (clone / "evaluation" / "report-schemas-v1.json").write_bytes(
@@ -138,15 +158,11 @@ class DurableRecordTests(unittest.TestCase):
                 package_tree=selected["package_tree"],
                 package_artifact_sha256=selected["package_artifact_sha256"],
                 package_semantic_sha256=selected["package_semantic_sha256"],
-                external_role_config_sha256=selected["external_role_config_sha256"],
             )
             with self.subTest(name=name), self.assertRaises(IdentityError):
                 bundle(selected_product=forged)
-        mismatched_config = product_artifact_from_git(
-            ROOT, BASELINE_REVISION, external_role_config_sha256=SHA["6"],
-        )
-        with self.assertRaisesRegex(ManifestError, "one external role config"):
-            bundle(baseline_product=mismatched_config)
+        with self.assertRaises(ManifestError):
+            bundle(external_role_config_sha256="invalid")
 
     def test_model_and_deterministic_routes_are_disjoint(self):
         self.assertEqual(
@@ -190,10 +206,11 @@ class ProviderBoundaryTests(unittest.TestCase):
             with self.subTest(field=field), self.assertRaises(ProviderError):
                 assert_provider_blind(sentinels=["SENTINEL"], projection={"safe": True}, **visible)
 
-    def test_sanitized_events_redact_secret(self):
-        value = sanitize_events([{"summary": "SENTINEL", "secret": "SENTINEL"}], secrets=["SENTINEL"])
-        self.assertNotIn("SENTINEL", str(value))
-        self.assertEqual(value[0]["secret"], "<redacted>")
+    def test_evaluator_has_no_generic_event_redaction_api(self):
+        import evaluation.verify as verify_module
+
+        self.assertFalse(hasattr(verify_module, "_redact"))
+        self.assertFalse(hasattr(verify_module, "sanitize_events"))
 
     def test_authority_is_external_and_capability_process_local(self):
         _, _, spec, _ = bundle()
@@ -270,6 +287,35 @@ class ExternalHostClaimTests(unittest.TestCase):
         encoded = b"".join((json.dumps(event, sort_keys=True) + "\n").encode() for event in duplicate)
         with self.assertRaises(HostEvidenceError):
             parse_raw_stream(encoded)
+
+    def test_exact_final_inspection_must_precede_canonical_report(self):
+        selected, _, spec, _ = bundle()
+        unit = next(item for item in spec["units"] if item["stage"] == "exact_final")
+        events = [
+            {"type": "thread.started", "thread_id": "thread-post-report"},
+            {"type": "turn.started"},
+            {"type": "item.completed", "item": {
+                "id": "message", "type": "agent_message",
+                "text": json.dumps({
+                    "neutral": True, "coverage": {"complete": True},
+                    "decision": "GO", "findings": [],
+                }),
+            }},
+            {"type": "item.started", "item": {"id": "inspect", "type": "command_execution"}},
+            {"type": "item.completed", "item": {"id": "inspect", "type": "command_execution"}},
+            {"type": "turn.completed", "usage": {
+                "input_tokens": 5, "cached_input_tokens": 0,
+                "cache_write_input_tokens": 0, "output_tokens": 3,
+                "reasoning_output_tokens": 0,
+            }},
+        ]
+        raw = b"".join((json.dumps(event, sort_keys=True) + "\n").encode() for event in events)
+
+        with self.assertRaisesRegex(HostEvidenceError, "inspection|report|item"):
+            attestation_from_raw(
+                root=ROOT, product=selected, spec=spec, unit_id=unit["unit_id"],
+                raw=raw, host_metadata=host_metadata(unit), authority_sha256=SHA["a"],
+            )
 
     def test_native_parser_keeps_unterminated_report_candidate_partial(self):
         selected, _, spec, _ = bundle()
@@ -350,6 +396,12 @@ class ExternalHostClaimTests(unittest.TestCase):
         del malformed_usage[-1]["usage"]["cached_input_tokens"]
         duplicate_message = [*valid[:-1], deepcopy(valid[-2]), valid[-1]]
         forbidden_terminal = [*valid[:-1], {"type": "turn.failed", "error": "x"}]
+        unknown_item = [
+            *valid[:2],
+            {"type": "item.started", "item": {"id": "unknown", "type": "mcp_tool_call"}},
+            {"type": "item.completed", "item": {"id": "unknown", "type": "mcp_tool_call"}},
+            *valid[2:],
+        ]
         for name, events in (
             ("legacy", legacy),
             ("duplicate-turn", duplicate_turn),
@@ -359,6 +411,7 @@ class ExternalHostClaimTests(unittest.TestCase):
             ("usage", malformed_usage),
             ("duplicate-message", duplicate_message),
             ("forbidden-terminal", forbidden_terminal),
+            ("unknown-item", unknown_item),
         ):
             raw = b"".join((json.dumps(event, sort_keys=True) + "\n").encode() for event in events)
             with self.subTest(name=name), self.assertRaises(HostEvidenceError):
@@ -422,55 +475,22 @@ class ExternalHostClaimTests(unittest.TestCase):
             )
             self.assertNotEqual(completed.returncode, 0)
 
-    def test_only_proven_no_effect_can_use_bounded_recovery_claim(self):
-        selected, _, spec, _ = bundle()
+    def test_local_claim_has_no_recovery_surface(self):
+        _, _, spec, _ = bundle()
         unit = next(item for item in spec["units"] if item["unit_id"] == "goal-divergence")
-        no_effect = terminal(classification="infrastructure_no_effect", provider_reached=False, complete=False, model_calls=0, input_tokens=0, output_tokens=0)
-        partial = terminal(classification="ambiguous_or_partial", complete=False)
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)
             root.chmod(0o700)
-            no_effect_raw = raw_stream(unit, terminal_value=no_effect)
-            no_effect_record = attestation_from_raw(
-                root=ROOT, product=selected, spec=spec, unit_id=unit["unit_id"],
-                raw=no_effect_raw, host_metadata=host_metadata(unit, terminal_value=no_effect),
-                authority_sha256=SHA["a"],
-            )
-            self.assertEqual(no_effect_record["terminal"]["classification"], "infrastructure_no_effect")
             reserve_claim(root=root, claim_key=unit["invocation"]["claim_key"], invocation_sha256=unit["invocation_sha256"])
             with self.assertRaises(HostEvidenceError):
                 reserve_claim(
                     root=root, claim_key=unit["invocation"]["claim_key"],
+                    invocation_sha256=unit["invocation_sha256"],
+                )
+            with self.assertRaises(TypeError):
+                reserve_claim(
+                    root=root, claim_key=unit["invocation"]["claim_key"],
                     invocation_sha256=unit["invocation_sha256"], recovery_index=1,
-                    recovery_cap=1, previous_raw=no_effect_raw,
-                )
-            recovered = reserve_claim(
-                root=root, claim_key=unit["invocation"]["claim_key"],
-                invocation_sha256=unit["invocation_sha256"], recovery_index=1,
-                recovery_cap=1, previous_raw=no_effect_raw,
-                previous_attestation=no_effect_record, previous_spec=spec,
-            )
-            self.assertEqual(recovered["recovery_index"], 1)
-            mismatched_raw = (json.dumps({"type": "thread.started", "thread_id": "mismatch"}) + "\n").encode()
-            with self.assertRaises(HostEvidenceError):
-                reserve_claim(
-                    root=root, claim_key=unit["invocation"]["claim_key"],
-                    invocation_sha256=unit["invocation_sha256"], recovery_index=2,
-                    recovery_cap=2, previous_raw=mismatched_raw,
-                    previous_attestation=no_effect_record, previous_spec=spec,
-                )
-            partial_raw = raw_stream(unit, terminal_value=partial)
-            partial_record = attestation_from_raw(
-                root=ROOT, product=selected, spec=spec, unit_id=unit["unit_id"],
-                raw=partial_raw, host_metadata=host_metadata(unit, terminal_value=partial),
-                authority_sha256=SHA["a"],
-            )
-            with self.assertRaises(HostEvidenceError):
-                reserve_claim(
-                    root=root, claim_key=unit["invocation"]["claim_key"],
-                    invocation_sha256=unit["invocation_sha256"], recovery_index=2,
-                    recovery_cap=2, previous_raw=partial_raw,
-                    previous_attestation=partial_record, previous_spec=spec,
                 )
 
     def test_raw_parser_rejects_incomplete_or_reordered_stream(self):

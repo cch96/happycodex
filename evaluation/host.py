@@ -12,6 +12,7 @@ import signal
 from typing import Any, Callable
 
 from evaluation.holdout import judge_fixed_holdouts
+from evaluation.identity import evaluator_components
 from evaluation.manifest import load_production_inputs
 from evaluation.oracle import hidden_oracle_for, score_hidden
 from evaluation.provider import (
@@ -32,7 +33,6 @@ from evaluation.verify import (
     exact_final_authority_proposal, verify_host_evidence,
 )
 
-
 def _safe_claim_root(root: Path) -> Path:
     root = root.absolute()
     if root.is_symlink() or not root.is_dir() or stat.S_IMODE(root.stat().st_mode) != 0o700:
@@ -42,45 +42,14 @@ def _safe_claim_root(root: Path) -> Path:
 
 def reserve_claim(
     *, root: Path, claim_key: str, invocation_sha256: str,
-    recovery_index: int = 0, recovery_cap: int = 0,
-    previous_raw: bytes | None = None,
-    previous_attestation: dict[str, Any] | None = None,
-    previous_spec: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     root = _safe_claim_root(root)
-    if recovery_index:
-        if (
-            previous_raw is None or previous_attestation is None or previous_spec is None
-            or recovery_index > recovery_cap
-        ):
-            raise HostEvidenceError("recovery is outside the preauthorized cap")
-        validate_attestation(previous_attestation)
-        validate_eval_spec(previous_spec)
-        unit = next((item for item in previous_spec["units"] if item["unit_id"] == previous_attestation["unit_id"]), None)
-        if unit is None:
-            raise HostEvidenceError("recovery unit is absent from EvalSpec")
-        previous = verify_host_evidence(
-            record=previous_attestation, unit=unit, spec=previous_spec, raw=previous_raw,
-        )["terminal"]
-        if (
-            previous_attestation["host_claim_key"] != claim_key
-            or previous_attestation["invocation_sha256"] != invocation_sha256
-        ):
-            raise HostEvidenceError("recovery evidence binds another invocation")
-        if not (
-            previous["classification"] == "infrastructure_no_effect"
-            and previous["provider_reached"] is False
-            and previous["model_calls"] == 0
-        ):
-            raise HostEvidenceError("only proven pre-provider no-effect may recover")
-    effective = canonical_sha256(
-        {"claim_key": claim_key, "recovery_index": recovery_index}
-    )
+    effective = canonical_sha256({"claim_key": claim_key, "recovery_index": 0})
     path = root / f"{effective}.json"
     payload = {
         "schema_version": 1, "claim_key": claim_key,
         "effective_claim_key": effective, "invocation_sha256": invocation_sha256,
-        "recovery_index": recovery_index,
+        "recovery_index": 0,
     }
     flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
     try:
@@ -98,8 +67,31 @@ def reserve_claim(
     finally:
         os.close(directory)
     return {**payload, "path": str(path), "file_sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
-
-
+def _consume_effect_marker(
+    policy: dict[str, Any], *, authority_sha256: str, invocation_sha256: str,
+) -> dict[str, Any]:
+    workspace = policy["workspace_policy"]
+    root = _safe_claim_root(Path(workspace["effect_marker_root"]))
+    key = canonical_sha256(
+        {
+            "effect_namespace_sha256": workspace["effect_namespace_sha256"],
+            "authority_sha256": authority_sha256,
+            "invocation_sha256": invocation_sha256,
+            "recovery_index": 0,
+        }
+    )
+    path = root / f"{key}.json"
+    payload = {
+        "schema_version": 1, "effect_key": key,
+        "effect_namespace_sha256": workspace["effect_namespace_sha256"],
+        "authority_sha256": authority_sha256,
+        "invocation_sha256": invocation_sha256, "recovery_index": 0,
+    }
+    try:
+        _exclusive(path, (canonical_json(payload) + "\n").encode(), 0o600)
+    except FileExistsError as exc:
+        raise HostEvidenceError("authority invocation effect is already consumed") from exc
+    return {**payload, "path": str(path)}
 def _regular(path: Path, mode: int | None = None) -> Path:
     path = path.absolute()
     if path.is_symlink() or not path.is_file() or (mode is not None and stat.S_IMODE(path.stat().st_mode) != mode):
@@ -294,9 +286,11 @@ def _verified_prefix(
         raise HostEvidenceError("holdout requires all behavior predecessors")
     if mode == "launch" and launch["stage"] == "exact_final" and (set(planned) - {launch["unit_id"]}) != completed:
         raise HostEvidenceError("exact-final requires the complete durable prefix")
-    cap = effect_cap or spec["total_cap"]
-    if mode == "launch" and any(totals[field] >= cap[field] for field in totals):
-        raise HostEvidenceError("durable prefix exhausted the total cap")
+    cap = effect_cap or spec["effect_cap"]
+    if mode == "launch" and any(totals[field] >= cap[field] for field in ("model_calls", "wall_milliseconds")):
+        raise HostEvidenceError("durable prefix exhausted the effect cap")
+    if mode == "launch" and any(totals[field] > spec["token_qualification"][field] for field in ("input_tokens", "output_tokens")):
+        raise HostEvidenceError("durable prefix already failed token qualification")
     return records, totals
 
 
@@ -394,7 +388,7 @@ def reveal_holdout_mapping(
 
 def _run_provider_once(
     capability: EvaluationCapability, spec: dict[str, Any], *, argv: list[str],
-    stdin: bytes, env: dict[str, str], cwd: Path, timeout_seconds: int,
+    stdin: bytes, env: dict[str, str], cwd: Path, timeout_seconds: float,
     stdout_fd: int, runner: Callable[..., tuple[int, bool]] | None,
 ) -> tuple[int, bool]:
     rebind_evaluation_capability(capability, spec)
@@ -435,19 +429,22 @@ def execute_fixed_host_transaction(
     mapping_revealed_at: str | None = None,
 ) -> dict[str, Any]:
     validate_product_artifact(product); validate_product_artifact(previous_product); validate_eval_spec(spec)
+    components = evaluator_components(repo_root)
+    if any(spec[field] != value for field, value in components.items()): raise HostEvidenceError("runtime evaluator component differs from EvalSpec")
+    if policy["workspace_policy"]["evaluator_identity"] != components: raise HostEvidenceError("source evaluator component differs from EvalSpec")
     if host_contract_from_policy(policy) != spec["host_contract"]:
         raise HostEvidenceError("host policy differs from authority-bound contract")
     proposal = authority_proposal or evaluation_authority_request_payload(spec)
     prerequisites = prerequisite_attestations or []
-    selected = proposal.get("selected_unit_ids") if type(proposal) is dict else None
-    if selected == ["exact-final"]:
+    decision = proposal.get("decision") if type(proposal) is dict else None
+    if decision == "exact_final_only":
         if previous_spec is None or prerequisite_raw_streams is None or holdout_mapping is None or mapping_revealed_at is None:
             raise HostEvidenceError("exact-only authority lacks bound prerequisites")
         expected_proposal = exact_final_authority_proposal(
             root=repo_root, product=product, previous_product=previous_product,
             previous_spec=previous_spec, spec=spec, attestations=prerequisites,
             raw_streams=prerequisite_raw_streams, holdout_mapping=holdout_mapping,
-            mapping_revealed_at=mapping_revealed_at, total_cap=proposal.get("total_cap", {}),
+            mapping_revealed_at=mapping_revealed_at, effect_cap=proposal.get("effect_cap", {}),
         )
     else:
         expected_proposal = evaluation_authority_request_payload(spec)
@@ -476,7 +473,7 @@ def execute_fixed_host_transaction(
         prefix_records, prefix_totals = _verified_prefix(
             repo_root=repo_root, spec=spec, policy=policy,
             authority_sha256=capability.authority_sha256, launch=unit,
-            prerequisites=prerequisites, effect_cap=proposal["total_cap"],
+            prerequisites=prerequisites, effect_cap=proposal["effect_cap"],
         )
         targets = _preflight_paths(policy, unit); holdout_reveal = None
         if unit["stage"] == "exact_final":
@@ -492,7 +489,18 @@ def execute_fixed_host_transaction(
                     "holdout_reveal": holdout_reveal, "usage": prefix_totals,
                     "stop_reason": "holdout_failure", "cap_exceeded": [],
                 }
-        instruction = fixed_host_instruction(policy, unit); paths = _prepare_unit(policy, unit)
+        remaining_wall = proposal["effect_cap"]["wall_milliseconds"] - prefix_totals["wall_milliseconds"]
+        if remaining_wall <= 0:
+            raise HostEvidenceError("durable prefix exhausted the wall effect cap")
+        completed_ids = {record["unit_id"] for record in prefix_records}
+        remaining_calls = sum(item["unit_id"] not in completed_ids for item in proposal["invocations"])
+        runner_timeout = min(unit["invocation"]["timeout_seconds"], remaining_wall / 1000 / remaining_calls)
+        instruction = fixed_host_instruction(policy, unit)
+        effect_marker = _consume_effect_marker(
+            policy, authority_sha256=capability.authority_sha256,
+            invocation_sha256=unit["invocation_sha256"],
+        )
+        paths = _prepare_unit(policy, unit)
         argv = fixed_host_argv(policy, unit, paths, instruction)
         command_path = fixed_command_path(policy, paths["command_bin"])
         env = {
@@ -524,7 +532,7 @@ def execute_fixed_host_transaction(
     try:
         exit_code, timed_out = _run_provider_once(
             capability, spec, argv=argv, stdin=stdin, env=env, cwd=paths["cwd"],
-            timeout_seconds=unit["invocation"]["timeout_seconds"], stdout_fd=raw_fd,
+            timeout_seconds=runner_timeout, stdout_fd=raw_fd,
             runner=run_provider,
         )
         os.fsync(raw_fd)
@@ -554,18 +562,19 @@ def execute_fixed_host_transaction(
             repo_root=repo_root, spec=spec, policy=policy,
             authority_sha256=capability.authority_sha256, launch=unit,
             mode="pending", prerequisites=prerequisites,
-            effect_cap=proposal["total_cap"],
+            effect_cap=proposal["effect_cap"],
         )
         _exclusive(attestation_path, (canonical_json(record) + "\n").encode(), 0o600)
         records, totals = _verified_prefix(
             repo_root=repo_root, spec=spec, policy=policy,
             authority_sha256=capability.authority_sha256, launch=unit,
             mode="final", prerequisites=prerequisites,
-            effect_cap=proposal["total_cap"],
+            effect_cap=proposal["effect_cap"],
         )
     finally:
         _unlock_claims(lock)
-    exceeded = [field for field in totals if totals[field] > proposal["total_cap"][field]]
+    exceeded = [field for field in ("model_calls", "wall_milliseconds") if totals[field] > proposal["effect_cap"][field]]
+    token_exceeded = [field for field in ("input_tokens", "output_tokens") if totals[field] > spec["token_qualification"][field]]
     stop_reason = None
     planned = {item["unit_id"]: item for item in spec["units"]}
     if any(
@@ -575,10 +584,14 @@ def execute_fixed_host_transaction(
     ):
         stop_reason = "terminal_failure"
     elif exceeded:
-        stop_reason = "total_cap_exceeded"
+        stop_reason = "effect_cap_exceeded"
+    elif token_exceeded:
+        stop_reason = "token_qualification_exceeded"
     return {
         "attestation": record, "attestation_path": str(attestation_path),
-        "raw_path": str(raw_path), "claim": claim, "argv": argv,
+        "raw_path": str(raw_path), "claim": claim, "effect_marker": effect_marker,
+        "argv": argv,
         "holdout_reveal": holdout_reveal, "usage": totals,
         "stop_reason": stop_reason, "cap_exceeded": exceeded,
+        "token_exceeded": token_exceeded,
     }

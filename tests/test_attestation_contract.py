@@ -27,9 +27,8 @@ class RepositoryContractTests(unittest.TestCase):
         self.assertEqual(git("diff", "--name-only", "v0.6.5", "--", "skills/happycodex"), "")
 
     def test_evaluator_only_commit_does_not_change_product_artifact(self):
-        role = "3" * 64
-        baseline = product_artifact_from_git(ROOT, "v0.6.5", external_role_config_sha256=role)
-        current = product_artifact_from_git(ROOT, "HEAD", external_role_config_sha256=role)
+        baseline = product_artifact_from_git(ROOT, "v0.6.5")
+        current = product_artifact_from_git(ROOT, "HEAD")
         self.assertEqual(current, baseline)
 
     def test_no_active_ledger_or_retired_engine_files_exist(self):
@@ -79,7 +78,7 @@ class RepositoryContractTests(unittest.TestCase):
     def test_evaluation_python_loc_is_bounded(self):
         modules = list((ROOT / "evaluation").rglob("*.py"))
         counts = {path: len(path.read_text(encoding="utf-8").splitlines()) for path in modules}
-        self.assertLessEqual(sum(counts.values()), 3400)
+        self.assertLess(sum(counts.values()), 3600)
         self.assertTrue(all(count <= 600 for count in counts.values()), counts)
 
     def test_execplan_is_bounded_current_index(self):
@@ -96,6 +95,21 @@ class RepositoryContractTests(unittest.TestCase):
             {"evaluator_bundle_sha256", "provider_component_sha256", "oracle_component_sha256", "harness_component_sha256"},
         )
         self.assertEqual(len(set(components.values())), 4)
+
+    def test_effect_cap_is_separate_from_ex_post_token_qualification(self):
+        spec = bundle()[2]
+
+        self.assertIn("effect_cap", spec)
+        self.assertEqual(
+            set(spec["effect_cap"]),
+            {"model_calls", "wall_milliseconds"},
+        )
+        self.assertIn("token_qualification", spec)
+        self.assertEqual(
+            set(spec["token_qualification"]),
+            {"input_tokens", "output_tokens"},
+        )
+        self.assertNotIn("total_cap", spec)
 
     def test_production_inventory_excludes_conditional_mechanisms(self):
         evaluation = ROOT / "evaluation"

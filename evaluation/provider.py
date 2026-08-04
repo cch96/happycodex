@@ -4,9 +4,9 @@ import hashlib
 import json
 from pathlib import Path
 import stat
-import subprocess
 from typing import Any, Callable
 
+from evaluation.identity import IdentityError, exact_final_source_identity as _source_identity
 from evaluation.records import (
     canonical_json,
     canonical_sha256,
@@ -51,6 +51,17 @@ BEHAVIOR_DEVELOPER_INSTRUCTIONS = (
 )
 class ProviderError(ValueError):
     pass
+def _fixed_permission_profile() -> dict[str, Any]:
+    return {
+        "profile_name": "happycodex_evaluator", "description": "fixture read only",
+        "filesystem": {":minimal": "read", ":workspace_roots": {".": "read"}},
+        "network_enabled": False, "approval_policy": "never",
+        "model_shell_environment": {
+            "inherit": "none", "ignore_default_excludes": False,
+            "set": ["HOME", "PATH"], "forbidden": ["CODEX_HOME"],
+        },
+        "provider_visible_auth_material": False, "provider_visible_secrets": False,
+    }
 def _private_path(path: Path, *, directory: bool, mode: int | None = None) -> Path:
     path = path.absolute()
     valid = path.is_dir() if directory else path.is_file()
@@ -71,130 +82,19 @@ def _frozen_tree(root: Path) -> Path:
         if path.is_symlink() or (path.is_dir() and stat.S_IMODE(path.stat().st_mode) != 0o500) or (path.is_file() and stat.S_IMODE(path.stat().st_mode) not in {0o400, 0o500}):
             raise ProviderError("exact-final tree is not recursively frozen")
     return root
-def _source_git(root: Path, *args: str) -> str:
-    completed = subprocess.run(
-        ["git", "-C", str(root), *args], capture_output=True, text=True,
-        check=False,
-        env={
-            "PATH": "/usr/bin:/bin", "LC_ALL": "C",
-            "GIT_CONFIG_GLOBAL": "/dev/null", "GIT_CONFIG_NOSYSTEM": "1",
-            "GIT_OPTIONAL_LOCKS": "0",
-        },
-    )
-    if completed.returncode:
-        raise ProviderError(f"exact-final Git validation failed: {' '.join(args)}")
-    return completed.stdout
-def _git_blob_sha(body: bytes) -> str:
-    return hashlib.sha1(b"blob " + str(len(body)).encode() + b"\0" + body).hexdigest()
-
-
-def _private_oracle_metadata(path: Path) -> tuple[dict[str, Any], bytes]:
-    private = _private_path(path, directory=False)
-    if private.name != "hidden-oracles-v1.json" or private.parent.name != "evaluation":
-        raise ProviderError("private hidden oracle path differs")
-    body = private.read_bytes()
-    return {
-        "path": "evaluation/hidden-oracles-v1.json", "git_mode": "100644",
-        "git_object": _git_blob_sha(body), "sha256": hashlib.sha256(body).hexdigest(),
-        "size_bytes": len(body),
-    }, body
-
-
-def _reject_oracle_diff(diff: bytes, oracle: bytes) -> None:
-    private_path = b"evaluation/hidden-oracles-v1.json"
-    old, new, in_hunk = bytearray(), bytearray(), False
-
-    def reject_payload() -> None:
-        if oracle in old or oracle in new:
-            raise ProviderError("hidden oracle content reached exact-final diff")
-
-    for line in diff.splitlines(keepends=True):
-        if line.startswith(b"diff --git "):
-            reject_payload(); old.clear(); new.clear(); in_hunk = False
-        if line.startswith((b"diff --git ", b"--- ", b"+++ ", b"rename from ", b"rename to ", b"copy from ", b"copy to ", b"Binary files ")) and private_path in line:
-            raise ProviderError("hidden oracle file reached exact-final diff")
-        if line.startswith(b"@@"):
-            in_hunk = True
-        elif in_hunk and line.startswith(b" "):
-            old.extend(line[1:]); new.extend(line[1:])
-        elif in_hunk and line.startswith(b"-"):
-            old.extend(line[1:])
-        elif in_hunk and line.startswith(b"+"):
-            new.extend(line[1:])
-    reject_payload()
-    if oracle in diff:
-        raise ProviderError("hidden oracle content reached exact-final diff")
-
-
-def exact_final_source_identity(root: Path, private_oracle_path: Path) -> str:
-    root = _frozen_tree(root)
-    if not (root / ".git").is_dir() or (root / ".git").is_symlink():
-        raise ProviderError("exact-final Git metadata is not self-contained")
-    status = _source_git(
-        root, "status", "--porcelain=v1", "--untracked-files=all", "--ignored=matching",
-    )
-    if status:
-        raise ProviderError("exact-final source is not one clean synthetic commit")
-    if Path(_source_git(root, "rev-parse", "--show-toplevel").strip()) != root:
-        raise ProviderError("exact-final Git root differs")
-    head = _source_git(root, "rev-parse", "HEAD").strip()
-    commits = _source_git(root, "rev-list", "--all").splitlines()
-    refs = _source_git(root, "for-each-ref", "--format=%(refname)").splitlines()
-    symbolic = _source_git(root, "symbolic-ref", "-q", "HEAD").strip()
-    if commits != [head] or refs != ["refs/heads/exact-final"] or symbolic != refs[0]:
-        raise ProviderError("exact-final source is not one clean synthetic commit")
-    if _source_git(root, "remote").strip():
-        raise ProviderError("exact-final source has a remote")
-    if _source_git(root, "rev-parse", "--show-object-format").strip() != "sha1":
-        raise ProviderError("exact-final Git object format differs")
-    config_lines = _source_git(root, "config", "--local", "--get-regexp", ".*").splitlines()
-    config = [line.split(None, 1) for line in config_lines]
-    if config != [
-        ["core.repositoryformatversion", "0"], ["core.filemode", "true"],
-        ["core.bare", "false"], ["core.logallrefupdates", "true"],
-    ]:
-        raise ProviderError("exact-final Git config differs")
-    if (root / ".git/objects/info/alternates").exists() or _source_git(root, "fsck", "--full", "--no-reflogs", "--unreachable").strip():
-        raise ProviderError("exact-final Git objects are not self-contained")
-    if set(_source_git(root, "reflog", "--all", "--format=%H").splitlines()) != {head}:
-        raise ProviderError("exact-final Git reflog differs")
-    tracked = sorted(_source_git(root, "ls-files").splitlines())
-    visible = sorted(
-        path.relative_to(root).as_posix()
-        for path in root.rglob("*")
-        if path.is_file() and ".git" not in path.relative_to(root).parts
-    )
-    support = {"EXACT_FINAL_DIFF.patch", "EXACT_FINAL_SOURCE_MANIFEST.json"}
-    if visible != tracked or not support.issubset(tracked):
-        raise ProviderError("exact-final support files are not fully tracked")
-    hidden = "evaluation/hidden-oracles-v1.json"
-    if hidden in tracked or (root / hidden).exists():
-        raise ProviderError("hidden oracle reached exact-final workspace")
-    manifest_path, diff_path = root / "EXACT_FINAL_SOURCE_MANIFEST.json", root / "EXACT_FINAL_DIFF.patch"
+def exact_final_source_identity(
+    root: Path, private_oracle_path: Path, *, source_repo: Path,
+    source_identity: dict[str, Any], evaluator_identity: dict[str, str],
+    external_role_config_sha256: str,
+) -> str:
     try:
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        raise ProviderError("exact-final source manifest is invalid") from exc
-    if type(manifest) is not dict or type(manifest.get("projection")) is not dict:
-        raise ProviderError("exact-final source manifest fields differ")
-    expected_private, oracle = _private_oracle_metadata(private_oracle_path)
-    if manifest.get("private_exclusion") != expected_private:
-        raise ProviderError("hidden oracle private exclusion differs")
-    if hidden in canonical_json(manifest["projection"]):
-        raise ProviderError("hidden oracle is listed in reviewer projection")
-    diff = diff_path.read_bytes()
-    aggregate = manifest.get("aggregate_diff")
-    if type(aggregate) is not dict or aggregate.get("path") != diff_path.name or aggregate.get("sha256") != hashlib.sha256(diff).hexdigest() or aggregate.get("size_bytes") != len(diff):
-        raise ProviderError("exact-final aggregate diff identity differs")
-    _reject_oracle_diff(diff, oracle)
-    entries = []
-    for relative in tracked:
-        path = root / relative
-        if path.is_symlink() or not path.is_file():
-            raise ProviderError("exact-final tracked source is not a regular file")
-        body = path.read_bytes()
-        entries.append({"path": relative, "mode": f"{stat.S_IMODE(path.stat().st_mode):04o}", "sha256": hashlib.sha256(body).hexdigest(), "size_bytes": len(body)})
-    return canonical_sha256({"tree": _source_git(root, "rev-parse", "HEAD^{tree}").strip(), "files": entries})
+        return _source_identity(
+            _frozen_tree(root), private_oracle_path, source_repo=source_repo,
+            source_identity=source_identity, evaluator_identity=evaluator_identity,
+            external_role_config_sha256=external_role_config_sha256,
+        )
+    except IdentityError as exc:
+        raise ProviderError(str(exc)) from exc
 
 
 def _validate_external_role(
@@ -224,28 +124,43 @@ def _validate_external_role(
 def build_fixed_host_policy(
     *, execution_root: Path, binary_path: Path, external_role_config_path: Path,
     exact_final_source: Path, holdout_mapping_path: Path, private_oracle_path: Path,
+    effect_marker_root: Path, source_repo: Path,
+    source_identity: dict[str, Any], evaluator_identity: dict[str, str],
     behavior_developer_instructions: str = BEHAVIOR_DEVELOPER_INSTRUCTIONS,
     behavior_model: str = "gpt-5.6-sol", behavior_effort: str = "high",
 ) -> dict[str, Any]:
     execution = _private_path(execution_root, directory=True, mode=0o700)
     binary = _executable_file(binary_path)
     role = _private_path(external_role_config_path, directory=False, mode=0o600)
+    marker_root = _private_path(effect_marker_root, directory=True, mode=0o700)
     snapshot = _frozen_tree(exact_final_source)
     private_oracle = _private_path(private_oracle_path, directory=False)
-    snapshot_sha256 = exact_final_source_identity(snapshot, private_oracle)
-    mapping_path = _private_path(holdout_mapping_path, directory=False, mode=0o600)
     role_sha256 = _file_sha(role)
+    snapshot_sha256 = exact_final_source_identity(
+        snapshot, private_oracle, source_repo=source_repo,
+        source_identity=source_identity, evaluator_identity=evaluator_identity,
+        external_role_config_sha256=role_sha256,
+    )
+    mapping_path = _private_path(holdout_mapping_path, directory=False, mode=0o600)
     _validate_external_role(
         role, expected_sha256=role_sha256,
         instruction=behavior_developer_instructions,
         model=behavior_model, effort=behavior_effort,
     )
     child = lambda name: str(_private_path(execution / name, directory=True, mode=0o700))
+    effect_namespace_sha256 = canonical_sha256(
+        {"schema_version": 1, "root": str(marker_root), "trust_domain": "happycodex-fixed-native-host-v3"}
+    )
     workspace = {
         "execution_root": str(execution), "units_root": child("units"),
         "raw_root": child("raw"), "attestations_root": child("attestations"),
         "claims_root": child("claims"), "exact_final_source": str(snapshot),
         "exact_final_source_sha256": snapshot_sha256,
+        "effect_marker_root": str(marker_root),
+        "effect_namespace_sha256": effect_namespace_sha256,
+        "source_repo": str(source_repo.resolve()),
+        "source_identity": source_identity,
+        "evaluator_identity": evaluator_identity,
         "private_oracle_path": str(private_oracle),
         "private_oracle_sha256": _file_sha(private_oracle),
         "holdout_mapping_path": str(mapping_path),
@@ -276,16 +191,10 @@ def build_fixed_host_policy(
         "retry": False, "resume": False,
     }
     return {
-        "schema_version": 2, "trust_domain": "happycodex-fixed-native-host-v2",
+        "schema_version": 3, "trust_domain": "happycodex-fixed-native-host-v3",
         "provider_policy": provider,
         "tool_config": {"allowed_model_tools": ["command_execution"], "allowed_native_item_types": ["agent_message", "command_execution"]},
-        "permission_profile": {
-            "profile_name": "happycodex_evaluator", "description": "fixture read only",
-            "filesystem": {":minimal": "read", ":workspace_roots": {".": "read"}},
-            "network_enabled": False, "approval_policy": "never",
-            "model_shell_environment": {"inherit": "none", "ignore_default_excludes": False, "set": ["HOME", "PATH"], "forbidden": ["CODEX_HOME"]},
-            "provider_visible_auth_material": False, "provider_visible_secrets": False,
-        },
+        "permission_profile": _fixed_permission_profile(),
         "workspace_policy": workspace,
     }
 
@@ -306,6 +215,8 @@ def host_contract_from_policy(policy: dict[str, Any]) -> dict[str, Any]:
     workspace_fields = {
         "execution_root", "units_root", "raw_root", "attestations_root", "claims_root",
         "exact_final_source", "exact_final_source_sha256",
+        "effect_marker_root", "effect_namespace_sha256", "source_repo",
+        "source_identity", "evaluator_identity",
         "private_oracle_path", "private_oracle_sha256",
         "holdout_mapping_path", "holdout_mapping_sha256",
         "directory_mode", "private_file_mode", "frozen_directory_mode", "frozen_file_mode",
@@ -315,7 +226,7 @@ def host_contract_from_policy(policy: dict[str, Any]) -> dict[str, Any]:
     if type(provider) is not dict or set(provider) != provider_fields or type(policy["workspace_policy"]) is not dict or set(policy["workspace_policy"]) != workspace_fields:
         raise ProviderError("host policy nested fields differ")
     if (
-        policy["schema_version"] != 2
+        policy["schema_version"] != 3
         or provider["retry"] is not False or provider["resume"] is not False
         or provider["disabled_features"] != list(DISABLED_FEATURES)
         or provider["web_search"] != "disabled"
@@ -324,6 +235,11 @@ def host_contract_from_policy(policy: dict[str, Any]) -> dict[str, Any]:
         or provider["sandbox_alias_kind"] != "hard-link-to-provider-binary"
         or provider["exact_launcher_name"] != "codex"
         or provider["exact_launcher_kind"] != "hard-link-to-provider-binary"
+        or policy["tool_config"] != {
+            "allowed_model_tools": ["command_execution"],
+            "allowed_native_item_types": ["agent_message", "command_execution"],
+        }
+        or policy["permission_profile"] != _fixed_permission_profile()
     ):
         raise ProviderError("host provider policy differs")
     if _file_sha(_executable_file(Path(provider["binary_path"]))) != provider["binary_sha256"]:
@@ -339,8 +255,20 @@ def host_contract_from_policy(policy: dict[str, Any]) -> dict[str, Any]:
     if policy["workspace_policy"]["claim_filename"] != "{effective_claim_key}.json" or policy["workspace_policy"]["mapping_reveal"] != "after-six-durable-attestations":
         raise ProviderError("host transaction path policy differs")
     workspace = policy["workspace_policy"]
+    marker_root = _private_path(Path(workspace["effect_marker_root"]), directory=True, mode=0o700)
+    expected_namespace = canonical_sha256(
+        {"schema_version": 1, "root": str(marker_root), "trust_domain": policy["trust_domain"]}
+    )
+    if workspace["effect_namespace_sha256"] != expected_namespace:
+        raise ProviderError("host effect namespace identity drift")
     private_oracle = Path(workspace["private_oracle_path"])
-    if _file_sha(private_oracle) != workspace["private_oracle_sha256"] or exact_final_source_identity(Path(workspace["exact_final_source"]), private_oracle) != workspace["exact_final_source_sha256"]:
+    if _file_sha(private_oracle) != workspace["private_oracle_sha256"] or exact_final_source_identity(
+        Path(workspace["exact_final_source"]), private_oracle,
+        source_repo=Path(workspace["source_repo"]),
+        source_identity=workspace["source_identity"],
+        evaluator_identity=workspace["evaluator_identity"],
+        external_role_config_sha256=provider["external_role_config_sha256"],
+    ) != workspace["exact_final_source_sha256"]:
         raise ProviderError("exact-final source identity drift")
     common = {
         "binary_sha256": provider["binary_sha256"],
@@ -350,6 +278,7 @@ def host_contract_from_policy(policy: dict[str, Any]) -> dict[str, Any]:
         "sandbox_alias": [provider["sandbox_alias_name"], provider["sandbox_alias_kind"]],
         "stdin_source": provider["stdin_source"], "output_schema_source": provider["output_schema_source"],
         "tools": policy["tool_config"], "permission": policy["permission_profile"],
+        "effect_namespace_sha256": workspace["effect_namespace_sha256"],
     }
     behavior = {
         **common, "role_config_sha256": provider["external_role_config_sha256"],
@@ -365,7 +294,8 @@ def host_contract_from_policy(policy: dict[str, Any]) -> dict[str, Any]:
         "permission_delta": "unit-private-launcher-and-sandbox-files-read-only",
     }
     return {
-        "schema_version": 3, "trust_domain": policy["trust_domain"],
+        "schema_version": 4, "trust_domain": policy["trust_domain"],
+        "effect_namespace_sha256": workspace["effect_namespace_sha256"],
         "behavior_sha256": canonical_sha256(behavior),
         "holdout_sha256": canonical_sha256({**behavior, "cwd": provider["cwd_by_stage"]["holdout"]}),
         "exact_final_sha256": canonical_sha256(exact),
@@ -497,7 +427,7 @@ def assert_provider_blind(
 
 
 class EvaluationCapability:
-    __slots__ = ("request_sha256", "authority_sha256", "spec_sha256", "selected_unit_ids")
+    __slots__ = ("request_sha256", "authority_sha256", "spec_sha256", "allowed_unit_ids")
 
     def __init__(self, key: object, request: str, authority: str, spec: str, selected: tuple[str, ...] = ()):
         if key is not _CAPABILITY_KEY:
@@ -505,7 +435,7 @@ class EvaluationCapability:
         self.request_sha256 = request
         self.authority_sha256 = authority
         self.spec_sha256 = spec
-        self.selected_unit_ids = selected
+        self.allowed_unit_ids = selected
 
     def __reduce__(self):
         raise TypeError("evaluation capability is process-local")
@@ -519,7 +449,7 @@ def rebind_evaluation_capability(
         raise ProviderError("evaluation capability is absent or replaced")
     if (
         capability.spec_sha256 != spec["record_sha256"]
-        or (unit_id is not None and unit_id not in capability.selected_unit_ids)
+        or (unit_id is not None and unit_id not in capability.allowed_unit_ids)
     ):
         raise ProviderError("evaluation capability differs from EvalSpec")
     return capability
@@ -558,7 +488,10 @@ def accept_evaluation_authority(
         validate_evaluation_authority_payload(spec, proposal)
     except ValueError as exc:
         raise ProviderError(str(exc)) from exc
-    selected = proposal["selected_unit_ids"]
+    selected = (
+        tuple(unit["unit_id"] for unit in spec["units"])
+        if proposal["decision"] == "full_evaluation" else ("exact-final",)
+    )
     request = canonical_sha256(proposal)
     _validate_supplied_authority(supplied, "evaluation", request)
     if not authenticate(supplied):
@@ -570,12 +503,12 @@ def accept_evaluation_authority(
 
 
 def release_authority_request(
-    *, product_record_sha256: str, attestation_sha256s: list[str],
+    *, product_artifact_sha256: str, attestation_sha256s: list[str],
     destination_sha256: str, rollback_sha256: str,
 ) -> str:
     return canonical_sha256(
         {
-            "scope": "release", "product_record_sha256": product_record_sha256,
+            "scope": "release", "product_artifact_sha256": product_artifact_sha256,
             "attestation_sha256s": sorted(attestation_sha256s),
             "destination_sha256": destination_sha256,
             "rollback_sha256": rollback_sha256,

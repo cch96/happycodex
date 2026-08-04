@@ -28,7 +28,7 @@ PROFILES = {
 }
 TOTAL_CAP = {
     "model_calls": 12, "input_tokens": 10000, "output_tokens": 10000,
-    "wall_milliseconds": 200000, "infrastructure_recoveries": 1,
+    "wall_milliseconds": 200000,
 }
 REVIEW_BRIEF = {
     "request": "Certify the frozen evaluator artifact.",
@@ -37,20 +37,16 @@ REVIEW_BRIEF = {
 }
 REVEALED_AT = "2026-08-02T00:00:35Z"
 HOST_CONTRACT = {
-    "schema_version": 3, "trust_domain": "happycodex-offline-test-host-v3",
+    "schema_version": 4, "trust_domain": "happycodex-offline-test-host-v4",
     "behavior_sha256": SHA["1"], "holdout_sha256": SHA["2"],
-    "exact_final_sha256": SHA["3"],
+    "exact_final_sha256": SHA["3"], "effect_namespace_sha256": SHA["4"],
 }
-def product(*, root: Path = ROOT, role: str = SHA["3"]):
-    return product_artifact_from_git(
-        root, CANDIDATE_REVISION, external_role_config_sha256=role,
-    )
+def product(*, root: Path = ROOT):
+    return product_artifact_from_git(root, CANDIDATE_REVISION)
 
 
-def previous_product(*, root: Path = ROOT, role: str = SHA["3"]):
-    return product_artifact_from_git(
-        root, BASELINE_REVISION, external_role_config_sha256=role,
-    )
+def previous_product(*, root: Path = ROOT):
+    return product_artifact_from_git(root, BASELINE_REVISION)
 
 
 def mapping() -> dict[str, dict[str, str]]:
@@ -70,6 +66,7 @@ def bundle(
     profiles: dict[str, Any] | None = None,
     total_cap: dict[str, int] | None = None,
     host_contract: dict[str, Any] | None = None,
+    external_role_config_sha256: str = SHA["3"],
 ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], dict[str, dict[str, str]]]:
     selected = selected_product or product()
     baseline = baseline_product or previous_product()
@@ -80,6 +77,7 @@ def bundle(
         total_cap=deepcopy(total_cap or TOTAL_CAP),
         holdout_mapping=blind_mapping, review_brief=REVIEW_BRIEF,
         host_contract=deepcopy(host_contract or HOST_CONTRACT),
+        external_role_config_sha256=external_role_config_sha256,
     )
     return selected, baseline, spec, blind_mapping
 

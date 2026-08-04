@@ -37,7 +37,6 @@ class CleanBreakRedTests(unittest.TestCase):
             package_tree="c" * 40,
             package_artifact_sha256=H["artifact"],
             package_semantic_sha256=H["semantic"],
-            external_role_config_sha256=H["role"],
         )
         self.assertNotIn("evaluator", str(record).lower())
         self.assertEqual(validate_record(record), record)

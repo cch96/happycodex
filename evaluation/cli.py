@@ -5,8 +5,8 @@ import json
 import os
 from pathlib import Path
 import shutil
+import subprocess
 from typing import Any
-
 from evaluation.identity import evaluator_components, load_json, product_artifact_from_git
 from evaluation.manifest import materialize_eval_spec
 from evaluation.provider import build_fixed_host_policy, host_contract_from_policy
@@ -15,16 +15,10 @@ from evaluation.records import (
     validate_eval_spec, validate_evaluation_authority_payload, validate_record,
 )
 from evaluation.verify import exact_final_authority_proposal, verify_evaluation, verify_release
-
-
 def _print(value: Any) -> None:
     print(json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2))
-
-
 def _records(paths: list[Path]) -> list[dict[str, Any]]:
     return [validate_record(load_json(path.resolve())) for path in paths]
-
-
 def inventory_command(args: argparse.Namespace) -> int:
     _print(
         {
@@ -34,18 +28,9 @@ def inventory_command(args: argparse.Namespace) -> int:
         }
     )
     return 0
-
-
 def product_command(args: argparse.Namespace) -> int:
-    _print(
-        product_artifact_from_git(
-            args.repo.resolve(), args.revision,
-            external_role_config_sha256=args.external_role_config_sha256,
-        )
-    )
+    _print(product_artifact_from_git(args.repo.resolve(), args.revision))
     return 0
-
-
 def request_command(args: argparse.Namespace) -> int:
     spec = validate_eval_spec(load_json(args.spec.resolve()))
     # This is deliberately only a request digest. It cannot mint approval text,
@@ -53,8 +38,6 @@ def request_command(args: argparse.Namespace) -> int:
     proposal = evaluation_authority_request_payload(spec)
     _print({"authority_request_sha256": canonical_sha256(proposal), "proposal": proposal})
     return 0
-
-
 def materialize_command(args: argparse.Namespace) -> int:
     _print(
         materialize_eval_spec(
@@ -64,11 +47,10 @@ def materialize_command(args: argparse.Namespace) -> int:
             holdout_mapping=load_json(args.mapping.resolve()),
             review_brief=load_json(args.review_brief.resolve()),
             host_contract=load_json(args.host_contract.resolve()),
+            external_role_config_sha256=args.external_role_config_sha256,
         )
     )
     return 0
-
-
 def _write_private(path: Path, value: Any) -> None:
     body = (json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2) + "\n").encode()
     descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
@@ -78,8 +60,6 @@ def _write_private(path: Path, value: Any) -> None:
         os.fsync(descriptor)
     finally:
         os.close(descriptor)
-
-
 def _copy_private(source: Path, destination: Path) -> None:
     if source.is_symlink() or not source.is_file():
         raise ValueError(f"private input is not a regular file: {source}")
@@ -143,10 +123,28 @@ def prepare_exact_request_command(args: argparse.Namespace) -> int:
         mapping_path = staging / "holdout-mapping.json"; _write_private(mapping_path, mapping)
         exact_source = execution / "exact-final-source"
         shutil.copytree(args.exact_source.resolve(), exact_source, copy_function=shutil.copy2)
+        def revision(value: str) -> str:
+            return subprocess.check_output(
+                ["git", "-C", str(args.repo.resolve()), "rev-parse", value], text=True,
+            ).strip()
+        baseline_commit = revision(f"{args.baseline_ref}^{{commit}}")
+        source_commit = revision(f"{args.source_ref}^{{commit}}")
         staging_policy = build_fixed_host_policy(
             execution_root=execution, binary_path=args.provider_binary.resolve(),
             external_role_config_path=role, exact_final_source=exact_source,
             holdout_mapping_path=mapping_path, private_oracle_path=oracle,
+            effect_marker_root=args.effect_marker_root.resolve(),
+            source_repo=args.repo.resolve(),
+            source_identity={
+                "baseline_ref": args.baseline_ref, "baseline_commit": baseline_commit,
+                "baseline_tree": revision(f"{baseline_commit}^{{tree}}"),
+                "source_ref": args.source_ref, "source_commit": source_commit,
+                "source_tree": revision(f"{source_commit}^{{tree}}"),
+                **{key: product[key] for key in (
+                    "package_tree", "package_artifact_sha256", "package_semantic_sha256",
+                )},
+            },
+            evaluator_identity=evaluator_components(args.repo.resolve()),
             behavior_model=profiles["behavior"]["model"],
             behavior_effort=profiles["behavior"]["effort"],
         )
@@ -155,12 +153,13 @@ def prepare_exact_request_command(args: argparse.Namespace) -> int:
             root=args.repo.resolve(), candidate=product, previous=previous_product,
             profiles=profiles, total_cap=total_cap, holdout_mapping=mapping,
             review_brief=brief, host_contract=contract,
+            external_role_config_sha256=__import__("hashlib").sha256(role.read_bytes()).hexdigest(),
         )
         proposal = exact_final_authority_proposal(
             root=args.repo.resolve(), product=product, previous_product=previous_product,
             previous_spec=previous_spec, spec=spec, attestations=attestations,
             raw_streams=raw_streams, holdout_mapping=mapping,
-            mapping_revealed_at=args.revealed_at, total_cap=effect_cap,
+            mapping_revealed_at=args.revealed_at, effect_cap=effect_cap,
         )
         validate_evaluation_authority_payload(spec, proposal)
         request_sha = canonical_sha256(proposal)
@@ -174,7 +173,7 @@ def prepare_exact_request_command(args: argparse.Namespace) -> int:
             "eval-spec.json": spec,
             "authority-request.json": {
                 "authority_request_sha256": request_sha,
-                "selected_unit_ids": proposal["selected_unit_ids"],
+                "decision": proposal["decision"],
                 "canonical_approval_line": {"text": line, "authoritative": False},
                 "proposal": proposal,
             },
@@ -188,7 +187,7 @@ def prepare_exact_request_command(args: argparse.Namespace) -> int:
             "eval_spec_record_sha256": spec["record_sha256"],
             "exact_final_source_sha256": outputs["host-policy.json"]["workspace_policy"]["exact_final_source_sha256"],
             "prerequisite_count": len(proposal["prerequisites"]),
-            "selected_unit_ids": proposal["selected_unit_ids"],
+            "decision": proposal["decision"],
             "canonical_approval_line": {"text": line, "authoritative": False},
         })
         return 0
@@ -212,6 +211,22 @@ def _evidence(args: argparse.Namespace):
     return {unit_id: path.read_bytes() for unit_id, path in raw_paths.items()}
 
 
+def _mixed_authority_inputs(args: argparse.Namespace):
+    paths = (args.previous_spec, args.prior_authority_binding, args.exact_authority_binding)
+    if not any(paths): return None, None
+    if not all(paths): raise ValueError("mixed verification requires previous spec and both authority bindings")
+    previous_spec = validate_record(load_json(args.previous_spec.resolve()))
+    bindings = {}
+    for path in paths[1:]:
+        binding = load_json(path.resolve())
+        if set(binding) != {"proposal", "supplied_authority"}:
+            raise ValueError("authority binding fields differ")
+        authority = canonical_sha256(binding["supplied_authority"])
+        if authority in bindings: raise ValueError("authority bindings are not distinct")
+        bindings[authority] = binding
+    return previous_spec, bindings
+
+
 def verify_command(args: argparse.Namespace) -> int:
     product = validate_record(load_json(args.product.resolve()))
     previous_product = validate_record(load_json(args.previous_product.resolve()))
@@ -219,11 +234,13 @@ def verify_command(args: argparse.Namespace) -> int:
     attestations = _records(args.attestation)
     mapping = load_json(args.mapping.resolve()) if args.mapping else None
     raw_streams = _evidence(args)
+    previous_spec, authority_bindings = _mixed_authority_inputs(args)
     result = verify_evaluation(
         root=args.repo.resolve(), product=product, spec=spec, attestations=attestations,
         raw_streams=raw_streams,
-        previous_product=previous_product,
+        previous_product=previous_product, previous_spec=previous_spec,
         holdout_mapping=mapping, mapping_revealed_at=args.revealed_at,
+        authority_bindings=authority_bindings,
     )
     _print(result)
     return 0 if result["verified"] else 2
@@ -236,11 +253,13 @@ def release_command(args: argparse.Namespace) -> int:
     attestations = _records(args.attestation)
     mapping = load_json(args.mapping.resolve())
     raw_streams = _evidence(args)
+    previous_spec, authority_bindings = _mixed_authority_inputs(args)
     evaluation = verify_evaluation(
         root=args.repo.resolve(), product=product, spec=spec, attestations=attestations,
         raw_streams=raw_streams,
-        previous_product=previous_product,
+        previous_product=previous_product, previous_spec=previous_spec,
         holdout_mapping=mapping, mapping_revealed_at=args.revealed_at,
+        authority_bindings=authority_bindings,
     )
     receipt = validate_record(load_json(args.release_receipt.resolve()))
     destination = load_json(args.destination.resolve())
@@ -262,6 +281,9 @@ def record_command(args: argparse.Namespace) -> int:
 def _add_evidence_arguments(command: argparse.ArgumentParser) -> None:
     command.add_argument("--repo", type=Path, default=Path.cwd())
     command.add_argument("--raw", action="append", required=True, help="UNIT=PATH")
+    command.add_argument("--previous-spec", type=Path)
+    command.add_argument("--prior-authority-binding", type=Path)
+    command.add_argument("--exact-authority-binding", type=Path)
 
 
 def parser() -> argparse.ArgumentParser:
@@ -275,7 +297,6 @@ def parser() -> argparse.ArgumentParser:
     product = sub.add_parser("product")
     product.add_argument("--repo", type=Path, default=Path.cwd())
     product.add_argument("--revision", required=True)
-    product.add_argument("--external-role-config-sha256", required=True)
     product.set_defaults(handler=product_command)
 
     request = sub.add_parser("authority-request")
@@ -291,6 +312,7 @@ def parser() -> argparse.ArgumentParser:
     materialize.add_argument("--mapping", type=Path, required=True)
     materialize.add_argument("--review-brief", type=Path, required=True)
     materialize.add_argument("--host-contract", type=Path, required=True)
+    materialize.add_argument("--external-role-config-sha256", required=True)
     materialize.set_defaults(handler=materialize_command)
 
     prepare = sub.add_parser("prepare-exact-request")
@@ -301,6 +323,9 @@ def parser() -> argparse.ArgumentParser:
     ):
         prepare.add_argument(f"--{flag}", type=Path, required=True)
     prepare.add_argument("--repo", type=Path, default=Path.cwd())
+    prepare.add_argument("--effect-marker-root", type=Path, required=True)
+    prepare.add_argument("--baseline-ref", required=True)
+    prepare.add_argument("--source-ref", required=True)
     prepare.add_argument("--revealed-at", required=True)
     prepare.add_argument("--attestation", action="append", required=True)
     prepare.add_argument("--raw", action="append", required=True)

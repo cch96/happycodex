@@ -12,17 +12,19 @@ import stat
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import unittest
 from unittest.mock import patch
 
 from evaluation.cli import parser
 from evaluation.host import HostEvidenceError, attestation_from_raw
+from evaluation.identity import evaluator_components, evaluator_components_from_git
 from evaluation.manifest import ManifestError, _validate_structural_schema
 from evaluation.provider import BEHAVIOR_DEVELOPER_INSTRUCTIONS
 from evaluation.records import canonical_sha256, evaluation_authority_request_payload
 from tests.attestation_fixtures import (
-    HOST_CONTRACT, ROOT, SHA, attest_all, bundle, host_metadata, mapping, passing_report,
+    HOST_CONTRACT, ROOT, SHA, TOTAL_CAP, attest_all, bundle, host_metadata, mapping, passing_report,
     previous_product, product, raw_stream, reseal, terminal,
 )
 
@@ -57,19 +59,133 @@ def _freeze_tree(root: Path) -> None:
     root.chmod(0o500)
 
 
+def _exact_kwargs(
+    source_repo: Path, *, role_sha256: str = SHA["3"],
+    source_product: dict | None = None,
+) -> dict:
+    source_product = source_product or product()
+    def resolve(value: str) -> str:
+        return subprocess.check_output(
+            ["git", "-C", str(source_repo), "rev-parse", value], text=True,
+        ).strip()
+    baseline_ref, source_ref = "refs/heads/baseline-review", "refs/heads/source-review"
+    baseline_commit, source_commit = resolve(baseline_ref), resolve(source_ref)
+    return {
+        "source_repo": source_repo,
+        "source_identity": {
+            "baseline_ref": baseline_ref, "baseline_commit": baseline_commit,
+            "baseline_tree": resolve(f"{baseline_commit}^{{tree}}"),
+            "source_ref": source_ref, "source_commit": source_commit,
+            "source_tree": resolve(f"{source_commit}^{{tree}}"),
+            **{key: source_product[key] for key in (
+                "package_tree", "package_artifact_sha256", "package_semantic_sha256",
+            )},
+        },
+        "evaluator_identity": evaluator_components_from_git(source_repo, source_commit),
+        "external_role_config_sha256": role_sha256,
+    }
+
+
+def _policy_exact_kwargs(policy: dict) -> dict:
+    workspace = policy["workspace_policy"]
+    return {
+        "source_repo": Path(workspace["source_repo"]),
+        "source_identity": workspace["source_identity"],
+        "evaluator_identity": workspace["evaluator_identity"],
+        "external_role_config_sha256": policy["provider_policy"]["external_role_config_sha256"],
+    }
+
+
 def _synthetic_snapshot(
     base: Path, *, hidden_file: bool = False, hidden_diff: bool = False,
     private_file_diff: bool = False, path_mention: bool = False,
     untracked_support: bool = False,
+    external_role_config_sha256: str = SHA["3"],
+    source_product: dict | None = None,
+    unreachable_lineage: bool = False,
+    incomplete_scope: bool = False,
+    evaluator_override: dict[str, str] | None = None,
+    copy_worktree: bool = True,
+    managed_root_blob: str | None = None,
 ) -> tuple[Path, Path]:
+    source_product = source_product or product()
+    git_env = {
+        "PATH": "/usr/bin:/bin", "LC_ALL": "C",
+        "GIT_AUTHOR_NAME": "Exact Source", "GIT_AUTHOR_EMAIL": "source@invalid",
+        "GIT_COMMITTER_NAME": "Exact Source", "GIT_COMMITTER_EMAIL": "source@invalid",
+        "GIT_AUTHOR_DATE": "2000-01-02T00:00:00Z",
+        "GIT_COMMITTER_DATE": "2000-01-02T00:00:00Z",
+    }
+    source_repo = base / "source-repo"
+    subprocess.run(["git", "clone", "-q", "--no-hardlinks", str(ROOT), str(source_repo)], check=True, env=git_env)
+    subprocess.run(["git", "-C", str(source_repo), "branch", "baseline-review", "HEAD"], check=True, env=git_env)
+    subprocess.run(["git", "-C", str(source_repo), "checkout", "-q", "-b", "source-review"], check=True, env=git_env)
+    tracked_source = subprocess.check_output(["git", "-C", str(ROOT), "ls-files"], text=True).splitlines()
+    for relative in tracked_source:
+        if copy_worktree and (relative == "README.md" or relative.startswith((".agents/", ".codex-plugin/", "evaluation/", "skills/", "tests/"))):
+            target = source_repo / relative; target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(ROOT / relative, target)
+    if managed_root_blob:
+        target = source_repo / managed_root_blob
+        if target.is_dir(): shutil.rmtree(target)
+        target.write_bytes(b"managed root blob\n")
+    subprocess.run(["git", "-C", str(source_repo), "add", ".agents", ".codex-plugin", "README.md", "evaluation", "skills", "tests"], check=True, env=git_env)
+    subprocess.run(
+        ["git", "-C", str(source_repo), "-c", "commit.gpgSign=false", "commit", "--allow-empty", "-q", "-m", "Candidate exact source"],
+        check=True, env=git_env,
+    )
+    exact = _exact_kwargs(
+        source_repo, role_sha256=external_role_config_sha256,
+        source_product=source_product,
+    )
+    source_commit = exact["source_identity"]["source_commit"]
+    source_tree = exact["source_identity"]["source_tree"]
+    baseline_commit = exact["source_identity"]["baseline_commit"]
+    baseline_tree = exact["source_identity"]["baseline_tree"]
+    inventory = []
+    rows = subprocess.check_output(
+        ["git", "-C", str(source_repo), "ls-tree", "-r", "-z", source_commit],
+    ).split(b"\0")
+    for row in rows:
+        if not row:
+            continue
+        metadata, raw_path = row.split(b"\t", 1)
+        mode, kind, object_id = metadata.decode().split()
+        body = subprocess.check_output(
+            ["git", "-C", str(source_repo), "cat-file", "blob", object_id],
+        )
+        inventory.append(
+            {
+                "path": raw_path.decode(), "git_mode": mode,
+                "git_object": object_id, "sha256": hashlib.sha256(body).hexdigest(),
+                "size_bytes": len(body),
+            }
+        )
     snapshot = base / "execution" / "exact-final-source"
     snapshot.mkdir(mode=0o700)
     oracle = base / "private" / "evaluation" / "hidden-oracles-v1.json"
     oracle.parent.mkdir(parents=True)
-    oracle.write_bytes((ROOT / "evaluation" / "hidden-oracles-v1.json").read_bytes())
+    private_source = next(item for item in inventory if item["path"] == "evaluation/hidden-oracles-v1.json")
+    oracle.write_bytes(
+        subprocess.check_output(
+            ["git", "-C", str(source_repo), "cat-file", "blob", private_source["git_object"]],
+        )
+    )
     body = oracle.read_bytes()
-    readme = snapshot / "README.md"
-    readme.write_text("frozen exact-final source\n", encoding="utf-8")
+    managed = (".agents", ".codex-plugin", "README.md", "evaluation", "skills", "tests")
+    included = [
+        item for item in inventory
+        if item["path"] != "evaluation/hidden-oracles-v1.json"
+        and any(item["path"] == root or item["path"].startswith(root + "/") for root in managed)
+    ]
+    if incomplete_scope:
+        included = [item for item in included if item["path"] == "README.md"]
+    excluded = [item for item in inventory if item not in included]
+    for item in included:
+        target = snapshot / item["path"]; target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(subprocess.check_output(
+            ["git", "-C", str(source_repo), "cat-file", "blob", item["git_object"]]
+        ))
     diff = snapshot / "EXACT_FINAL_DIFF.patch"
     if hidden_diff:
         diff.write_bytes(
@@ -91,29 +207,51 @@ def _synthetic_snapshot(
             b" context\n+PRIVATE_PATH = 'evaluation/hidden-oracles-v1.json'\n"
         )
     else:
-        diff.write_bytes(
-            b"diff --git a/README.md b/README.md\n--- a/README.md\n+++ b/README.md\n"
-        )
-    private = {
-        "path": "evaluation/hidden-oracles-v1.json", "git_mode": "100644",
-        "git_object": _git_blob_sha(body), "sha256": hashlib.sha256(body).hexdigest(),
-        "size_bytes": len(body),
-    }
+        diff.write_bytes(subprocess.check_output([
+            "git", "-C", str(source_repo), "diff", "--binary", "--full-index", "--no-renames",
+            "--no-ext-diff", "--no-textconv",
+            baseline_commit, source_commit, "--", ".agents", ".codex-plugin", "README.md",
+            "evaluation", "skills", "tests", ":(exclude)evaluation/hidden-oracles-v1.json",
+        ]))
+    private = private_source
     manifest = {
+        "schema_version": 1,
+        "source": {
+            "baseline": {
+                "ref": "refs/heads/baseline-review", "commit": baseline_commit,
+                "tree": baseline_tree,
+            },
+            "source": {
+                "ref": "refs/heads/source-review",
+                "commit": "1" * 40 if unreachable_lineage else source_commit,
+                "tree": source_tree,
+            },
+        },
+        "product": {
+            key: source_product[key]
+            for key in ("package_tree", "package_artifact_sha256", "package_semantic_sha256")
+        },
+        "evaluator": evaluator_override or exact["evaluator_identity"],
+        "external_role_config_sha256": external_role_config_sha256,
         "aggregate_diff": {
-            "path": diff.name, "sha256": hashlib.sha256(diff.read_bytes()).hexdigest(),
+            "path": diff.name, "git_mode": "100644",
+            "git_object": _git_blob_sha(diff.read_bytes()),
+            "sha256": hashlib.sha256(diff.read_bytes()).hexdigest(),
             "size_bytes": diff.stat().st_size,
         },
         "private_exclusion": private,
-        "projection": {"included_paths": ["README.md"], "file_count": 1},
-        "source_commit": "1" * 40, "source_tree": "2" * 40,
+        "projection": {
+            "included": included, "excluded": excluded,
+            "file_count": len(inventory),
+        },
+        "support_files": ["EXACT_FINAL_DIFF.patch", "EXACT_FINAL_SOURCE_MANIFEST.json"],
     }
     (snapshot / "EXACT_FINAL_SOURCE_MANIFEST.json").write_text(
         json.dumps(manifest, sort_keys=True, indent=2) + "\n", encoding="utf-8",
     )
     if hidden_file:
         path = snapshot / private["path"]
-        path.parent.mkdir(parents=True)
+        path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(body)
     subprocess.run(
         ["git", "init", "-q", "-b", "exact-final", str(snapshot)],
@@ -196,7 +334,7 @@ class ReproducedBlockerTests(unittest.TestCase):
     def test_host_contract_binds_provider_policy_and_cli_has_no_writer(self):
         self.assertEqual(
             set(HOST_CONTRACT),
-            {"schema_version", "trust_domain", "behavior_sha256", "holdout_sha256", "exact_final_sha256"},
+            {"schema_version", "trust_domain", "behavior_sha256", "holdout_sha256", "exact_final_sha256", "effect_namespace_sha256"},
         )
         choices = parser()._subparsers._group_actions[0].choices
         self.assertNotIn("claim", choices)
@@ -218,7 +356,10 @@ class ReproducedBlockerTests(unittest.TestCase):
 
 
 class FixedHostTransactionTests(unittest.TestCase):
-    def _inputs(self, directory: str):
+    def _inputs(
+        self, directory: str, *, effect_marker_root: Path | None = None,
+        copy_worktree: bool = True,
+    ):
         from evaluation.host import build_fixed_host_policy, host_contract_from_policy
 
         base = Path(directory)
@@ -228,7 +369,6 @@ class FixedHostTransactionTests(unittest.TestCase):
             execution / "attestations", execution / "claims",
         ):
             path.mkdir(mode=0o700)
-        snapshot, private_oracle = _synthetic_snapshot(base)
         role = base / "executor.toml"
         role.write_text(
             'name = "happycodex_executor"\n'
@@ -240,6 +380,18 @@ class FixedHostTransactionTests(unittest.TestCase):
         )
         role.chmod(0o600)
         role_sha = hashlib.sha256(role.read_bytes()).hexdigest()
+        selected = product()
+        baseline = previous_product()
+        snapshot, private_oracle = _synthetic_snapshot(
+            base, external_role_config_sha256=role_sha, source_product=selected,
+            copy_worktree=copy_worktree,
+        )
+        exact = _exact_kwargs(
+            base / "source-repo", role_sha256=role_sha, source_product=selected,
+        )
+        effect_markers = effect_marker_root or base / "effect-markers"
+        if not effect_markers.exists():
+            effect_markers.mkdir(mode=0o700)
         mapping_path = base / "holdout-mapping.json"
         mapping_path.write_text(json.dumps(mapping(), sort_keys=True) + "\n", encoding="utf-8")
         mapping_path.chmod(0o600)
@@ -250,14 +402,15 @@ class FixedHostTransactionTests(unittest.TestCase):
             execution_root=execution, binary_path=binary,
             external_role_config_path=role, exact_final_source=snapshot,
             holdout_mapping_path=mapping_path, private_oracle_path=private_oracle,
+            effect_marker_root=effect_markers, source_repo=base / "source-repo",
+            source_identity=exact["source_identity"],
+            evaluator_identity=exact["evaluator_identity"],
             behavior_model="gpt-fake",
         )
         contract = host_contract_from_policy(policy)
-        selected = product(role=role_sha)
-        baseline = previous_product(role=role_sha)
         selected, baseline, spec, blind = bundle(
             selected_product=selected, baseline_product=baseline,
-            host_contract=contract,
+            host_contract=contract, external_role_config_sha256=role_sha,
         )
         return execution, role, mapping_path, policy, selected, baseline, spec, blind
 
@@ -282,20 +435,199 @@ class FixedHostTransactionTests(unittest.TestCase):
                 ),
                 "",
             )
+            tracked = set(subprocess.check_output(
+                ["git", "-C", str(source), "ls-files"], text=True,
+                env={"PATH": "/usr/bin:/bin", "LC_ALL": "C"},
+            ).splitlines())
+            manifest = json.loads((source / "EXACT_FINAL_SOURCE_MANIFEST.json").read_text())
             self.assertEqual(
-                set(subprocess.check_output(
-                    ["git", "-C", str(source), "ls-files"], text=True,
-                    env={"PATH": "/usr/bin:/bin", "LC_ALL": "C"},
-                ).splitlines()),
-                {"README.md", "EXACT_FINAL_DIFF.patch", "EXACT_FINAL_SOURCE_MANIFEST.json"},
+                tracked,
+                {item["path"] for item in manifest["projection"]["included"]}
+                | {"EXACT_FINAL_DIFF.patch", "EXACT_FINAL_SOURCE_MANIFEST.json"},
             )
+            self.assertTrue({
+                "README.md", ".codex-plugin/plugin.json", "evaluation/provider.py",
+                "evaluation/host.py", "evaluation/verify.py", "skills/happycodex/SKILL.md",
+                "tests/test_fixed_host_transaction_v2.py",
+            }.issubset(tracked))
             relocated = Path(directory) / "relocated"
             shutil.copytree(source, relocated)
             self.assertEqual(
                 policy["workspace_policy"]["exact_final_source_sha256"],
-                exact_final_source_identity(relocated, private),
+                exact_final_source_identity(relocated, private, **_policy_exact_kwargs(policy)),
             )
             self.assertEqual(list((execution / "units").iterdir()), [])
+
+    def test_exact_final_source_rejects_self_selected_projection_and_fake_diff(self):
+        from evaluation.provider import ProviderError, exact_final_source_identity
+
+        for mutation in ("scope", "diff", "old-source"):
+            with self.subTest(mutation=mutation), tempfile.TemporaryDirectory() as directory:
+                base = Path(directory); (base / "execution").mkdir(mode=0o700)
+                override = evaluator_components(ROOT) if mutation == "old-source" else None
+                source, private = _synthetic_snapshot(
+                    base, incomplete_scope=mutation == "scope",
+                    path_mention=mutation == "diff",
+                    copy_worktree=mutation != "old-source",
+                    evaluator_override=override,
+                )
+                with self.assertRaises(ProviderError):
+                    exact_final_source_identity(
+                        source, private, **_exact_kwargs(base / "source-repo"),
+                    )
+
+    def test_exact_source_projection_includes_managed_root_blob(self):
+        from evaluation.provider import exact_final_source_identity
+
+        with tempfile.TemporaryDirectory() as directory:
+            base = Path(directory); (base / "execution").mkdir(mode=0o700)
+            source, private = _synthetic_snapshot(base, managed_root_blob="tests")
+            self.assertEqual(
+                len(exact_final_source_identity(
+                    source, private, **_exact_kwargs(base / "source-repo"),
+                )),
+                64,
+            )
+            self.assertIn("tests", subprocess.check_output(
+                ["git", "-C", str(source), "ls-files"], text=True,
+            ).splitlines())
+            self.assertEqual((source / "tests").read_bytes(), b"managed root blob\n")
+
+    def test_host_policy_rejects_fixed_tool_surface_drift_before_effect(self):
+        from evaluation.provider import ProviderError, host_contract_from_policy
+
+        with tempfile.TemporaryDirectory() as directory:
+            execution, _, _, policy, _, _, _, _ = self._inputs(directory)
+            policy["tool_config"]["allowed_model_tools"] = []
+            with self.assertRaises(ProviderError):
+                host_contract_from_policy(policy)
+            self.assertEqual(list((execution / "units").iterdir()), [])
+            self.assertEqual(list(Path(policy["workspace_policy"]["effect_marker_root"]).iterdir()), [])
+
+    def test_host_policy_rejects_fixed_permission_drift_before_effect(self):
+        from evaluation.provider import ProviderError, host_contract_from_policy
+
+        for mutation in ("filesystem", "network", "approval", "environment"):
+            with self.subTest(mutation=mutation), tempfile.TemporaryDirectory() as directory:
+                execution, _, _, policy, _, _, _, _ = self._inputs(directory)
+                permission = policy["permission_profile"]
+                if mutation == "filesystem": permission["filesystem"][":minimal"] = "write"
+                elif mutation == "network": permission["network_enabled"] = True
+                elif mutation == "approval": permission["approval_policy"] = "on-request"
+                else: permission["model_shell_environment"]["set"] = ["PATH"]
+                with self.assertRaises(ProviderError):
+                    host_contract_from_policy(policy)
+                for name in ("units", "raw", "attestations", "claims"):
+                    self.assertEqual(list((execution / name).iterdir()), [])
+                self.assertEqual(list(Path(policy["workspace_policy"]["effect_marker_root"]).iterdir()), [])
+
+    def test_wall_cap_bounds_runner_timeout_before_effect(self):
+        from evaluation.host import execute_fixed_host_transaction
+        from evaluation.provider import host_contract_from_policy
+
+        with tempfile.TemporaryDirectory() as directory:
+            _, _, _, policy, selected, baseline, _, _ = self._inputs(directory)
+            _, _, spec, _ = bundle(
+                selected_product=selected, baseline_product=baseline,
+                host_contract=host_contract_from_policy(policy),
+                external_role_config_sha256=policy["provider_policy"]["external_role_config_sha256"],
+                total_cap={**TOTAL_CAP, "wall_milliseconds": 1},
+            )
+            unit = next(item for item in spec["units"] if item["unit_id"] == "goal-divergence")
+            supplied, _, line = self._authority(spec)
+            captured = {}
+
+            def provider(**kwargs):
+                captured.update(kwargs)
+                os.write(kwargs["stdout_fd"], raw_stream(unit))
+                return 0, False
+
+            execute_fixed_host_transaction(
+                repo_root=ROOT, product=selected, previous_product=baseline,
+                spec=spec, unit_id=unit["unit_id"], policy=policy,
+                authority_line=line, supplied_authority=supplied,
+                authenticate_line=lambda actual, _value: actual == line,
+                provider_auth=b"private-auth", run_provider=provider,
+                clock=lambda: datetime(2026, 8, 3, tzinfo=timezone.utc),
+            )
+            self.assertLessEqual(captured["timeout_seconds"], 0.001)
+
+    def test_concurrent_selected_timeouts_share_remaining_wall(self):
+        from evaluation.host import execute_fixed_host_transaction
+        from evaluation.provider import host_contract_from_policy
+
+        with tempfile.TemporaryDirectory() as directory:
+            execution, _, _, policy, selected, baseline, _, _ = self._inputs(directory)
+            _, _, spec, _ = bundle(
+                selected_product=selected, baseline_product=baseline,
+                host_contract=host_contract_from_policy(policy),
+                external_role_config_sha256=policy["provider_policy"]["external_role_config_sha256"],
+                total_cap={**TOTAL_CAP, "wall_milliseconds": 60000},
+            )
+            supplied, authority, line = self._authority(spec)
+            behavior = {unit["unit_id"] for unit in spec["units"] if unit["stage"] == "behavior"}
+            self._persist(
+                execution, selected, baseline, spec, behavior, authority,
+                terminal_values={unit_id: terminal(wall_milliseconds=10000) for unit_id in behavior},
+            )
+            holdouts = [unit for unit in spec["units"] if unit["stage"] == "holdout"][:2]
+            barrier = threading.Barrier(2); timeouts = []; errors = []
+
+            def launch(unit):
+                def provider(**kwargs):
+                    timeouts.append(kwargs["timeout_seconds"]); barrier.wait(timeout=5)
+                    os.write(kwargs["stdout_fd"], raw_stream(unit)); return 0, False
+                try:
+                    execute_fixed_host_transaction(
+                        repo_root=ROOT, product=selected, previous_product=baseline,
+                        spec=spec, unit_id=unit["unit_id"], policy=policy,
+                        authority_line=line, supplied_authority=supplied,
+                        authenticate_line=lambda actual, _value: actual == line,
+                        provider_auth=b"private-auth", run_provider=provider,
+                        clock=lambda: datetime(2026, 8, 3, tzinfo=timezone.utc),
+                    )
+                except Exception as exc: errors.append(exc)
+
+            threads = [threading.Thread(target=launch, args=(unit,)) for unit in holdouts]
+            for thread in threads: thread.start()
+            for thread in threads: thread.join(timeout=10)
+            self.assertEqual(errors, [])
+            self.assertEqual(len(timeouts), 2)
+            self.assertLessEqual(sum(timeouts), 10)
+
+    def test_exact_diff_ignores_source_repo_external_diff_config(self):
+        from evaluation.provider import exact_final_source_identity
+
+        with tempfile.TemporaryDirectory() as directory:
+            base = Path(directory); (base / "execution").mkdir(mode=0o700)
+            source, private = _synthetic_snapshot(base)
+            exact = _exact_kwargs(base / "source-repo")
+            expected = exact_final_source_identity(source, private, **exact)
+            subprocess.run(
+                ["git", "-C", str(base / "source-repo"), "config", "diff.external", "true"],
+                check=True,
+            )
+            self.assertEqual(exact_final_source_identity(source, private, **exact), expected)
+
+    def test_old_source_components_cannot_back_a_new_dirty_evalspec(self):
+        from evaluation.host import execute_fixed_host_transaction
+
+        with tempfile.TemporaryDirectory() as directory:
+            execution, _, _, policy, selected, baseline, spec, _ = self._inputs(
+                directory, copy_worktree=False,
+            )
+            supplied, _, line = self._authority(spec)
+            with self.assertRaisesRegex(HostEvidenceError, "source evaluator component"):
+                execute_fixed_host_transaction(
+                    repo_root=ROOT, product=selected, previous_product=baseline,
+                    spec=spec, unit_id="goal-divergence", policy=policy,
+                    authority_line=line, supplied_authority=supplied,
+                    authenticate_line=lambda *_args: self.fail("authority accepted"),
+                    provider_auth=b"private-auth",
+                    run_provider=lambda **_kwargs: self.fail("provider reached"),
+                )
+            self.assertEqual(list((execution / "units").iterdir()), [])
+            self.assertEqual(list(Path(policy["workspace_policy"]["effect_marker_root"]).iterdir()), [])
 
     def test_exact_final_source_rejects_untracked_support_and_hidden_oracle(self):
         from evaluation.provider import ProviderError, exact_final_source_identity
@@ -309,7 +641,7 @@ class FixedHostTransactionTests(unittest.TestCase):
             untracked.write_text("not bound\n", encoding="utf-8"); untracked.chmod(0o400)
             source.chmod(0o500)
             with self.assertRaisesRegex(ProviderError, "clean synthetic commit"):
-                exact_final_source_identity(source, private)
+                exact_final_source_identity(source, private, **_policy_exact_kwargs(policy))
             self.assertEqual(list((execution / "claims").iterdir()), [])
 
         for exposure in ("file", "diff"):
@@ -319,24 +651,36 @@ class FixedHostTransactionTests(unittest.TestCase):
                     base, hidden_file=exposure == "file", hidden_diff=exposure == "diff",
                 )
                 with self.assertRaisesRegex(ProviderError, "hidden oracle"):
-                    exact_final_source_identity(source, private)
+                    exact_final_source_identity(source, private, **_exact_kwargs(base / "source-repo"))
 
         with tempfile.TemporaryDirectory() as directory:
             base = Path(directory); (base / "execution").mkdir(mode=0o700)
             source, private = _synthetic_snapshot(base, private_file_diff=True)
             with self.assertRaisesRegex(ProviderError, "hidden oracle file"):
-                exact_final_source_identity(source, private)
+                exact_final_source_identity(source, private, **_exact_kwargs(base / "source-repo"))
 
         with tempfile.TemporaryDirectory() as directory:
             base = Path(directory); (base / "execution").mkdir(mode=0o700)
             source, private = _synthetic_snapshot(base, path_mention=True)
-            self.assertEqual(len(exact_final_source_identity(source, private)), 64)
+            with self.assertRaisesRegex(ProviderError, "aggregate diff"):
+                exact_final_source_identity(source, private, **_exact_kwargs(base / "source-repo"))
 
         with tempfile.TemporaryDirectory() as directory:
             base = Path(directory); (base / "execution").mkdir(mode=0o700)
             source, private = _synthetic_snapshot(base, untracked_support=True)
             with self.assertRaisesRegex(ProviderError, "clean synthetic commit"):
-                exact_final_source_identity(source, private)
+                exact_final_source_identity(source, private, **_exact_kwargs(base / "source-repo"))
+
+    def test_exact_final_source_rejects_unreachable_placeholder_lineage(self):
+        from evaluation.provider import ProviderError, exact_final_source_identity
+
+        with tempfile.TemporaryDirectory() as directory:
+            base = Path(directory)
+            (base / "execution").mkdir(mode=0o700)
+            source, private = _synthetic_snapshot(base, unreachable_lineage=True)
+
+            with self.assertRaisesRegex(ProviderError, "lineage|source|reachable"):
+                exact_final_source_identity(source, private, **_exact_kwargs(base / "source-repo"))
 
     def test_post_policy_source_or_git_config_mutation_stops_before_effect(self):
         from evaluation.host import execute_fixed_host_transaction
@@ -547,6 +891,92 @@ class FixedHostTransactionTests(unittest.TestCase):
             self.assertNotIn(json.dumps(str(exact_paths["command_bin"])) + "=", exact_filesystem)
             self.assertNotIn(":root", exact_filesystem)
 
+    def test_same_authority_invocation_cannot_run_in_two_execution_roots(self):
+        from evaluation.host import execute_fixed_host_transaction
+
+        with tempfile.TemporaryDirectory() as directory:
+            host_a = Path(directory) / "host-a"
+            host_b = Path(directory) / "host-b"
+            host_a.mkdir(mode=0o700)
+            host_b.mkdir(mode=0o700)
+            effect_markers = Path(directory) / "effect-markers"
+            effect_markers.mkdir(mode=0o700)
+            first = self._inputs(str(host_a), effect_marker_root=effect_markers)
+            second = self._inputs(str(host_b), effect_marker_root=effect_markers)
+            _, role_a, mapping_a, policy_a, selected_a, baseline_a, spec_a, blind_a = first
+            _, role_b, mapping_b, policy_b, selected_b, baseline_b, spec_b, blind_b = second
+            self.assertEqual(role_a.read_bytes(), role_b.read_bytes())
+            self.assertEqual(mapping_a.read_bytes(), mapping_b.read_bytes())
+            self.assertEqual(selected_a, selected_b)
+            self.assertEqual(baseline_a, baseline_b)
+            self.assertEqual(spec_a, spec_b)
+            self.assertEqual(blind_a, blind_b)
+
+            unit = next(item for item in spec_a["units"] if item["unit_id"] == "goal-divergence")
+            supplied, _, line = self._authority(spec_a)
+            provider_calls = []
+
+            def fake_provider(**kwargs):
+                provider_calls.append(str(kwargs["cwd"]))
+                os.write(
+                    kwargs["stdout_fd"],
+                    _events(
+                        {"type": "thread.started", "thread_id": "thread-cross-root"},
+                        {"type": "turn.started"},
+                        {"type": "item.completed", "item": {
+                            "id": "message", "type": "agent_message",
+                            "text": json.dumps(passing_report(unit), sort_keys=True),
+                        }},
+                        {"type": "turn.completed", "usage": {
+                            "input_tokens": 5, "cached_input_tokens": 0,
+                            "cache_write_input_tokens": 0, "output_tokens": 3,
+                            "reasoning_output_tokens": 0,
+                        }},
+                    ),
+                )
+                return 0, False
+
+            def execute(policy, selected, baseline, spec):
+                return execute_fixed_host_transaction(
+                    repo_root=ROOT, product=selected, previous_product=baseline,
+                    spec=spec, unit_id=unit["unit_id"], policy=policy,
+                    authority_line=line, supplied_authority=supplied,
+                    authenticate_line=lambda actual, _value: actual == line,
+                    provider_auth=b"private-auth", run_provider=fake_provider,
+                    clock=lambda: datetime(2026, 8, 3, tzinfo=timezone.utc),
+                )
+
+            self.assertEqual(
+                execute(policy_a, selected_a, baseline_a, spec_a)["attestation"]["verdict"],
+                "pass",
+            )
+            with self.assertRaises(HostEvidenceError):
+                execute(policy_b, selected_b, baseline_b, spec_b)
+            self.assertEqual(len(provider_calls), 1)
+
+    def test_effect_marker_is_cross_process_one_shot(self):
+        from evaluation.host import _consume_effect_marker
+
+        with tempfile.TemporaryDirectory() as directory:
+            _, _, _, policy, _, _, _, _ = self._inputs(directory)
+            policy_path = Path(directory) / "policy.json"
+            policy_path.write_text(json.dumps(policy, sort_keys=True)); policy_path.chmod(0o600)
+            _consume_effect_marker(
+                policy, authority_sha256=SHA["a"], invocation_sha256=SHA["b"],
+            )
+            script = (
+                "import json,sys;from pathlib import Path;"
+                "from evaluation.host import _consume_effect_marker;"
+                "p=json.loads(Path(sys.argv[1]).read_text());"
+                "_consume_effect_marker(p,authority_sha256=sys.argv[2],invocation_sha256=sys.argv[3])"
+            )
+            child = subprocess.run(
+                [sys.executable, "-c", script, str(policy_path), SHA["a"], SHA["b"]],
+                cwd=ROOT, capture_output=True, text=True, check=False,
+            )
+            self.assertNotEqual(child.returncode, 0)
+            self.assertEqual(len(list(Path(policy["workspace_policy"]["effect_marker_root"]).iterdir())), 1)
+
     def test_legacy_path_lacks_required_sandbox_helper(self):
         with tempfile.TemporaryDirectory() as directory:
             legacy_usr = Path(directory) / "usr" / "bin"
@@ -678,7 +1108,7 @@ class FixedHostTransactionTests(unittest.TestCase):
                 host_contract=contract,
             )
             self.assertEqual(blind, mapping())
-            self.assertEqual(invalidation(previous, current)["model_units"], ["exact-final"])
+            self.assertEqual(invalidation(previous, current), {"mode": "exact_final_only"})
 
     def test_exact_launcher_link_failure_stops_before_provider_reach(self):
         from evaluation.host import execute_fixed_host_transaction
@@ -738,7 +1168,7 @@ class FixedHostTransactionTests(unittest.TestCase):
                 execution, _, _, policy, selected, baseline, spec, _ = self._inputs(directory)
                 supplied, authority, line = self._authority(spec)
                 first = next(unit for unit in spec["units"] if unit["unit_id"] == "goal-divergence")
-                values = {first["unit_id"]: terminal(input_tokens=10000)} if mode == "cap" else {}
+                values = {first["unit_id"]: terminal(input_tokens=10001)} if mode == "cap" else {}
                 reports = {first["unit_id"]: {"safety": {"goal_closed": True}, "next_action": {"purpose": "STOP"}}} if mode == "failure" else {}
                 self._persist(execution, selected, baseline, spec, {first["unit_id"]}, authority, terminal_values=values, reports=reports)
                 if mode == "forged":
@@ -837,10 +1267,14 @@ class FixedHostTransactionTests(unittest.TestCase):
     def test_current_cap_overrun_is_persisted_before_stop(self):
         from evaluation.host import execute_fixed_host_transaction
 
-        cap = {"model_calls":12,"input_tokens":5,"output_tokens":10000,"wall_milliseconds":200000,"infrastructure_recoveries":1}
+        cap = {"model_calls":12,"input_tokens":5,"output_tokens":10000,"wall_milliseconds":200000}
         with tempfile.TemporaryDirectory() as directory:
             execution, _, _, policy, selected, baseline, spec, _ = self._inputs(directory)
-            selected, baseline, spec, _ = bundle(selected_product=selected, baseline_product=baseline, host_contract=spec["host_contract"], total_cap=cap)
+            selected, baseline, spec, _ = bundle(
+                selected_product=selected, baseline_product=baseline,
+                host_contract=spec["host_contract"], total_cap=cap,
+                external_role_config_sha256=spec["external_role_config_sha256"],
+            )
             unit = next(item for item in spec["units"] if item["unit_id"] == "goal-divergence")
             supplied, _, line = self._authority(spec)
 
@@ -855,8 +1289,9 @@ class FixedHostTransactionTests(unittest.TestCase):
                 authenticate_line=lambda actual, _value: actual == line,
                 provider_auth=b"private-auth", run_provider=provider,
             )
-            self.assertEqual(result["stop_reason"], "total_cap_exceeded")
-            self.assertEqual(result["cap_exceeded"], ["input_tokens"])
+            self.assertEqual(result["stop_reason"], "token_qualification_exceeded")
+            self.assertEqual(result["token_exceeded"], ["input_tokens"])
+            self.assertEqual(result["cap_exceeded"], [])
             for name in ("claims", "raw", "attestations"):
                 self.assertEqual(len(list((execution / name).iterdir())), 1)
 
@@ -998,13 +1433,14 @@ class FixedHostTransactionTests(unittest.TestCase):
             _, _, current, _ = bundle(
                 selected_product=selected, baseline_product=baseline,
                 host_contract=contract,
+                external_role_config_sha256=previous["external_role_config_sha256"],
             )
-            cap = {**current["total_cap"], "model_calls": 1}
+            cap = {**current["effect_cap"], "model_calls": 1}
             proposal = exact_final_authority_proposal(
                 root=ROOT, product=selected, previous_product=baseline,
                 previous_spec=previous, spec=current, attestations=prior,
                 raw_streams=prior_raws, holdout_mapping=blind,
-                mapping_revealed_at="2026-08-02T00:00:35Z", total_cap=cap,
+                mapping_revealed_at="2026-08-02T00:00:35Z", effect_cap=cap,
             )
             request = canonical_sha256(proposal)
             supplied = {"scope": "evaluation", "request_sha256": request, "nonce": "n2", "signature": "s2"}
@@ -1032,6 +1468,7 @@ class FixedHostTransactionTests(unittest.TestCase):
             raw = Path(result["raw_path"]).read_bytes()
             composed = verify_evaluation(
                 root=ROOT, product=selected, previous_product=baseline, spec=current,
+                previous_spec=previous,
                 attestations=[*prior, result["attestation"]],
                 raw_streams={**prior_raws, "exact-final": raw},
                 holdout_mapping=blind, mapping_revealed_at="2026-08-02T00:00:35Z",

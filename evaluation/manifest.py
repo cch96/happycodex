@@ -144,11 +144,11 @@ def _unit(
     *, unit_id: str, role_id: str, sample_id: str | None, stage: str,
     arm_product: dict[str, Any], case: dict[str, Any], profile: dict[str, Any],
     oracle_sha256: str, harness_sha256: str, review_brief_sha256: str | None,
-    effective_host_sha256: str,
+    effective_host_sha256: str, external_role_config_sha256: str,
 ) -> dict[str, Any]:
     role_config = (
         canonical_sha256({"role": "neutral-exact-final"})
-        if stage == "exact_final" else arm_product["external_role_config_sha256"]
+        if stage == "exact_final" else external_role_config_sha256
     )
     projection = provider_projection(
         case={"role_id": role_id, "sample_id": sample_id, **case},
@@ -191,12 +191,12 @@ def materialize_eval_spec(
     *, root: Path, candidate: dict[str, Any], previous: dict[str, Any],
     profiles: dict[str, Any], total_cap: dict[str, int],
     holdout_mapping: dict[str, dict[str, str]], review_brief: dict[str, Any],
-    host_contract: dict[str, Any],
+    host_contract: dict[str, Any], external_role_config_sha256: str,
 ) -> dict[str, Any]:
     validate_product_artifact(candidate)
     validate_product_artifact(previous)
-    if candidate["external_role_config_sha256"] != previous["external_role_config_sha256"]:
-        raise ManifestError("comparison products require one external role config")
+    if type(external_role_config_sha256) is not str or len(external_role_config_sha256) != 64:
+        raise ManifestError("external role config identity is invalid")
     candidate_runtime = runtime_from_product_artifact(root, candidate)
     previous_runtime = runtime_from_product_artifact(root, previous)
     inputs = load_production_inputs(root)
@@ -219,6 +219,7 @@ def materialize_eval_spec(
                 oracle_sha256=canonical_sha256(inputs["oracles"]["core"][role_id]),
                 harness_sha256=harness_sha, review_brief_sha256=None,
                 effective_host_sha256=host_contract["behavior_sha256"],
+                external_role_config_sha256=external_role_config_sha256,
             )
         )
     holdouts = []
@@ -243,6 +244,7 @@ def materialize_eval_spec(
                     oracle_sha256=canonical_sha256(inputs["oracles"]["holdouts"][sample_id]),
                     harness_sha256=harness_sha, review_brief_sha256=None,
                     effective_host_sha256=host_contract["holdout_sha256"],
+                    external_role_config_sha256=external_role_config_sha256,
                 )
             )
     units.append(
@@ -264,17 +266,22 @@ def materialize_eval_spec(
             oracle_sha256=canonical_sha256(inputs["oracles"]["exact_final"]),
             harness_sha256=harness_sha, review_brief_sha256=brief_sha,
             effective_host_sha256=host_contract["exact_final_sha256"],
+            external_role_config_sha256=external_role_config_sha256,
         )
     )
     units.sort(key=lambda item: (item["order"], item["unit_id"]))
-    if total_cap.get("model_calls", -1) < len(units):
-        raise ManifestError("total cap cannot cover the finite invocation plan")
+    if set(total_cap) != {"model_calls", "input_tokens", "output_tokens", "wall_milliseconds"}:
+        raise ManifestError("evaluation limits fields differ")
+    if total_cap.get("model_calls") != len(units):
+        raise ManifestError("model call cap must equal the finite invocation plan")
     components = evaluator_components(root)
     return build_eval_spec(
         product_semantic_sha256=candidate["package_semantic_sha256"],
-        external_role_config_sha256=candidate["external_role_config_sha256"],
-        previous_product_record_sha256=previous["record_sha256"],
-        profiles=profiles, units=units, holdouts=holdouts, total_cap=total_cap,
+        external_role_config_sha256=external_role_config_sha256,
+        previous_product_artifact_sha256=previous["package_artifact_sha256"],
+        profiles=profiles, units=units, holdouts=holdouts,
+        effect_cap={key: total_cap[key] for key in ("model_calls", "wall_milliseconds")},
+        token_qualification={key: total_cap[key] for key in ("input_tokens", "output_tokens")},
         neutral_review_brief_sha256=brief_sha,
         manifest_sha256=inputs["manifest_sha256"],
         fixtures_sha256=inputs["fixtures_sha256"],

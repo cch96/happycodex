@@ -3,7 +3,7 @@ from __future__ import annotations
 from copy import deepcopy
 import unittest
 
-from evaluation.manifest import materialize_eval_spec
+from evaluation.manifest import ManifestError, materialize_eval_spec
 from evaluation.records import (
     RecordError,
     canonical_sha256,
@@ -24,20 +24,40 @@ from tests.attestation_fixtures import (
 )
 
 
-def materialize(profiles: dict = PROFILES) -> dict:
+def materialize(profiles: dict = PROFILES, total_cap: dict = TOTAL_CAP) -> dict:
     return materialize_eval_spec(
         root=ROOT,
         candidate=product(),
         previous=previous_product(),
         profiles=deepcopy(profiles),
-        total_cap=deepcopy(TOTAL_CAP),
+        total_cap=deepcopy(total_cap),
         holdout_mapping=mapping(),
         review_brief=deepcopy(REVIEW_BRIEF),
         host_contract=deepcopy(HOST_CONTRACT),
+        external_role_config_sha256="3" * 64,
     )
 
 
 class StageProfileContractTests(unittest.TestCase):
+    def test_profiles_require_the_fixed_command_execution_tool(self):
+        for tools in ([], ["command_execution", "extra"]):
+            with self.subTest(tools=tools):
+                profiles = deepcopy(PROFILES)
+                profiles["behavior"]["tools"] = tools
+                with self.assertRaises(RecordError):
+                    materialize(profiles)
+
+    def test_model_call_cap_must_equal_the_fixed_invocation_count(self):
+        with self.assertRaises(ManifestError):
+            materialize(total_cap={**TOTAL_CAP, "model_calls": 13})
+        spec = deepcopy(materialize())
+        spec["effect_cap"]["model_calls"] = 13
+        spec["authority_request_sha256"] = canonical_sha256(
+            evaluation_authority_request_payload(spec)
+        )
+        with self.assertRaises(RecordError):
+            validate_eval_spec(reseal(spec))
+
     def test_materializer_binds_behavior_and_exact_final_profiles_by_stage(self):
         spec = materialize()
         self.assertEqual(spec["profiles"], PROFILES)
@@ -89,8 +109,11 @@ class StageProfileContractTests(unittest.TestCase):
         spec = materialize()
         payload = evaluation_authority_request_payload(spec)
         self.assertEqual(payload["profiles"], PROFILES)
-        self.assertEqual(payload["selected_unit_ids"], [unit["unit_id"] for unit in spec["units"]])
-        self.assertEqual(payload["total_cap"], TOTAL_CAP)
+        self.assertEqual(payload["decision"], "full_evaluation")
+        self.assertEqual(
+            payload["effect_cap"],
+            {key: TOTAL_CAP[key] for key in ("model_calls", "wall_milliseconds")},
+        )
         self.assertEqual(payload["prerequisites"], [])
         self.assertIsNone(payload["prerequisite_state"])
         self.assertEqual(
@@ -110,24 +133,20 @@ class StageProfileContractTests(unittest.TestCase):
             {"gpt-5.6-sol"},
         )
 
-    def test_profile_invalidation_is_limited_to_affected_stage(self):
+    def test_profile_invalidation_uses_only_explicit_modes(self):
         original = materialize()
 
         exact_profiles = deepcopy(PROFILES)
         exact_profiles["exact_final"]["effort"] = "xhigh"
         exact_impact = invalidation(original, materialize(exact_profiles))
-        self.assertEqual(exact_impact["model_units"], ["exact-final"])
+        self.assertEqual(exact_impact, {"mode": "exact_final_only"})
 
         behavior_profiles = deepcopy(PROFILES)
         behavior_profiles["behavior"]["effort"] = "medium"
         behavior_impact = invalidation(original, materialize(behavior_profiles))
-        expected = sorted(
-            unit["unit_id"] for unit in original["units"]
-            if unit["stage"] in {"behavior", "holdout"}
-        )
-        self.assertEqual(behavior_impact["model_units"], expected)
+        self.assertEqual(behavior_impact, {"mode": "full_evaluation"})
 
-    def test_external_role_change_does_not_invalidate_neutral_exact_final(self):
+    def test_external_role_change_requires_full_evaluation(self):
         original = materialize()
         changed_role = canonical_sha256({"external_role": "changed"})
         changed_host = deepcopy(HOST_CONTRACT)
@@ -135,20 +154,17 @@ class StageProfileContractTests(unittest.TestCase):
         changed_host["holdout_sha256"] = canonical_sha256({"holdout_host": changed_role})
         changed = materialize_eval_spec(
             root=ROOT,
-            candidate=product(role=changed_role),
-            previous=previous_product(role=changed_role),
+            candidate=product(),
+            previous=previous_product(),
             profiles=deepcopy(PROFILES),
             total_cap=deepcopy(TOTAL_CAP),
             holdout_mapping=mapping(),
             review_brief=deepcopy(REVIEW_BRIEF),
             host_contract=changed_host,
+            external_role_config_sha256=changed_role,
         )
 
-        expected = sorted(
-            unit["unit_id"] for unit in original["units"]
-            if unit["stage"] in {"behavior", "holdout"}
-        )
-        self.assertEqual(invalidation(original, changed)["model_units"], expected)
+        self.assertEqual(invalidation(original, changed), {"mode": "full_evaluation"})
 
         original_exact = next(unit for unit in original["units"] if unit["stage"] == "exact_final")
         changed_exact = next(unit for unit in changed["units"] if unit["stage"] == "exact_final")
