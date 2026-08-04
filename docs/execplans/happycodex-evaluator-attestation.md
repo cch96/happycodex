@@ -214,21 +214,27 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `grant54_offline_exact_request_intent`; release remains `NOT_YET`.
-  Prestate commit/tree are `4a0748fb14ae34cdc3687df2d17b29d81f88bc5b` /
-  `8200af403ff0112ff0670d4caff9d801f76f7c2a`; candidate/tree remain
+- Phase: `grant54_offline_exact_request_terminal_green`; release remains
+  `NOT_YET`. Intent commit/tree are
+  `b1bcef30740f3cfc6b7f8e1b8a0931471ef392e2` /
+  `02efee78da4d5fd39ede293b8d0eebd90b5ea680`; candidate/tree remain
   `b34d8275c8a7c83f89e7c687a17c3cabac4b1086` /
   `edfa8d688723bce59d8de61eaec54e3c6153d53f`.
-- Owner token `a1dd4aed56f85dab3434140ae01f9204caef58fce3475122a84876863266ddb2`
-  exclusively claims this worktree/ref and external root
-  `/home/caichenghang/.codex/happycodex-evaluator-attestation-exact-timeout1200-grant54`;
-  its marker stays outside that root. Destination/staging are absent, all eleven
-  canonical cleanbreak-1 prerequisite Attestation/raw pairs are valid, GREEN,
-  and raw-bound, and provider/auth/network/model activity is zero.
-- Generate one fresh offline `request` after changing only exact-final timeout
-  `600→1200` and exact effect wall cap `600000→120000`; keep one call,
-  `50000/10000` tokens, zero recoveries, all non-timeout inputs and prerequisite
-  evidence unchanged. GRANT-53 evidence remains immutable and ineligible.
-  Provider auth, capability, fixed host, model/network, install, release, and
-  activation are forbidden. Drift, collision, invalidation, or test failure
-  stops without cleanup or retry.
+- One fresh offline request exists at
+  `/home/caichenghang/.codex/happycodex-evaluator-attestation-exact-timeout1200-grant54/request`;
+  request/spec/source identities are
+  `ce4245f74d866868c35d033052ad6fd10d54e21d84f61b8e97c3af5cdc43e849` /
+  `495f75f1d0fc5493a2509a76f552cbcd64f4e4b186656e61bfbd2e277a4b92e9` /
+  `5d0e0d53f88c8be3b3ae7843cb7de66bc83946d2b36eb8a25d8d52532a5217da`.
+  Host/evaluator identities remain `49b67db41a16537242d8906b2d6a545b8fbdb191b702a3cc6bebcc6e8aee19d7` /
+  `86bc4dccf6a7e5ec6e0c672b4a8cd2fb8a8e73bceb6a651334bbfde54a5c7b06`.
+- Selected units are exactly `[exact-final]`; profile is
+  `gpt-5.6-sol/max/1200s/command_execution`, cap is
+  `1/50000/10000/1200000/0`, and prefix is `0/0/0/0`. Eleven unchanged
+  prerequisites, preserved identities, package modes/inventory, synthetic seal,
+  and cumulative `135/135` are GREEN. Only timeout-dependent exact identities
+  and enclosing spec/request identities changed; all eleven non-exact units are
+  equal. GRANT-53 evidence is immutable; provider/auth/network/model, install,
+  release, and activation activity is zero.
+- Non-authoritative proposal: `APPROVE HAPPYCODEX EVALUATION
+  ce4245f74d866868c35d033052ad6fd10d54e21d84f61b8e97c3af5cdc43e849`.
