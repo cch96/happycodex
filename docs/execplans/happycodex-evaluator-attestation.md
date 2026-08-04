@@ -214,16 +214,13 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `grant57_exact_final_effect_intent`; release remains `NOT_YET`.
-  Prestate commit/tree are `bba3ccea8e6e0651ae3e6fb917a5958832437956` /
-  `289aca037c7ec3fc15a66a3433d7e3dd67efe2ef`; candidate/tree remain
+- Phase: `grant57_exact_final_terminal_not_yet`; release is blocked and remains
+  `NOT_YET`. Intent commit/tree are
+  `e2ad4ae63c602e5375ae2dd374bf48e7e71419f4` /
+  `0cf458ad3f117a315076d41b14586877e20f74a3`; candidate/tree remain
   `b34d8275c8a7c83f89e7c687a17c3cabac4b1086` /
   `edfa8d688723bce59d8de61eaec54e3c6153d53f`.
-- Exact authority is `APPROVE HAPPYCODEX EVALUATION
-  d6ba1bbd287c302d50d0abfd005810d0e8f7fa4bc33dbeea8a945ac91f7395a4`.
-  Owner token `febbdb3e43a58a8a9a6b2dcc4e1f3b9e7a8654f858f7ff928801baf376421c9e`
-  exclusively claims worktree/ref/output; its marker is outside the transaction.
-  Frozen request is
+- Frozen request is
   `/home/caichenghang/.codex/happycodex-evaluator-attestation-exact-timeout2400-grant56/request`.
   Request/spec/spec-identity are
   `d6ba1bbd287c302d50d0abfd005810d0e8f7fa4bc33dbeea8a945ac91f7395a4` /
@@ -235,11 +232,22 @@ These are planning boundaries, not authority under GRANT-01.
   `86bc4dccf6a7e5ec6e0c672b4a8cd2fb8a8e73bceb6a651334bbfde54a5c7b06`.
 - Selected units are `[exact-final]`; profile is
   `gpt-5.6-sol/max/2400s/command_execution`, exact cap is
-  `1/50000/10000/2400000/0`, total cap is unchanged, and prefix is `0/0/0/0`.
-  Eleven imported prerequisites, package modes/inventory, source seal, claims,
-  and no residue/process are GREEN.
-- Re-read every binding and preflight, then privately stage auth, mint one
-  process-local capability, and invoke the fixed host exactly once. No retry,
-  resume, recovery, extension, second request/process, install, release, or
-  activation is authorized. Any outcome is terminal; retain raw outside Git,
-  remove auth, reap provider, record one receipt, and release claims.
+  `1/50000/10000/2400000/0`. One provider call completed successfully in
+  1,703,784 ms with 3,636,376 input and 48,340 output tokens, exceeding both
+  token caps; no retry followed. Report is neutral and coverage-complete but
+  decides `NOT_YET`, so verdict is `fail` with `fatal:decision`.
+- Five findings remain: raw-to-report sanitization and response-schema binding;
+  inspection-order/native-item bypass; evaluator components not runtime-bound
+  to EvalSpec; malformed raw lacking a typed adverse Attestation; and frozen
+  manifest lineage reconstructing a different source tree.
+- Raw is 589,831 bytes / 71 events (37 completed, 31 started, thread/turn start
+  and turn completion; 6 agent messages / 62 commands), SHA-256
+  `acb4341f6676fc8e771dec87d98f5e4d1c013e604cd3ee9e51e461a4308ce813`.
+  Report, Attestation record/file, and claim-file SHA-256 are
+  `9a21d55815053b16bca3862d80e93fd0730692485c10a2d019746405a37dc80e` /
+  `a4216d7340bf8058800ae10ee6ec1bf1bbfbba3f866c83ffc0a78e602d4cf367` /
+  `2e58efae93e4adb915a8dce37d03e35ae9d9a2532f2591b5c132e991f91c2ad4` /
+  `349873c82ea78c3d54515d04b545f02eb0355c0c2653504e286583a6411ddd7f`.
+  Prefix is `1/1/1/1`; auth is absent, provider is reaped, identities/product are
+  unchanged, and evaluation is ineligible. No install/release/activation or new
+  request is authorized; next gate is Root reproduction and user decision.
