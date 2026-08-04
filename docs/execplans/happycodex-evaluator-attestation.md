@@ -214,32 +214,24 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `grant48_request_materialization_failed_offline`; release remains
-  `NOT_YET`.
+- Phase: `grant49_request_preparation_offline`; release remains `NOT_YET`.
   Current clean candidate/tree are
   `b34d8275c8a7c83f89e7c687a17c3cabac4b1086` /
   `edfa8d688723bce59d8de61eaec54e3c6153d53f`.
-- GRANT-48 durable-intent commit/tree are
-  `0e3b7b48200cab5ed6a6ba2a498094576309ba5b` /
-  `f34b3942046530cbc15fbed5af15ed2fe8e3962b`. It authorized only fresh claimed
-  `exact-{inputs,source,refresh}-grant48-68ffd09cbf87` outputs. Rebuild the
-  closed 32-path candidate projection and complete private-excluding diff from
-  baseline `v0.6.5`; seal one clean root commit, then set every file to `0400`
-  and directory to `0500` before the first source-identity call. Prove identity
-  and relocation once, then materialize one exact-only request solely through
-  `python3 -m evaluation.cli prepare-exact-request` with exactly eleven valid
-  non-exact raw-backed GREEN prerequisites and cap
-  `1 call / 50000 input / 10000 output / 600000 ms / 0 recoveries`. Stop before
-  provider effect and on any collision, drift, invalid prerequisite, changed
-  projection/cap/profile, or validation failure.
-- GRANT-48 froze 102 files at `0400` and 65 directories at `0500`; source and
-  relocation identity both equal
-  `5d0e0d53f88c8be3b3ae7843cb7de66bc83946d2b36eb8a25d8d52532a5217da`.
-  The one public CLI materialization attempt then stopped before publication:
-  retained-release `eval-spec.json` has the retired host-contract fields and
-  lacks `behavior_sha256`, `holdout_sha256`, and `exact_final_sha256`. No input
-  substitution or retry followed; request/staging remain absent and provider/
-  request execution is zero.
+- GRANT-49 durable intent: create only fresh
+  `exact-refresh-grant49-27feca2a3ac9` through the public offline CLI, using
+  frozen source identity
+  `5d0e0d53f88c8be3b3ae7843cb7de66bc83946d2b36eb8a25d8d52532a5217da`,
+  the GRANT-48 neutral inputs, exactly eleven retained non-exact raw-backed
+  GREEN prerequisites, and schema-v3 previous-spec record
+  `f8e949ff8529e4f4010c9d5ec4043b4753bc33c4cd186135cbfb6068ec117e62`.
+  Select only exact-final with cap
+  `1 call / 50000 input / 10000 output / 600000 ms / 0 recoveries`; stop before
+  provider effect and on any input, identity, path, cap, or validation failure.
+- GRANT-48 remains immutable: its source is valid, but its sole request attempt
+  used stale retained-release `eval-spec.json` and failed before publication,
+  prerequisite verification, request execution, or provider effect; no retry
+  occurred.
 - GRANT-47 is immutable non-authoritative failure evidence: diff SHA-256
   `d93aab5cd1eab50fdb637795c3994fae840bc0d0ecabce67f132043f37a2b27a`,
   synthetic commit `fb380a801b5d0777c81aa1576e3ce11469145174`; root mode `0700` failed before
@@ -264,7 +256,7 @@ These are planning boundaries, not authority under GRANT-01.
   `b68da2b8a7b92f2e8d8aad141ad8c679afa9cb84b6422d7e8b75738f2670f2f4`
   and request digest
   `fb092ae3247f8278adea9c9d90ce82daaa58de6b2fa95fb0c9c787b869b3fac2`
-  are consumed, excluded, and non-authoritative. GRANT-48 changes no product,
+  are consumed, excluded, and non-authoritative. GRANT-49 changes no product,
   Runtime, plugin, evaluator, test, schema, case, oracle, threshold, gate,
   record, receipt, package, config, or old evidence. It authorizes zero
   provider/model/network/request execution and zero install, release,
