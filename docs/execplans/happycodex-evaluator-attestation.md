@@ -214,81 +214,60 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `exact_request_cli_offline_green`. The approved public command is a
-  thin offline adapter over existing source/policy/spec/exact-only validators:
-  it accepts a caller-supplied frozen source and exactly eleven named raw-backed
-  prerequisites, writes no evidence, exposes no provider execution, rejects
-  collision/full-plan/adverse/missing/tampered input, and atomically publishes
-  one closed request root with an explicitly non-authoritative approval line.
-  Its production diff is net +144 lines. RED was the absent command; focused
-  coverage passed `14/14` in 3.454s. The sole cumulative run recorded 132
-  ordinary passes and only the former 3,200-line threshold failure; GRANT-43B's
-  exact 3,400 amendment makes the unchanged 3,332-line observation pass, so the
-  reconciled result is `133/133`. The amended size test passed `1/1` in 0.001s.
-- GRANT-43B amendment, verbatim `改为3400吧，这个直接算通过吧`: change only
-  the evaluator Python hard cap from 3,200 to 3,400 and mechanically classify
-  the already-recorded 3,332-line observation as pass. The prior cumulative run
-  remains one run with 132 ordinary passes plus this amended threshold pass; do
-  not rerun it or change implementation bytes, any other threshold, or scope.
-- GRANT-43A amendment: the required exact-only pathway is not exposed by the
-  sole allowed evaluator entrypoint. Add exactly one compact offline
-  `python3 -m evaluation.cli prepare-exact-request` adapter over existing
-  materializers, validators, and `exact_final_authority_proposal`; prove public
-  CLI equality and fail-closed behavior, commit that closure, then use it for
-  GRANT-43. No one-off internal script, new engine/state/durable type, or
-  provider/model/network effect is allowed.
-- GRANT-43 durable intent, pre-materialization: from clean commit/tree
-  `745c9dcce59e6896a283b5cc93ca72c344af9033` /
-  `7dd709bbfff80683cd734e2ad081c412fd98da24`, build entirely offline one
-  fresh exact-final-only request at
+- Phase: `exact_request_ready_offline`; release remains `NOT_YET`. The frozen
+  CLI-closure commit/tree are `2849916b33826f7c04435bc7f751ef77efbd53b1` /
+  `86f61722e8a4e5317d798b42ff5290505252f271`. The public
+  `python3 -m evaluation.cli prepare-exact-request` command is a thin adapter
+  over the existing policy, host-contract, spec, and exact-only proposal
+  functions. It publishes atomically, exposes no provider execution, and
+  rejects collision, full-plan, adverse, missing, tampered, and over-cap input.
+  Focused CLI/composition coverage passed `14/14` in 3.454s. The cumulative
+  offline result is mechanically reconciled as `133/133`: 132 ordinary passes
+  plus the unchanged 3,332-line evaluator satisfying the user-amended 3,400
+  hard cap; the amended size test separately passed `1/1`.
+- The repaired neutral source is
+  `/home/caichenghang/.codex/happycodex-evaluator-attestation-exact-source-1e9ccb96965a`.
+  Its synthetic commit/tree are `c26092c01c675038f2d4ead2cb991f08b5148c78` /
+  `761032d51b14e579de3f54e1d0c72f6e1c1bb966`, source identity is
+  `b68da2b8a7b92f2e8d8aad141ad8c679afa9cb84b6422d7e8b75738f2670f2f4`,
+  and its complete reviewer diff is 1,090,559 bytes with SHA-256
+  `a96333653221337ea98f20f4e41a440c607b1daaff9867d1715f848dbcfc7162`.
+  The first construction used a misplaced Git `--output` argument and created
+  only the 32-file projection; that exact partial directory was moved to system
+  Trash before one corrected construction. A later blanket text predicate
+  confused nine legitimate hidden-oracle path literals with private payload;
+  the semantic check proved zero private diff paths, projected private files,
+  workspace private files, or oracle-payload leakage. Git retains the detailed
+  recovery lineage.
+- The closed request root is
   `/home/caichenghang/.codex/happycodex-evaluator-attestation-exact-refresh-1e9ccb96965a`.
-  Reverify and compose exactly the eleven old raw-backed GREEN behavior/holdout
-  prerequisites, create a repaired frozen exact source, and select exactly
-  `exact-final` with one call, 600-second timeout, and zero recoveries. The old
-  failed exact evidence stays immutable and excluded. No provider/model/network,
-  auth staging, install, release, activation, cache, marketplace, rollback, or
-  evaluator/product/config/case/oracle/threshold/protocol mutation is authorized.
-- Phase: `launcher_repair_offline_green`; release remains `NOT_YET`. GRANT-42
-  began from clean commit/tree `a799d0a898f54e7bab318224dddca2053d5fd3be` /
-  `b833665b9b5179975d86184129d9764decc1b5a7`; durable-intent commit/tree are
-  `fe4c5f15de5d75d799b7b4e8bb84ce2f733abe80` /
-  `faa8493f93f6fbbd7bb73b00c420e6ea93936c6e`.
-- The immutable failed request `682a9f76...`, exact Attestation record
-  `6ecb2194...`, and raw digest `cefae864...` remain adverse evidence under
-  `/home/caichenghang/.codex/happycodex-evaluator-attestation-cleanbreak-1`.
-  They were neither modified nor reinterpreted, and the provider-reaching unit
-  was not retried.
-- Mechanical cause: exact-final launched the release binary by its absolute
-  path while granting only the unit-private `codex-linux-sandbox` file. Native
-  discovery mapped the direct launcher to the release binary's helper surface
-  and the private hard-linked launcher to `command-bin/codex`. `doctor --json`
-  did not reproduce the provider error and used local AF_INET syscalls, so it is
-  characterization only. A zero-model `codex sandbox /usr/bin/true` probe used
-  no AF_INET connect/send/receive and passed with the exact private launcher and
-  helper file permissions.
-- Repair: exact-final now creates and validates two unit-private hard links,
-  `codex` and `codex-linux-sandbox`, launches through the former, and binds the
-  launcher alias into exact-only host identity. Inode, digest, path, executable,
-  link-creation, and tamper drift fail closed before provider reach. Behavior
-  and holdout launcher identity remain unchanged. No stderr/schema/receipt
-  change was made: native stderr remains process-observable but is not promoted
-  to a fifth durable evidence surface.
-- RED was three targeted tests with one failure and three errors. The same three
-  became GREEN in 0.524s; native/focused coverage passed `5/5` in 0.724s and the
-  cumulative focused modules passed `72/72` in 10.576s. The single cumulative
-  offline suite passed `131/131` in 13.968s. Evaluator Python is 3,188 lines;
-  `evaluation/provider.py` is 593 lines and `evaluation/host.py` is 584. The
-  post-repair product/four-record/default-plan/vocabulary/size guards passed
-  `8/8` in 0.054s; this single current index is 2,464 words.
-- The coherent repair changes exactly this plan, `evaluation/provider.py`,
-  `evaluation/host.py`, and `tests/test_fixed_host_transaction_v2.py`. It does
-  not change Runtime, package/config, cases, oracles, thresholds, the four
-  durable record types, the ordinary `5 + 6 + 1` plan, receipts, evidence, or
-  release semantics. No provider/model/network, live evidence, install,
+  Its authority-request digest is
+  `fb092ae3247f8278adea9c9d90ce82daaa58de6b2fa95fb0c9c787b869b3fac2`;
+  the displayed canonical line is `APPROVE HAPPYCODEX EVALUATION
+  fb092ae3247f8278adea9c9d90ce82daaa58de6b2fa95fb0c9c787b869b3fac2`.
+  That line is explicitly informational (`authoritative: false`) and grants no
+  effect. The EvalSpec, evaluator-bundle, and host-contract identities are
+  `4fbe975bfde3bf0705a7bf91e1eb9579dfd671d73920627d63d1a877512fba9b`,
+  `c41d3f1536d7fbe52fa407dced600334ef4a99e76a3e7dbf45bf3b26bc5ee103`,
+  and `d678e7c30973ce9085b27a42541350b28a091be9ba7e9af56c96cdd66e07befa`.
+- The proposal selects only `exact-final`: one call, at most 50,000 input and
+  10,000 output tokens, 600,000 milliseconds, and zero infrastructure
+  recoveries. The conservative basis is the prior successful transport actual
+  of 23,555 input tokens, 1,196 output tokens, and 31,402 milliseconds, plus the
+  fixed 600-second timeout. Exactly eleven old raw-backed GREEN prerequisites
+  compose under set SHA-256
+  `3651b335e64d160e5793946a510f6312a3b57b7d960d7a5a70475dd3b4bd8561`.
+  The prior failed exact record `6ecb2194...` and raw bytes SHA-256
+  `cefae86422501af1bff44cb3b8d828a36eb0caeb7879bacd68f19ded55124a0e`
+  remain immutable and excluded.
+- Fresh-process materialization reproduced `eval-spec.json` byte-for-byte; the
+  public validator accepted all four product/spec records and exactly eleven
+  prerequisite attestations. Public inventory remains closed to four durable
+  record types, has no active ledger, and reports the current evaluator bundle.
+  Request inventory is 116 files with SHA-256
+  `da4b22e104a0dd8238f7650691556b83709cb62e9c620f50c41f453ac7a80d5d`.
+  The request has zero execution prefix and no supplied authority. Runtime and
+  plugin bytes still equal `v0.6.5`; no provider/model/network, install,
   release, activation, cache, marketplace, rollback, or retry effect occurred.
-- The eleven prior raw-backed GREEN behavior/holdout prerequisites are only
-  candidates for exact-only composition if a future fresh authority proposal
-  mechanically binds this repaired spec and revalidates every prerequisite.
-  The failed exact Attestation can never count as success. Release still needs
-  exactly one fresh neutral exact-final model call under new exact authority;
-  this checkpoint neither requests nor grants it.
+  Exactly one future neutral exact-final provider call is requested, but it is
+  not authorized by this repository content or checkpoint.
