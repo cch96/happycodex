@@ -214,114 +214,43 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `grant45_parser_repair_offline_green`; release remains `NOT_YET` and
-  GRANT-44 evidence remains immutable, ambiguous, and non-retryable. GRANT-45
-  durable-intent commit/tree are `93d74a27f59ad19143a7f16c8d552aa7b53f6017` /
-  `bfae782bc958606f8c8223d4a7a5e43103a4e1aa`, based on clean
-  `feeab12d23f208c2eccc3bb871066c984e1a3e43`.
-- Three narrow synthetic tests were RED with three errors: the old parser
-  rejected report → command → final report, unterminated report → command, and
-  report → native error/failed terminal. The repair adds only a same-turn report
-  candidate slot. A valid, terminal-last `turn.completed` promotes the last
-  candidate to the canonical report; missing or failed terminal keeps canonical
-  report and usage absent, so Attestation classification is
-  `ambiguous_or_partial`, incomplete, and fail. Strict single thread/turn,
-  closed event fields, unique IDs, paired non-agent items, no open item at
-  terminal, exact terminal usage, forbidden event, and secret rules are
-  unchanged.
-- Final diff review added a same-scope strictness guard: an agent report after
-  a native error remains forbidden, while an intermediate report before that
-  error remains a partial candidate. Final targeted GREEN was `3/3` in 0.081s;
-  the relevant file passed `26/26` in 0.571s; the final documented cumulative
-  offline suite passed `135/135` in 15.192s. Evaluator Python is 3,330 lines,
-  maximum file 596, within the 3,400
-  hard cap. The bounded wave changes only `evaluation/verify.py`,
-  `tests/test_stateless_records.py`, and this plan. Diff hygiene, claims, and
-  product/Runtime/config preservation are GREEN. No provider/model/network,
-  request/spec/authority, install, release, activation, cache, marketplace,
-  rollback, Runtime/package/config, evidence rewrite/reuse, or new protocol
-  family effect occurred.
-- Phase: `exact_final_terminal_ambiguous`; release remains `NOT_YET` and is
-  blocked. GRANT-44 durable-intent commit/tree are
-  `0b8ad0f0b650633dc1637b5d54bfbba1a4a02704` /
-  `dbe358f58445d5e2ac57287bfb81fdd66c369d4a`. The exact current-task user line
-  authenticated proposal `fb092ae...` under process-local authority digest
-  `c066a43f...`. Every bound identity and the zero prefix reproduced GREEN
-  immediately before one `gpt-5.6-sol/max` exact-final launch. The provider was
-  reached exactly once; no retry, resume, recovery, repair, or alternate
-  reviewer followed.
-- The provider returned raw JSONL, but the committed parser stopped before
-  Attestation construction with `native non-agent item follows an agent
-  report`. The 40 valid JSON events contain one `thread.started`, one
-  `turn.started`, 17 paired completed `command_execution` items, and four
-  schema-shaped neutral intermediate reports. Every intermediate report says
-  `NOT_YET`, `coverage.complete=false`, and one finding; each hidden-oracle
-  score has fatal `coverage.complete` and `decision`. Non-agent commands follow
-  the first report, and the stream has neither `turn.completed` nor
-  `turn.failed`, so none is a canonical verdict or valid terminal report.
-- The retained raw is 1,620,086 bytes with SHA-256
-  `02f8fdc86f4279fdacc57e07e4b5ee1c3760e61568ce37866873796059812e46`;
-  the claim SHA-256 is
-  `6f5874304c389dc0d0b89de07dfed107ee5e885a656d435d2b355a4fa7dbd034`.
-  Durable execution counts are units/raw/Attestations/claims `1/1/0/1`.
-  Provider auth was removed and does not occur in raw. Provider reach proves
-  one model call, but absent terminal usage and absent host metadata leave
-  input/output tokens and wall time unknown; cap compliance therefore cannot
-  be proven. This is a terminal partial/ambiguous effect, not GO or NOT_YET.
-- Phase: `exact_request_ready_offline`; release remains `NOT_YET`. The frozen
-  CLI-closure commit/tree are `2849916b33826f7c04435bc7f751ef77efbd53b1` /
-  `86f61722e8a4e5317d798b42ff5290505252f271`. The public
-  `python3 -m evaluation.cli prepare-exact-request` command is a thin adapter
-  over the existing policy, host-contract, spec, and exact-only proposal
-  functions. It publishes atomically, exposes no provider execution, and
-  rejects collision, full-plan, adverse, missing, tampered, and over-cap input.
-  Focused CLI/composition coverage passed `14/14` in 3.454s. The cumulative
-  offline result is mechanically reconciled as `133/133`: 132 ordinary passes
-  plus the unchanged 3,332-line evaluator satisfying the user-amended 3,400
-  hard cap; the amended size test separately passed `1/1`.
-- The repaired neutral source is
-  `/home/caichenghang/.codex/happycodex-evaluator-attestation-exact-source-1e9ccb96965a`.
-  Its synthetic commit/tree are `c26092c01c675038f2d4ead2cb991f08b5148c78` /
-  `761032d51b14e579de3f54e1d0c72f6e1c1bb966`, source identity is
-  `b68da2b8a7b92f2e8d8aad141ad8c679afa9cb84b6422d7e8b75738f2670f2f4`,
-  and its complete reviewer diff is 1,090,559 bytes with SHA-256
-  `a96333653221337ea98f20f4e41a440c607b1daaff9867d1715f848dbcfc7162`.
-  The first construction used a misplaced Git `--output` argument and created
-  only the 32-file projection; that exact partial directory was moved to system
-  Trash before one corrected construction. A later blanket text predicate
-  confused nine legitimate hidden-oracle path literals with private payload;
-  the semantic check proved zero private diff paths, projected private files,
-  workspace private files, or oracle-payload leakage. Git retains the detailed
-  recovery lineage.
-- The closed request root is
-  `/home/caichenghang/.codex/happycodex-evaluator-attestation-exact-refresh-1e9ccb96965a`.
-  Its authority-request digest is
-  `fb092ae3247f8278adea9c9d90ce82daaa58de6b2fa95fb0c9c787b869b3fac2`;
-  the displayed canonical line is `APPROVE HAPPYCODEX EVALUATION
-  fb092ae3247f8278adea9c9d90ce82daaa58de6b2fa95fb0c9c787b869b3fac2`.
-  That line is explicitly informational (`authoritative: false`) and grants no
-  effect. The EvalSpec, evaluator-bundle, and host-contract identities are
-  `4fbe975bfde3bf0705a7bf91e1eb9579dfd671d73920627d63d1a877512fba9b`,
-  `c41d3f1536d7fbe52fa407dced600334ef4a99e76a3e7dbf45bf3b26bc5ee103`,
-  and `d678e7c30973ce9085b27a42541350b28a091be9ba7e9af56c96cdd66e07befa`.
-- The proposal selects only `exact-final`: one call, at most 50,000 input and
-  10,000 output tokens, 600,000 milliseconds, and zero infrastructure
-  recoveries. The conservative basis is the prior successful transport actual
-  of 23,555 input tokens, 1,196 output tokens, and 31,402 milliseconds, plus the
-  fixed 600-second timeout. Exactly eleven old raw-backed GREEN prerequisites
-  compose under set SHA-256
-  `3651b335e64d160e5793946a510f6312a3b57b7d960d7a5a70475dd3b4bd8561`.
-  The prior failed exact record `6ecb2194...` and raw bytes SHA-256
-  `cefae86422501af1bff44cb3b8d828a36eb0caeb7879bacd68f19ded55124a0e`
-  remain immutable and excluded.
-- Fresh-process materialization reproduced `eval-spec.json` byte-for-byte; the
-  public validator accepted all four product/spec records and exactly eleven
-  prerequisite attestations. Public inventory remains closed to four durable
-  record types, has no active ledger, and reports the current evaluator bundle.
-  Pre-effect request inventory was 116 files with SHA-256
-  `da4b22e104a0dd8238f7650691556b83709cb62e9c620f50c41f453ac7a80d5d`.
-  Runtime and plugin bytes still equal `v0.6.5`. No supplied authority remains
-  in the request, and no install, release, activation, cache, marketplace,
-  rollback, or retry effect occurred. GRANT-44 is consumed and terminal; any
-  future diagnosis or change requires a new user decision and may never treat
-  these bytes as a retryable exact-final result.
+- Phase: `grant47_exact_preparation_offline`; release remains `NOT_YET`.
+  Current clean candidate/tree are
+  `b34d8275c8a7c83f89e7c687a17c3cabac4b1086` /
+  `edfa8d688723bce59d8de61eaec54e3c6153d53f`.
+- GRANT-47 durable intent: create fresh claimed
+  `exact-{inputs,source,refresh}-grant47-b34d8275c8a7` outputs only. Reproduce
+  the closed 32-path reviewer source from baseline `v0.6.5`, with the complete
+  evaluation/tests diff excluding private `evaluation/hidden-oracles-v1.json`,
+  one clean isolated root commit, current identities, and relocation proof.
+  Materialize one exact-only request only through
+  `python3 -m evaluation.cli prepare-exact-request`, using exactly eleven
+  mechanically valid non-exact raw-backed GREEN prerequisites and cap
+  `1 call / 50000 input / 10000 output / 600000 ms / 0 recoveries`. Stop
+  before provider effect and on any collision, drift, invalid prerequisite,
+  changed projection/cap/profile, or validation failure.
+- GRANT-45 terminal commit/tree are
+  `b34d8275c8a7c83f89e7c687a17c3cabac4b1086` /
+  `edfa8d688723bce59d8de61eaec54e3c6153d53f`. Its final focused, relevant,
+  and cumulative results were `3/3`, `26/26`, and `135/135`. An
+  `agent_message` is a same-turn candidate: only terminal-last
+  `turn.completed` promotes the last candidate; missing/failed terminal keeps
+  report and usage absent and remains partial. Commands or native failure may
+  follow an intermediate report, but a report after native error remains
+  forbidden; all other native-stream strictness is unchanged.
+- GRANT-44 is terminal partial/ambiguous: raw SHA-256
+  `02f8fdc86f4279fdacc57e07e4b5ee1c3760e61568ce37866873796059812e46`,
+  claim SHA-256
+  `6f5874304c389dc0d0b89de07dfed107ee5e885a656d435d2b355a4fa7dbd034`,
+  durable counts `1/1/0/1` for units/raw/Attestations/claims. It reached the
+  provider once, has no valid terminal or Attestation, and permits no retry,
+  resume, recovery, reinterpretation, or completion decision.
+- The prior sealed source identity
+  `b68da2b8a7b92f2e8d8aad141ad8c679afa9cb84b6422d7e8b75738f2670f2f4`
+  and request digest
+  `fb092ae3247f8278adea9c9d90ce82daaa58de6b2fa95fb0c9c787b869b3fac2`
+  are consumed, excluded, and non-authoritative. GRANT-47 changes no product,
+  Runtime, plugin, evaluator, test, schema, case, oracle, threshold, gate,
+  record, receipt, package, config, or old evidence. It authorizes zero
+  provider/model/network/request execution and zero install, release,
+  activation, cache, marketplace, rollback, or 12-call-plan effect.
