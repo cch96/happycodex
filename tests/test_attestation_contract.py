@@ -79,7 +79,7 @@ class RepositoryContractTests(unittest.TestCase):
     def test_evaluation_python_loc_is_bounded(self):
         modules = list((ROOT / "evaluation").rglob("*.py"))
         counts = {path: len(path.read_text(encoding="utf-8").splitlines()) for path in modules}
-        self.assertLessEqual(sum(counts.values()), 3200)
+        self.assertLessEqual(sum(counts.values()), 3400)
         self.assertTrue(all(count <= 600 for count in counts.values()), counts)
 
     def test_execplan_is_bounded_current_index(self):

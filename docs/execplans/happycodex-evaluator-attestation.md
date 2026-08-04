@@ -214,6 +214,17 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
+- Phase: `exact_request_cli_offline_green`. The approved public command is a
+  thin offline adapter over existing source/policy/spec/exact-only validators:
+  it accepts a caller-supplied frozen source and exactly eleven named raw-backed
+  prerequisites, writes no evidence, exposes no provider execution, rejects
+  collision/full-plan/adverse/missing/tampered input, and atomically publishes
+  one closed request root with an explicitly non-authoritative approval line.
+  Its production diff is net +144 lines. RED was the absent command; focused
+  coverage passed `14/14` in 3.454s. The sole cumulative run recorded 132
+  ordinary passes and only the former 3,200-line threshold failure; GRANT-43B's
+  exact 3,400 amendment makes the unchanged 3,332-line observation pass, so the
+  reconciled result is `133/133`. The amended size test passed `1/1` in 0.001s.
 - GRANT-43B amendment, verbatim `改为3400吧，这个直接算通过吧`: change only
   the evaluator Python hard cap from 3,200 to 3,400 and mechanically classify
   the already-recorded 3,332-line observation as pass. The prior cumulative run
