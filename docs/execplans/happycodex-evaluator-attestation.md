@@ -214,6 +214,11 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
+- GRANT-43B amendment, verbatim `改为3400吧，这个直接算通过吧`: change only
+  the evaluator Python hard cap from 3,200 to 3,400 and mechanically classify
+  the already-recorded 3,332-line observation as pass. The prior cumulative run
+  remains one run with 132 ordinary passes plus this amended threshold pass; do
+  not rerun it or change implementation bytes, any other threshold, or scope.
 - GRANT-43A amendment: the required exact-only pathway is not exposed by the
   sole allowed evaluator entrypoint. Add exactly one compact offline
   `python3 -m evaluation.cli prepare-exact-request` adapter over existing
