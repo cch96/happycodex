@@ -214,28 +214,24 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `grant49_preflight_validation_failed_offline`; release remains
-  `NOT_YET`.
+- Phase: `grant50_request_preparation_offline`; release remains `NOT_YET`.
   Current clean candidate/tree are
   `b34d8275c8a7c83f89e7c687a17c3cabac4b1086` /
   `edfa8d688723bce59d8de61eaec54e3c6153d53f`.
-- GRANT-49 durable-intent commit/tree are
-  `f33774b8151ab68dd1595624d57b2d4fea581743` /
-  `62dbcdfe2b50780e3a6cf3bd49949ed8c657fb91`. It authorized only fresh
-  `exact-refresh-grant49-27feca2a3ac9` through the public offline CLI, using
-  frozen source identity
+- GRANT-50 durable intent: after only the bound byte/path/mode checks, create
+  fresh `exact-refresh-grant50-9ee1e5d3a23e` through the public offline CLI,
+  using frozen source identity
   `5d0e0d53f88c8be3b3ae7843cb7de66bc83946d2b36eb8a25d8d52532a5217da`,
-  the GRANT-48 neutral inputs, exactly eleven retained non-exact raw-backed
-  GREEN prerequisites, and schema-v3 previous-spec record
+  the exact GRANT-48 inputs, eleven retained non-exact raw-backed GREEN pairs,
+  and schema-v3 previous-spec record
   `f8e949ff8529e4f4010c9d5ec4043b4753bc33c4cd186135cbfb6068ec117e62`.
   Select only exact-final with cap
   `1 call / 50000 input / 10000 output / 600000 ms / 0 recoveries`; stop before
-  provider effect and on any input, identity, path, cap, or validation failure.
-- Its read-only preflight passed tracked-clean state, absent destination,
-  frozen source identity/modes, and exact schema-v3 previous-spec digest, then
-  stopped on an over-narrow exact profiles-shape assertion (`profiles drift`).
-  The public CLI was not invoked; request/staging remain absent and no relaxed
-  check, retry, request execution, or provider effect followed.
+  provider effect on objective drift or public validator/materializer failure.
+  No inferred semantic or reduced-shape preflight assertion is allowed.
+- GRANT-49 is terminal zero-effect: objective checks passed, then an invented
+  exact profiles-shape assertion stopped before CLI invocation and was never
+  relaxed or retried.
 - GRANT-48 remains immutable: its source is valid, but its sole request attempt
   used stale retained-release `eval-spec.json` and failed before publication,
   prerequisite verification, request execution, or provider effect; no retry
@@ -264,7 +260,7 @@ These are planning boundaries, not authority under GRANT-01.
   `b68da2b8a7b92f2e8d8aad141ad8c679afa9cb84b6422d7e8b75738f2670f2f4`
   and request digest
   `fb092ae3247f8278adea9c9d90ce82daaa58de6b2fa95fb0c9c787b869b3fac2`
-  are consumed, excluded, and non-authoritative. GRANT-49 changes no product,
+  are consumed, excluded, and non-authoritative. GRANT-50 changes no product,
   Runtime, plugin, evaluator, test, schema, case, oracle, threshold, gate,
   record, receipt, package, config, or old evidence. It authorizes zero
   provider/model/network/request execution and zero install, release,
