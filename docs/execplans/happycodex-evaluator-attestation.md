@@ -214,20 +214,33 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- GRANT-45 durable intent, pre-mutation: from clean commit/tree
-  `feeab12d23f208c2eccc3bb871066c984e1a3e43` /
-  `a85fb4882120eb8bb10151f8b79feae247488a91`, change only
-  `evaluation/verify.py`, `tests/test_stateless_records.py`, and this current
-  index. First prove narrow RED for same-turn intermediate report candidates,
-  later commands/final report, missing terminal, and failed terminal; then make
-  the parser select only the last valid report at a valid `turn.completed` and
-  classify missing/failed terminal as partial without relaxing thread, turn,
-  item-pairing, ID, terminal-last, usage, event-field, secret, or unknown-event
-  rejection. GRANT-44 raw/evidence stays immutable and is never reinterpreted.
-  One focused run and one documented cumulative offline suite are authorized;
-  no provider/network, request/spec/authority, install, release, activation,
-  cache, marketplace, rollback, Runtime/package/config, or new protocol family
-  effect is authorized.
+- Phase: `grant45_parser_repair_offline_green`; release remains `NOT_YET` and
+  GRANT-44 evidence remains immutable, ambiguous, and non-retryable. GRANT-45
+  durable-intent commit/tree are `93d74a27f59ad19143a7f16c8d552aa7b53f6017` /
+  `bfae782bc958606f8c8223d4a7a5e43103a4e1aa`, based on clean
+  `feeab12d23f208c2eccc3bb871066c984e1a3e43`.
+- Three narrow synthetic tests were RED with three errors: the old parser
+  rejected report → command → final report, unterminated report → command, and
+  report → native error/failed terminal. The repair adds only a same-turn report
+  candidate slot. A valid, terminal-last `turn.completed` promotes the last
+  candidate to the canonical report; missing or failed terminal keeps canonical
+  report and usage absent, so Attestation classification is
+  `ambiguous_or_partial`, incomplete, and fail. Strict single thread/turn,
+  closed event fields, unique IDs, paired non-agent items, no open item at
+  terminal, exact terminal usage, forbidden event, and secret rules are
+  unchanged.
+- Final diff review added a same-scope strictness guard: an agent report after
+  a native error remains forbidden, while an intermediate report before that
+  error remains a partial candidate. Final targeted GREEN was `3/3` in 0.081s;
+  the relevant file passed `26/26` in 0.571s; the final documented cumulative
+  offline suite passed `135/135` in 15.192s. Evaluator Python is 3,330 lines,
+  maximum file 596, within the 3,400
+  hard cap. The bounded wave changes only `evaluation/verify.py`,
+  `tests/test_stateless_records.py`, and this plan. Diff hygiene, claims, and
+  product/Runtime/config preservation are GREEN. No provider/model/network,
+  request/spec/authority, install, release, activation, cache, marketplace,
+  rollback, Runtime/package/config, evidence rewrite/reuse, or new protocol
+  family effect occurred.
 - Phase: `exact_final_terminal_ambiguous`; release remains `NOT_YET` and is
   blocked. GRANT-44 durable-intent commit/tree are
   `0b8ad0f0b650633dc1637b5d54bfbba1a4a02704` /

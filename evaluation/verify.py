@@ -61,7 +61,7 @@ def parse_raw_stream(raw: bytes) -> dict[str, Any]:
         raise HostEvidenceError("raw stream event is invalid")
     thread_id = None; turn_started = turn_completed = turn_failed = False
     failure_message = None; open_items = {}; completed_items = set()
-    item_facts = []; report = usage = None
+    item_facts = []; report_candidate = report = usage = None
     for index, event in enumerate(events):
         kind = event.get("type")
         if kind == "thread.started":
@@ -82,14 +82,12 @@ def parse_raw_stream(raw: bytes) -> dict[str, Any]:
                 raise HostEvidenceError("native item is outside the single unfinished turn")
             item_id, item_type = item["id"], item["type"]
             if item_type == "agent_message":
-                if kind != "item.completed" or set(item) != {"id", "type", "text"} or item_id in completed_items or open_items or type(item["text"]) is not str:
+                if kind != "item.completed" or set(item) != {"id", "type", "text"} or item_id in completed_items or open_items or failure_message is not None or type(item["text"]) is not str:
                     raise HostEvidenceError("native final agent message is invalid or duplicated")
                 try: value = json.loads(item["text"])
                 except json.JSONDecodeError as exc: raise HostEvidenceError("native final agent message is not JSON") from exc
                 if type(value) is not dict: raise HostEvidenceError("native final agent message is not an object")
-                report = value; completed_items.add(item_id)
-            elif report is not None:
-                raise HostEvidenceError("native non-agent item follows an agent report")
+                report_candidate = value; completed_items.add(item_id)
             elif kind == "item.started":
                 if item_id in open_items or item_id in completed_items: raise HostEvidenceError("native item start is duplicated")
                 open_items[item_id] = item_type
@@ -99,19 +97,19 @@ def parse_raw_stream(raw: bytes) -> dict[str, Any]:
             item_facts.append({"event": kind, "id": item_id, "type": item_type})
         elif kind == "error":
             _exact_native(event, {"type", "message"}, "error")
-            if not turn_started or turn_completed or turn_failed or report is not None or failure_message is not None or type(event["message"]) is not str or not event["message"]:
+            if not turn_started or turn_completed or turn_failed or failure_message is not None or type(event["message"]) is not str or not event["message"]:
                 raise HostEvidenceError("native error event is invalid")
             failure_message = event["message"]
         elif kind == "turn.failed":
             _exact_native(event, {"type", "error"}, "turn.failed"); error = event["error"]
-            if index != len(events)-1 or not turn_started or turn_completed or turn_failed or report is not None or open_items or type(error) is not dict or set(error) != {"message"} or error.get("message") != failure_message:
+            if index != len(events)-1 or not turn_started or turn_completed or turn_failed or open_items or type(error) is not dict or set(error) != {"message"} or error.get("message") != failure_message:
                 raise HostEvidenceError("native failed terminal is invalid")
             turn_failed = True
         elif kind == "turn.completed":
             _exact_native(event, {"type", "usage"}, "turn.completed")
-            if index != len(events)-1 or not turn_started or turn_completed or open_items or report is None:
+            if index != len(events)-1 or not turn_started or turn_completed or open_items or report_candidate is None:
                 raise HostEvidenceError("native turn terminal is invalid or not last")
-            usage = _usage(event["usage"]); turn_completed = True
+            usage = _usage(event["usage"]); report = report_candidate; turn_completed = True
         else:
             raise HostEvidenceError("native stream event type is forbidden")
     if events and thread_id is None: raise HostEvidenceError("native stream lacks a thread start")

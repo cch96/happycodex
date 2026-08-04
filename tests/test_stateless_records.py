@@ -246,6 +246,8 @@ class ExternalHostClaimTests(unittest.TestCase):
             {"type": "thread.started", "thread_id": "thread-multiple"},
             {"type": "turn.started"},
             {"type": "item.completed", "item": {"id": "message-1", "type": "agent_message", "text": json.dumps(first)}},
+            {"type": "item.started", "item": {"id": "tool-1", "type": "command_execution"}},
+            {"type": "item.completed", "item": {"id": "tool-1", "type": "command_execution"}},
             {"type": "item.completed", "item": {"id": "message-2", "type": "agent_message", "text": json.dumps(final)}},
             {"type": "turn.completed", "usage": {"input_tokens": 12, "cached_input_tokens": 0, "cache_write_input_tokens": 0, "output_tokens": 4, "reasoning_output_tokens": 2}},
         ]
@@ -256,23 +258,78 @@ class ExternalHostClaimTests(unittest.TestCase):
             parsed["item_facts"],
             [
                 {"event": "item.completed", "id": "message-1", "type": "agent_message"},
+                {"event": "item.started", "id": "tool-1", "type": "command_execution"},
+                {"event": "item.completed", "id": "tool-1", "type": "command_execution"},
                 {"event": "item.completed", "id": "message-2", "type": "agent_message"},
             ],
         )
         self.assertEqual(parsed["raw_events_sha256"], __import__("hashlib").sha256(raw).hexdigest())
 
         duplicate = deepcopy(events)
-        duplicate[3]["item"]["id"] = "message-1"
-        non_agent_after_report = [
-            *events[:3],
+        duplicate[5]["item"]["id"] = "message-1"
+        encoded = b"".join((json.dumps(event, sort_keys=True) + "\n").encode() for event in duplicate)
+        with self.assertRaises(HostEvidenceError):
+            parse_raw_stream(encoded)
+
+    def test_native_parser_keeps_unterminated_report_candidate_partial(self):
+        selected, _, spec, _ = bundle()
+        unit = next(item for item in spec["units"] if item["unit_id"] == "goal-divergence")
+        report = {"safety": {"goal_closed": False}, "next_action": {"purpose": "IMPLEMENT"}}
+        events = [
+            {"type": "thread.started", "thread_id": "thread-unterminated"},
+            {"type": "turn.started"},
+            {"type": "item.completed", "item": {"id": "message-1", "type": "agent_message", "text": json.dumps(report)}},
             {"type": "item.started", "item": {"id": "tool-1", "type": "command_execution"}},
             {"type": "item.completed", "item": {"id": "tool-1", "type": "command_execution"}},
-            events[-1],
         ]
-        for name, invalid in (("duplicate-id", duplicate), ("non-agent-after-report", non_agent_after_report)):
-            encoded = b"".join((json.dumps(event, sort_keys=True) + "\n").encode() for event in invalid)
-            with self.subTest(name=name), self.assertRaises(HostEvidenceError):
-                parse_raw_stream(encoded)
+        raw = b"".join((json.dumps(event, sort_keys=True) + "\n").encode() for event in events)
+        parsed = parse_raw_stream(raw)
+        self.assertIsNone(parsed["report"])
+        self.assertIsNone(parsed["usage"])
+        self.assertFalse(parsed["turn_completed"])
+        record = attestation_from_raw(
+            root=ROOT, product=selected, spec=spec, unit_id=unit["unit_id"],
+            raw=raw, host_metadata=host_metadata(unit, exit_code=1),
+            authority_sha256=SHA["a"],
+        )
+        self.assertEqual(record["terminal"]["classification"], "ambiguous_or_partial")
+        self.assertFalse(record["terminal"]["complete"])
+        self.assertEqual(record["observation"]["report"], {})
+        self.assertEqual(record["verdict"], "fail")
+
+    def test_native_failed_terminal_allows_intermediate_report_candidate(self):
+        selected, _, spec, _ = bundle()
+        unit = next(item for item in spec["units"] if item["unit_id"] == "goal-divergence")
+        message = "provider failed after an intermediate report"
+        events = [
+            {"type": "thread.started", "thread_id": "thread-failed"},
+            {"type": "turn.started"},
+            {"type": "item.completed", "item": {"id": "message-1", "type": "agent_message", "text": json.dumps({"safety": {"goal_closed": False}})}},
+            {"type": "error", "message": message},
+            {"type": "turn.failed", "error": {"message": message}},
+        ]
+        raw = b"".join((json.dumps(event, sort_keys=True) + "\n").encode() for event in events)
+        parsed = parse_raw_stream(raw)
+        self.assertTrue(parsed["turn_failed"])
+        self.assertIsNone(parsed["report"])
+        self.assertIsNone(parsed["usage"])
+        record = attestation_from_raw(
+            root=ROOT, product=selected, spec=spec, unit_id=unit["unit_id"],
+            raw=raw, host_metadata=host_metadata(unit, exit_code=1),
+            authority_sha256=SHA["a"],
+        )
+        self.assertEqual(record["terminal"]["classification"], "ambiguous_or_partial")
+        self.assertFalse(record["terminal"]["complete"])
+        self.assertEqual(record["observation"]["report"], {})
+
+        report_after_error = deepcopy(events)
+        report_after_error.insert(
+            -1,
+            {"type": "item.completed", "item": {"id": "message-2", "type": "agent_message", "text": json.dumps({"safety": {"goal_closed": True}})}},
+        )
+        encoded = b"".join((json.dumps(event, sort_keys=True) + "\n").encode() for event in report_after_error)
+        with self.assertRaises(HostEvidenceError):
+            parse_raw_stream(encoded)
 
     def test_native_parser_rejects_legacy_duplicate_and_malformed_shapes(self):
         selected, _, spec, _ = bundle()
