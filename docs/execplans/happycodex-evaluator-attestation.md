@@ -214,20 +214,22 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `grant50_prerequisite_validation_failed_offline`; release remains
-  `NOT_YET`.
+- Phase: `grant51_request_preparation_offline`; release remains `NOT_YET`.
   Current clean candidate/tree are
   `b34d8275c8a7c83f89e7c687a17c3cabac4b1086` /
   `edfa8d688723bce59d8de61eaec54e3c6153d53f`.
-- GRANT-50 durable-intent commit/tree are
-  `f8b8519073925fc60d5f67cb1906d6c11884a4eb` /
-  `70ad69cb1ec5977709137805dc3dd163bdf3a948`. Its closed byte/path/mode preflight
-  was GREEN, including source identity
+- GRANT-51 durable intent: after the same bound objective preflight, create
+  fresh `exact-refresh-grant51-be4739a333d4` through the public CLI with source
+  identity
   `5d0e0d53f88c8be3b3ae7843cb7de66bc83946d2b36eb8a25d8d52532a5217da`.
-  The one public materializer call then rejected a retained prerequisite with
-  `attestation invocation_sha256 mismatch`; atomic cleanup left request/staging
-  absent. No diagnosis, substitution, retry, request execution, or provider
-  effect followed.
+  Use exactly the eleven schema-v3 pairs under immutable `cleanbreak-1`, whose
+  successful-proposal prerequisite-set SHA-256 is
+  `3651b335e64d160e5793946a510f6312a3b57b7d960d7a5a70475dd3b4bd8561`;
+  select only exact-final with cap `1 / 50000 / 10000 / 600000 / 0`. Stop before
+  provider effect on objective or public validator/materializer failure.
+- GRANT-50 is terminal zero-effect: it mistakenly used forbidden schema-v2
+  release pairs, so public validation found `attestation invocation_sha256
+  mismatch`; atomic cleanup succeeded and no retry followed.
 - GRANT-49 is terminal zero-effect: objective checks passed, then an invented
   exact profiles-shape assertion stopped before CLI invocation and was never
   relaxed or retried.
