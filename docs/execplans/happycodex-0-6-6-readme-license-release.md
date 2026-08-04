@@ -2,14 +2,14 @@
 
 ## Current checkpoint
 
-- Phase: `working` (control bootstrap only; no product candidate exists).
-- Current checkpoint: `HC-RL-004/local-candidate-commit`.
+- Phase: `candidate_frozen`.
+- Current checkpoint: `HC-RL-006/plan-only-commit-dispatch`.
 - Outcome owner and decision maker: Root.
 - Fixed Executor: `/root/readme_license_release_executor`, the sole
   controlled-domain writer for this task.
 - Goal state: none requested; no Goal was created.
 - Grant `HC-RL-001` is consumed by its terminal receipt below.
-- Grant `HC-RL-002` (sequence 2) is returned by its terminal receipt below
+- Grant `HC-RL-002` (sequence 2) was returned by its terminal receipt below
   because the final full-suite execution produced no observable terminal
   output/exit receipt. The edited bytes remain a working candidate, not
   `candidate_frozen`; no product/effect grant is active at handoff.
@@ -17,14 +17,18 @@
   invocation and is returned adverse by the terminal receipt below. The result
   is 158 tests, 2 expected failures, and 41 unaccepted errors; phase remains
   `working` and no grant is active at handoff.
-- Active grant: `HC-RL-004` (sequence 4), exact local candidate commit plus one
-  clean-source suite only. Root established that the 41 errors correctly reject
-  dirty package bytes; a clean Git candidate is a prerequisite for the
-  source-identity suite, not a waiver or weakened assertion.
-- This grant permits one exact five-path stage and local commit, then one exact
-  clean-commit `-q` suite capture. Push, tag, GitHub Release, install,
-  active-state mutation, provider/model calls, product repair, amend, and a
-  second suite remain forbidden.
+- Grant `HC-RL-004` (sequence 4) consumed its one exact local commit and one
+  clean-source suite invocation. Its terminal receipt below freezes candidate
+  commit `03c6707209d0c59a2a6dae03109e08b554a91488`.
+- Grant `HC-RL-005` (sequence 5) consumed its Root-supplied fresh native
+  exact-final `GO` receipt and one bounded disposable isolated install from the
+  immutable candidate. Its terminal receipt is below.
+- Grant `HC-RL-006` (sequence 6) froze the exact Root-supplied GitHub Release
+  body in one new external mode-0600 file. Its one final allowed effect is the
+  plan-only local commit containing the readiness receipt below; the committed
+  state records this grant consumed and leaves no active grant. Push, tag,
+  GitHub Release, install, active-state mutation, provider/model calls, product
+  edit, amend, and notes-body mutation after freeze remain forbidden.
 
 ## Verbatim request and amendments
 
@@ -494,7 +498,161 @@ not repaired or reacquired automatically.
 - Stop: any changed byte/path/ref/protected state, cached-path mismatch, commit
   mismatch, suite mismatch, capture failure, or ungranted effect. No repair,
   amend, retry, or second suite.
-- State: `active`; local commit budget 0/1 and clean-source suite budget 0/1.
+- State: `consumed and returned accepted`; local commit budget 1/1 and
+  clean-source suite budget 1/1 used. Candidate freeze is recorded by the
+  terminal receipt below; this does not decide completion or authorize a later
+  gate.
+
+### `HC-RL-005` — fresh native review receipt and isolated install
+
+- Sequence: 5.
+- Executor: `/root/readme_license_release_executor`; no delegation.
+- Exact prestate: held claims verify; `HEAD` and local `main` are candidate
+  `03c6707209d0c59a2a6dae03109e08b554a91488`; local `origin/main` and live
+  remote `main` remain baseline
+  `0893092ae2febcccfc4b2ade2e78a3e17a588d60`; local/remote v0.6.6 tag and
+  GitHub Release are absent. ProductArtifact package artifact/semantic/record
+  SHA-256 values remain
+  `a9417f6b540c8348e88f8f67ffd249cec822cda135e48d177ce64583d546007c`,
+  `e5ed0d51c70602e1049741133a0b3b44c3e119376acd0e15e2ecc087e1212db1`,
+  and `04ae89198f6add73ebb776c88294647423a36c3708a6098d62a3fd6080f6b9ef`.
+  Status is exactly one unstaged receipt edit to this ExecPlan, with empty
+  index and clean product paths. Protected active/cache inventory,
+  marketplace, and config SHA-256 values remain
+  `925550c00a1ec75ef8bba23d1686bd3417c5d156ce67f1c5d0e92262a03f5a26`,
+  `752de5a68116a69025e6ac46e32e8e0a7512cf8e2f87078d53b719c4362dcbfe`,
+  and `0d4d88dab9263078ad0bb53cef52ae9c54b904f75900ad30a32609edc2b28802`.
+- Root-dispatched fresh native exact-final reviewer receipt: task
+  `/root/readme_release_exact_final`; fresh `fork_turns=none`; model
+  `gpt-5.6-sol`; effort `max`; read-only, no-network, no-delegation; exact
+  baseline `0893092ae2febcccfc4b2ade2e78a3e17a588d60`; exact candidate
+  `03c6707209d0c59a2a6dae03109e08b554a91488`; reviewed product paths
+  `.codex-plugin/plugin.json`, `README.md`, `README.en.md`, and `LICENSE`.
+  The control ExecPlan was explicitly excluded and unread. Terminal verdict:
+  `GO`.
+- Reviewer findings: the complete commit inventory has five paths and only the
+  four product paths were reviewed; Chinese/English positioning,
+  install/use/workflow, Goal, model, package, release, and license obligations
+  are satisfied; MIT text and manifest delta are exact; Skill, evaluator,
+  tests, and role configuration are unchanged; landing pages make no
+  certification overclaim; retained raw suite evidence is 158/2/0. Nonblocking
+  caveat: a later Release body must call v0.6.6 a reviewed public release, must
+  not call it maintainer-evaluator certified, and must not claim native
+  compaction certification. This Executor records the supplied receipt and
+  does not invoke a model/provider.
+- Closed external writes: create exactly one fresh mode-0700 root matching
+  `/home/caichenghang/.codex/happycodex-0.6.6-readme-license-install.XXXXXX`.
+  Marketplace, immutable archived source, isolated HOME, CODEX_HOME, XDG
+  config/cache, install cache, logs, and receipts must remain beneath it. Do
+  not clean or mutate the retained root after the bounded install.
+- Materialize exact candidate tracked bytes with `git archive` at
+  `<root>/marketplace/plugins/happycodex`; verify archive inventory and Git
+  blob/tree identities against the commit before any Codex invocation. Create
+  `<root>/marketplace/.agents/plugins/marketplace.json` with `apply_patch`
+  only: marketplace name `happycodex-066-isolated`, one local plugin named
+  `happycodex` at `./plugins/happycodex`, policy AVAILABLE/ON_INSTALL, category
+  Productivity.
+- With `HOME`, `CODEX_HOME`, `XDG_CONFIG_HOME`, and `XDG_CACHE_HOME` set to
+  exact isolated subdirectories, invoke once each and never retry:
+  `codex plugin marketplace add <root>/marketplace --json`, then only after an
+  unambiguous success `codex plugin add happycodex@happycodex-066-isolated
+  --json`. Capture stdout/stderr and decimal exit separately beneath the root.
+- Acceptance: isolated `codex plugin list --json` unambiguously reports
+  `happycodex@happycodex-066-isolated` installed and enabled at exact version
+  `0.6.6`; cache source/inventory is byte-identical to the immutable archived
+  source; namespaced `skills/happycodex/SKILL.md`, Chinese `README.md`,
+  `README.en.md`, `LICENSE`, and manifest `license: MIT` are present; archived
+  source has no untracked or altered byte. Record command exits, JSON digests,
+  inventories, paths, hashes, and modes.
+- Stop: any ambiguous/partial CLI effect, nonzero command, unexpected output,
+  source/cache/config drift, path escape, inventory/hash mismatch, or missing
+  receipt stops without retry, repair, cleanup, or a second install.
+- After the bounded install, reverify protected active source/cache,
+  marketplace/config, active plugin list, v0.6.5 tree, repository product
+  bytes/refs/status, and absent v0.6.6 tag/Release. Persist one terminal receipt
+  in this ExecPlan and return to Root; do not decide completion.
+- State: `consumed and returned accepted`; marketplace-add budget 1/1 and
+  plugin-add budget 1/1 used. This does not decide completion or authorize a
+  publication effect.
+
+### `HC-RL-006` — exact Release body and plan-only readiness commit
+
+- Sequence: 6.
+- Executor: `/root/readme_license_release_executor`; no delegation.
+- Exact prestate: claims verify; `HEAD` and local `main` are candidate
+  `03c6707209d0c59a2a6dae03109e08b554a91488`; local `origin/main` and live
+  remote `main` remain
+  `0893092ae2febcccfc4b2ade2e78a3e17a588d60`; status is exactly this one
+  unstaged ExecPlan with empty index and clean product paths. Candidate
+  ProductArtifact, fresh native review `GO`, retained isolated-install root,
+  protected active state, and published v0.6.5 identities are exact. Local and
+  remote v0.6.6 tag and GitHub Release are absent. External notes path
+  `/home/caichenghang/.codex/happycodex-v0.6.6-release-notes.md` is absent.
+- Closed external write: create exactly that absent notes path with
+  `apply_patch`, preserve a final newline, then chmod 0600. After its exact body
+  and SHA-256 verify, it is frozen and no mutation or cleanup is allowed. The
+  resulting exact file is 2,545 bytes with SHA-256
+  `1b4d2668609bbee89ae2cf770d985cee7f2ad9390d519ef1c77d60fb21999244`.
+- Exact Root-authorized body, excluding this fence and including one final
+  newline, is:
+
+```text
+HappyCodex 0.6.6 is a user-authorized, reviewed public release.
+
+It is **not certified by the maintainer evaluator**, and it does not claim certification of native Codex compaction behavior.
+
+## Highlights
+
+- Refines the shipped Skill to focus on material failures reachable through supported workflows, treat users, maintainers, local state, and selected configuration as trusted but fallible, verify state and identity rather than motive, and prefer the smallest sufficient control. Wider scope or trust boundaries require explicit user authority.
+- Keeps one fixed Executor as the sole writer while Root decides, grants, reviews, reproduces, and verifies.
+- Rebuilds the maintainer-only evaluator around four immutable records: `ProductArtifact`, `EvalSpec`, `Attestation`, and `ReleaseReceipt`, with stateless verification. The evaluator remains separate from the shipped Runtime and is not linked from the Skill.
+- Makes Simplified Chinese the default README, adds a fact-equivalent English mirror, adopts the MIT License, and improves plugin discovery keywords.
+
+## Validation status
+
+- Plugin and Skill validators passed.
+- The clean committed-source offline suite ran 158 tests with exactly two accepted baseline failures and 0 errors. The failures are `test_exact_final_source_rejects_self_selected_projection_and_fake_diff` at `mutation='old-source'` and `test_old_source_components_cannot_back_a_new_dirty_evalspec`.
+- A fresh isolated native exact-final review returned `GO` over the exact product candidate.
+- A disposable isolated installation of the exact candidate passed; its 52-file source and installed cache were byte-identical.
+- The full 12-call maintainer-evaluator certification was not run for the new README semantic identity, so this release remains uncertified.
+- Native Codex compaction-mechanism certification was not run and is not claimed.
+- The active personal plugin, cache, marketplace, and Codex configuration were not changed by this release workflow.
+
+## Identities
+
+- Product candidate commit: `03c6707209d0c59a2a6dae03109e08b554a91488`
+- Candidate source tree: `bdac5fa71e3177afae3007767e04e8c366253044`
+- Package artifact SHA-256: `a9417f6b540c8348e88f8f67ffd249cec822cda135e48d177ce64583d546007c`
+- Package semantic SHA-256: `e5ed0d51c70602e1049741133a0b3b44c3e119376acd0e15e2ecc087e1212db1`
+- ProductArtifact record SHA-256: `04ae89198f6add73ebb776c88294647423a36c3708a6098d62a3fd6080f6b9ef`
+- Isolated source/cache inventory SHA-256: `3683873cf0cc987a2047c273fd0234c0ac7617e209a577361b9c9730cabd6be2`
+```
+
+- Frozen publication parameters: repository `cch96/happycodex`; annotated tag
+  `v0.6.6`; tag message and Release title `HappyCodex 0.6.6`; public
+  `draft=false`, `prerelease=false`; no assets. A later separately authorized
+  Release command must use `gh release create --verify-tag --notes-file` with
+  the exact frozen notes path. This grant does not authorize that command.
+- Closed repository write: this ExecPlan only. After notes verification, stage
+  exactly this ExecPlan, inspect the cached diff, and create one local commit
+  on `main` with exact message
+  `docs: record HappyCodex 0.6.6 release readiness`; no amend. No product,
+  Runtime, evaluator, test, role, manifest, README, or LICENSE byte may change.
+- Post-commit acceptance: sole parent is the candidate commit; commit inventory
+  is exactly this ExecPlan; worktree and index are clean; local `main` is ahead
+  of origin by 2 while local `origin/main` and live remote `main` remain the
+  baseline; tag/Release remain absent; all product/Artifact/review/install/
+  protected identities and frozen notes bytes remain exact. Record release-
+  target commit/tree and return without deciding completion.
+- Stop: any notes-path collision, body/mode/hash mismatch, cached-path mismatch,
+  product or protected drift, unexpected commit content, partial/ambiguous
+  effect, tag/Release appearance, or other ungranted state stops without retry,
+  repair, amend, cleanup, or scope expansion.
+- State in the committed receipt: `consumed and returned ready`; notes-create
+  budget 1/1 and plan-only commit budget 1/1. The commit containing this line
+  is the consuming commit; its exact Git identity cannot be self-embedded and
+  must be returned from the verified branch ref. No publication effect is
+  authorized.
 
 The first formal candidate check wave before Root's discovery amendment
 produced `git diff --check`, manifest-delta, canonical-MIT, and Skill-identity
@@ -910,3 +1068,322 @@ test_path_relocation_preserves_all_invocation_identities
 - `HC-RL-003` is consumed and returned adverse. Claims and raw capture remain
   held. Root must decide the next source/validation boundary; this receipt does
   not decide acceptance or task completion.
+
+## `HC-RL-004` terminal receipt
+
+- Receipt finalized: `2026-08-04T17:15:50Z` UTC. Phase is
+  `candidate_frozen`; this receipt does not decide completion or authorize any
+  publication, install, provider, or active-state effect.
+- The held external claim receipt again verified with the installed helper:
+  status `verified`, fixed owner `/root/readme_license_release_executor`, exact
+  task `HC-RL-001: happycodex-0.6.6-readme-license-release`, and resource count
+  3. Its mode-0600 bytes remain SHA-256
+  `a8764af6bf128653da8bd64ab1b92f68ab6bf8ad5d17ba9d805219aaa59f6e19`.
+- Cheap dirty-source checks completed before staging: exact five-path/hash
+  inventory, empty index, tracked and new-file diff checks, exact manifest
+  delta, canonical MIT text, and the full named bilingual invariant set were
+  GREEN. No dirty-source full suite was run under this grant.
+- Exactly these five paths were staged, with no unstaged owned byte:
+  `.codex-plugin/plugin.json`, `LICENSE`, `README.en.md`, `README.md`, and this
+  ExecPlan. Cached `git diff --check` was GREEN. One local commit was created on
+  `main`, without amend, using the exact subject
+  `docs: publish Chinese README and MIT license`.
+- Frozen source commit is
+  `03c6707209d0c59a2a6dae03109e08b554a91488`; its sole parent is
+  `0893092ae2febcccfc4b2ade2e78a3e17a588d60`; source tree is
+  `bdac5fa71e3177afae3007767e04e8c366253044`. Commit inventory is exactly:
+  `M .codex-plugin/plugin.json`, `A LICENSE`, `A README.en.md`, `M README.md`,
+  and `A docs/execplans/happycodex-0-6-6-readme-license-release.md`. The
+  newline-delimited `git diff-tree --no-commit-id --name-status -r` inventory
+  SHA-256 is
+  `359640ef479bb4593fc429c070fa094c4dab782cdd9f5b7d3a76d0093a781556`.
+- Binary/full-index/no-renames SHA-256 is
+  `eab921771ba0ca0c275f5d3623af2623c966aa32a52950941979877529158a1f`
+  for the complete parent-to-commit diff and
+  `45419e839e733c13ed169ba3b9140169bc0e94a5a4c7eabfc4d2807801d36a58`
+  for the same committed diff limited to the four product paths. The earlier
+  dirty-candidate aggregate, assembled as tracked manifest/README followed by
+  new `README.en.md`/`LICENSE`, remains
+  `95c35fa3edb1a825900a6084bf535d00c850597263f0ed3f276445b09ece5511`;
+  the construction difference is explicit and no byte changed between those
+  candidate and committed product surfaces.
+- Committed product SHA-256 values are: `README.md`
+  `5a584cf132187554ce3e2f466584f49bd700089915972b13cf17e9614a2ee336`,
+  `README.en.md`
+  `11f45423198a2af6269d1d18cf0c0dded10e9b1408801236dfddad76d4f442ad`,
+  `LICENSE`
+  `c8bd13985408f8a5357006c849ff1b42e196e580a71883d2337f7b1eeb0e43e1`,
+  and manifest
+  `2c5c0af5e0864b467fa67a40cad7303c6cff250920674e303b755fb3f691e8a5`.
+  The committed pre-receipt ExecPlan SHA-256 is
+  `ee0143bfef244bb7e6dafda8dfd7792711ce6794a0744a2bb4b238ea13f1a887`.
+- The exact evaluator-owned `product_artifact_from_git(repo, commit)` result is
+  a schema-1 `ProductArtifact` with source commit/tree as above, package tree
+  `c0fe3daba16699390b07eb80ed1d1023da236f6a`, package artifact SHA-256
+  `a9417f6b540c8348e88f8f67ffd249cec822cda135e48d177ce64583d546007c`,
+  package semantic SHA-256
+  `e5ed0d51c70602e1049741133a0b3b44c3e119376acd0e15e2ecc087e1212db1`,
+  and record SHA-256
+  `04ae89198f6add73ebb776c88294647423a36c3708a6098d62a3fd6080f6b9ef`.
+  The canonical SHA-256 of the full emitted record including that digest field
+  is `3d99113a9c447e170513ef637c7278c4288afab029de7de25600a674fe307c4d`.
+  Evaluator package identity uses its existing `.agents`, `.codex-plugin`,
+  `README.md`, and `skills` boundary; `README.en.md` and `LICENSE` are bound by
+  the complete commit inventory and diff above, without changing evaluator
+  code or widening that boundary.
+- The post-commit pre-suite gate was GREEN: product worktree and index were
+  clean; `HEAD` and local `main` were the frozen commit; local `origin/main`
+  and live remote `main` remained the parent; local/remote v0.6.6 tag and
+  GitHub Release remained absent; claims and protected state were exact.
+- One fresh retained external directory was created:
+  `/home/caichenghang/.codex/happycodex-0.6.6-readme-license-clean-suite.zZ4ift`,
+  mode 0700. Exact suite invocation count is 1/1, using
+  `python3 -B -m unittest discover -s tests -q` once after the clean commit.
+- Combined stdout/stderr capture is
+  `/home/caichenghang/.codex/happycodex-0.6.6-readme-license-clean-suite.zZ4ift/unittest-combined.txt`,
+  mode 0600, 1,885 bytes, SHA-256
+  `8230319df47431f07d93e3eac6cf0a671078087cbd3134d5e640f1ac9c951e43`.
+  Separate process-exit receipt is the sibling `unittest-exit.txt`, mode 0600,
+  2 bytes, value `1`, SHA-256
+  `4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865`.
+- The retained output proves `Ran 158 tests in 66.098s` and
+  `FAILED (failures=2)`, hence 158 tests, exactly 2 failures, and 0 errors. The
+  only failure headers are
+  `test_exact_final_source_rejects_self_selected_projection_and_fake_diff
+  (test_fixed_host_transaction_v2.FixedHostTransactionTests)
+  (mutation='old-source')` and
+  `test_old_source_components_cannot_back_a_new_dirty_evalspec
+  (test_fixed_host_transaction_v2.FixedHostTransactionTests)`. This exactly
+  satisfies the grant's accepted baseline shape; no retry or second suite ran.
+- Protected poststate remains exact. Published v0.6.5 Skill tree is
+  `d9e525a267fbf36669d409ba1b4b009a6beeeea5`. Repository, active, and cache
+  Skill SHA-256 is
+  `a1fbee68caf2d87481bfa06c1db6cdf34f7695c350c57c52e60ca98021ca28c9`;
+  role configuration SHA-256 is
+  `bc87f1506ef30893f44fb297792e17ea9df7ebfc463f9fb79fb9d43302251bc1`.
+  Active and cache seven-file inventory SHA-256 is
+  `925550c00a1ec75ef8bba23d1686bd3417c5d156ce67f1c5d0e92262a03f5a26`;
+  active/cache README and manifest hashes remain
+  `9bdfb46b83980bf2639a6db953dd9f572424ad85d62224eca1379329c6063c12`
+  and `6c0773ff8bbb88e1636d71dcbb7479eec5818878f77dbe2ac69f82c7df0192ca`.
+  Marketplace/config SHA-256 values remain
+  `752de5a68116a69025e6ac46e32e8e0a7512cf8e2f87078d53b719c4362dcbfe`
+  and `0d4d88dab9263078ad0bb53cef52ae9c54b904f75900ad30a32609edc2b28802`.
+  `happycodex@personal` remains installed and enabled at
+  `0.6.6+codex.20260804155233` from
+  `/home/caichenghang/plugins/happycodex`; the cache has that one version only.
+- Final local refs are `HEAD == refs/heads/main == 03c6707209d0c59a2a6dae03109e08b554a91488`;
+  local `refs/remotes/origin/main` and live remote `refs/heads/main` remain
+  `0893092ae2febcccfc4b2ade2e78a3e17a588d60`. Local and remote
+  `refs/tags/v0.6.6` remain absent; `gh release view v0.6.6` returned
+  `release not found`, exit 1. No push, tag, Release, install, activation,
+  provider/model call, evaluator edit, Runtime edit, active-state mutation,
+  amend, repair, retry, or cleanup occurred.
+- The later terminal-receipt edit to this ExecPlan is the only post-commit
+  worktree dirt and is outside evaluator package/review identity; the index and
+  all four product paths remain clean. It is deliberately not staged.
+- Remaining mandatory gates are a separately authorized fresh native
+  exact-final, a separately authorized bounded isolated install, and later
+  separately authorized push, annotated tag, exact Release-body freeze, and
+  GitHub Release effects. Release authority remains separate. The claims and
+  external captures stay held; Root must reproduce this receipt and decide the
+  next grant. `HC-RL-004` is consumed and this receipt does not decide task
+  completion.
+
+## `HC-RL-005` terminal receipt
+
+- Receipt finalized: `2026-08-04T17:29:23Z` UTC. Phase remains
+  `candidate_frozen`; this receipt records gates but does not decide completion
+  or authorize publication.
+- Before any isolated-install write, the held claim receipt verified owner,
+  task, and all three resources exact. Candidate commit/tree and ProductArtifact
+  identities matched the HC-RL-004 freeze; repository status was exactly this
+  one unstaged ExecPlan receipt with empty index and clean product paths;
+  local/remote refs, absent v0.6.6 tag/Release, v0.6.5, and all protected
+  active hashes were exact. Active `codex plugin list --json` SHA-256 was
+  `283ecc4dc21d3744c86ae95c173297a0c3948e615c23298b67445a9fe8cec29d`.
+- Root's fresh native exact-final reviewer receipt, including exact reviewer
+  identity/config/source boundary, terminal `GO`, findings, and Release-copy
+  caveat, was durably recorded in the HC-RL-005 grant above before the isolated
+  install. This Executor made no model/provider invocation.
+- The `plugin-creator` specification was consulted before mutation. It required
+  explicit installation of this non-default marketplace and the exact local
+  entry fields AVAILABLE, ON_INSTALL, and Productivity; those constraints
+  shaped the isolated marketplace below without touching the active personal
+  marketplace.
+- One retained disposable root was created:
+  `/home/caichenghang/.codex/happycodex-0.6.6-readme-license-install.ApcU3Y`,
+  mode 0700. Its marketplace, archived source, isolated HOME
+  (`home`), CODEX_HOME (`codex-home`), XDG config/cache (`xdg-config` and
+  `xdg-cache`), install cache, logs, and receipts are all descendants of that
+  root. All explicitly created subdirectories are mode 0700. The root was not
+  cleaned or mutated after final inventory capture.
+- `git archive` materialized exact commit
+  `03c6707209d0c59a2a6dae03109e08b554a91488` into
+  `<root>/marketplace/plugins/happycodex`. Retained mode-0600
+  `receipts/candidate.tar` is 1,382,400 bytes, SHA-256
+  `ba12e5d67a8bc190e8ddf3bc428d61b1184637664689f9b4ebf329193e12e3e2`.
+  The 52 archive leaf entries exactly matched commit path, Git mode, blob, and
+  byte identity; mode/blob/byte inventory SHA-256 is
+  `1d988541f0ceb3e2b6f49e2345a223d762420658508eb392e78969e4eb9b57a9`,
+  raw `git ls-tree -r -z` SHA-256 is
+  `e1065ccc0690addf88524d1a44637f40781195faf43b1c46c02a4750f72739bc`,
+  and reconstruction produced exact candidate tree
+  `bdac5fa71e3177afae3007767e04e8c366253044`.
+- `<root>/marketplace/.agents/plugins/marketplace.json` was created with
+  `apply_patch`, mode 0600. It contains exact name
+  `happycodex-066-isolated` and one local `happycodex` entry at
+  `./plugins/happycodex`, AVAILABLE/ON_INSTALL/Productivity. Raw SHA-256 is
+  `52ac10ed09b022879e1de53f76f390e8ee15d1009150908ba9f098cf7f80f3c7`;
+  canonical JSON SHA-256 is
+  `54082a4dd17d8889f2523f7864a3cffd76519e5beb5ed27e99f6ee984351df08`.
+- Exact environment for all three isolated CLI reads/effects set `HOME`,
+  `CODEX_HOME`, `XDG_CONFIG_HOME`, and `XDG_CACHE_HOME` to the exact isolated
+  directories above. `codex-home/config.toml` remained inside the root and has
+  SHA-256
+  `b536981db75d5f19785320d276b0046c536dd729e56821d9b5d314d48c900407`.
+- Marketplace-add invocation budget 1/1 was used once with
+  `codex plugin marketplace add <root>/marketplace --json`. Exit was 0;
+  stdout unambiguously reported marketplace `happycodex-066-isolated`, exact
+  installed root, and `alreadyAdded: false`; stderr was empty. Mode-0600 raw
+  stdout/stderr SHA-256 values are
+  `43ed8e8aa32e5991f6855395ed02f8c6143016f53eedbdf92eb7c5392d5c710b`
+  and `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`;
+  canonical stdout JSON SHA-256 is
+  `c1d4bc7dc84a64bdf435d897cfe05493ee746e9ec5d20dfa67d86e86057f136d`.
+  Its mode-0600 `0\n` exit receipt SHA-256 is
+  `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa`.
+- Plugin-add invocation budget 1/1 was then used once with
+  `codex plugin add happycodex@happycodex-066-isolated --json`. Exit was 0;
+  stdout unambiguously reported plugin ID
+  `happycodex@happycodex-066-isolated`, version `0.6.6`, ON_INSTALL, and exact
+  installed path
+  `<root>/codex-home/plugins/cache/happycodex-066-isolated/happycodex/0.6.6`;
+  stderr was empty. Mode-0600 raw stdout/stderr SHA-256 values are
+  `a1398d270a4b7def8bd82a60326964f54d538b2e11ed7bc03c9ded9a37a51905`
+  and the empty-file digest above; canonical stdout JSON SHA-256 is
+  `31932f9e87a849a3224dc1b99d006e990a720b5b4bdfb1eb4fa6dbb28d53f573`.
+  Its mode-0600 `0\n` exit receipt has the same exact exit-receipt SHA-256
+  above. Neither effect was retried.
+- One isolated readback `codex plugin list --json` exited 0 and reported only
+  `happycodex@happycodex-066-isolated`, installed and enabled at exact version
+  `0.6.6`, with exact local source and marketplace paths, AVAILABLE, and
+  ON_INSTALL. Mode-0600 raw stdout SHA-256 is
+  `af0f2eea05f7025a3b321156402a6b16aee214225b7b0819ccfb9f7cb0f80bf0`;
+  canonical JSON SHA-256 is
+  `4427c0c89886733ccaa25b0f5a007e2e2e9d3b4e53c1ae068fe480df4754983a`;
+  stderr was empty and the mode-0600 exit receipt was exact `0\n`.
+- Archived source and installed cache each contain exactly the 52 commit files,
+  no additional or missing source path, with identical sorted
+  file-SHA-256/path inventory digest
+  `3683873cf0cc987a2047c273fd0234c0ac7617e209a577361b9c9730cabd6be2`.
+  Every source/cache byte matches and both reconstruct candidate tree
+  `bdac5fa71e3177afae3007767e04e8c366253044`. Namespaced
+  `skills/happycodex/SKILL.md` is present with SHA-256
+  `a1fbee68caf2d87481bfa06c1db6cdf34f7695c350c57c52e60ca98021ca28c9`;
+  Chinese `README.md`, `README.en.md`, `LICENSE`, and manifest match the frozen
+  candidate hashes; manifest name/version/license are exact
+  `happycodex`/`0.6.6`/`MIT`. No archived source byte was altered and no extra
+  source path appeared.
+- Final retained isolated-root inventory contains 116 files with sorted
+  file-SHA-256/path digest
+  `882d266fae24e6acc75ebb03005a6cae5b29791e4c273e06f480b7ed6e67b5a4`.
+  Command stdout/stderr logs and decimal exit receipts are all mode 0600. The
+  root and its evidence remain available for Root reproduction; no cleanup was
+  attempted.
+- Post-install protected-state verification was exact. Active source and the
+  active personal cache retain seven-file inventory SHA-256
+  `925550c00a1ec75ef8bba23d1686bd3417c5d156ce67f1c5d0e92262a03f5a26`;
+  active marketplace/config remain
+  `752de5a68116a69025e6ac46e32e8e0a7512cf8e2f87078d53b719c4362dcbfe`
+  and `0d4d88dab9263078ad0bb53cef52ae9c54b904f75900ad30a32609edc2b28802`.
+  Active plugin-list bytes retain SHA-256
+  `283ecc4dc21d3744c86ae95c173297a0c3948e615c23298b67445a9fe8cec29d`;
+  `happycodex@personal` remains installed/enabled at
+  `0.6.6+codex.20260804155233` from
+  `/home/caichenghang/plugins/happycodex`. Published v0.6.5 Skill tree remains
+  `d9e525a267fbf36669d409ba1b4b009a6beeeea5`.
+- Repository poststate remains `HEAD == local main ==
+  03c6707209d0c59a2a6dae03109e08b554a91488`; local `origin/main` and live
+  remote `main` remain
+  `0893092ae2febcccfc4b2ade2e78a3e17a588d60`. Product bytes and index remain
+  clean; this unstaged ExecPlan receipt is the only repository dirt. Local and
+  remote v0.6.6 tags and GitHub Release remain absent.
+- No staging, commit, amend, push, tag, Release, active install/cache/config/
+  marketplace write, product/Runtime/evaluator/test/role edit, provider/model
+  call by this Executor, retry, repair, or cleanup occurred. The fresh native
+  exact-final review and bounded isolated-install gates are now recorded;
+  remaining gates are exact Release-body freeze and separately authorized
+  push, annotated tag, and GitHub Release effects. The caveat against
+  maintainer-evaluator or native-compaction certification remains binding.
+  Claims and all retained roots remain held. `HC-RL-005` is consumed; Root must
+  reproduce the receipt and decide the next grant and task completion.
+
+## `HC-RL-006` release-readiness receipt
+
+- Receipt body finalized before its consuming commit at
+  `2026-08-04T17:36:25Z` UTC. The one plan-only commit containing this receipt
+  is the terminal HC-RL-006 mutation. Its exact commit/tree identity is returned
+  from Git after creation rather than self-embedded in its own content. This
+  receipt does not authorize or decide publication or task completion.
+- Preflight verified the held claim receipt and exact HC-RL-005 poststate:
+  candidate `HEAD`/local `main`
+  `03c6707209d0c59a2a6dae03109e08b554a91488`, candidate tree
+  `bdac5fa71e3177afae3007767e04e8c366253044`, local `origin/main` and live
+  remote `main` `0893092ae2febcccfc4b2ade2e78a3e17a588d60`, empty index,
+  and exactly one unstaged ExecPlan path. Local/remote v0.6.6 tag and GitHub
+  Release were absent.
+- Candidate ProductArtifact remained exact: package tree
+  `c0fe3daba16699390b07eb80ed1d1023da236f6a`, package artifact SHA-256
+  `a9417f6b540c8348e88f8f67ffd249cec822cda135e48d177ce64583d546007c`,
+  package semantic SHA-256
+  `e5ed0d51c70602e1049741133a0b3b44c3e119376acd0e15e2ecc087e1212db1`,
+  and record SHA-256
+  `04ae89198f6add73ebb776c88294647423a36c3708a6098d62a3fd6080f6b9ef`.
+  The four product files and unchanged Skill retained their frozen hashes.
+- Fresh native exact-final review remained terminal `GO` over the four exact
+  product paths, with the control ExecPlan excluded/unread. Its binding caveat
+  remains: the Release must be described as reviewed but not
+  maintainer-evaluator certified and must not claim native Codex compaction
+  certification.
+- Retained isolated install root
+  `/home/caichenghang/.codex/happycodex-0.6.6-readme-license-install.ApcU3Y`
+  remained mode 0700 with 116-file inventory SHA-256
+  `882d266fae24e6acc75ebb03005a6cae5b29791e4c273e06f480b7ed6e67b5a4`.
+  Its exact 52-file source/cache digest remained
+  `3683873cf0cc987a2047c273fd0234c0ac7617e209a577361b9c9730cabd6be2`;
+  no retained evidence root was mutated or cleaned.
+- Active source/cache inventory, active marketplace/config, and active plugin-
+  list SHA-256 values remained
+  `925550c00a1ec75ef8bba23d1686bd3417c5d156ce67f1c5d0e92262a03f5a26`,
+  `752de5a68116a69025e6ac46e32e8e0a7512cf8e2f87078d53b719c4362dcbfe`,
+  `0d4d88dab9263078ad0bb53cef52ae9c54b904f75900ad30a32609edc2b28802`,
+  and `283ecc4dc21d3744c86ae95c173297a0c3948e615c23298b67445a9fe8cec29d`.
+  Published v0.6.5 Skill tree remained
+  `d9e525a267fbf36669d409ba1b4b009a6beeeea5`.
+- The exact absent external path
+  `/home/caichenghang/.codex/happycodex-v0.6.6-release-notes.md` was created
+  once with `apply_patch` and chmod 0600. It is exactly the verbatim body in the
+  HC-RL-006 grant above, including one final newline: 2,545 bytes, SHA-256
+  `1b4d2668609bbee89ae2cf770d985cee7f2ad9390d519ef1c77d60fb21999244`.
+  Its body is now frozen; no edit or cleanup is authorized.
+- Frozen publication target parameters are exact: repository
+  `cch96/happycodex`; annotated tag `v0.6.6`; tag message and Release title
+  `HappyCodex 0.6.6`; `draft=false`; `prerelease=false`; no assets; later
+  command shape `gh release create --verify-tag --notes-file` using the frozen
+  external path. No push/tag/Release authority or effect exists in this grant.
+- The sole commit input is this ExecPlan. Its required parent is candidate
+  `03c6707209d0c59a2a6dae03109e08b554a91488`; exact commit subject is
+  `docs: record HappyCodex 0.6.6 release readiness`; exact inventory is one
+  modified path,
+  `docs/execplans/happycodex-0-6-6-readme-license-release.md`. Cached diff and
+  path inventory must verify before the one commit; no amend is allowed.
+- Accepted committed poststate is clean worktree/index, `HEAD == local main`
+  at the new sole-child readiness commit, local branch ahead 2, local
+  `origin/main` and live remote `main` still the baseline, absent v0.6.6
+  tag/Release, and unchanged candidate ProductArtifact/product bytes/review/
+  install/protected identities and frozen notes bytes. Any mismatch returns
+  adverse without repair or retry.
+- `HC-RL-006` is consumed by the exact plan-only commit containing this
+  receipt. Claims and retained external roots remain held. Root must reproduce
+  the returned commit/tree and decide publication authority and completion.
