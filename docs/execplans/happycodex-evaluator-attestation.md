@@ -214,30 +214,33 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `grant55_exact_final_effect_intent`; release remains `NOT_YET`.
-  Prestate commit/tree are `e47f66db5cf90970269ecf457b289ab0b8729457` /
-  `5046f3734b512e854d4a269dc38c40efc604e5f3`; candidate/tree remain
+- Phase: `grant55_exact_final_terminal_timeout_failure`; release is blocked and
+  remains `NOT_YET`. Intent commit/tree are
+  `449c961691e3cf89b7c3f923e6bda60508c420c5` /
+  `41a4410fa95facddb1c6fb460cc709ca6bb53922`; candidate/tree remain
   `b34d8275c8a7c83f89e7c687a17c3cabac4b1086` /
   `edfa8d688723bce59d8de61eaec54e3c6153d53f`.
-- Exact current-task authority is `APPROVE HAPPYCODEX EVALUATION
-  ce4245f74d866868c35d033052ad6fd10d54e21d84f61b8e97c3af5cdc43e849`.
-  Owner token `930e0f4c3baaca2e845c009936b081d130246594b06b44965cbe6e0f4aae2afc`
-  exclusively claims this worktree/ref/output root; its marker is outside the
-  transaction and fixed-host scan. The frozen request is
-  `/home/caichenghang/.codex/happycodex-evaluator-attestation-exact-timeout1200-grant54/request`;
-  request/spec/source identities are
+- Frozen request/spec/source identities remain
   `ce4245f74d866868c35d033052ad6fd10d54e21d84f61b8e97c3af5cdc43e849` /
   `495f75f1d0fc5493a2509a76f552cbcd64f4e4b186656e61bfbd2e277a4b92e9` /
-  `5d0e0d53f88c8be3b3ae7843cb7de66bc83946d2b36eb8a25d8d52532a5217da`.
-  Host/evaluator identities remain `49b67db41a16537242d8906b2d6a545b8fbdb191b702a3cc6bebcc6e8aee19d7` /
+  `5d0e0d53f88c8be3b3ae7843cb7de66bc83946d2b36eb8a25d8d52532a5217da`
+  at
+  `/home/caichenghang/.codex/happycodex-evaluator-attestation-exact-timeout1200-grant54/request`;
+  host/evaluator remain `49b67db41a16537242d8906b2d6a545b8fbdb191b702a3cc6bebcc6e8aee19d7` /
   `86bc4dccf6a7e5ec6e0c672b4a8cd2fb8a8e73bceb6a651334bbfde54a5c7b06`.
-- Selected units are exactly `[exact-final]`; profile is
-  `gpt-5.6-sol/max/1200s/command_execution`, cap is
-  `1/50000/10000/1200000/0`, and prefix is `0/0/0/0`. Eleven unchanged
-  prerequisites, preserved identities, package modes/inventory, synthetic seal,
-  no residue/process, and all three claims are GREEN.
-- Re-read all bindings and preflight, then stage auth privately, mint one
-  process-local capability, and run the fixed host exactly once. No retry,
-  resume, recovery, timeout extension, second process/request, install, release,
-  or activation is authorized. Any outcome is terminal; retain raw outside Git,
-  remove auth, reap the process, record one final receipt, and release claims.
+- The fixed host reached the provider exactly once and timed out at 1,200,157 ms
+  against cap `1/50000/10000/1200000/0`; no retry followed. Terminal is
+  `ambiguous_or_partial`, incomplete, one call, zero terminal tokens, verdict
+  `fail`, empty report, diagnostics `fatal:neutral`,
+  `fatal:coverage.complete`, `fatal:decision`, and wall-cap exceeded.
+- Raw is 598,467 bytes / 83 events (42 completed, 39 started, one thread and one
+  turn start; 3 agent messages / 78 commands), SHA-256
+  `e8b9039aa01c82c34111055e961c01844c95779e65d9f5a83f34ddfb5040542b`.
+  Attestation record/file and claim-file SHA-256 are
+  `bc5819fc84f39f46782a2aa4ede1c98fb5b20c7171e6e6fc5e423bf5906b5c35` /
+  `a384c1ee7155f0bd46017eec321feea2272e88556ff325aa404911b46d3b9a06` /
+  `16b1e6710c4e0afe4a40671d45b44850ebdc6b1cdbf5cf1e3cc68aaf65bc785f`.
+  Prefix is `1/1/1/1`; auth is absent from raw/staging, no provider process
+  remains, identities and product surfaces are unchanged, and full evaluation
+  is ineligible. No install/release/activation or further request is authorized;
+  the next gate is Root/user decision.
