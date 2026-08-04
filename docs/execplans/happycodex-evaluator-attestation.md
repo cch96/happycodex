@@ -214,54 +214,21 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `exact_final_terminal_timeout_cap_failure`; release is blocked and
-  remains `NOT_YET`.
-  Current clean candidate/tree are
+- Phase: `grant54_offline_exact_request_intent`; release remains `NOT_YET`.
+  Prestate commit/tree are `4a0748fb14ae34cdc3687df2d17b29d81f88bc5b` /
+  `8200af403ff0112ff0670d4caff9d801f76f7c2a`; candidate/tree remain
   `b34d8275c8a7c83f89e7c687a17c3cabac4b1086` /
   `edfa8d688723bce59d8de61eaec54e3c6153d53f`.
-- GRANT-53 durable-intent commit/tree are
-  `c5c153c9da6fd61bfcb1b040a1fd691df0cdf5cf` /
-  `e54a4e46b3fcac084842541060743cae3485cb05`. All bound identities and the active
-  root claim revalidated GREEN before one provider reach. The process timed out
-  at 600,014 ms: classification `ambiguous_or_partial`, incomplete, one call,
-  zero terminal token usage, verdict `fail`, empty report, diagnostics
-  `fatal:neutral`, `fatal:coverage.complete`, and `fatal:decision`; wall cap
-  600,000 ms is exceeded and no retry followed.
-- Raw is 430,571 bytes / 64 events, SHA-256
-  `012de245b2b4eb8291b2d9fc642a0db8ac22bd0a2c116dc46a14c01c4d128a86`;
-  Attestation and invocation-claim SHA-256 are
-  `60e7bc211c4e3ebe176581d1826394793c052bf198f55e4e7269e7eced724e1b` and
-  `67290fa4b94bdbfec8e8ae1630713af3026df9673e80f6fa752325df660d903c`.
-  Durable prefix is `1/1/1/1`; auth was removed and absent from raw, no provider
-  process remains, source/product/Runtime/plugin are unchanged, and exact-final
-  is ineligible.
-- GRANT-52 is immutable zero-effect provenance: child claims polluted scanned
-  prefixes, so it stopped before authority, auth, capability, or provider reach.
-- GRANT-47–50 are immutable zero-provider offline stops retained in Git: source
-  mode, stale spec, invented profiles assertion, then forbidden schema-v2 pairs;
-  none was retried or made authoritative.
-- GRANT-45 terminal commit/tree are
-  `b34d8275c8a7c83f89e7c687a17c3cabac4b1086` /
-  `edfa8d688723bce59d8de61eaec54e3c6153d53f`. Its final focused, relevant,
-  and cumulative results were `3/3`, `26/26`, and `135/135`. An
-  `agent_message` is a same-turn candidate: only terminal-last
-  `turn.completed` promotes the last candidate; missing/failed terminal keeps
-  report and usage absent and remains partial. Commands or native failure may
-  follow an intermediate report, but a report after native error remains
-  forbidden; all other native-stream strictness is unchanged.
-- GRANT-44 is terminal partial/ambiguous: raw SHA-256
-  `02f8fdc86f4279fdacc57e07e4b5ee1c3760e61568ce37866873796059812e46`,
-  claim SHA-256
-  `6f5874304c389dc0d0b89de07dfed107ee5e885a656d435d2b355a4fa7dbd034`,
-  durable counts `1/1/0/1` for units/raw/Attestations/claims. It reached the
-  provider once, has no valid terminal or Attestation, and permits no retry,
-  resume, recovery, reinterpretation, or completion decision.
-- The prior sealed source identity
-  `b68da2b8a7b92f2e8d8aad141ad8c679afa9cb84b6422d7e8b75738f2670f2f4`
-  and request digest
-  `fb092ae3247f8278adea9c9d90ce82daaa58de6b2fa95fb0c9c787b869b3fac2`
-  are consumed, excluded, and non-authoritative. GRANT-52 changes no product,
-  Runtime, plugin, evaluator, test, schema, case, oracle, threshold, gate,
-  record, receipt, package, config, or old evidence. It authorizes zero
-  provider/model/network/request execution and zero install, release,
-  activation, cache, marketplace, rollback, or 12-call-plan effect.
+- Owner token `a1dd4aed56f85dab3434140ae01f9204caef58fce3475122a84876863266ddb2`
+  exclusively claims this worktree/ref and external root
+  `/home/caichenghang/.codex/happycodex-evaluator-attestation-exact-timeout1200-grant54`;
+  its marker stays outside that root. Destination/staging are absent, all eleven
+  canonical cleanbreak-1 prerequisite Attestation/raw pairs are valid, GREEN,
+  and raw-bound, and provider/auth/network/model activity is zero.
+- Generate one fresh offline `request` after changing only exact-final timeout
+  `600→1200` and exact effect wall cap `600000→120000`; keep one call,
+  `50000/10000` tokens, zero recoveries, all non-timeout inputs and prerequisite
+  evidence unchanged. GRANT-53 evidence remains immutable and ineligible.
+  Provider auth, capability, fixed host, model/network, install, release, and
+  activation are forbidden. Drift, collision, invalidation, or test failure
+  stops without cleanup or retry.
