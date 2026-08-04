@@ -214,33 +214,33 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `grant51_request_preparation_offline`; release remains `NOT_YET`.
+- Phase: `exact_request_ready_offline`; release remains `NOT_YET`.
   Current clean candidate/tree are
   `b34d8275c8a7c83f89e7c687a17c3cabac4b1086` /
   `edfa8d688723bce59d8de61eaec54e3c6153d53f`.
-- GRANT-51 durable intent: after the same bound objective preflight, create
-  fresh `exact-refresh-grant51-be4739a333d4` through the public CLI with source
-  identity
+- GRANT-51 durable-intent commit/tree are
+  `698e5176b3e8ff534d482d290d088e0b3cb93486` /
+  `5e1d07ad7b8687cf7ac3bd91d94d2681bfaeb84b`. The public CLI atomically
+  published `exact-refresh-grant51-be4739a333d4`; frozen source identity remains
   `5d0e0d53f88c8be3b3ae7843cb7de66bc83946d2b36eb8a25d8d52532a5217da`.
-  Use exactly the eleven schema-v3 pairs under immutable `cleanbreak-1`, whose
-  successful-proposal prerequisite-set SHA-256 is
-  `3651b335e64d160e5793946a510f6312a3b57b7d960d7a5a70475dd3b4bd8561`;
-  select only exact-final with cap `1 / 50000 / 10000 / 600000 / 0`. Stop before
-  provider effect on objective or public validator/materializer failure.
-- GRANT-50 is terminal zero-effect: it mistakenly used forbidden schema-v2
-  release pairs, so public validation found `attestation invocation_sha256
-  mismatch`; atomic cleanup succeeded and no retry followed.
-- GRANT-49 is terminal zero-effect: objective checks passed, then an invented
-  exact profiles-shape assertion stopped before CLI invocation and was never
-  relaxed or retried.
-- GRANT-48 remains immutable: its source is valid, but its sole request attempt
-  used stale retained-release `eval-spec.json` and failed before publication,
-  prerequisite verification, request execution, or provider effect; no retry
-  occurred.
-- GRANT-47 is immutable non-authoritative failure evidence: diff SHA-256
-  `d93aab5cd1eab50fdb637795c3994fae840bc0d0ecabce67f132043f37a2b27a`,
-  synthetic commit `fb380a801b5d0777c81aa1576e3ce11469145174`; root mode `0700` failed before
-  identity, request, or provider effect and was never retried.
+- Fresh-process validation and proposal reproduction are GREEN. EvalSpec record/
+  identity, evaluator bundle, host contract, authority request, prerequisite
+  set, and 116-file inventory SHA-256 are respectively
+  `c399b1b5160efe6d2e573296054f9f02699b5eb1aa39bc77d0fea03e31d25f50`,
+  `077c34407040c3a117b26aaf95dd9e6793a7ee75758b9e7c2bf62e573845e082`,
+  `86bc4dccf6a7e5ec6e0c672b4a8cd2fb8a8e73bceb6a651334bbfde54a5c7b06`,
+  `49b67db41a16537242d8906b2d6a545b8fbdb191b702a3cc6bebcc6e8aee19d7`,
+  `e9ca0bf1629f75bd29c2fdbca2197677a2ad7ccf166e7219675d388bb7b9a8a7`,
+  `3651b335e64d160e5793946a510f6312a3b57b7d960d7a5a70475dd3b4bd8561`,
+  and `2103a2e1ad2762cb1a3f201d44b919de269d3be1e254febd34455e15220296dd`.
+- Invalidation and proposal select only `exact-final`; cap is
+  `1 / 50000 / 10000 / 600000 / 0`, execution prefix is `0/0/0/0`, and no
+  authority/auth/failed-exact residue exists. Informational only:
+  `APPROVE HAPPYCODEX EVALUATION
+  e9ca0bf1629f75bd29c2fdbca2197677a2ad7ccf166e7219675d388bb7b9a8a7`.
+- GRANT-47–50 are immutable zero-provider offline stops retained in Git: source
+  mode, stale spec, invented profiles assertion, then forbidden schema-v2 pairs;
+  none was retried or made authoritative.
 - GRANT-45 terminal commit/tree are
   `b34d8275c8a7c83f89e7c687a17c3cabac4b1086` /
   `edfa8d688723bce59d8de61eaec54e3c6153d53f`. Its final focused, relevant,
