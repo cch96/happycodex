@@ -214,13 +214,16 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `grant54_offline_exact_request_terminal_green`; release remains
-  `NOT_YET`. Intent commit/tree are
-  `b1bcef30740f3cfc6b7f8e1b8a0931471ef392e2` /
-  `02efee78da4d5fd39ede293b8d0eebd90b5ea680`; candidate/tree remain
+- Phase: `grant55_exact_final_effect_intent`; release remains `NOT_YET`.
+  Prestate commit/tree are `e47f66db5cf90970269ecf457b289ab0b8729457` /
+  `5046f3734b512e854d4a269dc38c40efc604e5f3`; candidate/tree remain
   `b34d8275c8a7c83f89e7c687a17c3cabac4b1086` /
   `edfa8d688723bce59d8de61eaec54e3c6153d53f`.
-- One fresh offline request exists at
+- Exact current-task authority is `APPROVE HAPPYCODEX EVALUATION
+  ce4245f74d866868c35d033052ad6fd10d54e21d84f61b8e97c3af5cdc43e849`.
+  Owner token `930e0f4c3baaca2e845c009936b081d130246594b06b44965cbe6e0f4aae2afc`
+  exclusively claims this worktree/ref/output root; its marker is outside the
+  transaction and fixed-host scan. The frozen request is
   `/home/caichenghang/.codex/happycodex-evaluator-attestation-exact-timeout1200-grant54/request`;
   request/spec/source identities are
   `ce4245f74d866868c35d033052ad6fd10d54e21d84f61b8e97c3af5cdc43e849` /
@@ -232,9 +235,9 @@ These are planning boundaries, not authority under GRANT-01.
   `gpt-5.6-sol/max/1200s/command_execution`, cap is
   `1/50000/10000/1200000/0`, and prefix is `0/0/0/0`. Eleven unchanged
   prerequisites, preserved identities, package modes/inventory, synthetic seal,
-  and cumulative `135/135` are GREEN. Only timeout-dependent exact identities
-  and enclosing spec/request identities changed; all eleven non-exact units are
-  equal. GRANT-53 evidence is immutable; provider/auth/network/model, install,
-  release, and activation activity is zero.
-- Non-authoritative proposal: `APPROVE HAPPYCODEX EVALUATION
-  ce4245f74d866868c35d033052ad6fd10d54e21d84f61b8e97c3af5cdc43e849`.
+  no residue/process, and all three claims are GREEN.
+- Re-read all bindings and preflight, then stage auth privately, mint one
+  process-local capability, and run the fixed host exactly once. No retry,
+  resume, recovery, timeout extension, second process/request, install, release,
+  or activation is authorized. Any outcome is terminal; retain raw outside Git,
+  remove auth, reap the process, record one final receipt, and release claims.
