@@ -2,7 +2,7 @@
 
 Protocol: `HappyCodex/0.6.5-bootstrap`
 
-Status: `USER_DIRECTED_UNCERTIFIED_RELEASE_FROZEN`
+Status: `USER_DIRECTED_UNCERTIFIED_RELEASE_CLOSED`
 
 Restore guard: verify this exact worktree, ref, resource receipt, Git state,
 current batch, and protected-resource snapshot. Conversation summaries and
@@ -1466,3 +1466,40 @@ Immediately before freeze, remote `main` remained
 `e679c3d5cb83d6170fcd6f38f067892603c309da`; remote `v0.6.5` and GitHub
 Release `v0.6.5` were absent. The next effect is a fresh isolated install from
 the exact frozen Git archive. Publication and active cutover remain unstarted.
+
+The exact frozen Git archive passed a zero-model isolated install and
+namespaced Skill-discovery check. Private install receipt
+`/home/caichenghang/.codex/happycodex-0.6.5-release/records/public-release/install-receipt.json`
+has SHA-256
+`03ea3916f2950ba993a9f7184b0cd7ae647ad249d0f4ed02d6260d9b2f7989bd`;
+installed artifact and semantic identities equal the public package.
+
+Annotated tag object `6920a968bbf8f5106c7bd8f84d585fddde84b2a6`
+peels to release commit `e60166414d721d150a7ef3c66a316245c9c1e95d`.
+`main` and `v0.6.5` were pushed atomically, and public non-draft,
+non-prerelease GitHub Release
+`https://github.com/cch96/happycodex/releases/tag/v0.6.5` was published at
+`2026-07-31T05:33:45Z`. Its notes disclose the failed corpus and uncertified
+status.
+
+The first local activation installed the exact 0.6.5 cache but then failed the
+rollback postcondition because `codex plugin add` removes the prior versioned
+cache. Its automatic source/config rollback completed; Root restored the
+registered 0.6.0 prestate before any replacement attempt. Immutable attempt
+receipt SHA-256 is
+`98476010f8ffee906212e2995884752d726c7f5cd1d19de3ee7fe0c568b28931`.
+The infrastructure-replacement transition then atomically installed
+`0.6.5+codex.20260731052854` and rebuilt the removed 0.6.0 cache from the
+verified rollback package. Active source and new cache both have artifact
+`dce1f61d` and semantic identity `6980f233`; the preserved old cache remains
+artifact `4e2b300b` and semantic identity `9cd5a507`. Config and marketplace
+hashes are unchanged.
+
+Final private release receipt
+`/home/caichenghang/.codex/happycodex-0.6.5-release/records/public-release/release-receipt.json`
+is mode 0600 with SHA-256
+`abc33eb25daf5eaf83bd67b81c0fc610d95ef723d21165cef77af3f26facdeb7`.
+No evaluation repair or additional model call occurred. The release remains
+explicitly uncertified with failed gate `corpus`; later evaluator unification
+is a separate task. This package-excluded closeout record may advance `main`
+beyond the release tag without changing the released 0.6.5 package bytes.
