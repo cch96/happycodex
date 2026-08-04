@@ -214,33 +214,19 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `grant55_exact_final_terminal_timeout_failure`; release is blocked and
-  remains `NOT_YET`. Intent commit/tree are
-  `449c961691e3cf89b7c3f923e6bda60508c420c5` /
-  `41a4410fa95facddb1c6fb460cc709ca6bb53922`; candidate/tree remain
+- Phase: `grant56_offline_2400_request_intent`; release remains `NOT_YET`.
+  Prestate commit/tree are `cfaf0b8c4a46cdf72a6f0b1dba84424cb8198568` /
+  `3c3ba0a557175b7cf0ee6034fe298eb8ba4fca9a`; candidate/tree remain
   `b34d8275c8a7c83f89e7c687a17c3cabac4b1086` /
   `edfa8d688723bce59d8de61eaec54e3c6153d53f`.
-- Frozen request/spec/source identities remain
-  `ce4245f74d866868c35d033052ad6fd10d54e21d84f61b8e97c3af5cdc43e849` /
-  `495f75f1d0fc5493a2509a76f552cbcd64f4e4b186656e61bfbd2e277a4b92e9` /
-  `5d0e0d53f88c8be3b3ae7843cb7de66bc83946d2b36eb8a25d8d52532a5217da`
-  at
-  `/home/caichenghang/.codex/happycodex-evaluator-attestation-exact-timeout1200-grant54/request`;
-  host/evaluator remain `49b67db41a16537242d8906b2d6a545b8fbdb191b702a3cc6bebcc6e8aee19d7` /
-  `86bc4dccf6a7e5ec6e0c672b4a8cd2fb8a8e73bceb6a651334bbfde54a5c7b06`.
-- The fixed host reached the provider exactly once and timed out at 1,200,157 ms
-  against cap `1/50000/10000/1200000/0`; no retry followed. Terminal is
-  `ambiguous_or_partial`, incomplete, one call, zero terminal tokens, verdict
-  `fail`, empty report, diagnostics `fatal:neutral`,
-  `fatal:coverage.complete`, `fatal:decision`, and wall-cap exceeded.
-- Raw is 598,467 bytes / 83 events (42 completed, 39 started, one thread and one
-  turn start; 3 agent messages / 78 commands), SHA-256
-  `e8b9039aa01c82c34111055e961c01844c95779e65d9f5a83f34ddfb5040542b`.
-  Attestation record/file and claim-file SHA-256 are
-  `bc5819fc84f39f46782a2aa4ede1c98fb5b20c7171e6e6fc5e423bf5906b5c35` /
-  `a384c1ee7155f0bd46017eec321feea2272e88556ff325aa404911b46d3b9a06` /
-  `16b1e6710c4e0afe4a40671d45b44850ebdc6b1cdbf5cf1e3cc68aaf65bc785f`.
-  Prefix is `1/1/1/1`; auth is absent from raw/staging, no provider process
-  remains, identities and product surfaces are unchanged, and full evaluation
-  is ineligible. No install/release/activation or further request is authorized;
-  the next gate is Root/user decision.
+- Owner token `3ac1f10f72df39ab11cf85db29eb717fe228a7d3a01fc350c86352837182ad48`
+  exclusively claims this worktree/ref and new output root
+  `/home/caichenghang/.codex/happycodex-evaluator-attestation-exact-timeout2400-grant56`;
+  its marker stays outside the root. Destination/staging are absent, eleven
+  canonical prerequisites are GREEN/raw-bound, and GRANT-55 evidence is sealed.
+- Create two preparation inputs by changing only exact timeout `1200→2400` and
+  exact effect wall `1200000→240000`; total cap and every other identity/value
+  remain unchanged. Generate one offline `request`, validate exact-only identity
+  invalidation, run cumulative `135/135` plus bound-index, then record a terminal
+  receipt. Provider auth/capability/host/model/network, install, release, and
+  activation are forbidden; drift, collision, or failure stops without retry.
