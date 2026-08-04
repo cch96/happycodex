@@ -214,22 +214,33 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- GRANT-44 durable intent, pre-provider: from clean commit/tree
-  `26dce1e4ca296efe99ec6bfe4bd9e7f6efc3b18d` /
-  `6278544b86610460f2c653674539cee59c91e703`, authenticate only the exact
-  current-task user line for proposal `fb092ae...`; its process-local authority
-  digest is `c066a43f...`. Reproduce every bound identity and the zero prefix,
-  then invoke the committed fixed-host transaction exactly once for
-  `exact-final` at `gpt-5.6-sol/max`, 600 seconds, under cap
-  `1 / 50000 / 10000 / 600000 / 0` for calls/input/output/wall-ms/recoveries.
-  Persist only the raw stream, claim, and Attestation in the claimed request
-  execution root; remove private auth staging at process termination. Any
-  drift, ambiguity, timeout, nonterminal result, cap violation, GO or NOT_YET is
-  terminal for this grant: never retry, resume, recover, repair, or seek another
-  reviewer. Git receives only this intent and a later sanitized terminal
-  checkpoint. No evaluator/product/Runtime/config/request/spec/source/
-  prerequisite mutation, install, release, activation, cache, marketplace, or
-  release authority is authorized.
+- Phase: `exact_final_terminal_ambiguous`; release remains `NOT_YET` and is
+  blocked. GRANT-44 durable-intent commit/tree are
+  `0b8ad0f0b650633dc1637b5d54bfbba1a4a02704` /
+  `dbe358f58445d5e2ac57287bfb81fdd66c369d4a`. The exact current-task user line
+  authenticated proposal `fb092ae...` under process-local authority digest
+  `c066a43f...`. Every bound identity and the zero prefix reproduced GREEN
+  immediately before one `gpt-5.6-sol/max` exact-final launch. The provider was
+  reached exactly once; no retry, resume, recovery, repair, or alternate
+  reviewer followed.
+- The provider returned raw JSONL, but the committed parser stopped before
+  Attestation construction with `native non-agent item follows an agent
+  report`. The 40 valid JSON events contain one `thread.started`, one
+  `turn.started`, 17 paired completed `command_execution` items, and four
+  schema-shaped neutral intermediate reports. Every intermediate report says
+  `NOT_YET`, `coverage.complete=false`, and one finding; each hidden-oracle
+  score has fatal `coverage.complete` and `decision`. Non-agent commands follow
+  the first report, and the stream has neither `turn.completed` nor
+  `turn.failed`, so none is a canonical verdict or valid terminal report.
+- The retained raw is 1,620,086 bytes with SHA-256
+  `02f8fdc86f4279fdacc57e07e4b5ee1c3760e61568ce37866873796059812e46`;
+  the claim SHA-256 is
+  `6f5874304c389dc0d0b89de07dfed107ee5e885a656d435d2b355a4fa7dbd034`.
+  Durable execution counts are units/raw/Attestations/claims `1/1/0/1`.
+  Provider auth was removed and does not occur in raw. Provider reach proves
+  one model call, but absent terminal usage and absent host metadata leave
+  input/output tokens and wall time unknown; cap compliance therefore cannot
+  be proven. This is a terminal partial/ambiguous effect, not GO or NOT_YET.
 - Phase: `exact_request_ready_offline`; release remains `NOT_YET`. The frozen
   CLI-closure commit/tree are `2849916b33826f7c04435bc7f751ef77efbd53b1` /
   `86f61722e8a4e5317d798b42ff5290505252f271`. The public
@@ -280,10 +291,10 @@ These are planning boundaries, not authority under GRANT-01.
   public validator accepted all four product/spec records and exactly eleven
   prerequisite attestations. Public inventory remains closed to four durable
   record types, has no active ledger, and reports the current evaluator bundle.
-  Request inventory is 116 files with SHA-256
+  Pre-effect request inventory was 116 files with SHA-256
   `da4b22e104a0dd8238f7650691556b83709cb62e9c620f50c41f453ac7a80d5d`.
-  The request has zero execution prefix and no supplied authority. Runtime and
-  plugin bytes still equal `v0.6.5`; no provider/model/network, install,
-  release, activation, cache, marketplace, rollback, or retry effect occurred.
-  Exactly one future neutral exact-final provider call is requested, but it is
-  not authorized by this repository content or checkpoint.
+  Runtime and plugin bytes still equal `v0.6.5`. No supplied authority remains
+  in the request, and no install, release, activation, cache, marketplace,
+  rollback, or retry effect occurred. GRANT-44 is consumed and terminal; any
+  future diagnosis or change requires a new user decision and may never treat
+  these bytes as a retryable exact-final result.
