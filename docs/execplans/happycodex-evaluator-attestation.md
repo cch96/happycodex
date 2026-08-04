@@ -214,28 +214,27 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `grant53_exact_final_effect_intent`; release remains `NOT_YET`.
+- Phase: `exact_final_terminal_timeout_cap_failure`; release is blocked and
+  remains `NOT_YET`.
   Current clean candidate/tree are
   `b34d8275c8a7c83f89e7c687a17c3cabac4b1086` /
   `edfa8d688723bce59d8de61eaec54e3c6153d53f`.
-- GRANT-53 durable intent binds clean control commit/tree
-  `f5de645eb42a6683c2951a57b1501c5cf169315a` /
-  `524dbd322cd852b0f2b25264a30bdcb06468a795`, request/proposal
-  `e9ca0bf1629f75bd29c2fdbca2197677a2ad7ccf166e7219675d388bb7b9a8a7`,
-  source `5d0e0d53f88c8be3b3ae7843cb7de66bc83946d2b36eb8a25d8d52532a5217da`,
-  prerequisite set
-  `3651b335e64d160e5793946a510f6312a3b57b7d960d7a5a70475dd3b4bd8561`,
-  and Root nonce `019fadac-efd9-7133-b571-6db612c50971`. One active external
-  `execution` root claim exclusively owns the exact four child outputs; its
-  marker is outside fixed-host scans, and `_verified_prefix` accepted the zero
-  current prefix while it was active.
-- After one final objective re-read, accept only `APPROVE HAPPYCODEX EVALUATION
-  e9ca0bf1629f75bd29c2fdbca2197677a2ad7ccf166e7219675d388bb7b9a8a7`,
-  mint one process-local capability, privately stage/remove provider auth, and
-  launch exact-final exactly once at `gpt-5.6-sol/max`, 600 seconds, cap
-  `1 / 50000 / 10000 / 600000 / 0`. Persist the exact unit/raw/claim and, when
-  derivable, Attestation. Any outcome is terminal; no retry, recovery, install,
-  release, activation, or cache effect is authorized.
+- GRANT-53 durable-intent commit/tree are
+  `c5c153c9da6fd61bfcb1b040a1fd691df0cdf5cf` /
+  `e54a4e46b3fcac084842541060743cae3485cb05`. All bound identities and the active
+  root claim revalidated GREEN before one provider reach. The process timed out
+  at 600,014 ms: classification `ambiguous_or_partial`, incomplete, one call,
+  zero terminal token usage, verdict `fail`, empty report, diagnostics
+  `fatal:neutral`, `fatal:coverage.complete`, and `fatal:decision`; wall cap
+  600,000 ms is exceeded and no retry followed.
+- Raw is 430,571 bytes / 64 events, SHA-256
+  `012de245b2b4eb8291b2d9fc642a0db8ac22bd0a2c116dc46a14c01c4d128a86`;
+  Attestation and invocation-claim SHA-256 are
+  `60e7bc211c4e3ebe176581d1826394793c052bf198f55e4e7269e7eced724e1b` and
+  `67290fa4b94bdbfec8e8ae1630713af3026df9673e80f6fa752325df660d903c`.
+  Durable prefix is `1/1/1/1`; auth was removed and absent from raw, no provider
+  process remains, source/product/Runtime/plugin are unchanged, and exact-final
+  is ineligible.
 - GRANT-52 is immutable zero-effect provenance: child claims polluted scanned
   prefixes, so it stopped before authority, auth, capability, or provider reach.
 - GRANT-47–50 are immutable zero-provider offline stops retained in Git: source
