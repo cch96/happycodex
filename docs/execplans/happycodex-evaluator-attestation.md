@@ -214,6 +214,20 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
+- GRANT-45 durable intent, pre-mutation: from clean commit/tree
+  `feeab12d23f208c2eccc3bb871066c984e1a3e43` /
+  `a85fb4882120eb8bb10151f8b79feae247488a91`, change only
+  `evaluation/verify.py`, `tests/test_stateless_records.py`, and this current
+  index. First prove narrow RED for same-turn intermediate report candidates,
+  later commands/final report, missing terminal, and failed terminal; then make
+  the parser select only the last valid report at a valid `turn.completed` and
+  classify missing/failed terminal as partial without relaxing thread, turn,
+  item-pairing, ID, terminal-last, usage, event-field, secret, or unknown-event
+  rejection. GRANT-44 raw/evidence stays immutable and is never reinterpreted.
+  One focused run and one documented cumulative offline suite are authorized;
+  no provider/network, request/spec/authority, install, release, activation,
+  cache, marketplace, rollback, Runtime/package/config, or new protocol family
+  effect is authorized.
 - Phase: `exact_final_terminal_ambiguous`; release remains `NOT_YET` and is
   blocked. GRANT-44 durable-intent commit/tree are
   `0b8ad0f0b650633dc1637b5d54bfbba1a4a02704` /
