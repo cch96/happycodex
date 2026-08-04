@@ -14,9 +14,16 @@ controls automatic continuation. Never infer one from another.
 
 Use HappyCodex for public contracts, migrations, persistence, concurrency,
 destructive or production work, exhaustive replacement, long research, or work
-likely to cross compaction. Uncertainty qualifies. A clearly local low-risk edit
-may use native Plan, tests, and diff; establish an ExecPlan before the next
-product write if scope or risk grows.
+likely to cross compaction. Material uncertainty about a supported workflow
+qualifies. A clearly local low-risk edit may use native Plan, tests, and diff;
+establish an ExecPlan before the next product write if scope or risk grows.
+
+Reason only about material failures reachable through supported workflows,
+including compaction, concurrency, and partial effects. Unless the request or
+source establishes otherwise, treat the user, maintainer, workspace, and
+selected configuration as non-adversarial but fallible: verify state and
+identity, not motive. Prefer the smallest sufficient control; expanding scope
+or trust boundaries requires explicit user authority.
 
 Persist `references/execplan.md` at the repository policy path or
 `docs/execplans/<task-slug>.md`. Freeze the verbatim request and amendments,
@@ -33,11 +40,11 @@ force irrelevant surfaces into a mechanical checklist. Material findings keep
 one exact case-sensitive identity and are baseline-unchanged, resolved,
 candidate-new, or unknown; unknown stays open and `N/A` needs evidence.
 
-Before freeze, compare materially distinct decision-changing designs and
-challenge omissions until no clearly better in-contract design remains. For an
-exhaustive or architecture-shaping claim, Root obtains a fresh baseline-only
-read-only challenge from the frozen request and source without sharing preferred
-answers or the evidence ledger.
+Before freeze, compare materially distinct designs that could change the Outcome
+within the stated trust boundary. Challenge material omissions, then stop when
+remaining alternatives would not change that Outcome. For an exhaustive or
+architecture-shaping claim, Root obtains a fresh baseline-only read-only
+challenge from the frozen request and source.
 
 ## Roles and grants
 
@@ -71,7 +78,7 @@ updates do not justify another attempt.
 - At the end of a repair wave, run its real-path focused check and the cumulative
   offline suite once. A failed check reopens the same wave.
 - After terminal GREEN, one material recurrence permits at most one
-  boundary-level alternative that removes the bypass and reruns affected checks.
+  boundary-level alternative that addresses the failure and reruns affected checks.
   If that alternative fails unchanged or the issue recurs again, ask the user.
 - Immediately before any effect, re-read the exact grant, claim, prestate,
   invocation, cost boundary, and destination. Drift or ambiguity stops.
@@ -90,24 +97,22 @@ Any product change after freeze returns to `working` and invalidates affected
 candidate and review evidence.
 
 Keep the ExecPlan a current index, not a history dump. Its recovery record binds
-the request, Root, fixed Executor, owner token, source/ref/worktree, exact grant,
-obligations, selected checkpoint, tests, agents, phase, open gates, effects, and
-receipt digests. After compaction or resume, read the full plan and reconcile it
-with current Git, tests, claims, receipts, agents, and Goal before writing or
-claiming completion. A conversation summary, copied handle, or prose cannot
-reconstruct authority. Missing or mismatched durable facts fail closed.
+the request, Root, fixed Executor, source/ref/worktree, exact grant, obligations,
+selected checkpoint, tests, phase, open gates, effects, and receipts. After
+compaction or resume, read the full plan and reconcile it with current Git,
+tests, claims, receipts, agents, and Goal before writing or claiming completion.
+A conversation summary, copied handle, or prose cannot reconstruct authority.
+Missing or mismatched durable facts fail closed.
 
 ## Safety invariants
 
-- Authority: only the exact current grant authorizes writes. Missing, spoofed,
-  wrong issuer/destination/lineage/target/scope, or merely delegated authority
-  refuses or returns the decision to the user.
-- Resource claims: before every write, stage, commit, receipt mutation, or
-  authorized effect, acquire or verify every sorted worktree/ref/ledger/output
-  key under one owner token; conflict or stale ownership stops.
+- Authority: only the exact current grant permits writes. Missing, mismatched,
+  or out-of-scope authority returns the decision to the user.
+- Resource claims: before a controlled mutation or effect, verify its required
+  resources remain assigned to the recorded Executor; conflict or stale
+  ownership stops.
 - Recovery: restore the full current index and exactly one content-addressed
-  checkpoint; reconnect only the recorded Executor and never substitute a
-  writer.
+  checkpoint; reconnect only the recorded Executor.
 - Baseline: record each baseline failure by exact identity. It blocks unless
   explicitly accepted and unchanged; candidate failures cannot be relabeled.
 - Secrets: never persist secrets or raw model events in product, control, brief,
@@ -119,12 +124,11 @@ reconstruct authority. Missing or mismatched durable facts fail closed.
 - Goal: create Goal only when explicitly requested. It continues existing
   authority but grants no amendment, waiver, review, cost, or effect; complete it
   only after the matching gates close.
-- Cost and effects: every effect keeps its own exact impact, invocation,
-  resource claim, separate exact gate plan, and outcome receipt. One current-task
-  response may authenticate a content-addressed bundle of bounded model,
-  corpus, holdout, and review plans for one candidate and snapshot; any failure,
-  drift, or exhausted cap stops. Install, release, marketplace, and activation
-  remain separate authorities. Dry-runs cause no effect.
+- Cost and effects: bind each external effect to its impact, destination,
+  budget or cap, and outcome receipt. Retry only when the prior attempt is
+  proven no-effect and remains within the same authorization; ambiguous or
+  partial effects stop. Keep install, release, marketplace, and activation
+  under separate authority; dry-runs cause no effect.
 
 ## Review and complete
 
@@ -137,9 +141,9 @@ In `exact_final`, one fresh isolated read-only reviewer receives the verbatim
 request, frozen source range, accepted failures, checks, and exclusions. Its
 receipt binds session, source/config, model/effort, isolation, external reads,
 diff and obligation coverage, truncation, findings, and Root reproduction.
-Missing coverage, contamination, mismatch, unsupported evidence, or an unchanged
-rerun leaves review open. Repair returns to `working`, refreezes, and obtains a
-new neutral exact-final.
+Missing coverage, loss of isolation, mismatch, unsupported evidence, or an
+unchanged rerun leaves review open. Repair returns to `working`, refreezes, and
+obtains a new neutral exact-final.
 
 Enter `closed` only when every obligation is verified or evidenced `N/A`, real
 paths pass, baseline failures are resolved or accepted unchanged, no secret or

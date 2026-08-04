@@ -6,14 +6,15 @@ from pathlib import Path
 import subprocess
 import unittest
 
-from evaluation.identity import evaluator_components, product_artifact_from_git
+from evaluation.identity import evaluator_components
 from evaluation.records import RECORD_TYPES
-from tests.attestation_fixtures import bundle
+from tests.attestation_fixtures import CANDIDATE_REVISION, bundle
 
 
 ROOT = Path(__file__).resolve().parents[1]
 PLAN = ROOT / "docs" / "execplans" / "happycodex-evaluator-attestation.md"
 PRESERVED_SKILL_TREE = "d9e525a267fbf36669d409ba1b4b009a6beeeea5"
+CANDIDATE_VERSION = "0.6.6"
 
 
 def git(*args: str) -> str:
@@ -21,15 +22,61 @@ def git(*args: str) -> str:
 
 
 class RepositoryContractTests(unittest.TestCase):
-    def test_product_tree_is_exact_v065_and_has_no_diff(self):
-        self.assertEqual(git("rev-parse", "HEAD:skills/happycodex"), PRESERVED_SKILL_TREE)
+    def test_published_v065_tree_is_immutable_and_candidate_is_v066(self):
+        self.assertEqual(CANDIDATE_REVISION, "HEAD")
         self.assertEqual(git("rev-parse", "v0.6.5:skills/happycodex"), PRESERVED_SKILL_TREE)
-        self.assertEqual(git("diff", "--name-only", "v0.6.5", "--", "skills/happycodex"), "")
+        released = json.loads(git("show", "v0.6.5:.codex-plugin/plugin.json"))
+        candidate = json.loads((ROOT / ".codex-plugin" / "plugin.json").read_text())
+        self.assertEqual(released["version"], "0.6.5")
+        self.assertEqual(candidate["version"], CANDIDATE_VERSION)
+        self.assertNotEqual(
+            git("show", "v0.6.5:skills/happycodex/SKILL.md"),
+            (ROOT / "skills" / "happycodex" / "SKILL.md").read_text().strip(),
+        )
 
-    def test_evaluator_only_commit_does_not_change_product_artifact(self):
-        baseline = product_artifact_from_git(ROOT, "v0.6.5")
-        current = product_artifact_from_git(ROOT, "HEAD")
-        self.assertEqual(current, baseline)
+    def test_v066_skill_uses_material_supported_flow_boundary(self):
+        raw = (ROOT / "skills" / "happycodex" / "SKILL.md").read_text()
+        text = " ".join(raw.split())
+        required = (
+            "material failures reachable through supported workflows",
+            "including compaction, concurrency, and partial effects",
+            "non-adversarial but fallible",
+            "verify state and identity, not motive",
+            "Prefer the smallest sufficient control",
+            "expanding scope or trust boundaries requires explicit user authority",
+            "remaining alternatives would not change that Outcome",
+        )
+        for phrase in required:
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, text)
+        retired_vocabulary = (
+            "uncertainty qualifies",
+            "spoofed",
+            "removes the bypass",
+            "contamination",
+            "never substitute a writer",
+            "preferred answers",
+            "evidence ledger",
+            "owner token",
+            "separate exact gate plan",
+            "content-addressed bundle",
+        )
+        for retired in retired_vocabulary:
+            with self.subTest(retired=retired):
+                self.assertNotIn(retired, text.lower())
+
+        authority = " ".join(raw.split("- Authority:", 1)[1].split("- Resource claims:", 1)[0].split())
+        self.assertIn("exact current grant", authority)
+        self.assertIn("out-of-scope authority", authority)
+        self.assertNotIn("user authority permits writes", authority.lower())
+
+        effects = " ".join(raw.split("- Cost and effects:", 1)[1].split("## Review and complete", 1)[0].split())
+        for boundary in ("outcome receipt", "same authorization", "ambiguous or partial effects stop", "separate authority"):
+            with self.subTest(boundary=boundary):
+                self.assertIn(boundary, effects)
+        for evaluator_term in ("provider", "pre-provider", "infrastructure"):
+            with self.subTest(evaluator_term=evaluator_term):
+                self.assertNotIn(evaluator_term, effects.lower())
 
     def test_no_active_ledger_or_retired_engine_files_exist(self):
         retired = [

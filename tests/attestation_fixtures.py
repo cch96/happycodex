@@ -13,7 +13,7 @@ from evaluation.records import canonical_sha256
 
 
 ROOT = Path(__file__).resolve().parents[1]
-CANDIDATE_REVISION = "v0.6.5"
+CANDIDATE_REVISION = "HEAD"
 BASELINE_REVISION = "3b9c11fac1f97df75263e0bfc6421c575e04e8b2"
 SHA = {letter: letter * 64 for letter in "123456789abcdef"}
 PROFILES = {

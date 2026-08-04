@@ -18,7 +18,7 @@ codex plugin add happycodex@happycodex
 ```
 
 Start a new Codex task after installation so it discovers the installed Skill.
-Version 0.6.5 targets Codex 0.145 or newer.
+Version 0.6.6 targets Codex 0.145 or newer.
 
 ## Use
 
@@ -32,7 +32,7 @@ For a qualifying task, HappyCodex separates three kinds of state:
 - Native Plan stores only the current execution cursor;
 - Git, tests, logs, and runtime observations store facts.
 
-For every qualifying task, 0.6.5 uses this fixed routing:
+For every qualifying task, 0.6.6 uses this fixed routing:
 
 - Explorer: `gpt-5.6-terra` at `high`, read-only.
 - Challenger: `gpt-5.6-sol` at `high`, read-only.
@@ -99,6 +99,13 @@ Executor, one audit-bound effect route, and a fresh ledger containing only
 candidate, plan, and receipt records. Root/Host orchestration owns actual
 authority; repository records bind exact content but cannot grant permission or
 authenticate provenance.
+
+## What's new in 0.6.6
+
+Version 0.6.6 focuses the public guidance on material failures reachable through
+supported workflows. It treats maintainers and local state as trusted but
+fallible, verifies state and identity rather than motive, and prefers the
+smallest sufficient control unless the user explicitly expands scope or trust.
 
 ## What's new in 0.6.5
 
