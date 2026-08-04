@@ -214,30 +214,26 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `exact_request_ready_offline`; release remains `NOT_YET`.
+- Phase: `grant52_exact_final_effect_intent`; release remains `NOT_YET`.
   Current clean candidate/tree are
   `b34d8275c8a7c83f89e7c687a17c3cabac4b1086` /
   `edfa8d688723bce59d8de61eaec54e3c6153d53f`.
-- GRANT-51 durable-intent commit/tree are
-  `698e5176b3e8ff534d482d290d088e0b3cb93486` /
-  `5e1d07ad7b8687cf7ac3bd91d94d2681bfaeb84b`. The public CLI atomically
-  published `exact-refresh-grant51-be4739a333d4`; frozen source identity remains
-  `5d0e0d53f88c8be3b3ae7843cb7de66bc83946d2b36eb8a25d8d52532a5217da`.
-- Fresh-process validation and proposal reproduction are GREEN. EvalSpec record/
-  identity, evaluator bundle, host contract, authority request, prerequisite
-  set, and 116-file inventory SHA-256 are respectively
-  `c399b1b5160efe6d2e573296054f9f02699b5eb1aa39bc77d0fea03e31d25f50`,
-  `077c34407040c3a117b26aaf95dd9e6793a7ee75758b9e7c2bf62e573845e082`,
-  `86bc4dccf6a7e5ec6e0c672b4a8cd2fb8a8e73bceb6a651334bbfde54a5c7b06`,
-  `49b67db41a16537242d8906b2d6a545b8fbdb191b702a3cc6bebcc6e8aee19d7`,
+- GRANT-52 durable intent binds control commit/tree
+  `472c14ae399621112c49e1d094993f0421c4be10` /
+  `f439976d8f6f0a6b586a9e03dcae1a2ce6618043`, request/proposal
   `e9ca0bf1629f75bd29c2fdbca2197677a2ad7ccf166e7219675d388bb7b9a8a7`,
+  source `5d0e0d53f88c8be3b3ae7843cb7de66bc83946d2b36eb8a25d8d52532a5217da`,
+  prerequisite set
   `3651b335e64d160e5793946a510f6312a3b57b7d960d7a5a70475dd3b4bd8561`,
-  and `2103a2e1ad2762cb1a3f201d44b919de269d3be1e254febd34455e15220296dd`.
-- Invalidation and proposal select only `exact-final`; cap is
-  `1 / 50000 / 10000 / 600000 / 0`, execution prefix is `0/0/0/0`, and no
-  authority/auth/failed-exact residue exists. Informational only:
-  `APPROVE HAPPYCODEX EVALUATION
+  and current Root nonce `019fadac-efd9-7133-b571-6db612c50971`.
+- Accept only exact current-task line `APPROVE HAPPYCODEX EVALUATION
   e9ca0bf1629f75bd29c2fdbca2197677a2ad7ccf166e7219675d388bb7b9a8a7`.
+  After objective revalidation, mint one process-local capability and launch
+  `exact-final` once at `gpt-5.6-sol/max`, 600 seconds, command execution only,
+  cap `1 / 50000 / 10000 / 600000 / 0`. Persist its one unit/raw/claim and, if
+  derivable, Attestation; privately stage then remove provider auth. No retry,
+  recovery, alternate reviewer, release, install, activation, or cache effect
+  is authorized under any terminal outcome.
 - GRANT-47–50 are immutable zero-provider offline stops retained in Git: source
   mode, stale spec, invented profiles assertion, then forbidden schema-v2 pairs;
   none was retried or made authoritative.
@@ -261,7 +257,7 @@ These are planning boundaries, not authority under GRANT-01.
   `b68da2b8a7b92f2e8d8aad141ad8c679afa9cb84b6422d7e8b75738f2670f2f4`
   and request digest
   `fb092ae3247f8278adea9c9d90ce82daaa58de6b2fa95fb0c9c787b869b3fac2`
-  are consumed, excluded, and non-authoritative. GRANT-50 changes no product,
+  are consumed, excluded, and non-authoritative. GRANT-52 changes no product,
   Runtime, plugin, evaluator, test, schema, case, oracle, threshold, gate,
   record, receipt, package, config, or old evidence. It authorizes zero
   provider/model/network/request execution and zero install, release,
