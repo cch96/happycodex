@@ -214,13 +214,16 @@ These are planning boundaries, not authority under GRANT-01.
 
 ## Current checkpoint
 
-- Phase: `grant56_offline_2400_request_terminal_green`; release remains
-  `NOT_YET`. Intent commit/tree are
-  `0fc595bf8b3be2de19c45ed73afb176e6a65ff9d` /
-  `17ae47654b48c6738981cf7a16a4d3aa690b5e4d`; candidate/tree remain
+- Phase: `grant57_exact_final_effect_intent`; release remains `NOT_YET`.
+  Prestate commit/tree are `bba3ccea8e6e0651ae3e6fb917a5958832437956` /
+  `289aca037c7ec3fc15a66a3433d7e3dd67efe2ef`; candidate/tree remain
   `b34d8275c8a7c83f89e7c687a17c3cabac4b1086` /
   `edfa8d688723bce59d8de61eaec54e3c6153d53f`.
-- Fresh offline request is
+- Exact authority is `APPROVE HAPPYCODEX EVALUATION
+  d6ba1bbd287c302d50d0abfd005810d0e8f7fa4bc33dbeea8a945ac91f7395a4`.
+  Owner token `febbdb3e43a58a8a9a6b2dcc4e1f3b9e7a8654f858f7ff928801baf376421c9e`
+  exclusively claims worktree/ref/output; its marker is outside the transaction.
+  Frozen request is
   `/home/caichenghang/.codex/happycodex-evaluator-attestation-exact-timeout2400-grant56/request`.
   Request/spec/spec-identity are
   `d6ba1bbd287c302d50d0abfd005810d0e8f7fa4bc33dbeea8a945ac91f7395a4` /
@@ -233,9 +236,10 @@ These are planning boundaries, not authority under GRANT-01.
 - Selected units are `[exact-final]`; profile is
   `gpt-5.6-sol/max/2400s/command_execution`, exact cap is
   `1/50000/10000/2400000/0`, total cap is unchanged, and prefix is `0/0/0/0`.
-  Eleven prerequisites, package modes/inventory, synthetic seal, GRANT-55 seal,
-  cumulative `135/135`, and bound-index are GREEN. Diff is exactly 8 spec and 9
-  request timeout-dependent paths; all eleven non-exact units are equal. No
-  auth/capability/provider/model/network/install/release/activation occurred.
-- Non-authoritative proposal: `APPROVE HAPPYCODEX EVALUATION
-  d6ba1bbd287c302d50d0abfd005810d0e8f7fa4bc33dbeea8a945ac91f7395a4`.
+  Eleven imported prerequisites, package modes/inventory, source seal, claims,
+  and no residue/process are GREEN.
+- Re-read every binding and preflight, then privately stage auth, mint one
+  process-local capability, and invoke the fixed host exactly once. No retry,
+  resume, recovery, extension, second request/process, install, release, or
+  activation is authorized. Any outcome is terminal; retain raw outside Git,
+  remove auth, reap provider, record one receipt, and release claims.
