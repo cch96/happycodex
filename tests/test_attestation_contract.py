@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PLAN = ROOT / "docs" / "execplans" / "happycodex-evaluator-attestation.md"
 ROUTING_PLAN = ROOT / "docs" / "execplans" / "happycodex-0-7-0-role-routing.md"
 PRESERVED_SKILL_TREE = "d9e525a267fbf36669d409ba1b4b009a6beeeea5"
-CANDIDATE_VERSION = "0.7.1"
+CANDIDATE_VERSION = "0.7.2"
 
 
 def git(*args: str) -> str:
@@ -24,7 +24,7 @@ def git(*args: str) -> str:
 
 
 class RepositoryContractTests(unittest.TestCase):
-    def test_published_v065_tree_is_immutable_and_candidate_is_v070(self):
+    def test_published_v065_tree_is_immutable_and_candidate_is_v072(self):
         self.assertEqual(CANDIDATE_REVISION, "HEAD")
         self.assertEqual(git("rev-parse", "v0.6.5:skills/happycodex"), PRESERVED_SKILL_TREE)
         released = json.loads(git("show", "v0.6.5:.codex-plugin/plugin.json"))
@@ -80,7 +80,7 @@ class RepositoryContractTests(unittest.TestCase):
             with self.subTest(evaluator_term=evaluator_term):
                 self.assertNotIn(evaluator_term, effects.lower())
 
-    def test_v070_role_routing_contract_is_complete_and_fail_closed(self):
+    def test_v072_role_routing_contract_is_capability_proportional(self):
         manifest = json.loads((ROOT / ".codex-plugin" / "plugin.json").read_text())
         skill = (ROOT / "skills" / "happycodex" / "SKILL.md").read_text()
         reference = (ROOT / "skills" / "happycodex" / "references" / "execplan.md").read_text()
@@ -95,6 +95,8 @@ class RepositoryContractTests(unittest.TestCase):
         ).read_text()
         compact = " ".join(skill.split())
         ref_compact = " ".join(reference.split())
+        review_compact = " ".join(skill.split("## Review and complete", 1)[1].split())
+        candidate_review_compact = " ".join(reference.split("## Candidate and review", 1)[1].split("## Recovery", 1)[0].split())
         zh_compact = " ".join(readme_zh.split())
         en_compact = " ".join(readme_en.split())
         plan_compact = " ".join(routing_plan.split())
@@ -122,8 +124,11 @@ class RepositoryContractTests(unittest.TestCase):
 
         self.assertEqual(manifest["version"], CANDIDATE_VERSION)
         self.assertNotIn("agents", manifest)
-        self.assertIn("host-capability-gated role routing", manifest["description"])
-        self.assertIn("when the host supports exact selectors and runtime metadata", manifest["interface"]["longDescription"])
+        self.assertIn("capability-proportional admission", manifest["description"])
+        self.assertIn(
+            "missing optional telemetry does not block unrelated guarantees",
+            manifest["interface"]["longDescription"],
+        )
 
         skill_matrix = (
             "| Root | `gpt-5.6-sol` | `max` |",
@@ -137,37 +142,71 @@ class RepositoryContractTests(unittest.TestCase):
                 self.assertIn(row, skill)
 
         required_runtime = (
-            "Before dispatch, Root verifies its own effective route is `gpt-5.6-sol/max`",
-            "authenticated dispatch/tool receipt binding logical role",
-            "requested model/effort or custom config SHA-256",
-            "input baseline/candidate identities",
-            "prompt/brief digest",
-            "Platform acceptance of the spawn completes that dispatch receipt",
+            "Before dispatch and before reading substantive child output, record",
+            "intended use and consequence",
+            "guarantees required by the task, source, or user",
+            "Automatic capability handling cannot manufacture authority or silently waive a required guarantee",
+            "Platform acceptance of the exact spawn request",
+            "mechanically authenticated child/run/result handle",
+            "Missing output identity cannot downgrade",
             "On the portable builtin/default path, explicitly pin model and effort",
             "its file's model and effort take precedence",
             "omit redundant or conflicting explicit model/effort arguments",
-            "Dispatch may start the child immediately",
-            "Runtime metadata need not repeat Root-owned logical role, fork, input identities, or prompt digest",
-            "cross-binding that metadata to the authenticated dispatch receipt",
-            "If either required evidence source is missing or the cross-bind mismatches",
-            "must not enter the behavior plan, trigger a write grant, advance phase, or count as a final verdict",
-            "interrupt the child if still running, discard its output, and fail closed",
+            "Effective agent name is record-only when exposed; if absent, record `unverified`",
+            "Missing effective model or effort: record `unverified` and continue unless exact routing was predeclared required",
+            "An exposed effective model or effort mismatch requires discard and stop",
+            "Do not claim exact routing while it is unverified",
+            "Missing effective sandbox or approval: record `unverified`",
+            "When technical isolation was predeclared required, independently establish the isolation or effect boundary or stop",
+            "When it was not required, continue without claiming technical isolation",
+            "A full-access result mismatches only a predeclared read-only technical-isolation guarantee",
+            "Prompt/profile read-only remains non-" + "pro" + "of",
             "Run multiple Explorers concurrently only when multiple such axes exist",
             "give each Explorer exactly one bounded question",
             "For two or more qualifying axes, dispatch one native Explorer per axis concurrently through the host's builtin `explorer` selector or an admitted namespaced custom Explorer selector",
             "Parallel ordinary tool calls are not Explorer dispatches",
-            "Root reproduces and merges the evidence; it never votes",
+            "Unverified Explorer or Challenger route or isolation output is advisory leads only",
+            "Root reproduces every material fact from source before it affects a plan, grant, or phase",
             "Challenger runs before the behavior-plan freeze",
             "Only after that freeze does the unique Executor write",
+            "Executor may write despite missing route or permission telemetry only when host-issued output identity, fixed-writer ownership, exact grant, source/prestate, paths/resources, and allowed effects are bound",
+            "Root relies on actual Git, tests, and receipts, not Executor prose",
             "After candidate freeze, spawn exactly one fresh Exact-final",
             "empty history",
             "neutral brief",
+            "Exact-final may count without verified model or permission telemetry only when exact routing and hard isolation were not predeclared required",
+            "candidate identity remains unchanged",
+            "disclose unverified guarantees",
+            "If required hard isolation is unproven, review remains open",
+            "No user-facing modes or levels exist",
+            "Never require `普通模式继续`",
+            "Ask the user only when continuation would change the Outcome, authority, trust boundary, or an explicitly required guarantee",
             "A repair returns to `working`",
         )
         for phrase in required_runtime:
             with self.subTest(phrase=phrase):
                 self.assertIn(phrase, compact)
         self.assertNotIn("runtime-issued logical role", compact)
+
+        always_hard = (
+            "explicit mismatch in a requested or required identity or route",
+            "malformed or ambiguous claimed evidence",
+            "unsafe exposed value relative to a predeclared required guarantee",
+            "candidate or source drift",
+            "ambiguous or partial effects",
+        )
+        for phrase in always_hard:
+            with self.subTest(always_hard=phrase):
+                self.assertIn(phrase, compact)
+
+        retired_blanket_rules = (
+            "If the host cannot accept the exact request or expose the required effective metadata, do not dispatch",
+            "Until Root reads the runtime-issued session/turn metadata",
+            "If either required evidence source is missing or the cross-bind mismatches",
+        )
+        for phrase in retired_blanket_rules:
+            with self.subTest(retired_blanket_rule=phrase):
+                self.assertNotIn(phrase, compact)
 
         order = (
             "Root first decomposes the problem",
@@ -199,6 +238,24 @@ class RepositoryContractTests(unittest.TestCase):
                 with self.subTest(readme_row=row):
                     self.assertIn(row, text)
 
+        for phrase in (
+            "one fresh logically read-only reviewer",
+            "Technical read-only isolation applies only when predeclared required",
+            "Missing optional route or permission telemetry alone does not block review and is disclosed",
+        ):
+            with self.subTest(readme_en_phase=phrase):
+                self.assertIn(phrase, en_compact)
+        self.assertNotIn("one fresh isolated read-only reviewer", en_compact)
+
+        for phrase in (
+            "一个全新、逻辑只读的评审者",
+            "只有预先声明为必需时，才要求技术只读隔离",
+            "缺失可选 route/permission telemetry 本身不阻塞评审，但必须披露",
+        ):
+            with self.subTest(readme_zh_phase=phrase):
+                self.assertIn(phrase, zh_compact)
+        self.assertNotIn("全新、隔离、只读的评审者", zh_compact)
+
         public_native_explorer_contract = (
             "For two or more qualifying independent decision-changing axes, Root concurrently dispatches one native Explorer per axis through the host's builtin `explorer` selector or an admitted namespaced custom Explorer selector",
             "Ordinary parallel tool calls are not Explorer dispatches",
@@ -213,37 +270,35 @@ class RepositoryContractTests(unittest.TestCase):
                     self.assertIn(phrase, text)
 
         for phrase in (
-            "Complete routing applies only when the host supports exact selectors and runtime-issued metadata",
-            "Before dispatch, Root verifies itself as `gpt-5.6-sol/max`",
-            "Root's authenticated dispatch/tool receipt binds logical role",
-            "platform acceptance of the spawn completes the dispatch receipt",
-            "Runtime-issued session/turn metadata supplies",
-            "it need not echo Root-owned logical role, fork, input identities, or prompt digest",
-            "Root admits output only after cross-binding the dispatch receipt and runtime metadata",
-            "Multiple Explorers run concurrently only when multiple such axes exist",
-            "Root reproduces and merges the evidence; it never votes",
-            "only after that freeze does the unique Executor write",
-            "start exactly one fresh Exact-final with empty history and a neutral brief",
+            "Version 0.7.2 uses capability-proportional admission",
+            "Normal users choose no mode and enter no continuation phrase",
+            "Missing optional telemetry records `unverified` and reduces only the guarantee or use that depends on it",
+            "Missing output identity is never optional",
+            "An exposed mismatch or a missing predeclared guarantee stops",
+            "Unverified Explorer or Challenger output supplies advisory leads only",
+            "Executor writes remain governed by its fixed identity, exact grant, source/prestate, paths/resources, and allowed effects",
+            "Exact-final can count under unverified optional telemetry only for a fresh empty-history neutral review of an unchanged candidate",
+            "Unverified exact routing or technical isolation is never claimed",
         ):
             self.assertIn(phrase, en_compact)
         for phrase in (
-            "完整路由只在 host 支持精确 selector 和 runtime-issued metadata 时成立",
-            "dispatch 前，Root 先核验自身为 `gpt-5.6-sol/max`",
-            "Root 的经认证 dispatch/tool receipt 绑定逻辑角色",
-            "平台接受 spawn 即完成 dispatch receipt",
-            "不要求它重复 Root 已绑定的逻辑 角色、fork、输入身份或 prompt digest",
-            "Root 只有交叉绑定 dispatch receipt 与 runtime metadata 后才可 admission",
-            "只有存在多个这种轴时，才可并行多个",
-            "Root 复现并合并证据，不投票",
-            "计划冻结后才由唯一 Executor 写入",
-            "后只启动一个空历史、使用中性 brief 的全新 Exact-final",
+            "0.7.2 使用 capability-proportional admission",
+            "普通用户不选模式，也不输入继续口令",
+            "缺失可选 telemetry 时记录 `unverified`，只降低依赖它的保证或用途",
+            "缺失 output identity 永远不是可降级项",
+            "暴露值不匹配，或预先声明的必需保证缺失时，必须停止",
+            "未验证路由或隔离的 Explorer/Challenger 输出只能提供 advisory leads",
+            "Executor 写入仍受固定身份、精确 grant、source/prestate、paths/resources 与 allowed effects 约束",
+            "Exact-final 只可在全新空历史、中性 brief、candidate 不变时按可选 telemetry 未验证处理",
+            "不得声称未验证的精确路由或技术隔离",
         ):
             self.assertIn(phrase, zh_compact)
 
         fields = (
-            "Logical role", "Selected agent request", "Single question",
+            "Logical role", "Intended use/consequence", "Selected agent request", "Single question",
             "Requested route or config", "Fork mode", "Parallel independence",
-            "Input identities", "Prompt/brief digest", "Spawn acceptance",
+            "Input identities", "Prompt/brief digest", "Required guarantees", "Spawn acceptance",
+            "Output identity",
             "Actual agent role/name", "Effective route", "Effective permissions",
             "Runtime identity", "Phase", "Admission state", "Phase gate",
             "Terminal receipt",
@@ -252,43 +307,86 @@ class RepositoryContractTests(unittest.TestCase):
             with self.subTest(field=field):
                 self.assertIn(f"| {field} |", reference)
         dispatch_rows = (
-            "Logical role", "Selected agent request", "Single question",
+            "Logical role", "Intended use/consequence", "Selected agent request", "Single question",
             "Requested route or config", "Fork mode", "Parallel independence",
-            "Input identities", "Prompt/brief digest",
+            "Input identities", "Prompt/brief digest", "Required guarantees",
         )
         for field in dispatch_rows:
             row = next(line for line in reference.splitlines() if line.startswith(f"| {field} |"))
             self.assertIn("authenticated Root-owned dispatch/tool receipt", row)
-        runtime_rows = (
-            "Actual agent role/name", "Effective route", "Effective permissions",
-            "Runtime identity",
+        output_identity_row = next(
+            line for line in reference.splitlines()
+            if line.startswith("| Output identity |")
         )
+        self.assertIn("host-issued dispatch/result receipt", output_identity_row)
+        runtime_rows = ("Actual agent role/name", "Effective route", "Effective permissions")
         for field in runtime_rows:
             row = next(line for line in reference.splitlines() if line.startswith(f"| {field} |"))
             self.assertIn("runtime-issued session/turn metadata", row)
-        for field in ("Phase", "Admission state", "Phase gate", "Terminal receipt"):
+        runtime_identity_row = next(
+            line for line in reference.splitlines()
+            if line.startswith("| Runtime identity |")
+        )
+        self.assertIn("exposed runtime supplement or `unverified`; never substitutes for Output identity", runtime_identity_row)
+        self.assertIn("runtime-issued session/turn metadata when exposed", runtime_identity_row)
+        for field in ("Phase", "Admission state", "Phase gate"):
             row = next(line for line in reference.splitlines() if line.startswith(f"| {field} |"))
             self.assertIn("Root admission record", row)
+        terminal_row = next(
+            line for line in reference.splitlines()
+            if line.startswith("| Terminal receipt |")
+        )
+        self.assertIn(
+            "Root admission record bound to host-authenticated Output identity and terminal result, plus any exposed runtime metadata",
+            terminal_row,
+        )
         for phrase in (
-            "all child output is inadmissible",
-            "Runtime metadata is not required to echo logical role, fork, input identities, or prompt digest",
-            "cannot enter the behavior plan, trigger a write grant, advance phase, or count as a final verdict",
-            "interrupt the child if still running, discard the output, and fail closed",
-            'sandbox_mode = "read-only"',
-            "read-only top-level or parent environment before dispatch",
-            "unverified output remains inadmissible",
+            "Output identity | authenticated child/run/result handle; missing is a hard stop",
+            "Actual agent role/name | exposed value or `unverified`; record-only",
+            "Effective route | exposed model/effort, `unverified`, or mismatch",
+            "Effective permissions | exposed sandbox/approval, `unverified`, or mismatch against a required isolation guarantee",
+            "Missing optional telemetry never waives a required guarantee",
+            "Exact routing and technical isolation claims remain withheld while their evidence is `unverified`",
+            "advisory leads only until Root reproduces every material fact from source",
+            "Root relies on Git, tests, and receipts rather than Executor prose",
+            "Required hard isolation that is not independently established leaves review open",
+            "No user-facing mode, level, or continuation phrase is part of this protocol",
         ):
             self.assertIn(phrase, ref_compact)
-        ref_order = (
-            "Before dispatch, Root verifies",
-            "Platform acceptance completes the authenticated dispatch receipt",
-            "Root then reads the runtime-issued session/turn metadata",
-            "Until both required sources cross-bind",
-            "A missing source or mismatch requires Root",
-            "Root decomposes the problem",
-        )
-        ref_positions = [ref_compact.index(phrase) for phrase in ref_order]
-        self.assertEqual(ref_positions, sorted(ref_positions))
+        self.assertNotIn("all child output is inadmissible", ref_compact)
+        self.assertNotIn("unverified output remains inadmissible", ref_compact)
+
+        for phrase in (
+            "one fresh logically read-only reviewer",
+            "Technical read-only isolation is a hard requirement only when predeclared",
+            "receipt always binds authenticated output identity, frozen source and candidate identities, neutral brief, checks, diff and obligation coverage, terminal result, findings, and Root reproduction",
+            "Record the requested and any exposed or `unverified` model, effort, and permissions",
+            "Missing optional route or permission telemetry alone does not leave review open",
+            "A required but unproven guarantee, missing output identity or coverage, explicit mismatch, candidate drift, unsupported evidence, or an unchanged rerun leaves review open",
+        ):
+            with self.subTest(final_review=phrase):
+                self.assertIn(phrase, review_compact)
+        for retired in (
+            "one fresh isolated read-only reviewer",
+            "receipt binds session, source/config, model/effort, isolation",
+            "Missing coverage, loss of isolation",
+        ):
+            with self.subTest(retired_final_review=retired):
+                self.assertNotIn(retired, review_compact)
+
+        for phrase in (
+            "one fresh logically read-only review",
+            "requested route and permissions",
+            "exposed values or `unverified`",
+            "hard technical isolation only when predeclared required",
+            "authenticated Output identity",
+            "frozen source/candidate identities",
+            "Missing optional route or permission telemetry alone does not leave review open",
+        ):
+            with self.subTest(template_final_review=phrase):
+                self.assertIn(phrase, candidate_review_compact)
+        self.assertNotIn("isolated read-only session", candidate_review_compact)
+        self.assertNotIn("exact source/config/model/effort/permissions", candidate_review_compact)
 
         for row in skill_matrix:
             self.assertIn(row, routing_plan)
@@ -318,7 +416,8 @@ class RepositoryContractTests(unittest.TestCase):
         self.assertIn("插件安装不打包、安装、激活或要求自定义代理", zh_compact)
         self.assertIn("Plugin installation does not bundle, install, activate, or require custom agents", en_compact)
         self.assertIn("不代表已经发布或激活", readme_zh)
-        self.assertIn("does not claim that 0.7.1 has been released or activated", en_compact)
+        self.assertIn("does not claim that 0.7.2 has been released or activated", en_compact)
+        self.assertEqual(compact.count("普通模式继续"), 1)
 
     def test_no_active_ledger_or_retired_engine_files_exist(self):
         retired = [

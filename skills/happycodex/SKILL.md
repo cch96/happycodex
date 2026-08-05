@@ -64,61 +64,86 @@ Use this exact logical-role matrix:
 | Executor | `gpt-5.6-sol` | `high` | unique fixed controlled-domain writer |
 | Exact-final | `gpt-5.6-sol` | `max` | one fresh read-only final review |
 
-Before dispatch, Root verifies its own effective route is `gpt-5.6-sol/max` and
-confirms the host selector can request the target logical role, selected
-platform agent type or custom-agent name, model, effort, and `fork_turns` as
-`none` or a bounded positive integer, never `all`. Root creates an authenticated
-dispatch/tool receipt binding logical role, selected agent request, requested
-model/effort or custom config SHA-256, fork mode, input baseline/candidate
-identities, and prompt/brief digest. Platform acceptance of the spawn completes
-that dispatch receipt. On the portable builtin/default path, explicitly pin
-model and effort. For a namespaced custom agent, its file's model and effort
-take precedence; omit redundant or conflicting explicit model/effort arguments.
-If the host cannot accept the exact request or expose the required effective
-metadata, do not dispatch. Never silently inherit, substitute, or downgrade.
+Before dispatch and before reading substantive child output, record the logical
+role, intended use and consequence, selected agent request, requested
+route/config/fork, input identities and prompt digest, and guarantees required
+by the task, source, or user. Root owns this authenticated dispatch/tool receipt.
+Automatic capability handling cannot manufacture authority or silently waive a
+required guarantee. Require Platform acceptance of the exact spawn request. On
+the portable builtin/default path, explicitly pin model and effort. For a
+namespaced custom agent, its file's model and effort take precedence; omit
+redundant or conflicting explicit model/effort arguments.
 
-Dispatch may start the child immediately. Until Root reads the runtime-issued
-session/turn metadata for actual platform/custom role or name when exposed,
-effective model/effort, effective sandbox/approval, and child/run/session
-identity, the child output is inadmissible. Root admits output only after
-cross-binding that metadata to the authenticated dispatch receipt. Runtime
-metadata need not repeat Root-owned logical role, fork, input identities, or
-prompt digest. Before admission, output must not enter the behavior plan,
-trigger a write grant, advance phase, or count as a final verdict. If either
-required evidence source is missing or the cross-bind mismatches, interrupt the
-child if still running, discard its output, and fail closed. Keep logical role
+Require a mechanically authenticated child/run/result handle that binds
+terminal output to the accepted dispatch. Missing output identity cannot
+downgrade. Cross-bind any exposed runtime metadata to the dispatch record. Stop
+for an explicit mismatch in a requested or required identity or route,
+malformed or ambiguous claimed evidence, an unsafe exposed value relative to a
+predeclared required guarantee, grant/source/path/effect boundary drift,
+candidate or source drift, or ambiguous or partial effects. Keep logical role
 distinct from platform agent type and custom-agent name. Names, config requests,
 labels, and agent self-reports are not effective-routing evidence.
+
+Apply missing observability only to the guarantee or use that depends on it:
+
+- Effective agent name is record-only when exposed; if absent, record
+  `unverified`.
+- Missing effective model or effort: record `unverified` and continue unless
+  exact routing was predeclared required. An exposed effective model or effort
+  mismatch requires discard and stop. Do not claim exact routing while it is
+  unverified.
+- Missing effective sandbox or approval: record `unverified`. When technical
+  isolation was predeclared required, independently establish the isolation or
+  effect boundary or stop. When it was not required, continue without claiming
+  technical isolation. A full-access result mismatches only a predeclared
+  read-only technical-isolation guarantee. Prompt/profile read-only remains
+  non-proof.
+- Missing optional telemetry never asks the user to choose a fallback. No
+  user-facing modes or levels exist. Never require `普通模式继续`. Ask the user
+  only when continuation would change the Outcome, authority, trust boundary,
+  or an explicitly required guarantee.
 
 Root first decomposes the problem into independent, decision-changing axes.
 Run multiple Explorers concurrently only when multiple such axes exist, and
 give each Explorer exactly one bounded question. For two or more qualifying
 axes, dispatch one native Explorer per axis concurrently through the host's
 builtin `explorer` selector or an admitted namespaced custom Explorer selector.
-Parallel ordinary tool calls are not Explorer dispatches. Root reproduces and
-merges the evidence; it never votes. Challenger runs before the behavior-plan
-freeze. Only after that freeze does the unique Executor write. After candidate
-freeze, spawn
-exactly one fresh Exact-final with `fork_turns = none`, empty history, and a
-neutral brief that excludes prior findings and desired verdicts. A repair
-returns to `working`, invalidates affected frozen evidence, and requires a new
-candidate freeze and a new Exact-final.
+Parallel ordinary tool calls are not Explorer dispatches. Unverified Explorer
+or Challenger route or isolation output is advisory leads only. Root reproduces
+every material fact from source before it affects a plan, grant, or phase; it
+never votes. Challenger runs before the behavior-plan freeze. Only after that
+freeze does the unique Executor write. Executor may write despite missing route
+or permission telemetry only when host-issued output identity, fixed-writer
+ownership, exact grant, source/prestate, paths/resources, and allowed effects
+are bound. Root relies on actual Git, tests, and receipts, not Executor prose.
 
-Record each participant's authenticated dispatch/tool receipt, runtime-issued
-session/turn metadata, and Root admission decision separately. The dispatch
-receipt owns logical role, selected request, requested route/config, fork,
-input identities, and prompt/brief digest. Runtime metadata owns effective
-route, permissions, runtime identity, and actual platform/custom name when
-visible. The admission record cross-binds both sources to phase, source,
-terminal state, and terminal receipt. A label, summary, or completion sentence
-is not evidence.
+After candidate freeze, spawn exactly one fresh Exact-final with
+`fork_turns = none`, empty history, and a neutral brief that excludes prior
+findings and desired verdicts. Exact-final may count without verified model or
+permission telemetry only when exact routing and hard isolation were not
+predeclared required, the reviewer is fresh with empty history and a neutral
+brief, output identity is bound, candidate identity remains unchanged, and Root
+reproduces material findings; disclose unverified guarantees. If required hard
+isolation is unproven, review remains open. A repair returns to `working`,
+invalidates affected frozen evidence, and requires a new candidate freeze and a
+new Exact-final.
+
+Record each participant's authenticated dispatch/tool receipt, any
+runtime-issued session/turn metadata, and Root admission decision separately.
+The dispatch receipt owns logical role, selected request, intended consequence,
+requested route/config/fork, input identities, prompt digest, and required
+guarantees. Runtime metadata owns exposed route, permissions, runtime identity,
+and actual platform/custom name. The admission record binds the available
+evidence and any restrictions to phase, source, terminal state, and terminal
+receipt. A label, summary, or completion sentence is not evidence.
 
 A custom profile's `sandbox_mode = "read-only"` may be overridden by a live
 full-access parent task. Prompt instructions and profile defaults are not hard
 isolation. When technical read-only isolation is required, establish a
-read-only top-level or parent environment before dispatch, then verify the
-effective sandbox and approval policy from the receipt. Until that verification
-succeeds, the child output remains inadmissible.
+read-only top-level or parent environment before dispatch, then verify effective
+permissions or independently bind an equivalent no-effect boundary. If neither
+is established, stop; otherwise record missing optional permission telemetry as
+`unverified` without claiming technical isolation.
 
 Every write grant binds the fixed Executor, exact paths/resources, source
 commit/tree and dirt, allowed operations, acceptance, effect budget, and stop
@@ -197,13 +222,17 @@ snapshot. Freeze neutral baseline and candidate identities; Root verifies
 manifest equality, the complete risk-based diff inventory, checks, and allowed
 control exclusions.
 
-In `exact_final`, one fresh isolated read-only reviewer receives the verbatim
-request, frozen source range, accepted failures, checks, and exclusions. Its
-receipt binds session, source/config, model/effort, isolation, external reads,
-diff and obligation coverage, truncation, findings, and Root reproduction.
-Missing coverage, loss of isolation, mismatch, unsupported evidence, or an
-unchanged rerun leaves review open. Repair returns to `working`, refreezes, and
-obtains a new neutral exact-final.
+In `exact_final`, one fresh logically read-only reviewer receives the verbatim
+request, frozen source range, accepted failures, checks, and exclusions.
+Technical read-only isolation is a hard requirement only when predeclared. Its
+receipt always binds authenticated output identity, frozen source and candidate
+identities, neutral brief, checks, diff and obligation coverage, terminal
+result, findings, and Root reproduction. Record the requested and any exposed
+or `unverified` model, effort, and permissions. Missing optional route or
+permission telemetry alone does not leave review open. A required but unproven
+guarantee, missing output identity or coverage, explicit mismatch, candidate
+drift, unsupported evidence, or an unchanged rerun leaves review open. Repair
+returns to `working`, refreezes, and obtains a new neutral exact-final.
 
 Enter `closed` only when every obligation is verified or evidenced `N/A`, real
 paths pass, baseline failures are resolved or accepted unchanged, no secret or
