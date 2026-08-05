@@ -3,7 +3,7 @@
 ## Contract
 
 - Intent: `HC-0.7.0-RELEASE-001`.
-- Phase: `working` (release control plane only).
+- Phase: `closed`.
 - Verbatim user request: `好的你发布吧`.
 - Root interpretation: publicly release 0.7.0 and update the machine-local
   personal active plugin to the same 0.7.0 cachebuster version.
@@ -137,7 +137,7 @@ partial, or ambiguous effect stops without retry.
 | `HC-0.7.0-MAIN-PUSH-005` | Push the exact candidate/readiness chain using `refs/heads/main:refs/heads/main`. | one main push |
 | `HC-0.7.0-TAG-006` | Create annotated tag `v0.7.0` with message `HappyCodex 0.7.0` at the verified release target; push `refs/tags/v0.7.0:refs/tags/v0.7.0`. | one local tag creation and one exact tag push |
 | `HC-0.7.0-GITHUB-RELEASE-007` | In `cch96/happycodex`, create title `HappyCodex 0.7.0` with `--verify-tag`, frozen notes file, public non-draft/non-prerelease state, and no assets. | one GitHub Release create; no edit/delete/recreate |
-| `HC-0.7.0-CLOSEOUT-008` | Record final readbacks, create plan-only commit with subject `docs: close HappyCodex 0.7.0 release`, then push exact `refs/heads/main:refs/heads/main`. | one local closeout commit and one final main push |
+| `HC-0.7.0-CLOSEOUT-008A` | Record final readbacks, create plan-only commit with subject `docs: close HappyCodex 0.7.0 release`, push exact `refs/heads/main:refs/heads/main`, then release exactly the current six internal claims only after successful push readback. | one local closeout commit, one final main push, and one six-claim release; no other cleanup |
 
 Activation order is fixed: package sync, then official cachebuster helper once,
 then `codex plugin add happycodex@personal` once. Release order is fixed:
@@ -216,6 +216,13 @@ ambiguous. Never call the non-green full suite green.
 - [x] Record candidate, activation, inherited-suite, validation, and notes
   readiness for the first main push under
   `HC-0.7.0-READINESS-COMMIT-004`.
+- [x] Push the exact candidate/readiness chain to public `main` once.
+- [x] Create and push the exact unsigned annotated `v0.7.0` tag once.
+- [x] Create and verify the one public non-draft, non-prerelease GitHub Release
+  with the frozen body and no assets.
+- [x] Accept the final Outcome and freeze the plan-only closeout commit, final
+  main push, and post-push six-claim release under
+  `HC-0.7.0-CLOSEOUT-008A`.
 
 ## Bootstrap terminal receipt
 
@@ -384,3 +391,96 @@ ambiguous. Never call the non-green full suite green.
   evaluator, snapshot, tag, Release, remote, or claim byte is changed by the
   plan-only commit. Phase remains `working`; this release is reviewed but not
   maintainer-evaluator certified.
+
+## First main push terminal receipt
+
+- Grant `HC-0.7.0-MAIN-PUSH-005` was consumed by exactly one non-force
+  `git push origin refs/heads/main:refs/heads/main`, which exited 0 and reported
+  `a28413a..26b2a76 main -> main`.
+- Immediate readback established local `HEAD`, local `main`, local
+  `origin/main`, and live remote `main` at readiness commit
+  `26b2a761dc9abf6c9902f96fbc7b9ac8d953c898`, tree
+  `5124590f78d178df6f29ca779c93d4ea5ab3bf76`. The exact candidate parent
+  `f6609ba406e3eaaed0676c7a5c0cc81d0dba0b97` and remote base
+  `a28413a23afa31b50ede8d530f064fc86c37d146` remained the sole ancestor chain.
+- The candidate diff remained seven exact paths; readiness remained the single
+  Release ExecPlan path at committed SHA-256
+  `bd9c2f8111238fc046b516b011d1e270e039dda5debb46441bc8de642f90eb5a`.
+  Repository/index, claims, notes, active install, marketplace, configuration,
+  tag absence, and Release absence remained exact. No other push, refspec,
+  commit, tag, Release, or file mutation occurred.
+
+## Annotated tag terminal receipt
+
+- Grant `HC-0.7.0-TAG-006` was consumed by one unsigned, non-force local
+  annotated tag creation and one exact non-force push of
+  `refs/tags/v0.7.0:refs/tags/v0.7.0`.
+- Local and live remote tag object
+  `4a1ffc8c8669f145e72954b6e01a1bb37c12f536` has exact name `v0.7.0`, exact
+  message `HappyCodex 0.7.0`, object type `tag`, no signature, and peels to
+  readiness commit `26b2a761dc9abf6c9902f96fbc7b9ac8d953c898`.
+- The tag push exited 0 and reported one new `v0.7.0` tag. Main refs, GitHub
+  Release absence, repository/index, claims, notes, active install, and all
+  protected identities remained exact. No second tag creation, push, refspec,
+  signing, force, plan edit, or other mutation occurred.
+
+## GitHub Release terminal receipt
+
+- Grant `HC-0.7.0-GITHUB-RELEASE-007` was consumed by exactly one invocation:
+  `gh release create v0.7.0 --repo cch96/happycodex --verify-tag --title
+  'HappyCodex 0.7.0' --notes-file
+  /home/caichenghang/.codex/happycodex-v0.7.0-release-notes.md`. It exited 0 and
+  returned `https://github.com/cch96/happycodex/releases/tag/v0.7.0`.
+- GitHub readback identifies GraphQL/node id `RE_kwDOTXv7IM4Vx9n-`, database id
+  `365419006`, exact tag/title, `publishedAt=2026-08-05T09:36:50Z`, public
+  repository visibility, `draft=false`, `prerelease=false`,
+  `targetCommitish=main`, and zero assets.
+- Release body is exactly the frozen notes: 1,481 bytes, SHA-256
+  `493756d8301f5513420462ed50314e2faac5c80d14068082e7a15613afa77f87`.
+  Live tag object/peeled target and all main refs remained exact. No Release
+  retry, edit, delete, recreate, asset upload, alternate network write, or
+  product/control/activation mutation occurred.
+
+## Final acceptance and closeout receipt
+
+- Root grant `HC-0.7.0-CLOSEOUT-008A` supersedes only closeout row 008 by adding
+  one post-final-push release of the exact current six internal claims. It
+  authorizes no other cleanup, restoration, reacquisition, deletion, ref,
+  Release, install, product, activation, configuration, or marketplace effect.
+- Root accepts the final Outcome: candidate and readiness commits are public on
+  `main`; the exact annotated tag and public GitHub Release bind the readiness
+  commit; the frozen body is public without assets or certification overclaim;
+  the personal plugin is installed/enabled from exact active source/cache; the
+  single Exact-final returned `GO` with no material findings; and all preserved
+  identities and receipts are accounted for.
+- Root accepts the inherited validation limitation exactly as recorded: 159
+  tests, zero errors, two accepted baseline-unchanged failures, and zero new
+  failures. The full suite is not green. Root also accepts the official
+  activation replacement of the old cache under
+  `HC-0.7.0-ACTIVATION-ACCEPT-003A`. This release is reviewed source, not
+  maintainer-evaluator certified.
+- Closeout preflight verified clean synchronized readiness main, exact
+  candidate/readiness chain, committed plan and notes identities, local/remote
+  tag object and peeled target, GitHub Release ids/body/flags/assets, six held
+  claims, active install/source/cache, marketplace/configuration/support,
+  profiles, snapshot, and published v0.6.5 tree.
+- This committed record necessarily describes its own terminal cleanup
+  prospectively. Its sole commit input is this plan, with subject
+  `docs: close HappyCodex 0.7.0 release` and parent
+  `26b2a761dc9abf6c9902f96fbc7b9ac8d953c898`. Immediate Git readback supplies
+  the resulting commit/tree/plan identities. Exactly one non-force final push
+  of `refs/heads/main:refs/heads/main` follows only after the one-path commit
+  verifies; live remote readback must then equal that closeout commit.
+- Only after successful exact final-push readback does the current helper invoke
+  `release` once for mode-0600 receipt
+  `/home/caichenghang/.codex/happycodex-0.7.0-release-HC-RL-001.claim.json`,
+  SHA-256
+  `27fdd512e8f2ea277706111d832f532f01074a4dd664abf4a755fde70252b8c4`.
+  Accepted result is status `released`, exact owner/task, and resource count 6;
+  the receipt remains while all six matching claim identities disappear. The
+  20 unrelated claims must remain byte-identical to pre-release inventory
+  SHA-256
+  `c8bbaea4f72527e528e44fb2f99dd77242a949a3790f62528f5afbd200d00dd9`.
+- Final live readback after that release closes this prospective terminal
+  cleanup. Phase is `closed`. No later plan mutation is required or authorized;
+  Root retains the user-facing completion report.
