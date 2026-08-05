@@ -61,12 +61,15 @@ read-only top-level or parent environment before dispatch and verify effective
 permissions after dispatch; unverified output remains inadmissible.
 
 Root decomposes the problem into independent decision-changing axes before
-spawning. Multiple Explorers may be concurrent only for multiple independent
-axes, with one bounded question each. Root reproduces and merges their evidence
-without voting. Record Challenger before behavior-plan freeze, the unique
-Executor after that freeze, and exactly one fresh empty-history Exact-final with
-a neutral brief after candidate freeze. A repair returns the task to `working`
-and requires a new candidate and Exact-final receipt.
+spawning. For two or more qualifying independent decision-changing axes, Root
+concurrently dispatches one native Explorer per axis through the host's builtin
+`explorer` selector or an admitted namespaced custom Explorer selector.
+Ordinary parallel tool calls are not Explorer dispatches. Give each Explorer
+one bounded question. Root reproduces and merges their evidence without voting.
+Record Challenger before behavior-plan freeze, the unique Executor after that
+freeze, and exactly one fresh empty-history Exact-final with a neutral brief
+after candidate freeze. A repair returns the task to `working` and requires a
+new candidate and Exact-final receipt.
 
 Bind the Executor owner-token digest and every resource claim.
 

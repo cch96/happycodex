@@ -51,9 +51,9 @@ Use $happycodex:happycodex for this high-risk cross-system change.
 只有用户明确请求时，才会创建或修改 Goal。Goal 永远不会扩大权限，也不会
 取代 ExecPlan 或验证。
 
-## 0.7.0 角色路由
+## 0.7.1 角色路由
 
-0.7.0 定义以下协议级路由矩阵：
+0.7.1 定义以下协议级路由矩阵：
 
 | 逻辑角色 | 模型 | 推理强度 |
 | --- | --- | --- |
@@ -81,7 +81,11 @@ runtime metadata 后才可 admission。此前 child 输出不可采纳：不得�
 Root 立即 interrupt 仍在运行的 child、丢弃输出并 fail closed。
 
 Root 先把问题拆成独立且会改变决策的轴。只有存在多个这种轴时，才可并行多个
-Explorer，且每个 Explorer 只回答一个有界问题。Root 复现并合并证据，不投票。
+Explorer。0.7.1 的规范性并行规则是：For two or more qualifying independent
+decision-changing axes, Root concurrently dispatches one native Explorer per
+axis through the host's builtin `explorer` selector or an admitted namespaced
+custom Explorer selector. Ordinary parallel tool calls are not Explorer
+dispatches. 每个 Explorer 只回答一个有界问题。Root 复现并合并证据，不投票。
 Challenger 在行为计划冻结前工作；计划冻结后才由唯一 Executor 写入。候选冻结
 后只启动一个空历史、使用中性 brief 的全新 Exact-final；任何修复都返回
 `working`，重新冻结并重新评审。
@@ -102,10 +106,11 @@ live parent 覆盖，因此 profile 默认值和提示词都不是技术硬隔�
 隔离时，必须在 dispatch 前从 read-only 顶层或父环境启动，并在 receipt 到达
 后核验实际 sandbox 与 approval policy；未经核验的输出不可采纳。
 
-## 0.7.0 要点
+## 0.7.1 要点
 
-0.7.0 在既有四阶段与最小充分控制之上，加入由 host 能力约束、receipt gate
-控制且与插件打包解耦的角色路由契约；这是源码候选说明，不代表已经发布或激活。
+0.7.1 在既有四阶段与最小充分控制之上，为由 host 能力约束、receipt gate
+控制且与插件打包解耦的角色路由契约加入多轴时强制使用 native Explorer 的规则；
+这是源码候选说明，不代表已经发布或激活。
 
 [完整发布历史与验证状态请查看 GitHub Releases](https://github.com/cch96/happycodex/releases)。
 

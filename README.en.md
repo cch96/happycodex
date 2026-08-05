@@ -61,9 +61,9 @@ Use $happycodex:happycodex for this high-risk cross-system change.
 Goal is created or changed only when the user explicitly requests it. It never
 expands authority and never replaces the ExecPlan or verification.
 
-## 0.7.0 role routing
+## 0.7.1 role routing
 
-Version 0.7.0 defines this protocol-level routing matrix:
+Version 0.7.1 defines this protocol-level routing matrix:
 
 | Logical role | Model | Effort |
 | --- | --- | --- |
@@ -95,12 +95,16 @@ or the cross-bind mismatches, Root interrupts a still-running child, discards
 the output, and fails closed.
 
 Root first decomposes the problem into independent, decision-changing axes.
-Multiple Explorers run concurrently only when multiple such axes exist, and
-each Explorer answers one bounded question. Root reproduces and merges the
-evidence; it never votes. Challenger works before the behavior-plan freeze;
-only after that freeze does the unique Executor write. After candidate freeze,
-start exactly one fresh Exact-final with empty history and a neutral brief. Any
-repair returns to `working`, refreezes the candidate, and requires a new review.
+Multiple Explorers run concurrently only when multiple such axes exist.
+For two or more qualifying independent decision-changing axes, Root
+concurrently dispatches one native Explorer per axis through the host's builtin
+`explorer` selector or an admitted namespaced custom Explorer selector.
+Ordinary parallel tool calls are not Explorer dispatches. Each Explorer answers
+one bounded question. Root reproduces and merges the evidence; it never votes.
+Challenger works before the behavior-plan freeze; only after that freeze does
+the unique Executor write. After candidate freeze, start exactly one fresh
+Exact-final with empty history and a neutral brief. Any repair returns to
+`working`, refreezes the candidate, and requires a new review.
 
 ## What ships—and what does not
 
@@ -123,11 +127,12 @@ When hard read-only isolation is required, launch from a read-only top-level or
 parent environment before dispatch, then verify the effective sandbox and
 approval policy after the receipt arrives. Unverified output is inadmissible.
 
-## 0.7.0 highlights
+## 0.7.1 highlights
 
-Version 0.7.0 adds host-capability-gated, receipt-admitted role routing while
+Version 0.7.1 adds mandatory native Explorer dispatch for multiple qualifying
+axes to host-capability-gated, receipt-admitted role routing while
 preserving the four phases and smallest-sufficient-control boundary. This
-describes a source candidate; it does not claim that 0.7.0 has been released or
+describes a source candidate; it does not claim that 0.7.1 has been released or
 activated.
 
 [See GitHub Releases for full release history and validation status.](https://github.com/cch96/happycodex/releases)

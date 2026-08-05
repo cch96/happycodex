@@ -3,6 +3,7 @@ from __future__ import annotations
 import ast
 import json
 from pathlib import Path
+import re
 import subprocess
 import unittest
 
@@ -15,7 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PLAN = ROOT / "docs" / "execplans" / "happycodex-evaluator-attestation.md"
 ROUTING_PLAN = ROOT / "docs" / "execplans" / "happycodex-0-7-0-role-routing.md"
 PRESERVED_SKILL_TREE = "d9e525a267fbf36669d409ba1b4b009a6beeeea5"
-CANDIDATE_VERSION = "0.7.0"
+CANDIDATE_VERSION = "0.7.1"
 
 
 def git(*args: str) -> str:
@@ -86,13 +87,40 @@ class RepositoryContractTests(unittest.TestCase):
         readme_zh = (ROOT / "README.md").read_text()
         readme_en = (ROOT / "README.en.md").read_text()
         routing_plan = ROUTING_PLAN.read_text()
+        native_parallel_plan = (
+            ROOT
+            / "docs"
+            / "execplans"
+            / "happycodex-0-7-1-native-parallel-exploration.md"
+        ).read_text()
         compact = " ".join(skill.split())
         ref_compact = " ".join(reference.split())
         zh_compact = " ".join(readme_zh.split())
         en_compact = " ".join(readme_en.split())
         plan_compact = " ".join(routing_plan.split())
 
-        self.assertEqual(manifest["version"], "0.7.0")
+        approved_token_digests = (
+            "7b298a823a9224e8a9c8b61984c7d32c90431dd25e63372eb22b12e3c1f366b9",
+            "aa5f3b7e696f9f96bd8f80f8aa81a7bd00becb42596cec1c3a5654f5b142fa6c",
+        )
+        digest_values = tuple(
+            re.findall(
+                r"(?i)owner-token SHA-256\s*:?\s*\n\s*`([0-9a-f]{64})`",
+                native_parallel_plan,
+            )
+        )
+        raw_owner_token_count = len(
+            re.findall(
+                r"(?i)\bowner token\s*:?\s*\n\s*`(?:[0-9a-f]{64})`",
+                native_parallel_plan,
+            )
+        )
+        self.assertEqual(
+            (digest_values, raw_owner_token_count),
+            (approved_token_digests, 0),
+        )
+
+        self.assertEqual(manifest["version"], CANDIDATE_VERSION)
         self.assertNotIn("agents", manifest)
         self.assertIn("host-capability-gated role routing", manifest["description"])
         self.assertIn("when the host supports exact selectors and runtime metadata", manifest["interface"]["longDescription"])
@@ -126,6 +154,8 @@ class RepositoryContractTests(unittest.TestCase):
             "interrupt the child if still running, discard its output, and fail closed",
             "Run multiple Explorers concurrently only when multiple such axes exist",
             "give each Explorer exactly one bounded question",
+            "For two or more qualifying axes, dispatch one native Explorer per axis concurrently through the host's builtin `explorer` selector or an admitted namespaced custom Explorer selector",
+            "Parallel ordinary tool calls are not Explorer dispatches",
             "Root reproduces and merges the evidence; it never votes",
             "Challenger runs before the behavior-plan freeze",
             "Only after that freeze does the unique Executor write",
@@ -168,6 +198,19 @@ class RepositoryContractTests(unittest.TestCase):
             for row in rows:
                 with self.subTest(readme_row=row):
                     self.assertIn(row, text)
+
+        public_native_explorer_contract = (
+            "For two or more qualifying independent decision-changing axes, Root concurrently dispatches one native Explorer per axis through the host's builtin `explorer` selector or an admitted namespaced custom Explorer selector",
+            "Ordinary parallel tool calls are not Explorer dispatches",
+        )
+        for surface, text in (
+            ("README.en.md", en_compact),
+            ("README.md", zh_compact),
+            ("skills/happycodex/references/execplan.md", ref_compact),
+        ):
+            for phrase in public_native_explorer_contract:
+                with self.subTest(surface=surface, phrase=phrase):
+                    self.assertIn(phrase, text)
 
         for phrase in (
             "Complete routing applies only when the host supports exact selectors and runtime-issued metadata",
@@ -275,7 +318,7 @@ class RepositoryContractTests(unittest.TestCase):
         self.assertIn("插件安装不打包、安装、激活或要求自定义代理", zh_compact)
         self.assertIn("Plugin installation does not bundle, install, activate, or require custom agents", en_compact)
         self.assertIn("不代表已经发布或激活", readme_zh)
-        self.assertIn("does not claim that 0.7.0 has been released or activated", en_compact)
+        self.assertIn("does not claim that 0.7.1 has been released or activated", en_compact)
 
     def test_no_active_ledger_or_retired_engine_files_exist(self):
         retired = [

@@ -92,9 +92,13 @@ labels, and agent self-reports are not effective-routing evidence.
 
 Root first decomposes the problem into independent, decision-changing axes.
 Run multiple Explorers concurrently only when multiple such axes exist, and
-give each Explorer exactly one bounded question. Root reproduces and merges the
-evidence; it never votes. Challenger runs before the behavior-plan freeze. Only
-after that freeze does the unique Executor write. After candidate freeze, spawn
+give each Explorer exactly one bounded question. For two or more qualifying
+axes, dispatch one native Explorer per axis concurrently through the host's
+builtin `explorer` selector or an admitted namespaced custom Explorer selector.
+Parallel ordinary tool calls are not Explorer dispatches. Root reproduces and
+merges the evidence; it never votes. Challenger runs before the behavior-plan
+freeze. Only after that freeze does the unique Executor write. After candidate
+freeze, spawn
 exactly one fresh Exact-final with `fork_turns = none`, empty history, and a
 neutral brief that excludes prior findings and desired verdicts. A repair
 returns to `working`, invalidates affected frozen evidence, and requires a new

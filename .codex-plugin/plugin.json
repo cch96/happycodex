@@ -1,6 +1,6 @@
 {
   "name": "happycodex",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "Codex-native reliability guidance for high-risk changes with host-capability-gated role routing and one fixed Executor.",
   "author": {
     "name": "caichenghang",
