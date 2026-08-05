@@ -3,8 +3,9 @@
 ## Contract
 
 - Task and bootstrap grant: `HC-0.7.2-RELEASE-001`.
-- Phase: `readiness`. This is the current release index, not a release receipt or
-  authority for any later effect.
+- Phase: `closed`, explicitly conditional on every remaining step in the exact
+  prospective terminal chain below succeeding. This is the release index and
+  terminal receipt, not authority for any unrelated or later effect.
 - Frozen user authority, verbatim: `好的发布吧`.
 - Authorized Outcome: publicly release HappyCodex `v0.7.2` to
   `cch96/happycodex` and update the existing local `happycodex@personal`
@@ -146,9 +147,9 @@ token. Claims remain active until the exact closeout grant.
 | `RL-VALIDATE` | Frozen checks remain bound; any additional isolated package validation is local and no public effect. | verified |
 | `RL-ACTIVATE` | Personal source/cache become one matching 0.7.2 cachebuster package using one official helper call and one plugin-add call. | verified |
 | `RL-NOTES` | External release notes exactly match the frozen body below. | verified |
-| `RL-COMMIT` | Candidate, readiness, and plan-only closeout commits have exact inventories. | candidate portion verified; readiness identity and closeout pending |
-| `RL-PUBLISH` | One non-force main push, one annotated tag/push, and one public GitHub Release bind the admitted readiness commit. | pending |
-| `RL-CLOSE` | Root verifies public/local state, closeout is pushed, and the original six claims are released exactly once. | pending |
+| `RL-COMMIT` | Candidate, readiness, and plan-only closeout commits have exact inventories. | verified, conditional on prospective closeout commit/readback success |
+| `RL-PUBLISH` | One non-force main push, one annotated tag/push, and one public GitHub Release bind the admitted readiness commit. | verified |
+| `RL-CLOSE` | Root verifies public/local state, closeout is pushed, and the original six claims are released exactly once. | verified, conditional on prospective push/readback and exact claim-release success |
 
 ## Ordered future effects
 
@@ -495,3 +496,168 @@ codex plugin add happycodex@happycodex
   This receipt authorizes no push, tag, GitHub Release, claim release, test,
   provider/validator, package/cache change, branch/PR, force, amend, cleanup,
   retry, or other path.
+
+## Main-push receipt
+
+- Grant: `HC-0.7.2-MAIN-PUSH-006`. Immediate pre-effect claim verification
+  exited `0`. The repository was clean with an empty index at readiness commit
+  `8d33ab56c10c0ae4e6149dbea9a5b56238f92c28`, tree
+  `caa2d6ac049fed414be72be8f1fa089f3d276166`, sole parent
+  `4325fe2a7d0c0e2c4c077a7070e33a5f4d001245`, subject
+  `docs: record HappyCodex 0.7.2 release readiness`, and sole added path
+  `docs/execplans/happycodex-0-7-2-release.md`.
+- Candidate commit/parent, ProductArtifact, protected 0.6.5, release notes,
+  active personal package, marketplace/config, tag/Release absence, and claims
+  matched their admitted identities. Local `origin/main` and a fresh live read
+  both resolved to `c9476242c259cfe84ba2c9b7866f62d5694c3ee6`; that
+  commit was an ancestor of readiness HEAD and the ahead count was exactly `2`.
+- `git push origin main` was invoked exactly once, without force or retry, and
+  exited `0` with the unambiguous update
+  `c947624..8d33ab5 main -> main`. Immediate local `origin/main` and a fresh live
+  remote read both resolved exactly to
+  `8d33ab56c10c0ae4e6149dbea9a5b56238f92c28`.
+- A post-push silent claim verification exited `0`, bringing total helper
+  receipt verifications to `12`. Remote `v0.7.2` and GitHub Release `v0.7.2`
+  remained absent. Notes remained mode `0600`, size `1221`, SHA-256
+  `263d3515ea323f756196668c95abd89d012a1a1cced62fc530400499d82dad0c`;
+  activation remained installed/enabled at
+  `0.7.2+codex.20260805182647` with one byte-equal source/cache pair; claims,
+  marketplace/config, candidate/ProductArtifact, and protected identities
+  remained unchanged.
+- Only the main-push portion of `RL-PUBLISH` is verified. Annotated tag push,
+  GitHub Release, and `RL-CLOSE` remain pending. No second push, tag creation or
+  push, GitHub Release, stage/commit, package/cache/plugin effect, test/provider,
+  notes mutation, claim release, branch/PR, force/amend, cleanup, retry, or
+  unrelated network write occurred. Phase remains `readiness`.
+
+## Annotated-tag receipt
+
+- Grant: `HC-0.7.2-TAG-007`. Immediate preflight silently verified all six
+  claims with exit `0`, bringing total helper receipt verifications to `13`.
+  HEAD, local `origin/main`, and fresh live remote main all resolved to readiness
+  commit `8d33ab56c10c0ae4e6149dbea9a5b56238f92c28`; readiness and candidate
+  chain identities matched. The sole worktree dirt was this plan at SHA-256
+  `b17cd4dac3e5111b8d4eac868275d3e6edcb1b9c3b29c69e306a4ce39a1174e1`,
+  the index and diff check were clean, local/remote tag and peeled refs were
+  absent, GitHub Release was absent, and every notes/activation/config/claim/
+  candidate/protected invariant matched.
+- Exactly one unsigned annotated tag was created without force using
+  `git tag -a v0.7.2 -m 'HappyCodex 0.7.2' 8d33ab56c10c0ae4e6149dbea9a5b56238f92c28`;
+  exit `0`. Local object `41145c2f6130a88a11af44122a238b72d7acf209`
+  had type `tag`, no signature block, exact annotation `HappyCodex 0.7.2`, and
+  peeled exactly to the admitted readiness commit.
+- `git push origin refs/tags/v0.7.2` was invoked exactly once, without force or
+  retry, and exited `0` with unambiguous `[new tag] v0.7.2 -> v0.7.2` output.
+  Fresh remote verification returned tag object
+  `41145c2f6130a88a11af44122a238b72d7acf209` and peeled commit
+  `8d33ab56c10c0ae4e6149dbea9a5b56238f92c28`, exactly matching local state.
+- Main HEAD, local `origin/main`, and fresh live remote main remained at the
+  readiness commit. GitHub Release `v0.7.2` remained absent. A post-effect
+  silent claim verification exited `0`, bringing total helper receipt
+  verifications to `14`; release notes, personal activation, marketplace/config,
+  candidate/ProductArtifact, claims, and protected 0.6.5 identities remained
+  unchanged.
+- The main and annotated-tag portions of `RL-PUBLISH` are verified; GitHub
+  Release and `RL-CLOSE` remain pending. No second tag or push, delete/recreate,
+  GitHub Release, main push, stage/commit, notes/package/cache/plugin effect,
+  test/provider, claim release, branch/PR, force/amend, cleanup, retry, or
+  unrelated network write occurred. Phase remains `readiness`.
+
+## GitHub Release receipt
+
+- Grant: `HC-0.7.2-GITHUB-RELEASE-008`. Immediate preflight silently verified
+  all six claims with exit `0`, bringing total helper receipt verifications to
+  `15`. HEAD, local `origin/main`, and fresh remote main were the readiness
+  commit; local/remote annotated tag object
+  `41145c2f6130a88a11af44122a238b72d7acf209` had exact annotation
+  `HappyCodex 0.7.2` and peeled to that commit. GitHub authentication was active
+  as `cch96` for `cch96/happycodex`; an immediate pre-effect view returned exact
+  `release not found`. The sole dirt was this plan at SHA-256
+  `e17f2dcc313f0e91fbb31bdc11bab95de51e9f3a1d852d534cf47ad31c98d0f5`,
+  the index was empty, and all notes/activation/config/claim/candidate/protected
+  identities matched.
+- Exactly one external release command was invoked:
+  `gh release create v0.7.2 --repo cch96/happycodex --title 'HappyCodex 0.7.2' --notes-file /home/caichenghang/.codex/happycodex-v0.7.2-release-notes.md --verify-tag`.
+  It exited `0` and returned
+  `https://github.com/cch96/happycodex/releases/tag/v0.7.2` without ambiguity.
+- Immediate read-only metadata bound database ID `365740255`, node ID
+  `RE_kwDOTXv7IM4VzMDf`, tag `v0.7.2`, exact title `HappyCodex 0.7.2`, target
+  `main`, `draft=false`, `prerelease=false`, zero assets, publishedAt
+  `2026-08-05T18:39:26Z`, and the exact returned URL. The remote body was
+  byte-equal to the mode-0600, 1221-byte frozen notes including their single
+  final newline; both had SHA-256
+  `263d3515ea323f756196668c95abd89d012a1a1cced62fc530400499d82dad0c`.
+- Fresh remote main remained at
+  `8d33ab56c10c0ae4e6149dbea9a5b56238f92c28`; local/remote tag object remained
+  `41145c2f6130a88a11af44122a238b72d7acf209` and peeled to that main commit.
+  A post-effect silent claim verification exited `0`, bringing total helper
+  receipt verifications to `16`; notes, personal activation, marketplace/config,
+  claims, candidate/ProductArtifact, and protected 0.6.5 identities remained
+  unchanged.
+- `RL-PUBLISH` is verified across main, annotated tag, and the public GitHub
+  Release. `RL-CLOSE` remains pending. No second create, edit/delete, asset
+  upload, discussion, latest override, push/tag/main push, stage/commit,
+  notes/package/cache/plugin mutation, test/provider, claim release, branch/PR,
+  force/amend, cleanup, retry, or unrelated network write occurred. Phase
+  remains `readiness` pending exact closeout.
+
+## Prospective terminal closeout receipt
+
+- Grant: `HC-0.7.2-CLOSEOUT-009`. Immediate preflight silently verified the
+  six-claim receipt with exit `0`, bringing total helper receipt verifications
+  to `17` without exposing the owner token. The sole dirt was this release plan
+  at SHA-256
+  `5f137d54218b02defea28103d98788c00440d363af86190714ac62c609f7ffe2`;
+  the index and diff check were clean.
+- Readiness commit is
+  `8d33ab56c10c0ae4e6149dbea9a5b56238f92c28`, tree
+  `caa2d6ac049fed414be72be8f1fa089f3d276166`, sole parent candidate commit
+  `4325fe2a7d0c0e2c4c077a7070e33a5f4d001245`, exact subject
+  `docs: record HappyCodex 0.7.2 release readiness`, and sole added release-plan
+  path. Candidate has sole parent
+  `c9476242c259cfe84ba2c9b7866f62d5694c3ee6`, tree
+  `5fdd37971fc03cd77cbab1401cd39063bb5b751b`, exact release subject, and its
+  admitted seven-path inventory.
+- Before this closeout plan mutation, HEAD, local `origin/main`, and fresh live
+  remote main were the readiness commit. Local/remote annotated tag object
+  `41145c2f6130a88a11af44122a238b72d7acf209`, annotation
+  `HappyCodex 0.7.2`, peeled to readiness. Public Release database ID
+  `365740255`, node ID `RE_kwDOTXv7IM4VzMDf`, URL
+  `https://github.com/cch96/happycodex/releases/tag/v0.7.2`, publishedAt
+  `2026-08-05T18:39:26Z`, tag/title/public status, target `main`, zero assets,
+  and body SHA-256
+  `263d3515ea323f756196668c95abd89d012a1a1cced62fc530400499d82dad0c`
+  all matched.
+- Frozen notes remained mode `0600`, size `1221`, and the same body SHA. The
+  personal plugin remained installed/enabled at
+  `0.7.2+codex.20260805182647` with one exact byte-equal source/cache pair and
+  Skill SHA-256
+  `53e768ac3cecbcc564609e8f879758286b457a84d70cc82601f34397bdb18f33`.
+  Marketplace/config, candidate package/ProductArtifact, Exact-final, frozen
+  validation, protected 0.6.5, unrelated resources, and isolated-temp absence
+  remained unchanged. This is a reviewed source release, not a maintainer-
+  evaluator certification. No Goal was requested or created.
+- All obligations are recorded verified, conditional only on successful
+  completion of the remaining bounded chain: stage exactly this one plan; create
+  exactly one non-amended commit with subject
+  `docs: close HappyCodex 0.7.2 release` and readiness as sole parent; read back
+  its assigned commit/tree/parent/subject/one-path inventory; recheck live remote
+  main still readiness and tag/Release exact; push main exactly once, non-force
+  and without retry; then fresh-verify local/live remote main at the assigned
+  closeout commit while tag and Release remain pinned to readiness.
+- Only after that push verification, reverify activation, notes, config,
+  marketplace, candidate, and protected identities, then invoke exactly once
+  `python3 skills/happycodex/scripts/resource_claim.py release --receipt /home/caichenghang/.codex/happycodex-0.7.2-release-HC-RL-001.claim.json`
+  with raw stdout suppressed. Its internal exact-owner verification and release
+  must exit `0` without retry. The six task claim records must then be absent;
+  repository, personal-source, and cache claim roots must contain zero task
+  claims; the shared root must return from `21` to exactly the same `20`
+  unrelated records whose pre-release sorted-digest aggregate is
+  `b59bd5948f07ce8ffc8822b3839c5b00eb508f45fd8f2c71fd8eeba48269489c`.
+  The mode-0600, 2582-byte receipt must remain at SHA-256
+  `57c85348cbfe04da6c93560f17f8d48f1db60fb83fe53e258f51730ffffc3693`.
+- On successful completion, remote main advances only to the plan-only closeout
+  commit; `v0.7.2` tag and GitHub Release remain pinned to readiness. No later
+  plan mutation is permitted or required. Phase `closed` and the conditional
+  `RL-COMMIT`/`RL-CLOSE` dispositions become effective only if every step above
+  succeeds exactly. Root retains the completion decision.
