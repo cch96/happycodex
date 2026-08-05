@@ -1151,3 +1151,66 @@ surface.
   test/provider/helper/install, manual plugin/cache/marketplace/configuration
   edit, claim release, or other network/ref write has occurred under this
   readiness grant.
+
+## Publication receipts and final closeout acceptance
+
+- Readiness commit `68703f75b24b402e2924f491e90a6cc4cc9cdeb9`, tree
+  `10a408ed9b64c45c835690567789b8c84d53f48b`, has sole parent candidate commit
+  `8dfacab289241c6af9e913b5c1546e36a843cb44`. Its exact subject is
+  `docs: record HappyCodex 0.7.1 release readiness`, and its diff-tree contains
+  only `docs/execplans/happycodex-0-7-1-release.md` at committed SHA-256
+  `fc3cf65000687d9debb35e7afc1578f06c3f21952d2bb16751592bb4886d8328`.
+  Immediate readback found an empty index and clean worktree.
+- Under `HC-0.7.1-MAIN-PUSH-029`, exactly one non-force
+  `git push origin main` exited `0` and reported
+  `39a37b5..68703f7  main -> main`. Immediate local tracking and fresh live
+  readback both resolved `main` to the exact readiness commit. No retry or
+  other ref effect occurred.
+- Under `HC-0.7.1-TAG-030`, exactly one non-signed annotated local tag
+  `v0.7.1` was created at the readiness commit with annotation
+  `HappyCodex 0.7.1`, then exactly one
+  `git push origin refs/tags/v0.7.1` exited `0`. Local and fresh remote tag
+  object are
+  `cc2b319b35afeac163d28d963898248c0541ca84`; both peel to
+  `68703f75b24b402e2924f491e90a6cc4cc9cdeb9`.
+- Under `HC-0.7.1-GITHUB-RELEASE-031`, exactly one
+  `gh release create v0.7.1 --repo cch96/happycodex --title 'HappyCodex 0.7.1' --notes-file /home/caichenghang/.codex/happycodex-v0.7.1-release-notes.md --verify-tag`
+  exited `0`. The public Release is
+  `https://github.com/cch96/happycodex/releases/tag/v0.7.1`, with exact tag
+  `v0.7.1`, title `HappyCodex 0.7.1`, `publishedAt`
+  `2026-08-05T16:09:12Z`, `targetCommitish` `main`, draft `false`, prerelease
+  `false`, zero assets, and body byte-identical to the 847-byte frozen notes,
+  SHA-256
+  `042ceeb1030088f8ecf19afe7e17947b6080170b0a5c2f076450f676b4bcbcf6`.
+  No retry, edit, asset upload, or recreate occurred.
+- Root accepts the exact Outcome. The inherited full offline suite ran `159`
+  tests with exactly two known baseline failures, `0` errors, `0` new
+  failures, and no timeout; it is not green and is not represented as green.
+  Focused checks and existing Skill/plugin validators passed. The admitted
+  fresh Codex-native read-only neutral Exact-final returned `GO`; independent
+  outer mount-level isolation was explicitly waived. Root also accepts the
+  official activation's normal single-cache replacement semantics. This is a
+  reviewed source release, not a maintainer-evaluator certification.
+- `HC-0.7.1-CLOSEOUT-032` closes the release through one final bounded chain.
+  The closeout commit input is only this plan, with exact subject
+  `docs: close HappyCodex 0.7.1 release` and readiness commit
+  `68703f75b24b402e2924f491e90a6cc4cc9cdeb9` as sole parent. After exact local
+  readback, one non-force `git push origin main` publishes that closeout commit.
+  Only after successful fresh remote readback may the original eight-claim
+  receipt be released exactly once; if and only if that succeeds safely, the
+  repair one-claim receipt is released exactly once. Raw release output and
+  owner tokens must never be exposed or persisted; only safe status, task, and
+  resource-count fields may be reported.
+- The original receipt remains mode `0600`, SHA-256
+  `1b6abf5363bf14468fe8a42dceb66ce3a92fef806d5f0c0b198fadb24e41c6a5`,
+  and covers eight claims. The repair receipt remains mode `0600`, SHA-256
+  `51ffe37b8b388577574db7f9e5cdee48bfa5bbad0d1a56707a64ce271393eac3`,
+  and covers one claim. Both receipt files remain after release. Exactly `20`
+  unrelated claim records must remain; their aggregate over sorted per-root
+  relative `*.claim/claim` path, tab, record SHA-256, and newline is
+  `2147aecaf2281ef52c4a050bfb8cf1d36e2cd3c2772cdf8f207ec5cf1c3b92e2`.
+- This committed record necessarily describes its own terminal commit, push,
+  and claim releases prospectively. Their exact identities and safe statuses
+  are obtained by immediate readback; no later plan mutation is required. On
+  successful completion of that chain, all release obligations are satisfied
+  and the effective phase is `closed`.
