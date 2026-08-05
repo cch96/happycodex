@@ -54,11 +54,67 @@ product, commits, and receipts, never delegates, and cannot be replaced after
 compaction. Explorers, Challengers, and reviewers are read-only. Root never
 edits, stages, commits, installs, releases, or activates controlled bytes.
 
-Record each participant's runtime-issued task/session identity, effective
-model/effort, permissions, source, and terminal receipt. A label, summary, or
-completion sentence is not evidence. Give a read-only agent one bounded,
-decision-changing question; parallelize only independent questions. Root
-reproduces the union of findings, not a vote.
+Use this exact logical-role matrix:
+
+| Logical role | Model | Effort | Responsibility |
+| --- | --- | --- | --- |
+| Root | `gpt-5.6-sol` | `max` | decompose, decide, grant, reproduce, verify |
+| Explorer | `gpt-5.6-terra` | `high` | read-only bounded exploration |
+| Challenger | `gpt-5.6-sol` | `high` | read-only pre-behavior-plan-freeze challenge |
+| Executor | `gpt-5.6-sol` | `high` | unique fixed controlled-domain writer |
+| Exact-final | `gpt-5.6-sol` | `max` | one fresh read-only final review |
+
+Before dispatch, Root verifies its own effective route is `gpt-5.6-sol/max` and
+confirms the host selector can request the target logical role, selected
+platform agent type or custom-agent name, model, effort, and `fork_turns` as
+`none` or a bounded positive integer, never `all`. Root creates an authenticated
+dispatch/tool receipt binding logical role, selected agent request, requested
+model/effort or custom config SHA-256, fork mode, input baseline/candidate
+identities, and prompt/brief digest. Platform acceptance of the spawn completes
+that dispatch receipt. On the portable builtin/default path, explicitly pin
+model and effort. For a namespaced custom agent, its file's model and effort
+take precedence; omit redundant or conflicting explicit model/effort arguments.
+If the host cannot accept the exact request or expose the required effective
+metadata, do not dispatch. Never silently inherit, substitute, or downgrade.
+
+Dispatch may start the child immediately. Until Root reads the runtime-issued
+session/turn metadata for actual platform/custom role or name when exposed,
+effective model/effort, effective sandbox/approval, and child/run/session
+identity, the child output is inadmissible. Root admits output only after
+cross-binding that metadata to the authenticated dispatch receipt. Runtime
+metadata need not repeat Root-owned logical role, fork, input identities, or
+prompt digest. Before admission, output must not enter the behavior plan,
+trigger a write grant, advance phase, or count as a final verdict. If either
+required evidence source is missing or the cross-bind mismatches, interrupt the
+child if still running, discard its output, and fail closed. Keep logical role
+distinct from platform agent type and custom-agent name. Names, config requests,
+labels, and agent self-reports are not effective-routing evidence.
+
+Root first decomposes the problem into independent, decision-changing axes.
+Run multiple Explorers concurrently only when multiple such axes exist, and
+give each Explorer exactly one bounded question. Root reproduces and merges the
+evidence; it never votes. Challenger runs before the behavior-plan freeze. Only
+after that freeze does the unique Executor write. After candidate freeze, spawn
+exactly one fresh Exact-final with `fork_turns = none`, empty history, and a
+neutral brief that excludes prior findings and desired verdicts. A repair
+returns to `working`, invalidates affected frozen evidence, and requires a new
+candidate freeze and a new Exact-final.
+
+Record each participant's authenticated dispatch/tool receipt, runtime-issued
+session/turn metadata, and Root admission decision separately. The dispatch
+receipt owns logical role, selected request, requested route/config, fork,
+input identities, and prompt/brief digest. Runtime metadata owns effective
+route, permissions, runtime identity, and actual platform/custom name when
+visible. The admission record cross-binds both sources to phase, source,
+terminal state, and terminal receipt. A label, summary, or completion sentence
+is not evidence.
+
+A custom profile's `sandbox_mode = "read-only"` may be overridden by a live
+full-access parent task. Prompt instructions and profile defaults are not hard
+isolation. When technical read-only isolation is required, establish a
+read-only top-level or parent environment before dispatch, then verify the
+effective sandbox and approval policy from the receipt. Until that verification
+succeeds, the child output remains inadmissible.
 
 Every write grant binds the fixed Executor, exact paths/resources, source
 commit/tree and dirt, allowed operations, acceptance, effect budget, and stop

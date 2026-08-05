@@ -51,19 +51,61 @@ Use $happycodex:happycodex for this high-risk cross-system change.
 只有用户明确请求时，才会创建或修改 Goal。Goal 永远不会扩大权限，也不会
 取代 ExecPlan 或验证。
 
+## 0.7.0 角色路由
+
+0.7.0 定义以下协议级路由矩阵：
+
+| 逻辑角色 | 模型 | 推理强度 |
+| --- | --- | --- |
+| Root | `gpt-5.6-sol` | `max` |
+| Explorer | `gpt-5.6-terra` | `high` |
+| Challenger | `gpt-5.6-sol` | `high` |
+| 唯一 Executor | `gpt-5.6-sol` | `high` |
+| 唯一全新 Exact-final | `gpt-5.6-sol` | `max` |
+
+完整路由只在 host 支持精确 selector 和 runtime-issued metadata 时成立。
+dispatch 前，Root 先核验自身为 `gpt-5.6-sol/max`，并确认 selector 能请求目标
+角色、模型、推理强度和 `fork_turns = none` 或有界正整数。Root 的经认证
+dispatch/tool receipt 绑定逻辑角色、所选 agent 请求、请求的模型/强度或 custom
+配置 SHA、fork、输入 baseline/candidate 身份以及 prompt/brief digest；平台接受
+spawn 即完成 dispatch receipt。portable builtin/default 路径显式 pin 模型与
+强度；选择 namespaced custom agent 时，以其配置文件的模型与强度为准，并省略
+冲突或重复的显式参数。
+
+spawn 可以立即启动。runtime-issued session/turn metadata 提供实际
+platform/custom 角色或名称（如可见）、effective 模型与强度、effective
+sandbox/approval 以及 child/run/session 身份；不要求它重复 Root 已绑定的逻辑
+角色、fork、输入身份或 prompt digest。Root 只有交叉绑定 dispatch receipt 与
+runtime metadata 后才可 admission。此前 child 输出不可采纳：不得写入行为计划、
+触发写授权、推进 phase 或充当 final verdict。缺少任一必需来源或发生错配时，
+Root 立即 interrupt 仍在运行的 child、丢弃输出并 fail closed。
+
+Root 先把问题拆成独立且会改变决策的轴。只有存在多个这种轴时，才可并行多个
+Explorer，且每个 Explorer 只回答一个有界问题。Root 复现并合并证据，不投票。
+Challenger 在行为计划冻结前工作；计划冻结后才由唯一 Executor 写入。候选冻结
+后只启动一个空历史、使用中性 brief 的全新 Exact-final；任何修复都返回
+`working`，重新冻结并重新评审。
+
 ## 包含与不包含
 
 插件包含核心 Runtime 指引和资源声明辅助工具。HappyCodex 不是控制器、守护
 进程、调度器、MCP server、自动授权系统或自动重试系统。
 
-HappyCodex 不附带模型矩阵或自定义代理配置。可用的模型与推理强度由用户和
-Codex 配置选择；每位参与者实际使用的模型、推理强度与权限都会被记录。
+插件安装不打包、安装、激活或要求自定义代理。本机可选的
+`happycodex_explorer`、`happycodex_challenger` 和
+`happycodex_exact_final` profiles 只是严格/便利配置，不覆盖 builtin，也不是
+插件能力保证。逻辑角色与平台 agent type/custom-agent name 必须分开记录；名称、
+profile 和代理自述都不是有效路由证据。
 
-## 0.6.6 要点
+在 full-access 父任务中，custom agent 的 `sandbox_mode = "read-only"` 可能被
+live parent 覆盖，因此 profile 默认值和提示词都不是技术硬隔离。需要硬只读
+隔离时，必须在 dispatch 前从 read-only 顶层或父环境启动，并在 receipt 到达
+后核验实际 sandbox 与 approval policy；未经核验的输出不可采纳。
 
-0.6.6 聚焦于受支持工作流中实际可达的重大风险。它把用户、维护者、本地状态
-和所选配置视为可信但可能出错；验证状态与身份而不是动机；优先采用最小充分
-控制；扩大范围或信任边界前必须获得用户明确授权。
+## 0.7.0 要点
+
+0.7.0 在既有四阶段与最小充分控制之上，加入由 host 能力约束、receipt gate
+控制且与插件打包解耦的角色路由契约；这是源码候选说明，不代表已经发布或激活。
 
 [完整发布历史与验证状态请查看 GitHub Releases](https://github.com/cch96/happycodex/releases)。
 

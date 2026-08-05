@@ -20,10 +20,55 @@ closed history into content-addressed receipts.
 
 ## Roles and authority
 
-Record Root, the fixed Executor, read-only agents, and reviewer with runtime task
-or session identity, effective model/effort, permissions, source, terminal
-status, and receipt. Bind the Executor owner-token digest and every resource
-claim.
+Record one row per role invocation with all of these fields and evidence
+sources:
+
+| Field | Required value | Evidence source |
+| --- | --- | --- |
+| Logical role | `Root`, `Explorer`, `Challenger`, `Executor`, or `Exact-final`; separate from platform naming | authenticated Root-owned dispatch/tool receipt |
+| Selected agent request | platform agent type and/or namespaced custom-agent name | authenticated Root-owned dispatch/tool receipt |
+| Single question | one bounded decision-changing question for each read-only role; `N/A` with reason for Root/Executor | authenticated Root-owned dispatch/tool receipt |
+| Requested route or config | explicit model/effort for builtin/default, or namespaced custom-agent path and SHA-256 whose model/effort take precedence | authenticated Root-owned dispatch/tool receipt |
+| Fork mode | requested `none` or bounded positive integer, never `all` | authenticated Root-owned dispatch/tool receipt |
+| Parallel independence | exact independent axis and non-overlapping read-only scope, or `not parallel` | authenticated Root-owned dispatch/tool receipt |
+| Input identities | exact baseline and candidate identity; use explicit `not-yet-created` before a candidate exists | authenticated Root-owned dispatch/tool receipt |
+| Prompt/brief digest | digest of the exact bounded question or neutral brief | authenticated Root-owned dispatch/tool receipt |
+| Spawn acceptance | platform accepted the exact spawn request | authenticated dispatch/tool result |
+| Actual agent role/name | effective platform/custom role or name when the runtime exposes it | runtime-issued session/turn metadata |
+| Effective route | effective model and effort | runtime-issued session/turn metadata |
+| Effective permissions | effective sandbox and approval policy, not profile or prompt claims | runtime-issued session/turn metadata |
+| Runtime identity | child/run plus task/session identity | runtime-issued session/turn metadata |
+| Phase | phase in which the invocation starts and its output is admitted or discarded | Root admission record |
+| Admission state | `inadmissible` until Root cross-binds both receipts; then `admitted` or `discarded` with reason | Root admission record |
+| Phase gate | before admission, output cannot enter the behavior plan, trigger a write grant, advance phase, or count as a final verdict | Root admission record |
+| Terminal receipt | terminal state, output/evidence digest, truncation, and receipt identities | Root admission record bound to runtime terminal metadata |
+
+Before dispatch, Root verifies its own effective route is `gpt-5.6-sol/max` and
+that the host can request the exact selector and expose the required effective
+metadata. Platform acceptance completes the authenticated dispatch receipt and
+the child may start immediately. Root then reads the runtime-issued
+session/turn metadata and cross-binds it to the dispatch receipt. Runtime
+metadata is not required to echo logical role, fork, input identities, or
+prompt digest because those belong to the authenticated dispatch receipt. Until
+both required sources cross-bind, all child output is inadmissible and the phase
+gate above remains closed. A missing source or mismatch requires Root to
+interrupt the child if still running, discard the output, and fail closed.
+
+Names, agent self-reports, profile defaults, and prompt text do not prove
+routing or isolation. A full-access parent may override a custom profile's
+`sandbox_mode = "read-only"`. When technical isolation is required, establish a
+read-only top-level or parent environment before dispatch and verify effective
+permissions after dispatch; unverified output remains inadmissible.
+
+Root decomposes the problem into independent decision-changing axes before
+spawning. Multiple Explorers may be concurrent only for multiple independent
+axes, with one bounded question each. Root reproduces and merges their evidence
+without voting. Record Challenger before behavior-plan freeze, the unique
+Executor after that freeze, and exactly one fresh empty-history Exact-final with
+a neutral brief after candidate freeze. A repair returns the task to `working`
+and requires a new candidate and Exact-final receipt.
+
+Bind the Executor owner-token digest and every resource claim.
 
 For each grant record its identifier and sequence; fixed Executor; exact
 commit/tree/status prestate; closed paths/resources; allowed operations/effects;
