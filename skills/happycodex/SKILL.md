@@ -5,284 +5,183 @@ description: High-risk, cross-system, or compaction-prone work; one fixed Execut
 
 # HappyCodex
 
-HappyCodex is durable guidance for native planning, Git, tests, agents, review,
-and an explicitly requested Goal. It is not a controller. Authority permits an
-exact action; the ExecPlan defines completion; evidence binds a candidate; Goal
-controls automatic continuation. Never infer one from another.
+HappyCodex is durable guidance for native Codex planning, Git, tests, agents,
+and an explicitly requested Goal. It is not a controller. User authority,
+Root's active grant, the ExecPlan, candidate evidence, and Goal are separate;
+none manufactures another.
 
-## Select and freeze
+## Qualify and freeze
 
 Use HappyCodex for public contracts, migrations, persistence, concurrency,
-destructive or production work, exhaustive replacement, long research, or work
-likely to cross compaction. Material uncertainty about a supported workflow
-qualifies. A clearly local low-risk edit may use native Plan, tests, and diff;
-establish an ExecPlan before the next product write if scope or risk grows.
+destructive or production effects, exhaustive replacement, long research, or
+work likely to cross compaction. A clearly bounded local low-risk edit stays on
+native Plan, tests, and diff. If its scope or risk grows, persist an ExecPlan
+before the next product write.
 
-Reason only about material failures reachable through supported workflows,
-including compaction, concurrency, and partial effects. Unless the request or
-source establishes otherwise, treat the user, maintainer, workspace, and
-selected configuration as non-adversarial but fallible: verify state and
-identity, not motive. Prefer the smallest sufficient control; expanding scope
-or trust boundaries requires explicit user authority.
+Treat the user, maintainer, workspace, and selected configuration as
+non-adversarial but fallible unless evidence says otherwise. Verify state and
+identity, prefer the smallest sufficient control, and require explicit user
+authority to expand scope or trust boundaries. Reason about material failures
+reachable through supported workflows, including compaction, concurrency, and
+partial effects.
 
 Persist `references/execplan.md` at the repository policy path or
 `docs/execplans/<task-slug>.md`. Freeze the verbatim request and amendments,
-normalized Outcome, preservation, exclusions, allowed breaks, source/worktree,
-baseline command and failures, roles, grants, obligations, checks, effects, and
-stop conditions. Root must freeze a named supported-workflow envelope before
-the behavior-plan freeze. Bind its named workflows and preconditions,
-user-visible outcomes, source basis, exclusions, selected design/complexity
-boundary, and bounded Exact-final-triggered repair budget. Changing Outcome,
-baseline, an allowed break, or a required gate needs explicit user authority. A
-source-derived obligation may be added only when the frozen envelope requires
-it, with its provenance and invalidation rule.
+Outcome, preservation, exclusions, allowed breaks, source/worktree, baseline,
+supported workflows, selected design boundary, obligations, checks, effects,
+stop rules, and a bounded Exact-final-triggered repair budget. An Outcome,
+baseline, allowed break, effect boundary, or required guarantee changes only
+with explicit user authority.
 
-Build a risk-based affected-surface inventory. Follow each material obligation
-through the surfaces its behavior can actually reach: input and validation,
-callers, state and replay, outputs, recovery, and downstream failure. Do not
-force irrelevant surfaces into a mechanical checklist. Material findings keep
-one exact case-sensitive identity and are baseline-unchanged, resolved,
-candidate-new, or unknown; unknown stays open and `N/A` needs evidence.
+Before behavior-plan freeze, compare materially distinct designs and obtain a
+fresh read-only challenge for an architecture-shaping or exhaustive claim.
+Build a risk-based affected-surface inventory. Findings use one exact identity
+and are baseline-unchanged, resolved, candidate-new, or unknown. Unknown stays
+open; `N/A` needs evidence.
 
-Before freeze, compare materially distinct designs that could change the Outcome
-within the stated trust boundary. Challenge material omissions, then stop when
-remaining alternatives would not change that Outcome. For an exhaustive or
-architecture-shaping claim, Root obtains a fresh baseline-only read-only
-challenge from the frozen request and source.
-
-## Roles and grants
+## Roles and dispatch
 
 Root reads, decides, grants, reproduces, and verifies. One fixed Executor is the
-sole controlled-domain writer for the whole task: it owns the ExecPlan, tests,
-product, commits, and receipts, never delegates, and cannot be replaced after
-compaction. Explorers, Challengers, and reviewers are read-only. Root never
-edits, stages, commits, installs, releases, or activates controlled bytes.
-
-Use this exact logical-role matrix:
+sole controlled-domain writer for the task and never delegates. Explorers,
+Challengers, and reviewers are logically read-only. Root never edits, stages,
+commits, installs, releases, or activates controlled bytes.
 
 | Logical role | Model | Effort | Responsibility |
 | --- | --- | --- | --- |
-| Root | `gpt-5.6-sol` | `max` | decompose, decide, grant, reproduce, verify |
-| Explorer | `gpt-5.6-terra` | `high` | read-only bounded exploration |
-| Challenger | `gpt-5.6-sol` | `high` | read-only pre-behavior-plan-freeze challenge |
-| Executor | `gpt-5.6-sol` | `high` | unique fixed controlled-domain writer |
-| Exact-final | `gpt-5.6-sol` | `max` | one fresh read-only final review |
+| Root | `gpt-5.6-sol` | `max` | decide, grant, reproduce, verify |
+| Explorer | `gpt-5.6-terra` | `high` | bounded read-only exploration |
+| Challenger | `gpt-5.6-sol` | `high` | pre-freeze read-only challenge |
+| Executor | `gpt-5.6-sol` | `high` | unique controlled-domain writer |
+| Exact-final | `gpt-5.6-sol` | `max` | fresh neutral final review |
 
-Before dispatch and before reading substantive child output, record the logical
-role, intended use and consequence, selected agent request, requested
-route/config/fork, input identities and prompt digest, and guarantees required
-by the task, source, or user. Root owns this authenticated dispatch/tool receipt.
-Automatic capability handling cannot manufacture authority or silently waive a
-required guarantee. Require Platform acceptance of the exact spawn request. On
-the portable builtin/default path, explicitly pin model and effort. For a
-namespaced custom agent, its file's model and effort take precedence; omit
-redundant or conflicting explicit model/effort arguments.
+Before dispatch and before reading substantive output, Root records the logical
+role and consequence, selected request, requested route/config/fork, input
+identities, prompt digest, and required guarantees. Platform acceptance and a
+host-authenticated child/run/result handle are mandatory. On builtin/default
+agents, pin model and effort; on a namespaced custom agent, its configuration
+takes precedence and redundant model/effort arguments are omitted.
 
-Require a mechanically authenticated child/run/result handle that binds
-terminal output to the accepted dispatch. Missing output identity cannot
-downgrade. Cross-bind any exposed runtime metadata to the dispatch record. Stop
-for an explicit mismatch in a requested or required identity or route,
-malformed or ambiguous claimed evidence, an unsafe exposed value relative to a
-predeclared required guarantee, grant/source/path/effect boundary drift,
-candidate or source drift, or ambiguous or partial effects. Keep logical role
-distinct from platform agent type and custom-agent name. Names, config requests,
-labels, and agent self-reports are not effective-routing evidence.
+Missing effective name, model, effort, sandbox, or approval is recorded
+`unverified` and only limits the claim that depends on it. Missing output
+identity, an exposed mismatch, unsafe value against a predeclared guarantee,
+source/candidate/grant/path/effect drift, or ambiguous/partial effect stops.
+Prompt/profile read-only is not technical isolation. If hard isolation was
+predeclared required, establish it independently or stop; otherwise continue
+without claiming it. Missing optional telemetry never asks the user to choose a
+fallback and never waives authority.
 
-Apply missing observability only to the guarantee or use that depends on it:
+For two or more independent decision-changing axes, dispatch one native
+Explorer per axis concurrently; each receives one bounded question. Otherwise
+do not manufacture parallelism. Explorer and Challenger output with unverified
+route or isolation is advisory until Root reproduces every material fact from
+source. Challenger runs before freeze; only then may the Executor write.
 
-- Effective agent name is record-only when exposed; if absent, record
-  `unverified`.
-- Missing effective model or effort: record `unverified` and continue unless
-  exact routing was predeclared required. An exposed effective model or effort
-  mismatch requires discard and stop. Do not claim exact routing while it is
-  unverified.
-- Missing effective sandbox or approval: record `unverified`. When technical
-  isolation was predeclared required, independently establish the isolation or
-  effect boundary or stop. When it was not required, continue without claiming
-  technical isolation. A full-access result mismatches only a predeclared
-  read-only technical-isolation guarantee. Prompt/profile read-only remains
-  non-proof.
-- Missing optional telemetry never asks the user to choose a fallback. No
-  user-facing modes or levels exist. Never require `普通模式继续`. Ask the user
-  when continuation would change the Outcome, authority, trust boundary, or an
-  explicitly required guarantee; expand the frozen envelope; or exceed or
-  continue after exhaustion of the bounded automatic repair budget.
+After candidate freeze, dispatch exactly one fresh Exact-final with
+`fork_turns=none`, empty history, and a neutral brief containing the frozen
+workflow envelope, obligations, checks, accepted failures, and exclusions—but
+no prior findings or desired verdict. Root reproduces and classifies every
+material finding.
 
-Root first decomposes the problem into independent, decision-changing axes.
-Run multiple Explorers concurrently only when multiple such axes exist, and
-give each Explorer exactly one bounded question. For two or more qualifying
-axes, dispatch one native Explorer per axis concurrently through the host's
-builtin `explorer` selector or an admitted namespaced custom Explorer selector.
-Parallel ordinary tool calls are not Explorer dispatches. Unverified Explorer
-or Challenger route or isolation output is advisory leads only. Root reproduces
-every material fact from source before it affects a plan, grant, or phase; it
-never votes. Challenger runs before the behavior-plan freeze. Only after that
-freeze does the unique Executor write. Executor may write despite missing route
-or permission telemetry only when host-issued output identity, fixed-writer
-ownership, exact grant, source/prestate, paths/resources, and allowed effects
-are bound. Root relies on actual Git, tests, and receipts, not Executor prose.
+## Current snapshot and authority
 
-After candidate freeze, spawn exactly one fresh Exact-final with
-`fork_turns = none`, empty history, and a neutral brief that excludes prior
-findings and desired verdicts. Include the frozen supported-workflow envelope,
-obligations, checks, accepted failures, and exclusions. Exact-final may count
-without verified model or permission telemetry only when exact routing and hard
-isolation were not predeclared required, the reviewer is fresh with empty
-history and a neutral brief, output identity is bound, candidate identity
-remains unchanged, and Root reproduces material findings; disclose unverified
-guarantees. If required hard isolation is unproven, review remains open. Only a
-Root-admitted in-envelope repair with remaining authorized repair budget
-returns to `working`, invalidates affected frozen evidence, and requires a new
-candidate freeze and a new Exact-final.
+Keep one current snapshot, not a grant history or mutable ledger. It binds:
 
-Findings after the behavior-plan freeze cannot manufacture obligations or write
-authority. Root must reproduce and classify every Exact-final finding before any
-affected-surface expansion or write grant. An `in-envelope blocker` is a
-reproduced failure of a frozen obligation, or a candidate-new safety regression
-reachable through an already named supported workflow; it remains blocking. An
-`envelope expansion` is a request for a new supported workflow, trust/design
-guarantee, or architectural complexity not required to repair an in-envelope
-blocker. It may be recorded as follow-up but cannot automatically become an
-obligation or write grant. New durable state/schema, cross-context coordination,
-compatibility/control-plane machinery, or equivalent complexity outside the
-frozen design boundary is expansion. If prior repair machinery caused the
-finding, compare removal, rollback, or simplification before adding control.
+- current external user-authority evidence or digest;
+- the one exact active Root-to-Executor grant;
+- source/ref/worktree and relevant prestate;
+- phase and repair budget used/limit;
+- latest unexpected falsifier plus action and prestate identity;
+- content-addressed check, effect, candidate, and review receipts; and
+- open obligations, gates, and Goal state.
 
-Unknown classification remains open and returns to the user before any write.
-Unknown evidence blocks closure only when it concerns a frozen required
-guarantee; out-of-envelope uncertainty is disclosed rather than silently
-promoted. The default automatic repair budget is exactly one
-Exact-final-triggered repair wave. Only a Root-admitted `in-envelope blocker`
-may consume that automatic repair wave. While authorized budget remains, it may
-trigger one coherent repair, then one refreeze and one new fresh empty-history
-neutral Exact-final. After refreeze, any `in-envelope blocker` or `unknown`
-classification remains open, truthful, and blocking, and Root must return to
-the user before another product write, grant, or review rerun. An
-`envelope expansion` remains a disclosed follow-up unless separately authorized
-and never consumes the automatic repair wave. After the budget is exhausted, no
-automatic product write, refreeze, or review rerun is permitted. Exact-final
-identifies findings; Root owns admission and disposition. The user may explicitly
-authorize a different bounded budget before work. The cap limits automatic
-repair authority, never reviewer truth; no user-facing mode, level, or
-continuation phrase is added.
+External user authority and the Executor grant are distinct. Repository code
+may form an authority-request digest or validate supplied evidence; it cannot
+create user authority. Install, release, marketplace, activation, network, and
+other external effects retain separate exact authority.
 
-Record each participant's authenticated dispatch/tool receipt, any
-runtime-issued session/turn metadata, and Root admission decision separately.
-The dispatch receipt owns logical role, selected request, intended consequence,
-requested route/config/fork, input identities, prompt digest, and required
-guarantees. Runtime metadata owns exposed route, permissions, runtime identity,
-and actual platform/custom name. The admission record binds the available
-evidence and any restrictions to phase, source, terminal state, and terminal
-receipt. A label, summary, or completion sentence is not evidence.
+A bare continuation grants nothing unless an exact content-addressed proposal
+is pending. Clear assent to the immediately preceding exact proposal authorizes
+only that proposal. An old or mismatched snapshot shape is unknown and returns
+to the user; do not add a compatibility reader or migration.
 
-A custom profile's `sandbox_mode = "read-only"` may be overridden by a live
-full-access parent task. Prompt instructions and profile defaults are not hard
-isolation. When technical read-only isolation is required, establish a
-read-only top-level or parent environment before dispatch, then verify effective
-permissions or independently bind an equivalent no-effect boundary. If neither
-is established, stop; otherwise record missing optional permission telemetry as
-`unverified` without claiming technical isolation.
+New durable state or schema, cross-context coordination, or compatibility and
+control-plane machinery outside the frozen boundary is envelope expansion. If
+repair machinery caused a finding, compare removal, rollback, and
+simplification before adding another control. Candidate failures cannot be
+relabeled. Goal grants no amendment, waiver, review, cost, authority, or effect.
 
-Every write grant binds the fixed Executor, exact paths/resources, source
-commit/tree and dirt, allowed operations, acceptance, effect budget, and stop
-conditions. The Executor persists durable intent before mutation and a complete
-receipt afterward. Changed prestate, identity/config drift, ambiguous or partial
-effect, unknown input, or wider scope returns to Root without retry or cleanup.
+The grant binds the fixed Executor, exact paths/resources, source commit/tree
+and dirt, allowed operations/effects, checks, effect cap, and stop conditions.
+The Executor persists intent before mutation and a terminal receipt afterward.
+Changed prestate, unknown input, or boundary drift returns to Root without
+retry or cleanup.
 
-## Event correction
+Never persist secrets or raw events in controlled product bytes; use only
+sanitized summaries or digests outside those bytes. If commits are forbidden,
+keep the index untouched and require a user-selected durable location. Preserve
+the milestone in an approved reachable ref or content-addressed archive. If no
+selected archive or approved durable location exists, durability is not ready:
+`STOP_FOR_USER`.
 
-Corrections are event-driven. Elapsed time, repeated prose, and administrative
-updates do not justify another attempt.
+## Reconciliation latch
 
-- On a new falsifier, Root must reproduce and classify the finding against the
-  frozen envelope before it may expand the affected-surface inventory. Only an
-  in-envelope blocker joins the current coherent diagnosis and repair wave
-  before terminal GREEN.
-- On an unchanged failure, reconcile durable facts; never retry the same effect
-  by rewording, restarting, or seeking a friendlier result.
-- At the end of a repair wave, run its real-path focused check and the cumulative
-  offline suite once. A failed check reopens the same wave.
-- After terminal GREEN, only a Root-admitted in-envelope material recurrence may
-  use at most one boundary-level alternative while an applicable explicit repair
-  budget remains; using the alternative consumes that budget. It must address
-  the failure and rerun affected checks. A post-refreeze Exact-final finding
-  follows the Exact-final stop-line above and cannot use this recurrence clause
-  to bypass return-to-user or no-more-write behavior. If the alternative fails
-  unchanged or the issue recurs again, ask the user.
-- Immediately before any effect, re-read the exact grant, claim, prestate,
-  invocation, cost boundary, and destination. Drift or ambiguity stops.
+The reconciliation latch is derived safety state persisted only to survive
+context loss. It is not a phase or durable record type. Activate it only when
+an external-effect terminal is partial or ambiguous. Repeated local or review
+falsifiers, unchanged failures, and exhausted repair budgets use the normal
+stop-line and never activate the latch.
 
-## Implement and recover
+While active, permit only read-only reconciliation, verification, and return to
+the user. Do not create or replace a grant, apply an effect, freeze a candidate,
+or run Exact-final. Clear the latch only after reconciliation binds the exact
+current effect state and prestate, Root freezes an exact bounded recovery
+proposal and digest, and the user explicitly authorizes that proposal. Neither
+the state nor the action must change.
+
+## Implement and review
 
 The only phases are `working` → `candidate_frozen` → `exact_final` → `closed`.
-During `working`, the Executor records a real RED or explicit characterization,
-implements one coherent granted wave, and runs focused plus cumulative checks. A
-mock cannot prove its own seam. Do not run exact-final while repairing.
 
-Freeze `candidate_frozen` once obligations are evidenced, required real paths
-pass, accepted baseline failures remain unchanged, owned dirt is accounted for,
-source/package/config identities are bound, and no unknown about a frozen
-required guarantee remains. Disclose out-of-envelope uncertainty. Any product
-change after freeze returns to `working` and invalidates affected candidate and
-review evidence.
+During `working`, characterize a real RED, implement one coherent granted wave,
+and run its focused real-path check plus the cumulative offline suite once.
+Corrections are event-driven: new falsifier, completed check, identity drift,
+pre-effect validation, freeze, review finding, or explicit authority. Elapsed
+time, repeated prose, and administrative updates do not justify another
+attempt. Retry an effect only when the prior attempt is proven pre-effect/no
+effect and remains within the same authority and recovery cap.
 
-Keep the ExecPlan a current index, not a history dump. Its recovery record binds
-the request, Root, fixed Executor, source/ref/worktree, exact grant, obligations,
-selected checkpoint, tests, phase, open gates, effects, and receipts. After
-compaction or resume, read the full plan and reconcile it with current Git,
-tests, claims, receipts, agents, and Goal before writing or claiming completion.
-A conversation summary, copied handle, or prose cannot reconstruct authority.
-Missing or mismatched durable facts fail closed.
+Freeze `candidate_frozen` only after obligations and real paths pass, accepted
+baseline failures are unchanged, all dirt is accounted for, identities and
+receipts bind the candidate, and no required unknown remains. Any product
+mutation invalidates affected evidence and returns to `working` only under an
+admitted grant.
 
-## Safety invariants
+Exact-final findings cannot create obligations or write authority. Root
+classifies each as:
 
-- Authority: only the exact current grant permits writes. Missing, mismatched,
-  or out-of-scope authority returns the decision to the user.
-- Resource claims: before a controlled mutation or effect, verify its required
-  resources remain assigned to the recorded Executor; conflict or stale
-  ownership stops.
-- Recovery: restore the full current index and exactly one content-addressed
-  checkpoint; reconnect only the recorded Executor.
-- Baseline: record each baseline failure by exact identity. It blocks unless
-  explicitly accepted and unchanged; candidate failures cannot be relabeled.
-- Secrets: never persist secrets or raw model events in product, control, brief,
-  receipt, log, or review artifacts; retain sanitized summaries and digests
-  outside controlled bytes.
-- No-commit: if commits are forbidden, require a user-selected durable location,
-  leave the index untouched, and preserve each milestone in an approved
-  reachable ref or content-addressed archive; otherwise stop.
-- Goal: create Goal only when explicitly requested. It continues existing
-  authority but grants no amendment, waiver, review, cost, or effect; complete it
-  only after the matching gates close.
-- Cost and effects: bind each external effect to its impact, destination,
-  budget or cap, and outcome receipt. Retry only when the prior attempt is
-  proven no-effect and remains within the same authorization; ambiguous or
-  partial effects stop. Keep install, release, marketplace, and activation
-  under separate authority; dry-runs cause no effect.
+- `in-envelope blocker`: reproduced failure of a frozen obligation or a
+  candidate-new safety regression reachable through a named workflow;
+- `envelope expansion`: new workflow, trust/design guarantee, or complexity;
+- `unknown`: insufficient evidence for either classification.
 
-## Review and complete
+Do not relabel a candidate failure to make it admissible. If repair machinery
+caused the finding, compare removal, rollback, and simplification before adding
+another control.
 
-Project every owned staged, unstaged, and untracked product path into a clean
-snapshot. Freeze neutral baseline and candidate identities; Root verifies
-manifest equality, the complete risk-based diff inventory, checks, and allowed
-control exclusions.
+Only a Root-admitted in-envelope blocker may consume the default single
+automatic repair wave. The Executor performs one coherent repair, Root
+refreezes, and a new fresh neutral Exact-final replaces the invalidated review.
+After that refreeze, any blocker or unknown returns to the user before another
+write, grant, or review. Expansion is disclosed follow-up and never consumes
+the repair wave. Exhausted budget permits no automatic write, refreeze, or
+review rerun.
 
-In `exact_final`, one fresh logically read-only reviewer receives the verbatim
-request, frozen source range, accepted failures, checks, and exclusions.
-Technical read-only isolation is a hard requirement only when predeclared. Its
-receipt always binds authenticated output identity, frozen source and candidate
-identities, neutral brief, checks, diff and obligation coverage, terminal
-result, findings, and Root reproduction. Record the requested and any exposed
-or `unverified` model, effort, and permissions. Missing optional route or
-permission telemetry alone does not leave review open. A required but unproven
-guarantee, missing output identity or coverage, explicit mismatch, candidate
-drift, unsupported evidence, or an unchanged rerun leaves review open. Only a
-Root-admitted in-envelope repair with remaining authorized repair budget
-returns to `working`, refreezes, and obtains a new neutral exact-final.
+## Close
 
-Enter `closed` only when every obligation is verified or evidenced `N/A`, real
-paths pass, baseline failures are resolved or accepted unchanged, no secret or
-unresolved in-envelope material finding or unknown about a frozen required
-guarantee remains, owned status is accounted for, required effects and receipts
-bind the frozen product, and the matching Goal—if any—is complete. Disclose
-out-of-envelope uncertainty and any explicitly waived or unrun gate.
+Project every owned staged, unstaged, and untracked product path into the frozen
+candidate and verify manifest equality, complete affected diff, checks, and
+control exclusions. Enter `closed` only when every obligation is verified or
+evidenced `N/A`; baseline, secrets, ownership, effects, receipts, review, and
+any explicitly requested Goal reconcile; and no in-envelope blocker or required
+unknown remains. Disclose unrun gates and out-of-envelope uncertainty. Root
+alone decides completion.

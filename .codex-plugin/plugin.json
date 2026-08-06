@@ -1,7 +1,7 @@
 {
   "name": "happycodex",
-  "version": "0.7.3",
-  "description": "Codex-native reliability guidance for high-risk changes with capability-proportional admission and one fixed Executor.",
+  "version": "0.8.0",
+  "description": "Codex-native reliability guidance with one fixed Executor and bounded reconciliation after uncertain effects.",
   "author": {
     "name": "caichenghang",
     "url": "https://github.com/cch96"
@@ -25,7 +25,7 @@
   "interface": {
     "displayName": "HappyCodex",
     "shortDescription": "Durable contracts for risky Codex changes",
-    "longDescription": "Guide high-risk Codex work with an explicit role matrix and capability-proportional admission: missing optional telemetry does not block unrelated guarantees, while identity, authority, mismatch, drift, and effect boundaries stay strict.",
+    "longDescription": "Guide high-risk Codex work with one current snapshot, one fixed Executor, contextual authority, and a reconciliation latch for partial or ambiguous effects.",
     "developerName": "caichenghang",
     "category": "Productivity",
     "capabilities": [

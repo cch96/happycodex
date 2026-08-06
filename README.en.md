@@ -2,80 +2,55 @@
 
 [简体中文](README.md)
 
-*Open-source skill and plugin for reliable long-running, high-risk engineering work in OpenAI Codex.*
+*Open-source guidance for reliable high-risk engineering work in OpenAI Codex.*
 
-HappyCodex is an open-source reliability workflow distributed as a Skill and
-plugin for OpenAI Codex. It uses a repository ExecPlan to freeze completion
-conditions; one fixed Executor performs controlled writes, while Root decides,
-grants, reviews, and performs final verification. It does not replace Codex's
-native Plan, Git, tests, or review.
+HappyCodex freezes completion conditions in a repository ExecPlan. Root decides,
+grants, reproduces, and verifies; one fixed Executor owns all controlled writes.
+It composes Codex's native Plan, Git, tests, agents, and review. It is not a
+controller, daemon, scheduler, authority system, or retry engine.
 
-## Suitable and not suitable
-
-### Suitable
+## When to use it
 
 Use HappyCodex for public contracts, cross-system changes, migrations,
-persistence, concurrency, destructive or production work, exhaustive claims,
-long research, and work likely to cross compaction.
+persistence, concurrency, destructive or production effects, exhaustive claims,
+long research, and work likely to cross context compaction. Keep bounded local
+low-risk edits on native Plan, tests, and diff unless their scope grows.
 
-### Not suitable
+## Install and invoke
 
-Clearly local, low-risk edits should stay on the native Plan, tests, and diff
-flow. If scope or risk grows, establish an ExecPlan before the next product
-write.
-
-<a id="install"></a>
-## Install
-
-Marketplace support is required.
+Marketplace support is required:
 
 ```bash
 codex plugin marketplace add cch96/happycodex
 codex plugin add happycodex@happycodex
 ```
 
-Start a new Codex task after installation so it discovers the installed Skill.
-
-## Invoke
+Start a new Codex task after installation, then invoke:
 
 ```text
 Use $happycodex:happycodex for this high-risk cross-system change.
 ```
 
-## Four-phase workflow
+Goal is created or changed only when explicitly requested. Goal continues
+authorized work; it never grants an amendment, waiver, review, cost, authority,
+or effect, and it never replaces the ExecPlan.
 
-1. `working`: freeze the request, Outcome, preservation boundaries, roles,
-   exact grants, obligations, checks, effects, and stop conditions in the
-   repository ExecPlan; implement one granted repair wave and run real-path
-   checks.
-2. `candidate_frozen`: account for all owned changes, evidence the obligations,
-   preserve accepted baseline failures, and bind source, product, and
-   configuration identities.
-3. `exact_final`: give one fresh logically read-only reviewer the frozen source,
-   checks, obligations, and exclusions. Technical read-only isolation applies
-   only when predeclared required. Missing optional route or permission telemetry
-   alone does not block review and is disclosed. Root first classifies every
-   finding against the frozen supported-workflow envelope. Only one
-   Root-admitted, explicitly authorized in-envelope repair with remaining
-   authorized budget returns the phase to `working`. After that repair, Root
-   refreezes the candidate and obtains exactly one replacement fresh
-   Exact-final. After refreeze, any `in-envelope blocker` or `unknown` remains
-   open, truthful, and blocking, and Root returns to the user before another
-   product write, grant, or review rerun. An `envelope expansion` remains a
-   disclosed follow-up unless separately authorized and never triggers or
-   consumes automatic repair. After the budget is exhausted, no automatic
-   product write, refreeze, or review rerun is permitted; no loop exists.
-4. `closed`: close only after obligations, checks, review, effects, receipts,
-   ownership, and any explicitly requested Goal are all reconciled. Root makes
-   the completion decision.
+## Four phases
 
-Goal is created or changed only when the user explicitly requests it. It never
-expands authority and never replaces the ExecPlan or verification.
+1. `working`: freeze the request, Outcome, supported workflows, boundaries,
+   current authority and grant, obligations, checks, effects, and stop rules;
+   implement one coherent authorized wave.
+2. `candidate_frozen`: account for all owned changes, preserve accepted
+   baseline failures, and bind a clean candidate identity and receipts.
+3. `exact_final`: one fresh empty-history, logically read-only reviewer receives
+   a neutral brief for the frozen candidate. Root reproduces and classifies its
+   findings. Only one Root-admitted in-envelope blocker may consume the default
+   single repair wave. After the replacement review, another blocker or unknown
+   returns to the user before any write or rerun.
+4. `closed`: Root closes only after obligations, checks, review, effects,
+   ownership, receipts, and any explicitly requested Goal reconcile.
 
-## 0.7.2 capability-proportional admission
-
-Version 0.7.2 uses capability-proportional admission with this requested routing
-matrix:
+The requested role matrix is:
 
 | Logical role | Model | Effort |
 | --- | --- | --- |
@@ -83,92 +58,54 @@ matrix:
 | Explorer | `gpt-5.6-terra` | `high` |
 | Challenger | `gpt-5.6-sol` | `high` |
 | Unique Executor | `gpt-5.6-sol` | `high` |
-| Unique fresh Exact-final | `gpt-5.6-sol` | `max` |
+| Fresh Exact-final | `gpt-5.6-sol` | `max` |
 
-Normal users choose no mode and enter no continuation phrase. Before dispatch
-and before substantive output is read, Root records the role, intended
-consequence, requested route/config/fork, input identities and prompt digest,
-and any guarantee required by the task, source, or user. Platform acceptance of
-the exact request and a host-authenticated child/run/result handle are always
-required. Missing output identity is never optional.
+A host-authenticated output identity is mandatory. Missing effective route or
+permission telemetry is recorded `unverified` and only limits the guarantee
+that depends on it; an exposed mismatch or predeclared required guarantee that
+cannot be established stops. Prompt/profile read-only text is not technical
+isolation. Explorers answer bounded independent questions and are advisory
+until Root reproduces material facts from source.
 
-Missing optional telemetry records `unverified` and reduces only the guarantee
-or use that depends on it. A missing effective name is record-only. Missing
-model/effort permits continued use unless exact routing was predeclared
-required; missing sandbox/approval permits continued use unless technical
-isolation was predeclared required and cannot be independently established. An
-exposed mismatch or a missing predeclared guarantee stops. Prompt/profile
-read-only remains non-proof, and full access mismatches only a predeclared
-read-only technical-isolation guarantee. Unverified exact routing or technical
-isolation is never claimed.
+## The 0.8 clean break
 
-Root first decomposes the problem into independent, decision-changing axes.
-Multiple Explorers run concurrently only when multiple such axes exist.
-For two or more qualifying independent decision-changing axes, Root
-concurrently dispatches one native Explorer per axis through the host's builtin
-`explorer` selector or an admitted namespaced custom Explorer selector.
-Ordinary parallel tool calls are not Explorer dispatches. Each Explorer answers
-one bounded question. Unverified Explorer or Challenger output supplies
-advisory leads only; Root reproduces every material fact from source before it
-affects a plan, grant, or phase. Challenger works before the behavior-plan
-freeze. Executor writes remain governed by its fixed identity, exact grant,
-source/prestate, paths/resources, and allowed effects; Root trusts Git, tests,
-and receipts rather than prose. Exact-final can count under unverified optional
-telemetry only for a fresh empty-history neutral review of an unchanged
-candidate, when exact routing and hard isolation were not predeclared required,
-output identity is bound, Root reproduces material findings, and unverified
-guarantees are disclosed. Required but unproven hard isolation leaves review
-open. Root first classifies every finding against the frozen
-supported-workflow envelope. Only one Root-admitted, explicitly authorized
-in-envelope repair with remaining authorized budget returns the phase to
-`working`. After that repair, Root refreezes the candidate and obtains exactly
-one replacement fresh Exact-final. After refreeze, any `in-envelope blocker`
-or `unknown` remains open, truthful, and blocking, and Root returns to the user
-before another product write, grant, or review rerun. An `envelope expansion`
-remains a disclosed follow-up unless separately authorized and never triggers
-or consumes automatic repair. After the budget is exhausted, no automatic
-product write, refreeze, or review rerun is permitted; no loop exists.
+HappyCodex keeps one current snapshot rather than per-grant history or mutable
+control state. External user authority, Root's exact active Executor grant,
+candidate evidence, effect authority, and Goal remain distinct.
 
-## What ships—and what does not
+A bare continuation grants nothing unless an exact content-addressed proposal
+is pending. Clear assent to the immediately preceding exact proposal authorizes
+only that proposal. An old or mismatched snapshot shape is unknown and returns
+to the user; there is no compatibility reader or migration.
 
-The package ships the core Runtime guidance and the resource-claim helper.
-HappyCodex is not a controller, daemon, scheduler, MCP server, automatic
-authority system, or automatic retry system.
+The reconciliation latch is derived safety state persisted only across context
+loss, not a fifth phase or durable record type. It activates only for a partial
+or ambiguous external-effect terminal. Repeated local or review falsifiers,
+unchanged failures, and exhausted repair budgets use the normal stop-line.
+While active, only read-only reconciliation, verification, and return to the
+user are allowed; grants, effects, candidate freeze, and Exact-final are
+forbidden. It clears only after reconciliation binds the exact current effect
+state and prestate, Root freezes an exact bounded recovery proposal and digest,
+and the user explicitly authorizes that proposal. Neither state nor action must
+change.
 
-Plugin installation does not bundle, install, activate, or require custom
-agents. Optional machine-local `happycodex_explorer`,
-`happycodex_challenger`, and `happycodex_exact_final` profiles are only strict
-or convenience profiles, do not replace built-ins, and are not a plugin
-guarantee. Record logical role separately from platform agent type or
-custom-agent name; a name, profile, or agent self-report is not routing
-evidence.
+New durable state or schema, cross-context coordination, and compatibility or
+control-plane machinery outside the frozen boundary are envelope expansion.
+Candidate failures cannot be relabeled. If repair machinery caused a finding,
+compare removal, rollback, and simplification before adding another control.
 
-Under a full-access parent task, a custom agent's
-`sandbox_mode = "read-only"` may be overridden by the live parent. Profile
-defaults and prompt instructions are therefore not hard technical isolation.
-When hard read-only isolation is required, launch from a read-only top-level or
-parent environment before dispatch, then verify effective permissions or bind
-an independently established no-effect boundary. Otherwise stop. When hard
-isolation was not required, record missing permission telemetry as `unverified`
-and continue without claiming isolation.
+Secrets and raw events never enter controlled product bytes; only sanitized
+summaries or digests live outside them. When commits are forbidden, keep the
+index untouched and ask the user to select a durable location, preserving the
+milestone in an approved reachable ref or content-addressed archive. Without a
+selected archive or approved location, durability is not ready: `STOP_FOR_USER`.
 
-## 0.7.3 review stop-line
+Plugin installation does not bundle or activate custom agents. Optional local
+profiles are convenience configuration and are not routing or isolation proof.
+Publication, release, installation, and activation are not claimed before their
+separate receipts exist.
 
-Version 0.7.3 makes Exact-final repair admission and exhaustion explicit. Root
-first classifies every finding against the frozen supported-workflow envelope.
-Only one Root-admitted, explicitly authorized in-envelope repair with remaining
-authorized budget returns the phase to `working`. After that repair, Root
-refreezes the candidate and obtains exactly one replacement fresh Exact-final.
-After refreeze, any `in-envelope blocker` or `unknown` remains open, truthful,
-and blocking, and Root returns to the user before another product write, grant,
-or review rerun. An `envelope expansion` remains a disclosed follow-up unless
-separately authorized and never triggers or consumes automatic repair. After
-the budget is exhausted, no automatic product write, refreeze, or review rerun
-is permitted; no loop exists. Version 0.7.3 preserves the 0.7.2
-capability-proportional admission contract. Publication, release, and activation
-are not claimed before their corresponding receipts exist.
-
-[See GitHub Releases for full release history and validation status.](https://github.com/cch96/happycodex/releases)
+[See GitHub Releases for published versions and verification status.](https://github.com/cch96/happycodex/releases)
 
 ## License
 
