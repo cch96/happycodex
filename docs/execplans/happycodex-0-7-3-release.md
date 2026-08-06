@@ -14,6 +14,9 @@
 - Current candidate-commit grant: `HC-0.7.3-CANDIDATE-COMMIT-005`.
 - Personal-activation grant: `HC-0.7.3-PERSONAL-ACTIVATION-006`.
 - Readiness-commit grant: `HC-0.7.3-READINESS-COMMIT-007`.
+- Main-push grant: `HC-0.7.3-MAIN-PUSH-008`.
+- Tag-publish grant: `HC-0.7.3-TAG-PUBLISH-009`.
+- GitHub-Release grant: `HC-0.7.3-GITHUB-RELEASE-010`.
 - Claim task: `HC-0.7.3-RELEASE-001`.
 - Fixed Executor and claim owner: `/root/review_stopline_executor`.
 - Outcome: publish public `v0.7.3` to `cch96/happycodex` and establish the
@@ -572,6 +575,172 @@ the frozen body below. The file has exactly one final newline, size `2078`
 bytes, and SHA-256
 `161ad1cd1ad16cc081e6b92e7f4aba736215466d120a975da12ed499d5793cdc`.
 It was not overwritten or edited after creation.
+
+## Main-push receipt
+
+Grant `HC-0.7.3-MAIN-PUSH-008` authorized only one non-force push of the exact
+readiness commit to remote `main`, followed by read-only verification and this
+plan-only unstaged receipt. It did not authorize a retry, force, tag, GitHub
+Release, commit, main-checkout modification, activation/cache/install effect,
+external-notes edit, claim release, or any other path or effect.
+
+The fresh preflight verified:
+
+- clean candidate worktree and index at commit/tree
+  `90f9f766bc9de1e434020cc22bc7a32550faadcb` /
+  `5c08635b019acc1ffdf62f15b4f22272d6f581cf`, with sole parent
+  `be8010771945a16f3cf1cad762b8c69e446184a5`
+- exactly three descendant commits ahead of
+  `d3f141bfe9d244002918d4e0ae99b1666336d521`
+- local `origin/main` and live remote `main` both exactly
+  `d3f141bfe9d244002918d4e0ae99b1666336d521`
+- local/remote `v0.7.3` tag and public GitHub Release `v0.7.3`: absent
+- eight held claims, frozen external notes, active personal plugin, protected
+  product tree, clean main checkout, marketplace, and configuration: exact
+- pre-push release-plan SHA-256:
+  `c8f7a5e466a459adf31b1ad1f5d21e9b805494d3b3a7fa19c68ce0211a485fbd`
+
+The Executor invoked exactly once, without force or retry:
+
+`git push origin HEAD:refs/heads/main`
+
+The command exited `0` and reported the exact fast-forward effect
+`d3f141b..90f9f76  HEAD -> main`. Independent post-effect verification proved
+that live remote `main` and local `origin/main` both resolve to
+`90f9f766bc9de1e434020cc22bc7a32550faadcb`. The local `main` checkout remains
+clean and unchanged at `d3f141bfe9d244002918d4e0ae99b1666336d521`, now three
+commits behind its tracking ref. Local/remote `v0.7.3` and the GitHub Release
+remain absent. Claims, external notes, activation, cache/source, marketplace,
+configuration, and protected-tree identities remain exact. No effect occurred
+beyond the one remote fast-forward, its local tracking-ref update, and this
+unstaged release-plan receipt.
+
+## Tag-publish receipt
+
+Grant `HC-0.7.3-TAG-PUBLISH-009` authorized exactly one local unsigned
+annotated `v0.7.3` tag targeting the readiness commit, exactly one non-force
+push using an explicit tag refspec, read-only verification, and this plan-only
+unstaged receipt. It did not authorize tag retry, repair, deletion,
+re-creation, force, GitHub Release creation, another main push, commit,
+main-checkout modification, activation/cache/source/configuration/marketplace
+or external-notes change, claim release, or any other effect.
+
+The fresh preflight verified candidate commit/tree
+`90f9f766bc9de1e434020cc22bc7a32550faadcb` /
+`5c08635b019acc1ffdf62f15b4f22272d6f581cf`, empty index, and only this
+unstaged plan at SHA-256
+`12bf6715cf6b99019e312a1a832a5cb496ce04b17c027136f909ead9c4e91d4a`.
+Live remote `main` and local `origin/main` both resolved to the candidate; the
+local main checkout remained clean at
+`d3f141bfe9d244002918d4e0ae99b1666336d521`; local/remote `v0.7.3` and the
+GitHub Release were absent. Claims, external notes and frozen body, active
+plugin/source/cache, marketplace, configuration, and protected product tree
+were exact.
+
+The Executor invoked each effect command exactly once without retry:
+
+1. `git -c tag.gpgSign=false tag --annotate --message 'HappyCodex 0.7.3' v0.7.3 90f9f766bc9de1e434020cc22bc7a32550faadcb`
+2. `git push origin refs/tags/v0.7.3:refs/tags/v0.7.3`
+
+Both commands exited `0`; the push reported exactly one new `v0.7.3` tag. The
+annotated tag object is
+`3088a0f9075d7af0038159c4a6492f2826aac09b`. Independent verification proved
+that local and remote tag object identities match, both peel to exact readiness
+commit `90f9f766bc9de1e434020cc22bc7a32550faadcb`, the annotation is exactly
+`HappyCodex 0.7.3`, and the tag contains no signature. Live remote `main`
+remains unchanged at the readiness commit and GitHub Release `v0.7.3` remains
+absent. Claims and every other preserved identity remain exact. No effect
+occurred beyond the one local tag creation, one remote tag creation, and this
+unstaged release-plan receipt.
+
+## GitHub Release receipt
+
+Grant `HC-0.7.3-GITHUB-RELEASE-010` authorized exactly one public GitHub
+Release creation from the existing `v0.7.3` tag and frozen external notes,
+read-only verification, and this plan-only unstaged receipt. It did not
+authorize a retry, cleanup, Release edit or recreation, another main or tag
+push, tag movement, commit, main-checkout modification,
+activation/cache/source/configuration/marketplace or external-notes change,
+claim release, or any other effect.
+
+The fresh preflight verified authenticated GitHub login `cch96`, candidate
+HEAD `90f9f766bc9de1e434020cc22bc7a32550faadcb`, empty index, and only this
+unstaged plan at SHA-256
+`1a0d69edafa37936514b5a3e0aa9dc311a2f68debc68be4ecd3b538e2dbca8d5`.
+Live remote `main` and local `origin/main` both resolved to the candidate.
+Local and remote annotated tag object
+`3088a0f9075d7af0038159c4a6492f2826aac09b` both peeled to the candidate,
+carried exact annotation `HappyCodex 0.7.3`, and contained no signature. The
+GitHub Release was absent. Claims, exact external notes and frozen body,
+active plugin/source/cache, marketplace, configuration, protected product
+tree, and the clean unchanged local main checkout were exact.
+
+The Executor invoked exactly once without retry:
+
+`gh release create v0.7.3 --repo cch96/happycodex --title 'HappyCodex 0.7.3' --notes-file /home/caichenghang/.codex/happycodex-v0.7.3-release-notes.md --verify-tag`
+
+The command exited `0` and returned exact URL
+`https://github.com/cch96/happycodex/releases/tag/v0.7.3`. Independent API
+verification proved tag `v0.7.3`, title `HappyCodex 0.7.3`, public non-draft
+and non-prerelease state, zero assets, and a published body byte-identical to
+the frozen external notes. The Release target is `main`; live remote `main`
+remains exact readiness commit
+`90f9f766bc9de1e434020cc22bc7a32550faadcb`, while the unchanged local and
+remote tag object still peels to that same commit. Claims and every other
+preserved identity remain exact. No effect occurred beyond the one GitHub
+Release creation and this unstaged release-plan receipt.
+
+## Publication closeout record
+
+Grant `HC-0.7.3-CLOSEOUT-COMMIT-PUSH-011` authorizes ordered release phase 9
+only: this final plan-only publication record, one exact non-amended unsigned
+local commit with subject `docs: close HappyCodex 0.7.3 release`, and one
+non-force push of that closeout commit to remote `main` using the explicit
+`HEAD:refs/heads/main` refspec. It does not authorize retry, amendment, another
+path, tag or Release creation/movement/edit, local-main synchronization, claim
+release, activation/cache/source/configuration/marketplace or external-notes
+change, branch/worktree cleanup, or any other effect.
+
+The fresh closeout preflight froze the observed publication state:
+
+- readiness commit/tree and pre-closeout remote `main`:
+  `90f9f766bc9de1e434020cc22bc7a32550faadcb` /
+  `5c08635b019acc1ffdf62f15b4f22272d6f581cf`
+- local and remote annotated `v0.7.3` tag object:
+  `3088a0f9075d7af0038159c4a6492f2826aac09b`; both peel to the readiness
+  commit, carry exact annotation `HappyCodex 0.7.3`, and contain no signature
+- public GitHub Release:
+  `https://github.com/cch96/happycodex/releases/tag/v0.7.3`; exact tag
+  `v0.7.3`, title `HappyCodex 0.7.3`, non-draft, non-prerelease, zero assets,
+  target `main`, and body byte-identical to the frozen external notes
+- installed and enabled personal activation:
+  `0.7.3+codex.20260806082257`; claimed source and sole cache remain the exact
+  eight-file candidate package, with only the authorized manifest-version
+  normalization required to equal readiness product bytes
+- frozen validation state: focused repository contract `15/15` passed; full
+  offline suite `160` tests with two accepted baseline failures, zero errors,
+  and zero new failures; Skill validation, plugin validation, and committed
+  diff check passed. This remains accepted-baseline-failure validation, not
+  green; no test was rerun during publication
+- frozen review state: replacement fresh Exact-final returned coverage-complete
+  `GO` with no findings and behavioral no-effect honored; optional effective
+  model/effort/name telemetry remained `unverified`
+- frozen external notes:
+  `/home/caichenghang/.codex/happycodex-v0.7.3-release-notes.md`, mode `0600`,
+  size `2078` bytes, SHA-256
+  `161ad1cd1ad16cc081e6b92e7f4aba736215466d120a975da12ed499d5793cdc`,
+  byte-identical to the body below
+- protected `v0.6.5:skills/happycodex` tree:
+  `d9e525a267fbf36669d409ba1b4b009a6beeeea5`; marketplace, configuration,
+  activation, notes, and claims remain exact
+
+The local `main` checkout remains clean and intentionally unsynchronized at
+`d3f141bfe9d244002918d4e0ae99b1666336d521`; local-main synchronization is a
+separate pending phase. All eight resource claims remain held and verifiable;
+claim release is also separately pending. The resulting closeout commit/tree
+identity and committed plan SHA-256 are self-referential outputs and therefore
+will be bound by the Executor's terminal receipt rather than embedded in this
+record.
 
 ## Frozen release-note body
 
