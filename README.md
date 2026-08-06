@@ -45,8 +45,14 @@ Use $happycodex:happycodex for this high-risk cross-system change.
    失败保持不变，并绑定源码、产品和配置身份。
 3. `exact_final`：由一个全新、逻辑只读的评审者检查冻结源码、检查结果、义务与
    排除项。只有预先声明为必需时，才要求技术只读隔离；
-   缺失可选 route/permission telemetry 本身不阻塞评审，但必须披露。任何产品
-   变更都会退回 `working`，并要求重新评审。
+   缺失可选 route/permission telemetry 本身不阻塞评审，但必须披露。Root 先
+   根据冻结的受支持工作流边界对每个发现分类。只有一次由 Root 准入、获得显式
+   授权、边界内且仍有已授权预算的修复，才会退回 `working`。修复后 Root 重新
+   冻结 candidate，并只取得一次替代性的全新 Exact-final。重新冻结后，任何
+   `in-envelope blocker` 或 `unknown` 都保持 open、truthful 且 blocking，Root
+   在另一次产品写入、grant 或 review rerun 前返回用户。`envelope expansion`
+   保持为已披露的 follow-up，除非另行授权，并且绝不触发或消耗自动修复。预算
+   耗尽后，不允许自动产品写入、重新冻结或 review rerun；不存在循环。
 4. `closed`：仅当义务、检查、评审、效果、回执、所有权以及任何由用户明确
    请求的 Goal 全部完成核对后才可关闭。最终完成结论由 Root 作出。
 
@@ -90,7 +96,13 @@ allowed effects 约束，Root 依赖 Git、测试和 receipts，而不是 Execut
 Exact-final 只可在全新空历史、中性 brief、candidate 不变时按可选 telemetry
 未验证处理，且精确路由与硬隔离未被预先声明为必需、output identity 已绑定、
 Root 已复现重要发现并披露未验证保证；必需硬隔离未经证实时 review 保持 open。
-任何修复都返回 `working`，重新冻结并重新评审。
+Root 先根据冻结的受支持工作流边界对每个发现分类。只有一次由 Root 准入、获得
+显式授权、边界内且仍有已授权预算的修复，才会退回 `working`。修复后 Root
+重新冻结 candidate，并只取得一次替代性的全新 Exact-final。重新冻结后，任何
+`in-envelope blocker` 或 `unknown` 都保持 open、truthful 且 blocking，Root 在
+另一次产品写入、grant 或 review rerun 前返回用户。`envelope expansion` 保持为
+已披露的 follow-up，除非另行授权，并且绝不触发或消耗自动修复。预算耗尽后，
+不允许自动产品写入、重新冻结或 review rerun；不存在循环。
 
 ## 包含与不包含
 
@@ -109,12 +121,17 @@ live parent 覆盖，因此 profile 默认值和提示词都不是技术硬隔�
 后核验实际 permissions，或独立绑定等价的 no-effect boundary；否则停止。未预先
 要求硬隔离时，将缺失权限 telemetry 记录为 `unverified`，继续但不声称隔离。
 
-## 0.7.2 要点
+## 0.7.3 评审停止线
 
-0.7.2 用按能力比例准入取代缺失 runtime metadata 时一律拒绝输出的规则，同时
-继续严格要求 output identity、显式错配、authority、drift、预先声明的必需保证与
-effect boundary。它保留多轴 native Explorer、既有四阶段与最小充分控制；这是
-源码候选说明，不代表已经发布或激活。
+0.7.3 明确 Exact-final 修复的准入与耗尽规则。Root 先根据冻结的受支持工作流
+边界对每个发现分类。只有一次由 Root 准入、获得显式授权、边界内且仍有已授权
+预算的修复，才会退回 `working`。修复后 Root 重新冻结 candidate，并只取得一次
+替代性的全新 Exact-final。重新冻结后，任何 `in-envelope blocker` 或 `unknown`
+都保持 open、truthful 且 blocking，Root 在另一次产品写入、grant 或 review
+rerun 前返回用户。`envelope expansion` 保持为已披露的 follow-up，除非另行授权，
+并且绝不触发或消耗自动修复。预算耗尽后，不允许自动产品写入、重新冻结或 review
+rerun；不存在循环。0.7.3 保留 0.7.2 的 capability-proportional admission 契约。
+在对应回执存在之前，不声称已经发布、release 或激活。
 
 [完整发布历史与验证状态请查看 GitHub Releases](https://github.com/cch96/happycodex/releases)。
 

@@ -54,8 +54,17 @@ Use $happycodex:happycodex for this high-risk cross-system change.
 3. `exact_final`: give one fresh logically read-only reviewer the frozen source,
    checks, obligations, and exclusions. Technical read-only isolation applies
    only when predeclared required. Missing optional route or permission telemetry
-   alone does not block review and is disclosed. Any product change returns to
-   `working` and requires a new review.
+   alone does not block review and is disclosed. Root first classifies every
+   finding against the frozen supported-workflow envelope. Only one
+   Root-admitted, explicitly authorized in-envelope repair with remaining
+   authorized budget returns the phase to `working`. After that repair, Root
+   refreezes the candidate and obtains exactly one replacement fresh
+   Exact-final. After refreeze, any `in-envelope blocker` or `unknown` remains
+   open, truthful, and blocking, and Root returns to the user before another
+   product write, grant, or review rerun. An `envelope expansion` remains a
+   disclosed follow-up unless separately authorized and never triggers or
+   consumes automatic repair. After the budget is exhausted, no automatic
+   product write, refreeze, or review rerun is permitted; no loop exists.
 4. `closed`: close only after obligations, checks, review, effects, receipts,
    ownership, and any explicitly requested Goal are all reconciled. Root makes
    the completion decision.
@@ -109,8 +118,16 @@ telemetry only for a fresh empty-history neutral review of an unchanged
 candidate, when exact routing and hard isolation were not predeclared required,
 output identity is bound, Root reproduces material findings, and unverified
 guarantees are disclosed. Required but unproven hard isolation leaves review
-open. Any repair returns to `working`, refreezes the candidate, and requires a
-new review.
+open. Root first classifies every finding against the frozen
+supported-workflow envelope. Only one Root-admitted, explicitly authorized
+in-envelope repair with remaining authorized budget returns the phase to
+`working`. After that repair, Root refreezes the candidate and obtains exactly
+one replacement fresh Exact-final. After refreeze, any `in-envelope blocker`
+or `unknown` remains open, truthful, and blocking, and Root returns to the user
+before another product write, grant, or review rerun. An `envelope expansion`
+remains a disclosed follow-up unless separately authorized and never triggers
+or consumes automatic repair. After the budget is exhausted, no automatic
+product write, refreeze, or review rerun is permitted; no loop exists.
 
 ## What ships—and what does not
 
@@ -135,14 +152,21 @@ an independently established no-effect boundary. Otherwise stop. When hard
 isolation was not required, record missing permission telemetry as `unverified`
 and continue without claiming isolation.
 
-## 0.7.2 highlights
+## 0.7.3 review stop-line
 
-Version 0.7.2 replaces blanket runtime-metadata admission with proportional use
-while preserving strict output identity, mismatch, authority, drift, required
-guarantee, and effect boundaries. It preserves native Explorer dispatch for
-multiple qualifying axes, the four phases, and the smallest-sufficient-control
-boundary. This describes a source candidate; it does not claim that 0.7.2 has
-been released or activated.
+Version 0.7.3 makes Exact-final repair admission and exhaustion explicit. Root
+first classifies every finding against the frozen supported-workflow envelope.
+Only one Root-admitted, explicitly authorized in-envelope repair with remaining
+authorized budget returns the phase to `working`. After that repair, Root
+refreezes the candidate and obtains exactly one replacement fresh Exact-final.
+After refreeze, any `in-envelope blocker` or `unknown` remains open, truthful,
+and blocking, and Root returns to the user before another product write, grant,
+or review rerun. An `envelope expansion` remains a disclosed follow-up unless
+separately authorized and never triggers or consumes automatic repair. After
+the budget is exhausted, no automatic product write, refreeze, or review rerun
+is permitted; no loop exists. Version 0.7.3 preserves the 0.7.2
+capability-proportional admission contract. Publication, release, and activation
+are not claimed before their corresponding receipts exist.
 
 [See GitHub Releases for full release history and validation status.](https://github.com/cch96/happycodex/releases)
 

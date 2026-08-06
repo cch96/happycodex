@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PLAN = ROOT / "docs" / "execplans" / "happycodex-evaluator-attestation.md"
 ROUTING_PLAN = ROOT / "docs" / "execplans" / "happycodex-0-7-0-role-routing.md"
 PRESERVED_SKILL_TREE = "d9e525a267fbf36669d409ba1b4b009a6beeeea5"
-CANDIDATE_VERSION = "0.7.2"
+CANDIDATE_VERSION = "0.7.3"
 
 
 def git(*args: str) -> str:
@@ -24,7 +24,7 @@ def git(*args: str) -> str:
 
 
 class RepositoryContractTests(unittest.TestCase):
-    def test_published_v065_tree_is_immutable_and_candidate_is_v072(self):
+    def test_published_v065_tree_is_immutable_and_candidate_is_v073(self):
         self.assertEqual(CANDIDATE_REVISION, "HEAD")
         self.assertEqual(git("rev-parse", "v0.6.5:skills/happycodex"), PRESERVED_SKILL_TREE)
         released = json.loads(git("show", "v0.6.5:.codex-plugin/plugin.json"))
@@ -415,8 +415,6 @@ class RepositoryContractTests(unittest.TestCase):
         self.assertIn("read-only 顶层或父环境", zh_compact)
         self.assertIn("插件安装不打包、安装、激活或要求自定义代理", zh_compact)
         self.assertIn("Plugin installation does not bundle, install, activate, or require custom agents", en_compact)
-        self.assertIn("不代表已经发布或激活", readme_zh)
-        self.assertIn("does not claim that 0.7.2 has been released or activated", en_compact)
         self.assertEqual(compact.count("普通模式继续"), 1)
 
     def test_review_findings_respect_frozen_envelope_and_repair_stop_line(self):
@@ -424,6 +422,10 @@ class RepositoryContractTests(unittest.TestCase):
         reference = (
             ROOT / "skills" / "happycodex" / "references" / "execplan.md"
         ).read_text()
+        readme_en = (ROOT / "README.en.md").read_text()
+        readme_zh = (ROOT / "README.md").read_text()
+        readme_en_compact = " ".join(readme_en.split())
+        readme_zh_compact = " ".join(readme_zh.split())
 
         def section(raw: str, start: str, end: str) -> str:
             return raw.split(start, 1)[1].split(end, 1)[0]
@@ -451,6 +453,74 @@ class RepositoryContractTests(unittest.TestCase):
         )
         reference_recurrence = " ".join(
             section(reference, "source tree.", "Corrections occur only").split()
+        )
+        readme_sections = (
+            (
+                "README.en.md four-phase",
+                "en",
+                " ".join(
+                    section(
+                        readme_en,
+                        "## Four-phase workflow",
+                        "Goal is created or changed",
+                    ).split()
+                ),
+            ),
+            (
+                "README.en.md detailed review",
+                "en",
+                " ".join(
+                    section(
+                        readme_en,
+                        "## 0.7.2 capability-proportional admission",
+                        "## What ships—and what does not",
+                    ).split()
+                ),
+            ),
+            (
+                "README.en.md 0.7.3 highlight",
+                "en",
+                " ".join(
+                    section(
+                        readme_en,
+                        "## 0.7.3 review stop-line",
+                        "[See GitHub Releases",
+                    ).split()
+                ),
+            ),
+            (
+                "README.md four-phase",
+                "zh",
+                " ".join(
+                    section(
+                        readme_zh,
+                        "## 四阶段工作流",
+                        "只有用户明确请求时",
+                    ).split()
+                ),
+            ),
+            (
+                "README.md detailed review",
+                "zh",
+                " ".join(
+                    section(
+                        readme_zh,
+                        "## 0.7.2 能力比例准入",
+                        "## 包含与不包含",
+                    ).split()
+                ),
+            ),
+            (
+                "README.md 0.7.3 highlight",
+                "zh",
+                " ".join(
+                    section(
+                        readme_zh,
+                        "## 0.7.3 评审停止线",
+                        "[完整发布历史",
+                    ).split()
+                ),
+            ),
         )
 
         common = (
@@ -534,6 +604,76 @@ class RepositoryContractTests(unittest.TestCase):
             ):
                 with self.subTest(surface=surface, contradictory=contradictory):
                     self.assertNotIn(contradictory, text)
+
+        public_required = {
+            "en": (
+                "Root first classifies every finding against the frozen supported-workflow envelope",
+                "Only one Root-admitted, explicitly authorized in-envelope repair with remaining authorized budget returns the phase to `working`",
+                "Root refreezes the candidate and obtains exactly one replacement fresh Exact-final",
+                "After refreeze, any `in-envelope blocker` or `unknown` remains open, truthful, and blocking",
+                "Root returns to the user before another product write, grant, or review rerun",
+                "An `envelope expansion` remains a disclosed follow-up unless separately authorized",
+                "never triggers or consumes automatic repair",
+                "After the budget is exhausted, no automatic product write, refreeze, or review rerun is permitted",
+                "no loop exists",
+            ),
+            "zh": (
+                "Root 先根据冻结的受支持工作流边界对每个发现分类",
+                "只有一次由 Root 准入、获得显式授权、边界内且仍有已授权预算的修复，才会退回 `working`",
+                "Root 重新冻结 candidate，并只取得一次替代性的全新 Exact-final",
+                "重新冻结后，任何 `in-envelope blocker` 或 `unknown` 都保持 open、truthful 且 blocking",
+                "Root 在另一次产品写入、grant 或 review rerun 前返回用户",
+                "`envelope expansion` 保持为已披露的 follow-up，除非另行授权",
+                "绝不触发或消耗自动修复",
+                "预算耗尽后，不允许自动产品写入、重新冻结或 review rerun",
+                "不存在循环",
+            ),
+        }
+        public_unqualified = {
+            "en": (
+                "Any repair returns to `working`",
+                "Any product change returns to `working`",
+                "Any material finding in that replacement",
+            ),
+            "zh": (
+                "任何修复都返回 `working`",
+                "任何产品变更都会退回 `working`",
+                "替代评审中的任何 material finding",
+            ),
+        }
+        for surface, language, text in readme_sections:
+            normalized_text = re.sub(r"\s+", "", text) if language == "zh" else text
+            for phrase in public_required[language]:
+                normalized_phrase = (
+                    re.sub(r"\s+", "", phrase) if language == "zh" else phrase
+                )
+                with self.subTest(surface=surface, public_phrase=phrase):
+                    self.assertIn(normalized_phrase, normalized_text)
+            for phrase in public_unqualified[language]:
+                normalized_phrase = (
+                    re.sub(r"\s+", "", phrase) if language == "zh" else phrase
+                )
+                with self.subTest(surface=surface, unqualified_public_phrase=phrase):
+                    self.assertNotIn(normalized_phrase, normalized_text)
+
+        self.assertIn("## 0.7.3 review stop-line", readme_en)
+        self.assertIn(
+            "preserves the 0.7.2 capability-proportional admission contract",
+            readme_en_compact,
+        )
+        self.assertIn(
+            "Publication, release, and activation are not claimed before their corresponding receipts exist",
+            readme_en_compact,
+        )
+        self.assertIn("## 0.7.3 评审停止线", readme_zh)
+        self.assertIn(
+            "保留 0.7.2 的 capability-proportional admission 契约",
+            readme_zh_compact,
+        )
+        self.assertIn(
+            "在对应回执存在之前，不声称已经发布、release 或激活",
+            readme_zh_compact,
+        )
 
         recurrence_relation = (
             "After terminal GREEN, only a Root-admitted in-envelope material "
