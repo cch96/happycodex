@@ -29,9 +29,13 @@ Persist `references/execplan.md` at the repository policy path or
 `docs/execplans/<task-slug>.md`. Freeze the verbatim request and amendments,
 normalized Outcome, preservation, exclusions, allowed breaks, source/worktree,
 baseline command and failures, roles, grants, obligations, checks, effects, and
-stop conditions. Changing Outcome, baseline, an allowed break, or a required
-gate needs explicit user authority. A source-derived obligation may be added
-only with its provenance and invalidation rule.
+stop conditions. Root must freeze a named supported-workflow envelope before
+the behavior-plan freeze. Bind its named workflows and preconditions,
+user-visible outcomes, source basis, exclusions, selected design/complexity
+boundary, and bounded Exact-final-triggered repair budget. Changing Outcome,
+baseline, an allowed break, or a required gate needs explicit user authority. A
+source-derived obligation may be added only when the frozen envelope requires
+it, with its provenance and invalidation rule.
 
 Build a risk-based affected-surface inventory. Follow each material obligation
 through the surfaces its behavior can actually reach: input and validation,
@@ -100,8 +104,9 @@ Apply missing observability only to the guarantee or use that depends on it:
   non-proof.
 - Missing optional telemetry never asks the user to choose a fallback. No
   user-facing modes or levels exist. Never require `普通模式继续`. Ask the user
-  only when continuation would change the Outcome, authority, trust boundary,
-  or an explicitly required guarantee.
+  when continuation would change the Outcome, authority, trust boundary, or an
+  explicitly required guarantee; expand the frozen envelope; or exceed or
+  continue after exhaustion of the bounded automatic repair budget.
 
 Root first decomposes the problem into independent, decision-changing axes.
 Run multiple Explorers concurrently only when multiple such axes exist, and
@@ -119,14 +124,47 @@ are bound. Root relies on actual Git, tests, and receipts, not Executor prose.
 
 After candidate freeze, spawn exactly one fresh Exact-final with
 `fork_turns = none`, empty history, and a neutral brief that excludes prior
-findings and desired verdicts. Exact-final may count without verified model or
-permission telemetry only when exact routing and hard isolation were not
-predeclared required, the reviewer is fresh with empty history and a neutral
-brief, output identity is bound, candidate identity remains unchanged, and Root
-reproduces material findings; disclose unverified guarantees. If required hard
-isolation is unproven, review remains open. A repair returns to `working`,
-invalidates affected frozen evidence, and requires a new candidate freeze and a
-new Exact-final.
+findings and desired verdicts. Include the frozen supported-workflow envelope,
+obligations, checks, accepted failures, and exclusions. Exact-final may count
+without verified model or permission telemetry only when exact routing and hard
+isolation were not predeclared required, the reviewer is fresh with empty
+history and a neutral brief, output identity is bound, candidate identity
+remains unchanged, and Root reproduces material findings; disclose unverified
+guarantees. If required hard isolation is unproven, review remains open. Only a
+Root-admitted in-envelope repair with remaining authorized repair budget
+returns to `working`, invalidates affected frozen evidence, and requires a new
+candidate freeze and a new Exact-final.
+
+Findings after the behavior-plan freeze cannot manufacture obligations or write
+authority. Root must reproduce and classify every Exact-final finding before any
+affected-surface expansion or write grant. An `in-envelope blocker` is a
+reproduced failure of a frozen obligation, or a candidate-new safety regression
+reachable through an already named supported workflow; it remains blocking. An
+`envelope expansion` is a request for a new supported workflow, trust/design
+guarantee, or architectural complexity not required to repair an in-envelope
+blocker. It may be recorded as follow-up but cannot automatically become an
+obligation or write grant. New durable state/schema, cross-context coordination,
+compatibility/control-plane machinery, or equivalent complexity outside the
+frozen design boundary is expansion. If prior repair machinery caused the
+finding, compare removal, rollback, or simplification before adding control.
+
+Unknown classification remains open and returns to the user before any write.
+Unknown evidence blocks closure only when it concerns a frozen required
+guarantee; out-of-envelope uncertainty is disclosed rather than silently
+promoted. The default automatic repair budget is exactly one
+Exact-final-triggered repair wave. Only a Root-admitted `in-envelope blocker`
+may consume that automatic repair wave. While authorized budget remains, it may
+trigger one coherent repair, then one refreeze and one new fresh empty-history
+neutral Exact-final. After refreeze, any `in-envelope blocker` or `unknown`
+classification remains open, truthful, and blocking, and Root must return to
+the user before another product write, grant, or review rerun. An
+`envelope expansion` remains a disclosed follow-up unless separately authorized
+and never consumes the automatic repair wave. After the budget is exhausted, no
+automatic product write, refreeze, or review rerun is permitted. Exact-final
+identifies findings; Root owns admission and disposition. The user may explicitly
+authorize a different bounded budget before work. The cap limits automatic
+repair authority, never reviewer truth; no user-facing mode, level, or
+continuation phrase is added.
 
 Record each participant's authenticated dispatch/tool receipt, any
 runtime-issued session/turn metadata, and Root admission decision separately.
@@ -156,15 +194,21 @@ effect, unknown input, or wider scope returns to Root without retry or cleanup.
 Corrections are event-driven. Elapsed time, repeated prose, and administrative
 updates do not justify another attempt.
 
-- On a new falsifier, expand the affected-surface inventory and join it to the
-  current coherent diagnosis and repair wave before terminal GREEN.
+- On a new falsifier, Root must reproduce and classify the finding against the
+  frozen envelope before it may expand the affected-surface inventory. Only an
+  in-envelope blocker joins the current coherent diagnosis and repair wave
+  before terminal GREEN.
 - On an unchanged failure, reconcile durable facts; never retry the same effect
   by rewording, restarting, or seeking a friendlier result.
 - At the end of a repair wave, run its real-path focused check and the cumulative
   offline suite once. A failed check reopens the same wave.
-- After terminal GREEN, one material recurrence permits at most one
-  boundary-level alternative that addresses the failure and reruns affected checks.
-  If that alternative fails unchanged or the issue recurs again, ask the user.
+- After terminal GREEN, only a Root-admitted in-envelope material recurrence may
+  use at most one boundary-level alternative while an applicable explicit repair
+  budget remains; using the alternative consumes that budget. It must address
+  the failure and rerun affected checks. A post-refreeze Exact-final finding
+  follows the Exact-final stop-line above and cannot use this recurrence clause
+  to bypass return-to-user or no-more-write behavior. If the alternative fails
+  unchanged or the issue recurs again, ask the user.
 - Immediately before any effect, re-read the exact grant, claim, prestate,
   invocation, cost boundary, and destination. Drift or ambiguity stops.
 
@@ -177,9 +221,10 @@ mock cannot prove its own seam. Do not run exact-final while repairing.
 
 Freeze `candidate_frozen` once obligations are evidenced, required real paths
 pass, accepted baseline failures remain unchanged, owned dirt is accounted for,
-source/package/config identities are bound, and no material unknown remains.
-Any product change after freeze returns to `working` and invalidates affected
-candidate and review evidence.
+source/package/config identities are bound, and no unknown about a frozen
+required guarantee remains. Disclose out-of-envelope uncertainty. Any product
+change after freeze returns to `working` and invalidates affected candidate and
+review evidence.
 
 Keep the ExecPlan a current index, not a history dump. Its recovery record binds
 the request, Root, fixed Executor, source/ref/worktree, exact grant, obligations,
@@ -231,11 +276,13 @@ result, findings, and Root reproduction. Record the requested and any exposed
 or `unverified` model, effort, and permissions. Missing optional route or
 permission telemetry alone does not leave review open. A required but unproven
 guarantee, missing output identity or coverage, explicit mismatch, candidate
-drift, unsupported evidence, or an unchanged rerun leaves review open. Repair
+drift, unsupported evidence, or an unchanged rerun leaves review open. Only a
+Root-admitted in-envelope repair with remaining authorized repair budget
 returns to `working`, refreezes, and obtains a new neutral exact-final.
 
 Enter `closed` only when every obligation is verified or evidenced `N/A`, real
 paths pass, baseline failures are resolved or accepted unchanged, no secret or
-material finding remains, owned status is accounted for, required effects and
-receipts bind the frozen product, and the matching Goal—if any—is complete.
-Disclose any explicitly waived or unrun gate.
+unresolved in-envelope material finding or unknown about a frozen required
+guarantee remains, owned status is accounted for, required effects and receipts
+bind the frozen product, and the matching Goal—if any—is complete. Disclose
+out-of-envelope uncertainty and any explicitly waived or unrun gate.

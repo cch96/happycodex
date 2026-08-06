@@ -180,8 +180,8 @@ class RepositoryContractTests(unittest.TestCase):
             "If required hard isolation is unproven, review remains open",
             "No user-facing modes or levels exist",
             "Never require `普通模式继续`",
-            "Ask the user only when continuation would change the Outcome, authority, trust boundary, or an explicitly required guarantee",
-            "A repair returns to `working`",
+            "Ask the user when continuation would change the Outcome, authority, trust boundary, or an explicitly required guarantee; expand the frozen envelope; or exceed or continue after exhaustion of the bounded automatic repair budget",
+            "Only a Root-admitted in-envelope repair with remaining authorized repair budget returns to `working`",
         )
         for phrase in required_runtime:
             with self.subTest(phrase=phrase):
@@ -418,6 +418,152 @@ class RepositoryContractTests(unittest.TestCase):
         self.assertIn("不代表已经发布或激活", readme_zh)
         self.assertIn("does not claim that 0.7.2 has been released or activated", en_compact)
         self.assertEqual(compact.count("普通模式继续"), 1)
+
+    def test_review_findings_respect_frozen_envelope_and_repair_stop_line(self):
+        skill = (ROOT / "skills" / "happycodex" / "SKILL.md").read_text()
+        reference = (
+            ROOT / "skills" / "happycodex" / "references" / "execplan.md"
+        ).read_text()
+
+        def section(raw: str, start: str, end: str) -> str:
+            return raw.split(start, 1)[1].split(end, 1)[0]
+
+        skill_contract = " ".join(
+            (
+                section(skill, "## Select and freeze", "## Roles and grants")
+                + section(skill, "## Roles and grants", "## Event correction")
+                + section(skill, "## Event correction", "## Implement and recover")
+                + section(skill, "## Review and complete", "Enter `closed`")
+            ).split()
+        )
+        reference_contract = " ".join(
+            (
+                section(reference, "## Contract", "## Roles and authority")
+                + section(reference, "## Roles and authority", "## Obligations and evidence")
+                + section(reference, "## Obligations and evidence", "## Recovery")
+            ).split()
+        )
+        skill_recurrence = " ".join(
+            (
+                "After terminal GREEN"
+                + section(skill, "- After terminal GREEN", "- Immediately before any effect")
+            ).split()
+        )
+        reference_recurrence = " ".join(
+            section(reference, "source tree.", "Corrections occur only").split()
+        )
+
+        common = (
+            "freeze a named supported-workflow envelope before the behavior-plan freeze",
+            "Findings after the behavior-plan freeze cannot manufacture obligations or write authority",
+            "Root must reproduce and classify every Exact-final finding before any affected-surface expansion or write grant",
+            "`in-envelope blocker` is a reproduced failure of a frozen obligation, or a candidate-new safety regression reachable through an already named supported workflow; it remains blocking",
+            "`envelope expansion` is a request for a new supported workflow, trust/design guarantee, or architectural complexity not required to repair an in-envelope blocker",
+            "cannot automatically become an obligation or write grant",
+            "Unknown classification remains open and returns to the user before any write",
+            "Unknown evidence blocks closure only when it concerns a frozen required guarantee; out-of-envelope uncertainty is disclosed rather than silently promoted",
+            "A source-derived obligation may be added only when the frozen envelope requires it",
+            "default automatic repair budget is exactly one Exact-final-triggered repair wave",
+            "Only a Root-admitted `in-envelope blocker` may consume that automatic repair wave",
+            "After refreeze, any `in-envelope blocker` or `unknown` classification remains open, truthful, and blocking",
+            "`envelope expansion` remains a disclosed follow-up unless separately authorized and never consumes the automatic repair wave",
+            "After the budget is exhausted, no automatic product write, refreeze, or review rerun is permitted",
+            "return to the user before another product write, grant, or review rerun",
+            "Exact-final identifies findings; Root owns admission and disposition",
+            "cap limits automatic repair authority, never reviewer truth",
+            "fresh empty-history neutral Exact-final",
+            "Ask the user when continuation would change the Outcome, authority, trust boundary, or an explicitly required guarantee; expand the frozen envelope; or exceed or continue after exhaustion of the bounded automatic repair budget",
+        )
+        for surface, text in (("Skill", skill_contract), ("reference", reference_contract)):
+            for phrase in common:
+                with self.subTest(surface=surface, phrase=phrase):
+                    self.assertIn(phrase, text)
+
+        self.assertLess(
+            skill_contract.index("Root must reproduce and classify every Exact-final finding"),
+            skill_contract.index("Every write grant binds"),
+        )
+        self.assertLess(
+            reference_contract.index("Root must reproduce and classify every Exact-final finding"),
+            reference_contract.index("For each grant record"),
+        )
+        self.assertLess(
+            skill_contract.index("classify the finding against the frozen envelope"),
+            skill_contract.index("expand the affected-surface inventory"),
+        )
+        self.assertLess(
+            reference_contract.index("classify the finding against the frozen envelope"),
+            reference_contract.index("expand the affected-surface inventory"),
+        )
+
+        for phrase in (
+            "Missing optional telemetry never asks the user to choose a fallback",
+            "Missing output identity cannot downgrade",
+            "explicit mismatch in a requested or required identity or route",
+            "unsafe exposed value relative to a predeclared required guarantee",
+            "grant/source/path/effect boundary drift",
+            "candidate or source drift",
+            "ambiguous or partial effects",
+        ):
+            with self.subTest(skill_hard_stop=phrase):
+                self.assertIn(phrase, skill_contract)
+        for phrase in (
+            "Missing optional telemetry never waives a required guarantee",
+            "Missing output identity is a hard stop",
+            "Discard explicit mismatch",
+            "unsafe value against a required guarantee",
+            "identity/scope drift",
+            "ambiguous or partial effects",
+        ):
+            with self.subTest(reference_hard_stop=phrase):
+                self.assertIn(phrase, reference_contract)
+        self.assertIn(
+            "| Finding identity | Reproduced evidence | Envelope class | Disposition | Repair budget / consumed | Stop-line decision |",
+            reference,
+        )
+        for surface, text in (("Skill", skill_contract), ("reference", reference_contract)):
+            with self.subTest(surface=surface, relation="qualified_repair"):
+                self.assertIn(
+                    "Only a Root-admitted in-envelope repair with remaining authorized repair budget returns to `working`",
+                    text,
+                )
+            for contradictory in (
+                "A repair returns to `working`",
+                "The first adverse Exact-final",
+                "Any adverse or unknown finding",
+            ):
+                with self.subTest(surface=surface, contradictory=contradictory):
+                    self.assertNotIn(contradictory, text)
+
+        recurrence_relation = (
+            "After terminal GREEN, only a Root-admitted in-envelope material "
+            "recurrence may use at most one boundary-level alternative while "
+            "an applicable explicit repair budget remains; using the "
+            "alternative consumes that budget"
+        )
+        exact_final_stop = (
+            "A post-refreeze Exact-final finding follows the Exact-final "
+            "stop-line above and cannot use this recurrence clause to bypass "
+            "return-to-user or no-more-write behavior"
+        )
+        for surface, local in (
+            ("Skill", skill_recurrence),
+            ("reference", reference_recurrence),
+        ):
+            with self.subTest(surface=surface, recurrence="admission_budget"):
+                self.assertIn(recurrence_relation, local)
+            with self.subTest(surface=surface, recurrence="exact_final_stop"):
+                self.assertIn(exact_final_stop, local)
+            if recurrence_relation in local and exact_final_stop in local:
+                self.assertLess(local.index("Root-admitted"), local.index("boundary-level alternative"))
+                self.assertLess(local.index("boundary-level alternative"), local.index("consumes that budget"))
+                self.assertLess(local.index("consumes that budget"), local.index("post-refreeze Exact-final"))
+            for unqualified in (
+                "one material recurrence permits at most one boundary-level alternative",
+                "One post-GREEN recurrence may use one boundary-level alternative",
+            ):
+                with self.subTest(surface=surface, unqualified=unqualified):
+                    self.assertNotIn(unqualified, local)
 
     def test_no_active_ledger_or_retired_engine_files_exist(self):
         retired = [
