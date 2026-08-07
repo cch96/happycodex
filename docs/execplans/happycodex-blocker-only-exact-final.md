@@ -4,15 +4,15 @@
 
 | Field | Current value |
 | --- | --- |
-| Phase | `working` |
+| Phase | `candidate_frozen` |
 | External authority evidence | Exact amendment text `好的继续`, clear assent to Root's immediately preceding exact proposal for the one admitted Exact-final-triggered repair, bounded gates, Root refreeze, and one replacement neutral Exact-final |
-| Active Executor grant | Fixed `happycodex_executor`, host output identity `/root/blocker_only_executor`; model `gpt-5.6-sol`, effort `high`; update only this plan, the operative Skill classifier, and the existing focused assertion; create one clean repair commit; run the exact offline gates once; then leave only this receipt unstaged |
-| Prestate | `/home/caichenghang/projects/happycodex`; branch `codex/blocker-only-exact-final`; adverse receipt commit `ca937a51c4485e6caf6cd09dee0b9097633799c6`, tree `6b26ae36bb04f749f7ad7d717d6ad35d251f856b`; worktree/index clean; adverse review source `8841d78353f98f29e6dc57be2a66b55a118ce3b6`; frozen ProductArtifact `2931dceb4a243970fb99ee9c888ca15cee7de081a2a25e94fe6eccd2b614602a` |
+| Active Executor grant | Fixed `happycodex_executor`, host output identity `/root/blocker_only_executor`; model `gpt-5.6-sol`, effort `high`; persist Root's reproduced post-repair freeze decision and create exactly one local plan-only refreeze receipt commit |
+| Prestate | `/home/caichenghang/projects/happycodex`; branch `codex/blocker-only-exact-final`; frozen repair source `10c7691103077771193be5dccacb10fdf7f3a24c`, tree `568b85eca0b4d19d64129408b033d91cf353574a`; ProductArtifact record `0823c7e0091c2f53100a2cbb854d3b0706083baed279a0d55a05e07a4090e126`; index empty; this plan is the sole dirt before its refreeze receipt commit |
 | Repair budget | `1 / 1`; the single admitted repair wave is consumed by this grant |
-| Latest falsifier | `EF-ADMISSIBILITY-CLASSIFIER`: candidate-new material correctness-only regressions are admitted by the frozen obligation but omitted by the operative Root classifier |
+| Latest falsifier | `none` locally; `EF-ADMISSIBILITY-CLASSIFIER` is corrected and focused-verified; the adverse review is invalidated by product mutation |
 | Reconciliation latch | inactive; effects are `none` |
-| Receipts | adverse Exact-final handle `/root/blocker_only_exact_final`, brief digest `7bdd558b9769e098d1f85de7bbca8e360cde93f1471fb5be52f9201642ce55cd`, and result digest `529433323164fc4f698525ad90a2dd35093abca63caeee19a65d2dd742afd1fb` retained; product mutation invalidates that review; repair commit/check receipts pending |
-| Obligations and gates | exact `EF-ADMISSIBILITY-CLASSIFIER` correction open; focused/cumulative/validator/identity gates open; Root refreeze and one replacement fresh neutral Exact-final pending |
+| Receipts | repair commit/tree and ProductArtifact bound below; focused 19/19 passed; 164-test cumulative gate matched the exact two-failure baseline with zero errors/skips; both validators, diff, path, status, and protected checks passed |
+| Obligations and gates | `EF-ADMISSIBILITY-CLASSIFIER` resolved; all repair gates Root-reproduced; no required unknown; Root refreeze complete; exactly one replacement fresh neutral blocker-only Exact-final pending |
 | Goal | absent |
 
 Effective sandbox and approval telemetry are `unverified`; no hard-isolation
@@ -85,7 +85,7 @@ coupling, or new product guarantee.
 | ID | Observable contract | Falsifier | State |
 | --- | --- | --- | --- |
 | `EF-BLOCKERS` | Exact-final is explicitly a blocker-only closure check, not an optimization pass | retained invitation to optimize or broaden the frozen candidate | verified by focused contract and source diff |
-| `EF-ADMISSIBILITY` | only the two admitted blocker forms qualify, with a concrete actionable evidence-backed or reproducible scenario | a supported correctness-only candidate regression cannot be admitted by the operative classifier | repair authorized: exact classifier/test alignment pending |
+| `EF-ADMISSIBILITY` | only the two admitted blocker forms qualify, with a concrete actionable evidence-backed or reproducible scenario | a supported correctness-only candidate regression cannot be admitted by the operative classifier | verified after repair and Root reproduction |
 | `EF-SUPPRESS` | the named non-blocking categories are explicitly suppressed | any named category is invited as closure-blocking work | verified by focused contract and source diff |
 | `EF-IDENTITY` | one result binds candidate + neutral brief + relevant bound configuration/receipt identity; unchanged identity cannot rerun through wording/reviewer substitution | equivalent review can be retried by rewording or reviewer swap | verified by focused contract and source diff |
 | `EF-ONE-REPAIR` | one admitted blocker may consume one repair wave; mutation requires replacement Exact-final; after refreeze blocker/unknown returns to user | a second write or friendlier rerun is permitted | verified; budget consumed `1 / 1` |
@@ -93,24 +93,35 @@ coupling, or new product guarantee.
 
 ## Bound candidate and checks
 
-- Product source: `a3a3d3dd0ea7bf4a741f77a73bc53e9b2b811a08`;
-  source tree `a7f09e76d599bad1845b5c27e43414bb4ed34b4d`.
+- Repair commit: `10c7691103077771193be5dccacb10fdf7f3a24c`;
+  parent `ca937a51c4485e6caf6cd09dee0b9097633799c6`; source tree
+  `568b85eca0b4d19d64129408b033d91cf353574a`.
 - ProductArtifact record:
-  `2931dceb4a243970fb99ee9c888ca15cee7de081a2a25e94fe6eccd2b614602a`;
-  package tree `f1e2481b0964e2906c9846d300db05b1ca3c5f45`;
+  `0823c7e0091c2f53100a2cbb854d3b0706083baed279a0d55a05e07a4090e126`;
+  package tree `a77fb8e27802adf3c167e4bdf4d9d0d2b06d683f`;
   artifact SHA-256
-  `bfe77bdf1a9419431d154376075421d9e22e89ae0e03b1c7355f5e58a223e31e`;
+  `a8afe7c2e637b8e441538887e9b5ab82c1db694d9f668cc19d68d36fed31bfd6`;
   semantic SHA-256
-  `1c623b3d38a340d81a5a635f2774c2b06c10655c968a981d288a57e510b99413`.
-- Focused contract: RED characterized, then 19/19 passed.
-- Clean cumulative gate: 164 tests, exactly the two accepted source-baseline
-  failures, zero errors/skips. Skill and plugin validators, parent diff, exact
-  seven-path projection, empty protected projection, and immutable v0.6.5
-  Skill tree all passed. Root independently reproduced these receipts.
-- The earlier dirty-worktree run is retained only as resolved precondition
-  evidence; its exact-source identity errors are not candidate evidence.
+  `ae4ae68ca19a37bf299a7f2ad2b6624ef704731989279832e43635d1e19720d8`.
+- Parent projection is exactly this plan, `skills/happycodex/SKILL.md`, and
+  `tests/test_attestation_contract.py`; forbidden projection is empty; protected
+  v0.6.5 Skill tree is
+  `d9e525a267fbf36669d409ba1b4b009a6beeeea5`.
+- Focused command ran once: 19/19 passed, exit `0`, 0.116 seconds.
+- Cumulative command ran once: 164 tests in 74.943 seconds, exactly
+  `test_exact_final_source_rejects_self_selected_projection_and_fake_diff` at
+  `mutation='old-source'` and
+  `test_old_source_components_cannot_back_a_new_dirty_evalspec` failed, with
+  zero errors/skips and no other failure.
+- Skill validator exit `0`, `Skill is valid!`; plugin validator exit `0`,
+  `Plugin validation passed: /home/caichenghang/projects/happycodex`;
+  `git diff --check ca937a51c4485e6caf6cd09dee0b9097633799c6..HEAD`
+  exit `0`. Committed worktree and index were clean after all gates. Root
+  reproduced the repair, assertion isolation, identities, checks, exact
+  three-path projection, empty forbidden projection, and protected tree, then
+  decided `candidate_frozen` with no required unknown.
 
-## Exact-final receipt and Root disposition
+## Invalidated first Exact-final receipt
 
 - Host-authenticated handle: `/root/blocker_only_exact_final`.
 - Invocation: one fresh custom `happycodex_exact_final`, `fork_turns=none`,
@@ -125,6 +136,11 @@ coupling, or new product guarantee.
 - Adverse result identity is frozen candidate + neutral brief + bound role
   configuration/receipt. It is persisted and cannot be replaced for unchanged
   identity by rewording the brief or swapping reviewers.
+- Its bound source is `8841d78353f98f29e6dc57be2a66b55a118ce3b6`
+  and ProductArtifact is
+  `2931dceb4a243970fb99ee9c888ca15cee7de081a2a25e94fe6eccd2b614602a`.
+  Product mutation at repair commit `10c7691103077771193be5dccacb10fdf7f3a24c`
+  invalidates this review while preserving its adverse receipt.
 
 `EF-ADMISSIBILITY-CLASSIFIER` is the one blocker. Candidate Skill lines 84-87
 admit a candidate-new material safety or correctness regression, while the
@@ -135,31 +151,21 @@ The smallest correction is to use the exact broader class in the operative
 classifier.
 
 Root independently read current and baseline source and reproduced the
-mismatch. Root classifies it as a reproduced failure of frozen obligation
+mismatch. Root classified it as a reproduced failure of frozen obligation
 `EF-ADMISSIBILITY`, hence an in-envelope blocker under admissibility form (1),
-not style, envelope expansion, unknown, or an unrelated baseline issue. Phase
-is `exact_final`; closure is rejected.
+not style, envelope expansion, unknown, or an unrelated baseline issue. That
+review rejected closure and is now invalidated by the repaired product bytes.
 
 ## Stop and repair boundary
 
-Exact user authority consumes the single repair budget, now `1 / 1`. The only
-repair is to broaden the operative classifier to the already frozen exact
-class and add one isolating assertion inside the existing test method. Product
-mutation invalidates the adverse Exact-final and returns phase to `working`.
+The exact repair wave is complete and the single budget is consumed `1 / 1`.
+Root refreeze is complete and phase is `candidate_frozen`. Exactly one
+replacement fresh neutral blocker-only Exact-final is pending, bound to the
+repaired ProductArtifact and a new neutral brief/configuration receipt. After
+that review, any blocker or unknown returns to the user; no third review or
+automatic write is permitted.
 
-After the three-path repair commit, run exactly once in order: the 19-test
-focused module; the 164-test cumulative suite with only the two accepted
-failures and zero errors/skips; the Skill validator; the plugin validator; and
-the parent diff, exact path/protected projections, status/index, HEAD/tree, and
-ProductArtifact checks. Any unexpected count, failure, error, skip, validator,
-identity, path, or protected-tree drift is terminal without retry or another
-repair.
-
-Root refreeze is pending. Only after Root refreezes may exactly one replacement
-fresh neutral Exact-final run. After that review, any blocker or unknown returns
-to the user; no third review or automatic write is permitted.
-
-Authorized effects are one local three-path repair commit and one later
-unstaged plan receipt. No amend, extra commit/ref/archive, model/reviewer call,
-push, network, install, activation, publication, release, cleanup,
-evaluator/config edit, or other path/effect is authorized.
+No further Executor action is granted. No amend, additional product repair,
+extra commit/ref/archive, model/reviewer call, push, network, install,
+activation, publication, release, cleanup, evaluator/config edit, or other
+path/effect is authorized.
