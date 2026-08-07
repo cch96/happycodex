@@ -123,6 +123,14 @@ class RepositoryContractTests(unittest.TestCase):
         self.assertIn("no prior findings or desired verdict", skill)
         self.assertIn("replacement fresh neutral exact-final", skill)
         self.assertIn("after that refreeze, any blocker or unknown returns to the user", skill)
+        classifier = skill.split("root classifies each as:", 1)[1].split(
+            "do not relabel a candidate failure", 1
+        )[0]
+        self.assertIn(
+            "candidate-new material safety or correctness regression reachable through a named workflow",
+            classifier,
+        )
+        self.assertNotIn("candidate-new safety regression", classifier)
 
         readme_zh = " ".join(read("README.md").split())
         for phrase in (

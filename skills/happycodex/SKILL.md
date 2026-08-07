@@ -172,7 +172,8 @@ Exact-final findings cannot create obligations or write authority. Root
 classifies each as:
 
 - `in-envelope blocker`: reproduced failure of a frozen obligation or a
-  candidate-new safety regression reachable through a named workflow;
+  candidate-new material safety or correctness regression reachable through a
+  named workflow;
 - `envelope expansion`: new workflow, trust/design guarantee, or complexity;
 - `unknown`: insufficient evidence for either classification.
 
