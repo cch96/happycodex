@@ -7,8 +7,8 @@ maintenance support and must never be linked from `skills/happycodex/SKILL.md`.
 - Preserve the exact published `v0.6.5:skills/happycodex` tree
   `d9e525a267fbf36669d409ba1b4b009a6beeeea5`, external role configuration,
   active install, cache, and rollback state. This exact user authorization
-  permits only the local 0.6.6 prompt-proportionality candidate surfaces named
-  in `docs/execplans/happycodex-0-6-6-prompt-proportionality.md`.
+  permits only the local blocker-only Exact-final candidate surfaces named in
+  `docs/execplans/happycodex-blocker-only-exact-final.md`.
 - Unless the request or source establishes otherwise, treat the user,
   maintainer, workspace, and selected configuration as non-adversarial but
   fallible. Verify state and identity, prefer the smallest sufficient control,

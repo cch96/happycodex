@@ -90,6 +90,50 @@ class RepositoryContractTests(unittest.TestCase):
         for phrase in required:
             self.assertIn(phrase, compact)
 
+    def test_exact_final_is_a_blocker_only_identity_bound_closure_check(self):
+        surfaces = {
+            "skill": read("skills/happycodex/SKILL.md"),
+            "reference": read("skills/happycodex/references/execplan.md"),
+            "readme": read("README.en.md"),
+        }
+        required = (
+            "blocker-only closure check, not an optimization pass",
+            "reproduced failure of a frozen obligation",
+            "failed to fix the original obligation",
+            "candidate-new material safety or correctness regression",
+            "reachable through a named workflow",
+            "concrete, actionable",
+            "evidence-backed or reproducible scenario",
+            "style or naming",
+            "general cleanup or refactoring",
+            "speculative hardening",
+            "alternative designs or new guarantees",
+            "unfrozen test suggestions",
+            "pre-existing issues unrelated to frozen obligations",
+            "candidate, neutral brief, and relevant bound configuration or receipt identity",
+            "rewording the brief or swapping reviewers",
+        )
+        for name, raw in surfaces.items():
+            compact = " ".join(raw.split()).lower()
+            with self.subTest(surface=name):
+                for phrase in required:
+                    self.assertIn(phrase, compact)
+
+        skill = " ".join(surfaces["skill"].split()).lower()
+        self.assertIn("no prior findings or desired verdict", skill)
+        self.assertIn("replacement fresh neutral exact-final", skill)
+        self.assertIn("after that refreeze, any blocker or unknown returns to the user", skill)
+
+        readme_zh = " ".join(read("README.md").split())
+        for phrase in (
+            "仅检查 blocker 的关闭门",
+            "不是优化轮次",
+            "具体、可行动",
+            "证据支持或可复现的场景",
+            "改写 brief 或更换 reviewer",
+        ):
+            self.assertIn(phrase, readme_zh)
+
     def test_contextual_authority_and_reconciliation_latch_are_bounded(self):
         surfaces = {
             "skill": read("skills/happycodex/SKILL.md"),

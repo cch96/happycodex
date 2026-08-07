@@ -67,6 +67,23 @@ cannot be established stops. Prompt/profile read-only text is not technical
 isolation. Explorers answer bounded independent questions and are advisory
 until Root reproduces material facts from source.
 
+Exact-final is a blocker-only closure check, not an optimization pass. An
+admissible blocker is only a reproduced failure of a frozen obligation,
+including a candidate that failed to fix the original obligation, or a
+candidate-new material safety or correctness regression reachable through a
+named workflow. It must give a concrete, actionable, evidence-backed or
+reproducible scenario. Style or naming preferences, general cleanup or
+refactoring, speculative hardening, alternative designs or new guarantees,
+unfrozen test suggestions, and pre-existing issues unrelated to frozen
+obligations do not block closure.
+
+One admitted result binds one exact frozen review identity: candidate, neutral
+brief, and relevant bound configuration or receipt identity. An unchanged
+identity cannot be rerun by rewording the brief or swapping reviewers. The
+neutral brief contains no prior findings or desired verdict; a product mutation
+requires a replacement fresh neutral Exact-final, and after that refreeze, any
+blocker or unknown returns to the user.
+
 ## The 0.8 clean break
 
 HappyCodex keeps one current snapshot rather than per-grant history or mutable

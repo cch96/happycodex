@@ -80,7 +80,19 @@ After candidate freeze, dispatch exactly one fresh Exact-final with
 `fork_turns=none`, empty history, and a neutral brief containing the frozen
 workflow envelope, obligations, checks, accepted failures, and exclusions—but
 no prior findings or desired verdict. Root reproduces and classifies every
-material finding.
+material finding. Exact-final is a blocker-only closure check, not an
+optimization pass. An admissible blocker is only a reproduced failure of a
+frozen obligation—including a candidate that failed to fix the original
+obligation—or a candidate-new material safety or correctness regression
+reachable through a named workflow. It must identify a concrete, actionable,
+evidence-backed or reproducible scenario.
+
+Suppress style or naming preferences, general cleanup or refactoring,
+speculative hardening, alternative designs or new guarantees, unfrozen test
+suggestions, and pre-existing issues unrelated to frozen obligations. Bind one
+admitted result to one exact frozen review identity: candidate, neutral brief,
+and relevant bound configuration or receipt identity. An unchanged identity
+cannot be rerun by rewording the brief or swapping reviewers.
 
 ## Current snapshot and authority
 
@@ -170,11 +182,11 @@ another control.
 
 Only a Root-admitted in-envelope blocker may consume the default single
 automatic repair wave. The Executor performs one coherent repair, Root
-refreezes, and a new fresh neutral Exact-final replaces the invalidated review.
-After that refreeze, any blocker or unknown returns to the user before another
-write, grant, or review. Expansion is disclosed follow-up and never consumes
-the repair wave. Exhausted budget permits no automatic write, refreeze, or
-review rerun.
+refreezes, and a replacement fresh neutral Exact-final replaces the invalidated
+review. After that refreeze, any blocker or unknown returns to the user before
+another write, grant, or review. Expansion is disclosed follow-up and never
+consumes the repair wave. Exhausted budget permits no automatic write,
+refreeze, or review rerun.
 
 ## Close
 

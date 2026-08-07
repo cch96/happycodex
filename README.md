@@ -60,6 +60,17 @@ telemetry 时记录 `unverified`，只降低依赖它的保证；暴露值不匹
 预先声明的必需保证时停止。prompt/profile 的只读文字不是技术隔离证明。
 Explorer 只回答有界且独立的问题，重要事实在 Root 从源码复现前仅供参考。
 
+Exact-final 是仅检查 blocker 的关闭门，不是优化轮次。可准入的 blocker 只能是已复现
+的冻结义务失败（包括 candidate 未能修复原始义务），或可通过具名工作流触达且由
+candidate 新增的重大安全或正确性回归；它必须给出具体、可行动、证据支持或可复现的场景。
+样式或命名偏好、一般清理或重构、推测性加固、替代设计或新保证、未冻结的测试建议，
+以及与冻结义务无关的既存问题都不能阻塞关闭。
+
+一个已准入结果绑定一个精确冻结的评审身份：candidate、中性 brief，以及相关的已绑定
+配置或回执身份。身份不变时，不得通过改写 brief 或更换 reviewer 重跑。中性 brief 仍不
+包含先前 finding 或期望 verdict；产品变更后必须由一个全新的替代 Exact-final 评审，且
+再次冻结后若仍有 blocker 或 unknown，必须返回用户。
+
 ## 0.8 clean break
 
 HappyCodex 只保留一个当前快照，不维护逐 grant 历史或可变控制状态。外部用户

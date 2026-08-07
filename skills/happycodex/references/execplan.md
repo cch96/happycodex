@@ -89,6 +89,21 @@ precedes behavior-plan freeze; Executor follows it. Exact-final is fresh,
 empty-history, logically read-only, and neutral. Hard technical isolation is
 required only when predeclared; prompt/profile text does not establish it.
 
+Exact-final is a blocker-only closure check, not an optimization pass. An
+admissible blocker is only a reproduced failure of a frozen obligation,
+including a candidate that failed to fix the original obligation, or a
+candidate-new material safety or correctness regression reachable through a
+named workflow. Require a concrete, actionable, evidence-backed or reproducible
+scenario. Suppress style or naming preferences, general cleanup or refactoring,
+speculative hardening, alternative designs or new guarantees, unfrozen test
+suggestions, and pre-existing issues unrelated to frozen obligations.
+
+Bind one admitted result to one exact frozen review identity: candidate,
+neutral brief, and relevant bound configuration or receipt identity. An
+unchanged identity cannot be rerun by rewording the brief or swapping
+reviewers. The neutral brief still excludes prior findings and a desired
+verdict.
+
 ## Obligations
 
 Use one current table. Follow only risk-justified affected surfaces and record
