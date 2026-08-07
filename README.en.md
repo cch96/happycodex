@@ -4,21 +4,21 @@
 
 *Open-source guidance for reliable high-risk engineering work in OpenAI Codex.*
 
-HappyCodex freezes completion conditions in a repository ExecPlan. Root decides,
-grants, reproduces, and verifies; one fixed Executor owns all controlled writes.
-It composes Codex's native Plan, Git, tests, agents, and review. It is not a
-controller, daemon, scheduler, authority system, or retry engine.
+HappyCodex freezes the outcome, boundaries, and completion conditions of risky
+work in one short repository ExecPlan, then relies on Codex's native Plan, Git,
+tests, diffs, and agents. It is not a controller, authority system, scheduler,
+or retry engine.
 
 ## When to use it
 
-Use HappyCodex for public contracts, cross-system changes, migrations,
-persistence, concurrency, destructive or production effects, exhaustive claims,
-long research, and work likely to cross context compaction. Keep bounded local
-low-risk edits on native Plan, tests, and diff unless their scope grows.
+Use HappyCodex for cross-system changes, public contracts, migrations,
+persistence, concurrency, destructive or production effects, exhaustive
+claims, and long work likely to cross context compaction.
+
+Keep bounded, reversible local changes on the native Plan, tests, and diff.
+Create an ExecPlan before the next risky write only when scope or risk grows.
 
 ## Install and invoke
-
-Marketplace support is required:
 
 ```bash
 codex plugin marketplace add cch96/happycodex
@@ -31,96 +31,34 @@ Start a new Codex task after installation, then invoke:
 Use $happycodex:happycodex for this high-risk cross-system change.
 ```
 
-Goal is created or changed only when explicitly requested. Goal continues
-authorized work; it never grants an amendment, waiver, review, cost, authority,
-or effect, and it never replaces the ExecPlan.
+## Core contract
 
-## Four phases
+- Keep at most one static ExecPlan per task. HappyCodex requires no extra
+  control PRD or `run.md`. A durable product-design deliverable for an
+  independent consumer may be an explicitly scoped product artifact; link its
+  selected boundary from the ExecPlan instead of copying it.
+- One user approval covers the frozen Outcome, scope, and effect envelope. Do
+  not re-ask for reversible in-envelope local fixes; ask when a boundary grows.
+- Require one writer at a time only for overlapping mutable paths or resources.
+  One agent may write directly; other agents participate read-only when useful.
+- Default to no review for reversible local work. Use at most one pre-challenge
+  for hard-to-reverse architecture and one blocker-only final review for a
+  public, external, irreversible, or otherwise high-risk candidate.
+- Attempt each external effect once. Retry only after proving no effect. Stop
+  mutation on a partial or ambiguous outcome, reconcile read-only, and return
+  the uncertainty to the user.
+- Keep secrets and raw events out of product bytes. Report baseline failures,
+  skipped checks, workspace dirt, and required facts that remain `unverified`.
 
-1. `working`: freeze the request, Outcome, supported workflows, boundaries,
-   current authority and grant, obligations, checks, effects, and stop rules;
-   implement one coherent authorized wave.
-2. `candidate_frozen`: account for all owned changes, preserve accepted
-   baseline failures, and bind a clean candidate identity and receipts.
-3. `exact_final`: one fresh empty-history, logically read-only reviewer receives
-   a neutral brief for the frozen candidate. Root reproduces and classifies its
-   findings. Only one Root-admitted in-envelope blocker may consume the default
-   single repair wave. After the replacement review, another blocker or unknown
-   returns to the user before any write or rerun.
-4. `closed`: Root closes only after obligations, checks, review, effects,
-   ownership, receipts, and any explicitly requested Goal reconcile.
+The ExecPlan stores only the request, Outcome, path/resource/effect envelope,
+baseline and allowed breaks, an optional design decision, checks, done and stop
+conditions, and recovery. After compaction, reconstruct current facts from the
+plan, Git, tests, and tools—never from grant history, a mutable snapshot, or a
+reconciliation latch.
 
-The requested role matrix is:
-
-| Logical role | Model | Effort |
-| --- | --- | --- |
-| Root | `gpt-5.6-sol` | `max` |
-| Explorer | `gpt-5.6-terra` | `high` |
-| Challenger | `gpt-5.6-sol` | `high` |
-| Unique Executor | `gpt-5.6-sol` | `high` |
-| Fresh Exact-final | `gpt-5.6-sol` | `max` |
-
-A host-authenticated output identity is mandatory. Missing effective route or
-permission telemetry is recorded `unverified` and only limits the guarantee
-that depends on it; an exposed mismatch or predeclared required guarantee that
-cannot be established stops. Prompt/profile read-only text is not technical
-isolation. Explorers answer bounded independent questions and are advisory
-until Root reproduces material facts from source.
-
-Exact-final is a blocker-only closure check, not an optimization pass. An
-admissible blocker is only a reproduced failure of a frozen obligation,
-including a candidate that failed to fix the original obligation, or a
-candidate-new material safety or correctness regression reachable through a
-named workflow. It must give a concrete, actionable, evidence-backed or
-reproducible scenario. Style or naming preferences, general cleanup or
-refactoring, speculative hardening, alternative designs or new guarantees,
-unfrozen test suggestions, and pre-existing issues unrelated to frozen
-obligations do not block closure.
-
-One admitted result binds one exact frozen review identity: candidate, neutral
-brief, and relevant bound configuration or receipt identity. An unchanged
-identity cannot be rerun by rewording the brief or swapping reviewers. The
-neutral brief contains no prior findings or desired verdict; a product mutation
-requires a replacement fresh neutral Exact-final, and after that refreeze, any
-blocker or unknown returns to the user.
-
-## The 0.8 clean break
-
-HappyCodex keeps one current snapshot rather than per-grant history or mutable
-control state. External user authority, Root's exact active Executor grant,
-candidate evidence, effect authority, and Goal remain distinct.
-
-A bare continuation grants nothing unless an exact content-addressed proposal
-is pending. Clear assent to the immediately preceding exact proposal authorizes
-only that proposal. An old or mismatched snapshot shape is unknown and returns
-to the user; there is no compatibility reader or migration.
-
-The reconciliation latch is derived safety state persisted only across context
-loss, not a fifth phase or durable record type. It activates only for a partial
-or ambiguous external-effect terminal. Repeated local or review falsifiers,
-unchanged failures, and exhausted repair budgets use the normal stop-line.
-While active, only read-only reconciliation, verification, and return to the
-user are allowed; grants, effects, candidate freeze, and Exact-final are
-forbidden. It clears only after reconciliation binds the exact current effect
-state and prestate, Root freezes an exact bounded recovery proposal and digest,
-and the user explicitly authorizes that proposal. Neither state nor action must
-change.
-
-New durable state or schema, cross-context coordination, and compatibility or
-control-plane machinery outside the frozen boundary are envelope expansion.
-Candidate failures cannot be relabeled. If repair machinery caused a finding,
-compare removal, rollback, and simplification before adding another control.
-
-Secrets and raw events never enter controlled product bytes; only sanitized
-summaries or digests live outside them. When commits are forbidden, keep the
-index untouched and ask the user to select a durable location, preserving the
-milestone in an approved reachable ref or content-addressed archive. Without a
-selected archive or approved location, durability is not ready: `STOP_FOR_USER`.
-
-Plugin installation does not bundle or activate custom agents. Optional local
-profiles are convenience configuration and are not routing or isolation proof.
-Publication, release, installation, and activation are not claimed before their
-separate receipts exist.
+HappyCodex is portable, zero-config, and model-agnostic. It requires no custom
+agent, pinned model, or pinned reasoning effort. Use Goal only when explicitly
+requested; Goal cannot create authority.
 
 [See GitHub Releases for published versions and verification status.](https://github.com/cch96/happycodex/releases)
 

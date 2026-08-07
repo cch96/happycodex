@@ -1,7 +1,7 @@
 {
   "name": "happycodex",
-  "version": "0.8.1",
-  "description": "Codex-native reliability guidance with one fixed Executor and bounded reconciliation after uncertain effects.",
+  "version": "0.9.0",
+  "description": "Portable reliability guidance for high-risk, cross-system, and compaction-prone Codex work.",
   "author": {
     "name": "caichenghang",
     "url": "https://github.com/cch96"
@@ -24,8 +24,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "HappyCodex",
-    "shortDescription": "Durable contracts for risky Codex changes",
-    "longDescription": "Guide high-risk Codex work with one current snapshot, one fixed Executor, contextual authority, and a reconciliation latch for partial or ambiguous effects.",
+    "shortDescription": "Proportionate guidance for risky Codex work",
+    "longDescription": "Use one static ExecPlan, native tools, explicit effect boundaries, and risk-triggered review for high-risk Codex changes.",
     "developerName": "caichenghang",
     "category": "Productivity",
     "capabilities": [
