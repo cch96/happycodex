@@ -11,7 +11,7 @@
 | Repair budget | `1 / 1`; the single admitted repair wave is consumed by this grant |
 | Latest falsifier | `none`; the first adverse review is retained but invalidated, and the replacement Exact-final reports no blocker or required unknown |
 | Reconciliation latch | inactive; effects are `none` |
-| Receipts | repaired ProductArtifact/check identities retained below; replacement handle `/root/blocker_only_replacement_exact_final`, brief digest `c7b9412d17b7af6333f9ed87db542e5716dc4a9f966000457c1a0c4754921992`, neutral projection digest `2c17256c7e1fb04d5af4dcbb6d89e391eed601820d1bb2c03c6f70d6f176d7`, and sanitized GO digest `bd81d68eb701bd04e4a1bd699b7e9a09f8e596a29b7653e225b753b57cd527d5` bound |
+| Receipts | repaired ProductArtifact/check identities retained below; replacement handle `/root/blocker_only_replacement_exact_final`, brief digest `c7b9412d17b7af6333f9ed87db542e5716dc4a9f966000457c1a0c4754921992`, neutral projection digest `2c17256c7e1fb04d5af4dcbbdd6d89e391eed601820d1bb2c03c6f70d6f176d7`, and sanitized GO digest `bd81d68eb701bd04e4a1bd699b7e9a09f8e596a29b7653e225b753b57cd527d5` bound |
 | Obligations and gates | every obligation verified; replacement Exact-final GO with complete coverage, no blocker, and no required unknown; effects reconciled; Root closure decision complete |
 | Goal | absent |
 
@@ -138,7 +138,7 @@ sanitized adverse receipt remains retained.
 - Neutral brief SHA-256:
   `c7b9412d17b7af6333f9ed87db542e5716dc4a9f966000457c1a0c4754921992`.
 - Neutral review projection SHA-256:
-  `2c17256c7e1fb04d5af4dcbb6d89e391eed601820d1bb2c03c6f70d6f176d7`;
+  `2c17256c7e1fb04d5af4dcbbdd6d89e391eed601820d1bb2c03c6f70d6f176d7`;
   prior administrative receipts were excluded from reviewer input.
 - Terminal result: `GO`; coverage complete; blocker findings `none`;
   non-blocking uncertainty `none`; sanitized result SHA-256
