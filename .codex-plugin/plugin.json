@@ -1,6 +1,6 @@
 {
   "name": "happycodex",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "Codex-native reliability guidance with one fixed Executor and bounded reconciliation after uncertain effects.",
   "author": {
     "name": "caichenghang",

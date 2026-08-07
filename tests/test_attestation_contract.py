@@ -14,7 +14,7 @@ from tests.attestation_fixtures import CANDIDATE_REVISION, bundle
 ROOT = Path(__file__).resolve().parents[1]
 PRESERVED_SKILL_TREE = "d9e525a267fbf36669d409ba1b4b009a6beeeea5"
 SOURCE_REVISION = "309a05e886c3bd7bded85256d9e1dcd3cd7284da"
-CANDIDATE_VERSION = "0.8.0"
+CANDIDATE_VERSION = "0.8.1"
 PHASES = ("working", "candidate_frozen", "exact_final", "closed")
 CORE_ROLES = {
     "goal-divergence",
