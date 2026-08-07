@@ -4,15 +4,15 @@
 
 | Field | Current value |
 | --- | --- |
-| Phase | `candidate_frozen` |
+| Phase | `closed` |
 | External authority evidence | Exact amendment text `好的继续`, clear assent to Root's immediately preceding exact proposal for the one admitted Exact-final-triggered repair, bounded gates, Root refreeze, and one replacement neutral Exact-final |
-| Active Executor grant | Fixed `happycodex_executor`, host output identity `/root/blocker_only_executor`; model `gpt-5.6-sol`, effort `high`; persist Root's reproduced post-repair freeze decision and create exactly one local plan-only refreeze receipt commit |
-| Prestate | `/home/caichenghang/projects/happycodex`; branch `codex/blocker-only-exact-final`; frozen repair source `10c7691103077771193be5dccacb10fdf7f3a24c`, tree `568b85eca0b4d19d64129408b033d91cf353574a`; ProductArtifact record `0823c7e0091c2f53100a2cbb854d3b0706083baed279a0d55a05e07a4090e126`; index empty; this plan is the sole dirt before its refreeze receipt commit |
+| Active Executor grant | Fixed `happycodex_executor`, host output identity `/root/blocker_only_executor`; model `gpt-5.6-sol`, effort `high`; persist the single replacement Exact-final GO and Root closure decision, then create exactly one local plan-only closure receipt commit |
+| Prestate | `/home/caichenghang/projects/happycodex`; branch `codex/blocker-only-exact-final`; refreeze receipt commit `f2846729d15faa5a1dff22c062a34dc802045f44`, tree `6ab7aac9a1a540a5fcede08208d9fb97699a25f1`; repaired product source `10c7691103077771193be5dccacb10fdf7f3a24c`; ProductArtifact record `0823c7e0091c2f53100a2cbb854d3b0706083baed279a0d55a05e07a4090e126`; worktree/index clean |
 | Repair budget | `1 / 1`; the single admitted repair wave is consumed by this grant |
-| Latest falsifier | `none` locally; `EF-ADMISSIBILITY-CLASSIFIER` is corrected and focused-verified; the adverse review is invalidated by product mutation |
+| Latest falsifier | `none`; the first adverse review is retained but invalidated, and the replacement Exact-final reports no blocker or required unknown |
 | Reconciliation latch | inactive; effects are `none` |
-| Receipts | repair commit/tree and ProductArtifact bound below; focused 19/19 passed; 164-test cumulative gate matched the exact two-failure baseline with zero errors/skips; both validators, diff, path, status, and protected checks passed |
-| Obligations and gates | `EF-ADMISSIBILITY-CLASSIFIER` resolved; all repair gates Root-reproduced; no required unknown; Root refreeze complete; exactly one replacement fresh neutral blocker-only Exact-final pending |
+| Receipts | repaired ProductArtifact/check identities retained below; replacement handle `/root/blocker_only_replacement_exact_final`, brief digest `c7b9412d17b7af6333f9ed87db542e5716dc4a9f966000457c1a0c4754921992`, neutral projection digest `2c17256c7e1fb04d5af4dcbb6d89e391eed601820d1bb2c03c6f70d6f176d7`, and sanitized GO digest `bd81d68eb701bd04e4a1bd699b7e9a09f8e596a29b7653e225b753b57cd527d5` bound |
+| Obligations and gates | every obligation verified; replacement Exact-final GO with complete coverage, no blocker, and no required unknown; effects reconciled; Root closure decision complete |
 | Goal | absent |
 
 Effective sandbox and approval telemetry are `unverified`; no hard-isolation
@@ -59,18 +59,10 @@ unchanged identity cannot be rerun by rewording the brief or swapping reviewers.
 
 ### Allowed paths
 
-Only these paths may change:
-
-1. `docs/execplans/happycodex-blocker-only-exact-final.md`, for current intent
-   and terminal receipts;
-2. `skills/happycodex/SKILL.md`, only the operative Root classifier's second
-   admission form; and
-3. `tests/test_attestation_contract.py`, only one assertion inside the existing
-   blocker-only contract method.
-
-All other paths, including `evaluation/**`, `.codex-plugin/**`, agent
-configuration, marketplace/cache/install state, README/reference surfaces, and
-the immutable v0.6.5 Skill tree are excluded.
+Only `docs/execplans/happycodex-blocker-only-exact-final.md` may change for this
+closure receipt. Every product, test, evaluator, configuration, plugin,
+marketplace/cache/install, README/reference, and protected v0.6.5 path is
+excluded.
 
 ### Design boundary
 
@@ -88,7 +80,7 @@ coupling, or new product guarantee.
 | `EF-ADMISSIBILITY` | only the two admitted blocker forms qualify, with a concrete actionable evidence-backed or reproducible scenario | a supported correctness-only candidate regression cannot be admitted by the operative classifier | verified after repair and Root reproduction |
 | `EF-SUPPRESS` | the named non-blocking categories are explicitly suppressed | any named category is invited as closure-blocking work | verified by focused contract and source diff |
 | `EF-IDENTITY` | one result binds candidate + neutral brief + relevant bound configuration/receipt identity; unchanged identity cannot rerun through wording/reviewer substitution | equivalent review can be retried by rewording or reviewer swap | verified by focused contract and source diff |
-| `EF-ONE-REPAIR` | one admitted blocker may consume one repair wave; mutation requires replacement Exact-final; after refreeze blocker/unknown returns to user | a second write or friendlier rerun is permitted | verified; budget consumed `1 / 1` |
+| `EF-ONE-REPAIR` | one admitted blocker may consume one repair wave; mutation requires replacement Exact-final; after refreeze blocker/unknown returns to user | a second write or friendlier rerun is permitted | verified; budget exhausted `1 / 1` |
 | `EF-PRESERVE` | all preservation and exclusion constraints above remain intact | any prohibited semantic, path, evaluator, configuration, or effect drift | verified by exact path and protected-surface receipts |
 
 ## Bound candidate and checks
@@ -123,49 +115,56 @@ coupling, or new product guarantee.
 
 ## Invalidated first Exact-final receipt
 
-- Host-authenticated handle: `/root/blocker_only_exact_final`.
+The first review used handle `/root/blocker_only_exact_final`, role config
+SHA-256 `6730690a5466a144bbe031e409f9d7dad6f3c1570d9b5abb96d6848654212309`,
+brief SHA-256
+`7bdd558b9769e098d1f85de7bbca8e360cde93f1471fb5be52f9201642ce55cd`,
+and sanitized `NOT_YET` result SHA-256
+`529433323164fc4f698525ad90a2dd35093abca63caeee19a65d2dd742afd1fb`.
+It was bound to source `8841d78353f98f29e6dc57be2a66b55a118ce3b6`
+and ProductArtifact
+`2931dceb4a243970fb99ee9c888ca15cee7de081a2a25e94fe6eccd2b614602a`.
+Root admitted its sole `EF-ADMISSIBILITY-CLASSIFIER` blocker. Repair commit
+`10c7691103077771193be5dccacb10fdf7f3a24c` invalidated that review while this
+sanitized adverse receipt remains retained.
+
+## Replacement Exact-final and closure
+
+- Host-authenticated handle: `/root/blocker_only_replacement_exact_final`.
 - Invocation: one fresh custom `happycodex_exact_final`, `fork_turns=none`,
   configured `gpt-5.6-sol` at `max`, read-only, approval `never`; role config
   SHA-256
   `6730690a5466a144bbe031e409f9d7dad6f3c1570d9b5abb96d6848654212309`.
 - Neutral brief SHA-256:
-  `7bdd558b9769e098d1f85de7bbca8e360cde93f1471fb5be52f9201642ce55cd`.
-- Terminal result: `NOT_YET`; coverage complete; non-blocking uncertainty
-  `none`; sanitized result SHA-256
-  `529433323164fc4f698525ad90a2dd35093abca63caeee19a65d2dd742afd1fb`.
-- Adverse result identity is frozen candidate + neutral brief + bound role
-  configuration/receipt. It is persisted and cannot be replaced for unchanged
-  identity by rewording the brief or swapping reviewers.
-- Its bound source is `8841d78353f98f29e6dc57be2a66b55a118ce3b6`
-  and ProductArtifact is
-  `2931dceb4a243970fb99ee9c888ca15cee7de081a2a25e94fe6eccd2b614602a`.
-  Product mutation at repair commit `10c7691103077771193be5dccacb10fdf7f3a24c`
-  invalidates this review while preserving its adverse receipt.
+  `c7b9412d17b7af6333f9ed87db542e5716dc4a9f966000457c1a0c4754921992`.
+- Neutral review projection SHA-256:
+  `2c17256c7e1fb04d5af4dcbb6d89e391eed601820d1bb2c03c6f70d6f176d7`;
+  prior administrative receipts were excluded from reviewer input.
+- Terminal result: `GO`; coverage complete; blocker findings `none`;
+  non-blocking uncertainty `none`; sanitized result SHA-256
+  `bd81d68eb701bd04e4a1bd699b7e9a09f8e596a29b7653e225b753b57cd527d5`.
 
-`EF-ADMISSIBILITY-CLASSIFIER` is the one blocker. Candidate Skill lines 84-87
-admit a candidate-new material safety or correctness regression, while the
-operative Root classifier at lines 174-175 admits only candidate-new safety
-regression. The concrete named-workflow scenario is a candidate-new material
-correctness-only supported-export field swap that the classifier cannot admit.
-The smallest correction is to use the exact broader class in the operative
-classifier.
+The admitted replacement result is bound to the repaired ProductArtifact,
+neutral brief, neutral projection, and role configuration/receipt identity.
+Root independently rechecked the branch/source/product/protected identities,
+clean status/index, aligned blocker contract and operative classifier, focused
+assertion, one-repair/post-refreeze stop line, and all frozen check receipts.
+Root also reproduced the exact neutral six-path projection—`AGENTS.md`,
+`README.en.md`, `README.md`, `skills/happycodex/SKILL.md`,
+`skills/happycodex/references/execplan.md`, and
+`tests/test_attestation_contract.py`—with aggregate digest above and an empty
+evaluator/configuration projection.
 
-Root independently read current and baseline source and reproduced the
-mismatch. Root classified it as a reproduced failure of frozen obligation
-`EF-ADMISSIBILITY`, hence an in-envelope blocker under admissibility form (1),
-not style, envelope expansion, unknown, or an unrelated baseline issue. That
-review rejected closure and is now invalidated by the repaired product bytes.
+Every obligation is verified. The first adverse review remains retained but
+invalidated; repair budget is exhausted `1 / 1`; replacement review has no
+blocker or required unknown; effects are `none` and reconcile; Goal is absent.
+Root decides phase `closed`.
 
-## Stop and repair boundary
+## Terminal boundary
 
-The exact repair wave is complete and the single budget is consumed `1 / 1`.
-Root refreeze is complete and phase is `candidate_frozen`. Exactly one
-replacement fresh neutral blocker-only Exact-final is pending, bound to the
-repaired ProductArtifact and a new neutral brief/configuration receipt. After
-that review, any blocker or unknown returns to the user; no third review or
-automatic write is permitted.
-
-No further Executor action is granted. No amend, additional product repair,
-extra commit/ref/archive, model/reviewer call, push, network, install,
-activation, publication, release, cleanup, evaluator/config edit, or other
-path/effect is authorized.
+No more repair, write, refreeze, or review is authorized for this task without
+new user authority and a new task envelope. This Executor may only commit this
+plan closure receipt and perform read-only verification. No amend, additional
+commit/ref/archive, product/test/evaluator/config edit, reviewer/model call,
+push, network, install, activation, publication, release, cleanup, or external
+effect is authorized.
