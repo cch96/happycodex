@@ -31,14 +31,20 @@ maintenance support and must never be linked from `skills/happycodex/SKILL.md`.
   neutral exact-final. Release authority is separate.
 - Every provider invocation is one-shot. Only a proven pre-provider
   infrastructure no-effect terminal may recover within an already authorized
-  recovery cap. Ambiguous or partial effects stop without retry.
+  recovery cap. Every signed observation carries attempt and cumulative effect
+  wall time; a recovered terminal includes all prior attempt wall time.
+  Ambiguous or partial effects stop without retry.
 - Holdouts are exactly three fixed concurrent pairs against the previous
-  released product. Freeze all six outputs before revealing mappings; aggregate
-  candidate total input plus output tokens must be no more than 1.25 times
-  baseline. The corresponding relative wall ratio is retained as a diagnostic;
-  per-unit timeouts and the absolute cumulative wall cap remain hard.
-- Persist an adverse exact-final attestation and reject a friendlier rerun for
-  unchanged artifact bytes. Product mutation requires a new exact-final.
+  released product. Provider inputs remain mapping-blind, and scoring starts
+  only after all six authenticated terminal outputs are supplied together; a
+  caller-supplied reveal timestamp is not evidence and is not accepted.
+  Aggregate candidate total input plus output tokens must be no more than 1.25
+  times baseline. The corresponding relative wall ratio is retained as a
+  diagnostic; per-unit timeouts and the absolute cumulative wall cap remain hard.
+- Persist an adverse or unknown exact-final attestation and reject a friendlier
+  rerun for the same candidate artifact and review-policy identity. Product
+  mutation requires a new exact-final; an authorized review-policy change has a
+  different effect identity.
 - Keep evaluator Python at most 3,200 lines where practical; 3,600 is a hard
   stop and no production module may exceed 600 lines.
 - Use only offline standard-library tests unless a later exact authority names

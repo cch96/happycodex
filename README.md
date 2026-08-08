@@ -4,17 +4,15 @@
 
 *面向 OpenAI Codex 高风险工程任务的开源可靠性指引。*
 
-HappyCodex 把高风险工作的结果、边界和完成条件固化为一个简短的仓库内
-ExecPlan，并继续使用 Codex 原生 Plan、Git、测试、diff 和 agents。它不是
-controller、授权系统、调度器或重试引擎。
+HappyCodex 用一个静态 ExecPlan 固化任务结果、修改边界、消费者身份与完成条件，
+并继续使用 Codex 原生 Plan、agents、Git、测试和 diff。它不是 controller、授权
+系统、ledger、调度器或重试引擎。
 
 ## 何时使用
 
-适用于跨系统修改、公共契约、迁移、持久化、并发、破坏性或生产效果、穷尽性
-声明，以及可能跨越上下文压缩的长期工作。
-
-边界明确、可逆的本地修改继续使用原生 Plan、测试和 diff。只有风险或范围扩大
-时，才在下一次高风险写入前创建一个 ExecPlan。
+适用于跨系统修改、公共契约、迁移、持久化、并发、破坏性或生产 effect、穷尽性
+声明，以及可能跨上下文压缩的长期任务。边界明确、可逆的本地修改继续使用原生
+Plan；风险或范围扩大时，再创建 ExecPlan。
 
 ## 安装与调用
 
@@ -29,31 +27,25 @@ codex plugin add happycodex@happycodex
 Use $happycodex:happycodex for this high-risk cross-system change.
 ```
 
-## 核心约定
+## 核心模型
 
-- 每个任务最多一个静态 ExecPlan；HappyCodex 不要求额外的控制 PRD 或 `run.md`。
-  若产品设计本身是面向独立消费者的长期交付物，它可以作为明确 scope 内的产品
-  artifact；ExecPlan 只记录选定边界和路径，不复制全文。
-- Codex 原生沙盒和批准策略负责技术权限，用户请求界定任务意图；HappyCodex 不
-  建模或重复这些权限。当前 workspace 内完成 Outcome 所需的可逆修改默认继续。
-- 只有重叠的可变路径或资源要求同一时刻一个 writer；单 agent 可以直接写入。大
-  范围只读探索若至少有两个独立、可界定且不共享写入的证据通道，并行能实质降低
-  延迟、上下文污染或决策不确定性，则主动启动 2–3 个原生只读 agent；否则保持
-  单 agent。主 agent 分配互不重叠的问题、保持一层委派，并在行动前复核承重证据。
-- 本地可逆工作默认不评审。难以逆转的架构决策最多一次前置 challenge；公共、
-  外部、不可逆或高风险 candidate 最多一次 blocker-only 终审。
-- 外部 effect 只尝试一次。只有证明上次没有产生 effect 才能重试；partial 或
-  ambiguous 时停止写入、只读核对并返回用户。
-- secrets 和 raw events 不进入产品字节；基线失败、未运行检查、工作区 dirt 和
-  `unverified` 事实必须如实报告。
+- ExecPlan 只保存静态请求、Outcome、修改边界、消费者、effect、检查和停止条件；
+  live state 始终从 Git、测试和工具重新推导。
+- 上下文隔离与并行是两件事：一个噪声通道可以只派一个原生只读 agent；只有独立
+  通道才按需并行。较大实现优先使用一个原生 worker，重叠资源始终只有一个 writer。
+- 中断或压缩后先确认旧 writer 不会恢复，再完整重读计划并重建 Git、candidate 和
+  effect 事实。
+- candidate 使用消费者原生的不可变身份冻结，例如 Git tree、package、image 或
+  revision；可变 worktree 的 digest 不是 frozen candidate。
+- 普通可逆工作不强制 review。公共、外部、不可逆或高风险 candidate 只运行一次
+  fresh、blocker-only 终审；失败不会自动修复或重审。
+- 外部 effect 一次尝试后以真实只读观测归类为 `landed`、`not_landed` 或
+  `unknown`；partial、ambiguous 或 unknown 必须停止。
+- 最终明确报告 achieved、not achieved 或 unknown，并如实列出 dirt、跳过检查和
+  未验证事实。
 
-ExecPlan 只保存请求、Outcome、workspace/project、外部资源/effect 边界、
-baseline/allowed breaks、可选设计决策、检查、完成条件、停止条件和恢复方法。
-上下文压缩后，从计划、Git、测试和工具重新构建当前事实，不保存可变快照、阶段
-历史或 reconciliation latch。
-
-HappyCodex 是 portable、zero-config、model-agnostic 的产品指引；不要求自定义
-agent、固定模型或固定推理强度。
+HappyCodex portable、zero-config、model-agnostic，不要求自定义 agent、固定模型或
+固定推理强度。
 
 [已发布版本与验证状态请查看 GitHub Releases](https://github.com/cch96/happycodex/releases)。
 

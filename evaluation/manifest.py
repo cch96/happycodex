@@ -1,292 +1,332 @@
+"""Load fixed inputs and construct/qualify the canonical EvalSpec."""
 from __future__ import annotations
 
-import json
+import copy
 from pathlib import Path
 from typing import Any
 
-from evaluation.identity import evaluator_components, runtime_from_product_artifact
-from evaluation.policy import EXACT_FINAL_ROLE_ID, HOLDOUT_ROLE_ID, MODEL_ROLE_IDS
-from evaluation.provider import provider_projection
-from evaluation.records import (
-    RecordError,
-    build_eval_spec,
+from evaluation.canonical import (
+    ContractError,
     canonical_sha256,
+    exact,
+)
+from evaluation.identity import (
+    evaluator_components,
+    validate_product_against_tree,
+    validate_review_projection,
+    validate_review_projection_against_git,
+)
+from evaluation.policy import (
+    BEHAVIOR_ROLE_IDS,
+    EXACT_FINAL_ROLE_ID,
+    HOLDOUT_PAIR_TOPOLOGY,
+    HOLDOUT_SAMPLE_IDS,
+    UNIT_TOPOLOGY,
+)
+from evaluation.provider import (
+    derive_unit_identities,
+    evaluation_authority_request_payload,
+    materialize_exact_final_input,
+    materialize_provider_input,
+    review_contract_sha256,
+)
+from evaluation.records import (
+    build_eval_spec,
+    validate_eval_spec,
     validate_product_artifact,
 )
-
+from evaluation.schemas import load_closed_json, validate_schema
 
 MANIFEST_FILE = "manifest-v1.json"
 
-
-class ManifestError(ValueError):
+class ManifestError(ContractError):
     pass
 
-
-def _validate_structural_schema(node: Any) -> None:
-    if type(node) is not dict or "type" not in node:
-        raise ManifestError("response schema node lacks a structural type")
-    allowed = {"type", "required", "properties", "items", "additionalProperties", "enum"}
-    if set(node) - allowed:
-        raise ManifestError("response schema contains a non-structural keyword")
-    schema_type = node["type"]
-    if schema_type not in {"object", "array", "boolean", "string"}:
-        raise ManifestError("response schema type is outside the closed subset")
-    if schema_type == "object":
-        properties = node.get("properties", {})
-        required = node.get("required", [])
-        if type(properties) is not dict or type(required) is not list or not all(type(item) is str for item in required):
-            raise ManifestError("response schema object shape is malformed")
-        if node.get("additionalProperties") is not False:
-            raise ManifestError("response schema object must forbid additional properties")
-        if len(required) != len(set(required)) or set(required) != set(properties):
-            raise ManifestError("response schema required fields must equal properties")
-        if "items" in node:
-            raise ManifestError("response schema object cannot contain items")
-        for child in properties.values():
-            _validate_structural_schema(child)
-    elif schema_type == "array":
-        if set(node) != {"type", "items"}:
-            raise ManifestError("response schema array shape is malformed")
-        _validate_structural_schema(node["items"])
-    elif schema_type == "string" and "enum" in node:
-        if set(node) != {"type", "enum"} or node["enum"] != ["GO", "NOT_YET"]:
-            raise ManifestError("response schema string enum differs from exact-final decisions")
-    elif set(node) != {"type"}:
-        raise ManifestError("response schema scalar contains non-structural fields")
-
-
-def _schema_covers(schema: dict[str, Any], path: str, expected: Any) -> bool:
-    node: Any = schema
-    for part in path.split("."):
-        if type(node) is not dict or node.get("type") != "object" or part not in node.get("required", []) or part not in node.get("properties", {}):
-            return False
-        node = node["properties"][part]
-    expected_type = {bool: "boolean", str: "string", int: "integer"}.get(type(expected))
-    return expected_type is None or node.get("type") == expected_type
-
-
-def _read(path: Path) -> dict[str, Any]:
-    try:
-        value = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        raise ManifestError(f"cannot read production evaluator input: {path.name}") from exc
-    if type(value) is not dict:
-        raise ManifestError(f"production evaluator input is not an object: {path.name}")
-    return value
-
-
 def load_production_inputs(root: Path) -> dict[str, Any]:
-    evaluation = root.resolve() / "evaluation"
-    manifest = _read(evaluation / MANIFEST_FILE)
-    if set(manifest) != {"schema_version", "manifest_id", "provider_fixtures", "hidden_oracles", "response_schemas", "core_roles", "holdout_samples", "exact_final"} or manifest["schema_version"] != 1:
-        raise ManifestError("production manifest fields differ")
-    if tuple(manifest["core_roles"]) != MODEL_ROLE_IDS:
-        raise ManifestError("production core role inventory differs")
-    if type(manifest["holdout_samples"]) is not list or len(manifest["holdout_samples"]) != 3 or manifest["holdout_samples"] != sorted(set(manifest["holdout_samples"])):
-        raise ManifestError("production manifest requires three fixed samples")
-    if manifest["exact_final"].get("role_id") != EXACT_FINAL_ROLE_ID or type(manifest["exact_final"].get("brief_template")) is not str:
-        raise ManifestError("production exact-final template differs")
-    fixtures = _read(evaluation / manifest["provider_fixtures"])
-    oracles = _read(evaluation / manifest["hidden_oracles"])
-    schemas = _read(evaluation / manifest["response_schemas"])
-    if set(fixtures) != {"schema_version", "core", "holdouts"} or fixtures["schema_version"] != 1:
-        raise ManifestError("provider fixture fields differ")
-    if set(oracles) != {"schema_version", "core", "holdouts", "exact_final"} or oracles["schema_version"] != 1:
-        raise ManifestError("hidden oracle fields differ")
-    if set(schemas) != {"schema_version", "core", "holdout", "exact_final"} or schemas["schema_version"] != 1:
-        raise ManifestError("response schema fields differ")
-    if set(fixtures["core"]) != set(MODEL_ROLE_IDS) or set(oracles["core"]) != set(MODEL_ROLE_IDS):
-        raise ManifestError("core fixture/oracle inventory differs")
-    if set(schemas["core"]) != set(MODEL_ROLE_IDS):
-        raise ManifestError("core response schema inventory differs")
-    for schema in [*schemas["core"].values(), schemas["holdout"], schemas["exact_final"]]:
-        _validate_structural_schema(schema)
-    samples = set(manifest["holdout_samples"])
-    if set(fixtures["holdouts"]) != samples or set(oracles["holdouts"]) != samples:
-        raise ManifestError("holdout fixture/oracle inventory differs")
-    schema_oracles = [
-        *( (schemas["core"][role], oracles["core"][role]) for role in MODEL_ROLE_IDS ),
-        *( (schemas["holdout"], oracles["holdouts"][sample]) for sample in samples ),
-        (schemas["exact_final"], oracles["exact_final"]),
-    ]
-    for schema, oracle in schema_oracles:
-        fields = {**oracle.get("fatal", {}), **oracle.get("diagnostic", {}), **oracle.get("quality", {})}
-        if not all(_schema_covers(schema, path, expected) for path, expected in fields.items()):
-            raise ManifestError("public response schema cannot represent hidden oracle fields")
-    if not _schema_covers(schemas["exact_final"], "decision", oracles["exact_final"]["passing_decision"]):
-        raise ManifestError("exact-final response schema lacks decision field")
+    evaluation = root.resolve(strict=True) / "evaluation"
+    try:
+        manifest = load_closed_json(
+            evaluation / MANIFEST_FILE,
+            required_fields=(
+                "schema_version",
+                "manifest_id",
+                "provider_fixtures",
+                "hidden_oracles",
+                "report_schemas",
+                "behavior_roles",
+                "holdout_samples",
+                "exact_final_role",
+            ),
+        )
+        if (
+            manifest["manifest_id"] != "happycodex-thin-verifier-v3"
+            or manifest["provider_fixtures"] != "provider-fixtures-v1.json"
+            or manifest["hidden_oracles"] != "hidden-oracles-v1.json"
+            or manifest["report_schemas"] != "report-schemas-v1.json"
+            or tuple(manifest["behavior_roles"]) != BEHAVIOR_ROLE_IDS
+            or tuple(manifest["holdout_samples"]) != HOLDOUT_SAMPLE_IDS
+            or manifest["exact_final_role"] != EXACT_FINAL_ROLE_ID
+        ):
+            raise ManifestError("production manifest contract differs")
+        cases = load_closed_json(
+            evaluation / manifest["provider_fixtures"],
+            required_fields=("schema_version", "core", "holdouts"),
+        )
+        oracles = load_closed_json(
+            evaluation / manifest["hidden_oracles"],
+            required_fields=("schema_version", "core", "holdouts"),
+        )
+        schemas = load_closed_json(
+            evaluation / manifest["report_schemas"],
+            required_fields=(
+                "schema_version",
+                "provider_inputs",
+                "provider_outputs",
+            ),
+        )
+    except ContractError as exc:
+        raise ManifestError(str(exc)) from exc
+    if (
+        tuple(cases["core"]) != BEHAVIOR_ROLE_IDS
+        or tuple(oracles["core"]) != BEHAVIOR_ROLE_IDS
+        or tuple(cases["holdouts"]) != HOLDOUT_SAMPLE_IDS
+        or tuple(oracles["holdouts"]) != HOLDOUT_SAMPLE_IDS
+    ):
+        raise ManifestError("case/oracle topology differs")
+    required_inputs = (
+        *BEHAVIOR_ROLE_IDS,
+        "holdout",
+        "exact-final",
+    )
+    required_outputs = (
+        *BEHAVIOR_ROLE_IDS,
+        *HOLDOUT_SAMPLE_IDS,
+        "exact_final",
+    )
+    if (
+        tuple(schemas["provider_inputs"]) != required_inputs
+        or tuple(schemas["provider_outputs"]) != required_outputs
+    ):
+        raise ManifestError("provider schema topology differs")
+    try:
+        for group in ("provider_inputs", "provider_outputs"):
+            for name, schema in schemas[group].items():
+                validate_schema(schema, f"{group}.{name}")
+    except ContractError as exc:
+        raise ManifestError(str(exc)) from exc
     return {
-        "manifest": manifest, "fixtures": fixtures, "oracles": oracles,
+        "manifest": manifest,
+        "cases": cases,
+        "oracles": oracles,
         "schemas": schemas,
-        "manifest_sha256": canonical_sha256(manifest),
-        "fixtures_sha256": canonical_sha256(fixtures),
-        "oracles_sha256": canonical_sha256(oracles),
-        "response_schemas_sha256": canonical_sha256(schemas),
     }
 
+def public_provider_inputs(inputs: dict[str, Any]) -> dict[str, Any]:
+    exact(inputs, {"manifest", "cases", "oracles", "schemas"}, "production inputs")
+    value = {
+        "cases": {
+            "core": inputs["cases"]["core"],
+            "holdouts": inputs["cases"]["holdouts"],
+        },
+        "schemas": {
+            "provider_inputs": inputs["schemas"]["provider_inputs"],
+            "provider_outputs": inputs["schemas"]["provider_outputs"],
+        },
+    }
+    return copy.deepcopy(value)
 
-def neutral_review_brief(
-    inputs: dict[str, Any], product: dict[str, Any], brief: dict[str, Any],
-) -> str:
-    required = {"request", "obligations", "checks", "exclusions"}
-    if set(brief) != required:
-        raise ManifestError("neutral review brief fields differ")
-    return inputs["manifest"]["exact_final"]["brief_template"].format(
-        artifact_sha256=product["package_artifact_sha256"],
-        request=brief["request"],
-        obligations=json.dumps(brief["obligations"], sort_keys=True),
-        checks=json.dumps(brief["checks"], sort_keys=True),
-        exclusions=json.dumps(brief["exclusions"], sort_keys=True),
+def _guidance(root: Path) -> str:
+    root = root.resolve(strict=True)
+    paths = (
+        root / "skills/happycodex/SKILL.md",
+        root / "skills/happycodex/references/execplan.md",
     )
+    for path in paths:
+        if path.is_symlink() or not path.is_file():
+            raise ManifestError("provider guidance is missing or redirected")
+    return "\n".join(path.read_text(encoding="utf-8") for path in paths)
 
-
-def _unit(
-    *, unit_id: str, role_id: str, sample_id: str | None, stage: str,
-    arm_product: dict[str, Any], case: dict[str, Any], profile: dict[str, Any],
-    oracle_sha256: str, harness_sha256: str, review_brief_sha256: str | None,
-    effective_host_sha256: str, external_role_config_sha256: str,
-) -> dict[str, Any]:
-    role_config = (
-        canonical_sha256({"role": "neutral-exact-final"})
-        if stage == "exact_final" else external_role_config_sha256
-    )
-    projection = provider_projection(
-        case={"role_id": role_id, "sample_id": sample_id, **case},
-        product_semantic_sha256=arm_product["package_semantic_sha256"],
-        external_role_config_sha256=role_config,
-        profile=profile,
-    )
-    invocation = {
-        "unit_id": unit_id, "stage": stage,
-        "product_semantic_sha256": arm_product["package_semantic_sha256"],
-        "external_role_config_sha256": role_config,
-        "effective_host_sha256": effective_host_sha256,
-        "provider_input": projection, "model": profile["model"],
-        "effort": profile["effort"], "tools": profile["tools"],
-        "timeout_seconds": profile["timeout_seconds"],
-        "claim_key": canonical_sha256(
+def _mappings(
+    mappings: dict[str, dict[str, str]],
+) -> tuple[dict[str, dict[str, str]], list[dict[str, Any]]]:
+    if type(mappings) is not dict:
+        raise ManifestError("holdout mappings are not an object")
+    expected_pairs = tuple(pair[0] for pair in HOLDOUT_PAIR_TOPOLOGY)
+    if set(mappings) != set(expected_pairs):
+        raise ManifestError("holdout mapping topology differs")
+    normalized = {}
+    pairs = []
+    for pair_id, sample_id, unit_ids in HOLDOUT_PAIR_TOPOLOGY:
+        mapping = mappings[pair_id]
+        if (
+            type(mapping) is not dict
+            or set(mapping) != set(unit_ids)
+            or sorted(mapping.values()) != ["baseline", "candidate"]
+        ):
+            raise ManifestError("holdout pair mapping differs")
+        normalized[pair_id] = dict(mapping)
+        pairs.append(
             {
-                "unit_id": unit_id, "stage": stage,
-                "product": arm_product["package_semantic_sha256"],
-                "role_config": role_config,
-                "effective_host": effective_host_sha256,
-                "provider_input": projection,
+                "pair_id": pair_id,
+                "sample_id": sample_id,
+                "unit_ids": list(unit_ids),
+                "mapping_commitment_sha256": canonical_sha256(mapping),
             }
-        ),
-    }
-    return {
-        "unit_id": unit_id, "kind": "exact_final" if stage == "exact_final" else "behavior",
-        "role_id": role_id, "sample_id": sample_id, "stage": stage,
-        "order": {"behavior": 1, "holdout": 2, "exact_final": 3}[stage],
-        "product_semantic_sha256": arm_product["package_semantic_sha256"],
-        "external_role_config_sha256": role_config,
-        "provider_input_sha256": canonical_sha256(projection),
-        "oracle_sha256": oracle_sha256, "harness_sha256": harness_sha256,
-        "invocation": invocation, "invocation_sha256": canonical_sha256(invocation),
-        "review_brief_sha256": review_brief_sha256,
-    }
+        )
+    return normalized, pairs
 
-
-def materialize_eval_spec(
-    *, root: Path, candidate: dict[str, Any], previous: dict[str, Any],
-    profiles: dict[str, Any], total_cap: dict[str, int],
-    holdout_mapping: dict[str, dict[str, str]], review_brief: dict[str, Any],
-    host_contract: dict[str, Any], external_role_config_sha256: str,
-) -> dict[str, Any]:
-    validate_product_artifact(candidate)
-    validate_product_artifact(previous)
-    if type(external_role_config_sha256) is not str or len(external_role_config_sha256) != 64:
-        raise ManifestError("external role config identity is invalid")
-    candidate_runtime = runtime_from_product_artifact(root, candidate)
-    previous_runtime = runtime_from_product_artifact(root, previous)
+def materialize_production_unit_inputs(
+    *,
+    root: Path,
+    previous_root: Path,
+    product: dict[str, Any],
+    previous_product: dict[str, Any],
+    review_projection: dict[str, Any],
+    holdout_mappings: dict[str, dict[str, str]],
+) -> tuple[dict[str, dict[str, Any]], dict[str, Any]]:
+    validate_product_against_tree(root, product)
+    validate_product_against_tree(previous_root, previous_product)
+    validate_review_projection(review_projection)
     inputs = load_production_inputs(root)
-    brief_text = neutral_review_brief(inputs, candidate, review_brief)
-    brief_sha = canonical_sha256(brief_text)
-    host_contract_sha = canonical_sha256(host_contract)
-    harness_sha = canonical_sha256({"raw_stream": "codex-exec-json-v1", "capture": "fixed-host-metadata-v1"})
-    if type(profiles) is not dict or set(profiles) != {"behavior", "exact_final"}:
-        raise ManifestError("profiles must contain exactly behavior and exact_final")
-    behavior_profile = profiles["behavior"]
-    exact_final_profile = profiles["exact_final"]
-    units: list[dict[str, Any]] = []
-    for role_id in MODEL_ROLE_IDS:
-        fixture = inputs["fixtures"]["core"][role_id]
-        units.append(
-            _unit(
-                unit_id=role_id, role_id=role_id, sample_id=None, stage="behavior",
-                arm_product=candidate,
-                case={**fixture, "runtime": candidate_runtime, "response_schema": inputs["schemas"]["core"][role_id]}, profile=behavior_profile,
-                oracle_sha256=canonical_sha256(inputs["oracles"]["core"][role_id]),
-                harness_sha256=harness_sha, review_brief_sha256=None,
-                effective_host_sha256=host_contract["behavior_sha256"],
-                external_role_config_sha256=external_role_config_sha256,
-            )
-        )
-    holdouts = []
-    for sample_id in inputs["manifest"]["holdout_samples"]:
-        pair_id = sample_id
-        unit_ids = sorted([f"{pair_id}-arm-a", f"{pair_id}-arm-b"])
-        mapping = holdout_mapping.get(pair_id)
-        if type(mapping) is not dict or set(mapping) != set(unit_ids) or sorted(mapping.values()) != ["baseline", "candidate"]:
-            raise ManifestError("external holdout mapping differs from fixed pair")
-        holdouts.append(
-            {"pair_id": pair_id, "sample_id": sample_id, "unit_ids": unit_ids, "mapping_sha256": canonical_sha256(mapping)}
-        )
-        fixture = inputs["fixtures"]["holdouts"][sample_id]
-        for unit_id in unit_ids:
-            arm_product = candidate if mapping[unit_id] == "candidate" else previous
-            arm_runtime = candidate_runtime if arm_product is candidate else previous_runtime
-            units.append(
-                _unit(
-                    unit_id=unit_id, role_id=HOLDOUT_ROLE_ID, sample_id=sample_id,
-                    stage="holdout", arm_product=arm_product,
-                    case={**fixture, "runtime": arm_runtime, "response_schema": inputs["schemas"]["holdout"]}, profile=behavior_profile,
-                    oracle_sha256=canonical_sha256(inputs["oracles"]["holdouts"][sample_id]),
-                    harness_sha256=harness_sha, review_brief_sha256=None,
-                    effective_host_sha256=host_contract["holdout_sha256"],
-                    external_role_config_sha256=external_role_config_sha256,
-                )
-            )
-    units.append(
-        _unit(
-            unit_id=EXACT_FINAL_ROLE_ID, role_id=EXACT_FINAL_ROLE_ID,
-            sample_id=None, stage="exact_final", arm_product=candidate,
-            case={
-                "prompt": "Perform the neutral exact-final review.",
-                "fixture": {"artifact_sha256": candidate["package_artifact_sha256"]},
-                "workspace": {
-                    "brief_sha256": brief_sha,
-                    "cwd": "readable frozen Git projection",
-                    "host_facts": "authoritative machine facts",
-                }, "runtime": candidate_runtime,
-                "neutral_review_brief": brief_text,
-                "response_schema": inputs["schemas"]["exact_final"],
-            },
-            profile=exact_final_profile,
-            oracle_sha256=canonical_sha256(inputs["oracles"]["exact_final"]),
-            harness_sha256=harness_sha, review_brief_sha256=brief_sha,
-            effective_host_sha256=host_contract["exact_final_sha256"],
-            external_role_config_sha256=external_role_config_sha256,
-        )
+    public = public_provider_inputs(inputs)
+    mappings, _ = _mappings(holdout_mappings)
+    guidance = _guidance(root)
+    previous_guidance = _guidance(previous_root)
+    exact_input = materialize_exact_final_input(
+        public,
+        previous_product=previous_product,
+        candidate_product=product,
+        review_projection=review_projection,
     )
-    units.sort(key=lambda item: (item["order"], item["unit_id"]))
-    if set(total_cap) != {"model_calls", "input_tokens", "output_tokens", "wall_milliseconds"}:
-        raise ManifestError("evaluation limits fields differ")
-    if total_cap.get("model_calls") != len(units):
-        raise ManifestError("model call cap must equal the finite invocation plan")
+    materialized = {}
+    for topology in UNIT_TOPOLOGY:
+        if topology.stage == "behavior":
+            value = materialize_provider_input(
+                public,
+                stage="behavior",
+                role_id=topology.role_id,
+                guidance=guidance,
+            )
+        elif topology.stage == "holdout":
+            mapping = mappings[f"holdout-{topology.sample_id}"]
+            selected = mapping[topology.unit_id]
+            value = materialize_provider_input(
+                public,
+                stage="holdout",
+                role_id=topology.role_id,
+                sample_id=topology.sample_id,
+                guidance=(
+                    guidance if selected == "candidate" else previous_guidance
+                ),
+            )
+        else:
+            value = exact_input
+        materialized[topology.unit_id] = value
+    return materialized, inputs
+
+def build_production_spec(
+    *,
+    root: Path,
+    previous_root: Path,
+    product: dict[str, Any],
+    previous_product: dict[str, Any],
+    review_projection: dict[str, Any],
+    holdout_mappings: dict[str, dict[str, str]],
+    caps: dict[str, int],
+) -> dict[str, Any]:
+    validate_product_artifact(product)
+    validate_product_artifact(previous_product)
+    unit_inputs, inputs = materialize_production_unit_inputs(
+        root=root,
+        previous_root=previous_root,
+        product=product,
+        previous_product=previous_product,
+        review_projection=review_projection,
+        holdout_mappings=holdout_mappings,
+    )
     components = evaluator_components(root)
+    public = public_provider_inputs(inputs)
+    contract_sha = review_contract_sha256(public)
+    units = []
+    for topology in UNIT_TOPOLOGY:
+        provider_sha = canonical_sha256(unit_inputs[topology.unit_id])
+        if topology.stage == "behavior":
+            oracle = inputs["oracles"]["core"][topology.role_id]
+        elif topology.stage == "holdout":
+            oracle = inputs["oracles"]["holdouts"][topology.sample_id]
+        else:
+            oracle = {
+                "review_contract_sha256": contract_sha,
+                "response_schema_sha256": canonical_sha256(
+                    inputs["schemas"]["provider_outputs"]["exact_final"]
+                ),
+            }
+        invocation, effect = derive_unit_identities(
+            topology=topology,
+            provider_input_sha256=provider_sha,
+            provider_input_component_sha256=components["provider_input"],
+            candidate_product_artifact_sha256=product["artifact_sha256"],
+            review_contract_sha256_value=contract_sha,
+        )
+        units.append(
+            {
+                **topology._asdict(),
+                "provider_input_sha256": provider_sha,
+                "oracle_sha256": canonical_sha256(oracle),
+                "invocation_sha256": invocation,
+                "effect_subject_sha256": effect,
+            }
+        )
+    _, pairs = _mappings(holdout_mappings)
     return build_eval_spec(
-        product_semantic_sha256=candidate["package_semantic_sha256"],
-        external_role_config_sha256=external_role_config_sha256,
-        previous_product_artifact_sha256=previous["package_artifact_sha256"],
-        profiles=profiles, units=units, holdouts=holdouts,
-        effect_cap={key: total_cap[key] for key in ("model_calls", "wall_milliseconds")},
-        token_qualification={key: total_cap[key] for key in ("input_tokens", "output_tokens")},
-        neutral_review_brief_sha256=brief_sha,
-        manifest_sha256=inputs["manifest_sha256"],
-        fixtures_sha256=inputs["fixtures_sha256"],
-        oracles_sha256=inputs["oracles_sha256"],
-        response_schemas_sha256=inputs["response_schemas_sha256"],
-        host_contract=host_contract, host_contract_sha256=host_contract_sha,
-        **components,
+        product_artifact_sha256=product["artifact_sha256"],
+        previous_product_artifact_sha256=previous_product["artifact_sha256"],
+        component_identities=components,
+        review_contract_sha256=contract_sha,
+        units=units,
+        holdout_pairs=pairs,
+        caps=caps,
     )
+
+def qualify_production_spec(
+    spec: dict[str, Any],
+    **construction: Any,
+) -> dict[str, Any]:
+    validate_eval_spec(spec)
+    try:
+        validate_review_projection_against_git(
+            construction["root"], construction["review_projection"]
+        )
+        expected = build_production_spec(**construction)
+    except ContractError as exc:
+        raise ManifestError(str(exc)) from exc
+    if expected != spec:
+        raise ManifestError(
+            "EvalSpec differs from current product/evaluator source identities"
+        )
+    return spec
+
+def qualified_evaluation_authority_request(
+    spec: dict[str, Any],
+    **construction: Any,
+) -> dict[str, Any]:
+    qualify_production_spec(spec, **construction)
+    return evaluation_authority_request_payload(
+        spec,
+        expected_component_identities=evaluator_components(
+            construction["root"]
+        ),
+        product=construction["product"],
+        previous_product=construction["previous_product"],
+    )
+
+__all__ = (
+    "MANIFEST_FILE",
+    "ManifestError",
+    "build_production_spec",
+    "load_production_inputs",
+    "materialize_production_unit_inputs",
+    "public_provider_inputs",
+    "qualified_evaluation_authority_request",
+    "qualify_production_spec",
+)

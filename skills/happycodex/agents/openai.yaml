@@ -1,4 +1,4 @@
 interface:
   display_name: "HappyCodex"
-  short_description: "Proportionate guidance for risky Codex work"
+  short_description: "Reliable boundaries for risky Codex work"
   default_prompt: "Use $happycodex:happycodex for this high-risk cross-system change."

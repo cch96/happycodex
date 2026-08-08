@@ -1,122 +1,97 @@
 ---
 name: happycodex
-description: Use for high-risk, cross-system, destructive, public-contract, migration, persistence, concurrency, exhaustive, long-running, or compaction-prone Codex work that needs a durable execution boundary.
+description: Use for high-risk, cross-system, destructive, public-contract, migration, persistence, concurrency, exhaustive, long-running, or compaction-prone Codex work that needs a static change boundary, isolated context, consumer-native candidate identity, and truthful closure.
 ---
 
 # HappyCodex
 
-Use HappyCodex as portable guidance around native Codex plans, Git, tests,
-diffs, and agents. Do not turn it into a controller, ledger, scheduler,
-authorization system, or retry engine.
+Use HappyCodex as portable guidance around native Codex plans, agents, Git,
+tests, and diffs. It is not a controller, ledger, scheduler, authorization
+system, or retry engine.
 
-## Qualify the work
+## Ground the work
 
-Keep bounded, reversible, local work on the native Plan, tests, and diff. Use
-one repository ExecPlan when work is high-risk, cross-system, destructive,
-public-facing, hard to reverse, or likely to cross context compaction. If local
-work grows into those conditions, write the plan before the next risky edit.
+Keep bounded, reversible local work on the native Plan. Create one repository
+ExecPlan before substantial exploration or dispatch when work is long-running
+or compaction-prone, and before the first risky write otherwise. Copy
+`references/execplan.md` to the repository policy path or
+`docs/execplans/<task-slug>.md`.
+
+Record the request and Outcome, workspace, exact mutable paths or resources,
+preservation and exclusions, supported workflows, baseline and allowed breaks,
+consumer and complete input-closure rule, checks, Done, stops, and recovery.
+For each external effect record its exact target, identity source, cap,
+observation predicate, and allowed recovery cap or none. Keep the plan static:
+do not store live phases, realized file inventories, digests, agent history, or
+review history. Reconstruct those facts from the workspace and tools.
 
 Treat the user, workspace, maintainer, and selected configuration as
 non-adversarial but fallible unless evidence says otherwise. Verify relevant
-identity and state. Prefer the smallest control that protects the real risk.
+identity and state. An available capability never expands the requested work.
 
-## Freeze one static ExecPlan
+## Work with native agents
 
-Copy `references/execplan.md` to the repository policy path or
-`docs/execplans/<task-slug>.md`. Keep exactly one plan for the task. Record only:
+Use context offload independently of parallelism. Delegate one bounded native
+read-only agent for one noisy search, log, or test lane when that protects the
+primary context. Use a small host-selected set only for genuinely independent
+lanes whose parallel execution materially helps. Keep delegation bounded and
+native agent ownership explicit. Request concise evidence and directly recheck
+load-bearing facts.
 
-- the verbatim request and normalized Outcome;
-- the workspace or project boundary, external resources and effects,
-  preservation, and exclusions;
-- baseline failures and allowed breaks;
-- checks, done conditions, stop conditions, and recovery steps; and
-- an optional design decision when the work creates a durable external
-  contract with an independent consumer.
+For substantial implementation, prefer one native worker so the Primary can
+retain the durable reasoning context. The Primary may write bounded changes
+directly. At any moment allow only one writer for overlapping mutable paths or
+resources; non-overlapping writers may proceed when coordination is explicit.
+Do not mutate an owned overlapping resource while its worker is active.
 
-Do not use a separate PRD or `run.md` as a HappyCodex control record. A durable
-product-design deliverable for an independent consumer may remain an explicitly
-scoped product artifact. Keep Outcome, workspace, and external-effect
-boundaries in the one ExecPlan; record only the selected boundary and artifact
-link, never its full text. Do not store mutable NOW state, phase history, prompt
-digests, or review history. Reconstruct live state from Git, tests, tools, and
-the native plan. Keep evaluator or maintenance bytes outside product guidance.
+After compaction, interruption, or lost writer continuity, first confirm the
+old writer cannot resume. Reread the entire ExecPlan, inspect Git, index,
+candidate, and effect state, and rerun the checks needed to rederive current
+facts. Summaries are hints, not authority. Stop on identity, scope, index,
+effect, or trust-boundary drift.
 
-## Use native permissions and bound effects
+## Freeze what the consumer receives
 
-Use native Codex permissions; do not model or repeat them in HappyCodex. Within
-the active workspace, perform reversible work needed for the Outcome and derive
-changed paths from Git at closure. An allowed capability does not add work
-outside the user's request.
+After writes and checks, derive the complete consumer input closure, including
+generated and transitive inputs, modes, deletions, and byte identities. Verify
+that every mutable input is inside the change boundary. Freeze a readable,
+immutable representation using the consumer's native identity: for example a
+Git tree or commit, deterministic package/archive, image or revision digest, or
+content-addressed snapshot. A digest of a mutable worktree is not a frozen
+candidate.
 
-If completion requires a materially different Outcome or an unrequested
-external, destructive, or costly effect, return that decision to the user.
+Never put secrets or raw external events in product bytes. If the required
+immutable representation cannot be created within authority, report the
+candidate as modified but not frozen.
 
-Never persist secrets or raw events in product bytes. If durability is required
-while commits are forbidden, keep the index untouched and stop until the user
-selects a reachable ref, content-addressed archive, or other durable
-location. Never claim durability from an uncommitted working tree alone.
+## Review once when risk requires it
 
-Attempt each external effect once. Retry only after proving the prior attempt
-ended before the effect. On a partial or ambiguous effect, stop all mutation,
-inspect read-only state, and return the exact uncertainty to the user. Do not
-add a latch, recovery controller, compatibility reader, migration, or dual
-write to encode that stop.
+Do not require review for ordinary reversible local work or merely because a
+continuity break occurred. Use at most one read-only pre-challenge before
+freeze when an architectural decision is hard to reverse. For a public,
+external, irreversible, or otherwise high-risk frozen candidate, run one fresh,
+no-history, blocker-only terminal review against readable immutable baseline
+and candidate inputs.
 
-## Delegate read-heavy work proportionately
+Admit only a reproduced frozen-obligation failure, preservation failure, or
+reachable candidate-new material safety or correctness regression. Suppress
+style, naming, optimization, alternative designs, speculative hardening,
+unfrozen tests, and unrelated pre-existing issues. The terminal decision is
+`GO` or `NOT_YET`; incomplete coverage or a required unknown is adverse.
+Reviewers cannot change the Outcome or propose a repair. A later user-approved
+repair creates a new candidate and review identity, never an automatic loop.
 
-Allow only one writer at a time for overlapping mutable paths or resources. A
-single agent may write directly. Before substantial read-heavy exploration,
-proactively delegate to two or three native read-only agents only when all of
-these hold:
+## Act once and close truthfully
 
-- the task has at least two independent evidence lanes;
-- each lane can return a bounded result without shared mutable writes; and
-- parallel work materially reduces latency, context pollution, or decision
-  uncertainty.
+Before an external effect, recheck its exact target, identity, cap, and
+observation predicate. Make one mutation attempt, then perform bounded read-only
+observation and classify it as `landed`, `not_landed`, or `unknown`. Retry only
+when authentic evidence proves a pre-effect no-effect terminal and the static
+plan already grants recovery. Partial, ambiguous, or unknown effects stop all
+mutation and return to the user.
 
-Freeze the scope first, assign non-overlapping questions, wait for every
-required result, and reproduce or directly inspect load-bearing evidence before
-acting. Keep delegation one level deep. Do not auto-delegate bounded serial
-work, approval-bound work, external effects, or lanes that require overlapping
-writes. If native agents are unavailable, continue in the primary agent and
-disclose that fact. Do not require custom agents, specific models, effort
-levels, host handles, or optional telemetry.
-
-## Recover from compaction
-
-After compaction, reread the whole ExecPlan, inspect live Git and external
-state, identify every owned change, and rerun the checks needed to recover
-current facts. Treat summaries as hints, not authority or state. Stop on
-workspace, source, index, effect, or trust-boundary drift.
-
-Run focused real-path checks during implementation and the cumulative relevant
-suite before closure. Report accepted baseline failures exactly; never call a
-suite green when they remain. Account for staged, unstaged, and untracked dirt,
-effects, skipped checks, and required facts that remain unverified.
-
-## Review in proportion to risk
-
-Use no mandatory review for reversible local work or work whose only added risk
-is compaction. Use at most one read-only pre-challenge when the decision shapes
-architecture and is hard to reverse. Run at most one fresh blocker-only final
-review for a public, external, irreversible, or otherwise high-risk candidate.
-
-Give a final reviewer the frozen Outcome, envelope, accepted baseline failures,
-checks, and exclusions without prior findings or a desired verdict. Admit only
-a reproduced failure of a frozen obligation or a candidate-new material safety
-or correctness regression reachable through the frozen workflow. Do not block
-on style, naming, optimization, alternative designs, speculative hardening,
-unfrozen tests, or unrelated pre-existing issues.
-
-A reproduced in-envelope blocker may trigger one coherent repair and one fresh
-replacement final review. After that, any blocker or required unknown stops and
-returns to the user. Reviews cannot change the Outcome or envelope, create new
-obligations, or justify reruns of unchanged bytes.
-
-## Close truthfully
-
-Finish only when the Outcome and preservation rules hold, required real paths
-pass, accepted failures are unchanged, all dirt and effects are accounted for,
-and no required unknown remains. Disclose skipped or unverified gates and
-out-of-envelope uncertainty. Do not infer publication, installation,
-activation, or other external success without direct verification.
+Close as achieved, not achieved, or unknown only after recomputing candidate
+and effect identity, verifying Outcome and preservation, running required real
+paths, and accounting for staged, unstaged, untracked, external, skipped, and
+unverified state. Never infer installation, publication, activation, or other
+external success from the absence of an error.

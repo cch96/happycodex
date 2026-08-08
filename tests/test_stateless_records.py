@@ -2,521 +2,140 @@ from __future__ import annotations
 
 from copy import deepcopy
 import json
-import pickle
-from pathlib import Path
-import subprocess
-import tempfile
 import unittest
 
-from evaluation.host import HostEvidenceError, attestation_from_raw, parse_raw_stream, reserve_claim
-from evaluation.identity import (
-    DETERMINISTIC_DOMAINS, MODEL_ROLE_IDS, IdentityError,
-    product_artifact_from_git,
-)
-from evaluation.manifest import ManifestError
-from evaluation.provider import (
-    EvaluationCapability, ProviderError, accept_evaluation_authority,
-    assert_provider_blind, provider_projection,
-)
-from evaluation.records import (
-    RECORD_TYPES, TERMINAL_CLASSES, RecordError, build_product_artifact,
-    validate_record,
-)
-from evaluation.verify import evaluate_runtime_decision
-from tests.attestation_fixtures import (
-    BASELINE_REVISION, CANDIDATE_REVISION, HOST_CONTRACT, PROFILES, ROOT, SHA,
-    bundle, host_metadata, product, raw_stream, terminal,
-)
-
-
-def source_runtime(root: Path, product_record: dict) -> str:
-    return subprocess.check_output(
-        [
-            "git", "-C", str(root), "show",
-            f"{product_record['source_commit']}:skills/happycodex/SKILL.md",
-        ]
-    ).decode()
+from evaluation.canonical import canonical_sha256, sealed
+from evaluation.manifest import load_production_inputs, public_provider_inputs
+from evaluation.policy import RECORD_TYPES, UNIT_TOPOLOGY
+from evaluation.records import RecordError, validate_record
+from evaluation.schemas import SchemaError, validate_schema
+from tests.attestation_fixtures import ROOT, RecordFactory, reseal
 
 
 class DurableRecordTests(unittest.TestCase):
-    def test_inventory_is_closed_to_four_types(self):
-        self.assertEqual(RECORD_TYPES, frozenset({"ProductArtifact", "EvalSpec", "Attestation", "ReleaseReceipt"}))
-        for retired in ("ReleaseCandidate", "GatePlan", "GateReceipt", "EvidenceJoin"):
+    @classmethod
+    def setUpClass(cls):
+        cls.factory = RecordFactory()
+        cls.terminals, cls.holdout, cls.evaluation = cls.factory.full_evaluation()
+        cls.receipt, _ = cls.factory.release(cls.evaluation)
+        cls.records = (
+            cls.factory.product, cls.factory.spec, cls.terminals[0].record, cls.receipt,
+        )
+
+    def test_exactly_four_closed_durable_types(self):
+        self.assertEqual(
+            RECORD_TYPES, ("ProductArtifact", "EvalSpec", "Attestation", "ReleaseReceipt"),
+        )
+        for record in self.records:
+            self.assertIs(validate_record(record), record)
+            unknown = reseal(record, lambda value: value.__setitem__("unknown", True))
             with self.assertRaises(RecordError):
-                validate_record({"record_type": retired})
+                validate_record(unknown)
+        with self.assertRaisesRegex(RecordError, "unknown durable"):
+            validate_record({"record_type": "EvidenceGraph"})
 
-    def test_product_has_no_evaluator_identity(self):
-        selected = product()
-        self.assertFalse(any("evaluator" in key for key in selected))
-        self.assertEqual(validate_record(selected), selected)
+    def test_seals_and_headers_fail_closed(self):
+        for record in self.records:
+            changed = deepcopy(record)
+            changed["schema_version"] = 2
+            with self.assertRaises(RecordError):
+                validate_record(changed)
+            changed = deepcopy(record)
+            changed["record_sha256"] = "0" * 64
+            with self.assertRaises(RecordError):
+                validate_record(changed)
 
-    def test_product_identity_is_package_only_and_config_lives_in_evalspec(self):
-        selected, baseline, spec, _ = bundle()
-        same_package_new_provenance = build_product_artifact(
-            source_commit="f" * 40,
-            source_tree="e" * 40,
-            package_tree=selected["package_tree"],
-            package_artifact_sha256=selected["package_artifact_sha256"],
-            package_semantic_sha256=selected["package_semantic_sha256"],
+    def test_nested_product_paths_modes_and_projection_are_closed(self):
+        product = self.factory.product
+        mutations = (
+            lambda value: value["projections"]["plugin_runtime"]["entries"][0].__setitem__("extra", 1),
+            lambda value: value["projections"]["plugin_runtime"]["entries"][0].__setitem__("path", "../escape"),
+            lambda value: value["projections"]["plugin_runtime"]["entries"][0].__setitem__("mode", "120000"),
+            lambda value: value["projections"]["plugin_runtime"]["entries"][0].__setitem__("state", "absent"),
         )
+        for mutate in mutations:
+            with self.subTest(mutate=mutate):
+                with self.assertRaises(RecordError):
+                    validate_record(reseal(product, mutate))
 
-        with self.subTest("package-only-artifact-and-config"):
-            self.assertEqual(
-                selected["package_artifact_sha256"],
-                same_package_new_provenance["package_artifact_sha256"],
-            )
-            self.assertNotIn("external_role_config_sha256", selected)
-        with self.subTest("package-only-foreign-key"):
-            self.assertEqual(
-                {key: value for key, value in spec.items() if key.startswith("previous_product_")},
-                {"previous_product_artifact_sha256": baseline["package_artifact_sha256"]},
-            )
-
-    def test_unknown_field_and_tampered_digest_fail(self):
-        selected = product()
-        with self.assertRaises(RecordError):
-            validate_record({**selected, "ledger_sha256": SHA["4"]})
-        with self.assertRaises(RecordError):
-            validate_record({**selected, "package_artifact_sha256": SHA["4"]})
-
-    def test_materialized_spec_has_real_invocations_and_separate_arm_configs(self):
-        selected, baseline, spec, _ = bundle()
-        expected_units = {
-            "goal-divergence", "no-commit-secret", "qualification-high-risk",
-            "qualification-low-risk", "qualification-midflight",
-            "holdout-recovery-arm-a", "holdout-recovery-arm-b",
-            "holdout-safety-arm-a", "holdout-safety-arm-b",
-            "holdout-scope-arm-a", "holdout-scope-arm-b", "exact-final",
-        }
-        self.assertEqual(spec["effect_cap"]["model_calls"], 12)
-        self.assertEqual(baseline["source_commit"], BASELINE_REVISION)
-        self.assertEqual({unit["unit_id"] for unit in spec["units"]}, expected_units)
-        self.assertEqual(len(spec["units"]), 12)
-        expected_runtimes = {
-            selected["package_semantic_sha256"]: source_runtime(ROOT, selected),
-            baseline["package_semantic_sha256"]: source_runtime(ROOT, baseline),
-        }
-        self.assertNotEqual(*expected_runtimes.values())
-        for unit in spec["units"]:
-            projection = unit["invocation"]["provider_input"]
-            self.assertIn("fixture", projection)
-            self.assertIn("workspace", projection)
-            self.assertIn("runtime", projection)
-            self.assertIn("response_schema", projection)
-            self.assertNotIn("fatal", str(projection["response_schema"]).lower())
-            self.assertNotIn("expected", str(projection["response_schema"]).lower())
-            expected = selected if unit["product_semantic_sha256"] == selected["package_semantic_sha256"] else baseline
-            if unit["stage"] != "exact_final":
-                self.assertEqual(unit["external_role_config_sha256"], spec["external_role_config_sha256"])
-            self.assertEqual(projection["runtime"], expected_runtimes[unit["product_semantic_sha256"]])
-        units = {unit["unit_id"]: unit for unit in spec["units"]}
-        for pair in spec["holdouts"]:
-            left, right = (units[unit_id] for unit_id in pair["unit_ids"])
-            for field in ("model", "effort", "tools", "timeout_seconds"):
-                self.assertEqual(left["invocation"][field], right["invocation"][field])
-            self.assertEqual(left["external_role_config_sha256"], right["external_role_config_sha256"])
-
-    def test_dirty_worktree_runtime_cannot_replace_frozen_arm_sources(self):
-        with tempfile.TemporaryDirectory() as raw:
-            clone = Path(raw) / "repo"
-            subprocess.run(
-                ["git", "clone", "--shared", "--quiet", str(ROOT), str(clone)],
-                check=True,
-            )
-            selected = product_artifact_from_git(
-                clone, CANDIDATE_REVISION,
-            )
-            baseline = product_artifact_from_git(
-                clone, BASELINE_REVISION,
-            )
-            schema = ROOT / "evaluation" / "report-schemas-v1.json"
-            (clone / "evaluation" / "report-schemas-v1.json").write_bytes(
-                schema.read_bytes()
-            )
-            dirty = "DIRTY MUTABLE RUNTIME MUST NEVER REACH AN ARM\n"
-            (clone / "skills" / "happycodex" / "SKILL.md").write_text(dirty)
-            _, _, spec, _ = bundle(
-                root=clone, selected_product=selected, baseline_product=baseline,
-            )
-            expected = {
-                selected["package_semantic_sha256"]: source_runtime(clone, selected),
-                baseline["package_semantic_sha256"]: source_runtime(clone, baseline),
-            }
-            for unit in spec["units"]:
-                runtime = unit["invocation"]["provider_input"]["runtime"]
-                self.assertEqual(runtime, expected[unit["product_semantic_sha256"]])
-                self.assertNotEqual(runtime, dirty)
-
-    def test_forged_or_unavailable_product_source_fails_closed(self):
-        selected = product()
-        for name, source_commit, source_tree in (
-            ("forged", selected["source_commit"], "0" * 40),
-            ("unavailable", "0" * 40, selected["source_tree"]),
+    def test_evalspec_nested_topology_and_caps_are_closed(self):
+        for mutate in (
+            lambda value: value["units"][0].__setitem__("extra", 1),
+            lambda value: value["caps"].__setitem__("claimed_passes", 99),
+            lambda value: value["component_identities"].__setitem__("combined", "0" * 64),
         ):
-            forged = build_product_artifact(
-                source_commit=source_commit, source_tree=source_tree,
-                package_tree=selected["package_tree"],
-                package_artifact_sha256=selected["package_artifact_sha256"],
-                package_semantic_sha256=selected["package_semantic_sha256"],
-            )
-            with self.subTest(name=name), self.assertRaises(IdentityError):
-                bundle(selected_product=forged)
-        with self.assertRaises(ManifestError):
-            bundle(external_role_config_sha256="invalid")
+            with self.assertRaises(RecordError):
+                validate_record(reseal(self.factory.spec, mutate))
 
-    def test_model_and_deterministic_routes_are_disjoint(self):
-        self.assertEqual(
-            MODEL_ROLE_IDS,
-            (
-                "goal-divergence", "no-commit-secret",
-                "qualification-high-risk", "qualification-low-risk",
-                "qualification-midflight",
-            ),
+    def test_attestation_observation_binding_and_attempt_rules_are_closed(self):
+        record = self.terminals[0].record
+        mutations = (
+            lambda value: value["observation"].__setitem__("wall_claim", 0),
+            lambda value: value["evidence_binding"].__setitem__("key", "self-signed"),
+            lambda value: value["observation"].__setitem__("response_complete", False),
+            lambda value: value["observation"].__setitem__("effect_cumulative_wall_milliseconds", 11),
         )
-        self.assertEqual(DETERMINISTIC_DOMAINS, {"receipt", "claim", "schema", "parser", "invalidation", "review-truncation", "install", "rollback"})
-
-
-class ProviderBoundaryTests(unittest.TestCase):
-    def test_projection_uses_actual_inputs_and_omits_hidden_fields(self):
-        case = {
-            "role_id": "qualification-high-risk", "prompt": "classify",
-            "fixture": {"request": "write"}, "workspace": {"clean": True},
-            "runtime": "runtime", "oracle": "HIDDEN", "mapping": "HIDDEN",
-            "response_schema": {"type": "object"},
-        }
-        value = provider_projection(
-            case=case, product_semantic_sha256=SHA["2"],
-            external_role_config_sha256=SHA["3"], profile=PROFILES["behavior"],
+        for mutate in mutations:
+            with self.assertRaises(RecordError):
+                validate_record(reseal(record, mutate))
+        no_effect = RecordFactory().make_attestation(
+            "qualification-routing", outcome="not_landed",
         )
-        self.assertNotIn("HIDDEN", str(value))
-        self.assertEqual(value["runtime"], "runtime")
-
-    def test_digest_only_projection_is_rejected(self):
-        with self.assertRaises(ProviderError):
-            provider_projection(
-                case={"role_id": "x", "prompt": "x", "fixture_sha256": SHA["1"]},
-                product_semantic_sha256=SHA["2"], external_role_config_sha256=SHA["3"],
-                profile=PROFILES["behavior"],
-            )
-
-    def test_every_visible_surface_rejects_sentinel(self):
-        for field in ("workspace", "argv", "stdin", "env", "sanitized_events"):
-            visible = {"workspace": {}, "argv": [], "stdin": "", "env": {}, "sanitized_events": []}
-            visible[field] = {"x": "SENTINEL"} if field in {"workspace", "env"} else (["SENTINEL"] if field in {"argv", "sanitized_events"} else "SENTINEL")
-            with self.subTest(field=field), self.assertRaises(ProviderError):
-                assert_provider_blind(sentinels=["SENTINEL"], projection={"safe": True}, **visible)
-
-    def test_evaluator_has_no_generic_event_redaction_api(self):
-        import evaluation.verify as verify_module
-
-        self.assertFalse(hasattr(verify_module, "_redact"))
-        self.assertFalse(hasattr(verify_module, "sanitize_events"))
-
-    def test_authority_is_external_and_capability_process_local(self):
-        _, _, spec, _ = bundle()
-        supplied = {"scope": "evaluation", "request_sha256": spec["authority_request_sha256"], "nonce": "n", "signature": "s"}
-        with self.assertRaises(ProviderError):
-            accept_evaluation_authority(spec, supplied, lambda _value: False)
-        capability = accept_evaluation_authority(spec, supplied, lambda _value: True)
-        with self.assertRaises(TypeError):
-            pickle.dumps(capability)
-        with self.assertRaises(ProviderError):
-            EvaluationCapability(object(), SHA["1"], SHA["2"], SHA["3"])
-
-    def test_legacy_host_contract_field_is_rejected(self):
-        contract = deepcopy(HOST_CONTRACT)
-        contract["pro" + "of_" + "ver" + "ifier_sha256"] = SHA["1"]
         with self.assertRaises(RecordError):
-            bundle(host_contract=contract)
+            validate_record(reseal(no_effect, lambda value: value["observation"].__setitem__("model_calls", 1)))
 
-
-class ExternalHostClaimTests(unittest.TestCase):
-    def test_native_codex_stream_extracts_single_agent_report_and_usage(self):
-        selected, _, spec, _ = bundle()
-        unit = next(item for item in spec["units"] if item["unit_id"] == "goal-divergence")
-        report = {"safety": {"goal_closed": False}, "next_action": {"purpose": "IMPLEMENT"}}
-        secret = "RAW-TOOL-OUTPUT-SENTINEL"
-        events = [
-            {"type": "thread.started", "thread_id": "thread-1"},
-            {"type": "turn.started"},
-            {"type": "item.started", "item": {"id": "item-1", "type": "command_execution", "status": "in_progress", "command": secret, "aggregated_output": "", "exit_code": None}},
-            {"type": "item.completed", "item": {"id": "item-1", "type": "command_execution", "status": "completed", "command": secret, "aggregated_output": secret, "exit_code": 0}},
-            {"type": "item.completed", "item": {"id": "message-1", "type": "agent_message", "text": json.dumps(report)}},
-            {"type": "turn.completed", "usage": {"input_tokens": 12, "cached_input_tokens": 3, "cache_write_input_tokens": 0, "output_tokens": 4, "reasoning_output_tokens": 2}},
-        ]
-        raw = b"".join((json.dumps(event, sort_keys=True) + "\n").encode() for event in events)
-        parsed = parse_raw_stream(raw)
-        self.assertEqual(parsed["report"], report)
-        self.assertEqual(parsed["usage"]["input_tokens"], 12)
-        self.assertTrue(parsed["turn_started"])
-        self.assertTrue(parsed["turn_completed"])
-        record = attestation_from_raw(
-            root=ROOT, product=selected, spec=spec, unit_id=unit["unit_id"],
-            raw=raw, host_metadata=host_metadata(unit), authority_sha256=SHA["a"],
-        )
-        self.assertNotIn(secret, str(record))
-
-    def test_native_parser_uses_last_same_turn_agent_report_and_keeps_all_items(self):
-        first = {"safety": {"goal_closed": True}}
-        final = {"safety": {"goal_closed": False}, "next_action": {"purpose": "IMPLEMENT"}}
-        events = [
-            {"type": "thread.started", "thread_id": "thread-multiple"},
-            {"type": "turn.started"},
-            {"type": "item.completed", "item": {"id": "message-1", "type": "agent_message", "text": json.dumps(first)}},
-            {"type": "item.started", "item": {"id": "tool-1", "type": "command_execution"}},
-            {"type": "item.completed", "item": {"id": "tool-1", "type": "command_execution"}},
-            {"type": "item.completed", "item": {"id": "message-2", "type": "agent_message", "text": json.dumps(final)}},
-            {"type": "turn.completed", "usage": {"input_tokens": 12, "cached_input_tokens": 0, "cache_write_input_tokens": 0, "output_tokens": 4, "reasoning_output_tokens": 2}},
-        ]
-        raw = b"".join((json.dumps(event, sort_keys=True) + "\n").encode() for event in events)
-        parsed = parse_raw_stream(raw)
-        self.assertEqual(parsed["report"], final)
-        self.assertEqual(
-            parsed["item_facts"],
-            [
-                {"event": "item.completed", "id": "message-1", "type": "agent_message"},
-                {"event": "item.started", "id": "tool-1", "type": "command_execution"},
-                {"event": "item.completed", "id": "tool-1", "type": "command_execution"},
-                {"event": "item.completed", "id": "message-2", "type": "agent_message"},
-            ],
-        )
-        self.assertEqual(parsed["raw_events_sha256"], __import__("hashlib").sha256(raw).hexdigest())
-
-        duplicate = deepcopy(events)
-        duplicate[5]["item"]["id"] = "message-1"
-        encoded = b"".join((json.dumps(event, sort_keys=True) + "\n").encode() for event in duplicate)
-        with self.assertRaises(HostEvidenceError):
-            parse_raw_stream(encoded)
-
-    def test_exact_final_inspection_must_precede_canonical_report(self):
-        selected, _, spec, _ = bundle()
-        unit = next(item for item in spec["units"] if item["stage"] == "exact_final")
-        events = [
-            {"type": "thread.started", "thread_id": "thread-post-report"},
-            {"type": "turn.started"},
-            {"type": "item.completed", "item": {
-                "id": "message", "type": "agent_message",
-                "text": json.dumps({
-                    "neutral": True, "coverage": {"complete": True},
-                    "decision": "GO", "findings": [],
-                }),
-            }},
-            {"type": "item.started", "item": {"id": "inspect", "type": "command_execution"}},
-            {"type": "item.completed", "item": {"id": "inspect", "type": "command_execution"}},
-            {"type": "turn.completed", "usage": {
-                "input_tokens": 5, "cached_input_tokens": 0,
-                "cache_write_input_tokens": 0, "output_tokens": 3,
-                "reasoning_output_tokens": 0,
-            }},
-        ]
-        raw = b"".join((json.dumps(event, sort_keys=True) + "\n").encode() for event in events)
-
-        with self.assertRaisesRegex(HostEvidenceError, "inspection|report|item"):
-            attestation_from_raw(
-                root=ROOT, product=selected, spec=spec, unit_id=unit["unit_id"],
-                raw=raw, host_metadata=host_metadata(unit), authority_sha256=SHA["a"],
-            )
-
-    def test_native_parser_keeps_unterminated_report_candidate_partial(self):
-        selected, _, spec, _ = bundle()
-        unit = next(item for item in spec["units"] if item["unit_id"] == "goal-divergence")
-        report = {"safety": {"goal_closed": False}, "next_action": {"purpose": "IMPLEMENT"}}
-        events = [
-            {"type": "thread.started", "thread_id": "thread-unterminated"},
-            {"type": "turn.started"},
-            {"type": "item.completed", "item": {"id": "message-1", "type": "agent_message", "text": json.dumps(report)}},
-            {"type": "item.started", "item": {"id": "tool-1", "type": "command_execution"}},
-            {"type": "item.completed", "item": {"id": "tool-1", "type": "command_execution"}},
-        ]
-        raw = b"".join((json.dumps(event, sort_keys=True) + "\n").encode() for event in events)
-        parsed = parse_raw_stream(raw)
-        self.assertIsNone(parsed["report"])
-        self.assertIsNone(parsed["usage"])
-        self.assertFalse(parsed["turn_completed"])
-        record = attestation_from_raw(
-            root=ROOT, product=selected, spec=spec, unit_id=unit["unit_id"],
-            raw=raw, host_metadata=host_metadata(unit, exit_code=1),
-            authority_sha256=SHA["a"],
-        )
-        self.assertEqual(record["terminal"]["classification"], "ambiguous_or_partial")
-        self.assertFalse(record["terminal"]["complete"])
-        self.assertEqual(record["observation"]["report"], {})
-        self.assertEqual(record["verdict"], "fail")
-
-    def test_native_failed_terminal_allows_intermediate_report_candidate(self):
-        selected, _, spec, _ = bundle()
-        unit = next(item for item in spec["units"] if item["unit_id"] == "goal-divergence")
-        message = "provider failed after an intermediate report"
-        events = [
-            {"type": "thread.started", "thread_id": "thread-failed"},
-            {"type": "turn.started"},
-            {"type": "item.completed", "item": {"id": "message-1", "type": "agent_message", "text": json.dumps({"safety": {"goal_closed": False}})}},
-            {"type": "error", "message": message},
-            {"type": "turn.failed", "error": {"message": message}},
-        ]
-        raw = b"".join((json.dumps(event, sort_keys=True) + "\n").encode() for event in events)
-        parsed = parse_raw_stream(raw)
-        self.assertTrue(parsed["turn_failed"])
-        self.assertIsNone(parsed["report"])
-        self.assertIsNone(parsed["usage"])
-        record = attestation_from_raw(
-            root=ROOT, product=selected, spec=spec, unit_id=unit["unit_id"],
-            raw=raw, host_metadata=host_metadata(unit, exit_code=1),
-            authority_sha256=SHA["a"],
-        )
-        self.assertEqual(record["terminal"]["classification"], "ambiguous_or_partial")
-        self.assertFalse(record["terminal"]["complete"])
-        self.assertEqual(record["observation"]["report"], {})
-
-        report_after_error = deepcopy(events)
-        report_after_error.insert(
-            -1,
-            {"type": "item.completed", "item": {"id": "message-2", "type": "agent_message", "text": json.dumps({"safety": {"goal_closed": True}})}},
-        )
-        encoded = b"".join((json.dumps(event, sort_keys=True) + "\n").encode() for event in report_after_error)
-        with self.assertRaises(HostEvidenceError):
-            parse_raw_stream(encoded)
-
-    def test_native_parser_rejects_legacy_duplicate_and_malformed_shapes(self):
-        selected, _, spec, _ = bundle()
-        unit = next(item for item in spec["units"] if item["unit_id"] == "goal-divergence")
-        valid = [json.loads(line) for line in raw_stream(unit).decode().splitlines()]
-        legacy = [
-            {"type": "started", "at": "2026-08-02T00:00:00Z"},
-            {"type": "report", "report": {}},
-            {"type": "usage", "model_calls": 1, "input_tokens": 1, "output_tokens": 1, "wall_milliseconds": 1},
-            {"type": "terminal", "classification": "success", "provider_reached": True, "complete": True, "at": "2026-08-02T00:00:01Z"},
-        ]
-        duplicate_turn = [*valid[:2], {"type": "turn.started"}, *valid[2:]]
-        missing_message = [*valid[:2], valid[-1]]
-        malformed_message = deepcopy(valid)
-        malformed_message[-2]["item"]["text"] = "not-json"
-        terminal_not_last = [*valid, {"type": "turn.started"}]
-        malformed_usage = deepcopy(valid)
-        del malformed_usage[-1]["usage"]["cached_input_tokens"]
-        duplicate_message = [*valid[:-1], deepcopy(valid[-2]), valid[-1]]
-        forbidden_terminal = [*valid[:-1], {"type": "turn.failed", "error": "x"}]
-        unknown_item = [
-            *valid[:2],
-            {"type": "item.started", "item": {"id": "unknown", "type": "mcp_tool_call"}},
-            {"type": "item.completed", "item": {"id": "unknown", "type": "mcp_tool_call"}},
-            *valid[2:],
-        ]
-        for name, events in (
-            ("legacy", legacy),
-            ("duplicate-turn", duplicate_turn),
-            ("missing-message", missing_message),
-            ("malformed-message", malformed_message),
-            ("terminal-order", terminal_not_last),
-            ("usage", malformed_usage),
-            ("duplicate-message", duplicate_message),
-            ("forbidden-terminal", forbidden_terminal),
-            ("unknown-item", unknown_item),
+    def test_release_readback_shape_is_closed_and_terminal(self):
+        for mutate in (
+            lambda value: value["observation"].__setitem__("claimed_success", True),
+            lambda value: value["observation"].__setitem__("readback_complete", False),
+            lambda value: value["observation"].__setitem__("observed_destination", None),
         ):
-            raw = b"".join((json.dumps(event, sort_keys=True) + "\n").encode() for event in events)
-            with self.subTest(name=name), self.assertRaises(HostEvidenceError):
-                parse_raw_stream(raw)
-
-    def test_host_metadata_is_closed_and_terminal_facts_are_derived(self):
-        selected, _, spec, _ = bundle()
-        unit = next(item for item in spec["units"] if item["unit_id"] == "goal-divergence")
-        raw = raw_stream(unit)
-        metadata = host_metadata(unit)
-        record = attestation_from_raw(
-            root=ROOT, product=selected, spec=spec, unit_id=unit["unit_id"],
-            raw=raw, host_metadata=metadata, authority_sha256=SHA["a"],
-        )
-        self.assertEqual(record["terminal"]["classification"], "success")
-        self.assertEqual(record["terminal"]["wall_milliseconds"], 10000)
-        self.assertEqual(record["terminal"]["model_calls"], 1)
-        self.assertEqual(record["terminal"]["input_tokens"], 10)
-        with self.assertRaises(HostEvidenceError):
-            attestation_from_raw(
-                root=ROOT, product=selected, spec=spec, unit_id=unit["unit_id"],
-                raw=raw, host_metadata={**metadata, "report": {}},
-                authority_sha256=SHA["a"],
-            )
-
-    def test_timeout_post_turn_nonzero_and_exit_zero_empty_are_ambiguous(self):
-        selected, _, spec, _ = bundle()
-        unit = next(item for item in spec["units"] if item["unit_id"] == "goal-divergence")
-        success_raw = raw_stream(unit)
-        cases = (
-            (success_raw, host_metadata(unit, timed_out=True)),
-            (success_raw, host_metadata(unit, exit_code=1)),
-            (b"", host_metadata(unit, exit_code=0)),
-        )
-        for raw, metadata in cases:
-            record = attestation_from_raw(
-                root=ROOT, product=selected, spec=spec, unit_id=unit["unit_id"],
-                raw=raw, host_metadata=metadata, authority_sha256=SHA["a"],
-            )
-            self.assertEqual(record["terminal"]["classification"], "ambiguous_or_partial")
-            self.assertFalse(record["terminal"]["complete"])
-
-    def test_claim_is_cross_process_durable_and_one_shot(self):
-        with tempfile.TemporaryDirectory() as raw:
-            root = Path(raw)
-            root.chmod(0o700)
-            first = reserve_claim(root=root, claim_key=SHA["1"], invocation_sha256=SHA["2"])
-            self.assertTrue(Path(first["path"]).exists())
-            completed = subprocess.run(
-                [
-                    "python3", "-c",
-                    (
-                        "from pathlib import Path; "
-                        "from evaluation.host import reserve_claim; "
-                        "reserve_claim(root=Path(__import__('sys').argv[1]), "
-                        "claim_key=__import__('sys').argv[2], "
-                        "invocation_sha256=__import__('sys').argv[3])"
-                    ),
-                    str(root), SHA["1"], SHA["2"],
-                ], cwd=ROOT, capture_output=True, text=True, check=False,
-            )
-            self.assertNotEqual(completed.returncode, 0)
-
-    def test_local_claim_has_no_recovery_surface(self):
-        _, _, spec, _ = bundle()
-        unit = next(item for item in spec["units"] if item["unit_id"] == "goal-divergence")
-        with tempfile.TemporaryDirectory() as raw:
-            root = Path(raw)
-            root.chmod(0o700)
-            reserve_claim(root=root, claim_key=unit["invocation"]["claim_key"], invocation_sha256=unit["invocation_sha256"])
-            with self.assertRaises(HostEvidenceError):
-                reserve_claim(
-                    root=root, claim_key=unit["invocation"]["claim_key"],
-                    invocation_sha256=unit["invocation_sha256"],
-                )
-            with self.assertRaises(TypeError):
-                reserve_claim(
-                    root=root, claim_key=unit["invocation"]["claim_key"],
-                    invocation_sha256=unit["invocation_sha256"], recovery_index=1,
-                )
-
-    def test_raw_parser_rejects_incomplete_or_reordered_stream(self):
-        with self.assertRaises(HostEvidenceError):
-            parse_raw_stream(b'{"type":"report","report":{}}\n')
+            with self.assertRaises(RecordError):
+                validate_record(reseal(self.receipt, mutate))
+        body = deepcopy({key: value for key, value in self.receipt.items() if key != "record_sha256"})
+        body["outcome"] = "not_landed"
+        body["observation"].update({"effect_reached": False, "readback_complete": False})
+        with self.assertRaises(RecordError):
+            validate_record(sealed(body))
 
 
-class OracleSemanticsTests(unittest.TestCase):
-    def test_action_enum_difference_is_diagnostic_not_fatal(self):
-        passed, diagnostics = evaluate_runtime_decision(
-            {"qualifies": True, "next_action": {"purpose": "CHECK"}},
-            {"fatal": {"qualifies": True}, "diagnostic": {"next_action.purpose": "IMPLEMENT"}},
-        )
-        self.assertTrue(passed)
-        self.assertEqual(len(diagnostics), 1)
+class ProviderSchemaTests(unittest.TestCase):
+    def test_public_projection_excludes_oracles_mappings_answers_and_history(self):
+        inputs = load_production_inputs(ROOT)
+        public = public_provider_inputs(inputs)
+        self.assertEqual(set(public), {"cases", "schemas"})
+        visible = json.dumps(public, sort_keys=True).lower()
+        for forbidden in ("hidden_oracles", "mapping_commitment", "desired_verdict", "repair_history"):
+            self.assertNotIn(forbidden, visible)
+        sentinel = "PRIVATE-ORACLE-SENTINEL"
+        changed = deepcopy(inputs)
+        changed["oracles"]["core"][next(iter(changed["oracles"]["core"]))]["sentinel"] = sentinel
+        self.assertNotIn(sentinel, json.dumps(public_provider_inputs(changed)))
 
-    def test_real_invariant_difference_is_fatal(self):
-        passed, diagnostics = evaluate_runtime_decision(
-            {"qualifies": False}, {"fatal": {"qualifies": True}, "diagnostic": {}},
-        )
-        self.assertFalse(passed)
-        self.assertEqual(diagnostics, ["fatal:qualifies"])
+    def test_every_recursive_provider_schema_is_fixed_and_closed(self):
+        schemas = load_production_inputs(ROOT)["schemas"]
+        def walk(schema):
+            validate_schema(schema)
+            if schema["type"] == "object":
+                self.assertFalse(schema["additionalProperties"])
+                self.assertEqual(schema["required"], list(schema["properties"]))
+                for child in schema["properties"].values():
+                    walk(child)
+            elif schema["type"] == "array":
+                walk(schema["items"])
+        for group in ("provider_inputs", "provider_outputs"):
+            for schema in schemas[group].values():
+                walk(schema)
+        bad = deepcopy(next(iter(schemas["provider_inputs"].values())))
+        bad["description"] = "expected answer"
+        with self.assertRaises(SchemaError):
+            validate_schema(bad)
 
-    def test_terminal_inventory_is_typed(self):
-        self.assertIn("ambiguous_or_partial", TERMINAL_CLASSES)
-        self.assertIn("infrastructure_no_effect", TERMINAL_CLASSES)
+    def test_no_reveal_timestamp_or_extra_topology_unit_exists(self):
+        for path in (ROOT / "evaluation").iterdir():
+            if path.is_file() and path.suffix in {".py", ".json"}:
+                self.assertNotIn("revealed_at", path.read_text(encoding="utf-8"))
+        self.assertEqual(len(UNIT_TOPOLOGY), 12)
 
 
 if __name__ == "__main__":

@@ -4,19 +4,17 @@
 
 *Open-source guidance for reliable high-risk engineering work in OpenAI Codex.*
 
-HappyCodex freezes the outcome, boundaries, and completion conditions of risky
-work in one short repository ExecPlan, then relies on Codex's native Plan, Git,
-tests, diffs, and agents. It is not a controller, authority system, scheduler,
-or retry engine.
+HappyCodex records the outcome, change boundary, consumer identity, and done
+conditions of risky work in one static ExecPlan, then relies on Codex's native
+Plan, agents, Git, tests, and diffs. It is not a controller, authority system,
+ledger, scheduler, or retry engine.
 
 ## When to use it
 
 Use HappyCodex for cross-system changes, public contracts, migrations,
 persistence, concurrency, destructive or production effects, exhaustive
-claims, and long work likely to cross context compaction.
-
-Keep bounded, reversible local changes on the native Plan, tests, and diff.
-Create an ExecPlan before the next risky write only when scope or risk grows.
+claims, and long work likely to cross context compaction. Keep bounded,
+reversible local work on the native Plan; create an ExecPlan when risk grows.
 
 ## Install and invoke
 
@@ -31,36 +29,25 @@ Start a new Codex task after installation, then invoke:
 Use $happycodex:happycodex for this high-risk cross-system change.
 ```
 
-## Core contract
+## Mental model
 
-- Keep at most one static ExecPlan per task. HappyCodex requires no extra
-  control PRD or `run.md`. A durable product-design deliverable for an
-  independent consumer may be an explicitly scoped product artifact; link its
-  selected boundary from the ExecPlan instead of copying it.
-- Native Codex sandboxing and approvals own technical permissions; the user's
-  request defines intent. HappyCodex does not model or repeat those permissions.
-  Reversible work needed for the Outcome proceeds in the active workspace.
-- Require one writer at a time only for overlapping mutable paths or resources.
-  One agent may write directly. Before substantial read-heavy exploration,
-  proactively start two or three native read-only agents only when at least two
-  independent bounded lanes need no shared write and parallelism materially
-  reduces latency, context pollution, or decision uncertainty. The primary
-  agent assigns non-overlapping questions, keeps delegation one level deep,
-  and verifies load-bearing evidence before acting; otherwise stay single-agent.
-- Default to no review for reversible local work. Use at most one pre-challenge
-  for hard-to-reverse architecture and one blocker-only final review for a
-  public, external, irreversible, or otherwise high-risk candidate.
-- Attempt each external effect once. Retry only after proving no effect. Stop
-  mutation on a partial or ambiguous outcome, reconcile read-only, and return
-  the uncertainty to the user.
-- Keep secrets and raw events out of product bytes. Report baseline failures,
-  skipped checks, workspace dirt, and required facts that remain `unverified`.
-
-The ExecPlan stores only the request, Outcome, workspace or project boundary,
-external resources and effects, baseline and allowed breaks, an optional design
-decision, checks, done and stop conditions, and recovery. After compaction,
-reconstruct current facts from the plan, Git, tests, and tools—never from a
-mutable snapshot, phase history, or a reconciliation latch.
+- The ExecPlan stores only the static request, Outcome, change boundary,
+  consumer, effects, checks, and stops. Re-derive live state from Git, tests,
+  and tools.
+- Context isolation and parallelism are separate. One noisy lane may use one
+  native reader; parallelize only independent lanes. Prefer one native worker
+  for substantial implementation, with one writer per overlapping resource.
+- After interruption or compaction, confirm the old writer cannot resume, read
+  the whole plan, and rebuild Git, candidate, and effect facts.
+- Freeze with the consumer's native immutable identity, such as a Git tree,
+  package, image, or revision. A mutable worktree digest is not a candidate.
+- Ordinary reversible work needs no review. Run one fresh blocker-only terminal
+  review for a public, external, irreversible, or high-risk candidate; never
+  enter an automatic repair or re-review loop.
+- After one external-effect attempt, use real read-only observation to classify
+  it as `landed`, `not_landed`, or `unknown`. Stop on partial or ambiguity.
+- Close explicitly as achieved, not achieved, or unknown, accounting for dirt,
+  skipped checks, and unverified facts.
 
 HappyCodex is portable, zero-config, and model-agnostic. It requires no custom
 agent, pinned model, or pinned reasoning effort.

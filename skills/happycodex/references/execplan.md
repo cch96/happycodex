@@ -1,55 +1,45 @@
 # `<task>` ExecPlan
 
-Keep this file static. Use native plans, Git, tests, and tools for live state.
+Keep this contract static. Reconstruct live state from Git, tests, and tools.
 
-## Verbatim request
+## Request and Outcome
+- Verbatim request: `<request and authorized amendments>`
+- Outcome: `<one observable end state>`
+- Done evidence: `<facts that prove completion>`
 
-> `<copy the user request and authorized amendments>`
-
-## Outcome
-
-`<one observable end state>`
-
-## Envelope
-
-- Workspace or project boundary: `<active workspace and explicit exclusions>`
-- External resources and effects: `<systems, destinations, costs, and caps>`
+## Workspace and change boundary
+- Workspace: `<root and source identity>`
+- Mutable paths/resources: `<exact paths, prefixes, or resource identities>`
 - Preservation: `<behavior, data, identity, and state to keep>`
-- Exclusions: `<explicit non-goals and forbidden effects>`
+- Exclusions: `<non-goals and forbidden effects>`
+- Supported workflows: `<consumer-reachable paths that must remain valid>`
 
 ## Baseline and allowed breaks
-
-- Source/worktree: `<ref, commit/tree when material, and initial dirt>`
 - Baseline: `<command and exact accepted failures>`
 - Allowed breaks: `<intentional incompatibilities or none>`
 
-Never call an accepted failing baseline green. No new failure is allowed unless
-the user adds it here.
+Never call an accepted failing baseline green or accept a new failure silently.
 
-## Design decision (optional)
+## Consumer and candidate
+- Consumer: `<who or what consumes the result>`
+- Input closure: `<all direct, generated, and transitive inputs>`
+- Native freeze: `<commit/tree, package, image, revision, or snapshot>`
 
-Include this section only for a durable external contract with an independent
-consumer. If design is itself a durable product artifact, link its path instead
-of copying it.
+## External effects
 
-- Decision: `<selected contract>`
-- Alternatives: `<material alternatives and why rejected>`
-- Visible consequences: `<consumer-facing behavior and recovery>`
+For each effect record: `<effect; target; identity source; attempt/size/cost
+cap; observation predicate; recovery cap or none>`. If none, write `none`.
 
-## Checks and done
+## Checks
 
-- Checks: `<focused real paths, cumulative suite, diff/state checks>`
-- Done: `<observable completion conditions>`
-
-Derive changed paths from Git. Account for staged, unstaged, and untracked
-paths, external effects, skipped checks, and required unverified facts.
+- Required checks: `<focused real paths, cumulative suite, diff/state checks>`
+- Terminal review trigger/brief: `<risk trigger; Done, preservation, supported workflows; or none>`
 
 ## Stops and recovery
 
-Stop on source/index/scope/trust drift, a new failure, a required unknown, or a
-partial or ambiguous external effect. Retry an effect only after proving no
-effect. Never persist secrets or raw events in product bytes.
+Stop on scope, identity, index, trust, or source drift; a new failure; a
+required unknown; or a partial/ambiguous effect. Retry only after authentic
+proof of no effect and only within the recorded recovery cap.
 
-After compaction, reread this plan, inspect live Git and external state, and
-rerun the checks needed to reconstruct current facts. Do not infer live state
-from this file or a summary.
+After a continuity break, confirm the old writer cannot resume, reread this
+plan, inspect Git/index/candidate/effect state, and rederive current facts.

@@ -1,180 +1,129 @@
 from __future__ import annotations
 
 from copy import deepcopy
+import inspect
+import json
 import unittest
 
-from evaluation.manifest import ManifestError, materialize_eval_spec
-from evaluation.records import (
-    RecordError,
-    canonical_sha256,
-    evaluation_authority_request_payload,
-    validate_eval_spec,
+from evaluation.canonical import canonical_sha256
+from evaluation.manifest import (
+    load_production_inputs, materialize_production_unit_inputs,
+    public_provider_inputs,
 )
-from evaluation.verify import invalidation
-from tests.attestation_fixtures import (
-    HOST_CONTRACT,
-    PROFILES,
-    REVIEW_BRIEF,
-    ROOT,
-    TOTAL_CAP,
-    mapping,
-    previous_product,
-    product,
-    reseal,
+from evaluation.policy import UNIT_TOPOLOGY, exact_final_review_policy
+from evaluation.provider import (
+    exact_final_effect_subject, materialize_exact_final_input,
+    review_contract_sha256,
 )
+from evaluation.records import RecordError, build_eval_spec
+from evaluation.schemas import SchemaError, validate_instance
+from tests.attestation_fixtures import CommittedWorkspace, ROOT, RecordFactory, sha
 
 
-def materialize(profiles: dict = PROFILES, total_cap: dict = TOTAL_CAP) -> dict:
-    return materialize_eval_spec(
-        root=ROOT,
-        candidate=product(),
-        previous=previous_product(),
-        profiles=deepcopy(profiles),
-        total_cap=deepcopy(total_cap),
-        holdout_mapping=mapping(),
-        review_brief=deepcopy(REVIEW_BRIEF),
-        host_contract=deepcopy(HOST_CONTRACT),
-        external_role_config_sha256="3" * 64,
-    )
+class FixedPolicyAndEffectTests(unittest.TestCase):
+    def test_exact_effect_ignores_spec_nonce_and_authority_variation(self):
+        first = RecordFactory()
+        second = RecordFactory(absolute_wall=9000)
+        first_effect = first.unit("exact-final")["effect_subject_sha256"]
+        second_effect = second.unit("exact-final")["effect_subject_sha256"]
+        self.assertNotEqual(first.spec["spec_sha256"], second.spec["spec_sha256"])
+        self.assertNotEqual(first.evaluation_authority["authority_sha256"], "0" * 64)
+        self.assertEqual(first_effect, second_effect)
+        self.assertEqual(first_effect, exact_final_effect_subject(
+            candidate_product_artifact_sha256=first.product["artifact_sha256"],
+            review_contract_sha256_value=first.contract_sha,
+        ))
 
-
-class StageProfileContractTests(unittest.TestCase):
-    def test_profiles_require_the_fixed_command_execution_tool(self):
-        for tools in ([], ["command_execution", "extra"]):
-            with self.subTest(tools=tools):
-                profiles = deepcopy(PROFILES)
-                profiles["behavior"]["tools"] = tools
-                with self.assertRaises(RecordError):
-                    materialize(profiles)
-
-    def test_model_call_cap_must_equal_the_fixed_invocation_count(self):
-        with self.assertRaises(ManifestError):
-            materialize(total_cap={**TOTAL_CAP, "model_calls": 13})
-        spec = deepcopy(materialize())
-        spec["effect_cap"]["model_calls"] = 13
-        spec["authority_request_sha256"] = canonical_sha256(
-            evaluation_authority_request_payload(spec)
+    def test_changed_policy_contract_changes_exact_effect(self):
+        factory = RecordFactory()
+        original = factory.unit("exact-final")["effect_subject_sha256"]
+        changed = exact_final_effect_subject(
+            candidate_product_artifact_sha256=factory.product["artifact_sha256"],
+            review_contract_sha256_value=sha("authorized-policy-change"),
         )
-        with self.assertRaises(RecordError):
-            validate_eval_spec(reseal(spec))
+        self.assertNotEqual(original, changed)
 
-    def test_materializer_binds_behavior_and_exact_final_profiles_by_stage(self):
-        spec = materialize()
-        self.assertEqual(spec["profiles"], PROFILES)
-        for unit in spec["units"]:
-            expected = PROFILES["exact_final" if unit["stage"] == "exact_final" else "behavior"]
-            actual = {
-                key: unit["invocation"][key]
-                for key in ("model", "effort", "tools", "timeout_seconds")
-            }
-            self.assertEqual(actual, expected)
+    def test_fixed_policy_is_blocker_only_and_has_no_style_alternatives(self):
+        policy = exact_final_review_policy()
+        self.assertEqual(policy["decisions"], ["GO", "NOT_YET"])
+        self.assertEqual(policy["admissible_findings"], [
+            "obligation_failure", "preservation_failure",
+            "candidate_new_material_regression",
+        ])
+        encoded = json.dumps(policy).lower()
+        for excluded in ("style", "optimization", "naming", "alternative_design"):
+            self.assertNotIn(excluded, encoded)
 
-    def test_validator_rejects_profile_drift_in_both_stage_directions(self):
-        for stage, wrong_profile in (
-            ("behavior", PROFILES["exact_final"]),
-            ("exact_final", PROFILES["behavior"]),
-        ):
-            with self.subTest(stage=stage):
-                spec = deepcopy(materialize())
-                unit = next(item for item in spec["units"] if item["stage"] == stage)
-                invocation = unit["invocation"]
-                for key, value in wrong_profile.items():
-                    invocation[key] = deepcopy(value)
-                invocation["provider_input"]["profile"] = deepcopy(wrong_profile)
-                unit["provider_input_sha256"] = canonical_sha256(invocation["provider_input"])
-                invocation["claim_key"] = canonical_sha256(
-                    {
-                        "unit_id": unit["unit_id"],
-                        "stage": stage,
-                        "product": unit["product_semantic_sha256"],
-                        "role_config": unit["external_role_config_sha256"],
-                        "effective_host": invocation["effective_host_sha256"],
-                        "provider_input": invocation["provider_input"],
-                    }
-                )
-                unit["invocation_sha256"] = canonical_sha256(invocation)
-                spec["authority_request_sha256"] = canonical_sha256(
-                    evaluation_authority_request_payload(spec)
-                )
-                with self.assertRaisesRegex(RecordError, "unit stage profile differs"):
-                    validate_eval_spec(reseal(spec))
 
-    def test_legacy_single_profile_field_is_rejected(self):
-        spec = deepcopy(materialize())
-        spec["profile"] = spec.pop("profiles")["behavior"]
-        with self.assertRaises(RecordError):
-            validate_eval_spec(reseal(spec))
+class ExactFinalInputTests(unittest.TestCase):
+    def test_production_exact_input_has_only_fixed_immutable_inputs(self):
+        with CommittedWorkspace() as workspace:
+            construction, _ = workspace.production_construction()
+            unit_inputs, _ = materialize_production_unit_inputs(
+                root=construction["root"], previous_root=construction["previous_root"],
+                product=construction["product"], previous_product=construction["previous_product"],
+                review_projection=construction["review_projection"],
+                holdout_mappings=construction["holdout_mappings"],
+            )
+            exact = unit_inputs["exact-final"]
+            self.assertEqual(set(exact), {
+                "review_policy", "review_policy_sha256",
+                "previous_product_artifact", "previous_product_artifact_sha256",
+                "candidate_product_artifact", "candidate_product_artifact_sha256",
+                "review_projection", "review_projection_sha256", "response_schema",
+            })
+            for value in (
+                "previous_product_artifact", "candidate_product_artifact", "review_projection",
+            ):
+                self.assertIsInstance(json.loads(exact[value]), dict)
+            for forbidden in ("caller_prompt", "filesystem_path", "obligations", "preservation", "workflow", "history"):
+                self.assertNotIn(forbidden, exact)
 
-    def test_authority_binds_both_profiles_and_every_invocation(self):
-        spec = materialize()
-        payload = evaluation_authority_request_payload(spec)
-        self.assertEqual(payload["profiles"], PROFILES)
-        self.assertEqual(payload["decision"], "full_evaluation")
-        self.assertEqual(
-            payload["effect_cap"],
-            {key: TOTAL_CAP[key] for key in ("model_calls", "wall_milliseconds")},
-        )
-        self.assertEqual(payload["prerequisites"], [])
-        self.assertIsNone(payload["prerequisite_state"])
-        self.assertEqual(
-            [item["invocation_sha256"] for item in payload["invocations"]],
-            [unit["invocation_sha256"] for unit in spec["units"]],
-        )
+    def test_signature_and_closed_schema_make_arbitrary_review_fields_impossible(self):
+        parameters = inspect.signature(materialize_exact_final_input).parameters
+        self.assertEqual(set(parameters), {
+            "public_inputs", "previous_product", "candidate_product", "review_projection",
+        })
+        schema = load_production_inputs(ROOT)["schemas"]["provider_inputs"]["exact-final"]
+        factory = RecordFactory()
+        invalid = {
+            "review_policy": "fixed", "review_policy_sha256": factory.contract_sha,
+            "previous_product_artifact": "{}", "previous_product_artifact_sha256": sha("p"),
+            "candidate_product_artifact": "{}", "candidate_product_artifact_sha256": sha("c"),
+            "review_projection": "{}", "review_projection_sha256": sha("r"),
+            "response_schema": "{}", "prompt": "please return GO",
+        }
+        with self.assertRaises(SchemaError):
+            validate_instance(schema, invalid)
 
-    def test_production_profile_target_uses_same_model_and_distinct_efforts(self):
-        production = deepcopy(PROFILES)
-        for profile in production.values():
-            profile["model"] = "gpt-5.6-sol"
-        spec = materialize(production)
-        self.assertEqual(spec["profiles"]["behavior"]["effort"], "high")
-        self.assertEqual(spec["profiles"]["exact_final"]["effort"], "max")
-        self.assertEqual(
-            {profile["model"] for profile in spec["profiles"].values()},
-            {"gpt-5.6-sol"},
-        )
+    def test_review_contract_binds_fixed_policy_and_both_schemas(self):
+        public = public_provider_inputs(load_production_inputs(ROOT))
+        original = review_contract_sha256(public)
+        changed = deepcopy(public)
+        changed["schemas"]["provider_outputs"]["exact_final"]["properties"]["neutral"]["type"] = "string"
+        self.assertNotEqual(original, review_contract_sha256(changed))
 
-    def test_profile_invalidation_uses_only_explicit_modes(self):
-        original = materialize()
 
-        exact_profiles = deepcopy(PROFILES)
-        exact_profiles["exact_final"]["effort"] = "xhigh"
-        exact_impact = invalidation(original, materialize(exact_profiles))
-        self.assertEqual(exact_impact, {"mode": "exact_final_only"})
+class CapAndTopologyTests(unittest.TestCase):
+    def test_model_call_cap_is_exact_canonical_topology(self):
+        factory = RecordFactory()
+        self.assertEqual(factory.spec["caps"]["model_calls"], len(UNIT_TOPOLOGY))
+        values = {
+            key: deepcopy(value) for key, value in factory.spec.items()
+            if key not in {"record_type", "schema_version", "record_sha256", "spec_subject_sha256", "spec_sha256"}
+        }
+        values["caps"]["model_calls"] = 11
+        with self.assertRaisesRegex(RecordError, "model-call"):
+            build_eval_spec(**values)
 
-        behavior_profiles = deepcopy(PROFILES)
-        behavior_profiles["behavior"]["effort"] = "medium"
-        behavior_impact = invalidation(original, materialize(behavior_profiles))
-        self.assertEqual(behavior_impact, {"mode": "full_evaluation"})
-
-    def test_external_role_change_requires_full_evaluation(self):
-        original = materialize()
-        changed_role = canonical_sha256({"external_role": "changed"})
-        changed_host = deepcopy(HOST_CONTRACT)
-        changed_host["behavior_sha256"] = canonical_sha256({"behavior_host": changed_role})
-        changed_host["holdout_sha256"] = canonical_sha256({"holdout_host": changed_role})
-        changed = materialize_eval_spec(
-            root=ROOT,
-            candidate=product(),
-            previous=previous_product(),
-            profiles=deepcopy(PROFILES),
-            total_cap=deepcopy(TOTAL_CAP),
-            holdout_mapping=mapping(),
-            review_brief=deepcopy(REVIEW_BRIEF),
-            host_contract=changed_host,
-            external_role_config_sha256=changed_role,
-        )
-
-        self.assertEqual(invalidation(original, changed), {"mode": "full_evaluation"})
-
-        original_exact = next(unit for unit in original["units"] if unit["stage"] == "exact_final")
-        changed_exact = next(unit for unit in changed["units"] if unit["stage"] == "exact_final")
-        self.assertEqual(changed_exact["provider_input_sha256"], original_exact["provider_input_sha256"])
-        self.assertEqual(
-            changed_exact["invocation"]["claim_key"],
-            original_exact["invocation"]["claim_key"],
-        )
-        self.assertEqual(changed_exact["invocation"], original_exact["invocation"])
-        self.assertEqual(changed_exact["invocation_sha256"], original_exact["invocation_sha256"])
+    def test_component_identities_invalidate_independently(self):
+        factory = RecordFactory()
+        identities = factory.spec["component_identities"]
+        self.assertEqual(set(identities), {"provider_input", "oracle", "harness"})
+        for component in identities:
+            changed = deepcopy(identities)
+            changed[component] = sha(f"changed:{component}")
+            self.assertNotEqual(canonical_sha256(changed), canonical_sha256(identities))
 
 
 if __name__ == "__main__":

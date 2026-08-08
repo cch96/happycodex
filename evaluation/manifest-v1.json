@@ -1,23 +1,20 @@
 {
-  "schema_version": 1,
-  "manifest_id": "happycodex-production-v1",
+  "schema_version": 3,
+  "manifest_id": "happycodex-thin-verifier-v3",
   "provider_fixtures": "provider-fixtures-v1.json",
   "hidden_oracles": "hidden-oracles-v1.json",
-  "response_schemas": "report-schemas-v1.json",
-  "core_roles": [
-    "goal-divergence",
-    "no-commit-secret",
-    "qualification-high-risk",
-    "qualification-low-risk",
-    "qualification-midflight"
+  "report_schemas": "report-schemas-v1.json",
+  "behavior_roles": [
+    "qualification-routing",
+    "context-isolation",
+    "writer-continuity",
+    "candidate-review",
+    "effect-closure"
   ],
   "holdout_samples": [
-    "holdout-recovery",
-    "holdout-safety",
-    "holdout-scope"
+    "recovery",
+    "safety",
+    "scope"
   ],
-  "exact_final": {
-    "role_id": "exact-final",
-    "brief_template": "Neutral review of artifact {artifact_sha256}. Request: {request}. Obligations: {obligations}. Checks: {checks}. Exclusions: {exclusions}. Return decision, coverage, and findings without repair history or a preferred verdict."
-  }
+  "exact_final_role": "exact-final"
 }

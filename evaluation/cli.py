@@ -1,370 +1,191 @@
+"""Pure command surface plus mechanically derived offline checks."""
 from __future__ import annotations
 
 import argparse
+import base64
+import hashlib
 import json
 import os
 from pathlib import Path
-import shutil
 import subprocess
+import sys
+import tempfile
 from typing import Any
-from evaluation.identity import evaluator_components, load_json, product_artifact_from_git
-from evaluation.manifest import materialize_eval_spec
-from evaluation.provider import build_fixed_host_policy, host_contract_from_policy
-from evaluation.records import (
-    RECORD_TYPES, canonical_sha256, evaluation_authority_request_payload,
-    validate_eval_spec, validate_evaluation_authority_payload, validate_record,
+
+from evaluation.canonical import ContractError, canonical_sha256
+from evaluation.identity import (
+    evaluator_components, review_snapshot_from_git, validate_review_projection,
 )
-from evaluation.verify import exact_final_authority_proposal, verify_evaluation, verify_release
-def _print(value: Any) -> None:
-    print(json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2))
-def _records(paths: list[Path]) -> list[dict[str, Any]]:
-    return [validate_record(load_json(path.resolve())) for path in paths]
-def inventory_command(args: argparse.Namespace) -> int:
-    _print(
-        {
-            "durable_record_types": sorted(RECORD_TYPES),
-            "components": evaluator_components(args.repo.resolve()),
-            "active_ledger": False,
-        }
-    )
-    return 0
-def product_command(args: argparse.Namespace) -> int:
-    _print(product_artifact_from_git(args.repo.resolve(), args.revision))
-    return 0
-def request_command(args: argparse.Namespace) -> int:
-    spec = validate_eval_spec(load_json(args.spec.resolve()))
-    # This is deliberately only a request digest. It cannot mint approval text,
-    # signatures, capabilities, plans, or receipts.
-    proposal = evaluation_authority_request_payload(spec)
-    _print({"authority_request_sha256": canonical_sha256(proposal), "proposal": proposal})
-    return 0
-def materialize_command(args: argparse.Namespace) -> int:
-    _print(
-        materialize_eval_spec(
-            root=args.repo.resolve(), candidate=validate_record(load_json(args.product.resolve())),
-            previous=validate_record(load_json(args.previous_product.resolve())),
-            profiles=load_json(args.profiles.resolve()), total_cap=load_json(args.total_cap.resolve()),
-            holdout_mapping=load_json(args.mapping.resolve()),
-            review_brief=load_json(args.review_brief.resolve()),
-            host_contract=load_json(args.host_contract.resolve()),
-            external_role_config_sha256=args.external_role_config_sha256,
-        )
-    )
-    return 0
-def _write_private(path: Path, value: Any) -> None:
-    body = (json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2) + "\n").encode()
-    descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+from evaluation.manifest import (
+    build_production_spec, qualified_evaluation_authority_request,
+    qualify_production_spec,
+)
+from evaluation.policy import RECORD_TYPES, UNIT_TOPOLOGY
+from evaluation.records import validate_record
+
+class CliError(ContractError):
+    pass
+
+def _load(path: Path) -> dict[str, Any]:
     try:
-        view = memoryview(body)
-        while view: view = view[os.write(descriptor, view):]
-        os.fsync(descriptor)
-    finally:
-        os.close(descriptor)
-def _copy_private(source: Path, destination: Path) -> None:
-    if source.is_symlink() or not source.is_file():
-        raise ValueError(f"private input is not a regular file: {source}")
-    descriptor = os.open(destination, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-    try:
-        view = memoryview(source.read_bytes())
-        while view: view = view[os.write(descriptor, view):]
-        os.fsync(descriptor)
-    finally:
-        os.close(descriptor)
-
-
-def _remove_private_tree(root: Path) -> None:
-    if not root.exists(): return
-    for path in sorted(root.rglob("*"), key=lambda item: len(item.parts), reverse=True):
-        if not path.is_symlink(): path.chmod(0o700 if path.is_dir() else 0o600)
-    root.chmod(0o700); shutil.rmtree(root)
-
-
-def _relocate(value: Any, source: Path, destination: Path) -> Any:
-    if type(value) is dict: return {key: _relocate(item, source, destination) for key, item in value.items()}
-    if type(value) is list: return [_relocate(item, source, destination) for item in value]
-    if type(value) is str and (value == str(source) or value.startswith(str(source) + "/")):
-        return str(destination) + value[len(str(source)):]
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise CliError(f"cannot load {path}") from exc
+    if type(value) is not dict:
+        raise CliError(f"{path} is not a JSON object")
     return value
 
+def _print(value: Any, *, stream: Any = sys.stdout) -> None:
+    print(json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2), file=stream)
 
-def prepare_exact_request_command(args: argparse.Namespace) -> int:
-    destination = args.destination.absolute()
-    staging = destination.with_name(destination.name + ".staging")
-    if destination.exists() or destination.is_symlink() or staging.exists() or staging.is_symlink():
-        raise ValueError("exact request destination or staging path already exists")
-    product = validate_record(load_json(args.product.resolve()))
-    previous_product = validate_record(load_json(args.previous_product.resolve()))
-    previous_spec = validate_record(load_json(args.previous_spec.resolve()))
-    profiles, total_cap = load_json(args.profiles.resolve()), load_json(args.total_cap.resolve())
-    effect_cap = load_json(args.effect_cap.resolve())
-    mapping, brief = load_json(args.mapping.resolve()), load_json(args.review_brief.resolve())
-    attestation_paths = _named_paths(args.attestation, "attestation")
-    raw_paths = _named_paths(args.raw, "raw")
-    if set(attestation_paths) != set(raw_paths) or len(attestation_paths) != 11 or "exact-final" in attestation_paths:
-        raise ValueError("exact request requires exactly eleven named non-exact prerequisites")
-    attestations = []
-    for unit_id, path in sorted(attestation_paths.items()):
-        record = validate_record(load_json(path))
-        if record.get("unit_id") != unit_id: raise ValueError("named attestation unit differs")
-        attestations.append(record)
-    raw_streams = {unit_id: raw_paths[unit_id].read_bytes() for unit_id in sorted(raw_paths)}
-    published = False
-    try:
-        staging.mkdir(mode=0o700)
-        execution = staging / "execution"; execution.mkdir(mode=0o700)
-        for name in ("units", "raw", "attestations", "claims"):
-            (execution / name).mkdir(mode=0o700)
-        private = staging / "private"; private.mkdir(mode=0o700)
-        private_evaluation = private / "evaluation"; private_evaluation.mkdir(mode=0o700)
-        role = private / "happycodex_executor.toml"
-        oracle = private_evaluation / "hidden-oracles-v1.json"
-        _copy_private(args.external_role_config.resolve(), role)
-        _copy_private(args.hidden_oracle.resolve(), oracle)
-        mapping_path = staging / "holdout-mapping.json"; _write_private(mapping_path, mapping)
-        exact_source = execution / "exact-final-source"
-        shutil.copytree(args.exact_source.resolve(), exact_source, copy_function=shutil.copy2)
-        def revision(value: str) -> str:
-            return subprocess.check_output(
-                ["git", "-C", str(args.repo.resolve()), "rev-parse", value], text=True,
-            ).strip()
-        baseline_commit = revision(f"{args.baseline_ref}^{{commit}}")
-        source_commit = revision(f"{args.source_ref}^{{commit}}")
-        staging_policy = build_fixed_host_policy(
-            execution_root=execution, binary_path=args.provider_binary.resolve(),
-            external_role_config_path=role, exact_final_source=exact_source,
-            holdout_mapping_path=mapping_path, private_oracle_path=oracle,
-            effect_marker_root=args.effect_marker_root.resolve(),
-            source_repo=args.repo.resolve(),
-            source_identity={
-                "baseline_ref": args.baseline_ref, "baseline_commit": baseline_commit,
-                "baseline_tree": revision(f"{baseline_commit}^{{tree}}"),
-                "source_ref": args.source_ref, "source_commit": source_commit,
-                "source_tree": revision(f"{source_commit}^{{tree}}"),
-                **{key: product[key] for key in (
-                    "package_tree", "package_artifact_sha256", "package_semantic_sha256",
-                )},
-            },
-            evaluator_identity=evaluator_components(args.repo.resolve()),
-            behavior_model=profiles["behavior"]["model"],
-            behavior_effort=profiles["behavior"]["effort"],
-        )
-        contract = host_contract_from_policy(staging_policy)
-        spec = materialize_eval_spec(
-            root=args.repo.resolve(), candidate=product, previous=previous_product,
-            profiles=profiles, total_cap=total_cap, holdout_mapping=mapping,
-            review_brief=brief, host_contract=contract,
-            external_role_config_sha256=__import__("hashlib").sha256(role.read_bytes()).hexdigest(),
-        )
-        proposal = exact_final_authority_proposal(
-            root=args.repo.resolve(), product=product, previous_product=previous_product,
-            previous_spec=previous_spec, spec=spec, attestations=attestations,
-            raw_streams=raw_streams, holdout_mapping=mapping,
-            mapping_revealed_at=args.revealed_at, effect_cap=effect_cap,
-        )
-        validate_evaluation_authority_payload(spec, proposal)
-        request_sha = canonical_sha256(proposal)
-        line = f"APPROVE HAPPYCODEX EVALUATION {request_sha}"
-        outputs = {
-            "product.json": product, "previous-product.json": previous_product,
-            "previous-eval-spec.json": previous_spec, "profiles.json": profiles,
-            "total-cap.json": total_cap, "effect-cap.json": effect_cap,
-            "review-brief.json": brief, "host-contract.json": contract,
-            "host-policy.json": _relocate(staging_policy, staging, destination),
-            "eval-spec.json": spec,
-            "authority-request.json": {
-                "authority_request_sha256": request_sha,
-                "decision": proposal["decision"],
-                "canonical_approval_line": {"text": line, "authoritative": False},
-                "proposal": proposal,
-            },
-        }
-        for name, value in outputs.items(): _write_private(staging / name, value)
-        os.rename(staging, destination); published = True
-        if host_contract_from_policy(outputs["host-policy.json"]) != contract:
-            raise ValueError("published host policy identity differs")
+def _construction(args: argparse.Namespace) -> dict[str, Any]:
+    return {
+        "root": args.repo.resolve(), "previous_root": args.previous_repo.resolve(),
+        "product": validate_record(_load(args.product)),
+        "previous_product": validate_record(_load(args.previous_product)),
+        "review_projection": validate_review_projection(_load(args.review_projection)),
+        "holdout_mappings": _load(args.mappings), "caps": _load(args.caps),
+    }
+
+def _git(repo: Path, *arguments: str) -> str:
+    completed = subprocess.run(
+        ["git", "-C", str(repo), *arguments], capture_output=True, text=True,
+        env={"PATH": os.defpath, "LC_ALL": "C", "GIT_CONFIG_GLOBAL": "/dev/null",
+             "GIT_CONFIG_NOSYSTEM": "1", "GIT_OPTIONAL_LOCKS": "0"},
+    )
+    if completed.returncode:
+        raise CliError(f"git {' '.join(arguments)} failed")
+    return completed.stdout.strip()
+
+def _snapshot_loc(projection: dict[str, Any]) -> dict[str, Any]:
+    modules = {}
+    for entry in projection["candidate"]["entries"]:
+        path = entry["path"]
+        if path.startswith("evaluation/") and path.endswith(".py"):
+            body = base64.b64decode(entry["content"], validate=True)
+            modules[path] = len(body.splitlines())
+    total = sum(modules.values())
+    return {
+        "modules": modules, "total": total, "practical_limit": 3200,
+        "hard_limit": 3600, "module_limit": 600,
+        "practical_within_limit": total <= 3200,
+        "hard_within_limit": total <= 3600,
+        "modules_within_limit": all(lines <= 600 for lines in modules.values()),
+    }
+
+def run_mechanical_checks(root: Path, review_projection: dict[str, Any]) -> dict[str, Any]:
+    """Run the fixed offline suite against the exact clean candidate snapshot."""
+    root = root.resolve(strict=True)
+    projection = validate_review_projection(review_projection)
+    candidate = projection["candidate"]
+    if (
+        _git(root, "rev-parse", "HEAD^{commit}") != candidate["commit"]
+        or _git(root, "rev-parse", "HEAD^{tree}") != candidate["tree"]
+        or _git(root, "status", "--porcelain=v1", "--untracked-files=all")
+        or review_snapshot_from_git(root, candidate["commit"]) != candidate
+    ):
+        raise CliError("working source differs from the immutable candidate snapshot")
+    system_skills = Path.home() / ".codex/skills/.system"
+    commands = (
+        (sys.executable, "-B", "-m", "unittest", "discover", "-s", "tests", "-v"),
+        (sys.executable, "-B", "-c", "import evaluation.canonical,evaluation.cli,evaluation.holdout,evaluation.host,evaluation.identity,evaluation.manifest,evaluation.oracle,evaluation.policy,evaluation.provider,evaluation.records,evaluation.schemas,evaluation.verify"),
+        (sys.executable, "-B", str(system_skills / "skill-creator/scripts/quick_validate.py"), "skills/happycodex"),
+        (sys.executable, "-B", str(system_skills / "plugin-creator/scripts/validate_plugin.py"), "."),
+        ("git", "diff", "--check"),
+    )
+    results = []
+    with tempfile.TemporaryDirectory(prefix="happycodex-v3-checks-") as cache:
+        environment = {"PATH": os.defpath, "LC_ALL": "C", "PYTHONPYCACHEPREFIX": cache}
+        for command in commands:
+            completed = subprocess.run(
+                command, cwd=root, env=environment, capture_output=True, text=False,
+            )
+            results.append({
+                "command": list(command), "returncode": completed.returncode,
+                "stdout_sha256": hashlib.sha256(completed.stdout).hexdigest(),
+                "stderr_sha256": hashlib.sha256(completed.stderr).hexdigest(),
+                "passed": completed.returncode == 0,
+            })
+    loc = _snapshot_loc(projection)
+    body = {
+        "candidate_snapshot_sha256": projection["candidate_snapshot_sha256"],
+        "candidate_commit": candidate["commit"], "candidate_tree": candidate["tree"],
+        "checks": results, "production_python_loc": loc,
+        "passed": all(item["passed"] for item in results)
+        and loc["practical_within_limit"] and loc["hard_within_limit"]
+        and loc["modules_within_limit"],
+    }
+    return {**body, "checks_sha256": canonical_sha256(body)}
+
+def _handle(args: argparse.Namespace) -> int:
+    if args.command == "inventory":
         _print({
-            "destination": str(destination), "authority_request_sha256": request_sha,
-            "eval_spec_record_sha256": spec["record_sha256"],
-            "exact_final_source_sha256": outputs["host-policy.json"]["workspace_policy"]["exact_final_source_sha256"],
-            "prerequisite_count": len(proposal["prerequisites"]),
-            "decision": proposal["decision"],
-            "canonical_approval_line": {"text": line, "authoritative": False},
+            "durable_record_types": list(RECORD_TYPES),
+            "unit_topology": [unit._asdict() for unit in UNIT_TOPOLOGY],
+            "component_identities": evaluator_components(args.repo.resolve()),
+            "active_ledger": False, "external_authentication": "unavailable",
         })
-        return 0
-    except Exception:
-        _remove_private_tree(destination if published else staging)
-        raise
-
-
-def _named_paths(values: list[str], label: str) -> dict[str, Path]:
-    result: dict[str, Path] = {}
-    for value in values:
-        unit_id, separator, raw_path = value.partition("=")
-        if not separator or not unit_id or not raw_path or unit_id in result:
-            raise ValueError(f"{label} must be unique UNIT=PATH values")
-        result[unit_id] = Path(raw_path).resolve()
-    return result
-
-
-def _evidence(args: argparse.Namespace):
-    raw_paths = _named_paths(args.raw, "raw")
-    return {unit_id: path.read_bytes() for unit_id, path in raw_paths.items()}
-
-
-def _mixed_authority_inputs(args: argparse.Namespace):
-    paths = (args.previous_spec, args.prior_authority_binding, args.exact_authority_binding)
-    if not any(paths): return None, None
-    if not all(paths): raise ValueError("mixed verification requires previous spec and both authority bindings")
-    previous_spec = validate_record(load_json(args.previous_spec.resolve()))
-    bindings = {}
-    for path in paths[1:]:
-        binding = load_json(path.resolve())
-        if set(binding) != {"proposal", "supplied_authority"}:
-            raise ValueError("authority binding fields differ")
-        authority = canonical_sha256(binding["supplied_authority"])
-        if authority in bindings: raise ValueError("authority bindings are not distinct")
-        bindings[authority] = binding
-    return previous_spec, bindings
-
-
-def verify_command(args: argparse.Namespace) -> int:
-    product = validate_record(load_json(args.product.resolve()))
-    previous_product = validate_record(load_json(args.previous_product.resolve()))
-    spec = validate_record(load_json(args.spec.resolve()))
-    attestations = _records(args.attestation)
-    mapping = load_json(args.mapping.resolve()) if args.mapping else None
-    raw_streams = _evidence(args)
-    previous_spec, authority_bindings = _mixed_authority_inputs(args)
-    result = verify_evaluation(
-        root=args.repo.resolve(), product=product, spec=spec, attestations=attestations,
-        raw_streams=raw_streams,
-        previous_product=previous_product, previous_spec=previous_spec,
-        holdout_mapping=mapping, mapping_revealed_at=args.revealed_at,
-        authority_bindings=authority_bindings,
-    )
-    _print(result)
-    return 0 if result["verified"] else 2
-
-
-def release_command(args: argparse.Namespace) -> int:
-    product = validate_record(load_json(args.product.resolve()))
-    previous_product = validate_record(load_json(args.previous_product.resolve()))
-    spec = validate_record(load_json(args.spec.resolve()))
-    attestations = _records(args.attestation)
-    mapping = load_json(args.mapping.resolve())
-    raw_streams = _evidence(args)
-    previous_spec, authority_bindings = _mixed_authority_inputs(args)
-    evaluation = verify_evaluation(
-        root=args.repo.resolve(), product=product, spec=spec, attestations=attestations,
-        raw_streams=raw_streams,
-        previous_product=previous_product, previous_spec=previous_spec,
-        holdout_mapping=mapping, mapping_revealed_at=args.revealed_at,
-        authority_bindings=authority_bindings,
-    )
-    receipt = validate_record(load_json(args.release_receipt.resolve()))
-    destination = load_json(args.destination.resolve())
-    rollback = load_json(args.rollback.resolve())
-    result = verify_release(
-        product=product, evaluation=evaluation, receipt=receipt,
-        destination=destination, rollback=rollback,
-    )
-    _print(result)
+    elif args.command == "materialize":
+        _print(build_production_spec(**_construction(args)))
+    elif args.command == "qualify":
+        spec = validate_record(_load(args.spec))
+        qualify_production_spec(spec, **_construction(args))
+        _print({"qualified": True, "spec_sha256": spec["spec_sha256"]})
+    elif args.command == "authority":
+        spec = validate_record(_load(args.spec))
+        request = qualified_evaluation_authority_request(spec, **_construction(args))
+        _print({
+            "authority_request": request, "authority_authenticated": False,
+            "notice": "This unsigned request cannot manufacture user authority.",
+        })
+    elif args.command == "validate":
+        value = _load(args.path)
+        validated = (
+            validate_review_projection(value)
+            if value.get("projection_type") == "ReviewProjection" else validate_record(value)
+        )
+        _print({"valid": True, "identity": validated.get("record_sha256", validated.get("projection_sha256"))})
+    elif args.command == "checks":
+        _print(run_mechanical_checks(args.repo, _load(args.review_projection)))
+    else:
+        _print({
+            "status": "UNVERIFIED", "authenticated": False,
+            "reason": "The CLI has no external authenticator; use evaluation.verify inside the external boundary.",
+        })
+        return 2
     return 0
 
-
-def record_command(args: argparse.Namespace) -> int:
-    record = validate_record(load_json(args.path.resolve()))
-    _print({"valid": True, "record_type": record["record_type"], "record_sha256": record["record_sha256"]})
-    return 0
-
-
-def _add_evidence_arguments(command: argparse.ArgumentParser) -> None:
+def _add_construction(command: argparse.ArgumentParser, *, spec: bool = False) -> None:
     command.add_argument("--repo", type=Path, default=Path.cwd())
-    command.add_argument("--raw", action="append", required=True, help="UNIT=PATH")
-    command.add_argument("--previous-spec", type=Path)
-    command.add_argument("--prior-authority-binding", type=Path)
-    command.add_argument("--exact-authority-binding", type=Path)
-
+    command.add_argument("--previous-repo", type=Path, required=True)
+    for name in ("product", "previous-product", "review-projection", "mappings", "caps"):
+        command.add_argument(f"--{name}", type=Path, required=True)
+    if spec:
+        command.add_argument("--spec", type=Path, required=True)
 
 def parser() -> argparse.ArgumentParser:
-    result = argparse.ArgumentParser(description="Stateless HappyCodex evaluator attestation tools")
-    sub = result.add_subparsers(dest="command", required=True)
-
-    inventory = sub.add_parser("inventory")
+    result = argparse.ArgumentParser(description="HappyCodex v3 thin-verifier tools")
+    subcommands = result.add_subparsers(dest="command", required=True)
+    inventory = subcommands.add_parser("inventory")
     inventory.add_argument("--repo", type=Path, default=Path.cwd())
-    inventory.set_defaults(handler=inventory_command)
-
-    product = sub.add_parser("product")
-    product.add_argument("--repo", type=Path, default=Path.cwd())
-    product.add_argument("--revision", required=True)
-    product.set_defaults(handler=product_command)
-
-    request = sub.add_parser("authority-request")
-    request.add_argument("--spec", type=Path, required=True)
-    request.set_defaults(handler=request_command)
-
-    materialize = sub.add_parser("materialize")
-    materialize.add_argument("--repo", type=Path, default=Path.cwd())
-    materialize.add_argument("--product", type=Path, required=True)
-    materialize.add_argument("--previous-product", type=Path, required=True)
-    materialize.add_argument("--profiles", type=Path, required=True)
-    materialize.add_argument("--total-cap", type=Path, required=True)
-    materialize.add_argument("--mapping", type=Path, required=True)
-    materialize.add_argument("--review-brief", type=Path, required=True)
-    materialize.add_argument("--host-contract", type=Path, required=True)
-    materialize.add_argument("--external-role-config-sha256", required=True)
-    materialize.set_defaults(handler=materialize_command)
-
-    prepare = sub.add_parser("prepare-exact-request")
-    for flag in (
-        "product", "previous-product", "previous-spec", "profiles", "total-cap",
-        "effect-cap", "mapping", "review-brief", "provider-binary",
-        "external-role-config", "hidden-oracle", "exact-source", "destination",
-    ):
-        prepare.add_argument(f"--{flag}", type=Path, required=True)
-    prepare.add_argument("--repo", type=Path, default=Path.cwd())
-    prepare.add_argument("--effect-marker-root", type=Path, required=True)
-    prepare.add_argument("--baseline-ref", required=True)
-    prepare.add_argument("--source-ref", required=True)
-    prepare.add_argument("--revealed-at", required=True)
-    prepare.add_argument("--attestation", action="append", required=True)
-    prepare.add_argument("--raw", action="append", required=True)
-    prepare.set_defaults(handler=prepare_exact_request_command)
-
-    verify = sub.add_parser("verify")
-    verify.add_argument("--product", type=Path, required=True)
-    verify.add_argument("--previous-product", type=Path, required=True)
-    verify.add_argument("--spec", type=Path, required=True)
-    verify.add_argument("--attestation", type=Path, action="append", required=True)
-    verify.add_argument("--mapping", type=Path)
-    verify.add_argument("--revealed-at")
-    _add_evidence_arguments(verify)
-    verify.set_defaults(handler=verify_command)
-
-    release = sub.add_parser("verify-release")
-    release.add_argument("--product", type=Path, required=True)
-    release.add_argument("--previous-product", type=Path, required=True)
-    release.add_argument("--spec", type=Path, required=True)
-    release.add_argument("--attestation", type=Path, action="append", required=True)
-    release.add_argument("--mapping", type=Path, required=True)
-    release.add_argument("--revealed-at", required=True)
-    release.add_argument("--release-receipt", type=Path, required=True)
-    release.add_argument("--destination", type=Path, required=True)
-    release.add_argument("--rollback", type=Path, required=True)
-    _add_evidence_arguments(release)
-    release.set_defaults(handler=release_command)
-
-    record = sub.add_parser("validate-record")
-    record.add_argument("path", type=Path)
-    record.set_defaults(handler=record_command)
-
+    for name in ("materialize", "qualify", "authority"):
+        _add_construction(subcommands.add_parser(name), spec=name != "materialize")
+    validate = subcommands.add_parser("validate")
+    validate.add_argument("path", type=Path)
+    checks = subcommands.add_parser("checks")
+    checks.add_argument("--repo", type=Path, default=Path.cwd())
+    checks.add_argument("--review-projection", type=Path, required=True)
+    subcommands.add_parser("verify")
     return result
 
-
 def main(argv: list[str] | None = None) -> int:
-    args = parser().parse_args(argv)
-    return args.handler(args)
-
+    try:
+        return _handle(parser().parse_args(argv))
+    except (ContractError, OSError) as exc:
+        _print({"error": str(exc)}, stream=sys.stderr)
+        return 2
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+__all__ = ("CliError", "main", "parser", "run_mechanical_checks")

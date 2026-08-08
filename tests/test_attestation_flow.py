@@ -1,556 +1,344 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from datetime import datetime, timezone
 import unittest
 
-from evaluation.host import attestation_from_raw
-from evaluation.provider import accept_release_authority, release_authority_request
-from evaluation.records import (
-    RecordError, build_eval_spec, canonical_sha256,
-    evaluation_authority_request_payload, validate_record,
-)
+from evaluation.canonical import canonical_sha256
+from evaluation.holdout import HoldoutError, judge_fixed_holdouts
+from evaluation.policy import UNIT_TOPOLOGY
+from evaluation.records import RecordError, validate_attestation
 from evaluation.verify import (
-    VerificationError, create_release_receipt,
-    exact_final_authority_proposal, replay_attestation, verify_evaluation,
-    verify_release,
+    VerifyError, assess_provider_report, authenticate_attestation,
+    verify_effect_sequence, verify_evaluation, verify_release,
 )
-from tests.attestation_fixtures import (
-    REVEALED_AT, ROOT, SHA, TOTAL_CAP, attest_all, bundle, host_metadata,
-    passing_report, raw_stream, reseal, terminal,
-)
+from tests.attestation_fixtures import RecordFactory, reseal, sha
+from tests.fake_external_host import FakeBoundaryError
 
 
-def positive_evaluation():
-    selected, baseline, spec, blind_mapping = bundle()
-    records, raws = attest_all(selected, baseline, spec)
-    evaluation = verify_evaluation(
-        root=ROOT, product=selected, previous_product=baseline, spec=spec,
-        attestations=records, raw_streams=raws, holdout_mapping=blind_mapping,
-        mapping_revealed_at=REVEALED_AT,
-    )
-    return selected, baseline, spec, blind_mapping, records, raws, evaluation
+def evaluation_from(factory: RecordFactory, terminals):
+    holdouts = [terminal for terminal in terminals if terminal.record["stage"] == "holdout"]
+    result = judge_fixed_holdouts(spec=factory.spec, terminals=holdouts, mappings=factory.mappings)
+    return result, verify_evaluation(spec=factory.spec, terminals=terminals, holdout_result=result)
 
 
-class ExternalEvidenceFlowTests(unittest.TestCase):
-    def test_fixed_host_raw_full_chain_positive(self):
-        _, _, spec, _, records, _, result = positive_evaluation()
-        self.assertTrue(result["verified"])
-        self.assertTrue(result["holdout"]["passed"])
-        self.assertEqual(len(records), len(spec["units"]))
-        self.assertEqual(result["usage"]["model_calls"], len(spec["units"]))
+class AuthenticationTests(unittest.TestCase):
+    def test_valid_external_authority_and_terminal_authentication(self):
+        factory = RecordFactory()
+        record = factory.make_attestation("qualification-routing")
+        verified = factory.authenticate(record)
+        self.assertEqual(verified.record, record)
+        self.assertEqual(verified.authenticator_id, factory.boundary.authenticator_id)
 
-    def test_single_authority_rejects_purported_mixed_only_inputs(self):
-        selected, baseline, spec, blind_mapping, records, raws, _ = positive_evaluation()
-        with self.assertRaisesRegex(VerificationError, "mixed|authority"):
-            verify_evaluation(
-                root=ROOT, product=selected, previous_product=baseline,
-                previous_spec=spec, spec=spec, attestations=records,
-                raw_streams=raws, holdout_mapping=blind_mapping,
-                mapping_revealed_at=REVEALED_AT, authority_bindings={},
+    def test_resealed_wrong_authenticator_and_signature_fail(self):
+        for field, value in (("authenticator_id", "forged"), ("signature", "forged")):
+            factory = RecordFactory()
+            record = factory.make_attestation("qualification-routing")
+            forged = reseal(record, lambda body: body["evidence_binding"].__setitem__(field, value))
+            validate_attestation(forged)
+            with self.assertRaises(VerifyError):
+                factory.authenticate(forged)
+
+    def test_resealed_wrong_effect_attempt_and_authority_fail(self):
+        mutations = (
+            lambda body: body.__setitem__("effect_subject_sha256", sha("wrong-effect")),
+            lambda body: (
+                body.__setitem__("attempt", 1),
+                body.__setitem__("attempt_identity_sha256", canonical_sha256({
+                    "effect_subject_sha256": body["effect_subject_sha256"], "attempt": 1,
+                })),
+                body["observation"].__setitem__("recovery_history_sha256", sha("history")),
+            ),
+            lambda body: body.__setitem__("authority_sha256", sha("wrong-authority")),
+        )
+        for mutate in mutations:
+            factory = RecordFactory()
+            record = factory.make_attestation("qualification-routing")
+            forged = reseal(record, mutate)
+            with self.assertRaises((RecordError, VerifyError)):
+                factory.authenticate(forged)
+
+    def test_unissued_authority_is_rejected(self):
+        factory = RecordFactory()
+        record = factory.make_attestation("qualification-routing")
+        authority = deepcopy(factory.evaluation_authority)
+        authority["signature"] = "forged"
+        authority["authority_sha256"] = canonical_sha256({
+            key: authority[key] for key in ("authority_identity", "request_sha256", "signature")
+        })
+        with self.assertRaises(VerifyError):
+            authenticate_attestation(
+                record, spec=factory.spec, provider_input=factory.inputs[record["unit_id"]],
+                response_schema=factory.schemas[record["unit_id"]],
+                oracle=factory.oracles[record["unit_id"]], authenticator=factory.boundary,
+                evaluation_authority_request=factory.evaluation_request,
+                evaluation_authority=authority, authority_validator=factory.boundary,
             )
 
-    def test_forged_terminal_digest_is_rejected(self):
-        _, _, _, _, records, _, _ = positive_evaluation()
-        forged = deepcopy(records[0])
-        forged["terminal"]["input_tokens"] += 1
-        with self.assertRaises(RecordError):
-            validate_record(forged)
 
-    def test_missing_fixed_host_raw_is_rejected(self):
-        selected, baseline, spec, blind_mapping, records, raws, _ = positive_evaluation()
-        raws.pop(records[0]["unit_id"])
-        with self.assertRaises(VerificationError):
-            verify_evaluation(
-                root=ROOT, product=selected, previous_product=baseline, spec=spec,
-                attestations=records, raw_streams=raws, holdout_mapping=blind_mapping,
-                mapping_revealed_at=REVEALED_AT,
+class AttemptSequenceTests(unittest.TestCase):
+    def test_not_landed_then_landed_binds_history_and_cumulative_wall(self):
+        factory = RecordFactory()
+        first = factory.make_attestation(
+            "qualification-routing", outcome="not_landed", wall=7,
+            started_at="2026-08-08T00:00:00Z", finished_at="2026-08-08T00:00:01Z",
+        )
+        second = factory.make_attestation(
+            "qualification-routing", attempt=1, prior=[first], wall=10,
+            started_at="2026-08-08T00:00:01Z", finished_at="2026-08-08T00:00:02Z",
+        )
+        terminal = factory.terminal("qualification-routing", [first, second])
+        self.assertEqual(terminal.attempt_sha256s, (first["record_sha256"], second["record_sha256"]))
+        self.assertEqual(terminal.record["observation"]["effect_cumulative_wall_milliseconds"], 17)
+
+    def test_cumulative_underreport_and_prior_wall_omission_fail(self):
+        for cumulative in (10, 16):
+            factory = RecordFactory()
+            first = factory.make_attestation(
+                "qualification-routing", outcome="not_landed", wall=7,
+                started_at="2026-08-08T00:00:00Z", finished_at="2026-08-08T00:00:01Z",
             )
-
-    def test_terminal_failure_prefix_stops_without_later_calls(self):
-        selected, baseline, spec, _ = bundle()
-        unit = next(item for item in spec["units"] if item["unit_id"] == "goal-divergence")
-        raw = raw_stream(unit, report={"safety": {"goal_closed": True}})
-        record = attestation_from_raw(
-            root=ROOT, product=selected, spec=spec, unit_id=unit["unit_id"],
-            raw=raw, host_metadata=host_metadata(unit), authority_sha256=SHA["a"],
-        )
-        result = verify_evaluation(
-            root=ROOT, product=selected, previous_product=baseline, spec=spec,
-            attestations=[record], raw_streams={unit["unit_id"]: raw},
-        )
-        self.assertFalse(result["verified"])
-        self.assertEqual(result["failures"][0]["unit_id"], "goal-divergence")
-
-    def test_ambiguous_partial_terminal_is_terminal_failure(self):
-        selected, baseline, spec, _ = bundle()
-        unit = next(item for item in spec["units"] if item["unit_id"] == "goal-divergence")
-        partial = terminal(classification="ambiguous_or_partial", complete=False)
-        raw = raw_stream(unit, terminal_value=partial)
-        record = attestation_from_raw(
-            root=ROOT, product=selected, spec=spec, unit_id=unit["unit_id"],
-            raw=raw, host_metadata=host_metadata(unit, terminal_value=partial),
-            authority_sha256=SHA["a"],
-        )
-        result = verify_evaluation(
-            root=ROOT, product=selected, previous_product=baseline, spec=spec,
-            attestations=[record], raw_streams={unit["unit_id"]: raw},
-        )
-        self.assertEqual(result["failures"][0]["classification"], "ambiguous_or_partial")
-
-
-class ScopedAuthorityCompositionTests(unittest.TestCase):
-    def _refresh(self):
-        selected, baseline, previous, mapping = bundle()
-        records, raws = attest_all(selected, baseline, previous)
-        contract = {**previous["host_contract"], "exact_final_sha256": SHA["4"]}
-        _, _, current, _ = bundle(host_contract=contract)
-        prior = [record for record in records if record["unit_id"] != "exact-final"]
-        prior_raws = {key: value for key, value in raws.items() if key != "exact-final"}
-        cap = {**previous["effect_cap"], "model_calls": 1}
-        return selected, baseline, previous, current, mapping, prior, prior_raws, cap
-
-    def test_exact_only_proposal_binds_eleven_raw_backed_green_prerequisites(self):
-        selected, baseline, previous, current, mapping, prior, raws, cap = self._refresh()
-        proposal = exact_final_authority_proposal(
-            root=ROOT, product=selected, previous_product=baseline,
-            previous_spec=previous, spec=current, attestations=prior,
-            raw_streams=raws, holdout_mapping=mapping,
-            mapping_revealed_at=REVEALED_AT, effect_cap=cap,
-        )
-        self.assertEqual(proposal["decision"], "exact_final_only")
-        self.assertEqual(proposal["effect_cap"]["model_calls"], 1)
-        self.assertEqual(len(proposal["prerequisites"]), 11)
-        with self.assertRaises(VerificationError):
-            exact_final_authority_proposal(
-                root=ROOT, product=selected, previous_product=baseline,
-                previous_spec=previous, spec=current, attestations=prior[:-1],
-                raw_streams={key: value for key, value in raws.items() if key != prior[-1]["unit_id"]},
-                holdout_mapping=mapping, mapping_revealed_at=REVEALED_AT,
-                effect_cap=cap,
+            second = factory.make_attestation(
+                "qualification-routing", attempt=1, prior=[first], wall=10,
+                cumulative=cumulative, started_at="2026-08-08T00:00:01Z",
+                finished_at="2026-08-08T00:00:02Z",
             )
-        with self.assertRaises(VerificationError):
-            exact_final_authority_proposal(
-                root=ROOT, product=selected, previous_product=baseline,
-                previous_spec=previous, spec=current, attestations=prior,
-                raw_streams={**raws, prior[0]["unit_id"]: raws[prior[0]["unit_id"]] + b"\n"},
-                holdout_mapping=mapping, mapping_revealed_at=REVEALED_AT,
-                effect_cap=cap,
-            )
-        with self.assertRaisesRegex(VerificationError, "cap"):
-            exact_final_authority_proposal(
-                root=ROOT, product=selected, previous_product=baseline,
-                previous_spec=previous, spec=current, attestations=prior,
-                raw_streams=raws, holdout_mapping=mapping,
-                mapping_revealed_at=REVEALED_AT,
-                effect_cap={**cap, "model_calls": 2},
-            )
+            with self.assertRaises(VerifyError):
+                factory.terminal("qualification-routing", [first, second])
 
-    def test_current_exact_attestation_composes_with_prior_authority(self):
-        selected, baseline, previous, current, mapping, prior, raws, cap = self._refresh()
-        prior_proposal = evaluation_authority_request_payload(previous)
-        prior_supplied = {"scope": "evaluation", "request_sha256": canonical_sha256(prior_proposal), "nonce": "n1", "signature": "s1"}
-        prior_authority = canonical_sha256(prior_supplied)
-        prior = [reseal({**record, "authority_sha256": prior_authority}) for record in prior]
-        proposal = exact_final_authority_proposal(
-            root=ROOT, product=selected, previous_product=baseline,
-            previous_spec=previous, spec=current, attestations=prior,
-            raw_streams=raws, holdout_mapping=mapping,
-            mapping_revealed_at=REVEALED_AT, effect_cap=cap,
-        )
-        self.assertEqual(proposal["decision"], "exact_final_only")
-        exact_supplied = {"scope": "evaluation", "request_sha256": canonical_sha256(proposal), "nonce": "n2", "signature": "s2"}
-        exact_authority = canonical_sha256(exact_supplied)
-        unit = next(item for item in current["units"] if item["unit_id"] == "exact-final")
-        raw = raw_stream(unit)
-        exact = attestation_from_raw(
-            root=ROOT, product=selected, spec=current, unit_id="exact-final",
-            raw=raw, host_metadata=host_metadata(unit), authority_sha256=exact_authority,
-        )
-        with self.assertRaisesRegex(VerificationError, "bindings"):
-            verify_evaluation(
-                root=ROOT, product=selected, previous_product=baseline, spec=current,
-                previous_spec=previous,
-                attestations=[*prior, exact], raw_streams={**raws, "exact-final": raw},
-                holdout_mapping=mapping, mapping_revealed_at=REVEALED_AT,
+    def test_attempts_must_be_contiguous_and_within_recovery_cap(self):
+        factory = RecordFactory(recovery_cap=0)
+        first = factory.make_attestation("qualification-routing", outcome="not_landed")
+        with self.assertRaises(FakeBoundaryError):
+            factory.make_attestation("qualification-routing", attempt=1, prior=[first])
+        with self.assertRaises(VerifyError):
+            verify_effect_sequence([factory.authenticate(first)], spec=factory.spec, unit_id="context-isolation")
+
+    def test_retry_after_landed_or_unknown_fails_across_execution_roots(self):
+        for terminal_outcome in ("landed", "unknown"):
+            first_factory = RecordFactory()
+            first = first_factory.make_attestation(
+                "qualification-routing", outcome=terminal_outcome,
+                execution_root="/external/root-a",
             )
-        result = verify_evaluation(
-            root=ROOT, product=selected, previous_product=baseline, spec=current,
-            previous_spec=previous,
-            attestations=[*prior, exact], raw_streams={**raws, "exact-final": raw},
-            holdout_mapping=mapping, mapping_revealed_at=REVEALED_AT,
-            authority_bindings={
-                prior_authority: {"proposal": prior_proposal, "supplied_authority": prior_supplied},
-                exact_authority: {"proposal": proposal, "supplied_authority": exact_supplied},
-            },
+            with self.assertRaises(FakeBoundaryError):
+                first_factory.make_attestation(
+                    "qualification-routing", attempt=1, prior=[first],
+                    execution_root="/external/root-b",
+                )
+            alternate = RecordFactory()
+            prefix = alternate.make_attestation(
+                "qualification-routing", outcome="not_landed",
+                started_at="2026-08-08T00:00:00Z", finished_at="2026-08-08T00:00:01Z",
+            )
+            later = alternate.make_attestation(
+                "qualification-routing", attempt=1, prior=[prefix],
+                started_at="2026-08-08T00:00:05Z", finished_at="2026-08-08T00:00:06Z",
+            )
+            with self.assertRaises(VerifyError):
+                first_factory.terminal("qualification-routing", [first, later])
+
+    def test_recovered_wall_counts_toward_unit_cap(self):
+        factory = RecordFactory()
+        first = factory.make_attestation(
+            "qualification-routing", outcome="not_landed", wall=600,
+            started_at="2026-08-08T00:00:00Z", finished_at="2026-08-08T00:00:01Z",
         )
-        self.assertTrue(result["verified"])
-        self.assertEqual(result["authority_sha256s"], sorted([prior_authority, exact_authority]))
-        forged_proposal = deepcopy(proposal)
-        forged_proposal["prerequisites"][0]["raw_sha256"] = SHA["f"]
-        forged_supplied = {
-            "scope": "evaluation", "request_sha256": canonical_sha256(forged_proposal),
-            "nonce": "n3", "signature": "s3",
+        second = factory.make_attestation(
+            "qualification-routing", attempt=1, prior=[first], wall=500,
+            started_at="2026-08-08T00:00:01Z", finished_at="2026-08-08T00:00:02Z",
+        )
+        with self.assertRaisesRegex(VerifyError, "unit cumulative"):
+            factory.terminal("qualification-routing", [first, second])
+
+
+class HoldoutTests(unittest.TestCase):
+    def holdouts(self, factory, **candidate_options):
+        terminals = []
+        for unit in factory.spec["units"]:
+            if unit["stage"] != "holdout":
+                continue
+            options = candidate_options if unit["unit_id"].endswith("-a") else {}
+            terminals.append(factory.terminal(unit["unit_id"], [factory.make_attestation(unit["unit_id"], **options)]))
+        return terminals
+
+    def test_all_six_authenticated_landed_required_before_mapping_read(self):
+        factory = RecordFactory()
+        terminals = self.holdouts(factory)
+        with self.assertRaisesRegex(HoldoutError, "six"):
+            judge_fixed_holdouts(spec=factory.spec, terminals=terminals[:-1], mappings=None)
+
+    def test_mapping_commitment_and_pair_concurrency_are_hard(self):
+        factory = RecordFactory(); terminals = self.holdouts(factory)
+        changed = deepcopy(factory.mappings)
+        changed["holdout-safety"] = {
+            "holdout-safety-a": "baseline", "holdout-safety-b": "candidate",
         }
-        forged_authority = canonical_sha256(forged_supplied)
-        forged_exact = reseal({**exact, "authority_sha256": forged_authority})
-        with self.assertRaisesRegex(VerificationError, "prerequisites"):
-            verify_evaluation(
-                root=ROOT, product=selected, previous_product=baseline, spec=current,
-                previous_spec=previous,
-                attestations=[*prior, forged_exact], raw_streams={**raws, "exact-final": raw},
-                holdout_mapping=mapping, mapping_revealed_at=REVEALED_AT,
-                authority_bindings={
-                    prior_authority: {"proposal": prior_proposal, "supplied_authority": prior_supplied},
-                    forged_authority: {"proposal": forged_proposal, "supplied_authority": forged_supplied},
-                },
+        with self.assertRaisesRegex(HoldoutError, "commitment"):
+            judge_fixed_holdouts(spec=factory.spec, terminals=terminals, mappings=changed)
+        factory = RecordFactory(); terminals = []
+        for unit in factory.spec["units"]:
+            if unit["stage"] != "holdout": continue
+            options = {}
+            if unit["unit_id"] == "holdout-recovery-a":
+                options = {"started_at": "2026-08-08T00:00:00Z", "finished_at": "2026-08-08T00:00:01Z"}
+            if unit["unit_id"] == "holdout-recovery-b":
+                options = {"started_at": "2026-08-08T00:00:01Z", "finished_at": "2026-08-08T00:00:02Z"}
+            terminals.append(factory.terminal(unit["unit_id"], [factory.make_attestation(unit["unit_id"], **options)]))
+        with self.assertRaisesRegex(HoldoutError, "concurrent"):
+            judge_fixed_holdouts(spec=factory.spec, terminals=terminals, mappings=factory.mappings)
+
+    def test_token_ratio_is_hard_and_wall_ratio_is_diagnostic(self):
+        factory = RecordFactory()
+        tokens = judge_fixed_holdouts(
+            spec=factory.spec, terminals=self.holdouts(factory, input_tokens=10, output_tokens=10),
+            mappings=factory.mappings,
+        )
+        self.assertFalse(tokens["aggregate"]["token_ratio_within_1_25"])
+        self.assertFalse(tokens["passed"])
+        factory = RecordFactory()
+        wall = judge_fixed_holdouts(
+            spec=factory.spec, terminals=self.holdouts(factory, wall=20), mappings=factory.mappings,
+        )
+        self.assertFalse(wall["aggregate"]["wall_ratio_within_1_25_diagnostic"])
+        self.assertTrue(wall["passed"])
+
+
+class ExactFinalAndEvaluationTests(unittest.TestCase):
+    def test_full_favorable_twelve_unit_path(self):
+        factory = RecordFactory()
+        terminals, result, evaluation = factory.full_evaluation()
+        self.assertEqual(len(terminals), 12)
+        self.assertTrue(result["passed"])
+        self.assertEqual(len(evaluation.result["prerequisite_attestation_sha256s"]), 12)
+        self.assertEqual(evaluation.result["cumulative_effect_wall_milliseconds"], 120)
+
+    def test_missing_duplicate_and_adverse_behavior_terminal_fail(self):
+        factory = RecordFactory(); terminals, result, _ = factory.full_evaluation()
+        for changed in (terminals[:-1], terminals + [terminals[0]]):
+            with self.assertRaises(VerifyError):
+                verify_evaluation(spec=factory.spec, terminals=changed, holdout_result=result)
+        factory = RecordFactory(); terminals = []
+        for unit in UNIT_TOPOLOGY:
+            report = {"ok": False} if unit.unit_id == "qualification-routing" else None
+            terminals.append(factory.terminal(unit.unit_id, [factory.make_attestation(unit.unit_id, report=report)]))
+        holdout, = [judge_fixed_holdouts(
+            spec=factory.spec,
+            terminals=[item for item in terminals if item.record["stage"] == "holdout"],
+            mappings=factory.mappings,
+        )]
+        with self.assertRaisesRegex(VerifyError, "behavior"):
+            verify_evaluation(spec=factory.spec, terminals=terminals, holdout_result=holdout)
+
+    def test_exact_final_starts_strictly_after_all_prior_terminals(self):
+        factory = RecordFactory(); terminals = []
+        for unit in UNIT_TOPOLOGY:
+            options = ({"started_at": "2026-08-08T00:00:04Z", "finished_at": "2026-08-08T00:00:07Z"}
+                       if unit.unit_id == "exact-final" else {})
+            terminals.append(factory.terminal(unit.unit_id, [factory.make_attestation(unit.unit_id, **options)]))
+        holdout = judge_fixed_holdouts(
+            spec=factory.spec,
+            terminals=[item for item in terminals if item.record["stage"] == "holdout"],
+            mappings=factory.mappings,
+        )
+        with self.assertRaisesRegex(VerifyError, "before prior"):
+            verify_evaluation(spec=factory.spec, terminals=terminals, holdout_result=holdout)
+
+    def test_absolute_cap_includes_recovered_wall(self):
+        factory = RecordFactory(absolute_wall=1000); terminals = []
+        for unit in UNIT_TOPOLOGY:
+            if unit.unit_id == "qualification-routing":
+                first = factory.make_attestation(
+                    unit.unit_id, outcome="not_landed", wall=50,
+                    started_at="2026-08-08T00:00:00Z", finished_at="2026-08-08T00:00:01Z",
+                )
+                second = factory.make_attestation(
+                    unit.unit_id, attempt=1, prior=[first], wall=80,
+                    started_at="2026-08-08T00:00:01Z", finished_at="2026-08-08T00:00:02Z",
+                )
+                terminals.append(factory.terminal(unit.unit_id, [first, second]))
+            else:
+                record = factory.make_attestation(unit.unit_id, wall=80)
+                terminals.append(factory.terminal(unit.unit_id, [record]))
+        result = judge_fixed_holdouts(
+            spec=factory.spec,
+            terminals=[item for item in terminals if item.record["stage"] == "holdout"],
+            mappings=factory.mappings,
+        )
+        with self.assertRaisesRegex(VerifyError, "absolute cumulative"):
+            verify_evaluation(spec=factory.spec, terminals=terminals, holdout_result=result)
+
+    def test_malformed_incomplete_not_yet_and_unknown_coverage_are_landed_adverse(self):
+        reports = [{}, {"neutral": True}, RecordFactory().not_yet_report()]
+        unknown = RecordFactory().go_report()
+        unknown["coverage"] = {"complete": False, "unverified": ["required check"]}
+        unknown["decision"] = "NOT_YET"
+        reports.append(unknown)
+        for report in reports:
+            factory = RecordFactory()
+            record = factory.make_attestation("exact-final", report=report)
+            terminal = factory.terminal("exact-final", [record])
+            self.assertEqual(terminal.record["effect_outcome"], "landed")
+            self.assertFalse(terminal.record["assessment"]["passed"])
+            with self.assertRaises(FakeBoundaryError):
+                factory.make_attestation("exact-final", attempt=1, prior=[record], report=factory.go_report())
+
+    def test_style_or_optimization_cannot_be_typed_as_a_blocker(self):
+        factory = RecordFactory()
+        for classification in ("style", "optimization"):
+            report = factory.not_yet_report()
+            report["findings"][0]["classification"] = classification
+            assessment = assess_provider_report(
+                report, stage="exact_final", response_schema=factory.exact_schema,
+                oracle=None, provider_input=factory.inputs["exact-final"],
+            )
+            self.assertEqual(assessment["fatal"], ["malformed_report"])
+
+
+class ReleaseTests(unittest.TestCase):
+    def test_valid_release_uses_separate_authority_and_exact_readback(self):
+        factory = RecordFactory(); _, _, evaluation = factory.full_evaluation()
+        receipt, verified = factory.release(evaluation)
+        self.assertEqual(verified.receipt, receipt)
+        self.assertNotIn(
+            receipt["release_authority_identity"],
+            evaluation.result["evaluation_authority_identities"],
+        )
+
+    def test_signed_destination_product_target_rollback_projection_and_readback_drift_fail(self):
+        mutations = (
+            lambda value: value["observation"].__setitem__("observed_destination", "wrong"),
+            lambda value: value.__setitem__("product_artifact_sha256", sha("wrong-product")),
+            lambda value: value.__setitem__("target_identity", "wrong-target"),
+            lambda value: value.__setitem__("rollback_identity", "wrong-rollback"),
+            lambda value: value.__setitem__("installed_projection", deepcopy(RecordFactory().previous_product["projections"]["plugin_runtime"])),
+        )
+        for mutate in mutations:
+            factory = RecordFactory(); _, _, evaluation = factory.full_evaluation()
+            with self.assertRaises((RecordError, VerifyError)):
+                factory.release(evaluation, mutate_statement=mutate)
+
+    def test_forged_authenticator_and_release_authority_fail(self):
+        factory = RecordFactory(); _, _, evaluation = factory.full_evaluation()
+        receipt, _ = factory.release(evaluation)
+        forged = reseal(
+            receipt, lambda value: value["evidence_binding"].__setitem__("signature", "forged"),
+        )
+        with self.assertRaises(VerifyError):
+            verify_release(
+                forged, evaluation=evaluation, product=factory.product, spec=factory.spec,
+                authenticator=factory.boundary,
+                release_authority={
+                    "authority_identity": receipt["release_authority_identity"],
+                    "request_sha256": receipt["release_authority_request_sha256"],
+                    "signature": "forged", "authority_sha256": receipt["release_authority_sha256"],
+                }, authority_validator=factory.boundary,
             )
 
-    def test_forged_resealed_prior_full_proposal_is_rejected(self):
-        selected, baseline, previous, current, mapping, prior, raws, cap = self._refresh()
-        prior_proposal = evaluation_authority_request_payload(previous)
-        forged_prior = {**prior_proposal, "product_semantic_sha256": SHA["f"]}
-        prior_supplied = {
-            "scope": "evaluation", "request_sha256": canonical_sha256(forged_prior),
-            "nonce": "forged-prior", "signature": "forged-prior",
-        }
-        prior_authority = canonical_sha256(prior_supplied)
-        prior = [reseal({**record, "authority_sha256": prior_authority}) for record in prior]
-        proposal = exact_final_authority_proposal(
-            root=ROOT, product=selected, previous_product=baseline,
-            previous_spec=previous, spec=current, attestations=prior,
-            raw_streams=raws, holdout_mapping=mapping,
-            mapping_revealed_at=REVEALED_AT, effect_cap=cap,
-        )
-        exact_supplied = {
-            "scope": "evaluation", "request_sha256": canonical_sha256(proposal),
-            "nonce": "exact", "signature": "exact",
-        }
-        exact_authority = canonical_sha256(exact_supplied)
-        unit = next(item for item in current["units"] if item["unit_id"] == "exact-final")
-        raw = raw_stream(unit)
-        exact = attestation_from_raw(
-            root=ROOT, product=selected, spec=current, unit_id="exact-final",
-            raw=raw, host_metadata=host_metadata(unit), authority_sha256=exact_authority,
-        )
-        with self.assertRaises(VerificationError):
-            verify_evaluation(
-                root=ROOT, product=selected, previous_product=baseline,
-                previous_spec=previous, spec=current,
-                attestations=[*prior, exact], raw_streams={**raws, "exact-final": raw},
-                holdout_mapping=mapping, mapping_revealed_at=REVEALED_AT,
-                authority_bindings={
-                    prior_authority: {"proposal": forged_prior, "supplied_authority": prior_supplied},
-                    exact_authority: {"proposal": proposal, "supplied_authority": exact_supplied},
-                },
-            )
-
-    def test_exact_only_proposal_rejects_adverse_stale_and_mixed_prerequisites(self):
-        selected, baseline, previous, current, mapping, prior, raws, cap = self._refresh()
-        goal = next(unit for unit in current["units"] if unit["unit_id"] == "goal-divergence")
-        adverse_raw = raw_stream(goal, report={"safety": {"goal_closed": True}})
-        adverse = attestation_from_raw(
-            root=ROOT, product=selected, spec=current, unit_id=goal["unit_id"],
-            raw=adverse_raw, host_metadata=host_metadata(goal), authority_sha256=SHA["a"],
-        )
-        adverse_records = [adverse if item["unit_id"] == goal["unit_id"] else item for item in prior]
-        with self.assertRaises(VerificationError):
-            exact_final_authority_proposal(
-                root=ROOT, product=selected, previous_product=baseline,
-                previous_spec=previous, spec=current, attestations=adverse_records,
-                raw_streams={**raws, goal["unit_id"]: adverse_raw}, holdout_mapping=mapping,
-                mapping_revealed_at=REVEALED_AT, effect_cap=cap,
-            )
-        stale_contract = {
-            **current["host_contract"], "behavior_sha256": SHA["5"],
-            "holdout_sha256": SHA["5"],
-        }
-        _, _, stale, _ = bundle(host_contract=stale_contract)
-        with self.assertRaisesRegex(VerificationError, "invalidation"):
-            exact_final_authority_proposal(
-                root=ROOT, product=selected, previous_product=baseline,
-                previous_spec=previous, spec=stale, attestations=prior,
-                raw_streams=raws, holdout_mapping=mapping,
-                mapping_revealed_at=REVEALED_AT, effect_cap=cap,
-            )
-        with self.assertRaises(VerificationError):
-            exact_final_authority_proposal(
-                root=ROOT, product=selected, previous_product=selected,
-                previous_spec=previous, spec=current, attestations=prior,
-                raw_streams=raws, holdout_mapping=mapping,
-                mapping_revealed_at=REVEALED_AT, effect_cap=cap,
-            )
-
-    def test_authority_acceptance_rejects_unbound_or_broader_selection(self):
-        from evaluation.provider import ProviderError, accept_evaluation_authority
-
-        selected, baseline, previous, current, mapping, prior, raws, cap = self._refresh()
-        proposal = exact_final_authority_proposal(
-            root=ROOT, product=selected, previous_product=baseline,
-            previous_spec=previous, spec=current, attestations=prior,
-            raw_streams=raws, holdout_mapping=mapping,
-            mapping_revealed_at=REVEALED_AT, effect_cap=cap,
-        )
-        for changed in (
-            {**proposal, "prerequisites": []},
-            {**proposal, "decision": "full_evaluation", "effect_cap": {**cap, "model_calls": 2}},
-        ):
-            request = canonical_sha256(changed)
-            supplied = {"scope": "evaluation", "request_sha256": request, "nonce": "n", "signature": "s"}
-            with self.assertRaises(ProviderError):
-                accept_evaluation_authority(current, supplied, lambda _value: True, proposal=changed)
-
-    def test_release_authority_must_differ_from_every_composed_effect(self):
-        selected, _, _, _, _, _, evaluation = positive_evaluation()
-        destination = {"kind": "plugin-cache", "identity_sha256": SHA["b"]}
-        rollback = {"artifact_sha256": SHA["c"], "config_sha256": SHA["d"], "ready": True}
-        request = release_authority_request(
-            product_artifact_sha256=selected["package_artifact_sha256"],
-            attestation_sha256s=evaluation["attestation_sha256s"],
-            destination_sha256=canonical_sha256(destination),
-            rollback_sha256=canonical_sha256(rollback),
-        )
-        capability = accept_release_authority(
-            request, {"scope": "release", "request_sha256": request, "nonce": "n", "signature": "s"},
-            lambda _value: True,
-        )
-        conflict = {**evaluation, "authority_sha256s": [*evaluation["authority_sha256s"], capability.authority_sha256]}
-        install = {"artifact_sha256": selected["package_artifact_sha256"], "install_sha256": SHA["e"], "invocation_sha256": SHA["f"], "status": "success"}
-        with self.assertRaisesRegex(VerificationError, "release"):
-            create_release_receipt(
-                product=selected, evaluation=conflict, isolated_install=install,
-                destination=destination, rollback=rollback, capability=capability,
-            )
-
-
-class FixedHoldoutTests(unittest.TestCase):
-    def test_model_self_scores_are_ignored_in_favor_of_hidden_oracle(self):
-        *_, result = positive_evaluation()
-        self.assertTrue(result["holdout"]["passed"])
-        self.assertTrue(all(pair["candidate_score"] == 2 for pair in result["holdout"]["pairs"]))
-
-    def test_pair_arms_must_overlap(self):
-        selected, baseline, spec, blind_mapping = bundle()
-        records, raws = attest_all(
-            selected, baseline, spec,
-            starts={"holdout-recovery-arm-b": datetime(2026, 8, 2, 0, 0, 31, tzinfo=timezone.utc)},
-        )
-        with self.assertRaises(ValueError):
-            verify_evaluation(
-                root=ROOT, product=selected, previous_product=baseline, spec=spec,
-                attestations=records, raw_streams=raws, holdout_mapping=blind_mapping,
-                mapping_revealed_at="2026-08-02T00:00:45Z",
-            )
-
-    def test_relative_wall_ratio_is_diagnostic_only(self):
-        selected, baseline, spec, blind_mapping = bundle()
-        candidate_units = {
-            unit_id
-            for pair in blind_mapping.values()
-            for unit_id, label in pair.items()
-            if label == "candidate"
-        }
-        exact_start = datetime(2026, 8, 2, 0, 0, 50, tzinfo=timezone.utc)
-        records, raws = [], {}
-        for unit in spec["units"]:
-            arm = selected if unit["product_semantic_sha256"] == selected["package_semantic_sha256"] else baseline
-            start = exact_start if unit["stage"] == "exact_final" else None
-            duration = 20 if unit["unit_id"] in candidate_units else 10
-            raw = raw_stream(unit, start=start, duration_seconds=duration)
-            records.append(attestation_from_raw(
-                root=ROOT, product=arm, spec=spec, unit_id=unit["unit_id"],
-                raw=raw, host_metadata=host_metadata(
-                    unit, start=start, duration_seconds=duration,
-                ), authority_sha256=SHA["a"],
-            ))
-            raws[unit["unit_id"]] = raw
-        result = verify_evaluation(
-            root=ROOT, product=selected, previous_product=baseline, spec=spec,
-            attestations=records, raw_streams=raws, holdout_mapping=blind_mapping,
-            mapping_revealed_at="2026-08-02T00:00:45Z",
-        )
-        self.assertTrue(result["verified"])
-        self.assertTrue(result["holdout"]["passed"])
-        self.assertTrue(result["holdout"]["aggregate"]["token_ratio_within_1_25"])
-        self.assertFalse(result["holdout"]["aggregate"]["wall_ratio_within_1_25"])
-
-    def test_aggregate_token_ratio_is_strict_and_blocks_exact_final(self):
-        selected, baseline, spec, blind_mapping = bundle()
-        expensive = {
-            f"{sample}-arm-a": terminal(input_tokens=20, output_tokens=2)
-            for sample in ("holdout-recovery", "holdout-safety", "holdout-scope")
-        }
-        records, raws = attest_all(selected, baseline, spec, terminals=expensive)
-        with self.assertRaisesRegex(VerificationError, "calls continued after fixed-holdout failure"):
-            verify_evaluation(
-                root=ROOT, product=selected, previous_product=baseline, spec=spec,
-                attestations=records, raw_streams=raws, holdout_mapping=blind_mapping,
-                mapping_revealed_at=REVEALED_AT,
-            )
-
-    def test_absolute_cumulative_wall_cap_is_independently_hard(self):
-        cap = {**TOTAL_CAP, "wall_milliseconds": 119_999}
-        selected, baseline, spec, blind_mapping = bundle(total_cap=cap)
-        records, raws = attest_all(selected, baseline, spec)
-        self.assertTrue(all(record["terminal"]["classification"] == "success" for record in records))
-        self.assertLess(sum(record["terminal"]["input_tokens"] for record in records), cap["input_tokens"])
-        self.assertLess(sum(record["terminal"]["output_tokens"] for record in records), cap["output_tokens"])
-        self.assertEqual(sum(record["terminal"]["wall_milliseconds"] for record in records), 120_000)
-        with self.assertRaisesRegex(VerificationError, "evaluation exceeds effect cap: wall_milliseconds"):
-            verify_evaluation(
-                root=ROOT, product=selected, previous_product=baseline, spec=spec,
-                attestations=records, raw_streams=raws, holdout_mapping=blind_mapping,
-                mapping_revealed_at=REVEALED_AT,
-            )
-
-    def test_aggregate_failure_prefix_is_retained_without_exact_final(self):
-        selected, baseline, spec, blind_mapping = bundle()
-        expensive = {
-            f"{sample}-arm-a": terminal(input_tokens=20, output_tokens=2)
-            for sample in ("holdout-recovery", "holdout-safety", "holdout-scope")
-        }
-        records, raws = attest_all(selected, baseline, spec, terminals=expensive)
-        records = [record for record in records if record["unit_id"] != "exact-final"]
-        raws.pop("exact-final")
-        result = verify_evaluation(
-            root=ROOT, product=selected, previous_product=baseline, spec=spec,
-            attestations=records, raw_streams=raws, holdout_mapping=blind_mapping,
-            mapping_revealed_at=REVEALED_AT,
-        )
-        self.assertFalse(result["verified"])
-        self.assertEqual(result["failures"][0]["unit_id"], "fixed-holdouts")
-
-    def test_baseline_fatal_is_comparison_evidence_not_an_absolute_gate(self):
-        selected, baseline, spec, blind_mapping = bundle()
-        baseline_units = {
-            unit_id
-            for pair in blind_mapping.values()
-            for unit_id, label in pair.items()
-            if label == "baseline"
-        }
-        reports = {
-            unit_id: {
-                "decision": {"safe": False}, "coverage": {"complete": True},
-                "identity": {"bound": True}, "quality_score": 0,
-                "fatal_invariants": [],
-            }
-            for unit_id in baseline_units
-        }
-        records, raws = attest_all(selected, baseline, spec, reports=reports)
-        result = verify_evaluation(
-            root=ROOT, product=selected, previous_product=baseline, spec=spec,
-            attestations=records, raw_streams=raws, holdout_mapping=blind_mapping,
-            mapping_revealed_at=REVEALED_AT,
-        )
-        self.assertTrue(result["verified"])
-        self.assertTrue(result["holdout"]["passed"])
-        self.assertTrue(all(not pair["baseline_absolute_passed"] for pair in result["holdout"]["pairs"]))
-
-    def test_candidate_fatal_returns_a_failed_unified_judgment(self):
-        selected, baseline, spec, blind_mapping = bundle()
-        candidate_units = {
-            unit_id
-            for pair in blind_mapping.values()
-            for unit_id, label in pair.items()
-            if label == "candidate"
-        }
-        reports = {
-            unit_id: {
-                "decision": {"safe": False}, "coverage": {"complete": True},
-                "identity": {"bound": True}, "quality_score": 0,
-                "fatal_invariants": [],
-            }
-            for unit_id in candidate_units
-        }
-        records, raws = attest_all(selected, baseline, spec, reports=reports)
-        records = [record for record in records if record["unit_id"] != "exact-final"]
-        raws.pop("exact-final")
-        result = verify_evaluation(
-            root=ROOT, product=selected, previous_product=baseline, spec=spec,
-            attestations=records, raw_streams=raws, holdout_mapping=blind_mapping,
-            mapping_revealed_at=REVEALED_AT,
-        )
-        self.assertFalse(result["verified"])
-        self.assertFalse(result["holdout"]["passed"])
-        self.assertTrue(all(not pair["candidate_absolute_passed"] for pair in result["holdout"]["pairs"]))
-        self.assertEqual(result["failures"], [
-            {"unit_id": "fixed-holdouts", "classification": "quality_failure", "verdict": "fail"}
-        ])
-
-
-class ExactFinalAndReleaseTests(unittest.TestCase):
-    def test_adverse_exact_final_is_durable_and_one_shot(self):
-        selected, baseline, spec, _ = bundle()
-        unit = next(item for item in spec["units"] if item["unit_id"] == "exact-final")
-        report = passing_report(unit)
-        report["decision"] = "NOT_YET"
-        raw = raw_stream(unit, report=report)
-        adverse = attestation_from_raw(
-            root=ROOT, product=selected, spec=spec, unit_id="exact-final", raw=raw,
-            host_metadata=host_metadata(unit), authority_sha256=SHA["a"],
-        )
-        self.assertEqual(adverse["verdict"], "fail")
-        _, _, _, _, friendly_records, _, _ = positive_evaluation()
-        friendly = next(item for item in friendly_records if item["unit_id"] == "exact-final")
-        with self.assertRaisesRegex(VerificationError, "duplicate"):
-            verify_evaluation(
-                root=ROOT, product=selected, previous_product=bundle()[1], spec=spec,
-                attestations=[adverse, friendly],
-                raw_streams={"exact-final": raw},
-            )
-
-    def test_behavior_replay_reuses_frozen_external_observation(self):
-        _, _, old_spec, _, records, raws, _ = positive_evaluation()
-        parent = next(item for item in records if item["unit_id"] == "goal-divergence")
-        units = deepcopy(old_spec["units"])
-        next(unit for unit in units if unit["unit_id"] == "goal-divergence")["oracle_sha256"] = SHA["b"]
-        new_spec = build_eval_spec(
-            product_semantic_sha256=old_spec["product_semantic_sha256"],
-            external_role_config_sha256=old_spec["external_role_config_sha256"],
-            evaluator_bundle_sha256=old_spec["evaluator_bundle_sha256"],
-            provider_component_sha256=old_spec["provider_component_sha256"],
-            oracle_component_sha256=SHA["c"],
-            harness_component_sha256=old_spec["harness_component_sha256"],
-            manifest_sha256=old_spec["manifest_sha256"], fixtures_sha256=old_spec["fixtures_sha256"],
-            oracles_sha256=SHA["d"], neutral_review_brief_sha256=old_spec["neutral_review_brief_sha256"],
-            response_schemas_sha256=old_spec["response_schemas_sha256"],
-            host_contract=old_spec["host_contract"], host_contract_sha256=old_spec["host_contract_sha256"],
-            profiles=old_spec["profiles"], units=units, holdouts=old_spec["holdouts"],
-            effect_cap=old_spec["effect_cap"], token_qualification=old_spec["token_qualification"],
-            previous_product_artifact_sha256=old_spec["previous_product_artifact_sha256"],
-        )
-        replay = replay_attestation(
-            parent=parent, spec=new_spec, oracle=lambda _report: (True, []),
-        )
-        self.assertEqual(replay["observation"]["raw_events_sha256"], parent["observation"]["raw_events_sha256"])
-        self.assertEqual(replay["terminal"], parent["terminal"])
-        self.assertEqual(replay["observation"]["parent_attestation_sha256"], parent["record_sha256"])
-
-    def _release_fixture(self):
-        selected, _, _, _, _, _, evaluation = positive_evaluation()
-        destination = {"kind": "plugin-cache", "identity_sha256": SHA["b"]}
-        rollback = {"artifact_sha256": SHA["c"], "config_sha256": SHA["d"], "ready": True}
-        request = release_authority_request(
-            product_artifact_sha256=selected["package_artifact_sha256"],
-            attestation_sha256s=evaluation["attestation_sha256s"],
-            destination_sha256=canonical_sha256(destination), rollback_sha256=canonical_sha256(rollback),
-        )
-        capability = accept_release_authority(
-            request, {"scope": "release", "request_sha256": request, "nonce": "n", "signature": "s"},
-            lambda _value: True,
-        )
-        install = {"artifact_sha256": selected["package_artifact_sha256"], "install_sha256": SHA["e"], "invocation_sha256": SHA["f"], "status": "success"}
-        receipt = create_release_receipt(
-            product=selected, evaluation=evaluation, isolated_install=install,
-            destination=destination, rollback=rollback, capability=capability,
-        )
-        return selected, evaluation, destination, rollback, receipt
-
-    def test_release_receipt_binds_install_destination_and_rollback(self):
-        selected, evaluation, destination, rollback, receipt = self._release_fixture()
-        self.assertTrue(verify_release(product=selected, evaluation=evaluation, receipt=receipt, destination=destination, rollback=rollback)["verified"])
-        with self.assertRaises(VerificationError):
-            verify_release(product=selected, evaluation=evaluation, receipt=receipt, destination={**destination, "identity_sha256": SHA["1"]}, rollback=rollback)
+    def test_not_landed_and_unknown_release_never_verify(self):
+        for outcome in ("not_landed", "unknown"):
+            factory = RecordFactory(); _, _, evaluation = factory.full_evaluation()
+            with self.assertRaises(VerifyError):
+                factory.release(evaluation, outcome=outcome)
 
 
 if __name__ == "__main__":
