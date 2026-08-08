@@ -12,15 +12,10 @@ Keep this file static. Use native plans, Git, tests, and tools for live state.
 
 ## Envelope
 
-- Paths and resources: `<exact mutable set>`
-- Allowed effects: `<local and external effects>`
+- Workspace or project boundary: `<active workspace and explicit exclusions>`
+- External resources and effects: `<systems, destinations, costs, and caps>`
 - Preservation: `<behavior, data, identity, and state to keep>`
 - Exclusions: `<explicit non-goals and forbidden effects>`
-- Authority: one approval covers this Outcome, scope, and effect envelope.
-
-Re-ask only if the Outcome, paths/resources, baseline/allowed break,
-trust/dependency/credential boundary, external destination/effect,
-destructive/irreversible action, or cost/model cap expands.
 
 ## Baseline and allowed breaks
 
@@ -46,8 +41,8 @@ of copying it.
 - Checks: `<focused real paths, cumulative suite, diff/state checks>`
 - Done: `<observable completion conditions>`
 
-Account for staged, unstaged, and untracked paths, external effects, skipped
-checks, and required unverified facts.
+Derive changed paths from Git. Account for staged, unstaged, and untracked
+paths, external effects, skipped checks, and required unverified facts.
 
 ## Stops and recovery
 

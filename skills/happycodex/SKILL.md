@@ -26,7 +26,8 @@ Copy `references/execplan.md` to the repository policy path or
 `docs/execplans/<task-slug>.md`. Keep exactly one plan for the task. Record only:
 
 - the verbatim request and normalized Outcome;
-- allowed paths, resources, effects, preservation, and exclusions;
+- the workspace or project boundary, external resources and effects,
+  preservation, and exclusions;
 - baseline failures and allowed breaks;
 - checks, done conditions, stop conditions, and recovery steps; and
 - an optional design decision when the work creates a durable external
@@ -34,30 +35,25 @@ Copy `references/execplan.md` to the repository policy path or
 
 Do not use a separate PRD or `run.md` as a HappyCodex control record. A durable
 product-design deliverable for an independent consumer may remain an explicitly
-scoped product artifact. Keep Outcome, scope, and effect authority in the one
-ExecPlan; record only the selected boundary and artifact link, never its full
-text. Do not store grant history, mutable NOW state, phase history, prompt
-digests, self-authored authority receipts, or review history. Reconstruct live
-state from Git, tests, tools, and the native plan. Keep evaluator or maintenance
-bytes outside product guidance.
+scoped product artifact. Keep Outcome, workspace, and external-effect
+boundaries in the one ExecPlan; record only the selected boundary and artifact
+link, never its full text. Do not store mutable NOW state, phase history, prompt
+digests, or review history. Reconstruct live state from Git, tests, tools, and
+the native plan. Keep evaluator or maintenance bytes outside product guidance.
 
-## Respect authority and effects
+## Use native permissions and bound effects
 
-Treat one user approval as authority for the frozen Outcome, scope, and effect
-envelope. Perform already-authorized reversible local edits, tests, refactors,
-and fixes without asking again. Interpret “continue” or “execute” as resuming
-the sole unambiguous paused action only when its envelope is unchanged.
+Use native Codex permissions; do not model or repeat them in HappyCodex. Within
+the active workspace, perform reversible work needed for the Outcome and derive
+changed paths from Git at closure. An allowed capability does not add work
+outside the user's request.
 
-Ask again only before changing the Outcome; expanding the path or resource set;
-accepting a new baseline failure or allowed break; expanding trust, credential,
-or dependency boundaries; adding or changing an external destination or
-effect; authorizing a destructive or irreversible action; or raising the cost
-or model cap. An explicitly requested Goal tracks progress; it never grants
-authority.
+If completion requires a materially different Outcome or an unrequested
+external, destructive, or costly effect, return that decision to the user.
 
 Never persist secrets or raw events in product bytes. If durability is required
 while commits are forbidden, keep the index untouched and stop until the user
-selects an approved reachable ref, content-addressed archive, or other durable
+selects a reachable ref, content-addressed archive, or other durable
 location. Never claim durability from an uncommitted working tree alone.
 
 Attempt each external effect once. Retry only after proving the prior attempt
@@ -75,8 +71,8 @@ specific models, effort levels, host handles, or optional telemetry.
 
 After compaction, reread the whole ExecPlan, inspect live Git and external
 state, identify every owned change, and rerun the checks needed to recover
-current facts. Treat summaries as hints, not authority or state. Stop on path,
-source, index, effect, or trust-boundary drift.
+current facts. Treat summaries as hints, not authority or state. Stop on
+workspace, source, index, effect, or trust-boundary drift.
 
 Run focused real-path checks during implementation and the cumulative relevant
 suite before closure. Report accepted baseline failures exactly; never call a
@@ -99,8 +95,8 @@ unfrozen tests, or unrelated pre-existing issues.
 
 A reproduced in-envelope blocker may trigger one coherent repair and one fresh
 replacement final review. After that, any blocker or required unknown stops and
-returns to the user. Reviews cannot change review rules, expand scope, create
-new obligations, grant write authority, or justify reruns of unchanged bytes.
+returns to the user. Reviews cannot change the Outcome or envelope, create new
+obligations, or justify reruns of unchanged bytes.
 
 ## Close truthfully
 
@@ -108,4 +104,4 @@ Finish only when the Outcome and preservation rules hold, required real paths
 pass, accepted failures are unchanged, all dirt and effects are accounted for,
 and no required unknown remains. Disclose skipped or unverified gates and
 out-of-envelope uncertainty. Do not infer publication, installation,
-activation, or other external success without its own authorized receipt.
+activation, or other external success without direct verification.

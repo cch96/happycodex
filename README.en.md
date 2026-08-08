@@ -37,8 +37,9 @@ Use $happycodex:happycodex for this high-risk cross-system change.
   control PRD or `run.md`. A durable product-design deliverable for an
   independent consumer may be an explicitly scoped product artifact; link its
   selected boundary from the ExecPlan instead of copying it.
-- One user approval covers the frozen Outcome, scope, and effect envelope. Do
-  not re-ask for reversible in-envelope local fixes; ask when a boundary grows.
+- Native Codex sandboxing and approvals own technical permissions; the user's
+  request defines intent. HappyCodex does not model or repeat those permissions.
+  Reversible work needed for the Outcome proceeds in the active workspace.
 - Require one writer at a time only for overlapping mutable paths or resources.
   One agent may write directly; other agents participate read-only when useful.
 - Default to no review for reversible local work. Use at most one pre-challenge
@@ -50,15 +51,14 @@ Use $happycodex:happycodex for this high-risk cross-system change.
 - Keep secrets and raw events out of product bytes. Report baseline failures,
   skipped checks, workspace dirt, and required facts that remain `unverified`.
 
-The ExecPlan stores only the request, Outcome, path/resource/effect envelope,
-baseline and allowed breaks, an optional design decision, checks, done and stop
-conditions, and recovery. After compaction, reconstruct current facts from the
-plan, Git, tests, and tools—never from grant history, a mutable snapshot, or a
-reconciliation latch.
+The ExecPlan stores only the request, Outcome, workspace or project boundary,
+external resources and effects, baseline and allowed breaks, an optional design
+decision, checks, done and stop conditions, and recovery. After compaction,
+reconstruct current facts from the plan, Git, tests, and tools—never from a
+mutable snapshot, phase history, or a reconciliation latch.
 
 HappyCodex is portable, zero-config, and model-agnostic. It requires no custom
-agent, pinned model, or pinned reasoning effort. Use Goal only when explicitly
-requested; Goal cannot create authority.
+agent, pinned model, or pinned reasoning effort.
 
 [See GitHub Releases for published versions and verification status.](https://github.com/cch96/happycodex/releases)
 

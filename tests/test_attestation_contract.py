@@ -95,6 +95,20 @@ class RepositoryContractTests(unittest.TestCase):
         )
         self.assertFalse((root / "scripts").exists())
 
+    def test_product_delegates_permissions_to_native_codex(self):
+        skill = read("skills/happycodex/SKILL.md")
+        template = read("skills/happycodex/references/execplan.md")
+        normalized_skill = " ".join(skill.split())
+        self.assertIn("Use native Codex permissions", normalized_skill)
+        self.assertIn("do not model or repeat them in HappyCodex", normalized_skill)
+        self.assertIn("derive changed paths from Git at closure", normalized_skill)
+        self.assertNotIn("Ask again only", skill)
+        self.assertNotIn("per-path approval", skill)
+        self.assertNotIn("grant history", skill)
+        self.assertNotIn("Re-ask only", template)
+        self.assertNotIn("exact mutable set", template)
+        self.assertIn("Workspace or project boundary", template)
+
     def test_product_guidance_is_isolated_from_evaluator_maintenance(self):
         skill = read("skills/happycodex/SKILL.md")
         self.assertNotIn("evaluation/", skill)
