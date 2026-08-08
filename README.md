@@ -36,8 +36,10 @@ Use $happycodex:happycodex for this high-risk cross-system change.
   artifact；ExecPlan 只记录选定边界和路径，不复制全文。
 - Codex 原生沙盒和批准策略负责技术权限，用户请求界定任务意图；HappyCodex 不
   建模或重复这些权限。当前 workspace 内完成 Outcome 所需的可逆修改默认继续。
-- 只有重叠的可变路径或资源要求同一时刻一个 writer；单 agent 可以直接写入，
-  其他 agent 仅在能改变决策时只读参与。
+- 只有重叠的可变路径或资源要求同一时刻一个 writer；单 agent 可以直接写入。大
+  范围只读探索若至少有两个独立、可界定且不共享写入的证据通道，并行能实质降低
+  延迟、上下文污染或决策不确定性，则主动启动 2–3 个原生只读 agent；否则保持
+  单 agent。主 agent 分配互不重叠的问题、保持一层委派，并在行动前复核承重证据。
 - 本地可逆工作默认不评审。难以逆转的架构决策最多一次前置 challenge；公共、
   外部、不可逆或高风险 candidate 最多一次 blocker-only 终审。
 - 外部 effect 只尝试一次。只有证明上次没有产生 effect 才能重试；partial 或

@@ -109,6 +109,25 @@ class RepositoryContractTests(unittest.TestCase):
         self.assertNotIn("exact mutable set", template)
         self.assertIn("Workspace or project boundary", template)
 
+    def test_product_proactively_delegates_bounded_read_heavy_work(self):
+        skill = " ".join(read("skills/happycodex/SKILL.md").split())
+        zh = " ".join(read("README.md").split())
+        en = " ".join(read("README.en.md").split())
+        self.assertIn(
+            "proactively delegate to two or three native read-only agents",
+            skill,
+        )
+        self.assertIn("at least two independent evidence lanes", skill)
+        self.assertIn(
+            "parallel work materially reduces latency, context pollution, or decision uncertainty",
+            skill,
+        )
+        self.assertIn("Keep delegation one level deep", skill)
+        self.assertIn("Do not auto-delegate bounded serial work", skill)
+        self.assertIn("continue in the primary agent and disclose that fact", skill)
+        self.assertIn("主动启动 2–3 个原生只读 agent", zh)
+        self.assertIn("proactively start two or three native read-only agents", en)
+
     def test_product_guidance_is_isolated_from_evaluator_maintenance(self):
         skill = read("skills/happycodex/SKILL.md")
         self.assertNotIn("evaluation/", skill)

@@ -41,7 +41,12 @@ Use $happycodex:happycodex for this high-risk cross-system change.
   request defines intent. HappyCodex does not model or repeat those permissions.
   Reversible work needed for the Outcome proceeds in the active workspace.
 - Require one writer at a time only for overlapping mutable paths or resources.
-  One agent may write directly; other agents participate read-only when useful.
+  One agent may write directly. Before substantial read-heavy exploration,
+  proactively start two or three native read-only agents only when at least two
+  independent bounded lanes need no shared write and parallelism materially
+  reduces latency, context pollution, or decision uncertainty. The primary
+  agent assigns non-overlapping questions, keeps delegation one level deep,
+  and verifies load-bearing evidence before acting; otherwise stay single-agent.
 - Default to no review for reversible local work. Use at most one pre-challenge
   for hard-to-reverse architecture and one blocker-only final review for a
   public, external, irreversible, or otherwise high-risk candidate.

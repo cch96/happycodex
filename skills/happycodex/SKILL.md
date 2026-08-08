@@ -62,12 +62,27 @@ inspect read-only state, and return the exact uncertainty to the user. Do not
 add a latch, recovery controller, compatibility reader, migration, or dual
 write to encode that stop.
 
-## Write and recover simply
+## Delegate read-heavy work proportionately
 
 Allow only one writer at a time for overlapping mutable paths or resources. A
-single agent may write directly. Use additional agents read-only when their
-independent evidence can change a decision; do not require custom agents,
-specific models, effort levels, host handles, or optional telemetry.
+single agent may write directly. Before substantial read-heavy exploration,
+proactively delegate to two or three native read-only agents only when all of
+these hold:
+
+- the task has at least two independent evidence lanes;
+- each lane can return a bounded result without shared mutable writes; and
+- parallel work materially reduces latency, context pollution, or decision
+  uncertainty.
+
+Freeze the scope first, assign non-overlapping questions, wait for every
+required result, and reproduce or directly inspect load-bearing evidence before
+acting. Keep delegation one level deep. Do not auto-delegate bounded serial
+work, approval-bound work, external effects, or lanes that require overlapping
+writes. If native agents are unavailable, continue in the primary agent and
+disclose that fact. Do not require custom agents, specific models, effort
+levels, host handles, or optional telemetry.
+
+## Recover from compaction
 
 After compaction, reread the whole ExecPlan, inspect live Git and external
 state, identify every owned change, and rerun the checks needed to recover
