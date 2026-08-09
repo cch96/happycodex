@@ -1,7 +1,7 @@
 {
   "name": "happycodex",
-  "version": "0.10.0",
-  "description": "Portable reliability guidance for high-risk Codex work with bounded change, native context isolation, and truthful effects.",
+  "version": "0.11.0",
+  "description": "Portable reliability guidance for high-risk Codex work with static boundaries, boundary-routed native readers and workers, and truthful effects.",
   "author": {
     "name": "caichenghang",
     "url": "https://github.com/cch96"
@@ -25,7 +25,7 @@
   "interface": {
     "displayName": "HappyCodex",
     "shortDescription": "Reliable boundaries for risky Codex work",
-    "longDescription": "Use one static ExecPlan, native context isolation, consumer-native candidate identity, terminal review, and truthful effect observation.",
+    "longDescription": "Use one static ExecPlan, boundary-routed native readers and workers, consumer-native candidate identity, terminal review, and truthful effect observation.",
     "developerName": "caichenghang",
     "category": "Productivity",
     "capabilities": [

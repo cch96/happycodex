@@ -63,31 +63,99 @@
         "context": {
           "type": "object",
           "properties": {
-            "lanes": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
+            "scenarios": {
+              "type": "object",
+              "properties": {
+                "judgment_core": {
+                  "type": "string",
+                  "enum": [
+                    "exact_artifact_under_semantic_evaluation"
+                  ]
+                },
+                "focused_verification": {
+                  "type": "string",
+                  "enum": [
+                    "small_exact_metadata_comparison"
+                  ]
+                },
+                "stable_large_supporting_evidence": {
+                  "type": "string",
+                  "enum": [
+                    "stable_question_bound_supporting_body"
+                  ]
+                },
+                "independent_evidence_bodies": {
+                  "type": "string",
+                  "enum": [
+                    "independent_with_material_concurrency_benefit"
+                  ]
+                },
+                "external_challenge_or_review": {
+                  "type": "string",
+                  "enum": [
+                    "bounded_assigned_question"
+                  ]
+                },
+                "stable_substantial_implementation": {
+                  "type": "string",
+                  "enum": [
+                    "stable_ownership_and_done_evidence"
+                  ]
+                },
+                "small_coherent_correction": {
+                  "type": "string",
+                  "enum": [
+                    "bounded_small_coherent_edit"
+                  ]
+                },
+                "agent_unavailable_or_failed": {
+                  "type": "string",
+                  "enum": [
+                    "native_agent_unavailable_or_failed"
+                  ]
+                },
+                "overlapping_mutable_paths": {
+                  "type": "string",
+                  "enum": [
+                    "mutable_paths_overlap"
+                  ]
+                }
+              },
+              "required": [
+                "judgment_core",
+                "focused_verification",
+                "stable_large_supporting_evidence",
+                "independent_evidence_bodies",
+                "external_challenge_or_review",
+                "stable_substantial_implementation",
+                "small_coherent_correction",
+                "agent_unavailable_or_failed",
+                "overlapping_mutable_paths"
+              ],
+              "additionalProperties": false
             }
           },
           "required": [
-            "lanes"
+            "scenarios"
           ],
           "additionalProperties": false
         },
         "workspace": {
           "type": "object",
           "properties": {
-            "native_readers_available": {
-              "type": "boolean"
+            "remaining_context": {
+              "type": "string",
+              "enum": [
+                "ample"
+              ]
             },
-            "shared_writes": {
+            "context_offload_requires_parallelism": {
               "type": "boolean"
             }
           },
           "required": [
-            "native_readers_available",
-            "shared_writes"
+            "remaining_context",
+            "context_offload_requires_parallelism"
           ],
           "additionalProperties": false
         },
@@ -409,38 +477,98 @@
     "context-isolation": {
       "type": "object",
       "properties": {
-        "noisy_log_lane": {
+        "judgment_core": {
           "type": "string",
           "enum": [
-            "root_direct",
-            "one_offload_lane",
-            "parallel_read_lanes"
+            "primary_direct",
+            "one_read_only_agent_before_primary_ingestion",
+            "one_worker_before_primary_editing"
           ]
         },
-        "independent_source_lanes": {
+        "focused_verification": {
           "type": "string",
           "enum": [
-            "root_direct",
-            "one_offload_lane",
-            "parallel_read_lanes"
+            "primary_direct",
+            "one_read_only_agent_before_primary_ingestion",
+            "one_worker_before_primary_editing"
           ]
         },
-        "shared_write_policy": {
+        "stable_large_supporting_evidence": {
+          "type": "string",
+          "enum": [
+            "primary_direct",
+            "one_read_only_agent_before_primary_ingestion",
+            "parallel_read_only_agents_only_when_materially_helpful"
+          ]
+        },
+        "independent_evidence_bodies": {
+          "type": "string",
+          "enum": [
+            "primary_direct",
+            "one_read_only_agent_before_primary_ingestion",
+            "parallel_read_only_agents_only_when_materially_helpful"
+          ]
+        },
+        "external_challenge_or_review": {
+          "type": "string",
+          "enum": [
+            "assigned_question_only",
+            "all_available_context",
+            "full_outcome_review"
+          ]
+        },
+        "stable_substantial_implementation": {
+          "type": "string",
+          "enum": [
+            "primary_direct",
+            "one_worker_before_primary_editing",
+            "parallel_workers"
+          ]
+        },
+        "small_coherent_correction": {
+          "type": "string",
+          "enum": [
+            "primary_direct",
+            "one_worker_before_primary_editing",
+            "parallel_workers"
+          ]
+        },
+        "agent_unavailable_or_failed": {
+          "type": "string",
+          "enum": [
+            "state_fallback_before_primary_direct_work",
+            "silent_primary_replay",
+            "stop_without_fallback"
+          ]
+        },
+        "overlapping_mutable_paths": {
           "type": "string",
           "enum": [
             "single_writer_per_overlap",
-            "parallel_writers"
+            "parallel_writers",
+            "uncoordinated_writers"
           ]
         },
-        "context_parallelism_separate": {
-          "type": "boolean"
+        "context_offload_relation": {
+          "type": "string",
+          "enum": [
+            "independent_of_parallelism",
+            "requires_parallelism",
+            "requires_low_remaining_context"
+          ]
         }
       },
       "required": [
-        "noisy_log_lane",
-        "independent_source_lanes",
-        "shared_write_policy",
-        "context_parallelism_separate"
+        "judgment_core",
+        "focused_verification",
+        "stable_large_supporting_evidence",
+        "independent_evidence_bodies",
+        "external_challenge_or_review",
+        "stable_substantial_implementation",
+        "small_coherent_correction",
+        "agent_unavailable_or_failed",
+        "overlapping_mutable_paths",
+        "context_offload_relation"
       ],
       "additionalProperties": false
     },

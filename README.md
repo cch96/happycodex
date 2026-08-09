@@ -31,8 +31,12 @@ Use $happycodex:happycodex for this high-risk cross-system change.
 
 - ExecPlan 只保存静态请求、Outcome、修改边界、消费者、effect、检查和停止条件；
   live state 始终从 Git、测试和工具重新推导。
-- 上下文隔离与并行是两件事：一个噪声通道可以只派一个原生只读 agent；只有独立
-  通道才按需并行。较大实现优先使用一个原生 worker，重叠资源始终只有一个 writer。
+- 按稳定边界路由：Primary 保留判断核心和未决问题，并直接完成一次聚焦核验。仅当
+  稳定问题要求搜索、摘要、比较或筛选辅助证据体时，才在 Primary 读取正文前交给
+  一个原生只读 agent；所有权和 Done 证据稳定后，较大实现则在编辑前交给一个原生
+  worker。小而完整的修正可直接完成；challenge 或 review 只覆盖已分配问题，agent
+  fallback 要在直接处理前说明。上下文卸载不要求并行或低剩余上下文；仅在独立证据
+  体并发确有帮助时增加 agent，重叠资源始终只有一个 writer。
 - 中断或压缩后先确认旧 writer 不会恢复，再完整重读计划并重建 Git、candidate 和
   effect 事实。
 - candidate 使用消费者原生的不可变身份冻结，例如 Git tree、package、image 或

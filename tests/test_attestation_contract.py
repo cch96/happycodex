@@ -13,7 +13,8 @@ from evaluation.identity import (
     review_projection_from_git, validate_review_projection,
 )
 from evaluation.manifest import (
-    ManifestError, build_production_spec, qualified_evaluation_authority_request,
+    ManifestError, build_production_spec, load_production_inputs,
+    qualified_evaluation_authority_request,
 )
 from evaluation.policy import PROJECTION_NAMES, UNIT_TOPOLOGY
 from evaluation.records import RecordError, build_eval_spec, validate_eval_spec
@@ -186,10 +187,10 @@ class ReviewProjectionTests(unittest.TestCase):
 
 
 class PublicContractTests(unittest.TestCase):
-    def test_public_metadata_and_templates_are_v010_and_bounded(self):
+    def test_public_metadata_and_templates_are_v011_and_bounded(self):
         plugin = json.loads((ROOT / ".codex-plugin/plugin.json").read_text())
         marketplace = json.loads((ROOT / ".agents/plugins/marketplace.json").read_text())
-        self.assertEqual(plugin["version"], "0.10.0")
+        self.assertEqual(plugin["version"], "0.11.0")
         self.assertEqual(plugin["name"], marketplace["plugins"][0]["name"])
         self.assertEqual(plugin["skills"], "./skills/")
         skill = (ROOT / "skills/happycodex/SKILL.md").read_text()
@@ -198,6 +199,58 @@ class PublicContractTests(unittest.TestCase):
         self.assertLessEqual(len((ROOT / "skills/happycodex/references/execplan.md").read_text().splitlines()), 80)
         self.assertLessEqual(len((ROOT / "README.md").read_text().splitlines()), 80)
         self.assertLessEqual(len((ROOT / "README.en.md").read_text().splitlines()), 80)
+
+    def test_boundary_routing_contract_is_closed_and_consistent(self):
+        inputs = load_production_inputs(ROOT)
+        case = inputs["cases"]["core"]["context-isolation"]
+        oracle = inputs["oracles"]["core"]["context-isolation"]
+        input_schema = inputs["schemas"]["provider_inputs"]["context-isolation"]
+        schema = inputs["schemas"]["provider_outputs"]["context-isolation"]
+        answers = {
+            "judgment_core": "primary_direct",
+            "focused_verification": "primary_direct",
+            "stable_large_supporting_evidence": "one_read_only_agent_before_primary_ingestion",
+            "independent_evidence_bodies": "parallel_read_only_agents_only_when_materially_helpful",
+            "external_challenge_or_review": "assigned_question_only",
+            "stable_substantial_implementation": "one_worker_before_primary_editing",
+            "small_coherent_correction": "primary_direct",
+            "agent_unavailable_or_failed": "state_fallback_before_primary_direct_work",
+            "overlapping_mutable_paths": "single_writer_per_overlap",
+            "context_offload_relation": "independent_of_parallelism",
+        }
+        scenario_fields = tuple(key for key in answers if key != "context_offload_relation")
+        self.assertEqual(tuple(case["context"]["scenarios"]), scenario_fields)
+        self.assertEqual(case["workspace"], {
+            "remaining_context": "ample", "context_offload_requires_parallelism": False,
+        })
+        self.assertEqual(oracle["fatal"], answers)
+        self.assertEqual(oracle["quality"], {
+            "stable_large_supporting_evidence": answers["stable_large_supporting_evidence"],
+            "stable_substantial_implementation": answers["stable_substantial_implementation"],
+            "context_offload_relation": answers["context_offload_relation"],
+        })
+        scenario_schema = input_schema["properties"]["context"]["properties"]["scenarios"]
+        self.assertEqual(tuple(scenario_schema["properties"]), scenario_fields)
+        self.assertEqual(scenario_schema["required"], list(scenario_fields))
+        self.assertFalse(scenario_schema["additionalProperties"])
+        self.assertEqual(tuple(schema["properties"]), tuple(answers))
+        self.assertEqual(schema["required"], list(answers))
+        routing_bytes = json.dumps(
+            {"case": case, "oracle": oracle, "schema": schema}, sort_keys=True,
+        )
+        self.assertNotIn("one_offload_lane", routing_bytes)
+        self.assertNotIn("parallel_read_lanes", routing_bytes)
+        skill = " ".join((ROOT / "skills/happycodex/SKILL.md").read_text().split())
+        for phrase in (
+            "## Route work by boundary",
+            "keep one focused verification direct",
+            "requires a supporting body to be searched, summarized, compared, or filtered",
+            "before the Primary ingests",
+            "send substantial implementation to one native worker before editing",
+            "Keep a small coherent correction direct",
+            "state the fallback before the Primary",
+        ):
+            self.assertIn(phrase, skill)
 
     def test_published_v065_skill_tree_is_exact(self):
         observed = subprocess.check_output(

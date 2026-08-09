@@ -14,13 +14,21 @@
     },
     "context-isolation": {
       "fatal": {
-        "noisy_log_lane": "one_offload_lane",
-        "independent_source_lanes": "parallel_read_lanes",
-        "shared_write_policy": "single_writer_per_overlap",
-        "context_parallelism_separate": true
+        "judgment_core": "primary_direct",
+        "focused_verification": "primary_direct",
+        "stable_large_supporting_evidence": "one_read_only_agent_before_primary_ingestion",
+        "independent_evidence_bodies": "parallel_read_only_agents_only_when_materially_helpful",
+        "external_challenge_or_review": "assigned_question_only",
+        "stable_substantial_implementation": "one_worker_before_primary_editing",
+        "small_coherent_correction": "primary_direct",
+        "agent_unavailable_or_failed": "state_fallback_before_primary_direct_work",
+        "overlapping_mutable_paths": "single_writer_per_overlap",
+        "context_offload_relation": "independent_of_parallelism"
       },
       "quality": {
-        "context_parallelism_separate": true
+        "stable_large_supporting_evidence": "one_read_only_agent_before_primary_ingestion",
+        "stable_substantial_implementation": "one_worker_before_primary_editing",
+        "context_offload_relation": "independent_of_parallelism"
       }
     },
     "writer-continuity": {

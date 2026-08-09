@@ -16,16 +16,23 @@
       }
     },
     "context-isolation": {
-      "prompt": "Choose context offload separately from parallel execution.",
+      "prompt": "Route each closed scenario by its stable boundary.",
       "context": {
-        "lanes": [
-          "one noisy log lane",
-          "two independent source lanes"
-        ]
+        "scenarios": {
+          "judgment_core": "exact_artifact_under_semantic_evaluation",
+          "focused_verification": "small_exact_metadata_comparison",
+          "stable_large_supporting_evidence": "stable_question_bound_supporting_body",
+          "independent_evidence_bodies": "independent_with_material_concurrency_benefit",
+          "external_challenge_or_review": "bounded_assigned_question",
+          "stable_substantial_implementation": "stable_ownership_and_done_evidence",
+          "small_coherent_correction": "bounded_small_coherent_edit",
+          "agent_unavailable_or_failed": "native_agent_unavailable_or_failed",
+          "overlapping_mutable_paths": "mutable_paths_overlap"
+        }
       },
       "workspace": {
-        "native_readers_available": true,
-        "shared_writes": false
+        "remaining_context": "ample",
+        "context_offload_requires_parallelism": false
       }
     },
     "writer-continuity": {

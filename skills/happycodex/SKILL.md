@@ -29,20 +29,32 @@ Treat the user, workspace, maintainer, and selected configuration as
 non-adversarial but fallible unless evidence says otherwise. Verify relevant
 identity and state. An available capability never expands the requested work.
 
-## Work with native agents
+## Route work by boundary
 
-Use context offload independently of parallelism. Delegate one bounded native
-read-only agent for one noisy search, log, or test lane when that protects the
-primary context. Use a small host-selected set only for genuinely independent
-lanes whose parallel execution materially helps. Keep delegation bounded and
-native agent ownership explicit. Request concise evidence and directly recheck
-load-bearing facts.
+Keep the request, applicable instructions, Outcome, change boundary, unresolved
+decisions, and judgment core with the Primary. Read the exact judgment artifact
+whose semantics are evaluated and keep one focused verification direct. Do not
+ingest every supporting artifact. Do only the smallest discovery needed to form
+another bounded question.
 
-For substantial implementation, prefer one native worker so the Primary can
-retain the durable reasoning context. The Primary may write bounded changes
-directly. At any moment allow only one writer for overlapping mutable paths or
-resources; non-overlapping writers may proceed when coordination is explicit.
-Do not mutate an owned overlapping resource while its worker is active.
+Only once a stable question requires a supporting body to be searched,
+summarized, compared, or filtered, send that body to one native read-only agent
+before the Primary ingests it. Require a concise answer with citations, searched
+scope, and unknowns. Wait before deciding, then spot-check decision-changing
+citations without replaying the body. Context offload requires neither parallel
+lanes nor low remaining context. Add agents only for independent bodies when
+concurrency materially helps. Keep each native or external challenge or review
+within its assigned question.
+
+As soon as mutable ownership and Done evidence are stable, send substantial
+implementation to one native worker before editing. Give exact ownership and
+require changed paths, verification, and risks in return. Keep a small coherent
+correction direct. Allow only one writer per overlapping mutable path or
+resource.
+
+If native agents are unavailable or fail, or a body cannot be bounded without
+transferring unresolved judgment, state the fallback before the Primary
+consumes or edits it. Never replay the work silently.
 
 After compaction, interruption, or lost writer continuity, first confirm the
 old writer cannot resume. Reread the entire ExecPlan, inspect Git, index,

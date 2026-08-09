@@ -34,9 +34,16 @@ Use $happycodex:happycodex for this high-risk cross-system change.
 - The ExecPlan stores only the static request, Outcome, change boundary,
   consumer, effects, checks, and stops. Re-derive live state from Git, tests,
   and tools.
-- Context isolation and parallelism are separate. One noisy lane may use one
-  native reader; parallelize only independent lanes. Prefer one native worker
-  for substantial implementation, with one writer per overlapping resource.
+- Route stable boundaries. Keep the judgment core and unresolved decisions with
+  the Primary, and perform one focused verification directly. When a stable
+  question requires a supporting body to be searched, summarized, compared, or
+  filtered, send it to one native reader before ingestion. Once ownership and
+  Done evidence are stable, send substantial implementation to one native
+  worker before editing. Keep small coherent corrections direct. Limit each
+  challenge or review to its assigned question, and state any agent fallback
+  before direct work. Context offload needs neither parallel work nor low
+  remaining context; add agents only for independent bodies when concurrency
+  helps, with one writer per overlap.
 - After interruption or compaction, confirm the old writer cannot resume, read
   the whole plan, and rebuild Git, candidate, and effect facts.
 - Freeze with the consumer's native immutable identity, such as a Git tree,
