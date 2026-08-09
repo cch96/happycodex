@@ -1,7 +1,7 @@
 {
   "name": "happycodex",
-  "version": "0.11.0",
-  "description": "Portable reliability guidance for high-risk Codex work with static boundaries, boundary-routed native readers and workers, and truthful effects.",
+  "version": "0.12.0",
+  "description": "Portable reliability guidance for high-risk Codex work with boundary-routed native agents, Primary-direct external review, and truthful effects.",
   "author": {
     "name": "caichenghang",
     "url": "https://github.com/cch96"
@@ -25,7 +25,7 @@
   "interface": {
     "displayName": "HappyCodex",
     "shortDescription": "Reliable boundaries for risky Codex work",
-    "longDescription": "Use one static ExecPlan, boundary-routed native readers and workers, consumer-native candidate identity, terminal review, and truthful effect observation.",
+    "longDescription": "Use one static ExecPlan, boundary-routed native readers and workers, Primary-direct external challenge or review, native exact-final review, and truthful effects.",
     "developerName": "caichenghang",
     "category": "Productivity",
     "capabilities": [

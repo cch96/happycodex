@@ -34,15 +34,18 @@ Use $happycodex:happycodex for this high-risk cross-system change.
 - 按稳定边界路由：Primary 保留判断核心和未决问题，并直接完成一次聚焦核验。仅当
   稳定问题要求搜索、摘要、比较或筛选辅助证据体时，才在 Primary 读取正文前交给
   一个原生只读 agent；所有权和 Done 证据稳定后，较大实现则在编辑前交给一个原生
-  worker。小而完整的修正可直接完成；challenge 或 review 只覆盖已分配问题，agent
-  fallback 要在直接处理前说明。上下文卸载不要求并行或低剩余上下文；仅在独立证据
-  体并发确有帮助时增加 agent，重叠资源始终只有一个 writer。
+  worker。小而完整的修正可直接完成。外部模型或工具的 challenge/review 只覆盖已
+  分配问题，并由 Primary 直接调用和观察；
+  不得创建原生 agent 代为调用、中转或包装外部调用。原生 agent fallback 要在直接
+  处理前说明。上下文卸载不要求并行或低剩余
+  上下文；仅在独立证据体并发确有帮助时增加 agent，重叠资源始终只有一个 writer。
 - 中断或压缩后先确认旧 writer 不会恢复，再完整重读计划并重建 Git、candidate 和
   effect 事实。
 - candidate 使用消费者原生的不可变身份冻结，例如 Git tree、package、image 或
   revision；可变 worktree 的 digest 不是 frozen candidate。
 - 普通可逆工作不强制 review。公共、外部、不可逆或高风险 candidate 只运行一次
-  fresh、blocker-only 终审；失败不会自动修复或重审。
+  独立的 fresh 原生只读、blocker-only 终审；它与可选外部 challenge/review 分开，
+  失败不会自动修复或重审。
 - 外部 effect 一次尝试后以真实只读观测归类为 `landed`、`not_landed` 或
   `unknown`；partial、ambiguous 或 unknown 必须停止。
 - 最终明确报告 achieved、not achieved 或 unknown，并如实列出 dirt、跳过检查和

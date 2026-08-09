@@ -23,7 +23,7 @@
           "focused_verification": "small_exact_metadata_comparison",
           "stable_large_supporting_evidence": "stable_question_bound_supporting_body",
           "independent_evidence_bodies": "independent_with_material_concurrency_benefit",
-          "external_challenge_or_review": "bounded_assigned_question",
+          "external_challenge_or_review": "external_model_or_tool_bounded_assigned_question",
           "stable_substantial_implementation": "stable_ownership_and_done_evidence",
           "small_coherent_correction": "bounded_small_coherent_edit",
           "agent_unavailable_or_failed": "native_agent_unavailable_or_failed",

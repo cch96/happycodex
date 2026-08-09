@@ -187,10 +187,10 @@ class ReviewProjectionTests(unittest.TestCase):
 
 
 class PublicContractTests(unittest.TestCase):
-    def test_public_metadata_and_templates_are_v011_and_bounded(self):
+    def test_public_metadata_and_templates_are_v012_and_bounded(self):
         plugin = json.loads((ROOT / ".codex-plugin/plugin.json").read_text())
         marketplace = json.loads((ROOT / ".agents/plugins/marketplace.json").read_text())
-        self.assertEqual(plugin["version"], "0.11.0")
+        self.assertEqual(plugin["version"], "0.12.0")
         self.assertEqual(plugin["name"], marketplace["plugins"][0]["name"])
         self.assertEqual(plugin["skills"], "./skills/")
         skill = (ROOT / "skills/happycodex/SKILL.md").read_text()
@@ -211,7 +211,7 @@ class PublicContractTests(unittest.TestCase):
             "focused_verification": "primary_direct",
             "stable_large_supporting_evidence": "one_read_only_agent_before_primary_ingestion",
             "independent_evidence_bodies": "parallel_read_only_agents_only_when_materially_helpful",
-            "external_challenge_or_review": "assigned_question_only",
+            "external_challenge_or_review": "primary_direct_tool_call_and_observation_assigned_question_only",
             "stable_substantial_implementation": "one_worker_before_primary_editing",
             "small_coherent_correction": "primary_direct",
             "agent_unavailable_or_failed": "state_fallback_before_primary_direct_work",
@@ -226,6 +226,7 @@ class PublicContractTests(unittest.TestCase):
         self.assertEqual(oracle["fatal"], answers)
         self.assertEqual(oracle["quality"], {
             "stable_large_supporting_evidence": answers["stable_large_supporting_evidence"],
+            "external_challenge_or_review": answers["external_challenge_or_review"],
             "stable_substantial_implementation": answers["stable_substantial_implementation"],
             "context_offload_relation": answers["context_offload_relation"],
         })
@@ -248,9 +249,47 @@ class PublicContractTests(unittest.TestCase):
             "before the Primary ingests",
             "send substantial implementation to one native worker before editing",
             "Keep a small coherent correction direct",
+            "Keep every challenge or review within its assigned question",
+            "the Primary invokes that tool directly and observes its result directly",
+            "Do not create a native agent to call, relay, or wrap the external invocation",
             "state the fallback before the Primary",
+            "one fresh native read-only, no-history, blocker-only terminal review",
+            "Keep that native exact-final review separate from any optional external challenge or review",
         ):
             self.assertIn(phrase, skill)
+
+        external_scenario = "external_model_or_tool_bounded_assigned_question"
+        self.assertEqual(
+            case["context"]["scenarios"]["external_challenge_or_review"],
+            external_scenario,
+        )
+        self.assertEqual(
+            scenario_schema["properties"]["external_challenge_or_review"]["enum"],
+            [external_scenario],
+        )
+        self.assertEqual(
+            schema["properties"]["external_challenge_or_review"]["enum"][0],
+            answers["external_challenge_or_review"],
+        )
+
+        candidate_oracle = inputs["oracles"]["core"]["candidate-review"]
+        candidate_schema = inputs["schemas"]["provider_outputs"]["candidate-review"]
+        native_exact_final = "one_fresh_native_read_only_blocker_only"
+        self.assertEqual(candidate_oracle["fatal"]["terminal_review"], native_exact_final)
+        self.assertEqual(candidate_oracle["quality"]["terminal_review"], native_exact_final)
+        self.assertIn(
+            native_exact_final,
+            candidate_schema["properties"]["terminal_review"]["enum"],
+        )
+
+        chinese = " ".join((ROOT / "README.md").read_text().split())
+        english = " ".join((ROOT / "README.en.md").read_text().split())
+        self.assertIn("由 Primary 直接调用和观察", chinese)
+        self.assertIn("不得创建原生 agent 代为调用、中转或包装外部调用", chinese)
+        self.assertIn("独立的 fresh 原生只读、blocker-only 终审", chinese)
+        self.assertIn("the Primary invoke and observe it directly", english)
+        self.assertIn("never create a native agent to call, relay, or wrap", english)
+        self.assertIn("separate fresh native read-only, blocker-only terminal review", english)
 
     def test_published_v065_skill_tree_is_exact(self):
         observed = subprocess.check_output(

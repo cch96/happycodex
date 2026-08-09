@@ -93,7 +93,7 @@
                 "external_challenge_or_review": {
                   "type": "string",
                   "enum": [
-                    "bounded_assigned_question"
+                    "external_model_or_tool_bounded_assigned_question"
                   ]
                 },
                 "stable_substantial_implementation": {
@@ -512,9 +512,9 @@
         "external_challenge_or_review": {
           "type": "string",
           "enum": [
-            "assigned_question_only",
-            "all_available_context",
-            "full_outcome_review"
+            "primary_direct_tool_call_and_observation_assigned_question_only",
+            "delegated_indirect_tool_call",
+            "primary_direct_tool_call_full_outcome_review"
           ]
         },
         "stable_substantial_implementation": {
@@ -626,7 +626,7 @@
         "terminal_review": {
           "type": "string",
           "enum": [
-            "one_blocker_only",
+            "one_fresh_native_read_only_blocker_only",
             "automatic_loop",
             "none"
           ]

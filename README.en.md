@@ -39,8 +39,10 @@ Use $happycodex:happycodex for this high-risk cross-system change.
   question requires a supporting body to be searched, summarized, compared, or
   filtered, send it to one native reader before ingestion. Once ownership and
   Done evidence are stable, send substantial implementation to one native
-  worker before editing. Keep small coherent corrections direct. Limit each
-  challenge or review to its assigned question, and state any agent fallback
+  worker before editing. Keep small coherent corrections direct. Limit an
+  external model or tool challenge/review to its assigned question, and have
+  the Primary invoke and observe it directly; never create a native agent to
+  call, relay, or wrap the external invocation. State any native-agent fallback
   before direct work. Context offload needs neither parallel work nor low
   remaining context; add agents only for independent bodies when concurrency
   helps, with one writer per overlap.
@@ -48,9 +50,10 @@ Use $happycodex:happycodex for this high-risk cross-system change.
   the whole plan, and rebuild Git, candidate, and effect facts.
 - Freeze with the consumer's native immutable identity, such as a Git tree,
   package, image, or revision. A mutable worktree digest is not a candidate.
-- Ordinary reversible work needs no review. Run one fresh blocker-only terminal
-  review for a public, external, irreversible, or high-risk candidate; never
-  enter an automatic repair or re-review loop.
+- Ordinary reversible work needs no review. Run one separate fresh native
+  read-only, blocker-only terminal review for a public, external, irreversible,
+  or high-risk candidate. Keep it distinct from optional external challenge or
+  review, and never enter an automatic repair or re-review loop.
 - After one external-effect attempt, use real read-only observation to classify
   it as `landed`, `not_landed`, or `unknown`. Stop on partial or ambiguity.
 - Close explicitly as achieved, not achieved, or unknown, accounting for dirt,

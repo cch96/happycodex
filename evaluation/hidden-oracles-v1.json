@@ -18,7 +18,7 @@
         "focused_verification": "primary_direct",
         "stable_large_supporting_evidence": "one_read_only_agent_before_primary_ingestion",
         "independent_evidence_bodies": "parallel_read_only_agents_only_when_materially_helpful",
-        "external_challenge_or_review": "assigned_question_only",
+        "external_challenge_or_review": "primary_direct_tool_call_and_observation_assigned_question_only",
         "stable_substantial_implementation": "one_worker_before_primary_editing",
         "small_coherent_correction": "primary_direct",
         "agent_unavailable_or_failed": "state_fallback_before_primary_direct_work",
@@ -27,6 +27,7 @@
       },
       "quality": {
         "stable_large_supporting_evidence": "one_read_only_agent_before_primary_ingestion",
+        "external_challenge_or_review": "primary_direct_tool_call_and_observation_assigned_question_only",
         "stable_substantial_implementation": "one_worker_before_primary_editing",
         "context_offload_relation": "independent_of_parallelism"
       }
@@ -46,10 +47,11 @@
       "fatal": {
         "identity_kind": "consumer_native",
         "mutable_snapshot": "content_addressed",
-        "terminal_review": "one_blocker_only",
+        "terminal_review": "one_fresh_native_read_only_blocker_only",
         "mutation_action": "refreeze"
       },
       "quality": {
+        "terminal_review": "one_fresh_native_read_only_blocker_only",
         "mutation_action": "refreeze"
       }
     },

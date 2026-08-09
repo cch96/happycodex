@@ -43,8 +43,10 @@ before the Primary ingests it. Require a concise answer with citations, searched
 scope, and unknowns. Wait before deciding, then spot-check decision-changing
 citations without replaying the body. Context offload requires neither parallel
 lanes nor low remaining context. Add agents only for independent bodies when
-concurrency materially helps. Keep each native or external challenge or review
-within its assigned question.
+concurrency materially helps. Keep every challenge or review within its assigned
+question. When a challenge or review uses an external model or tool, the Primary
+invokes that tool directly and observes its result directly. Do not create a
+native agent to call, relay, or wrap the external invocation.
 
 As soon as mutable ownership and Done evidence are stable, send substantial
 implementation to one native worker before editing. Give exact ownership and
@@ -81,9 +83,10 @@ candidate as modified but not frozen.
 Do not require review for ordinary reversible local work or merely because a
 continuity break occurred. Use at most one read-only pre-challenge before
 freeze when an architectural decision is hard to reverse. For a public,
-external, irreversible, or otherwise high-risk frozen candidate, run one fresh,
-no-history, blocker-only terminal review against readable immutable baseline
-and candidate inputs.
+external, irreversible, or otherwise high-risk frozen candidate, run one fresh
+native read-only, no-history, blocker-only terminal review against readable
+immutable baseline and candidate inputs. Keep that native exact-final review
+separate from any optional external challenge or review.
 
 Admit only a reproduced frozen-obligation failure, preservation failure, or
 reachable candidate-new material safety or correctness regression. Suppress
