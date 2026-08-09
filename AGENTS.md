@@ -1,51 +1,28 @@
-# HappyCodex maintainer protocol
+# HappyCodex maintainer guidance
 
-The published `v0.6.5` tag and product tree remain immutable while the
-maintainer evaluator is rebuilt independently. Repository evaluation files are
-maintenance support and must never be linked from `skills/happycodex/SKILL.md`.
+Keep this file limited to stable repository-wide constraints. Detailed evaluator
+schemas, topology, budgets, and release-specific facts belong in code, tests,
+or the task ExecPlan.
 
-- Preserve the exact published `v0.6.5:skills/happycodex` tree
-  `d9e525a267fbf36669d409ba1b4b009a6beeeea5`, external role configuration,
-  active install, cache, and rollback state. This exact user authorization
-  permits only the local 0.9.0 source candidate surfaces named in
-  `docs/execplans/happycodex-0-9-0-clean-break.md`.
-- Unless the request or source establishes otherwise, treat the user,
-  maintainer, workspace, and selected configuration as non-adversarial but
-  fallible. Verify state and identity, prefer the smallest sufficient control,
-  and require explicit user authority to expand scope or trust boundaries.
-- The evaluator has exactly four durable record types: `ProductArtifact`,
-  `EvalSpec`, `Attestation`, and `ReleaseReceipt`. Unknown types fail closed.
-- Product identity never includes evaluator bytes. Evaluator identity separates
-  provider input, oracle, and harness components so invalidation causes only
-  necessary work.
-- Verification is stateless over caller-supplied immutable records. Do not add
-  an active mutable ledger, general evidence graph, compatibility reader,
-  migration, alias, or dual write.
-- Provider input is allowlisted and mechanically excludes expected answers,
-  hidden boundaries, oracle/matcher/mapping content, desired verdicts, and
-  history. Raw events remain external; repository records contain digests and
-  sanitized projections only.
-- Repository code may construct an authority request digest and validate
-  externally supplied authority. It cannot manufacture user authority. One
-  bounded evaluation authority normally covers the exact behavior plan and one
-  neutral exact-final. Release authority is separate.
-- Every provider invocation is one-shot. Only a proven pre-provider
-  infrastructure no-effect terminal may recover within an already authorized
-  recovery cap. Every signed observation carries attempt and cumulative effect
-  wall time; a recovered terminal includes all prior attempt wall time.
-  Ambiguous or partial effects stop without retry.
-- Holdouts are exactly three fixed concurrent pairs against the previous
-  released product. Provider inputs remain mapping-blind, and scoring starts
-  only after all six authenticated terminal outputs are supplied together; a
-  caller-supplied reveal timestamp is not evidence and is not accepted.
-  Aggregate candidate total input plus output tokens must be no more than 1.25
-  times baseline. The corresponding relative wall ratio is retained as a
-  diagnostic; per-unit timeouts and the absolute cumulative wall cap remain hard.
-- Persist an adverse or unknown exact-final attestation and reject a friendlier
-  rerun for the same candidate artifact and review-policy identity. Product
-  mutation requires a new exact-final; an authorized review-policy change has a
-  different effect identity.
-- Keep evaluator Python at most 3,200 lines where practical; 3,600 is a hard
-  stop and no production module may exceed 600 lines.
-- Use only offline standard-library tests unless a later exact authority names
-  every model/network/install/release effect, identity, destination, and cap.
+- Treat every published tag and its reachable tree as immutable. Publish changes
+  through a new commit and tag; never rewrite an existing release.
+- Keep maintainer evaluator and evidence material out of
+  `skills/happycodex/SKILL.md` and other installed product guidance.
+- Treat the user, maintainer, workspace, and selected configuration as
+  non-adversarial but fallible. Verify relevant identity and state
+  proportionately.
+- Keep the repository evaluator deterministic and stateless. Do not add an
+  active mutable ledger, general evidence graph, compatibility reader,
+  migration, alias, or dual write without an explicitly authorized redesign.
+- Repository code may construct requests and validate externally supplied
+  authority. It cannot manufacture user authority.
+- After the exact candidate, repository, and version are established, a direct
+  user request to publish authorizes the standard release sequence to the
+  configured `origin/main`, the matching annotated version tag, and the GitHub
+  Release. Installation, activation, provider/model calls, and other
+  destinations remain separate unless requested.
+- Attempt each external effect once. On an ambiguous or partial result, stop and
+  inspect read-only state. Retry only after proving that the previous attempt
+  had no effect.
+- Use offline standard-library tests by default. Network access is permitted
+  only for an explicitly requested external effect and its readback.
