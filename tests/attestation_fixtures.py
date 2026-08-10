@@ -260,7 +260,7 @@ class RecordFactory:
     def release(self, evaluation, *, outcome: str = "landed", mutate_statement=None):
         evaluated = evaluation.result
         projection = self.product["projections"]["plugin_runtime"]
-        destination, target, rollback = "local-plugin-cache", "happycodex@0.13.0", "rollback-v012"
+        destination, target, rollback = "local-plugin-cache", "happycodex@0.14.0", "rollback-v013"
         effect = release_effect_subject(
             product_artifact_sha256=self.product["artifact_sha256"], destination=destination,
             target_identity=target, rollback_identity=rollback,

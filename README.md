@@ -43,6 +43,9 @@ Use $happycodex:happycodex for this high-risk cross-system change.
   effect 事实。
 - candidate 使用消费者原生的不可变身份冻结，例如 Git tree、package、image 或
   revision；可变 worktree 的 digest 不是 frozen candidate。
+- 原生 Goal 只在用户明确要求时创建；仅当 Goal、Outcome、修改边界、candidate
+  surface、effect target/identity/cap 均未变化且没有待决用户选择时才自治继续。
+  Goal、用户回复与 `GO` 都不扩权；Goal 身份无法确认时停止 mutation。
 - 删除 branch、worktree 或其他恢复面之前，先证明 candidate、cutover、effect 与
   rollback 证据仍已持久保存且可达；否则停止清理。
 - 普通可逆工作不强制 review。公共、外部、不可逆或高风险 candidate 只运行一次

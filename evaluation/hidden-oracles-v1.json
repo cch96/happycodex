@@ -50,6 +50,15 @@
         "terminal_review": "one_fresh_native_read_only_blocker_only",
         "mutation_action": "refreeze",
         "automatic_continuation_allowed": false,
+        "continuation": {
+          "lost_goal_identity": false,
+          "post_go_ungranted_effects": false,
+          "narrow_reply_named_repair": false,
+          "same_boundary_candidate_change": true,
+          "preauthorized_not_yet_repair": true,
+          "exhausted_repair_budget": false,
+          "pending_user_decision": false
+        },
         "exhausted_review_action": "return_to_user",
         "untracked_digest_durable": false,
         "untracked_digest_closure": "modified_not_frozen"

@@ -37,6 +37,9 @@ cap; observation predicate; recovery cap or none>`. If none, write `none`.
 
 ## Stops and recovery
 
+Missing or unconfirmed native Goal identity, or a pending user decision, stops
+autonomous mutation; never recreate or widen the Goal for continuity.
+
 Stop on scope, identity, index, trust, or source drift; a new failure; a
 required unknown; or a partial/ambiguous effect. Retry only after authentic
 proof of no effect and only within the recorded recovery cap.

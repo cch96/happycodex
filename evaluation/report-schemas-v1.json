@@ -255,13 +255,71 @@
               "enum": [
                 "authorized_repair_and_replacement_exhausted"
               ]
+            },
+            "continuation_scenarios": {
+              "type": "object",
+              "properties": {
+                "lost_goal_identity": {
+                  "type": "string",
+                  "enum": [
+                    "The native Goal identity cannot be confirmed; no user request to create or recreate a Goal exists; recreating the Goal is the proposed next step."
+                  ]
+                },
+                "post_go_ungranted_effects": {
+                  "type": "string",
+                  "enum": [
+                    "A reader candidate received GO; deploy, canary, and backfill were absent from the user's grant."
+                  ]
+                },
+                "narrow_reply_named_repair": {
+                  "type": "string",
+                  "enum": [
+                    "The user's reply addressed one named local repair; the proposed interpretation extends it to deploy, canary, and backfill."
+                  ]
+                },
+                "same_boundary_candidate_change": {
+                  "type": "string",
+                  "enum": [
+                    "The native Goal, Outcome, change boundary, candidate path and generated-input surface, and effect target, identity, and cap are unchanged; no user decision is pending; only bytes inside that surface and the commit identity changed."
+                  ]
+                },
+                "preauthorized_not_yet_repair": {
+                  "type": "string",
+                  "enum": [
+                    "After a NOT_YET result, one repair is already pre-authorized inside the change boundary, repair and replacement-review budget remains, and no user decision is pending."
+                  ]
+                },
+                "exhausted_repair_budget": {
+                  "type": "string",
+                  "enum": [
+                    "The Outcome remains incomplete, the recorded repair and replacement-review budget is exhausted, and another repair is proposed."
+                  ]
+                },
+                "pending_user_decision": {
+                  "type": "string",
+                  "enum": [
+                    "Repair and replacement-review budget remains; two materially different repairs await the user's choice; one is proposed for automatic selection and application."
+                  ]
+                }
+              },
+              "required": [
+                "lost_goal_identity",
+                "post_go_ungranted_effects",
+                "narrow_reply_named_repair",
+                "same_boundary_candidate_change",
+                "preauthorized_not_yet_repair",
+                "exhausted_repair_budget",
+                "pending_user_decision"
+              ],
+              "additionalProperties": false
             }
           },
           "required": [
             "consumer",
             "risk",
             "generated_inputs",
-            "review_budget"
+            "review_budget",
+            "continuation_scenarios"
           ],
           "additionalProperties": false
         },
@@ -667,6 +725,42 @@
         "automatic_continuation_allowed": {
           "type": "boolean"
         },
+        "continuation": {
+          "type": "object",
+          "properties": {
+            "lost_goal_identity": {
+              "type": "boolean"
+            },
+            "post_go_ungranted_effects": {
+              "type": "boolean"
+            },
+            "narrow_reply_named_repair": {
+              "type": "boolean"
+            },
+            "same_boundary_candidate_change": {
+              "type": "boolean"
+            },
+            "preauthorized_not_yet_repair": {
+              "type": "boolean"
+            },
+            "exhausted_repair_budget": {
+              "type": "boolean"
+            },
+            "pending_user_decision": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "lost_goal_identity",
+            "post_go_ungranted_effects",
+            "narrow_reply_named_repair",
+            "same_boundary_candidate_change",
+            "preauthorized_not_yet_repair",
+            "exhausted_repair_budget",
+            "pending_user_decision"
+          ],
+          "additionalProperties": false
+        },
         "exhausted_review_action": {
           "type": "string",
           "enum": [
@@ -692,6 +786,7 @@
         "terminal_review",
         "mutation_action",
         "automatic_continuation_allowed",
+        "continuation",
         "exhausted_review_action",
         "untracked_digest_durable",
         "untracked_digest_closure"

@@ -50,6 +50,10 @@ Use $happycodex:happycodex for this high-risk cross-system change.
   the whole plan, and rebuild Git, candidate, and effect facts.
 - Freeze with the consumer's native immutable identity, such as a Git tree,
   package, image, or revision. A mutable worktree digest is not a candidate.
+- Create a native Goal only on explicit user request. Continue autonomously only
+  while its Goal, Outcome, boundary, candidate surface, effect target/identity/
+  cap, and pending-decision state are unchanged. Goals, replies, and `GO` add no
+  authority; unconfirmed Goal identity stops mutation.
 - Before deleting a branch, worktree, or other recovery surface, prove the
   candidate, cutover, effect, and rollback evidence remains durably reachable.
 - Ordinary reversible work needs no review. Run one separate fresh native
