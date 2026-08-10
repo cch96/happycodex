@@ -50,10 +50,13 @@ Use $happycodex:happycodex for this high-risk cross-system change.
   the whole plan, and rebuild Git, candidate, and effect facts.
 - Freeze with the consumer's native immutable identity, such as a Git tree,
   package, image, or revision. A mutable worktree digest is not a candidate.
+- Before deleting a branch, worktree, or other recovery surface, prove the
+  candidate, cutover, effect, and rollback evidence remains durably reachable.
 - Ordinary reversible work needs no review. Run one separate fresh native
   read-only, blocker-only terminal review for a public, external, irreversible,
   or high-risk candidate. Keep it distinct from optional external challenge or
-  review, and never enter an automatic repair or re-review loop.
+  review, and never enter an automatic repair or re-review loop. An adverse
+  replacement review after an authorized repair returns to the user.
 - After one external-effect attempt, use real read-only observation to classify
   it as `landed`, `not_landed`, or `unknown`. Stop on partial or ambiguity.
 - Close explicitly as achieved, not achieved, or unknown, accounting for dirt,

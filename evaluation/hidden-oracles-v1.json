@@ -48,7 +48,11 @@
         "identity_kind": "consumer_native",
         "mutable_snapshot": "content_addressed",
         "terminal_review": "one_fresh_native_read_only_blocker_only",
-        "mutation_action": "refreeze"
+        "mutation_action": "refreeze",
+        "automatic_continuation_allowed": false,
+        "exhausted_review_action": "return_to_user",
+        "untracked_digest_durable": false,
+        "untracked_digest_closure": "modified_not_frozen"
       },
       "quality": {
         "terminal_review": "one_fresh_native_read_only_blocker_only",
@@ -60,7 +64,9 @@
         "landed_action": "verify_and_close",
         "not_landed_action": "bounded_recovery",
         "ambiguous_action": "stop_unknown",
-        "retry_requires": "authenticated_zero_effect"
+        "retry_requires": "authenticated_zero_effect",
+        "cleanup_allowed": false,
+        "cleanup_action": "stop_preserve"
       },
       "quality": {
         "retry_requires": "authenticated_zero_effect"

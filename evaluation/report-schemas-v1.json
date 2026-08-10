@@ -249,12 +249,19 @@
             },
             "generated_inputs": {
               "type": "boolean"
+            },
+            "review_budget": {
+              "type": "string",
+              "enum": [
+                "authorized_repair_and_replacement_exhausted"
+              ]
             }
           },
           "required": [
             "consumer",
             "risk",
-            "generated_inputs"
+            "generated_inputs",
+            "review_budget"
           ],
           "additionalProperties": false
         },
@@ -266,11 +273,19 @@
             },
             "native_snapshot_available": {
               "type": "boolean"
+            },
+            "untracked_digest_present": {
+              "type": "boolean"
+            },
+            "immutable_copy_reachable": {
+              "type": "boolean"
             }
           },
           "required": [
             "worktree_mutable",
-            "native_snapshot_available"
+            "native_snapshot_available",
+            "untracked_digest_present",
+            "immutable_copy_reachable"
           ],
           "additionalProperties": false
         },
@@ -304,10 +319,17 @@
               "items": {
                 "type": "string"
               }
+            },
+            "cleanup_target": {
+              "type": "string",
+              "enum": [
+                "branch_or_worktree"
+              ]
             }
           },
           "required": [
-            "outcomes"
+            "outcomes",
+            "cleanup_target"
           ],
           "additionalProperties": false
         },
@@ -319,11 +341,15 @@
             },
             "readback_available": {
               "type": "boolean"
+            },
+            "cleanup_evidence_complete": {
+              "type": "boolean"
             }
           },
           "required": [
             "effect_attempted",
-            "readback_available"
+            "readback_available",
+            "cleanup_evidence_complete"
           ],
           "additionalProperties": false
         },
@@ -637,13 +663,38 @@
             "refreeze",
             "reuse_review"
           ]
+        },
+        "automatic_continuation_allowed": {
+          "type": "boolean"
+        },
+        "exhausted_review_action": {
+          "type": "string",
+          "enum": [
+            "return_to_user",
+            "continue",
+            "repair_again"
+          ]
+        },
+        "untracked_digest_durable": {
+          "type": "boolean"
+        },
+        "untracked_digest_closure": {
+          "type": "string",
+          "enum": [
+            "modified_not_frozen",
+            "frozen"
+          ]
         }
       },
       "required": [
         "identity_kind",
         "mutable_snapshot",
         "terminal_review",
-        "mutation_action"
+        "mutation_action",
+        "automatic_continuation_allowed",
+        "exhausted_review_action",
+        "untracked_digest_durable",
+        "untracked_digest_closure"
       ],
       "additionalProperties": false
     },
@@ -679,13 +730,25 @@
             "caller_choice",
             "nothing"
           ]
+        },
+        "cleanup_allowed": {
+          "type": "boolean"
+        },
+        "cleanup_action": {
+          "type": "string",
+          "enum": [
+            "stop_preserve",
+            "delete"
+          ]
         }
       },
       "required": [
         "landed_action",
         "not_landed_action",
         "ambiguous_action",
-        "retry_requires"
+        "retry_requires",
+        "cleanup_allowed",
+        "cleanup_action"
       ],
       "additionalProperties": false
     },

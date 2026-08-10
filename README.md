@@ -43,9 +43,11 @@ Use $happycodex:happycodex for this high-risk cross-system change.
   effect 事实。
 - candidate 使用消费者原生的不可变身份冻结，例如 Git tree、package、image 或
   revision；可变 worktree 的 digest 不是 frozen candidate。
+- 删除 branch、worktree 或其他恢复面之前，先证明 candidate、cutover、effect 与
+  rollback 证据仍已持久保存且可达；否则停止清理。
 - 普通可逆工作不强制 review。公共、外部、不可逆或高风险 candidate 只运行一次
   独立的 fresh 原生只读、blocker-only 终审；它与可选外部 challenge/review 分开，
-  失败不会自动修复或重审。
+  失败不会自动修复或重审；已授权修复后的替换终审仍不通过时，必须交还用户。
 - 外部 effect 一次尝试后以真实只读观测归类为 `landed`、`not_landed` 或
   `unknown`；partial、ambiguous 或 unknown 必须停止。
 - 最终明确报告 achieved、not achieved 或 unknown，并如实列出 dirt、跳过检查和

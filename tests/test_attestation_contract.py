@@ -187,10 +187,10 @@ class ReviewProjectionTests(unittest.TestCase):
 
 
 class PublicContractTests(unittest.TestCase):
-    def test_public_metadata_and_templates_are_v012_and_bounded(self):
+    def test_public_metadata_and_templates_are_v013_and_bounded(self):
         plugin = json.loads((ROOT / ".codex-plugin/plugin.json").read_text())
         marketplace = json.loads((ROOT / ".agents/plugins/marketplace.json").read_text())
-        self.assertEqual(plugin["version"], "0.12.0")
+        self.assertEqual(plugin["version"], "0.13.0")
         self.assertEqual(plugin["name"], marketplace["plugins"][0]["name"])
         self.assertEqual(plugin["skills"], "./skills/")
         skill = (ROOT / "skills/happycodex/SKILL.md").read_text()
@@ -290,6 +290,62 @@ class PublicContractTests(unittest.TestCase):
         self.assertIn("the Primary invoke and observe it directly", english)
         self.assertIn("never create a native agent to call, relay, or wrap", english)
         self.assertIn("separate fresh native read-only, blocker-only terminal review", english)
+
+    def test_session_guardrails_are_closed_and_consistent(self):
+        inputs = load_production_inputs(ROOT)
+
+        candidate = inputs["cases"]["core"]["candidate-review"]
+        candidate_oracle = inputs["oracles"]["core"]["candidate-review"]
+        candidate_input = inputs["schemas"]["provider_inputs"]["candidate-review"]
+        candidate_output = inputs["schemas"]["provider_outputs"]["candidate-review"]
+        self.assertEqual(
+            candidate["context"]["review_budget"],
+            "authorized_repair_and_replacement_exhausted",
+        )
+        self.assertEqual(candidate["workspace"]["untracked_digest_present"], True)
+        self.assertEqual(candidate["workspace"]["immutable_copy_reachable"], False)
+        self.assertEqual(candidate_oracle["fatal"]["automatic_continuation_allowed"], False)
+        self.assertEqual(candidate_oracle["fatal"]["exhausted_review_action"], "return_to_user")
+        self.assertEqual(candidate_oracle["fatal"]["untracked_digest_durable"], False)
+        self.assertEqual(
+            candidate_oracle["fatal"]["untracked_digest_closure"],
+            "modified_not_frozen",
+        )
+        self.assertFalse(candidate_input["properties"]["context"]["additionalProperties"])
+        self.assertFalse(candidate_input["properties"]["workspace"]["additionalProperties"])
+        self.assertFalse(candidate_output["additionalProperties"])
+        for field in (
+            "automatic_continuation_allowed",
+            "exhausted_review_action",
+            "untracked_digest_durable",
+            "untracked_digest_closure",
+        ):
+            self.assertIn(field, candidate_output["required"])
+
+        effect = inputs["cases"]["core"]["effect-closure"]
+        effect_oracle = inputs["oracles"]["core"]["effect-closure"]
+        effect_input = inputs["schemas"]["provider_inputs"]["effect-closure"]
+        effect_output = inputs["schemas"]["provider_outputs"]["effect-closure"]
+        self.assertEqual(effect["context"]["cleanup_target"], "branch_or_worktree")
+        self.assertEqual(effect["workspace"]["cleanup_evidence_complete"], False)
+        self.assertEqual(effect_oracle["fatal"]["cleanup_allowed"], False)
+        self.assertEqual(effect_oracle["fatal"]["cleanup_action"], "stop_preserve")
+        self.assertFalse(effect_input["properties"]["context"]["additionalProperties"])
+        self.assertFalse(effect_input["properties"]["workspace"]["additionalProperties"])
+        self.assertFalse(effect_output["additionalProperties"])
+        self.assertIn("cleanup_allowed", effect_output["required"])
+        self.assertIn("cleanup_action", effect_output["required"])
+
+        skill = " ".join((ROOT / "skills/happycodex/SKILL.md").read_text().split())
+        self.assertIn(
+            "Before deleting a branch, worktree, or other recovery surface, prove required "
+            "candidate, cutover, effect, and rollback evidence remains durably reachable",
+            skill,
+        )
+        self.assertIn(
+            "After that replacement review, any adverse result returns to the user",
+            skill,
+        )
 
     def test_published_v065_skill_tree_is_exact(self):
         observed = subprocess.check_output(

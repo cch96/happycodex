@@ -78,6 +78,10 @@ Never put secrets or raw external events in product bytes. If the required
 immutable representation cannot be created within authority, report the
 candidate as modified but not frozen.
 
+Before deleting a branch, worktree, or other recovery surface, prove required
+candidate, cutover, effect, and rollback evidence remains durably reachable;
+otherwise stop.
+
 ## Review once when risk requires it
 
 Do not require review for ordinary reversible local work or merely because a
@@ -95,6 +99,8 @@ unfrozen tests, and unrelated pre-existing issues. The terminal decision is
 `GO` or `NOT_YET`; incomplete coverage or a required unknown is adverse.
 Reviewers cannot change the Outcome or propose a repair. A later user-approved
 repair creates a new candidate and review identity, never an automatic loop.
+After that replacement review, any adverse result returns to the user; do not
+continue automatically.
 
 ## Act once and close truthfully
 

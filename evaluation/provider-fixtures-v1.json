@@ -54,11 +54,14 @@
       "context": {
         "consumer": "plugin installer",
         "risk": "public",
-        "generated_inputs": true
+        "generated_inputs": true,
+        "review_budget": "authorized_repair_and_replacement_exhausted"
       },
       "workspace": {
         "worktree_mutable": true,
-        "native_snapshot_available": true
+        "native_snapshot_available": true,
+        "untracked_digest_present": true,
+        "immutable_copy_reachable": false
       }
     },
     "effect-closure": {
@@ -68,11 +71,13 @@
           "landed",
           "not_landed",
           "ambiguous"
-        ]
+        ],
+        "cleanup_target": "branch_or_worktree"
       },
       "workspace": {
         "effect_attempted": true,
-        "readback_available": true
+        "readback_available": true,
+        "cleanup_evidence_complete": false
       }
     }
   },
