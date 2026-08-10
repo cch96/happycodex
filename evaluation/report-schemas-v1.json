@@ -286,7 +286,7 @@
                 "preauthorized_not_yet_repair": {
                   "type": "string",
                   "enum": [
-                    "After a NOT_YET result, one repair is already pre-authorized inside the change boundary, repair and replacement-review budget remains, and no user decision is pending."
+                    "After a NOT_YET result, the same native Goal, Outcome, change boundary, candidate path and generated-input surface, and effect target, identity, and cap remain unchanged; one repair is already pre-authorized inside that boundary, repair and replacement-review budget remains, and no user decision is pending."
                   ]
                 },
                 "exhausted_repair_budget": {

@@ -399,7 +399,13 @@ class PublicContractTests(unittest.TestCase):
         for conclusion in ("should continue", "must continue", "should stop", "must stop"):
             self.assertNotIn(conclusion, neutral_facts)
         self.assertIn("no user request to create or recreate a Goal", scenarios["lost_goal_identity"])
-        self.assertIn("no user decision is pending", scenarios["preauthorized_not_yet_repair"])
+        self.assertEqual(
+            scenarios["preauthorized_not_yet_repair"],
+            "After a NOT_YET result, the same native Goal, Outcome, change boundary, "
+            "candidate path and generated-input surface, and effect target, identity, and cap "
+            "remain unchanged; one repair is already pre-authorized inside that boundary, "
+            "repair and replacement-review budget remains, and no user decision is pending.",
+        )
         self.assertIn("The Outcome remains incomplete", scenarios["exhausted_repair_budget"])
         self.assertIn("another repair is proposed", scenarios["exhausted_repair_budget"])
         self.assertIn("two materially different repairs await the user's choice", scenarios["pending_user_decision"])
