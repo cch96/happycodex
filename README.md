@@ -48,16 +48,20 @@ Use $happycodex:happycodex for this high-risk cross-system change.
   Goal、用户回复与 `GO` 都不扩权；Goal 身份无法确认时停止 mutation。
 - 删除 branch、worktree 或其他恢复面之前，先证明 candidate、cutover、effect 与
   rollback 证据仍已持久保存且可达；否则停止清理。
-- 普通可逆工作不强制 review。公共、外部、不可逆或高风险 candidate 只运行一次
-  独立的 fresh 原生只读、blocker-only 终审；它与可选外部 challenge/review 分开，
-  失败不会自动修复或重审；已授权修复后的替换终审仍不通过时，必须交还用户。
+- 普通可逆工作不强制 review；迭代 convergence review 可不限轮复用，但始终只提供
+  advisory evidence。公共、外部、不可逆或高风险 candidate 只运行一次独立的 fresh
+  原生只读、blocker-only 终审；reviewer 必须 no-history，对一个消费者原生不可变
+  身份给出严格 `GO`/`NOT_YET`
+  并回显身份，任何 byte 变化都使结论失效。计划 `GO` 只验证计划；组合 candidate
+  使用一个绑定全部组件身份的 envelope。终审后再 followup/message 会使后续输出降级
+  为 convergence-only；仍只允许一次已授权修复和一次 fresh 替换终审，之后交还用户。
 - 外部 effect 一次尝试后以真实只读观测归类为 `landed`、`not_landed` 或
   `unknown`；partial、ambiguous 或 unknown 必须停止。
 - 最终明确报告 achieved、not achieved 或 unknown，并如实列出 dirt、跳过检查和
   未验证事实。
 
-HappyCodex portable、zero-config、model-agnostic，不要求自定义 agent、固定模型或
-固定推理强度。
+HappyCodex portable、model-agnostic，不要求自定义 agent、固定模型或推理强度。
+默认 plugin hooks 只是可选、依赖信任且可绕过的 guardrail，不是完整 enforcement。
 
 [已发布版本与验证状态请查看 GitHub Releases](https://github.com/cch96/happycodex/releases)。
 

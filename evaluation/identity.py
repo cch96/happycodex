@@ -31,6 +31,7 @@ PROVIDER_GUIDANCE = (
     "skills/happycodex/SKILL.md",
     "skills/happycodex/references/execplan.md",
 )
+DEFAULT_HOOK_PATHS = ("hooks/hooks.json", "hooks/session_firewall.py")
 EVALUATOR_COMPONENT_PATHS = {
     "provider_input": (
         "evaluation/canonical.py",
@@ -213,18 +214,32 @@ def _regular_inventory(distribution_root: Path, directory: Path) -> list[str]:
             raise IdentityError("product inventory contains an unclassified input")
     return sorted(paths)
 
+def _hook_inventory(distribution_root: Path, plugin_root: Path) -> list[str]:
+    directory = plugin_root / "hooks"
+    try:
+        mode = directory.lstat().st_mode
+    except FileNotFoundError:
+        return list(DEFAULT_HOOK_PATHS)
+    except OSError as exc:
+        raise IdentityError("plugin hooks root cannot be classified") from exc
+    if stat.S_ISLNK(mode) or not stat.S_ISDIR(mode):
+        raise IdentityError("plugin hooks root is redirected or not a directory")
+    _no_redirect(plugin_root, "hooks", "plugin hooks")
+    return sorted({*DEFAULT_HOOK_PATHS, *_regular_inventory(distribution_root, directory)})
+
 def product_projections(root: Path) -> dict[str, Any]:
     root = root.resolve(strict=True)
     plugin_root, manifest_path, skills_root = _resolve_plugin(root)
     manifest_relative = manifest_path.relative_to(root).as_posix()
     skill_inventory = _regular_inventory(root, skills_root)
+    hook_inventory = _hook_inventory(root, plugin_root)
     paths = {
-        "source_distribution": (*PRODUCT_STATIC_PATHS, *skill_inventory),
+        "source_distribution": (*PRODUCT_STATIC_PATHS, *skill_inventory, *hook_inventory),
         "marketplace_locator": (
             ".agents/plugins/marketplace.json",
             manifest_relative,
         ),
-        "plugin_runtime": (manifest_relative, *skill_inventory),
+        "plugin_runtime": (manifest_relative, *skill_inventory, *hook_inventory),
         "public_docs": PUBLIC_DOCS,
         "provider_guidance": PROVIDER_GUIDANCE,
     }

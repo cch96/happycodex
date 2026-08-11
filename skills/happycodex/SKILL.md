@@ -62,7 +62,9 @@ As soon as mutable ownership and Done evidence are stable, send substantial
 implementation to one native worker before editing. Give exact ownership and
 require changed paths, verification, and risks in return. Keep a small coherent
 correction direct. Allow only one writer per overlapping mutable path or
-resource.
+resource. Apply one writer across overlapping semantic mutable contracts and
+effect resources, including cross-repository surfaces even when files differ.
+Prefer a typed reader when available; do not automatically rewrite roles.
 
 If native agents are unavailable or fail, or a body cannot be bounded without
 transferring unresolved judgment, state the fallback before the Primary
@@ -101,6 +103,22 @@ external, irreversible, or otherwise high-risk frozen candidate, run one fresh
 native read-only, no-history, blocker-only terminal review against readable
 immutable baseline and candidate inputs. Keep that native exact-final review
 separate from any optional external challenge or review.
+
+Convergence review is advisory and may be reused, interrupted, messaged, or
+followed up without a round cap. It never supplies terminal authority. Admit
+terminal evidence only from one fresh no-history Exact-final reviewer over one
+immutable consumer-native candidate identity. Require strict `GO` or `NOT_YET`
+and echo that identity. Any candidate-byte change invalidates the verdict. A
+tracked immutable plan may be reviewed. A plan `GO` validates only that plan;
+implementation needs its own frozen candidate review. A composite candidate
+requires one immutable envelope binding every component identity.
+
+Follow-up or message to an Exact-final handle is allowed but makes any later
+output convergence-only; terminal admission still requires a fresh reviewer.
+Interrupting a reviewer is allowed. Optional native hooks may warn about these
+boundaries or deny only unsupported explicit custom-agent/full-history spawns.
+They are optional, trust-dependent, and bypassable guardrails, not complete
+enforcement; keep Skill guidance authoritative when hooks are absent or skipped.
 
 Admit only a reproduced frozen-obligation failure, preservation failure, or
 reachable candidate-new material safety or correctness regression. Suppress

@@ -4,13 +4,17 @@ from copy import deepcopy
 import base64
 import json
 import os
+from pathlib import Path
+import shutil
 import subprocess
+import tempfile
 import unittest
 
 from evaluation.canonical import canonical_sha256
 from evaluation.identity import (
-    IdentityError, evaluator_components, product_artifact_from_tree,
-    review_projection_from_git, validate_review_projection,
+    IdentityError, build_review_projection, evaluator_components,
+    product_artifact_from_tree, product_projections, review_projection_from_git,
+    review_snapshot_from_git, validate_review_projection,
 )
 from evaluation.manifest import (
     ManifestError, build_production_spec, load_production_inputs,
@@ -63,6 +67,10 @@ class ProductConsumerTests(unittest.TestCase):
             ".agents/plugins/marketplace.json", ".codex-plugin/plugin.json",
         })
         self.assertIn("skills/happycodex/SKILL.md", paths["plugin_runtime"])
+        self.assertIn("hooks/hooks.json", paths["source_distribution"])
+        self.assertIn("hooks/session_firewall.py", paths["source_distribution"])
+        self.assertIn("hooks/hooks.json", paths["plugin_runtime"])
+        self.assertIn("hooks/session_firewall.py", paths["plugin_runtime"])
         self.assertEqual(paths["provider_guidance"], {
             "skills/happycodex/SKILL.md", "skills/happycodex/references/execplan.md",
         })
@@ -119,6 +127,97 @@ class ProductConsumerTests(unittest.TestCase):
             marketplace.write_text(json.dumps(value), encoding="utf-8")
             with self.assertRaises(IdentityError):
                 product_artifact_from_tree(workspace.root, source_identity="same", baseline_identity="base")
+
+    def test_hook_bytes_mode_and_delete_change_runtime_projection(self):
+        def runtime(root):
+            return product_projections(root)["plugin_runtime"]
+
+        baseline = runtime(ROOT)
+        with CommittedWorkspace() as workspace:
+            script = workspace.root / "hooks/session_firewall.py"
+            script.write_text(script.read_text() + "\n# changed\n", encoding="utf-8")
+            self.assertNotEqual(
+                baseline["projection_sha256"],
+                runtime(workspace.root)["projection_sha256"],
+            )
+        with CommittedWorkspace() as workspace:
+            script = workspace.root / "hooks/session_firewall.py"
+            os.chmod(script, 0o755)
+            self.assertNotEqual(
+                baseline["projection_sha256"],
+                runtime(workspace.root)["projection_sha256"],
+            )
+        with CommittedWorkspace() as workspace:
+            config = workspace.root / "hooks/hooks.json"
+            config.unlink()
+            changed = runtime(workspace.root)
+            self.assertNotEqual(baseline["projection_sha256"], changed["projection_sha256"])
+            entry = next(
+                item for item in changed["entries"]
+                if item["path"] == "hooks/hooks.json"
+            )
+            self.assertEqual(entry["state"], "absent")
+        with CommittedWorkspace() as workspace:
+            script = workspace.root / "hooks/session_firewall.py"
+            script.unlink(); script.symlink_to("hooks.json")
+            with self.assertRaises(IdentityError):
+                runtime(workspace.root)
+
+    def test_previous_product_without_hooks_is_valid_in_production_construction(self):
+        with CommittedWorkspace() as workspace, tempfile.TemporaryDirectory() as raw:
+            previous_root = Path(raw) / "previous"
+            shutil.copytree(workspace.root, previous_root)
+            shutil.rmtree(previous_root / "hooks")
+            subprocess.check_call(
+                ["git", "-C", str(previous_root), "add", "-A"],
+                stdout=subprocess.DEVNULL,
+            )
+            subprocess.check_call(
+                ["git", "-C", str(previous_root), "commit", "-qm", "remove hooks"],
+                stdout=subprocess.DEVNULL,
+            )
+            previous_commit = subprocess.check_output(
+                ["git", "-C", str(previous_root), "rev-parse", "HEAD"],
+                text=True,
+            ).strip()
+            previous_product = product_artifact_from_tree(
+                previous_root,
+                source_identity=previous_commit,
+                baseline_identity="baseline",
+                source_kind="git_tree",
+            )
+            for projection_name in ("source_distribution", "plugin_runtime"):
+                entries = {
+                    entry["path"]: entry
+                    for entry in previous_product["projections"][projection_name]["entries"]
+                }
+                for path in ("hooks/hooks.json", "hooks/session_firewall.py"):
+                    self.assertEqual(entries[path]["state"], "absent")
+
+            construction, _ = workspace.production_construction()
+            construction["previous_root"] = previous_root
+            construction["previous_product"] = previous_product
+            construction["review_projection"] = build_review_projection(
+                baseline=review_snapshot_from_git(previous_root, "HEAD"),
+                candidate=review_snapshot_from_git(workspace.root, "HEAD"),
+            )
+            spec = build_production_spec(**construction)
+            self.assertEqual(
+                spec["previous_product_artifact_sha256"],
+                previous_product["artifact_sha256"],
+            )
+
+    def test_hooks_root_redirect_and_non_directory_are_rejected(self):
+        for replacement in ("symlink", "file"):
+            with CommittedWorkspace() as workspace:
+                hooks = workspace.root / "hooks"
+                shutil.rmtree(hooks)
+                if replacement == "symlink":
+                    hooks.symlink_to("skills")
+                else:
+                    hooks.write_text("not a directory", encoding="utf-8")
+                with self.assertRaises(IdentityError):
+                    product_projections(workspace.root)
 
     def test_component_drift_stops_qualified_authority(self):
         with CommittedWorkspace() as workspace:
@@ -187,10 +286,10 @@ class ReviewProjectionTests(unittest.TestCase):
 
 
 class PublicContractTests(unittest.TestCase):
-    def test_public_metadata_and_templates_are_v0141_and_bounded(self):
+    def test_public_metadata_and_templates_are_v0150_and_bounded(self):
         plugin = json.loads((ROOT / ".codex-plugin/plugin.json").read_text())
         marketplace = json.loads((ROOT / ".agents/plugins/marketplace.json").read_text())
-        self.assertEqual(plugin["version"], "0.14.1")
+        self.assertEqual(plugin["version"], "0.15.0")
         self.assertEqual(plugin["name"], marketplace["plugins"][0]["name"])
         self.assertEqual(plugin["skills"], "./skills/")
         skill = (ROOT / "skills/happycodex/SKILL.md").read_text()
@@ -199,6 +298,37 @@ class PublicContractTests(unittest.TestCase):
         self.assertLessEqual(len((ROOT / "skills/happycodex/references/execplan.md").read_text().splitlines()), 80)
         self.assertLessEqual(len((ROOT / "README.md").read_text().splitlines()), 80)
         self.assertLessEqual(len((ROOT / "README.en.md").read_text().splitlines()), 80)
+
+    def test_review_admission_contract_is_public_and_consistent(self):
+        skill = " ".join((ROOT / "skills/happycodex/SKILL.md").read_text().split())
+        template = " ".join(
+            (ROOT / "skills/happycodex/references/execplan.md").read_text().split()
+        )
+        chinese = " ".join((ROOT / "README.md").read_text().split())
+        english = " ".join((ROOT / "README.en.md").read_text().split())
+        for phrase in (
+            "Convergence review is advisory",
+            "reused, interrupted, messaged, or followed up without a round cap",
+            "one fresh no-history Exact-final reviewer",
+            "one immutable consumer-native candidate identity",
+            "echo that identity",
+            "Any candidate-byte change invalidates the verdict",
+            "A plan `GO` validates only that plan",
+            "one immutable envelope binding every component identity",
+            "later output convergence-only",
+            "one writer across overlapping semantic mutable contracts and effect resources",
+            "Prefer a typed reader when available; do not automatically rewrite roles",
+            "optional, trust-dependent, and bypassable guardrails",
+        ):
+            self.assertIn(phrase, skill)
+        self.assertIn("Terminal admission identity", template)
+        self.assertIn("Exact-final reuse", template)
+        self.assertIn("later output convergence-only", template)
+        self.assertIn("Composite envelope", template)
+        self.assertIn("计划 `GO` 只验证计划", chinese)
+        self.assertIn("终审后再 followup/message", chinese)
+        self.assertIn("A plan `GO` validates only the plan", english)
+        self.assertIn("Follow-up or messaging after terminal review", english)
 
     def test_boundary_routing_contract_is_closed_and_consistent(self):
         inputs = load_production_inputs(ROOT)

@@ -56,18 +56,22 @@ Use $happycodex:happycodex for this high-risk cross-system change.
   authority; unconfirmed Goal identity stops mutation.
 - Before deleting a branch, worktree, or other recovery surface, prove the
   candidate, cutover, effect, and rollback evidence remains durably reachable.
-- Ordinary reversible work needs no review. Run one separate fresh native
-  read-only, blocker-only terminal review for a public, external, irreversible,
-  or high-risk candidate. Keep it distinct from optional external challenge or
-  review, and never enter an automatic repair or re-review loop. An adverse
-  replacement review after an authorized repair returns to the user.
+- Ordinary reversible work needs no review. Iterative convergence review is
+  advisory and uncapped. Run one separate fresh native read-only, blocker-only
+  terminal review for a public, external, irreversible, or high-risk candidate;
+  it must be no-history, return strict `GO` or `NOT_YET`, and echo an immutable
+  consumer-native identity; any byte change invalidates it. A plan `GO`
+  validates only the plan, and a composite candidate uses one envelope binding
+  all component identities. Follow-up or messaging after terminal review makes
+  later output convergence-only; one authorized repair plus one fresh
+  replacement review remains the automatic limit before returning to the user.
 - After one external-effect attempt, use real read-only observation to classify
   it as `landed`, `not_landed`, or `unknown`. Stop on partial or ambiguity.
 - Close explicitly as achieved, not achieved, or unknown, accounting for dirt,
   skipped checks, and unverified facts.
 
-HappyCodex is portable, zero-config, and model-agnostic. It requires no custom
-agent, pinned model, or pinned reasoning effort.
+HappyCodex is portable and model-agnostic; it requires no custom agent or pinned
+model/effort. Default hooks are optional, trust-dependent, bypassable guardrails, not enforcement.
 
 [See GitHub Releases for published versions and verification status.](https://github.com/cch96/happycodex/releases)
 

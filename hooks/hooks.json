@@ -1,0 +1,35 @@
+{
+  "description": "Optional stateless HappyCodex review-admission guardrails.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "^(Agent|spawn_agent|followup_task|send_message)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$PLUGIN_ROOT/hooks/session_firewall.py\"",
+            "commandWindows": "py -3 \"%PLUGIN_ROOT%\\hooks\\session_firewall.py\"",
+            "timeout": 5,
+            "statusMessage": "Checking HappyCodex review admission",
+            "additionalContextLimit": 500
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "^compact$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$PLUGIN_ROOT/hooks/session_firewall.py\"",
+            "commandWindows": "py -3 \"%PLUGIN_ROOT%\\hooks\\session_firewall.py\"",
+            "timeout": 5,
+            "statusMessage": "Re-grounding HappyCodex context",
+            "additionalContextLimit": 500
+          }
+        ]
+      }
+    ]
+  }
+}

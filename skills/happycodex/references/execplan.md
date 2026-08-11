@@ -15,6 +15,8 @@ Keep this contract static. Reconstruct live state from Git, tests, and tools.
 - Preservation: `<behavior, data, identity, and state to keep>`
 - Exclusions: `<non-goals and forbidden effects>`
 - Supported workflows: `<consumer-reachable paths that must remain valid>`
+- Writer overlap: `<semantic mutable contracts and effect resources, including
+  cross-repository surfaces, that share one writer>`
 
 ## Baseline and allowed breaks
 - Baseline: `<command and exact accepted failures>`
@@ -26,6 +28,14 @@ Never call an accepted failing baseline green or accept a new failure silently.
 - Consumer: `<who or what consumes the result>`
 - Input closure: `<all direct, generated, and transitive inputs>`
 - Native freeze: `<commit/tree, package, image, revision, or snapshot>`
+- Convergence review: `<advisory reviewers may be reused or followed up without
+  a round cap; their output has no terminal authority>`
+- Plan review identity: `<tracked immutable plan identity; GO validates the plan only>`
+- Terminal admission identity: `<one fresh no-history Exact-final; one immutable
+  consumer-native identity; strict GO/NOT_YET with identity echo>`
+- Exact-final reuse: `<follow-up/message makes later output convergence-only;
+  one fresh reviewer remains required>`
+- Composite envelope: `<one immutable envelope binding every component identity>`
 
 ## External effects
 
@@ -39,6 +49,7 @@ cap; observation predicate; recovery cap or none>`. If none, write `none`.
   diff/state checks; task-created temporary resources cleaned up or explicitly
   retained when applicable>`
 - Terminal review trigger/brief: `<risk trigger; Done, preservation, supported workflows; or none>`
+- Hook posture: `<optional, trust-dependent, bypassable guardrails or none>`
 
 ## Stops and recovery
 
