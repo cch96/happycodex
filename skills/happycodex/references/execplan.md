@@ -9,7 +9,9 @@ Keep this contract static. Reconstruct live state from Git, tests, and tools.
 
 ## Workspace and change boundary
 - Workspace: `<root and source identity>`
-- Mutable paths/resources: `<exact paths, prefixes, or resource identities>`
+- Mutable paths/resources: `<exact paths, prefixes, or resource identities;
+  include task-created or reused containers, temporary database roles, and
+  reserved ports or sockets when applicable>`
 - Preservation: `<behavior, data, identity, and state to keep>`
 - Exclusions: `<non-goals and forbidden effects>`
 - Supported workflows: `<consumer-reachable paths that must remain valid>`
@@ -32,7 +34,10 @@ cap; observation predicate; recovery cap or none>`. If none, write `none`.
 
 ## Checks
 
-- Required checks: `<focused real paths, cumulative suite, diff/state checks>`
+- Required checks: `<focused real paths during iteration; required cumulative
+  or full suite after candidate scope is stable and before native freeze;
+  diff/state checks; task-created temporary resources cleaned up or explicitly
+  retained when applicable>`
 - Terminal review trigger/brief: `<risk trigger; Done, preservation, supported workflows; or none>`
 
 ## Stops and recovery
