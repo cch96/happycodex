@@ -78,6 +78,18 @@
                     "small_exact_metadata_comparison"
                   ]
                 },
+                "broad_current_fact_recommendation": {
+                  "type": "string",
+                  "enum": [
+                    "recommendation_depends_on_unread_multi_artifact_current_facts"
+                  ]
+                },
+                "bounded_current_fact_lookup": {
+                  "type": "string",
+                  "enum": [
+                    "recommendation_needs_at_most_two_bounded_direct_lookups"
+                  ]
+                },
                 "stable_large_supporting_evidence": {
                   "type": "string",
                   "enum": [
@@ -124,6 +136,8 @@
               "required": [
                 "judgment_core",
                 "focused_verification",
+                "broad_current_fact_recommendation",
+                "bounded_current_fact_lookup",
                 "stable_large_supporting_evidence",
                 "independent_evidence_bodies",
                 "external_challenge_or_review",
@@ -577,6 +591,22 @@
             "one_worker_before_primary_editing"
           ]
         },
+        "broad_current_fact_recommendation": {
+          "type": "string",
+          "enum": [
+            "primary_direct",
+            "one_read_only_agent_before_primary_ingestion",
+            "parallel_read_only_agents_only_when_materially_helpful"
+          ]
+        },
+        "bounded_current_fact_lookup": {
+          "type": "string",
+          "enum": [
+            "primary_direct",
+            "one_read_only_agent_before_primary_ingestion",
+            "parallel_read_only_agents_only_when_materially_helpful"
+          ]
+        },
         "stable_large_supporting_evidence": {
           "type": "string",
           "enum": [
@@ -645,6 +675,8 @@
       "required": [
         "judgment_core",
         "focused_verification",
+        "broad_current_fact_recommendation",
+        "bounded_current_fact_lookup",
         "stable_large_supporting_evidence",
         "independent_evidence_bodies",
         "external_challenge_or_review",

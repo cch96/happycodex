@@ -34,10 +34,9 @@ Use $happycodex:happycodex for this high-risk cross-system change.
 - The ExecPlan stores only the static request, Outcome, change boundary,
   consumer, effects, checks, and stops. Re-derive live state from Git, tests,
   and tools.
-- Route stable boundaries. Keep the judgment core and unresolved decisions with
-  the Primary, and perform one focused verification directly. When a stable
-  question requires a supporting body to be searched, summarized, compared, or
-  filtered, send it to one native reader before ingestion. Once ownership and
+- Route stable boundaries. Before a recommendation, assessment, or design verdict that depends on unverified current facts spanning artifacts or requiring search, the Primary sends bounded observable questions
+  to one native read-only scout before deciding. It returns cited facts, searched scope, and unknowns, never recommendations; judgment stays with the Primary.
+  Skip it for one or two bounded lookups or facts verified in-session; delegate other evidence bodies only when search, summary, comparison, or filtering is required. Once ownership and
   Done evidence are stable, send substantial implementation to one native
   worker before editing. Keep small coherent corrections direct. Limit an
   external model or tool challenge/review to its assigned question, and have

@@ -1,6 +1,6 @@
 ---
 name: happycodex
-description: Use for high-risk, cross-system, destructive, public-contract, migration, persistence, concurrency, exhaustive, long-running, or compaction-prone Codex work that needs a static change boundary, isolated context, consumer-native candidate identity, and truthful closure.
+description: Use for high-risk, cross-system, destructive, public-contract, migration, persistence, concurrency, exhaustive, long-running, or compaction-prone Codex work, and for architecture or design recommendations that depend on current multi-artifact implementation facts, when the work needs a static change boundary, isolated context, consumer-native candidate identity, and truthful closure.
 ---
 
 # HappyCodex
@@ -46,6 +46,16 @@ decisions, and judgment core with the Primary. Read the exact judgment artifact
 whose semantics are evaluated and keep one focused verification direct. Do not
 ingest every supporting artifact. Do only the smallest discovery needed to form
 another bounded question.
+
+For a recommendation, assessment, or design verdict that depends on current
+facts not yet verified in-session, use an evidence-first scout when those facts
+span more than one artifact or require search to enumerate. Before forming the
+recommendation, the Primary writes a small bounded set of open factual questions
+that are answerable by observation and sends them to one native read-only agent.
+The scout returns facts only, with citations, searched scope, and unknowns; it
+does not recommend. Judgment and the final recommendation stay with the Primary.
+Skip the scout when one or two bounded direct lookups suffice or the relevant
+facts are already verified in the current session.
 
 Only once a stable question requires a supporting body to be searched,
 summarized, compared, or filtered, send that body to one native read-only agent

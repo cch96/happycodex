@@ -286,14 +286,20 @@ class ReviewProjectionTests(unittest.TestCase):
 
 
 class PublicContractTests(unittest.TestCase):
-    def test_public_metadata_and_templates_are_v0151_and_bounded(self):
+    def test_public_metadata_and_templates_are_v0160_and_bounded(self):
         plugin = json.loads((ROOT / ".codex-plugin/plugin.json").read_text())
         marketplace = json.loads((ROOT / ".agents/plugins/marketplace.json").read_text())
-        self.assertEqual(plugin["version"], "0.15.1")
+        self.assertEqual(plugin["version"], "0.16.0")
         self.assertEqual(plugin["name"], marketplace["plugins"][0]["name"])
         self.assertEqual(plugin["skills"], "./skills/")
         skill = (ROOT / "skills/happycodex/SKILL.md").read_text()
         self.assertTrue(skill.startswith("---\nname: happycodex\n"))
+        frontmatter = skill.split("---", 2)[1]
+        self.assertIn("architecture or design recommendations", frontmatter)
+        self.assertIn("current multi-artifact implementation facts", frontmatter)
+        plugin_text = " ".join(json.dumps(plugin).split())
+        self.assertIn("evidence-first", plugin_text)
+        self.assertIn("recommendations", plugin_text)
         self.assertLessEqual(len(skill.splitlines()), 200)
         self.assertLessEqual(len((ROOT / "skills/happycodex/references/execplan.md").read_text().splitlines()), 80)
         self.assertLessEqual(len((ROOT / "README.md").read_text().splitlines()), 80)
@@ -385,6 +391,8 @@ class PublicContractTests(unittest.TestCase):
         answers = {
             "judgment_core": "primary_direct",
             "focused_verification": "primary_direct",
+            "broad_current_fact_recommendation": "one_read_only_agent_before_primary_ingestion",
+            "bounded_current_fact_lookup": "primary_direct",
             "stable_large_supporting_evidence": "one_read_only_agent_before_primary_ingestion",
             "independent_evidence_bodies": "parallel_read_only_agents_only_when_materially_helpful",
             "external_challenge_or_review": "primary_direct_tool_call_and_observation_assigned_question_only",
@@ -401,6 +409,7 @@ class PublicContractTests(unittest.TestCase):
         })
         self.assertEqual(oracle["fatal"], answers)
         self.assertEqual(oracle["quality"], {
+            "broad_current_fact_recommendation": answers["broad_current_fact_recommendation"],
             "stable_large_supporting_evidence": answers["stable_large_supporting_evidence"],
             "external_challenge_or_review": answers["external_challenge_or_review"],
             "stable_substantial_implementation": answers["stable_substantial_implementation"],
@@ -421,6 +430,17 @@ class PublicContractTests(unittest.TestCase):
         for phrase in (
             "## Route work by boundary",
             "keep one focused verification direct",
+            "recommendation, assessment, or design verdict",
+            "current facts not yet verified in-session",
+            "span more than one artifact or require search to enumerate",
+            "small bounded set of open factual questions",
+            "answerable by observation",
+            "sends them to one native read-only agent",
+            "facts only, with citations, searched scope, and unknowns",
+            "does not recommend",
+            "Judgment and the final recommendation stay with the Primary",
+            "one or two bounded direct lookups suffice",
+            "already verified in the current session",
             "requires a supporting body to be searched, summarized, compared, or filtered",
             "before the Primary ingests",
             "send substantial implementation to one native worker before editing",
@@ -433,6 +453,37 @@ class PublicContractTests(unittest.TestCase):
             "Keep that native exact-final review separate from any optional external challenge or review",
         ):
             self.assertIn(phrase, skill)
+        for forbidden in (
+            "exactly five factual questions",
+            "five factual questions",
+            "custom scout agent",
+            "Fable",
+        ):
+            self.assertNotIn(forbidden, skill)
+
+        recommendation_fields = (
+            "broad_current_fact_recommendation", "bounded_current_fact_lookup",
+        )
+        recommendation_inputs = {
+            "broad_current_fact_recommendation":
+                "recommendation_depends_on_unread_multi_artifact_current_facts",
+            "bounded_current_fact_lookup":
+                "recommendation_needs_at_most_two_bounded_direct_lookups",
+        }
+        recommendation_routes = [
+            "primary_direct",
+            "one_read_only_agent_before_primary_ingestion",
+            "parallel_read_only_agents_only_when_materially_helpful",
+        ]
+        for field in recommendation_fields:
+            self.assertEqual(
+                scenario_schema["properties"][field],
+                {"type": "string", "enum": [recommendation_inputs[field]]},
+            )
+            self.assertEqual(
+                schema["properties"][field]["enum"], recommendation_routes,
+            )
+            self.assertEqual(case["context"]["scenarios"][field], recommendation_inputs[field])
 
         external_scenario = "external_model_or_tool_bounded_assigned_question"
         self.assertEqual(

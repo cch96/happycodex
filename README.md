@@ -31,9 +31,12 @@ Use $happycodex:happycodex for this high-risk cross-system change.
 
 - ExecPlan 只保存静态请求、Outcome、修改边界、消费者、effect、检查和停止条件；
   live state 始终从 Git、测试和工具重新推导。
-- 按稳定边界路由：Primary 保留判断核心和未决问题，并直接完成一次聚焦核验。仅当
-  稳定问题要求搜索、摘要、比较或筛选辅助证据体时，才在 Primary 读取正文前交给
-  一个原生只读 agent；所有权和 Done 证据稳定后，较大实现则在编辑前交给一个原生
+- 按稳定边界路由：当建议、评估或设计结论依赖尚未核实、跨多个 artifact 或需搜索
+  枚举的当前事实时，Primary 先写一小组可观察回答的开放事实问题，交给一个原生只读
+  agent；它只返回带引用的事实、搜索范围和 unknown，不作建议，最终判断仍由 Primary
+  完成。一两个有界直接查询足够或事实已在当前 session 核实时跳过 scout。其他稳定
+  问题仅在要求搜索、摘要、比较或筛选辅助证据体时，才在 Primary 读取正文前委派；
+  所有权和 Done 证据稳定后，较大实现则在编辑前交给一个原生
   worker。小而完整的修正可直接完成。外部模型或工具的 challenge/review 只覆盖已
   分配问题，并由 Primary 直接调用和观察；
   不得创建原生 agent 代为调用、中转或包装外部调用。原生 agent fallback 要在直接
