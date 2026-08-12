@@ -50,13 +50,13 @@ another bounded question.
 Only once a stable question requires a supporting body to be searched,
 summarized, compared, or filtered, send that body to one native read-only agent
 before the Primary ingests it. Require a concise answer with citations, searched
-scope, and unknowns. Wait before deciding, then spot-check decision-changing
-citations without replaying the body. Context offload requires neither parallel
-lanes nor low remaining context. Add agents only for independent bodies when
-concurrency materially helps. Keep every challenge or review within its assigned
-question. When a challenge or review uses an external model or tool, the Primary
-invokes that tool directly and observes its result directly. Do not create a
-native agent to call, relay, or wrap the external invocation.
+scope, and unknowns. Wait before deciding; the convergence rule below governs
+the focused verification. Context offload requires neither parallel lanes nor
+low remaining context. Add agents only for independent bodies when concurrency
+materially helps. Keep every challenge or review within its assigned question.
+When a challenge or review uses an external model or tool, the Primary invokes
+that tool directly and observes its result directly. Do not create a native
+agent to call, relay, or wrap the external invocation.
 
 As soon as mutable ownership and Done evidence are stable, send substantial
 implementation to one native worker before editing. Give exact ownership and
@@ -76,7 +76,33 @@ candidate, and effect state, and rerun the checks needed to rederive current
 facts. Summaries are hints, not authority. Stop on identity, scope, index,
 effect, or trust-boundary drift.
 
+## Converge on evidence
+
+When Outcome, change boundary, Done, mutable ownership, and current blockers are
+stable, Root gives the fixed Executor an explicit stability handoff. State the
+Outcome, change boundary, Done, writer, current blockers, authorized increments,
+and exclusions. The handoff gives the Executor the write lock over the
+candidate. After it, Root must not send another candidate revision brief unless
+that brief cites new decision-changing evidence or a concrete current blocker.
+Root write count alone is not a closure proxy; a restatement, optional check, or
+concern without an admitted failure path does not reopen the candidate.
+
+A new concern enters current obligations only through a concrete failure path
+against the Outcome, preservation, a required workflow, or candidate-new
+material safety or correctness. A reasoned path is sufficient at plan stage;
+during implementation, reproduce it where feasible. This gate never dismisses
+a current blocker or required unknown.
+
+After delegated evidence, Root may perform at most one focused verification.
+Before it, state which current verdict the check could flip; then deliver the
+verdict and required unknowns. For a user status or conclusion request, give the
+current verdict and required unknowns first, before proposing optional checks.
+
 ## Freeze what the consumer receives
+
+Freeze makes Root read-only over the candidate. Any candidate change returns
+ownership to the fixed Executor; rerun required checks and refreeze before using
+the existing review semantics.
 
 After writes and checks, derive the complete consumer input closure, including
 generated and transitive inputs, modes, deletions, and byte identities. Verify

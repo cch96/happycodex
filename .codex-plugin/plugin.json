@@ -1,6 +1,6 @@
 {
   "name": "happycodex",
-  "version": "0.15.0",
+  "version": "0.15.1",
   "description": "Reliability guidance for high-risk Codex work with iterative convergence, fresh exact-final admission, optional hooks, and truthful effects.",
   "author": {
     "name": "caichenghang",

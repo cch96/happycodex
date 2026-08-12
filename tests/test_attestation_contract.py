@@ -286,10 +286,10 @@ class ReviewProjectionTests(unittest.TestCase):
 
 
 class PublicContractTests(unittest.TestCase):
-    def test_public_metadata_and_templates_are_v0150_and_bounded(self):
+    def test_public_metadata_and_templates_are_v0151_and_bounded(self):
         plugin = json.loads((ROOT / ".codex-plugin/plugin.json").read_text())
         marketplace = json.loads((ROOT / ".agents/plugins/marketplace.json").read_text())
-        self.assertEqual(plugin["version"], "0.15.0")
+        self.assertEqual(plugin["version"], "0.15.1")
         self.assertEqual(plugin["name"], marketplace["plugins"][0]["name"])
         self.assertEqual(plugin["skills"], "./skills/")
         skill = (ROOT / "skills/happycodex/SKILL.md").read_text()
@@ -298,6 +298,52 @@ class PublicContractTests(unittest.TestCase):
         self.assertLessEqual(len((ROOT / "skills/happycodex/references/execplan.md").read_text().splitlines()), 80)
         self.assertLessEqual(len((ROOT / "README.md").read_text().splitlines()), 80)
         self.assertLessEqual(len((ROOT / "README.en.md").read_text().splitlines()), 80)
+
+    def test_root_convergence_contract_is_evidence_gated_and_non_runtime(self):
+        raw_skill = (ROOT / "skills/happycodex/SKILL.md").read_text()
+        skill = " ".join(raw_skill.split())
+        convergence = raw_skill.split("## Converge on evidence", 1)[1].split("\n## ", 1)[0]
+        template = " ".join(
+            (ROOT / "skills/happycodex/references/execplan.md").read_text().split()
+        )
+
+        self.assertEqual(raw_skill.count("## Converge on evidence"), 1)
+        for phrase in (
+            "explicit stability handoff",
+            "Outcome, change boundary, Done, writer, current blockers, authorized increments, and exclusions",
+            "The handoff gives the Executor the write lock over the candidate",
+            "must not send another candidate revision brief unless that brief cites new decision-changing evidence or a concrete current blocker",
+            "Root write count alone is not a closure proxy",
+            "A new concern enters current obligations only through a concrete failure path",
+            "against the Outcome, preservation, a required workflow, or candidate-new material safety or correctness",
+            "A reasoned path is sufficient at plan stage; during implementation, reproduce it where feasible",
+            "This gate never dismisses a current blocker or required unknown",
+            "After delegated evidence, Root may perform at most one focused verification",
+            "state which current verdict the check could flip",
+            "then deliver the verdict and required unknowns",
+            "For a user status or conclusion request, give the current verdict and required unknowns first",
+            "Freeze makes Root read-only over the candidate",
+            "Any candidate change returns ownership to the fixed Executor",
+        ):
+            self.assertIn(phrase, skill)
+
+        for field in (
+            "## Stability handoff",
+            "Outcome/change boundary/Done",
+            "Writer/current blockers",
+            "Increments/exclusions",
+            "Revision admission",
+            "new decision-changing evidence or concrete current blocker",
+        ):
+            self.assertIn(field, template)
+
+        self.assertIn("incomplete coverage or a required unknown is adverse", skill)
+        self.assertIn("After that replacement review, any adverse result returns to the user", skill)
+        for forbidden in (
+            "controller", "mutable ledger", "runtime monitor", "timer",
+            "action quota", "model downgrade", "token reduction",
+        ):
+            self.assertNotIn(forbidden, convergence.lower())
 
     def test_review_admission_contract_is_public_and_consistent(self):
         skill = " ".join((ROOT / "skills/happycodex/SKILL.md").read_text().split())

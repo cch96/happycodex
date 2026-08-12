@@ -18,6 +18,12 @@ Keep this contract static. Reconstruct live state from Git, tests, and tools.
 - Writer overlap: `<semantic mutable contracts and effect resources, including
   cross-repository surfaces, that share one writer>`
 
+## Stability handoff
+- Outcome/change boundary/Done: `<stable values or unresolved items>`
+- Writer/current blockers: `<fixed Executor; current blockers or none>`
+- Increments/exclusions: `<authorized increments; exclusions>`
+- Revision admission: `<new decision-changing evidence or concrete current blocker>`
+
 ## Baseline and allowed breaks
 - Baseline: `<command and exact accepted failures>`
 - Allowed breaks: `<intentional incompatibilities or none>`
