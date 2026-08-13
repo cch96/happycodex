@@ -24,6 +24,9 @@
         "stable_substantial_implementation": "one_worker_before_primary_editing",
         "small_coherent_correction": "primary_direct",
         "agent_unavailable_or_failed": "state_fallback_before_primary_direct_work",
+        "skill_requested_delegation_under_proactive_only_restriction": "attempt_native_spawn",
+        "explicit_host_delegation_denial": "primary_direct_record_denial",
+        "spawn_unavailable_or_failed": "primary_direct_fallback_record_evidence",
         "overlapping_mutable_paths": "single_writer_per_overlap",
         "context_offload_relation": "independent_of_parallelism"
       },
@@ -32,6 +35,9 @@
         "stable_large_supporting_evidence": "one_read_only_agent_before_primary_ingestion",
         "external_challenge_or_review": "primary_direct_tool_call_and_observation_assigned_question_only",
         "stable_substantial_implementation": "one_worker_before_primary_editing",
+        "skill_requested_delegation_under_proactive_only_restriction": "attempt_native_spawn",
+        "explicit_host_delegation_denial": "primary_direct_record_denial",
+        "spawn_unavailable_or_failed": "primary_direct_fallback_record_evidence",
         "context_offload_relation": "independent_of_parallelism"
       }
     },
@@ -52,6 +58,8 @@
         "mutable_snapshot": "content_addressed",
         "terminal_review": "one_fresh_native_read_only_blocker_only",
         "mutation_action": "refreeze",
+        "advisory_pass_action": "stop_and_report",
+        "advisory_pass_status": "not_go",
         "automatic_continuation_allowed": false,
         "continuation": {
           "lost_goal_identity": false,
@@ -73,7 +81,8 @@
       },
       "quality": {
         "terminal_review": "one_fresh_native_read_only_blocker_only",
-        "mutation_action": "refreeze"
+        "mutation_action": "refreeze",
+        "advisory_pass_action": "stop_and_report"
       }
     },
     "effect-closure": {

@@ -29,6 +29,9 @@
           "stable_substantial_implementation": "stable_ownership_and_done_evidence",
           "small_coherent_correction": "bounded_small_coherent_edit",
           "agent_unavailable_or_failed": "native_agent_unavailable_or_failed",
+          "skill_requested_delegation_under_proactive_only_restriction": "applicable_skill_requires_bounded_read_only_scout_host_prohibits_only_proactive_delegation_native_spawn_exposed",
+          "explicit_host_delegation_denial": "host_explicitly_denies_delegation_for_this_task",
+          "spawn_unavailable_or_failed": "native_spawn_tool_proven_missing_or_spawn_attempt_returned_error",
           "overlapping_mutable_paths": "mutable_paths_overlap"
         }
       },
@@ -58,6 +61,7 @@
         "risk": "public",
         "generated_inputs": true,
         "review_budget": "authorized_repair_and_replacement_exhausted",
+        "advisory_pass_scenario": "A bounded advisory pass completed; no new decision-changing evidence, question, failure hypothesis, user-requested scope, or other renewal exists.",
         "continuation_scenarios": {
           "lost_goal_identity": "The native Goal identity cannot be confirmed; no user request to create or recreate a Goal exists; recreating the Goal is the proposed next step.",
           "post_go_ungranted_effects": "A reader candidate received GO; deploy, canary, and backfill were absent from the user's grant.",
