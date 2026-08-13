@@ -286,10 +286,10 @@ class ReviewProjectionTests(unittest.TestCase):
 
 
 class PublicContractTests(unittest.TestCase):
-    def test_public_metadata_and_templates_are_v120_and_deletion_first(self):
+    def test_public_metadata_and_templates_are_v121_and_deletion_first(self):
         plugin = json.loads((ROOT / ".codex-plugin/plugin.json").read_text())
         marketplace = json.loads((ROOT / ".agents/plugins/marketplace.json").read_text())
-        self.assertEqual(plugin["version"], "1.2.0")
+        self.assertEqual(plugin["version"], "1.2.1")
         self.assertEqual(plugin["name"], marketplace["plugins"][0]["name"])
         self.assertEqual(plugin["skills"], "./skills/")
         skill = (ROOT / "skills/happycodex/SKILL.md").read_text()
@@ -468,6 +468,10 @@ class PublicContractTests(unittest.TestCase):
             "Record that evidence before direct work",
             "Do not claim delegation was forbidden without an attempt",
             "one writer per overlapping path, semantic mutable contract, or effect resource",
+            "pair any explicit `agent_type`, `model`, or `reasoning_effort`",
+            "self-contained packet and `fork_turns=\"none\"` by default",
+            "Use the smallest positive fork only for a recent raw artifact",
+            "reserve omitted/`\"all\"` for intentional same-agent inheritance",
         ):
             self.assertIn(invariant, skill)
         self.assertNotIn("Fable", skill)

@@ -57,6 +57,11 @@ judgment direct. Use the smallest of these routes:
 - Invoke an external model or tool directly for its assigned question; do not
   delegate the invocation or treat it as terminal review.
 
+When native spawn exposes `fork_turns`, pair any explicit `agent_type`, `model`, or
+`reasoning_effort` with a self-contained packet and `fork_turns="none"` by default.
+Use the smallest positive fork only for a recent raw artifact that cannot be referenced
+or restated faithfully; reserve omitted/`"all"` for intentional same-agent inheritance.
+
 When host guidance prohibits only *proactive* delegation but permits delegation
 requested by the user or an applicable Skill, the scout or worker required
 above is this Skill's explicit request: attempt the exposed native spawn. This
