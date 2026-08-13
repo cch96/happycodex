@@ -26,13 +26,15 @@ observation predicate, and allowed recovery cap or none. Keep the plan static:
 do not store live phases, realized file inventories, digests, agent history, or
 review history. Reconstruct those facts from the workspace and tools.
 
-Do not use an exact mutable-path or realized-resource inventory as the
-authorization boundary. It coordinates primary ownership and later closure;
-it does not require per-path reauthorization for reversible Outcome-required
-work inside the unchanged selected workspace/project or task-owned boundary.
-Before freeze, task-owned additions or relocations may continue when the
-consumer, Outcome, preservation, exclusions, and primary effects remain
-unchanged. This does not imply deletion of old or shared surfaces.
+Do not use an exact mutable-path or realized-resource inventory as the authorization boundary. It coordinates primary ownership and later closure; it does not require per-path reauthorization
+for reversible Outcome-required work inside the unchanged selected workspace/project or task-owned
+boundary. Before freeze, task-owned additions or relocations may continue when the consumer,
+Outcome, preservation, exclusions, and primary effects remain unchanged. This does not imply
+deletion of old or shared surfaces. Advisory evidence adds no authority; it may refine planned
+primary surfaces inside the unchanged authorization boundary. A compatibility break remains a
+proposal until the request explicitly authorizes the exact incompatibility and any material
+consumer, data, or cutover effect. Recommend it only for a material safety or correctness need or
+a net reduction in steady-state semantic complexity relative to cutover risk; ambiguous no-compatibility wording authorizes comparison only.
 
 Treat bounded additive, reconstructible, non-authoritative cache, temporary,
 log, or compiled output as incidental only when it is not a consumer input and
@@ -104,25 +106,23 @@ effect, or trust-boundary drift.
 
 ## Converge on evidence
 
-When Outcome, change boundary, Done, mutable ownership, and current blockers are
-stable, Root gives the fixed Executor an explicit stability handoff. State the
-Outcome, change boundary, Done, writer, current blockers, authorized increments,
-and exclusions. The handoff gives the Executor the write lock over the
-candidate. After it, Root must not send another candidate revision brief unless
-that brief cites new decision-changing evidence or a concrete current blocker.
-Root write count alone is not a closure proxy; a restatement, optional check, or
-concern without an admitted failure path does not reopen the candidate.
+When Outcome, change boundary, Done, mutable ownership, and current blockers are stable, Root gives the fixed Executor an explicit stability handoff.
+State the Outcome, change boundary, Done, writer, current blockers, authorized increments, and exclusions.
+The handoff gives the Executor the write lock over the candidate. After it, Root must not send another candidate revision brief unless
+that brief cites new decision-changing evidence or a concrete current blocker. Root write count alone is not a closure proxy;
+a restatement, optional check, or concern without an admitted failure path does not reopen the candidate.
 
-A new concern enters current obligations only through a concrete failure path
-against the Outcome, preservation, a required workflow, or candidate-new
-material safety or correctness. A reasoned path is sufficient at plan stage;
-during implementation, reproduce it where feasible. This gate never dismisses
-a current blocker or required unknown.
+A new concern enters current obligations only through a concrete failure path against the Outcome, preservation, a required workflow, or candidate-new material safety or correctness.
+A reasoned path is sufficient at plan stage; during implementation, reproduce it where feasible. This gate never dismisses a current blocker or required unknown.
+Before another advisory pass, Root states a bounded reason that could change the current verdict: new
+decision-changing evidence, a decision-relevant question, a concrete failure hypothesis, or a new user-requested review bounded to the current
+artifact and Outcome. Ask the user to select a scope only when materially different scopes remain.
+A standing instruction alone does not renew passes. After the declared scope is complete, or no
+further bounded pass can resolve a required unknown, stop initiating advisory review and report
+findings, searched scope, and unknowns. This stop is not `GO`.
 
-After delegated evidence, Root may perform at most one focused verification.
-Before it, state which current verdict the check could flip; then deliver the
-verdict and required unknowns. For a user status or conclusion request, give the
-current verdict and required unknowns first, before proposing optional checks.
+After delegated evidence, Root may perform at most one focused verification. Before it, state which current verdict the check could flip;
+then deliver the verdict and required unknowns. For a user status or conclusion request, give the current verdict and required unknowns first, before proposing optional checks.
 
 ## Freeze what the consumer receives
 

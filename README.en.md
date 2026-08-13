@@ -58,9 +58,8 @@ Use $happycodex:happycodex for this high-risk cross-system change.
   authority; unconfirmed Goal identity stops mutation.
 - Before deleting a branch, worktree, or other recovery surface, prove the
   candidate, cutover, effect, and rollback evidence remains durably reachable.
-- Ordinary reversible work needs no review. Iterative convergence review is
-  advisory and uncapped. Run one separate fresh native read-only, blocker-only
-  terminal review for a public, external, irreversible, or high-risk candidate;
+- Ordinary reversible work needs no review. Iterative convergence review is advisory and uncapped, but each new pass needs a bounded, verdict-changing reason; a standing instruction does not renew it. Run one separate fresh native read-only,
+  blocker-only terminal review for a public, external, irreversible, or high-risk candidate;
   it must be no-history, return strict `GO` or `NOT_YET`, and echo an immutable
   consumer-native identity; any byte change invalidates it. A plan `GO`
   validates only the plan, and a composite candidate uses one envelope binding

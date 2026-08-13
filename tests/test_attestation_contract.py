@@ -286,10 +286,10 @@ class ReviewProjectionTests(unittest.TestCase):
 
 
 class PublicContractTests(unittest.TestCase):
-    def test_public_metadata_and_templates_are_v100_and_bounded(self):
+    def test_public_metadata_and_templates_are_v110_and_bounded(self):
         plugin = json.loads((ROOT / ".codex-plugin/plugin.json").read_text())
         marketplace = json.loads((ROOT / ".agents/plugins/marketplace.json").read_text())
-        self.assertEqual(plugin["version"], "1.0.0")
+        self.assertEqual(plugin["version"], "1.1.0")
         self.assertEqual(plugin["name"], marketplace["plugins"][0]["name"])
         self.assertEqual(plugin["skills"], "./skills/")
         skill = (ROOT / "skills/happycodex/SKILL.md").read_text()
@@ -329,6 +329,12 @@ class PublicContractTests(unittest.TestCase):
             "Before an external effect, recheck its exact target, identity, cap, and observation predicate",
             "Make one mutation attempt",
             "Partial, ambiguous, or unknown effects stop all mutation",
+            "Advisory evidence adds no authority",
+            "it may refine planned primary surfaces inside the unchanged authorization boundary",
+            "A compatibility break remains a proposal until the request explicitly authorizes the exact incompatibility",
+            "any material consumer, data, or cutover effect",
+            "Recommend it only for a material safety or correctness need or a net reduction in steady-state semantic complexity relative to cutover risk",
+            "ambiguous no-compatibility wording authorizes comparison only",
         ):
             self.assertIn(phrase, skill)
 
@@ -342,8 +348,12 @@ class PublicContractTests(unittest.TestCase):
             "unknown-classification stop",
             "exact complete direct, generated, and transitive consumer inputs at freeze",
             "including modes, deletions, and byte identities",
+            "Allowed breaks",
+            "exact request-authorized incompatibilities and material consumer/data/cutover effects, or none",
         ):
             self.assertIn(phrase, template)
+
+        self.assertNotIn("Proposed breaks", template)
 
         self.assertIn("精确 mutable path 不是授权边界", chinese)
         self.assertIn("incidental footprint", chinese)
@@ -369,6 +379,14 @@ class PublicContractTests(unittest.TestCase):
             "against the Outcome, preservation, a required workflow, or candidate-new material safety or correctness",
             "A reasoned path is sufficient at plan stage; during implementation, reproduce it where feasible",
             "This gate never dismisses a current blocker or required unknown",
+            "Before another advisory pass, Root states a bounded reason that could change the current verdict",
+            "new decision-changing evidence, a decision-relevant question, a concrete failure hypothesis",
+            "a new user-requested review bounded to the current artifact and Outcome",
+            "Ask the user to select a scope only when materially different scopes remain",
+            "A standing instruction alone does not renew passes",
+            "After the declared scope is complete, or no further bounded pass can resolve a required unknown",
+            "stop initiating advisory review and report findings, searched scope, and unknowns",
+            "This stop is not `GO`",
             "After delegated evidence, Root may perform at most one focused verification",
             "state which current verdict the check could flip",
             "then deliver the verdict and required unknowns",
@@ -392,7 +410,8 @@ class PublicContractTests(unittest.TestCase):
         self.assertIn("After that replacement review, any adverse result returns to the user", skill)
         for forbidden in (
             "controller", "mutable ledger", "runtime monitor", "timer",
-            "action quota", "model downgrade", "token reduction",
+            "action quota", "model downgrade", "token reduction", "round counter",
+            "pass counter", "review ledger", "runtime state",
         ):
             self.assertNotIn(forbidden, convergence.lower())
 
@@ -426,6 +445,12 @@ class PublicContractTests(unittest.TestCase):
         self.assertIn("终审后再 followup/message", chinese)
         self.assertIn("A plan `GO` validates only the plan", english)
         self.assertIn("Follow-up or messaging after terminal review", english)
+        self.assertIn("迭代 convergence review 可不限轮复用", chinese)
+        self.assertIn("新 pass 必须有可能改变 verdict 的有界理由", chinese)
+        self.assertIn("旧 standing instruction 不自动续轮", chinese)
+        self.assertIn("Iterative convergence review is advisory and uncapped", english)
+        self.assertIn("each new pass needs a bounded, verdict-changing reason", english)
+        self.assertIn("a standing instruction does not renew it", english)
 
     def test_boundary_routing_contract_is_closed_and_consistent(self):
         inputs = load_production_inputs(ROOT)

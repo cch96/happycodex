@@ -30,7 +30,8 @@ Keep this contract static. Reconstruct live state from Git, tests, and tools.
 
 ## Baseline and allowed breaks
 - Baseline: `<command and exact accepted failures>`
-- Allowed breaks: `<intentional incompatibilities or none>`
+- Allowed breaks: `<exact request-authorized incompatibilities and material
+  consumer/data/cutover effects, or none>`
 
 Never call an accepted failing baseline green or accept a new failure silently.
 

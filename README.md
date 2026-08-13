@@ -58,7 +58,8 @@ Use $happycodex:happycodex for this high-risk cross-system change.
 - 删除 branch、worktree 或其他恢复面之前，先证明 candidate、cutover、effect 与
   rollback 证据仍已持久保存且可达；否则停止清理。
 - 普通可逆工作不强制 review；迭代 convergence review 可不限轮复用，但始终只提供
-  advisory evidence。公共、外部、不可逆或高风险 candidate 只运行一次独立的 fresh
+  advisory evidence。每个新 pass 必须有可能改变 verdict 的有界理由；旧 standing
+  instruction 不自动续轮。公共、外部、不可逆或高风险 candidate 只运行一次独立的 fresh
   原生只读、blocker-only 终审；reviewer 必须 no-history，对一个消费者原生不可变
   身份给出严格 `GO`/`NOT_YET`
   并回显身份，任何 byte 变化都使结论失效。计划 `GO` 只验证计划；组合 candidate
