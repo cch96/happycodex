@@ -7,11 +7,15 @@ Keep this contract static. Reconstruct live state from Git, tests, and tools.
 - Outcome: `<one observable end state>`
 - Done evidence: `<facts that prove completion>`
 
-## Workspace and change boundary
+## Workspace and authorization boundary
 - Workspace: `<root and source identity>`
-- Mutable paths/resources: `<exact paths, prefixes, or resource identities;
-  include task-created or reused containers, temporary database roles, and
-  reserved ports or sockets when applicable>`
+- Authorization/change boundary: `<selected workspace/project, task-owned
+  resources, and granted primary effects; never an exact realized-path list>`
+- Planned primary surfaces: `<anticipated mutable paths/resources for ownership
+  coordination; additions or relocations inside the unchanged boundary do not
+  need per-path reauthorization, and do not imply old/shared deletion>`
+- Incidental footprint: `<bounded additive reconstructible non-authoritative
+  cache/tmp/log/compiled output; exclusions and unknown-classification stop>`
 - Preservation: `<behavior, data, identity, and state to keep>`
 - Exclusions: `<non-goals and forbidden effects>`
 - Supported workflows: `<consumer-reachable paths that must remain valid>`
@@ -32,7 +36,8 @@ Never call an accepted failing baseline green or accept a new failure silently.
 
 ## Consumer and candidate
 - Consumer: `<who or what consumes the result>`
-- Input closure: `<all direct, generated, and transitive inputs>`
+- Input closure: `<exact complete direct, generated, and transitive consumer
+  inputs at freeze, including modes, deletions, and byte identities>`
 - Native freeze: `<commit/tree, package, image, revision, or snapshot>`
 - Convergence review: `<advisory reviewers may be reused or followed up without
   a round cap; their output has no terminal authority>`

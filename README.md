@@ -4,9 +4,9 @@
 
 *面向 OpenAI Codex 高风险工程任务的开源可靠性指引。*
 
-HappyCodex 用一个静态 ExecPlan 固化任务结果、修改边界、消费者身份与完成条件，
-并继续使用 Codex 原生 Plan、agents、Git、测试和 diff。它不是 controller、授权
-系统、ledger、调度器或重试引擎。
+HappyCodex 用一个静态 ExecPlan 区分 workspace/task-owned 授权边界、freeze 时精确的
+consumer input closure 与有界 incidental footprint，并继续使用 Codex 原生 Plan、
+agents、Git、测试和 diff。它不是 controller、授权系统、ledger、调度器或重试引擎。
 
 ## 何时使用
 
@@ -29,8 +29,13 @@ Use $happycodex:happycodex for this high-risk cross-system change.
 
 ## 核心模型
 
-- ExecPlan 只保存静态请求、Outcome、修改边界、消费者、effect、检查和停止条件；
-  live state 始终从 Git、测试和工具重新推导。
+- ExecPlan 只保存静态请求、Outcome、workspace/project 或 task-owned 授权边界、预期
+  primary surface、消费者、effect、检查和停止条件；精确 mutable path 不是授权边界。
+  同一边界内、且不改变消费者、Outcome、preservation、exclusion 或 primary effect 的
+  task-owned 新增或迁移可在 freeze 前继续；这不授权删除旧/shared surface。
+- bounded、additive、可重建、非权威且不进入消费者输入的 cache/tmp/log/compiled output
+  是 incidental footprint，继续并在 closure 核算；shared/system install、shared-cache
+  删除或覆盖、trust/credential/shared config、其他 owner、remote/paid 或无法分类时停止。
 - 按稳定边界路由：当建议、评估或设计结论依赖尚未核实、跨多个 artifact 或需搜索
   枚举的当前事实时，Primary 先写一小组可观察回答的开放事实问题，交给一个原生只读
   agent；它只返回带引用的事实、搜索范围和 unknown，不作建议，最终判断仍由 Primary
@@ -44,8 +49,9 @@ Use $happycodex:happycodex for this high-risk cross-system change.
   上下文；仅在独立证据体并发确有帮助时增加 agent，重叠资源始终只有一个 writer。
 - 中断或压缩后先确认旧 writer 不会恢复，再完整重读计划并重建 Git、candidate 和
   effect 事实。
-- candidate 使用消费者原生的不可变身份冻结，例如 Git tree、package、image 或
-  revision；可变 worktree 的 digest 不是 frozen candidate。
+- freeze 时派生包含 mode 和 deletion 的精确完整 consumer input closure，并使用 Git
+  tree、package、image 或 revision 等消费者原生不可变身份；可变 worktree digest
+  不是 frozen candidate。
 - 原生 Goal 只在用户明确要求时创建；仅当 Goal、Outcome、修改边界、candidate
   surface、effect target/identity/cap 均未变化且没有待决用户选择时才自治继续。
   Goal、用户回复与 `GO` 都不扩权；Goal 身份无法确认时停止 mutation。

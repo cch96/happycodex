@@ -1,7 +1,7 @@
 {
   "name": "happycodex",
-  "version": "0.16.0",
-  "description": "Reliability guidance for high-risk Codex work and evidence-first architecture or design recommendations, with bounded native scouts, fresh exact-final admission, and truthful effects.",
+  "version": "1.0.0",
+  "description": "Reliability guidance for high-risk Codex work, separating authorization boundaries, exact consumer closure, and bounded incidental footprint while preserving evidence-first recommendations and truthful effects.",
   "author": {
     "name": "caichenghang",
     "url": "https://github.com/cch96"
@@ -24,8 +24,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "HappyCodex",
-    "shortDescription": "Reliable boundaries and evidence-first recommendations",
-    "longDescription": "Use one static ExecPlan, evidence-first native scouts for broad current-fact recommendations, boundary-routed readers and workers, fresh exact-final admission, optional hook guardrails, and truthful effects.",
+    "shortDescription": "Stable scope and exact evidence-first closure",
+    "longDescription": "Use one static ExecPlan to separate workspace or task authorization, exact consumer-native candidate closure, and bounded incidental footprint, with evidence-first native scouts, fresh exact-final admission, and truthful effects.",
     "developerName": "caichenghang",
     "category": "Productivity",
     "capabilities": [

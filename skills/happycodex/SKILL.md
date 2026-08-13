@@ -17,13 +17,29 @@ or compaction-prone, and before the first risky write otherwise. Copy
 `references/execplan.md` to the repository policy path or
 `docs/execplans/<task-slug>.md`.
 
-Record the request and Outcome, workspace, exact mutable paths or resources,
-preservation and exclusions, supported workflows, baseline and allowed breaks,
-consumer and complete input-closure rule, checks, Done, stops, and recovery.
+Record the request and Outcome, workspace/project or task-owned authorization
+boundary, planned primary surfaces, preservation and exclusions, supported
+workflows, baseline and allowed breaks, consumer and complete input-closure
+rule, incidental-footprint rule, checks, Done, stops, and recovery.
 For each external effect record its exact target, identity source, cap,
 observation predicate, and allowed recovery cap or none. Keep the plan static:
 do not store live phases, realized file inventories, digests, agent history, or
 review history. Reconstruct those facts from the workspace and tools.
+
+Do not use an exact mutable-path or realized-resource inventory as the
+authorization boundary. It coordinates primary ownership and later closure;
+it does not require per-path reauthorization for reversible Outcome-required
+work inside the unchanged selected workspace/project or task-owned boundary.
+Before freeze, task-owned additions or relocations may continue when the
+consumer, Outcome, preservation, exclusions, and primary effects remain
+unchanged. This does not imply deletion of old or shared surfaces.
+
+Treat bounded additive, reconstructible, non-authoritative cache, temporary,
+log, or compiled output as incidental only when it is not a consumer input and
+touches no secrets, credentials, trust, shared/system configuration, another
+owner, or remote or paid resource; continue and account for it at closure.
+Stop for shared-cache deletion or overwrite, system/user/shared installation,
+any excluded class, omitted consumer input, or uncertain classification.
 
 Treat the user, workspace, maintainer, and selected configuration as
 non-adversarial but fallible unless evidence says otherwise. Verify relevant
@@ -114,7 +130,7 @@ Freeze makes Root read-only over the candidate. Any candidate change returns
 ownership to the fixed Executor; rerun required checks and refreeze before using
 the existing review semantics.
 
-After writes and checks, derive the complete consumer input closure, including
+After writes and checks, derive the exact complete consumer input closure, including
 generated and transitive inputs, modes, deletions, and byte identities. Verify
 that every mutable input is inside the change boundary. Freeze a readable,
 immutable representation using the consumer's native identity: for example a

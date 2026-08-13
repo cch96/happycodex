@@ -286,10 +286,10 @@ class ReviewProjectionTests(unittest.TestCase):
 
 
 class PublicContractTests(unittest.TestCase):
-    def test_public_metadata_and_templates_are_v0160_and_bounded(self):
+    def test_public_metadata_and_templates_are_v100_and_bounded(self):
         plugin = json.loads((ROOT / ".codex-plugin/plugin.json").read_text())
         marketplace = json.loads((ROOT / ".agents/plugins/marketplace.json").read_text())
-        self.assertEqual(plugin["version"], "0.16.0")
+        self.assertEqual(plugin["version"], "1.0.0")
         self.assertEqual(plugin["name"], marketplace["plugins"][0]["name"])
         self.assertEqual(plugin["skills"], "./skills/")
         skill = (ROOT / "skills/happycodex/SKILL.md").read_text()
@@ -304,6 +304,51 @@ class PublicContractTests(unittest.TestCase):
         self.assertLessEqual(len((ROOT / "skills/happycodex/references/execplan.md").read_text().splitlines()), 80)
         self.assertLessEqual(len((ROOT / "README.md").read_text().splitlines()), 80)
         self.assertLessEqual(len((ROOT / "README.en.md").read_text().splitlines()), 80)
+
+    def test_scope_stability_contract_separates_authorization_closure_and_footprint(self):
+        skill = " ".join((ROOT / "skills/happycodex/SKILL.md").read_text().split())
+        template = " ".join(
+            (ROOT / "skills/happycodex/references/execplan.md").read_text().split()
+        )
+        chinese = " ".join((ROOT / "README.md").read_text().split())
+        english = " ".join((ROOT / "README.en.md").read_text().split())
+
+        self.assertNotIn("workspace, exact mutable paths or resources", skill)
+        for phrase in (
+            "Do not use an exact mutable-path or realized-resource inventory as the authorization boundary",
+            "workspace/project or task-owned authorization boundary",
+            "Before freeze, task-owned additions or relocations may continue",
+            "This does not imply deletion of old or shared surfaces",
+            "Treat bounded additive, reconstructible, non-authoritative cache, temporary, log, or compiled output as incidental",
+            "continue and account for it at closure",
+            "Stop for shared-cache deletion or overwrite, system/user/shared installation",
+            "or uncertain classification",
+            "derive the exact complete consumer input closure",
+            "generated and transitive inputs, modes, deletions, and byte identities",
+            "one writer across overlapping semantic mutable contracts and effect resources",
+            "Before an external effect, recheck its exact target, identity, cap, and observation predicate",
+            "Make one mutation attempt",
+            "Partial, ambiguous, or unknown effects stop all mutation",
+        ):
+            self.assertIn(phrase, skill)
+
+        for phrase in (
+            "## Workspace and authorization boundary",
+            "Authorization/change boundary",
+            "never an exact realized-path list",
+            "Planned primary surfaces",
+            "do not imply old/shared deletion",
+            "Incidental footprint",
+            "unknown-classification stop",
+            "exact complete direct, generated, and transitive consumer inputs at freeze",
+            "including modes, deletions, and byte identities",
+        ):
+            self.assertIn(phrase, template)
+
+        self.assertIn("精确 mutable path 不是授权边界", chinese)
+        self.assertIn("incidental footprint", chinese)
+        self.assertIn("exact mutable paths are not the authorization boundary", english)
+        self.assertIn("incidental footprint", english)
 
     def test_root_convergence_contract_is_evidence_gated_and_non_runtime(self):
         raw_skill = (ROOT / "skills/happycodex/SKILL.md").read_text()
@@ -587,6 +632,11 @@ class PublicContractTests(unittest.TestCase):
             "narrow_reply_named_repair": False,
             "same_boundary_candidate_change": True,
             "preauthorized_not_yet_repair": True,
+            "safe_task_owned_surface_extension": True,
+            "safe_additive_incidental_footprint": True,
+            "system_or_shared_install_target": False,
+            "destructive_shared_cache_mutation": False,
+            "uncertain_footprint_classification": False,
             "exhausted_repair_budget": False,
             "pending_user_decision": False,
         }
@@ -633,6 +683,22 @@ class PublicContractTests(unittest.TestCase):
             "remain unchanged; one repair is already pre-authorized inside that boundary, "
             "repair and replacement-review budget remains, and no user decision is pending.",
         )
+        self.assertIn(
+            "workspace/project or task-owned authorization boundary",
+            scenarios["safe_task_owned_surface_extension"],
+        )
+        self.assertIn(
+            "every resulting consumer input will be included in exact closure",
+            scenarios["safe_task_owned_surface_extension"],
+        )
+        self.assertIn(
+            "bounded additive reconstructible non-authoritative cache/tmp output",
+            scenarios["safe_additive_incidental_footprint"],
+        )
+        self.assertIn("install target is unchanged", scenarios["safe_additive_incidental_footprint"])
+        self.assertIn("system, user, or shared location", scenarios["system_or_shared_install_target"])
+        self.assertIn("deletes or overwrites", scenarios["destructive_shared_cache_mutation"])
+        self.assertIn("cannot establish whether", scenarios["uncertain_footprint_classification"])
         self.assertIn("The Outcome remains incomplete", scenarios["exhausted_repair_budget"])
         self.assertIn("another repair is proposed", scenarios["exhausted_repair_budget"])
         self.assertIn("two materially different repairs await the user's choice", scenarios["pending_user_decision"])

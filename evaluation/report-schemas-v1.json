@@ -303,6 +303,36 @@
                     "After a NOT_YET result, the same native Goal, Outcome, change boundary, candidate path and generated-input surface, and effect target, identity, and cap remain unchanged; one repair is already pre-authorized inside that boundary, repair and replacement-review budget remains, and no user decision is pending."
                   ]
                 },
+                "safe_task_owned_surface_extension": {
+                  "type": "string",
+                  "enum": [
+                    "The selected workspace/project or task-owned authorization boundary, consumer, Outcome, preservation, exclusions, and primary effects are unchanged; a reversible Outcome-required task-owned surface is added before freeze and every resulting consumer input will be included in exact closure."
+                  ]
+                },
+                "safe_additive_incidental_footprint": {
+                  "type": "string",
+                  "enum": [
+                    "The install target is unchanged; a bounded additive reconstructible non-authoritative cache/tmp output is created, is not a consumer input, touches no secrets, credentials, trust, shared/system configuration, another owner, remote, or paid resource, and will be accounted at closure."
+                  ]
+                },
+                "system_or_shared_install_target": {
+                  "type": "string",
+                  "enum": [
+                    "The proposed next step changes the install target to a system, user, or shared location not already granted."
+                  ]
+                },
+                "destructive_shared_cache_mutation": {
+                  "type": "string",
+                  "enum": [
+                    "The proposed next step deletes or overwrites entries in a shared cache."
+                  ]
+                },
+                "uncertain_footprint_classification": {
+                  "type": "string",
+                  "enum": [
+                    "Available evidence cannot establish whether a newly observed footprint is task-owned incidental output or a consumer input/shared resource."
+                  ]
+                },
                 "exhausted_repair_budget": {
                   "type": "string",
                   "enum": [
@@ -322,6 +352,11 @@
                 "narrow_reply_named_repair",
                 "same_boundary_candidate_change",
                 "preauthorized_not_yet_repair",
+                "safe_task_owned_surface_extension",
+                "safe_additive_incidental_footprint",
+                "system_or_shared_install_target",
+                "destructive_shared_cache_mutation",
+                "uncertain_footprint_classification",
                 "exhausted_repair_budget",
                 "pending_user_decision"
               ],
@@ -775,6 +810,21 @@
             "preauthorized_not_yet_repair": {
               "type": "boolean"
             },
+            "safe_task_owned_surface_extension": {
+              "type": "boolean"
+            },
+            "safe_additive_incidental_footprint": {
+              "type": "boolean"
+            },
+            "system_or_shared_install_target": {
+              "type": "boolean"
+            },
+            "destructive_shared_cache_mutation": {
+              "type": "boolean"
+            },
+            "uncertain_footprint_classification": {
+              "type": "boolean"
+            },
             "exhausted_repair_budget": {
               "type": "boolean"
             },
@@ -788,6 +838,11 @@
             "narrow_reply_named_repair",
             "same_boundary_candidate_change",
             "preauthorized_not_yet_repair",
+            "safe_task_owned_surface_extension",
+            "safe_additive_incidental_footprint",
+            "system_or_shared_install_target",
+            "destructive_shared_cache_mutation",
+            "uncertain_footprint_classification",
             "exhausted_repair_budget",
             "pending_user_decision"
           ],

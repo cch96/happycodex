@@ -4,17 +4,13 @@
 
 *Open-source guidance for reliable high-risk engineering work in OpenAI Codex.*
 
-HappyCodex records the outcome, change boundary, consumer identity, and done
-conditions of risky work in one static ExecPlan, then relies on Codex's native
-Plan, agents, Git, tests, and diffs. It is not a controller, authority system,
-ledger, scheduler, or retry engine.
+HappyCodex uses one static ExecPlan to separate workspace or task-owned authorization, exact consumer closure at freeze, and bounded incidental footprint,
+then relies on Codex's native Plan, agents, Git, tests, and diffs. It is not a controller, authority system, ledger, scheduler, or retry engine.
 
 ## When to use it
 
-Use HappyCodex for cross-system changes, public contracts, migrations,
-persistence, concurrency, destructive or production effects, exhaustive
-claims, and long work likely to cross context compaction. Keep bounded,
-reversible local work on the native Plan; create an ExecPlan when risk grows.
+Use HappyCodex for cross-system changes, public contracts, migrations, persistence, concurrency, destructive or production effects, exhaustive claims, and
+long work likely to cross context compaction. Keep bounded, reversible local work on the native Plan; create an ExecPlan when risk grows.
 
 ## Install and invoke
 
@@ -31,9 +27,15 @@ Use $happycodex:happycodex for this high-risk cross-system change.
 
 ## Mental model
 
-- The ExecPlan stores only the static request, Outcome, change boundary,
-  consumer, effects, checks, and stops. Re-derive live state from Git, tests,
-  and tools.
+- The ExecPlan stores the request, Outcome, workspace/project or task-owned
+  authorization boundary, primary surfaces, consumer, effects, checks, and
+  stops; exact mutable paths are not the authorization boundary. Before freeze,
+  task-owned additions or relocations may continue inside an unchanged boundary,
+  but old/shared deletion is not authorized. Bounded additive, reconstructible,
+  non-authoritative cache/tmp/log/compiled output outside consumer inputs is
+  incidental and accounted at closure. Stop for shared/system installs,
+  destructive shared-cache changes, trust/credentials/shared config, another
+  owner, remote/paid effects, or uncertain classification.
 - Route stable boundaries. Before a recommendation, assessment, or design verdict that depends on unverified current facts spanning artifacts or requiring search, the Primary sends bounded observable questions
   to one native read-only scout before deciding. It returns cited facts, searched scope, and unknowns, never recommendations; judgment stays with the Primary.
   Skip it for one or two bounded lookups or facts verified in-session; delegate other evidence bodies only when search, summary, comparison, or filtering is required. Once ownership and
@@ -47,7 +49,8 @@ Use $happycodex:happycodex for this high-risk cross-system change.
   helps, with one writer per overlap.
 - After interruption or compaction, confirm the old writer cannot resume, read
   the whole plan, and rebuild Git, candidate, and effect facts.
-- Freeze with the consumer's native immutable identity, such as a Git tree,
+- At freeze derive the exact complete consumer input closure, including modes
+  and deletions, and use its native immutable identity, such as a Git tree,
   package, image, or revision. A mutable worktree digest is not a candidate.
 - Create a native Goal only on explicit user request. Continue autonomously only
   while its Goal, Outcome, boundary, candidate surface, effect target/identity/
@@ -66,11 +69,9 @@ Use $happycodex:happycodex for this high-risk cross-system change.
   replacement review remains the automatic limit before returning to the user.
 - After one external-effect attempt, use real read-only observation to classify
   it as `landed`, `not_landed`, or `unknown`. Stop on partial or ambiguity.
-- Close explicitly as achieved, not achieved, or unknown, accounting for dirt,
-  skipped checks, and unverified facts.
+- Close explicitly as achieved, not achieved, or unknown, accounting for dirt, skipped checks, and unverified facts.
 
-HappyCodex is portable and model-agnostic; it requires no custom agent or pinned
-model/effort. Default hooks are optional, trust-dependent, bypassable guardrails, not enforcement.
+HappyCodex is portable and model-agnostic; it requires no custom agent or pinned model/effort. Default hooks are optional, trust-dependent, bypassable guardrails, not enforcement.
 
 [See GitHub Releases for published versions and verification status.](https://github.com/cch96/happycodex/releases)
 

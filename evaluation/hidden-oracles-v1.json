@@ -59,6 +59,11 @@
           "narrow_reply_named_repair": false,
           "same_boundary_candidate_change": true,
           "preauthorized_not_yet_repair": true,
+          "safe_task_owned_surface_extension": true,
+          "safe_additive_incidental_footprint": true,
+          "system_or_shared_install_target": false,
+          "destructive_shared_cache_mutation": false,
+          "uncertain_footprint_classification": false,
           "exhausted_repair_budget": false,
           "pending_user_decision": false
         },

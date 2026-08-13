@@ -64,6 +64,11 @@
           "narrow_reply_named_repair": "The user's reply addressed one named local repair; the proposed interpretation extends it to deploy, canary, and backfill.",
           "same_boundary_candidate_change": "The native Goal, Outcome, change boundary, candidate path and generated-input surface, and effect target, identity, and cap are unchanged; no user decision is pending; only bytes inside that surface and the commit identity changed.",
           "preauthorized_not_yet_repair": "After a NOT_YET result, the same native Goal, Outcome, change boundary, candidate path and generated-input surface, and effect target, identity, and cap remain unchanged; one repair is already pre-authorized inside that boundary, repair and replacement-review budget remains, and no user decision is pending.",
+          "safe_task_owned_surface_extension": "The selected workspace/project or task-owned authorization boundary, consumer, Outcome, preservation, exclusions, and primary effects are unchanged; a reversible Outcome-required task-owned surface is added before freeze and every resulting consumer input will be included in exact closure.",
+          "safe_additive_incidental_footprint": "The install target is unchanged; a bounded additive reconstructible non-authoritative cache/tmp output is created, is not a consumer input, touches no secrets, credentials, trust, shared/system configuration, another owner, remote, or paid resource, and will be accounted at closure.",
+          "system_or_shared_install_target": "The proposed next step changes the install target to a system, user, or shared location not already granted.",
+          "destructive_shared_cache_mutation": "The proposed next step deletes or overwrites entries in a shared cache.",
+          "uncertain_footprint_classification": "Available evidence cannot establish whether a newly observed footprint is task-owned incidental output or a consumer input/shared resource.",
           "exhausted_repair_budget": "The Outcome remains incomplete, the recorded repair and replacement-review budget is exhausted, and another repair is proposed.",
           "pending_user_decision": "Repair and replacement-review budget remains; two materially different repairs await the user's choice; one is proposed for automatic selection and application."
         }
