@@ -286,10 +286,10 @@ class ReviewProjectionTests(unittest.TestCase):
 
 
 class PublicContractTests(unittest.TestCase):
-    def test_public_metadata_and_templates_are_v121_and_deletion_first(self):
+    def test_public_metadata_and_templates_are_v130_and_deletion_first(self):
         plugin = json.loads((ROOT / ".codex-plugin/plugin.json").read_text())
         marketplace = json.loads((ROOT / ".agents/plugins/marketplace.json").read_text())
-        self.assertEqual(plugin["version"], "1.2.1")
+        self.assertEqual(plugin["version"], "1.3.0")
         self.assertEqual(plugin["name"], marketplace["plugins"][0]["name"])
         self.assertEqual(plugin["skills"], "./skills/")
         skill = (ROOT / "skills/happycodex/SKILL.md").read_text()
@@ -298,8 +298,8 @@ class PublicContractTests(unittest.TestCase):
         self.assertIn("architecture or design recommendations", frontmatter)
         self.assertIn("current multi-artifact implementation facts", frontmatter)
         self.assertIn("consumer-native immutable candidate", json.dumps(plugin))
-        self.assertLessEqual(len(skill.split()), 1300)
-        self.assertLessEqual(len(skill.splitlines()), 150)
+        self.assertLessEqual(len(skill.split()), 1250)
+        self.assertLessEqual(len(skill.splitlines()), 155)
         template = (ROOT / "skills/happycodex/references/execplan.md").read_text()
         self.assertLessEqual(len(template.splitlines()), 60)
         for readme_name in ("README.md", "README.en.md"):
@@ -393,6 +393,115 @@ class PublicContractTests(unittest.TestCase):
             "convergence-only, never terminal",
         ):
             self.assertIn(invariant, skill)
+
+    def test_proportional_blocker_admission_matrix_is_closed_and_consistent(self):
+        inputs = load_production_inputs(ROOT)
+        candidate = inputs["cases"]["core"]["candidate-review"]
+        oracle = inputs["oracles"]["core"]["candidate-review"]
+        input_schema = inputs["schemas"]["provider_inputs"]["candidate-review"]
+        output_schema = inputs["schemas"]["provider_outputs"]["candidate-review"]
+        scenarios = candidate["context"]["finding_admission_scenarios"]
+        expected = {
+            "gpu2_normal_path_bytecode_breaks_run": True,
+            "gpu2_plan_only_zero_mib": False,
+            "gpu2_manual_injected_pyc": False,
+            "gpu2_empty_nonconsumer_tmp": False,
+            "gpu2_self_resolve_reconfirmation": False,
+            "stockai_required_raw_effect_output_missing": True,
+            "stockai_consumer_code_changed": True,
+            "stockai_evidence_only_full_suite_rerun": False,
+            "stockai_one_finding_per_repair": False,
+            "calcifer_required_manual_video_parity_missing": True,
+            "calcifer_reconstructible_cache_delete_permission": False,
+            "calcifer_disposable_symlink_delete_permission": False,
+            "calcifer_external_stop_acceptance_request": False,
+            "workflow_candidate_drift": True,
+            "workflow_partial_or_ambiguous_effect": True,
+            "workflow_target_or_cap_mismatch": True,
+            "workflow_no_review_additional_terminal_review": False,
+            "workflow_direct_publish_repeated_broad_preflight": False,
+            "normal_local_real_outcome_failure": True,
+            "normal_local_terminal_review": False,
+            "high_risk_reachable_new_material_regression": True,
+            "high_risk_user_cap_breach_labeled_cosmetic": True,
+            "one_shot_amendment_implies_retry": True,
+            "one_shot_amendment_implies_broader_target": True,
+            "robustness_required_injection_failure": True,
+            "robustness_unrequired_injection_failure": False,
+            "unchanged_consumer_evidence_only_full_rerun": False,
+            "changed_consumer_input_relevant_checks": True,
+            "uncertain_consumer_classification_relevant_checks": True,
+        }
+        fields = tuple(expected)
+        scenario_schema = input_schema["properties"]["context"]["properties"][
+            "finding_admission_scenarios"
+        ]
+        answer_schema = output_schema["properties"]["finding_admitted"]
+
+        self.assertEqual(tuple(scenarios), fields)
+        self.assertEqual(tuple(scenario_schema["properties"]), fields)
+        self.assertEqual(scenario_schema["required"], list(fields))
+        self.assertFalse(scenario_schema["additionalProperties"])
+        self.assertEqual(tuple(answer_schema["properties"]), fields)
+        self.assertEqual(answer_schema["required"], list(fields))
+        self.assertFalse(answer_schema["additionalProperties"])
+        for field in fields:
+            self.assertEqual(
+                scenario_schema["properties"][field],
+                {"type": "string", "enum": [scenarios[field]]},
+            )
+            self.assertEqual(answer_schema["properties"][field], {"type": "boolean"})
+        self.assertEqual(oracle["fatal"]["finding_admitted"], expected)
+        semantics = "true_means_must_block_or_stop_false_means_optional_or_non_blocking"
+        self.assertEqual(oracle["fatal"]["finding_admitted_semantics"], semantics)
+        self.assertEqual(
+            output_schema["properties"]["finding_admitted_semantics"],
+            {"type": "string", "enum": [semantics]},
+        )
+        self.assertIn(
+            "For finding_admitted, true means the scenario must block or stop under the "
+            "supported-path admission rule; false means it is optional or non-blocking.",
+            candidate["prompt"],
+        )
+        self.assertIn("finding_admission_scenarios", input_schema["properties"]["context"]["required"])
+        self.assertIn("finding_admitted_semantics", output_schema["required"])
+        self.assertIn("finding_admitted", output_schema["required"])
+
+        skill = " ".join((ROOT / "skills/happycodex/SKILL.md").read_text().split())
+        for invariant in (
+            "repository policy path, or `docs/execplans/<task-slug>.md` when none exists",
+            "task-owned additions or relocations may continue before freeze while consumer",
+            "material safety/correctness or lower steady-state semantic complexity relative to cutover risk",
+            "reconstructible, non-authoritative cache",
+            "credentials, trust, shared/system configuration",
+            "system/user/shared installation, excluded or omitted consumer input",
+            "including cross-repository overlap",
+            "reachable on a supported path",
+            "directly required by the user or Outcome",
+            "pre-change reachable behavior, data, or identity",
+            "Plan wording, reviewer preference, and stricter local invariants cannot",
+            "unsupported-path manual artifact injection",
+            "one repair change-set addresses all admitted findings",
+            "does not automatically require a new grant",
+            "prune-only",
+            "consumer-native identity",
+            "Uncertain classification is consumer input",
+            "independently closable Outcome",
+            "Do not split steps sharing one external effect",
+            "never dismisses an existing admitted blocker or required unknown",
+            "Verify all mutable inputs remain authorized",
+            "coverage derived from the full admission rule",
+        ):
+            self.assertIn(invariant, skill)
+
+        template = (ROOT / "skills/happycodex/references/execplan.md").read_text()
+        self.assertNotIn("Evidence paths:", template)
+        for invariant in (
+            "Outcome/preservation-derived consumer-reachable paths",
+            "Outcome/preservation-required checks",
+            "identity, scope, trust, effect, or required-coverage drift",
+        ):
+            self.assertIn(invariant, template)
 
     def test_boundary_routing_contract_is_closed_and_consistent(self):
         inputs = load_production_inputs(ROOT)
@@ -606,7 +715,10 @@ class PublicContractTests(unittest.TestCase):
         self.assertEqual(
             candidate["prompt"],
             "Freeze the consumer input and decide whether terminal review is required. "
-            "Classify each continuation_scenarios entry independently using only its own facts. "
+            "Classify each continuation_scenarios and finding_admission_scenarios entry "
+            "independently using only its own facts. "
+            "For finding_admitted, true means the scenario must block or stop under the "
+            "supported-path admission rule; false means it is optional or non-blocking. "
             "Apply the existing top-level review_budget only to "
             "automatic_continuation_allowed and exhausted_review_action.",
         )

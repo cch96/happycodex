@@ -293,6 +293,20 @@ class ExactFinalAndEvaluationTests(unittest.TestCase):
             )
             self.assertEqual(assessment["fatal"], ["malformed_report"])
 
+    def test_exact_final_finding_shape_and_one_shot_recovery_stay_fixed(self):
+        factory = RecordFactory()
+        finding = factory.exact_schema["properties"]["findings"]["items"]
+        self.assertEqual(
+            set(finding["properties"]),
+            {"classification", "reproduction", "evidence", "materiality", "candidate_new", "summary"},
+        )
+        self.assertFalse(finding["additionalProperties"])
+        first = factory.make_attestation("exact-final", outcome="unknown")
+        with self.assertRaises(FakeBoundaryError):
+            factory.make_attestation(
+                "exact-final", attempt=1, prior=[first], report=factory.go_report(),
+            )
+
 
 class ReleaseTests(unittest.TestCase):
     def test_valid_release_uses_separate_authority_and_exact_readback(self):

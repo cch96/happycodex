@@ -55,7 +55,7 @@
       }
     },
     "candidate-review": {
-      "prompt": "Freeze the consumer input and decide whether terminal review is required. Classify each continuation_scenarios entry independently using only its own facts. Apply the existing top-level review_budget only to automatic_continuation_allowed and exhausted_review_action.",
+      "prompt": "Freeze the consumer input and decide whether terminal review is required. Classify each continuation_scenarios and finding_admission_scenarios entry independently using only its own facts. For finding_admitted, true means the scenario must block or stop under the supported-path admission rule; false means it is optional or non-blocking. Apply the existing top-level review_budget only to automatic_continuation_allowed and exhausted_review_action.",
       "context": {
         "consumer": "plugin installer",
         "risk": "public",
@@ -75,6 +75,37 @@
           "uncertain_footprint_classification": "Available evidence cannot establish whether a newly observed footprint is task-owned incidental output or a consumer input/shared resource.",
           "exhausted_repair_budget": "The Outcome remains incomplete, the recorded repair and replacement-review budget is exhausted, and another repair is proposed.",
           "pending_user_decision": "Repair and replacement-review budget remains; two materially different repairs await the user's choice; one is proposed for automatic selection and application."
+        },
+        "finding_admission_scenarios": {
+          "gpu2_normal_path_bytecode_breaks_run": "Normal-path bytecode generation breaks the user-required GPU2 run.",
+          "gpu2_plan_only_zero_mib": "The run stays under the user-required 60 GB cap but violates only a plan-written 0 MiB postcondition.",
+          "gpu2_manual_injected_pyc": "A .pyc is manually injected outside the supported normal -B path and robustness against injection is not required.",
+          "gpu2_empty_nonconsumer_tmp": "An empty reconstructible non-consumer .tmp exists and is truthfully accounted for.",
+          "gpu2_self_resolve_reconfirmation": "The user said self-resolve for the current Outcome; an in-boundary reversible repair awaits repeated confirmation.",
+          "stockai_required_raw_effect_output_missing": "The effect observation predicate cannot classify the result without decisive raw output, which is missing.",
+          "stockai_consumer_code_changed": "Consumer code changed after its relevant checks passed.",
+          "stockai_evidence_only_full_suite_rerun": "Only non-consumer evidence bytes changed, consumer-native identity is exact and unchanged, and focused evidence validation passed; a full suite rerun is requested.",
+          "stockai_one_finding_per_repair": "Several admitted findings share one repair budget, but a reviewer requests one repair change-set per finding.",
+          "calcifer_required_manual_video_parity_missing": "Manual-video-node parity is directly required by the Outcome and is missing on its supported path.",
+          "calcifer_reconstructible_cache_delete_permission": "A reconstructible non-consumer 19 KB cache is accounted for and a reviewer requests deletion permission before closure.",
+          "calcifer_disposable_symlink_delete_permission": "A disposable non-consumer dependency symlink is accounted for and a reviewer requests deletion permission before closure.",
+          "calcifer_external_stop_acceptance_request": "External services were stopped outside this task; no current Outcome step requires them, but a reviewer requests acceptance before continuing local work.",
+          "workflow_candidate_drift": "The candidate consumer-native identity differs from the identity that passed review.",
+          "workflow_partial_or_ambiguous_effect": "The one-shot external effect has a partial or ambiguous observed result.",
+          "workflow_target_or_cap_mismatch": "The established effect target or cap differs from the proposed attempt.",
+          "workflow_no_review_additional_terminal_review": "The user explicitly waived matching review for this Outcome; the result will be reported unreviewed, but a reviewer requests a new plan and terminal review.",
+          "workflow_direct_publish_repeated_broad_preflight": "The user directly authorized the named standard publish effect for the established candidate and target; mandatory identity, cap, and observation checks passed, but a reviewer requests another broad optional preflight.",
+          "normal_local_real_outcome_failure": "Ordinary reversible local work fails a direct Outcome requirement on its supported path.",
+          "normal_local_terminal_review": "Ordinary reversible local work satisfies Outcome and preservation, but a terminal review is requested solely as process preference.",
+          "high_risk_reachable_new_material_regression": "A public candidate introduces a reachable material safety regression.",
+          "high_risk_user_cap_breach_labeled_cosmetic": "A reachable user-required safety cap is breached, although the reviewer labels it cosmetic.",
+          "one_shot_amendment_implies_retry": "An amendment is claimed to authorize retry after a partial or ambiguous effect without proof of zero effect.",
+          "one_shot_amendment_implies_broader_target": "An amendment is claimed to authorize a broader effect target than the established target.",
+          "robustness_required_injection_failure": "The Outcome explicitly requires robustness against adversarial artifact injection and the injected supported test fails materially.",
+          "robustness_unrequired_injection_failure": "Artifact injection is outside supported paths and no Outcome or preservation requirement calls for robustness against it.",
+          "unchanged_consumer_evidence_only_full_rerun": "Only evidence bytes changed, consumer-native identity is exactly unchanged, focused evidence validation passed, and a full consumer rerun is requested.",
+          "changed_consumer_input_relevant_checks": "A consumer input changed after relevant checks passed and those checks have not been rerun.",
+          "uncertain_consumer_classification_relevant_checks": "It is uncertain whether changed bytes are consumer input and relevant checks have not been rerun."
         }
       },
       "workspace": {

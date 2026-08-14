@@ -83,8 +83,13 @@ def exact_final_review_policy() -> dict[str, object]:
             "findings_empty": True,
         },
         "review_rule": (
-            "Admit only a reproduced frozen-obligation or preservation failure, "
-            "or a reachable candidate-new material safety or correctness regression."
+            "Admit a blocker or required coverage item only when its failure is "
+            "reachable on a supported path and falsifies a direct user or Outcome "
+            "requirement, preservation of pre-change reachable behavior, data, or identity, "
+            "a required supported workflow, or candidate-new material safety or correctness. "
+            "Plan wording, reviewer preference, stricter local invariants, optional or "
+            "incidental checks, and unsupported-path manual artifact injection cannot "
+            "manufacture blockers; required robustness or adversarial behavior remains in scope."
         ),
     }
 

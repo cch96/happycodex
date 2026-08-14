@@ -16,7 +16,7 @@ Keep this contract static. Reconstruct live state from Git and tools.
 - Incidental footprint: `<allowed classes and classification stop>`
 - Preservation: `<behavior, data, identity, state>`
 - Exclusions: `<non-goals and forbidden effects>`
-- Supported workflows: `<consumer-reachable paths>`
+- Supported workflows: `<Outcome/preservation-derived consumer-reachable paths>`
 - Writer overlap: `<overlapping paths, contracts, and effect resources>`
 
 ## Handoff
@@ -45,6 +45,6 @@ Keep this contract static. Reconstruct live state from Git and tools.
 
 ## Checks and stops
 
-- Required checks: `<commands and real paths>`
-- Stop conditions: `<scope, identity, source, index, trust, failure, unknown>`
+- Required checks: `<Outcome/preservation-required checks and commands; optional checks omitted or advisory>`
+- Stop conditions: `<identity, scope, trust, effect, or required-coverage drift/unknown>`
 - Recovery evidence: `<durably reachable candidate/effect/rollback evidence>`

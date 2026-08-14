@@ -53,6 +53,17 @@ class FixedPolicyAndEffectTests(unittest.TestCase):
         encoded = json.dumps(policy).lower()
         for excluded in ("style", "optimization", "naming", "alternative_design"):
             self.assertNotIn(excluded, encoded)
+        review_rule = policy["review_rule"]
+        for required in (
+            "reachable on a supported path",
+            "direct user or Outcome requirement",
+            "pre-change reachable behavior, data, or identity",
+            "required supported workflow",
+            "candidate-new material safety or correctness",
+            "Plan wording, reviewer preference, stricter local invariants",
+            "unsupported-path manual artifact injection",
+        ):
+            self.assertIn(required, review_rule)
 
 
 class ExactFinalInputTests(unittest.TestCase):
