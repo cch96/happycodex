@@ -286,10 +286,10 @@ class ReviewProjectionTests(unittest.TestCase):
 
 
 class PublicContractTests(unittest.TestCase):
-    def test_public_metadata_and_templates_are_v130_and_deletion_first(self):
+    def test_public_metadata_and_templates_are_v140_and_deletion_first(self):
         plugin = json.loads((ROOT / ".codex-plugin/plugin.json").read_text())
         marketplace = json.loads((ROOT / ".agents/plugins/marketplace.json").read_text())
-        self.assertEqual(plugin["version"], "1.3.0")
+        self.assertEqual(plugin["version"], "1.4.0")
         self.assertEqual(plugin["name"], marketplace["plugins"][0]["name"])
         self.assertEqual(plugin["skills"], "./skills/")
         skill = (ROOT / "skills/happycodex/SKILL.md").read_text()
@@ -298,7 +298,8 @@ class PublicContractTests(unittest.TestCase):
         self.assertIn("architecture or design recommendations", frontmatter)
         self.assertIn("current multi-artifact implementation facts", frontmatter)
         self.assertIn("consumer-native immutable candidate", json.dumps(plugin))
-        self.assertLessEqual(len(skill.split()), 1250)
+        self.assertLessEqual(len(skill.split()), 1200)
+        self.assertLessEqual(len(skill.encode()), 8750)
         self.assertLessEqual(len(skill.splitlines()), 155)
         template = (ROOT / "skills/happycodex/references/execplan.md").read_text()
         self.assertLessEqual(len(template.splitlines()), 60)
@@ -632,6 +633,110 @@ class PublicContractTests(unittest.TestCase):
             native_exact_final,
             candidate_schema["properties"]["terminal_review"]["enum"],
         )
+
+    def test_single_skill_guidance_does_not_regress_published_v130(self):
+        raw_skill = (ROOT / "skills/happycodex/SKILL.md").read_text()
+        published_skill = subprocess.check_output(
+            ["git", "show", "refs/tags/v1.3.0:skills/happycodex/SKILL.md"],
+            cwd=ROOT,
+        )
+
+        self.assertEqual(len(published_skill.split()), 1250)
+        self.assertEqual(len(published_skill), 9193)
+        self.assertLessEqual(len(raw_skill.split()), 1200)
+        self.assertLessEqual(len(raw_skill.encode()), 8750)
+
+    def test_context_efficiency_contract_is_consumed_by_single_skill_surface(self):
+        raw_skill = (ROOT / "skills/happycodex/SKILL.md").read_text()
+        skill = " ".join(raw_skill.split())
+
+        for invariant in (
+            "request, instructions, Outcome, unresolved decisions, and primary judgment direct",
+            "stable unchanged supporting body",
+            "reuse the existing child",
+            "decision-changing delta",
+            "fresh self-contained",
+            "`fork_turns=\"none\"`",
+            "identity revalidation",
+            "continuity or identity cannot be re-established",
+            "correlate Outcome-relevant seams",
+            "shared identifiers, contracts, mutable resources, timeline, candidate, or effect identity",
+            "one focused follow-up or read",
+            "could falsify the result",
+            "state the new decision-changing question",
+            "explanation duty, not a permission gate",
+            "Known mutation, truncation, continuity loss, a new falsifier, and write verification",
+            "Small bounded work remains direct and proportional",
+            "Outcome/task rollover and Executor rollover remain non-default",
+            "never compact-count driven",
+            "Conclusion, checked scope, one body/candidate identity, decisive facts with bounded short excerpts or exact path/line/source ranges, material unknowns/seams, and follow-up delta",
+            "Never require per-fact hashes or batch-copy raw bodies",
+        ):
+            with self.subTest(invariant=invariant):
+                self.assertIn(invariant, skill)
+
+        provider_paths = {
+            entry["path"]
+            for entry in product_projections(ROOT)["provider_guidance"]["entries"]
+        }
+        task_references = (
+            "skills/happycodex/references/agent-handoff.md",
+            "skills/happycodex/references/closure.md",
+        )
+        self.assertEqual(provider_paths, {
+            "skills/happycodex/SKILL.md",
+            "skills/happycodex/references/execplan.md",
+        })
+        for relative in task_references:
+            with self.subTest(relative=relative):
+                self.assertNotIn(relative, provider_paths)
+                self.assertFalse((ROOT / relative).exists())
+        self.assertNotIn("references/agent-handoff.md", raw_skill)
+        self.assertNotIn("references/closure.md", raw_skill)
+
+    def test_v130_preservation_semantics_remain_in_single_skill(self):
+        skill = " ".join((ROOT / "skills/happycodex/SKILL.md").read_text().split())
+        for invariant in (
+            "Use the native Plan for bounded reversible work",
+            "derive live state from tools",
+            "`不用 review` waives matching review and requires an unreviewed result",
+            "`自己解决` permits autonomous in-boundary reversible repair",
+            "`直接发` permits the named standard effect for the established candidate and target while pruning optional plan, review, or preflight work",
+            "None expands target, effect, retry",
+            "ask one native read-only scout bounded observable questions before deciding",
+            "one native read-only agent before primary ingestion",
+            "Add independent bodies only when concurrency materially helps",
+            "Invoke an external model or tool directly for its assigned question; do not delegate the invocation or treat it as terminal review",
+            "Under a proactive-only restriction, the route above is this Skill's explicit request: attempt the exposed native spawn",
+            "Supported paths use normal commands, configurations, inputs, and consumer-reachable workflows",
+            "optional or incidental checks",
+            "Explicitly required robustness or adversarial injection remains blocking",
+            "one focused check with a stated possible verdict change",
+            "reread the complete governing ExecPlan",
+            "summaries are hints, not authority",
+            "A worktree digest is invalid",
+            "Derive direct, generated, and transitive consumer inputs",
+            "Exclude credentials, secrets, and raw external events",
+            "Reuse green checks only by exact consumer-native identity",
+            "Evidence-only, non-consumer changes receive focused validation",
+            "consumer-input changes invalidate relevant checks",
+            "candidate surface (paths and generated inputs, not current bytes or commit)",
+            "public, external, irreversible, or other high-risk frozen candidate",
+            "readable immutable baseline, candidate, and plan",
+            "echo of the exact candidate identity",
+            "Both reviews use the same admission rule",
+            "later adverse result returns to the user with the real unresolved blocker or decision",
+            "classify `landed`, `not_landed`, or `unknown`",
+            "observe read-only",
+            "Close as achieved, not achieved, or unknown only after recomputing candidate and effect identity",
+            "verifying Outcome and preservation, running required real paths",
+            "accounting for staged, unstaged, untracked, external, skipped, and unverified state",
+            "Never infer publication, installation, activation, or other external success from silence",
+            "temporary, log, or compiled output",
+            "remote/paid resources",
+        ):
+            with self.subTest(invariant=invariant):
+                self.assertIn(invariant, skill)
 
 
     def test_session_guardrails_are_closed_and_consistent(self):

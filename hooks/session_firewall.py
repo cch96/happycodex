@@ -35,9 +35,9 @@ EXACT_FINAL_FOLLOWUP = (
     "admission."
 )
 COMPACT_REGROUND = (
-    "HappyCodex re-ground: reread the complete static ExecPlan; rederive Goal, Outcome, "
-    "scope, Git/index, candidate, and effect state; stop on identity, scope, index, effect, "
-    "or trust drift."
+    "HappyCodex re-ground: If a static ExecPlan governs this task, reread it completely; "
+    "always rederive Goal, Outcome, scope, Git/index, candidate, and effect state; stop on "
+    "identity, scope, index, effect, or trust drift."
 )
 
 

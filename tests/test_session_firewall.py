@@ -96,7 +96,11 @@ class SessionFirewallLogicTests(unittest.TestCase):
         })
         specific = output["hookSpecificOutput"]
         self.assertEqual(specific["hookEventName"], "SessionStart")
-        self.assertIn("reread the complete static ExecPlan", specific["additionalContext"])
+        self.assertIn(
+            "If a static ExecPlan governs this task, reread it completely",
+            specific["additionalContext"],
+        )
+        self.assertIn("always rederive Goal", specific["additionalContext"])
         self.assertLess(len(specific["additionalContext"]), 500)
 
     def test_malformed_and_unknown_inputs_fail_open(self):
