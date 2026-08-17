@@ -1,6 +1,7 @@
 # `<task>` ExecPlan
 
-Keep this contract static. Reconstruct live state from Git and tools.
+Keep this contract static: record stable authority; never append command output, attempt logs, live inventories,
+hash receipts, or progress records. Reconstruct live state from Git and tools; report current evidence in the task or handoff.
 
 ## Request and Outcome
 
@@ -45,6 +46,6 @@ Keep this contract static. Reconstruct live state from Git and tools.
 
 ## Checks and stops
 
-- Required checks: `<Outcome/preservation-required checks and commands; optional checks omitted or advisory>`
+- Required checks: `<Outcome/preservation-required consumer-native checks and commands; unavailable required paths remain unverified; heuristic, regex, synthetic, or cross-language proxies are advisory only; optional checks omitted or advisory>`
 - Stop conditions: `<identity, scope, trust, effect, or required-coverage drift/unknown>`
 - Recovery evidence: `<durably reachable candidate/effect/rollback evidence>`

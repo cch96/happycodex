@@ -286,10 +286,10 @@ class ReviewProjectionTests(unittest.TestCase):
 
 
 class PublicContractTests(unittest.TestCase):
-    def test_public_metadata_and_templates_are_v140_and_deletion_first(self):
+    def test_public_metadata_and_templates_are_v141_and_deletion_first(self):
         plugin = json.loads((ROOT / ".codex-plugin/plugin.json").read_text())
         marketplace = json.loads((ROOT / ".agents/plugins/marketplace.json").read_text())
-        self.assertEqual(plugin["version"], "1.4.0")
+        self.assertEqual(plugin["version"], "1.4.1")
         self.assertEqual(plugin["name"], marketplace["plugins"][0]["name"])
         self.assertEqual(plugin["skills"], "./skills/")
         skill = (ROOT / "skills/happycodex/SKILL.md").read_text()
@@ -486,6 +486,7 @@ class PublicContractTests(unittest.TestCase):
             "does not automatically require a new grant",
             "prune-only",
             "consumer-native identity",
+            "proxies cannot close unavailable required consumer-native checks",
             "Uncertain classification is consumer input",
             "independently closable Outcome",
             "Do not split steps sharing one external effect",
@@ -498,8 +499,11 @@ class PublicContractTests(unittest.TestCase):
         template = (ROOT / "skills/happycodex/references/execplan.md").read_text()
         self.assertNotIn("Evidence paths:", template)
         for invariant in (
+            "record stable authority; never append command output",
             "Outcome/preservation-derived consumer-reachable paths",
-            "Outcome/preservation-required checks",
+            "Outcome/preservation-required consumer-native checks",
+            "unavailable required paths remain unverified",
+            "cross-language proxies are advisory only",
             "identity, scope, trust, effect, or required-coverage drift",
         ):
             self.assertIn(invariant, template)

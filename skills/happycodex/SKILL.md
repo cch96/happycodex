@@ -33,8 +33,8 @@ pair any explicit `agent_type`, `model`, or `reasoning_effort` with a self-conta
 Under a proactive-only restriction, the route above is this Skill's explicit request: attempt the exposed native spawn; it never overrides an actual
 host denial. With an explicit host denial, do not spawn. Fall back after a spawn error, a concrete missing capability/tool, or judgment transfer. Record that evidence before direct work.
 Do not claim delegation was forbidden without an attempt.
-Keep handoff compact and auditable: Conclusion, checked scope, one body/candidate identity, decisive facts with bounded short excerpts or exact path/line/source ranges, material unknowns/seams, and follow-up delta. Never require per-fact hashes or batch-copy raw bodies. Root must correlate Outcome-relevant seams: shared identifiers, contracts, mutable resources,
-timeline, candidate, or effect identity. Do one focused follow-up or read if a seam could falsify the result; create no ledger/evidence graph/control plane.
+Compact auditable handoff: Conclusion, checked scope, one body/candidate identity, decisive facts with bounded short excerpts or exact path/line/source ranges, material unknowns/seams, and follow-up delta. Never require per-fact hashes or batch-copy raw bodies. Root: correlate Outcome-relevant seams: shared identifiers, contracts, mutable resources,
+timeline, candidate, or effect identity. Do one focused follow-up or read if a seam could falsify the result; no ledger/evidence graph/control plane.
 Before rereading the same unchanged body, state the new decision-changing question: an explanation duty, not a
 permission gate. Known mutation, truncation, continuity loss, a new falsifier, and write verification allow reread.
 Outcome/task rollover and Executor rollover remain non-default and are never compact-count driven.
@@ -51,8 +51,8 @@ admitted blocker or required unknown. Before an advisory pass, state what could 
 ## Freeze
 Derive direct, generated, and transitive consumer inputs, including modes, deletions, and byte identities. Exclude
 credentials, secrets, and raw external events. Verify all mutable inputs remain authorized; freeze an immutable consumer-native identity or report `modified-not-frozen`. A worktree digest is invalid.
-Reuse green checks only by exact consumer-native identity. Evidence-only, non-consumer changes receive focused validation; consumer-input changes invalidate relevant checks. Uncertain classification is consumer input.
-Before deleting a branch, worktree, or other recovery surface, prove required candidate, cutover, effect, and rollback evidence remains durably reachable; otherwise stop.
+Reuse green checks only by exact consumer-native identity. Evidence-only, non-consumer changes receive focused validation; consumer-input changes invalidate relevant checks. Uncertain classification is consumer input; proxies cannot close unavailable required consumer-native checks.
+Before deleting any recovery surface, prove candidate, cutover, effect, and rollback evidence remains durably reachable; otherwise stop.
 A native Goal, when explicitly requested by the user, adds no authority. Continue only with unchanged Goal identity,
 Outcome, boundary, candidate surface (paths and generated inputs, not current bytes or commit), effect target/identity/cap, and pending decisions; otherwise stop; a user reply authorizes only the decision it answers. Candidate byte changes within those conditions require checks and a new freeze, not a new scope grant.
 Ordinary reversible local work needs no terminal review. Convergence review is advisory. For a public, external,
@@ -60,6 +60,6 @@ irreversible, or other high-risk frozen candidate, use one fresh native read-onl
 After `NOT_YET`, one already-authorized in-boundary repair may proceed; one repair change-set addresses all admitted
 findings, then refreeze for one fresh replacement review. A later adverse result returns to the user with the real unresolved blocker or decision; it does not automatically require a new grant.
 Exact-final follow-up is convergence-only, never terminal.
-Before an external effect, recheck target/identity/cap/observation. Attempt once, observe read-only, and classify
+Pre-effect, recheck target/identity/cap/observation. Attempt once, observe read-only, and classify
 `landed`, `not_landed`, or `unknown`. Retry only after proof of zero effect and a recovery grant. Partial, ambiguous,
 or unknown effects stop. Close as achieved, not achieved, or unknown only after recomputing candidate and effect identity, verifying Outcome and preservation, running required real paths, and accounting for staged, unstaged, untracked, external, skipped, and unverified state. Never infer publication, installation, activation, or other external success from silence.

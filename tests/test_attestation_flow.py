@@ -269,6 +269,12 @@ class ExactFinalAndEvaluationTests(unittest.TestCase):
 
     def test_malformed_incomplete_not_yet_and_unknown_coverage_are_landed_adverse(self):
         reports = [{}, {"neutral": True}, RecordFactory().not_yet_report()]
+        proxy_only_go = RecordFactory().go_report()
+        proxy_only_go["coverage"] = {
+            "complete": True,
+            "unverified": ["native FE typecheck unavailable; regex proxy only"],
+        }
+        reports.append(proxy_only_go)
         unknown = RecordFactory().go_report()
         unknown["coverage"] = {"complete": False, "unverified": ["required check"]}
         unknown["decision"] = "NOT_YET"
