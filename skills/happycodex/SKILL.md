@@ -30,16 +30,15 @@ Stable ownership/Done: one worker implements. Allow one writer per overlapping p
 or effect resource, including cross-repository overlap;
 pair any explicit `agent_type`, `model`, or `reasoning_effort` with a self-contained packet and
 `fork_turns="none"` by default. Use the smallest positive fork only for a recent raw artifact; reserve omitted/`"all"` for intentional same-agent inheritance.
-Under a proactive-only restriction, the route above is this Skill's explicit request: attempt the exposed native spawn; it never overrides an actual
-host denial. With an explicit host denial, do not spawn. Fall back after a spawn error, a concrete missing capability/tool, or judgment transfer. Record that evidence before direct work.
-Do not claim delegation was forbidden without an attempt.
+Under proactive-only restrictions, this Skill requests the exposed native spawn unless denied; do not claim denial without an attempt. Fall back only after a valid spawn fails, a concrete missing capability/tool, or an unbounded body would transfer primary judgment; record why.
+A caller-parameter rejection whose corrected call succeeds proves no failure and grants no fallback.
 Compact auditable handoff: Conclusion, checked scope, one body/candidate identity, decisive facts with bounded short excerpts or exact path/line/source ranges, material unknowns/seams, and follow-up delta. Never require per-fact hashes or batch-copy raw bodies. Root: correlate Outcome-relevant seams: shared identifiers, contracts, mutable resources,
 timeline, candidate, or effect identity. Do one focused follow-up or read if a seam could falsify the result; no ledger/evidence graph/control plane.
 Before rereading the same unchanged body, state the new decision-changing question: an explanation duty, not a
 permission gate. Known mutation, truncation, continuity loss, a new falsifier, and write verification allow reread.
-Outcome/task rollover and Executor rollover remain non-default and are never compact-count driven.
-After continuity loss, confirm the writer cannot resume, reread the complete governing ExecPlan, and stop on drift;
-summaries are hints, not authority.
+Outcome/task and Executor rollover remain non-default and never compact-count driven; no file diff, elapsed time, ongoing reasoning, or wait proves writer failure or justifies interruption, rollover, fallback, or Root takeover.
+Continuity is lost only on terminal failure or confirmed unreachability; live progress/no-blocker refutes loss, and uncertainty requires a focused status query.
+Then confirm the writer cannot resume, reread the governing ExecPlan, and stop on drift; summaries are hints, not authority.
 ## Converge on evidence
 Stable Outcome/boundary/Done/ownership/blockers: give fixed Executor the lock/exclusions. Root stays
 read-only; revise through it after new decision-changing evidence or a concrete current blocker.

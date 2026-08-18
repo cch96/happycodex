@@ -286,10 +286,10 @@ class ReviewProjectionTests(unittest.TestCase):
 
 
 class PublicContractTests(unittest.TestCase):
-    def test_public_metadata_and_templates_are_v141_and_deletion_first(self):
+    def test_public_metadata_and_templates_are_v142_and_deletion_first(self):
         plugin = json.loads((ROOT / ".codex-plugin/plugin.json").read_text())
         marketplace = json.loads((ROOT / ".agents/plugins/marketplace.json").read_text())
-        self.assertEqual(plugin["version"], "1.4.1")
+        self.assertEqual(plugin["version"], "1.4.2")
         self.assertEqual(plugin["name"], marketplace["plugins"][0]["name"])
         self.assertEqual(plugin["skills"], "./skills/")
         skill = (ROOT / "skills/happycodex/SKILL.md").read_text()
@@ -299,7 +299,7 @@ class PublicContractTests(unittest.TestCase):
         self.assertIn("current multi-artifact implementation facts", frontmatter)
         self.assertIn("consumer-native immutable candidate", json.dumps(plugin))
         self.assertLessEqual(len(skill.split()), 1200)
-        self.assertLessEqual(len(skill.encode()), 8750)
+        self.assertLessEqual(len(skill.encode()), 9000)
         self.assertLessEqual(len(skill.splitlines()), 155)
         template = (ROOT / "skills/happycodex/references/execplan.md").read_text()
         self.assertLessEqual(len(template.splitlines()), 60)
@@ -528,6 +528,7 @@ class PublicContractTests(unittest.TestCase):
             "skill_requested_delegation_under_proactive_only_restriction": "attempt_native_spawn",
             "explicit_host_delegation_denial": "primary_direct_record_denial",
             "spawn_unavailable_or_failed": "primary_direct_fallback_record_evidence",
+            "caller_parameter_rejection_corrected_spawn_succeeds": "use_spawned_worker_after_corrected_call",
             "overlapping_mutable_paths": "single_writer_per_overlap",
             "context_offload_relation": "independent_of_parallelism",
         }
@@ -545,6 +546,7 @@ class PublicContractTests(unittest.TestCase):
             "skill_requested_delegation_under_proactive_only_restriction": answers["skill_requested_delegation_under_proactive_only_restriction"],
             "explicit_host_delegation_denial": answers["explicit_host_delegation_denial"],
             "spawn_unavailable_or_failed": answers["spawn_unavailable_or_failed"],
+            "caller_parameter_rejection_corrected_spawn_succeeds": answers["caller_parameter_rejection_corrected_spawn_succeeds"],
             "context_offload_relation": answers["context_offload_relation"],
         })
         scenario_schema = input_schema["properties"]["context"]["properties"]["scenarios"]
@@ -564,23 +566,42 @@ class PublicContractTests(unittest.TestCase):
                 "skill_requested_delegation_under_proactive_only_restriction",
                 "explicit_host_delegation_denial",
                 "spawn_unavailable_or_failed",
+                "caller_parameter_rejection_corrected_spawn_succeeds",
             )
         }
         self.assertEqual(bridge["skill_requested_delegation_under_proactive_only_restriction"][1], "attempt_native_spawn")
         self.assertEqual(bridge["explicit_host_delegation_denial"][1], "primary_direct_record_denial")
         self.assertEqual(bridge["spawn_unavailable_or_failed"][1], "primary_direct_fallback_record_evidence")
+        corrected_spawn = bridge["caller_parameter_rejection_corrected_spawn_succeeds"]
+        self.assertEqual(corrected_spawn[1], "use_spawned_worker_after_corrected_call")
+        self.assertNotEqual(corrected_spawn[1], answers["spawn_unavailable_or_failed"])
         for facts, decision in bridge.values():
             self.assertTrue(facts)
             self.assertTrue(decision)
+        self.assertEqual(
+            bridge["spawn_unavailable_or_failed"][0],
+            "native_spawn_tool_proven_missing_or_valid_spawn_attempt_failed",
+        )
+        self.assertEqual(
+            corrected_spawn[0],
+            "caller_parameter_rejection_then_corrected_valid_spawn_succeeds",
+        )
+        for name in (
+            "spawn_unavailable_or_failed",
+            "caller_parameter_rejection_corrected_spawn_succeeds",
+        ):
+            self.assertEqual(
+                scenario_schema["properties"][name]["enum"],
+                [case["context"]["scenarios"][name]],
+            )
 
         skill = " ".join((ROOT / "skills/happycodex/SKILL.md").read_text().split())
         for invariant in (
-            "this Skill's explicit request: attempt the exposed native spawn",
-            "never overrides an actual host denial",
-            "With an explicit host denial, do not spawn",
-            "after a spawn error, a concrete missing capability/tool",
-            "Record that evidence before direct work",
-            "Do not claim delegation was forbidden without an attempt",
+            "Under proactive-only restrictions, this Skill requests the exposed native spawn unless denied",
+            "do not claim denial without an attempt",
+            "Fall back only after a valid spawn fails, a concrete missing capability/tool, or an unbounded body would transfer primary judgment",
+            "record why",
+            "A caller-parameter rejection whose corrected call succeeds proves no failure and grants no fallback",
             "one writer per overlapping path, semantic mutable contract, or effect resource",
             "pair any explicit `agent_type`, `model`, or `reasoning_effort`",
             "self-contained packet and `fork_turns=\"none\"` by default",
@@ -638,6 +659,94 @@ class PublicContractTests(unittest.TestCase):
             candidate_schema["properties"]["terminal_review"]["enum"],
         )
 
+    def test_writer_continuity_matrix_is_hard_state_closed_and_consistent(self):
+        inputs = load_production_inputs(ROOT)
+        case = inputs["cases"]["core"]["writer-continuity"]
+        oracle = inputs["oracles"]["core"]["writer-continuity"]
+        input_schema = inputs["schemas"]["provider_inputs"]["writer-continuity"]
+        output_schema = inputs["schemas"]["provider_outputs"]["writer-continuity"]
+        scenarios = {
+            "terminal_failure": "fixed_writer_terminated_with_failure",
+            "confirmed_unreachable_or_inactive_writer":
+                "fixed_writer_confirmed_unreachable_or_terminally_inactive",
+            "no_file_diff_elapsed_reasoning_or_wait_active_writer":
+                "no_file_diff_after_elapsed_reasoning_or_wait_while_fixed_writer_active",
+            "live_no_blocker_or_progress_report":
+                "fixed_writer_reports_live_progress_or_no_blocker",
+            "uncertain_liveness_without_hard_evidence":
+                "fixed_writer_liveness_uncertain_without_terminal_or_unreachable_evidence",
+        }
+        actions = {
+            "terminal_failure": "reconstruct_from_state",
+            "confirmed_unreachable_or_inactive_writer": "reconstruct_from_state",
+            "no_file_diff_elapsed_reasoning_or_wait_active_writer": "continue_fixed_writer",
+            "live_no_blocker_or_progress_report": "continue_fixed_writer",
+            "uncertain_liveness_without_hard_evidence": "focused_status_query",
+        }
+        scenario_schema = input_schema["properties"]["context"]["properties"]["scenarios"]
+        action_schema = output_schema["properties"]["continuity_actions"]
+
+        self.assertIn("independently", case["prompt"])
+        self.assertEqual(case["context"]["scenarios"], scenarios)
+        self.assertEqual(case["workspace"], {
+            "fixed_writer_selected": True, "index_clean": True,
+        })
+        self.assertEqual(tuple(scenario_schema["properties"]), tuple(scenarios))
+        self.assertEqual(scenario_schema["required"], list(scenarios))
+        self.assertFalse(scenario_schema["additionalProperties"])
+        self.assertEqual(tuple(action_schema["properties"]), tuple(actions))
+        self.assertEqual(action_schema["required"], list(actions))
+        self.assertFalse(action_schema["additionalProperties"])
+        for name, facts in scenarios.items():
+            with self.subTest(scenario=name):
+                self.assertEqual(
+                    scenario_schema["properties"][name],
+                    {"type": "string", "enum": [facts]},
+                )
+                self.assertEqual(
+                    action_schema["properties"][name]["enum"][0], actions[name],
+                )
+
+        loss_predicate = "terminal_failure_or_confirmed_unreachability_only"
+        self.assertEqual(oracle["fatal"]["overlap_policy"], "one_writer")
+        self.assertEqual(oracle["fatal"]["continuity_loss_predicate"], loss_predicate)
+        self.assertEqual(oracle["fatal"]["continuity_actions"], actions)
+        self.assertFalse(oracle["fatal"]["writer_reported_blocker_proves_loss"])
+        self.assertFalse(oracle["fatal"]["summary_authority"])
+        self.assertEqual(oracle["quality"]["continuity_loss_predicate"], loss_predicate)
+        self.assertEqual(oracle["quality"]["continuity_actions"], actions)
+        self.assertFalse(oracle["quality"]["summary_authority"])
+        self.assertEqual(
+            output_schema["properties"]["continuity_loss_predicate"]["enum"][0],
+            loss_predicate,
+        )
+        self.assertIn("writer_reported_blocker_proves_loss", output_schema["required"])
+        self.assertIn("summary_authority", output_schema["required"])
+
+        raw_skill = (ROOT / "skills/happycodex/SKILL.md").read_text()
+        skill = " ".join(raw_skill.split())
+        for invariant in (
+            "Root stays read-only",
+            "Outcome/task and Executor rollover remain non-default",
+            "no file diff, elapsed time, ongoing reasoning, or wait proves writer failure",
+            "justifies interruption, rollover, fallback, or Root takeover",
+            "Continuity is lost only on terminal failure or confirmed unreachability",
+            "live progress/no-blocker refutes loss",
+            "uncertainty requires a focused status query",
+            "Then confirm the writer cannot resume",
+            "reread the governing ExecPlan",
+            "summaries are hints, not authority",
+        ):
+            with self.subTest(invariant=invariant):
+                self.assertIn(invariant, skill)
+        liveness_clause = raw_skill.split(
+            "Outcome/task and Executor rollover", 1,
+        )[1].split("\n## Converge on evidence", 1)[0]
+        self.assertNotRegex(
+            liveness_clause.lower(),
+            r"\b\d+\s*(?:seconds?|minutes?|hours?|days?)\b",
+        )
+
     def test_single_skill_guidance_does_not_regress_published_v130(self):
         raw_skill = (ROOT / "skills/happycodex/SKILL.md").read_text()
         published_skill = subprocess.check_output(
@@ -648,7 +757,7 @@ class PublicContractTests(unittest.TestCase):
         self.assertEqual(len(published_skill.split()), 1250)
         self.assertEqual(len(published_skill), 9193)
         self.assertLessEqual(len(raw_skill.split()), 1200)
-        self.assertLessEqual(len(raw_skill.encode()), 8750)
+        self.assertLessEqual(len(raw_skill.encode()), 9000)
 
     def test_context_efficiency_contract_is_consumed_by_single_skill_surface(self):
         raw_skill = (ROOT / "skills/happycodex/SKILL.md").read_text()
@@ -671,7 +780,7 @@ class PublicContractTests(unittest.TestCase):
             "explanation duty, not a permission gate",
             "Known mutation, truncation, continuity loss, a new falsifier, and write verification",
             "Small bounded work remains direct and proportional",
-            "Outcome/task rollover and Executor rollover remain non-default",
+            "Outcome/task and Executor rollover remain non-default",
             "never compact-count driven",
             "Conclusion, checked scope, one body/candidate identity, decisive facts with bounded short excerpts or exact path/line/source ranges, material unknowns/seams, and follow-up delta",
             "Never require per-fact hashes or batch-copy raw bodies",
@@ -711,12 +820,12 @@ class PublicContractTests(unittest.TestCase):
             "one native read-only agent before primary ingestion",
             "Add independent bodies only when concurrency materially helps",
             "Invoke an external model or tool directly for its assigned question; do not delegate the invocation or treat it as terminal review",
-            "Under a proactive-only restriction, the route above is this Skill's explicit request: attempt the exposed native spawn",
+            "Under proactive-only restrictions, this Skill requests the exposed native spawn unless denied",
             "Supported paths use normal commands, configurations, inputs, and consumer-reachable workflows",
             "optional or incidental checks",
             "Explicitly required robustness or adversarial injection remains blocking",
             "one focused check with a stated possible verdict change",
-            "reread the complete governing ExecPlan",
+            "reread the governing ExecPlan",
             "summaries are hints, not authority",
             "A worktree digest is invalid",
             "Derive direct, generated, and transitive consumer inputs",

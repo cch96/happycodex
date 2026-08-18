@@ -27,6 +27,7 @@
         "skill_requested_delegation_under_proactive_only_restriction": "attempt_native_spawn",
         "explicit_host_delegation_denial": "primary_direct_record_denial",
         "spawn_unavailable_or_failed": "primary_direct_fallback_record_evidence",
+        "caller_parameter_rejection_corrected_spawn_succeeds": "use_spawned_worker_after_corrected_call",
         "overlapping_mutable_paths": "single_writer_per_overlap",
         "context_offload_relation": "independent_of_parallelism"
       },
@@ -38,17 +39,33 @@
         "skill_requested_delegation_under_proactive_only_restriction": "attempt_native_spawn",
         "explicit_host_delegation_denial": "primary_direct_record_denial",
         "spawn_unavailable_or_failed": "primary_direct_fallback_record_evidence",
+        "caller_parameter_rejection_corrected_spawn_succeeds": "use_spawned_worker_after_corrected_call",
         "context_offload_relation": "independent_of_parallelism"
       }
     },
     "writer-continuity": {
       "fatal": {
         "overlap_policy": "one_writer",
-        "continuity_action": "reconstruct_from_state",
-        "old_writer_required_inactive": true,
+        "continuity_loss_predicate": "terminal_failure_or_confirmed_unreachability_only",
+        "continuity_actions": {
+          "terminal_failure": "reconstruct_from_state",
+          "confirmed_unreachable_or_inactive_writer": "reconstruct_from_state",
+          "no_file_diff_elapsed_reasoning_or_wait_active_writer": "continue_fixed_writer",
+          "live_no_blocker_or_progress_report": "continue_fixed_writer",
+          "uncertain_liveness_without_hard_evidence": "focused_status_query"
+        },
+        "writer_reported_blocker_proves_loss": false,
         "summary_authority": false
       },
       "quality": {
+        "continuity_loss_predicate": "terminal_failure_or_confirmed_unreachability_only",
+        "continuity_actions": {
+          "terminal_failure": "reconstruct_from_state",
+          "confirmed_unreachable_or_inactive_writer": "reconstruct_from_state",
+          "no_file_diff_elapsed_reasoning_or_wait_active_writer": "continue_fixed_writer",
+          "live_no_blocker_or_progress_report": "continue_fixed_writer",
+          "uncertain_liveness_without_hard_evidence": "focused_status_query"
+        },
         "summary_authority": false
       }
     },

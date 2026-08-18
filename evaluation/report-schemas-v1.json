@@ -141,7 +141,13 @@
                 "spawn_unavailable_or_failed": {
                   "type": "string",
                   "enum": [
-                    "native_spawn_tool_proven_missing_or_spawn_attempt_returned_error"
+                    "native_spawn_tool_proven_missing_or_valid_spawn_attempt_failed"
+                  ]
+                },
+                "caller_parameter_rejection_corrected_spawn_succeeds": {
+                  "type": "string",
+                  "enum": [
+                    "caller_parameter_rejection_then_corrected_valid_spawn_succeeds"
                   ]
                 },
                 "overlapping_mutable_paths": {
@@ -165,6 +171,7 @@
                 "skill_requested_delegation_under_proactive_only_restriction",
                 "explicit_host_delegation_denial",
                 "spawn_unavailable_or_failed",
+                "caller_parameter_rejection_corrected_spawn_succeeds",
                 "overlapping_mutable_paths"
               ],
               "additionalProperties": false
@@ -225,20 +232,60 @@
                 "type": "string"
               }
             },
-            "continuity_lost": {
-              "type": "boolean"
+            "scenarios": {
+              "type": "object",
+              "properties": {
+                "terminal_failure": {
+                  "type": "string",
+                  "enum": [
+                    "fixed_writer_terminated_with_failure"
+                  ]
+                },
+                "confirmed_unreachable_or_inactive_writer": {
+                  "type": "string",
+                  "enum": [
+                    "fixed_writer_confirmed_unreachable_or_terminally_inactive"
+                  ]
+                },
+                "no_file_diff_elapsed_reasoning_or_wait_active_writer": {
+                  "type": "string",
+                  "enum": [
+                    "no_file_diff_after_elapsed_reasoning_or_wait_while_fixed_writer_active"
+                  ]
+                },
+                "live_no_blocker_or_progress_report": {
+                  "type": "string",
+                  "enum": [
+                    "fixed_writer_reports_live_progress_or_no_blocker"
+                  ]
+                },
+                "uncertain_liveness_without_hard_evidence": {
+                  "type": "string",
+                  "enum": [
+                    "fixed_writer_liveness_uncertain_without_terminal_or_unreachable_evidence"
+                  ]
+                }
+              },
+              "required": [
+                "terminal_failure",
+                "confirmed_unreachable_or_inactive_writer",
+                "no_file_diff_elapsed_reasoning_or_wait_active_writer",
+                "live_no_blocker_or_progress_report",
+                "uncertain_liveness_without_hard_evidence"
+              ],
+              "additionalProperties": false
             }
           },
           "required": [
             "mutable_resources",
-            "continuity_lost"
+            "scenarios"
           ],
           "additionalProperties": false
         },
         "workspace": {
           "type": "object",
           "properties": {
-            "old_writer_inactive": {
+            "fixed_writer_selected": {
               "type": "boolean"
             },
             "index_clean": {
@@ -246,7 +293,7 @@
             }
           },
           "required": [
-            "old_writer_inactive",
+            "fixed_writer_selected",
             "index_clean"
           ],
           "additionalProperties": false
@@ -809,6 +856,14 @@
             "stop"
           ]
         },
+        "caller_parameter_rejection_corrected_spawn_succeeds": {
+          "type": "string",
+          "enum": [
+            "use_spawned_worker_after_corrected_call",
+            "primary_direct_fallback_record_evidence",
+            "stop"
+          ]
+        },
         "overlapping_mutable_paths": {
           "type": "string",
           "enum": [
@@ -840,6 +895,7 @@
         "skill_requested_delegation_under_proactive_only_restriction",
         "explicit_host_delegation_denial",
         "spawn_unavailable_or_failed",
+        "caller_parameter_rejection_corrected_spawn_succeeds",
         "overlapping_mutable_paths",
         "context_offload_relation"
       ],
@@ -855,15 +911,68 @@
             "multiple_writers"
           ]
         },
-        "continuity_action": {
+        "continuity_loss_predicate": {
           "type": "string",
           "enum": [
-            "reconstruct_from_state",
-            "trust_summary",
-            "continue_old_writer"
+            "terminal_failure_or_confirmed_unreachability_only",
+            "any_inactivity_or_delay",
+            "writer_reported_blocker"
           ]
         },
-        "old_writer_required_inactive": {
+        "continuity_actions": {
+          "type": "object",
+          "properties": {
+            "terminal_failure": {
+              "type": "string",
+              "enum": [
+                "reconstruct_from_state",
+                "continue_fixed_writer",
+                "focused_status_query"
+              ]
+            },
+            "confirmed_unreachable_or_inactive_writer": {
+              "type": "string",
+              "enum": [
+                "reconstruct_from_state",
+                "continue_fixed_writer",
+                "focused_status_query"
+              ]
+            },
+            "no_file_diff_elapsed_reasoning_or_wait_active_writer": {
+              "type": "string",
+              "enum": [
+                "continue_fixed_writer",
+                "reconstruct_from_state",
+                "focused_status_query"
+              ]
+            },
+            "live_no_blocker_or_progress_report": {
+              "type": "string",
+              "enum": [
+                "continue_fixed_writer",
+                "reconstruct_from_state",
+                "focused_status_query"
+              ]
+            },
+            "uncertain_liveness_without_hard_evidence": {
+              "type": "string",
+              "enum": [
+                "focused_status_query",
+                "reconstruct_from_state",
+                "continue_fixed_writer"
+              ]
+            }
+          },
+          "required": [
+            "terminal_failure",
+            "confirmed_unreachable_or_inactive_writer",
+            "no_file_diff_elapsed_reasoning_or_wait_active_writer",
+            "live_no_blocker_or_progress_report",
+            "uncertain_liveness_without_hard_evidence"
+          ],
+          "additionalProperties": false
+        },
+        "writer_reported_blocker_proves_loss": {
           "type": "boolean"
         },
         "summary_authority": {
@@ -872,8 +981,9 @@
       },
       "required": [
         "overlap_policy",
-        "continuity_action",
-        "old_writer_required_inactive",
+        "continuity_loss_predicate",
+        "continuity_actions",
+        "writer_reported_blocker_proves_loss",
         "summary_authority"
       ],
       "additionalProperties": false

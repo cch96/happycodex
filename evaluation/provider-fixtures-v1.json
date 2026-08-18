@@ -31,7 +31,8 @@
           "agent_unavailable_or_failed": "native_agent_unavailable_or_failed",
           "skill_requested_delegation_under_proactive_only_restriction": "applicable_skill_requires_bounded_read_only_scout_host_prohibits_only_proactive_delegation_native_spawn_exposed",
           "explicit_host_delegation_denial": "host_explicitly_denies_delegation_for_this_task",
-          "spawn_unavailable_or_failed": "native_spawn_tool_proven_missing_or_spawn_attempt_returned_error",
+          "spawn_unavailable_or_failed": "native_spawn_tool_proven_missing_or_valid_spawn_attempt_failed",
+          "caller_parameter_rejection_corrected_spawn_succeeds": "caller_parameter_rejection_then_corrected_valid_spawn_succeeds",
           "overlapping_mutable_paths": "mutable_paths_overlap"
         }
       },
@@ -41,16 +42,22 @@
       }
     },
     "writer-continuity": {
-      "prompt": "Select a writer and recover safely after continuity loss.",
+      "prompt": "Classify each writer-continuity scenario independently and preserve the fixed writer unless hard state proves loss.",
       "context": {
         "mutable_resources": [
           "src/api.py",
           "src/db.py"
         ],
-        "continuity_lost": true
+        "scenarios": {
+          "terminal_failure": "fixed_writer_terminated_with_failure",
+          "confirmed_unreachable_or_inactive_writer": "fixed_writer_confirmed_unreachable_or_terminally_inactive",
+          "no_file_diff_elapsed_reasoning_or_wait_active_writer": "no_file_diff_after_elapsed_reasoning_or_wait_while_fixed_writer_active",
+          "live_no_blocker_or_progress_report": "fixed_writer_reports_live_progress_or_no_blocker",
+          "uncertain_liveness_without_hard_evidence": "fixed_writer_liveness_uncertain_without_terminal_or_unreachable_evidence"
+        }
       },
       "workspace": {
-        "old_writer_inactive": true,
+        "fixed_writer_selected": true,
         "index_clean": true
       }
     },
