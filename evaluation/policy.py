@@ -83,13 +83,14 @@ def exact_final_review_policy() -> dict[str, object]:
             "findings_empty": True,
         },
         "review_rule": (
-            "Admit a blocker or required coverage item only when its failure is "
-            "reachable on a supported path and falsifies a direct user or Outcome "
-            "requirement, preservation of pre-change reachable behavior, data, or identity, "
-            "a required supported workflow, or candidate-new material safety or correctness. "
-            "Plan wording, reviewer preference, stricter local invariants, optional or "
-            "incidental checks, and unsupported-path manual artifact injection cannot "
-            "manufacture blockers; required robustness or adversarial behavior remains in scope."
+            "Before admitting a blocker or required coverage item, state three links: "
+            "the normal supported path; the final source in a direct user or Outcome requirement, "
+            "preservation of pre-change reachable behavior, data, or identity, a required supported "
+            "workflow, or candidate-new material safety or correctness; and the material falsification. "
+            "A missing link is advisory, not blocking, and priority labels grant no admission. "
+            "Plan text may relay a real source but cannot create its own authority. Apply this same "
+            "test to Root concerns and reviewer findings. Plan wording, reviewer preference, stricter "
+            "local invariants, optional or incidental checks, and unsupported-path manual artifact injection cannot manufacture blockers; required robustness or adversarial behavior remains in scope."
         ),
     }
 

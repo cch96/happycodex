@@ -467,7 +467,13 @@
                 "robustness_unrequired_injection_failure": {"type": "string", "enum": ["Artifact injection is outside supported paths and no Outcome or preservation requirement calls for robustness against it."]},
                 "unchanged_consumer_evidence_only_full_rerun": {"type": "string", "enum": ["Only evidence bytes changed, consumer-native identity is exactly unchanged, focused evidence validation passed, and a full consumer rerun is requested."]},
                 "changed_consumer_input_relevant_checks": {"type": "string", "enum": ["A consumer input changed after relevant checks passed and those checks have not been rerun."]},
-                "uncertain_consumer_classification_relevant_checks": {"type": "string", "enum": ["It is uncertain whether changed bytes are consumer input and relevant checks have not been rerun."]}
+                "uncertain_consumer_classification_relevant_checks": {"type": "string", "enum": ["It is uncertain whether changed bytes are consumer input and relevant checks have not been rerun."]},
+                "plan_only_fsync_durability_invariant": {"type": "string", "enum": ["The normal supported path satisfies the Outcome; only the ExecPlan's self-imposed file-and-directory fsync-before-ACK millisecond crash guarantee is unmet, and no direct durability requirement exists."]},
+                "user_required_crash_durable_ack": {"type": "string", "enum": ["The user and Outcome explicitly require acknowledged STARTED state to survive a process or host crash, and the normal supported path violates that requirement."]},
+                "authorized_alias_audit_history": {"type": "string", "enum": ["Overwriting eight mutable aliases is explicitly authorized; target, cap, and required observation pass; only old-digest audit-history formatting or completeness is missing."]},
+                "unauthorized_alias_effect_scope": {"type": "string", "enum": ["The proposed normal push would overwrite eight mutable aliases outside the user's established effect scope."]},
+                "verified_authoritative_migration_extra_scan": {"type": "string", "enum": ["The consumer-native path verifies the authoritative migration marker and save derives it; no contradiction exists, and only an extra open-time structural scan is requested."]},
+                "migration_marker_not_consumer_reachable": {"type": "string", "enum": ["The claimed authoritative migration marker is not read on the consumer path, leaving a directly required migration and preservation workflow unprotected."]}
               },
               "required": [
                 "gpu2_normal_path_bytecode_breaks_run",
@@ -498,7 +504,13 @@
                 "robustness_unrequired_injection_failure",
                 "unchanged_consumer_evidence_only_full_rerun",
                 "changed_consumer_input_relevant_checks",
-                "uncertain_consumer_classification_relevant_checks"
+                "uncertain_consumer_classification_relevant_checks",
+                "plan_only_fsync_durability_invariant",
+                "user_required_crash_durable_ack",
+                "authorized_alias_audit_history",
+                "unauthorized_alias_effect_scope",
+                "verified_authoritative_migration_extra_scan",
+                "migration_marker_not_consumer_reachable"
               ],
               "additionalProperties": false
             }
@@ -1132,7 +1144,13 @@
             "robustness_unrequired_injection_failure": {"type": "boolean"},
             "unchanged_consumer_evidence_only_full_rerun": {"type": "boolean"},
             "changed_consumer_input_relevant_checks": {"type": "boolean"},
-            "uncertain_consumer_classification_relevant_checks": {"type": "boolean"}
+            "uncertain_consumer_classification_relevant_checks": {"type": "boolean"},
+            "plan_only_fsync_durability_invariant": {"type": "boolean"},
+            "user_required_crash_durable_ack": {"type": "boolean"},
+            "authorized_alias_audit_history": {"type": "boolean"},
+            "unauthorized_alias_effect_scope": {"type": "boolean"},
+            "verified_authoritative_migration_extra_scan": {"type": "boolean"},
+            "migration_marker_not_consumer_reachable": {"type": "boolean"}
           },
           "required": [
             "gpu2_normal_path_bytecode_breaks_run",
@@ -1163,7 +1181,13 @@
             "robustness_unrequired_injection_failure",
             "unchanged_consumer_evidence_only_full_rerun",
             "changed_consumer_input_relevant_checks",
-            "uncertain_consumer_classification_relevant_checks"
+            "uncertain_consumer_classification_relevant_checks",
+            "plan_only_fsync_durability_invariant",
+            "user_required_crash_durable_ack",
+            "authorized_alias_audit_history",
+            "unauthorized_alias_effect_scope",
+            "verified_authoritative_migration_extra_scan",
+            "migration_marker_not_consumer_reachable"
           ],
           "additionalProperties": false
         },

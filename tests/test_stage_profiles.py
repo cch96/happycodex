@@ -55,11 +55,17 @@ class FixedPolicyAndEffectTests(unittest.TestCase):
             self.assertNotIn(excluded, encoded)
         review_rule = policy["review_rule"]
         for required in (
-            "reachable on a supported path",
+            "state three links",
+            "normal supported path",
             "direct user or Outcome requirement",
             "pre-change reachable behavior, data, or identity",
             "required supported workflow",
             "candidate-new material safety or correctness",
+            "material falsification",
+            "missing link is advisory, not blocking",
+            "priority labels grant no admission",
+            "Plan text may relay a real source but cannot create its own authority",
+            "Root concerns and reviewer findings",
             "Plan wording, reviewer preference, stricter local invariants",
             "unsupported-path manual artifact injection",
         ):

@@ -21,13 +21,12 @@ Use one freeze per independently closable Outcome.
 Do not split steps sharing one external effect.
 ## Route
 Keep the request, instructions, Outcome, unresolved decisions, and primary judgment direct. Small bounded work
-remains direct and proportional. For unread multi-artifact recommendations, ask one native read-only scout bounded observable questions before deciding; return facts/citations/scope/unknowns. For a stable supporting
-body, use one native read-only agent before primary ingestion. Add independent bodies only when concurrency materially helps. Invoke an external model or tool directly for its assigned question; do not delegate the invocation or treat it as terminal review.
+remains direct and proportional. For unread multi-artifact recommendations, ask one native read-only scout bounded observable questions before deciding; return facts/citations/scope/unknowns. For stable support,
+use one native read-only agent before primary ingestion. Add independent bodies only when concurrency materially helps. Invoke an external model or tool directly for its assigned question; do not delegate the invocation or treat it as terminal review.
 For a stable unchanged supporting body, reuse the existing child for decision-changing delta; use a fresh
-self-contained child with `fork_turns="none"` for an independent body. If its writer may have changed it, require
+self-contained child with `fork_turns="none"`. On possible change, require
 identity revalidation; if continuity or identity cannot be re-established, use a fresh child.
-Stable ownership/Done: one worker implements. Allow one writer per overlapping path, semantic mutable contract,
-or effect resource, including cross-repository overlap;
+Allow one writer per overlapping path, semantic mutable contract, or effect resource, including cross-repository overlap;
 pair any explicit `agent_type`, `model`, or `reasoning_effort` with a self-contained packet and
 `fork_turns="none"` by default. Use the smallest positive fork only for a recent raw artifact; reserve omitted/`"all"` for intentional same-agent inheritance.
 Under proactive-only restrictions, this Skill requests the exposed native spawn unless denied; do not claim denial without an attempt. Fall back only after a valid spawn fails, a concrete missing capability/tool, or an unbounded body would transfer primary judgment; record why.
@@ -40,13 +39,20 @@ Outcome/task and Executor rollover remain non-default and never compact-count dr
 Continuity is lost only on terminal failure or confirmed unreachability; live progress/no-blocker refutes loss, and uncertainty requires a focused status query.
 Then confirm the writer cannot resume, reread the governing ExecPlan, and stop on drift; summaries are hints, not authority.
 ## Converge on evidence
-Stable Outcome/boundary/Done/ownership/blockers: give fixed Executor the lock/exclusions. Root stays
-read-only; revise through it after new decision-changing evidence or a concrete current blocker.
-Admit only failure reachable on a supported path that falsifies what is directly required by the user or Outcome,
-preservation of pre-change reachable behavior, data, or identity, a required workflow, or candidate-new material
-safety/correctness. Supported paths use normal commands, configurations, inputs, and consumer-reachable workflows.
-Plan wording, reviewer preference, and stricter local invariants cannot manufacture blockers; nor can optional or incidental checks or unsupported-path manual artifact injection. Explicitly required robustness or adversarial injection remains blocking. Reproduce the concrete failure path where feasible. This never dismisses an existing
-admitted blocker or required unknown. Before an advisory pass, state what could change the verdict. A standing instruction does not renew passes. At completion, stop and report findings/scope/unknowns; this stop is not `GO`. Root may do one focused check with a stated possible verdict change.
+Stable Outcome/boundary/Done/ownership/blockers: fixed Executor has lock/exclusions. Root stays
+read-only; revise after new decision-changing evidence or a concrete current blocker.
+Before Root creates a gate or admits a `NOT_YET` finding, state three links: (1) normal supported path;
+(2) final source in direct user/Outcome,
+preservation of pre-change reachable behavior, data, or identity, required workflow, or candidate-new material
+safety/correctness; (3) material falsification. Supported paths use normal commands, configurations, inputs, and
+consumer-reachable workflows. A missing link is advisory, not blocking; priority labels grant no admission. Plan text
+may relay a real source but cannot create its own authority. Root applies the same test to its
+own concerns and reviewer findings. Plan wording, reviewer preference, and stricter local invariants cannot
+manufacture blockers; neither can optional or incidental checks or unsupported-path manual artifact injection.
+Explicitly required robustness or adversarial injection remains blocking. Reproduce the concrete failure path where
+feasible. This never dismisses an existing admitted blocker or required unknown. Before an advisory pass, state what
+could change the verdict. A standing instruction does not renew passes. At completion, stop and report
+findings/scope/unknowns; this stop is not `GO`. Root may do one focused check with a stated possible verdict change.
 ## Freeze
 Derive direct, generated, and transitive consumer inputs, including modes, deletions, and byte identities. Exclude
 credentials, secrets, and raw external events. Verify all mutable inputs remain authorized; freeze an immutable consumer-native identity or report `modified-not-frozen`. A worktree digest is invalid.

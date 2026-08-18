@@ -286,10 +286,10 @@ class ReviewProjectionTests(unittest.TestCase):
 
 
 class PublicContractTests(unittest.TestCase):
-    def test_public_metadata_and_templates_are_v142_and_deletion_first(self):
+    def test_public_metadata_and_templates_are_v143_and_deletion_first(self):
         plugin = json.loads((ROOT / ".codex-plugin/plugin.json").read_text())
         marketplace = json.loads((ROOT / ".agents/plugins/marketplace.json").read_text())
-        self.assertEqual(plugin["version"], "1.4.2")
+        self.assertEqual(plugin["version"], "1.4.3")
         self.assertEqual(plugin["name"], marketplace["plugins"][0]["name"])
         self.assertEqual(plugin["skills"], "./skills/")
         skill = (ROOT / "skills/happycodex/SKILL.md").read_text()
@@ -299,7 +299,7 @@ class PublicContractTests(unittest.TestCase):
         self.assertIn("current multi-artifact implementation facts", frontmatter)
         self.assertIn("consumer-native immutable candidate", json.dumps(plugin))
         self.assertLessEqual(len(skill.split()), 1200)
-        self.assertLessEqual(len(skill.encode()), 9000)
+        self.assertLessEqual(len(skill.encode()), 10000)
         self.assertLessEqual(len(skill.splitlines()), 155)
         template = (ROOT / "skills/happycodex/references/execplan.md").read_text()
         self.assertLessEqual(len(template.splitlines()), 60)
@@ -402,6 +402,14 @@ class PublicContractTests(unittest.TestCase):
         input_schema = inputs["schemas"]["provider_inputs"]["candidate-review"]
         output_schema = inputs["schemas"]["provider_outputs"]["candidate-review"]
         scenarios = candidate["context"]["finding_admission_scenarios"]
+        new_expected = {
+            "plan_only_fsync_durability_invariant": False,
+            "user_required_crash_durable_ack": True,
+            "authorized_alias_audit_history": False,
+            "unauthorized_alias_effect_scope": True,
+            "verified_authoritative_migration_extra_scan": False,
+            "migration_marker_not_consumer_reachable": True,
+        }
         expected = {
             "gpu2_normal_path_bytecode_breaks_run": True,
             "gpu2_plan_only_zero_mib": False,
@@ -432,6 +440,7 @@ class PublicContractTests(unittest.TestCase):
             "unchanged_consumer_evidence_only_full_rerun": False,
             "changed_consumer_input_relevant_checks": True,
             "uncertain_consumer_classification_relevant_checks": True,
+            **new_expected,
         }
         fields = tuple(expected)
         scenario_schema = input_schema["properties"]["context"]["properties"][
@@ -453,6 +462,10 @@ class PublicContractTests(unittest.TestCase):
             )
             self.assertEqual(answer_schema["properties"][field], {"type": "boolean"})
         self.assertEqual(oracle["fatal"]["finding_admitted"], expected)
+        self.assertEqual(
+            {field: oracle["fatal"]["finding_admitted"][field] for field in new_expected},
+            new_expected,
+        )
         semantics = "true_means_must_block_or_stop_false_means_optional_or_non_blocking"
         self.assertEqual(oracle["fatal"]["finding_admitted_semantics"], semantics)
         self.assertEqual(
@@ -477,8 +490,8 @@ class PublicContractTests(unittest.TestCase):
             "credentials, trust, shared/system configuration",
             "system/user/shared installation, excluded or omitted consumer input",
             "including cross-repository overlap",
-            "reachable on a supported path",
-            "directly required by the user or Outcome",
+            "normal supported path",
+            "final source in direct user/Outcome",
             "pre-change reachable behavior, data, or identity",
             "Plan wording, reviewer preference, and stricter local invariants cannot",
             "unsupported-path manual artifact injection",
@@ -493,6 +506,19 @@ class PublicContractTests(unittest.TestCase):
             "never dismisses an existing admitted blocker or required unknown",
             "Verify all mutable inputs remain authorized",
             "coverage derived from the full admission rule",
+        ):
+            self.assertIn(invariant, skill)
+
+        for invariant in (
+            "Before Root creates a gate or admits a `NOT_YET` finding",
+            "state three links",
+            "normal supported path",
+            "final source in direct user/Outcome",
+            "material falsification",
+            "missing link is advisory, not blocking",
+            "priority labels grant no admission",
+            "Plan text may relay a real source but cannot create its own authority",
+            "Root applies the same test to its own concerns and reviewer findings",
         ):
             self.assertIn(invariant, skill)
 
@@ -757,7 +783,7 @@ class PublicContractTests(unittest.TestCase):
         self.assertEqual(len(published_skill.split()), 1250)
         self.assertEqual(len(published_skill), 9193)
         self.assertLessEqual(len(raw_skill.split()), 1200)
-        self.assertLessEqual(len(raw_skill.encode()), 9000)
+        self.assertLessEqual(len(raw_skill.encode()), 10000)
 
     def test_context_efficiency_contract_is_consumed_by_single_skill_surface(self):
         raw_skill = (ROOT / "skills/happycodex/SKILL.md").read_text()

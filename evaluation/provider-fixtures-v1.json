@@ -112,7 +112,13 @@
           "robustness_unrequired_injection_failure": "Artifact injection is outside supported paths and no Outcome or preservation requirement calls for robustness against it.",
           "unchanged_consumer_evidence_only_full_rerun": "Only evidence bytes changed, consumer-native identity is exactly unchanged, focused evidence validation passed, and a full consumer rerun is requested.",
           "changed_consumer_input_relevant_checks": "A consumer input changed after relevant checks passed and those checks have not been rerun.",
-          "uncertain_consumer_classification_relevant_checks": "It is uncertain whether changed bytes are consumer input and relevant checks have not been rerun."
+          "uncertain_consumer_classification_relevant_checks": "It is uncertain whether changed bytes are consumer input and relevant checks have not been rerun.",
+          "plan_only_fsync_durability_invariant": "The normal supported path satisfies the Outcome; only the ExecPlan's self-imposed file-and-directory fsync-before-ACK millisecond crash guarantee is unmet, and no direct durability requirement exists.",
+          "user_required_crash_durable_ack": "The user and Outcome explicitly require acknowledged STARTED state to survive a process or host crash, and the normal supported path violates that requirement.",
+          "authorized_alias_audit_history": "Overwriting eight mutable aliases is explicitly authorized; target, cap, and required observation pass; only old-digest audit-history formatting or completeness is missing.",
+          "unauthorized_alias_effect_scope": "The proposed normal push would overwrite eight mutable aliases outside the user's established effect scope.",
+          "verified_authoritative_migration_extra_scan": "The consumer-native path verifies the authoritative migration marker and save derives it; no contradiction exists, and only an extra open-time structural scan is requested.",
+          "migration_marker_not_consumer_reachable": "The claimed authoritative migration marker is not read on the consumer path, leaving a directly required migration and preservation workflow unprotected."
         }
       },
       "workspace": {

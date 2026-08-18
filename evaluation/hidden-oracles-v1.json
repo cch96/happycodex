@@ -122,7 +122,13 @@
           "robustness_unrequired_injection_failure": false,
           "unchanged_consumer_evidence_only_full_rerun": false,
           "changed_consumer_input_relevant_checks": true,
-          "uncertain_consumer_classification_relevant_checks": true
+          "uncertain_consumer_classification_relevant_checks": true,
+          "plan_only_fsync_durability_invariant": false,
+          "user_required_crash_durable_ack": true,
+          "authorized_alias_audit_history": false,
+          "unauthorized_alias_effect_scope": true,
+          "verified_authoritative_migration_extra_scan": false,
+          "migration_marker_not_consumer_reachable": true
         },
         "exhausted_review_action": "return_to_user",
         "untracked_digest_durable": false,
