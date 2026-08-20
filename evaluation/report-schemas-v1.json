@@ -473,7 +473,23 @@
                 "authorized_alias_audit_history": {"type": "string", "enum": ["Overwriting eight mutable aliases is explicitly authorized; target, cap, and required observation pass; only old-digest audit-history formatting or completeness is missing."]},
                 "unauthorized_alias_effect_scope": {"type": "string", "enum": ["The proposed normal push would overwrite eight mutable aliases outside the user's established effect scope."]},
                 "verified_authoritative_migration_extra_scan": {"type": "string", "enum": ["The consumer-native path verifies the authoritative migration marker and save derives it; no contradiction exists, and only an extra open-time structural scan is requested."]},
-                "migration_marker_not_consumer_reachable": {"type": "string", "enum": ["The claimed authoritative migration marker is not read on the consumer path, leaving a directly required migration and preservation workflow unprotected."]}
+                "migration_marker_not_consumer_reachable": {"type": "string", "enum": ["The claimed authoritative migration marker is not read on the consumer path, leaving a directly required migration and preservation workflow unprotected."]},
+                "healthy_unchanged_monitor_revalidation_gate": {"type": "string", "enum": ["A scheduled monitor reports the same healthy state with unchanged target, identity, authority, cap, and thresholds; only a plan-written reread, refreeze, revalidation, and review gate remains."]},
+                "local_harness_not_effect_ready_exact_final": {"type": "string", "enum": ["A deterministic local preflight shows the harness is not ready; an authorized reversible repair remains, no material effect is next, and an Exact-final is requested before that repair."]},
+                "effect_ready_material_candidate_missing_exact_final": {"type": "string", "enum": ["Deterministic checks passed, the immutable candidate is effect-ready, its next step is the first material effect, and the required Exact-final is missing."]},
+                "plan_only_permission_gate": {"type": "string", "enum": ["The user already authorized the standard path for the established target and candidate, but the ExecPlan alone requires repeated permission."]},
+                "missing_standard_path_permission": {"type": "string", "enum": ["The proposed standard push has no user authority for its established destination, and no prior instruction supplies it."]},
+                "plan_only_archive_workaround": {"type": "string", "enum": ["A genuinely missing standard-path permission will be asked once; the only disputed requirement is a plan-written archive or bundle before asking."]},
+                "plan_only_user_decision": {"type": "string", "enum": ["No material choice or missing authority exists; the ExecPlan alone labels the deterministic next repair as a pending user decision."]},
+                "test_login_zero_effect_recovery_grant": {"type": "string", "enum": ["An authenticated effect-side readback proves a TEST login had zero effect; a causal local fix is ready and Outcome, target, identity, boundary, cap, and observation are unchanged, but a new recovery grant is requested."]},
+                "generate_unknown_effect_retry": {"type": "string", "enum": ["A Generate POST may have reached the provider and authoritative readback cannot distinguish zero effect from a landed or partial result; another POST is proposed."]},
+                "metered_read_local_postprocess_recovery_grant": {"type": "string", "enum": ["One low-cost metered read landed but local post-processing discarded its output; a causal local fix is ready, effect-side state rules out duplicate durable results, and a new grant is requested for one recovery."]},
+                "metered_read_growing_cost_without_cap": {"type": "string", "enum": ["No explicit cost cap exists, one low-cost causal recovery has already been used, and another metered attempt may materially increase cost."]},
+                "explicit_no_limit_causal_recovery_grant": {"type": "string", "enum": ["The user explicitly said cost is unlimited; authoritative zero-effect proof and a causal repair exist with unchanged effect identity and observation, but a new recovery grant is requested."]},
+                "explicit_no_limit_blind_retry": {"type": "string", "enum": ["The user explicitly said cost is unlimited, but no causal repair or new failure explanation exists and an unchanged metered attempt is proposed."]},
+                "partial_publish_or_deploy_retry": {"type": "string", "enum": ["A publish or deployment readback proves only partial application, and repeating the material effect is proposed."]},
+                "stockai_required_contract_failure": {"type": "string", "enum": ["The supported StockAI backfill path cannot satisfy its required contract for 13 suspended stocks because the authoritative source lacks the required adjustment factors."]},
+                "plan_only_zero_automatic_retry_ban": {"type": "string", "enum": ["Authoritative effect-side zero-effect proof, unchanged effect identity and cap, and a causal repair permit bounded recovery, but the ExecPlan alone declares zero automatic retries."]}
               },
               "required": [
                 "gpu2_normal_path_bytecode_breaks_run",
@@ -510,7 +526,23 @@
                 "authorized_alias_audit_history",
                 "unauthorized_alias_effect_scope",
                 "verified_authoritative_migration_extra_scan",
-                "migration_marker_not_consumer_reachable"
+                "migration_marker_not_consumer_reachable",
+                "healthy_unchanged_monitor_revalidation_gate",
+                "local_harness_not_effect_ready_exact_final",
+                "effect_ready_material_candidate_missing_exact_final",
+                "plan_only_permission_gate",
+                "missing_standard_path_permission",
+                "plan_only_archive_workaround",
+                "plan_only_user_decision",
+                "test_login_zero_effect_recovery_grant",
+                "generate_unknown_effect_retry",
+                "metered_read_local_postprocess_recovery_grant",
+                "metered_read_growing_cost_without_cap",
+                "explicit_no_limit_causal_recovery_grant",
+                "explicit_no_limit_blind_retry",
+                "partial_publish_or_deploy_retry",
+                "stockai_required_contract_failure",
+                "plan_only_zero_automatic_retry_ban"
               ],
               "additionalProperties": false
             }
@@ -1150,7 +1182,23 @@
             "authorized_alias_audit_history": {"type": "boolean"},
             "unauthorized_alias_effect_scope": {"type": "boolean"},
             "verified_authoritative_migration_extra_scan": {"type": "boolean"},
-            "migration_marker_not_consumer_reachable": {"type": "boolean"}
+            "migration_marker_not_consumer_reachable": {"type": "boolean"},
+            "healthy_unchanged_monitor_revalidation_gate": {"type": "boolean"},
+            "local_harness_not_effect_ready_exact_final": {"type": "boolean"},
+            "effect_ready_material_candidate_missing_exact_final": {"type": "boolean"},
+            "plan_only_permission_gate": {"type": "boolean"},
+            "missing_standard_path_permission": {"type": "boolean"},
+            "plan_only_archive_workaround": {"type": "boolean"},
+            "plan_only_user_decision": {"type": "boolean"},
+            "test_login_zero_effect_recovery_grant": {"type": "boolean"},
+            "generate_unknown_effect_retry": {"type": "boolean"},
+            "metered_read_local_postprocess_recovery_grant": {"type": "boolean"},
+            "metered_read_growing_cost_without_cap": {"type": "boolean"},
+            "explicit_no_limit_causal_recovery_grant": {"type": "boolean"},
+            "explicit_no_limit_blind_retry": {"type": "boolean"},
+            "partial_publish_or_deploy_retry": {"type": "boolean"},
+            "stockai_required_contract_failure": {"type": "boolean"},
+            "plan_only_zero_automatic_retry_ban": {"type": "boolean"}
           },
           "required": [
             "gpu2_normal_path_bytecode_breaks_run",
@@ -1187,7 +1235,23 @@
             "authorized_alias_audit_history",
             "unauthorized_alias_effect_scope",
             "verified_authoritative_migration_extra_scan",
-            "migration_marker_not_consumer_reachable"
+            "migration_marker_not_consumer_reachable",
+            "healthy_unchanged_monitor_revalidation_gate",
+            "local_harness_not_effect_ready_exact_final",
+            "effect_ready_material_candidate_missing_exact_final",
+            "plan_only_permission_gate",
+            "missing_standard_path_permission",
+            "plan_only_archive_workaround",
+            "plan_only_user_decision",
+            "test_login_zero_effect_recovery_grant",
+            "generate_unknown_effect_retry",
+            "metered_read_local_postprocess_recovery_grant",
+            "metered_read_growing_cost_without_cap",
+            "explicit_no_limit_causal_recovery_grant",
+            "explicit_no_limit_blind_retry",
+            "partial_publish_or_deploy_retry",
+            "stockai_required_contract_failure",
+            "plan_only_zero_automatic_retry_ban"
           ],
           "additionalProperties": false
         },
@@ -1240,7 +1304,7 @@
         "not_landed_action": {
           "type": "string",
           "enum": [
-            "bounded_recovery",
+            "bounded_causal_recovery",
             "claim_success"
           ]
         },
@@ -1255,7 +1319,7 @@
         "retry_requires": {
           "type": "string",
           "enum": [
-            "authenticated_zero_effect",
+            "authoritative_effect_side_zero_effect",
             "caller_choice",
             "nothing"
           ]

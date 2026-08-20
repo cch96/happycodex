@@ -286,10 +286,10 @@ class ReviewProjectionTests(unittest.TestCase):
 
 
 class PublicContractTests(unittest.TestCase):
-    def test_public_metadata_and_templates_are_v143_and_deletion_first(self):
+    def test_public_metadata_and_templates_are_v144_and_deletion_first(self):
         plugin = json.loads((ROOT / ".codex-plugin/plugin.json").read_text())
         marketplace = json.loads((ROOT / ".agents/plugins/marketplace.json").read_text())
-        self.assertEqual(plugin["version"], "1.4.3")
+        self.assertEqual(plugin["version"], "1.4.4")
         self.assertEqual(plugin["name"], marketplace["plugins"][0]["name"])
         self.assertEqual(plugin["skills"], "./skills/")
         skill = (ROOT / "skills/happycodex/SKILL.md").read_text()
@@ -298,7 +298,7 @@ class PublicContractTests(unittest.TestCase):
         self.assertIn("architecture or design recommendations", frontmatter)
         self.assertIn("current multi-artifact implementation facts", frontmatter)
         self.assertIn("consumer-native immutable candidate", json.dumps(plugin))
-        self.assertLessEqual(len(skill.split()), 1200)
+        self.assertLessEqual(len(skill.split()), 1250)
         self.assertLessEqual(len(skill.encode()), 10000)
         self.assertLessEqual(len(skill.splitlines()), 155)
         template = (ROOT / "skills/happycodex/references/execplan.md").read_text()
@@ -355,10 +355,10 @@ class PublicContractTests(unittest.TestCase):
         self.assertIn("advisory_pass_action", output["required"])
         self.assertIn("advisory_pass_status", output["required"])
         for invariant in (
-            "new decision-changing evidence or a concrete current blocker",
+            "decision-changing evidence/concrete blocker",
             "concrete failure path",
             "instruction does not renew passes",
-            "this stop is not `GO`",
+            "At completion report findings/scope/unknowns, not `GO`",
             "one focused check",
         ):
             self.assertIn(invariant, convergence)
@@ -410,6 +410,24 @@ class PublicContractTests(unittest.TestCase):
             "verified_authoritative_migration_extra_scan": False,
             "migration_marker_not_consumer_reachable": True,
         }
+        process_expected = {
+            "healthy_unchanged_monitor_revalidation_gate": False,
+            "local_harness_not_effect_ready_exact_final": False,
+            "effect_ready_material_candidate_missing_exact_final": True,
+            "plan_only_permission_gate": False,
+            "missing_standard_path_permission": True,
+            "plan_only_archive_workaround": False,
+            "plan_only_user_decision": False,
+            "test_login_zero_effect_recovery_grant": False,
+            "generate_unknown_effect_retry": True,
+            "metered_read_local_postprocess_recovery_grant": False,
+            "metered_read_growing_cost_without_cap": True,
+            "explicit_no_limit_causal_recovery_grant": False,
+            "explicit_no_limit_blind_retry": True,
+            "partial_publish_or_deploy_retry": True,
+            "stockai_required_contract_failure": True,
+            "plan_only_zero_automatic_retry_ban": False,
+        }
         expected = {
             "gpu2_normal_path_bytecode_breaks_run": True,
             "gpu2_plan_only_zero_mib": False,
@@ -441,6 +459,7 @@ class PublicContractTests(unittest.TestCase):
             "changed_consumer_input_relevant_checks": True,
             "uncertain_consumer_classification_relevant_checks": True,
             **new_expected,
+            **process_expected,
         }
         fields = tuple(expected)
         scenario_schema = input_schema["properties"]["context"]["properties"][
@@ -465,6 +484,10 @@ class PublicContractTests(unittest.TestCase):
         self.assertEqual(
             {field: oracle["fatal"]["finding_admitted"][field] for field in new_expected},
             new_expected,
+        )
+        self.assertEqual(
+            {field: oracle["fatal"]["finding_admitted"][field] for field in process_expected},
+            process_expected,
         )
         semantics = "true_means_must_block_or_stop_false_means_optional_or_non_blocking"
         self.assertEqual(oracle["fatal"]["finding_admitted_semantics"], semantics)
@@ -493,9 +516,9 @@ class PublicContractTests(unittest.TestCase):
             "normal supported path",
             "final source in direct user/Outcome",
             "pre-change reachable behavior, data, or identity",
-            "Plan wording, reviewer preference, and stricter local invariants cannot",
+            "reviewer preference, stricter local invariants, optional/incidental checks",
             "unsupported-path manual artifact injection",
-            "one repair change-set addresses all admitted findings",
+            "one already-authorized in-boundary repair may address all admitted findings",
             "does not automatically require a new grant",
             "prune-only",
             "consumer-native identity",
@@ -503,9 +526,9 @@ class PublicContractTests(unittest.TestCase):
             "Uncertain classification is consumer input",
             "independently closable Outcome",
             "Do not split steps sharing one external effect",
-            "never dismisses an existing admitted blocker or required unknown",
+            "preserve admitted blockers and required unknowns",
             "Verify all mutable inputs remain authorized",
-            "coverage derived from the full admission rule",
+            "Coverage derived from the full admission rule",
         ):
             self.assertIn(invariant, skill)
 
@@ -517,7 +540,7 @@ class PublicContractTests(unittest.TestCase):
             "material falsification",
             "missing link is advisory, not blocking",
             "priority labels grant no admission",
-            "Plan text may relay a real source but cannot create its own authority",
+            "Plan text may relay a real source but cannot create authority",
             "Root applies the same test to its own concerns and reviewer findings",
         ):
             self.assertIn(invariant, skill)
@@ -623,16 +646,15 @@ class PublicContractTests(unittest.TestCase):
 
         skill = " ".join((ROOT / "skills/happycodex/SKILL.md").read_text().split())
         for invariant in (
-            "Under proactive-only restrictions, this Skill requests the exposed native spawn unless denied",
-            "do not claim denial without an attempt",
-            "Fall back only after a valid spawn fails, a concrete missing capability/tool, or an unbounded body would transfer primary judgment",
+            "Under proactive-only restrictions, attempt the exposed native spawn",
+            "Fall back only after host denial, proven missing/failed spawn, or unbounded primary-judgment transfer",
             "record why",
-            "A caller-parameter rejection whose corrected call succeeds proves no failure and grants no fallback",
+            "Corrected parameter rejection is not failure",
             "one writer per overlapping path, semantic mutable contract, or effect resource",
-            "pair any explicit `agent_type`, `model`, or `reasoning_effort`",
+            "Explicit `agent_type`, `model`, or `reasoning_effort` requires",
             "self-contained packet and `fork_turns=\"none\"` by default",
-            "Use the smallest positive fork only for a recent raw artifact",
-            "reserve omitted/`\"all\"` for intentional same-agent inheritance",
+            "Use a positive fork only for recent raw artifacts",
+            "omit/`\"all\"` only for intentional same-agent inheritance",
         ):
             self.assertIn(invariant, skill)
         self.assertNotIn("Fable", skill)
@@ -782,7 +804,7 @@ class PublicContractTests(unittest.TestCase):
 
         self.assertEqual(len(published_skill.split()), 1250)
         self.assertEqual(len(published_skill), 9193)
-        self.assertLessEqual(len(raw_skill.split()), 1200)
+        self.assertLessEqual(len(raw_skill.split()), 1250)
         self.assertLessEqual(len(raw_skill.encode()), 10000)
 
     def test_context_efficiency_contract_is_consumed_by_single_skill_surface(self):
@@ -796,19 +818,18 @@ class PublicContractTests(unittest.TestCase):
             "decision-changing delta",
             "fresh self-contained",
             "`fork_turns=\"none\"`",
-            "identity revalidation",
+            "Revalidate identity on change",
             "continuity or identity cannot be re-established",
-            "correlate Outcome-relevant seams",
-            "shared identifiers, contracts, mutable resources, timeline, candidate, or effect identity",
-            "one focused follow-up or read",
-            "could falsify the result",
+            "correlates Outcome-relevant seams",
+            "identifiers, contracts, mutable resources, timeline, candidate/effect identity",
+            "one focused falsifying read",
             "state the new decision-changing question",
             "explanation duty, not a permission gate",
             "Known mutation, truncation, continuity loss, a new falsifier, and write verification",
             "Small bounded work remains direct and proportional",
             "Outcome/task and Executor rollover remain non-default",
             "never compact-count driven",
-            "Conclusion, checked scope, one body/candidate identity, decisive facts with bounded short excerpts or exact path/line/source ranges, material unknowns/seams, and follow-up delta",
+            "Compact handoff: conclusion, scope, identity, decisive path/line evidence, unknowns, follow-up delta",
             "Never require per-fact hashes or batch-copy raw bodies",
         ):
             with self.subTest(invariant=invariant):
@@ -845,30 +866,30 @@ class PublicContractTests(unittest.TestCase):
             "ask one native read-only scout bounded observable questions before deciding",
             "one native read-only agent before primary ingestion",
             "Add independent bodies only when concurrency materially helps",
-            "Invoke an external model or tool directly for its assigned question; do not delegate the invocation or treat it as terminal review",
-            "Under proactive-only restrictions, this Skill requests the exposed native spawn unless denied",
+            "Invoke external models/tools directly for bounded questions; never delegate the call or treat it as terminal review",
+            "Under proactive-only restrictions, attempt the exposed native spawn",
             "Supported paths use normal commands, configurations, inputs, and consumer-reachable workflows",
-            "optional or incidental checks",
-            "Explicitly required robustness or adversarial injection remains blocking",
-            "one focused check with a stated possible verdict change",
+            "optional/incidental checks",
+            "Required robustness or adversarial injection remains blocking",
+            "Root gets one focused check",
             "reread the governing ExecPlan",
             "summaries are hints, not authority",
             "A worktree digest is invalid",
             "Derive direct, generated, and transitive consumer inputs",
-            "Exclude credentials, secrets, and raw external events",
+            "exclude credentials, secrets, and raw external events",
             "Reuse green checks only by exact consumer-native identity",
             "Evidence-only, non-consumer changes receive focused validation",
             "consumer-input changes invalidate relevant checks",
-            "candidate surface (paths and generated inputs, not current bytes or commit)",
-            "public, external, irreversible, or other high-risk frozen candidate",
+            "candidate surface (paths/generated inputs, not bytes/commit)",
+            "candidate is effect-ready, and its next step is the first material effect",
             "readable immutable baseline, candidate, and plan",
-            "echo of the exact candidate identity",
+            "plus exact candidate identity",
             "Both reviews use the same admission rule",
-            "later adverse result returns to the user with the real unresolved blocker or decision",
+            "later adverse result returns the unresolved blocker/decision",
             "classify `landed`, `not_landed`, or `unknown`",
             "observe read-only",
-            "Close as achieved, not achieved, or unknown only after recomputing candidate and effect identity",
-            "verifying Outcome and preservation, running required real paths",
+            "Close as achieved, not achieved, or unknown only after recomputing candidate/effect identity",
+            "verifying Outcome/preservation, running required real paths",
             "accounting for staged, unstaged, untracked, external, skipped, and unverified state",
             "Never infer publication, installation, activation, or other external success from silence",
             "temporary, log, or compiled output",
@@ -876,6 +897,65 @@ class PublicContractTests(unittest.TestCase):
         ):
             with self.subTest(invariant=invariant):
                 self.assertIn(invariant, skill)
+
+
+    def test_process_proportionality_contract_is_closed_and_consistent(self):
+        inputs = load_production_inputs(ROOT)
+        effect = inputs["cases"]["core"]["effect-closure"]
+        oracle = inputs["oracles"]["core"]["effect-closure"]
+        output = inputs["schemas"]["provider_outputs"]["effect-closure"]
+
+        self.assertEqual(
+            effect["prompt"],
+            "Classify material effect outcomes and bounded causal recovery without inferring success.",
+        )
+        self.assertEqual(oracle["fatal"]["not_landed_action"], "bounded_causal_recovery")
+        self.assertEqual(
+            oracle["fatal"]["retry_requires"],
+            "authoritative_effect_side_zero_effect",
+        )
+        self.assertEqual(
+            oracle["quality"]["retry_requires"],
+            "authoritative_effect_side_zero_effect",
+        )
+        self.assertIn(
+            "bounded_causal_recovery",
+            output["properties"]["not_landed_action"]["enum"],
+        )
+        self.assertNotIn(
+            "bounded_recovery",
+            output["properties"]["not_landed_action"]["enum"],
+        )
+        self.assertIn(
+            "authoritative_effect_side_zero_effect",
+            output["properties"]["retry_requires"]["enum"],
+        )
+        self.assertNotIn(
+            "authenticated_zero_effect",
+            output["properties"]["retry_requires"]["enum"],
+        )
+
+        skill = " ".join((ROOT / "skills/happycodex/SKILL.md").read_text().split())
+        for invariant in (
+            "A material one-shot effect is one whose repetition could create a second durable, paid, public, shared, destructive, or otherwise material result",
+            "Login, read-only, local, or idempotent work is not one-shot by category",
+            "Healthy unchanged monitoring creates no reread, refreeze, revalidation, or review duty",
+            "state transition, configured threshold, identity or authority drift, milestone, or terminal state",
+            "Plan text may relay a real source but cannot create authority, blocker, permission gate, retry ban, or user decision",
+            "If standard-path permission is missing, ask once",
+            "Do not invent an archive, bundle, or alternate effect",
+            "Run Exact-final only after deterministic checks pass, the candidate is effect-ready, and its next step is the first material effect",
+            "Preflight or harness repair before that point uses ordinary checks",
+            "After authoritative effect-side proof of `not_landed`, bounded causal recovery needs no new grant",
+            "Outcome, target, identity, boundary, cap, and observation remain unchanged",
+            "blind unchanged retry is forbidden",
+            "A missing cost cap is not unlimited",
+            "one low-cost causal recovery",
+            "explicit no-limit instruction permits causal recovery, never blind repetition",
+        ):
+            with self.subTest(invariant=invariant):
+                self.assertIn(invariant, skill)
+        self.assertNotIn("recovery grant", skill.lower())
 
 
     def test_session_guardrails_are_closed_and_consistent(self):
@@ -1006,7 +1086,7 @@ class PublicContractTests(unittest.TestCase):
         for invariant in (
             "A native Goal, when explicitly requested by the user, adds no authority",
             "Goal identity, Outcome, boundary, candidate surface",
-            "a user reply authorizes only the decision it answers",
+            "A user reply authorizes only its decision",
             "Candidate byte changes within those conditions require checks and a new freeze",
             "`GO` validates only the reviewed candidate and grants nothing",
         ):

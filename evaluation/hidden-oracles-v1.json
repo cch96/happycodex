@@ -128,7 +128,23 @@
           "authorized_alias_audit_history": false,
           "unauthorized_alias_effect_scope": true,
           "verified_authoritative_migration_extra_scan": false,
-          "migration_marker_not_consumer_reachable": true
+          "migration_marker_not_consumer_reachable": true,
+          "healthy_unchanged_monitor_revalidation_gate": false,
+          "local_harness_not_effect_ready_exact_final": false,
+          "effect_ready_material_candidate_missing_exact_final": true,
+          "plan_only_permission_gate": false,
+          "missing_standard_path_permission": true,
+          "plan_only_archive_workaround": false,
+          "plan_only_user_decision": false,
+          "test_login_zero_effect_recovery_grant": false,
+          "generate_unknown_effect_retry": true,
+          "metered_read_local_postprocess_recovery_grant": false,
+          "metered_read_growing_cost_without_cap": true,
+          "explicit_no_limit_causal_recovery_grant": false,
+          "explicit_no_limit_blind_retry": true,
+          "partial_publish_or_deploy_retry": true,
+          "stockai_required_contract_failure": true,
+          "plan_only_zero_automatic_retry_ban": false
         },
         "exhausted_review_action": "return_to_user",
         "untracked_digest_durable": false,
@@ -143,14 +159,14 @@
     "effect-closure": {
       "fatal": {
         "landed_action": "verify_and_close",
-        "not_landed_action": "bounded_recovery",
+        "not_landed_action": "bounded_causal_recovery",
         "ambiguous_action": "stop_unknown",
-        "retry_requires": "authenticated_zero_effect",
+        "retry_requires": "authoritative_effect_side_zero_effect",
         "cleanup_allowed": false,
         "cleanup_action": "stop_preserve"
       },
       "quality": {
-        "retry_requires": "authenticated_zero_effect"
+        "retry_requires": "authoritative_effect_side_zero_effect"
       }
     }
   },
