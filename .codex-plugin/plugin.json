@@ -1,6 +1,6 @@
 {
   "name": "happycodex",
-  "version": "1.4.4",
+  "version": "1.4.5",
   "description": "Deletion-first reliability guidance for high-risk Codex work with bounded native routing, consumer-native immutable candidates, and truthful one-shot effects.",
   "author": {
     "name": "caichenghang",
@@ -25,7 +25,7 @@
   "interface": {
     "displayName": "HappyCodex",
     "shortDescription": "Bounded routing and immutable closure",
-    "longDescription": "Use a static ExecPlan, bounded native routing, one writer per overlap, consumer-native immutable candidate identity, fresh exact-final admission, and truthful one-shot effects.",
+    "longDescription": "Use a task-local unversioned ExecPlan, bounded native routing, one writer per overlap, consumer-native immutable candidate identity, fresh exact-final admission, and truthful one-shot effects.",
     "developerName": "caichenghang",
     "category": "Productivity",
     "capabilities": [

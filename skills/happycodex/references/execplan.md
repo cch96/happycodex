@@ -1,7 +1,8 @@
 # `<task>` ExecPlan
 
-Keep this contract static: record stable authority; never append command output, attempt logs, live inventories,
-hash receipts, or progress records. Reconstruct live state from Git and tools; report current evidence in the task or handoff.
+This raw ExecPlan is a task artifact: keep it in a task-owned unversioned path, never stage it, and freeze its exact bytes for final review.
+Record only stable authority. Amend affected statements in place only when a decision-changing fact changes Outcome, boundary, authority, effect, or stop; never append command output, attempt logs, live inventories, hash/review receipts, execution narration, or progress records. Derive live state from Git and tools.
+Repository admission is separate: distill only a standalone maintained ADR/runbook/contract, release manifest, or incident record with a named post-task consumer, real-use breakage if removed, correctness without task history, and consumer-required provenance only.
 
 ## Request and Outcome
 

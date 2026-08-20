@@ -286,10 +286,10 @@ class ReviewProjectionTests(unittest.TestCase):
 
 
 class PublicContractTests(unittest.TestCase):
-    def test_public_metadata_and_templates_are_v144_and_deletion_first(self):
+    def test_public_metadata_and_templates_are_v145_and_deletion_first(self):
         plugin = json.loads((ROOT / ".codex-plugin/plugin.json").read_text())
         marketplace = json.loads((ROOT / ".agents/plugins/marketplace.json").read_text())
-        self.assertEqual(plugin["version"], "1.4.4")
+        self.assertEqual(plugin["version"], "1.4.5")
         self.assertEqual(plugin["name"], marketplace["plugins"][0]["name"])
         self.assertEqual(plugin["skills"], "./skills/")
         skill = (ROOT / "skills/happycodex/SKILL.md").read_text()
@@ -298,6 +298,7 @@ class PublicContractTests(unittest.TestCase):
         self.assertIn("architecture or design recommendations", frontmatter)
         self.assertIn("current multi-artifact implementation facts", frontmatter)
         self.assertIn("consumer-native immutable candidate", json.dumps(plugin))
+        self.assertIn("task-local unversioned ExecPlan", json.dumps(plugin))
         self.assertLessEqual(len(skill.split()), 1250)
         self.assertLessEqual(len(skill.encode()), 10000)
         self.assertLessEqual(len(skill.splitlines()), 155)
@@ -386,7 +387,7 @@ class PublicContractTests(unittest.TestCase):
             "Convergence review is advisory",
             "fresh native read-only no-history blocker-only Exact-final",
             "strict `GO` or `NOT_YET`",
-            "Any candidate byte change invalidates the verdict",
+            "Any candidate or plan byte change invalidates the verdict",
             "a plan `GO` validates only the plan",
             "one immutable envelope binding all components",
             "one already-authorized in-boundary repair",
@@ -506,7 +507,10 @@ class PublicContractTests(unittest.TestCase):
 
         skill = " ".join((ROOT / "skills/happycodex/SKILL.md").read_text().split())
         for invariant in (
-            "repository policy path, or `docs/execplans/<task-slug>.md` when none exists",
+            "`git rev-parse --git-path happycodex/execplans/<task-slug>.md`",
+            "outside tracked source, index, refs, and candidate objects",
+            "amend decision-changing facts in place",
+            "never stage them",
             "task-owned additions or relocations may continue before freeze while consumer",
             "material safety/correctness or lower steady-state semantic complexity relative to cutover risk",
             "reconstructible, non-authoritative cache",
@@ -528,9 +532,10 @@ class PublicContractTests(unittest.TestCase):
             "Do not split steps sharing one external effect",
             "preserve admitted blockers and required unknowns",
             "Verify all mutable inputs remain authorized",
-            "Coverage derived from the full admission rule",
+            "Unknown/incomplete coverage under the full admission rule",
         ):
             self.assertIn(invariant, skill)
+        self.assertNotIn("docs/execplans/<task-slug>.md", skill)
 
         for invariant in (
             "Before Root creates a gate or admits a `NOT_YET` finding",
@@ -548,7 +553,15 @@ class PublicContractTests(unittest.TestCase):
         template = (ROOT / "skills/happycodex/references/execplan.md").read_text()
         self.assertNotIn("Evidence paths:", template)
         for invariant in (
-            "record stable authority; never append command output",
+            "task-owned unversioned path, never stage it",
+            "freeze its exact bytes for final review",
+            "Record only stable authority",
+            "never append command output",
+            "standalone maintained ADR/runbook/contract",
+            "named post-task consumer",
+            "real-use breakage if removed",
+            "correctness without task history",
+            "consumer-required provenance only",
             "Outcome/preservation-derived consumer-reachable paths",
             "Outcome/preservation-required consumer-native checks",
             "unavailable required paths remain unverified",
@@ -882,7 +895,7 @@ class PublicContractTests(unittest.TestCase):
             "consumer-input changes invalidate relevant checks",
             "candidate surface (paths/generated inputs, not bytes/commit)",
             "candidate is effect-ready, and its next step is the first material effect",
-            "readable immutable baseline, candidate, and plan",
+            "readable immutable baseline, candidate, and exact plan bytes",
             "plus exact candidate identity",
             "Both reviews use the same admission rule",
             "later adverse result returns the unresolved blocker/decision",

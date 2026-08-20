@@ -66,6 +66,8 @@ class SessionFirewallLogicTests(unittest.TestCase):
         }))
         context = output["hookSpecificOutput"]["additionalContext"]
         self.assertIn("one immutable consumer-native candidate identity", context)
+        self.assertIn("full frozen bytes of any governing ExecPlan in a single request", context)
+        self.assertIn("candidate or plan byte change", context)
         self.assertIn("GO or NOT_YET", context)
         self.assertIn("echo", context)
 
@@ -97,7 +99,7 @@ class SessionFirewallLogicTests(unittest.TestCase):
         specific = output["hookSpecificOutput"]
         self.assertEqual(specific["hookEventName"], "SessionStart")
         self.assertIn(
-            "If a static ExecPlan governs this task, reread it completely",
+            "If a task-local ExecPlan governs this task, reread it completely",
             specific["additionalContext"],
         )
         self.assertIn("always rederive Goal", specific["additionalContext"])

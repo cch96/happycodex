@@ -4,9 +4,9 @@
 
 *面向 OpenAI Codex 高风险工程任务的开源可靠性指引。*
 
-HappyCodex 用静态 ExecPlan 固定任务事实，按稳定边界路由原生 agent，以消费者原生
-不可变身份冻结候选，并对外部 effect 做一次尝试和真实观测。它是 portable guidance，
-不是 controller、授权系统、ledger、调度器或重试引擎。
+HappyCodex 把高风险任务事实保存在任务本地、未版本化的 ExecPlan 中，在终审时把完整
+计划字节与消费者原生不可变候选身份绑定，并对外部 effect 做一次尝试和真实观测。
+它是 portable guidance，不是 controller、授权系统、ledger、调度器或重试引擎。
 
 ## 适用场景
 
@@ -28,11 +28,15 @@ Use $happycodex:happycodex for this high-risk cross-system change.
 
 Skill 的核心流程是：
 
-1. 记录 Outcome、授权边界、消费者、effects、检查和 stop facts。
+1. 在任务本地的未版本化 ExecPlan 中记录 Outcome、授权边界、消费者、effects、检查和
+   stop facts。
 2. 将 scout、supporting body 或 worker 路由到最小有界原生 agent，同时保持重叠资源单写者。
 3. 以完整 consumer input closure 的 Git tree、package、image 或 revision 等不可变身份冻结。
 4. 高风险候选接受一次 fresh no-history blocker-only Exact-final；effect 只尝试一次。
 5. 以 achieved、not achieved 或 unknown 如实收口。
+
+原始 ExecPlan 不进入产品 Git；长期知识须独立提炼为有明确任务后消费者的 ADR、
+runbook 或 contract。
 
 授权边界、delegation bridge、advisory stop、candidate freeze、review 与 effect 的精确规则，
 请直接阅读 [HappyCodex Skill](skills/happycodex/SKILL.md)。

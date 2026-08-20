@@ -21,8 +21,9 @@ DENY_EXPLICIT_FULL_HISTORY = (
 )
 EXACT_FINAL_ADMISSION = (
     "HappyCodex Exact-final admission: review one immutable consumer-native candidate "
-    "identity as a fresh no-history reviewer. Return only GO or NOT_YET and echo that "
-    "identity. Any candidate-byte change invalidates the verdict."
+    "identity and the full frozen bytes of any governing ExecPlan in a single request as a fresh "
+    "no-history reviewer. Return only GO or NOT_YET and echo that identity. Any candidate "
+    "or plan byte change invalidates the verdict."
 )
 EXACT_FINAL_INHERITED = (
     "HappyCodex warning: this Exact-final spawn inherits history, so its output is "
@@ -35,7 +36,7 @@ EXACT_FINAL_FOLLOWUP = (
     "admission."
 )
 COMPACT_REGROUND = (
-    "HappyCodex re-ground: If a static ExecPlan governs this task, reread it completely; "
+    "HappyCodex re-ground: If a task-local ExecPlan governs this task, reread it completely; "
     "always rederive Goal, Outcome, scope, Git/index, candidate, and effect state; stop on "
     "identity, scope, index, effect, or trust drift."
 )
