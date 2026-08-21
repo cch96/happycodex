@@ -5,8 +5,9 @@
 *Open-source guidance for reliable high-risk engineering work in OpenAI Codex.*
 
 HappyCodex keeps high-risk task facts in a task-local, unversioned ExecPlan,
-binds its full bytes to a consumer-native immutable candidate identity for
-final review, and observes each external effect after one attempt. It is
+binds a stable review body to a consumer-native immutable candidate when it is
+candidate-ready, then refreshes only the current effect fields before each
+one-attempt external effect and readback. It is
 portable guidance, not a controller, authority system, ledger, scheduler, or
 retry engine.
 
@@ -36,7 +37,9 @@ The Skill's flow is:
    stop facts in a task-local unversioned ExecPlan.
 2. Route a scout, supporting body, or worker to the smallest bounded native agent while keeping one writer per overlap.
 3. Freeze the complete consumer input closure as an immutable Git tree, package, image, revision, or equivalent identity.
-4. Give a high-risk candidate one fresh no-history blocker-only Exact-final review; attempt each effect once.
+4. Give a candidate-ready material or release-bound candidate one fresh
+   no-history blocker-only Exact-final review; effect-field-only drift does not
+   rereview code, and each effect is still attempted once.
 5. Close truthfully as achieved, not achieved, or unknown.
 
 Raw ExecPlans stay out of product Git; durable knowledge is separately

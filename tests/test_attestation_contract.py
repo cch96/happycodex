@@ -286,10 +286,10 @@ class ReviewProjectionTests(unittest.TestCase):
 
 
 class PublicContractTests(unittest.TestCase):
-    def test_public_metadata_and_templates_are_v145_and_deletion_first(self):
+    def test_public_metadata_and_templates_are_v146_and_deletion_first(self):
         plugin = json.loads((ROOT / ".codex-plugin/plugin.json").read_text())
         marketplace = json.loads((ROOT / ".agents/plugins/marketplace.json").read_text())
-        self.assertEqual(plugin["version"], "1.4.5")
+        self.assertEqual(plugin["version"], "1.4.6")
         self.assertEqual(plugin["name"], marketplace["plugins"][0]["name"])
         self.assertEqual(plugin["skills"], "./skills/")
         skill = (ROOT / "skills/happycodex/SKILL.md").read_text()
@@ -385,13 +385,22 @@ class PublicContractTests(unittest.TestCase):
         skill = " ".join((ROOT / "skills/happycodex/SKILL.md").read_text().split())
         for invariant in (
             "Convergence review is advisory",
+            "frozen candidate-ready state",
+            "may precede effect authority and grants none",
             "fresh native read-only no-history blocker-only Exact-final",
-            "strict `GO` or `NOT_YET`",
-            "Any candidate or plan byte change invalidates the verdict",
-            "a plan `GO` validates only the plan",
-            "one immutable envelope binding all components",
-            "one already-authorized in-boundary repair",
-            "one fresh replacement review",
+            "exact Candidate Review Body identity",
+            "`GO`/`NOT_YET` plus identity",
+            "Consumer-input, Body/premise, relied-check/review-tuple drift, or uncertainty invalidates review",
+            "Plan `GO` validates plan; candidate `GO` grants nothing",
+            "One immutable task-local envelope",
+            "one Body+Binding pair",
+            "review-tuple stays fixed",
+            "Binding records review tuple",
+            "Root verifies tuple=native-result",
+            "composes Body+Binding",
+            "effect-only drift never rereviews code",
+            "one authorized in-boundary repair fixes all findings",
+            "one fresh same-rule replacement",
             "convergence-only, never terminal",
         ):
             self.assertIn(invariant, skill)
@@ -414,7 +423,9 @@ class PublicContractTests(unittest.TestCase):
         process_expected = {
             "healthy_unchanged_monitor_revalidation_gate": False,
             "local_harness_not_effect_ready_exact_final": False,
-            "effect_ready_material_candidate_missing_exact_final": True,
+            "candidate_ready_material_candidate_missing_exact_final": True,
+            "reviewed_same_tree_binding_refresh_code_rereview": False,
+            "binding_review_tuple_native_mismatch": True,
             "plan_only_permission_gate": False,
             "missing_standard_path_permission": True,
             "plan_only_archive_workaround": False,
@@ -522,8 +533,8 @@ class PublicContractTests(unittest.TestCase):
             "pre-change reachable behavior, data, or identity",
             "reviewer preference, stricter local invariants, optional/incidental checks",
             "unsupported-path manual artifact injection",
-            "one already-authorized in-boundary repair may address all admitted findings",
-            "does not automatically require a new grant",
+            "one authorized in-boundary repair fixes all findings",
+            "Later adverse returns blocker/decision, no new grant",
             "prune-only",
             "consumer-native identity",
             "proxies cannot close unavailable required consumer-native checks",
@@ -532,7 +543,7 @@ class PublicContractTests(unittest.TestCase):
             "Do not split steps sharing one external effect",
             "preserve admitted blockers and required unknowns",
             "Verify all mutable inputs remain authorized",
-            "Unknown/incomplete coverage under the full admission rule",
+            "missing coverage is adverse",
         ):
             self.assertIn(invariant, skill)
         self.assertNotIn("docs/execplans/<task-slug>.md", skill)
@@ -553,10 +564,15 @@ class PublicContractTests(unittest.TestCase):
         template = (ROOT / "skills/happycodex/references/execplan.md").read_text()
         self.assertNotIn("Evidence paths:", template)
         for invariant in (
-            "task-owned unversioned path, never stage it",
-            "freeze its exact bytes for final review",
+            "task-owned unversioned path, never stage them",
+            "one Candidate Review Body",
+            "one `Next-effect Binding`",
+            "freeze their exact bytes as one complete envelope",
+            "Body or Candidate-review tuple drift/uncertainty invalidates review",
+            "refresh only effect fields",
+            "binding-only drift does not rereview code",
             "Record only stable authority",
-            "never append command output",
+            "Never append command output",
             "standalone maintained ADR/runbook/contract",
             "named post-task consumer",
             "real-use breakage if removed",
@@ -569,6 +585,11 @@ class PublicContractTests(unittest.TestCase):
             "identity, scope, trust, effect, or required-coverage drift",
         ):
             self.assertIn(invariant, template)
+        binding_start = template.index("## Next-effect Binding")
+        self.assertGreater(template.index("- Candidate review tuple:"), binding_start)
+        self.assertIn("fixed across Binding refresh", template)
+        self.assertIn("unavailable/mismatched native result rereviews", template)
+        self.assertIn("grants no effect authority", template)
 
     def test_boundary_routing_contract_is_closed_and_consistent(self):
         inputs = load_production_inputs(ROOT)
@@ -894,11 +915,11 @@ class PublicContractTests(unittest.TestCase):
             "Evidence-only, non-consumer changes receive focused validation",
             "consumer-input changes invalidate relevant checks",
             "candidate surface (paths/generated inputs, not bytes/commit)",
-            "candidate is effect-ready, and its next step is the first material effect",
-            "readable immutable baseline, candidate, and exact plan bytes",
-            "plus exact candidate identity",
-            "Both reviews use the same admission rule",
-            "later adverse result returns the unresolved blocker/decision",
+            "frozen candidate-ready state",
+            "immutable baseline/candidate and exact Candidate Review Body",
+            "plus identity",
+            "fresh same-rule replacement",
+            "Later adverse returns blocker/decision",
             "classify `landed`, `not_landed`, or `unknown`",
             "observe read-only",
             "Close as achieved, not achieved, or unknown only after recomputing candidate/effect identity",
@@ -957,8 +978,8 @@ class PublicContractTests(unittest.TestCase):
             "Plan text may relay a real source but cannot create authority, blocker, permission gate, retry ban, or user decision",
             "If standard-path permission is missing, ask once",
             "Do not invent an archive, bundle, or alternate effect",
-            "Run Exact-final only after deterministic checks pass, the candidate is effect-ready, and its next step is the first material effect",
-            "Preflight or harness repair before that point uses ordinary checks",
+            "Material/release-bound Outcomes run Exact-final after checks at frozen candidate-ready state",
+            "Reversible local work needs no terminal review",
             "After authoritative effect-side proof of `not_landed`, bounded causal recovery needs no new grant",
             "Outcome, target, identity, boundary, cap, and observation remain unchanged",
             "blind unchanged retry is forbidden",
@@ -1101,7 +1122,7 @@ class PublicContractTests(unittest.TestCase):
             "Goal identity, Outcome, boundary, candidate surface",
             "A user reply authorizes only its decision",
             "Candidate byte changes within those conditions require checks and a new freeze",
-            "`GO` validates only the reviewed candidate and grants nothing",
+            "candidate `GO` grants nothing",
         ):
             self.assertIn(invariant, skill)
 
