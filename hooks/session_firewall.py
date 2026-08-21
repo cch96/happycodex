@@ -20,10 +20,12 @@ DENY_EXPLICIT_FULL_HISTORY = (
     "fork for convergence review, or omit agent_type for a generic full-history fork."
 )
 EXACT_FINAL_ADMISSION = (
-    "HappyCodex Exact-final admission: review one immutable consumer-native candidate "
-    "identity and the full frozen bytes of any governing ExecPlan in a single request as a fresh "
-    "no-history reviewer. Return only GO or NOT_YET and echo that identity. Any candidate "
-    "or plan byte change invalidates the verdict."
+    "HappyCodex Exact-final admission: as a fresh no-history reviewer, read one immutable "
+    "consumer-native candidate and the exact Candidate Review Body, excluding the refreshable "
+    "Next-effect Binding. Return only GO or NOT_YET and echo candidate/Body identity. Candidate, "
+    "Body/premise, relied-check, or review-tuple drift/uncertainty invalidates the verdict. "
+    "Same-tree effect-only drift may refresh only effect fields; the review tuple stays fixed "
+    "and Root must match it to the native result."
 )
 EXACT_FINAL_INHERITED = (
     "HappyCodex warning: this Exact-final spawn inherits history, so its output is "

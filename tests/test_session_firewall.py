@@ -65,11 +65,18 @@ class SessionFirewallLogicTests(unittest.TestCase):
             "fork_turns": "none",
         }))
         context = output["hookSpecificOutput"]["additionalContext"]
-        self.assertIn("one immutable consumer-native candidate identity", context)
-        self.assertIn("full frozen bytes of any governing ExecPlan in a single request", context)
-        self.assertIn("candidate or plan byte change", context)
+        self.assertIn("one immutable consumer-native candidate", context)
+        self.assertIn("exact Candidate Review Body", context)
+        self.assertIn("excluding the refreshable Next-effect Binding", context)
+        self.assertIn("review-tuple drift/uncertainty invalidates", context)
+        self.assertIn("refresh only effect fields", context)
+        self.assertIn("review tuple stays fixed", context)
+        self.assertIn("match it to the native result", context)
         self.assertIn("GO or NOT_YET", context)
         self.assertIn("echo", context)
+        self.assertNotIn("full frozen bytes of any governing ExecPlan", context)
+        self.assertNotIn("candidate or plan byte change", context)
+        self.assertLess(len(context), 500)
 
     def test_exact_final_followup_and_message_are_allowed_but_downgraded(self):
         for tool_name in ("followup_task", "send_message"):
