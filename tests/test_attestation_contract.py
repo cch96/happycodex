@@ -286,10 +286,10 @@ class ReviewProjectionTests(unittest.TestCase):
 
 
 class PublicContractTests(unittest.TestCase):
-    def test_public_metadata_and_templates_are_v146_and_deletion_first(self):
+    def test_public_metadata_and_templates_are_v147_and_deletion_first(self):
         plugin = json.loads((ROOT / ".codex-plugin/plugin.json").read_text())
         marketplace = json.loads((ROOT / ".agents/plugins/marketplace.json").read_text())
-        self.assertEqual(plugin["version"], "1.4.6")
+        self.assertEqual(plugin["version"], "1.4.7")
         self.assertEqual(plugin["name"], marketplace["plugins"][0]["name"])
         self.assertEqual(plugin["skills"], "./skills/")
         skill = (ROOT / "skills/happycodex/SKILL.md").read_text()
@@ -308,6 +308,33 @@ class PublicContractTests(unittest.TestCase):
             readme = (ROOT / readme_name).read_text()
             self.assertLessEqual(len(readme.splitlines()), 60)
             self.assertIn("skills/happycodex/SKILL.md", readme)
+
+    def test_opaque_identity_transport_contract_uses_single_source_carriers(self):
+        # This is a shipped-guidance canary, not proof of model compliance.
+        skill = " ".join((ROOT / "skills/happycodex/SKILL.md").read_text().split())
+        self.assertIn(
+            "Opaque IDs: capture once; carrier-only effects; later compare; never rebind.",
+            skill,
+        )
+
+        template = (ROOT / "skills/happycodex/references/execplan.md").read_text()
+        for invariant in (
+            "Record each opaque identity once in its named native slot",
+            "other fields reference that slot",
+            "Plan literals are review evidence, not effect operands",
+            "Capture the identity once from its native tool into a machine carrier",
+            "effect commands use only that carrier",
+            "Later live derivations compare against the frozen value",
+            "mismatch stops without rebinding",
+            "Workspace/source identity: `<root and references to named identity slots>`",
+            "Native immutable freeze: `<one literal candidate identity as review evidence; native derivation and machine-carrier name>`",
+            "candidate reference to Native immutable freeze",
+            "Current binding: `<each source/current identity once as review evidence with native derivation and carrier name",
+        ):
+            with self.subTest(invariant=invariant):
+                self.assertIn(invariant, template)
+        self.assertNotIn("Workspace/source identity: `<root and baseline>`", template)
+        self.assertNotIn("exact Body/candidate identity", template)
 
     def test_scope_stability_contract_separates_authorization_closure_and_footprint(self):
         inputs = load_production_inputs(ROOT)
