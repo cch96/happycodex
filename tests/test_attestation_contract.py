@@ -289,7 +289,7 @@ class PublicContractTests(unittest.TestCase):
     def test_public_metadata_and_templates_are_v147_and_deletion_first(self):
         plugin = json.loads((ROOT / ".codex-plugin/plugin.json").read_text())
         marketplace = json.loads((ROOT / ".agents/plugins/marketplace.json").read_text())
-        self.assertEqual(plugin["version"], "1.4.7")
+        self.assertEqual(plugin["version"], "1.4.8")
         self.assertEqual(plugin["name"], marketplace["plugins"][0]["name"])
         self.assertEqual(plugin["skills"], "./skills/")
         skill = (ROOT / "skills/happycodex/SKILL.md").read_text()
@@ -892,6 +892,12 @@ class PublicContractTests(unittest.TestCase):
             "never compact-count driven",
             "Compact handoff: conclusion, scope, identity, decisive path/line evidence, unknowns, follow-up delta",
             "Never require per-fact hashes or batch-copy raw bodies",
+            "Use host-exposed native programmatic tool calling",
+            "only for bounded predictable tool-heavy read-only stages",
+            "parallel independent calls",
+            "one compact evidence receipt",
+            "no repeats/retries",
+            "Keep judgment, citations/artifacts, approvals/writes/effects direct",
         ):
             with self.subTest(invariant=invariant):
                 self.assertIn(invariant, skill)
