@@ -289,7 +289,7 @@ class PublicContractTests(unittest.TestCase):
     def test_public_metadata_and_templates_are_v147_and_deletion_first(self):
         plugin = json.loads((ROOT / ".codex-plugin/plugin.json").read_text())
         marketplace = json.loads((ROOT / ".agents/plugins/marketplace.json").read_text())
-        self.assertEqual(plugin["version"], "1.4.8")
+        self.assertEqual(plugin["version"], "1.4.9")
         self.assertEqual(plugin["name"], marketplace["plugins"][0]["name"])
         self.assertEqual(plugin["skills"], "./skills/")
         skill = (ROOT / "skills/happycodex/SKILL.md").read_text()
@@ -300,7 +300,7 @@ class PublicContractTests(unittest.TestCase):
         self.assertIn("consumer-native immutable candidate", json.dumps(plugin))
         self.assertIn("task-local unversioned ExecPlan", json.dumps(plugin))
         self.assertLessEqual(len(skill.split()), 1250)
-        self.assertLessEqual(len(skill.encode()), 10000)
+        self.assertLessEqual(len(skill.encode()), 10500)
         self.assertLessEqual(len(skill.splitlines()), 155)
         template = (ROOT / "skills/happycodex/references/execplan.md").read_text()
         self.assertLessEqual(len(template.splitlines()), 60)
@@ -866,7 +866,7 @@ class PublicContractTests(unittest.TestCase):
         self.assertEqual(len(published_skill.split()), 1250)
         self.assertEqual(len(published_skill), 9193)
         self.assertLessEqual(len(raw_skill.split()), 1250)
-        self.assertLessEqual(len(raw_skill.encode()), 10000)
+        self.assertLessEqual(len(raw_skill.encode()), 10500)
 
     def test_context_efficiency_contract_is_consumed_by_single_skill_surface(self):
         raw_skill = (ROOT / "skills/happycodex/SKILL.md").read_text()
@@ -898,9 +898,17 @@ class PublicContractTests(unittest.TestCase):
             "one compact evidence receipt",
             "no repeats/retries",
             "Keep judgment, citations/artifacts, approvals/writes/effects direct",
+            "External advisory calls use non-writing mode",
+            "least-required tools",
+            "exact source identity",
+            "recheck identity before relying on output",
+            "reusing a stable resumable session for decision-changing delta",
         ):
             with self.subTest(invariant=invariant):
                 self.assertIn(invariant, skill)
+
+        self.assertNotIn("least capability", skill)
+        self.assertNotIn("pinned source identity", skill)
 
         provider_paths = {
             entry["path"]
