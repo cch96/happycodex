@@ -289,7 +289,7 @@ class PublicContractTests(unittest.TestCase):
     def test_public_metadata_and_templates_are_v147_and_deletion_first(self):
         plugin = json.loads((ROOT / ".codex-plugin/plugin.json").read_text())
         marketplace = json.loads((ROOT / ".agents/plugins/marketplace.json").read_text())
-        self.assertEqual(plugin["version"], "1.4.9")
+        self.assertEqual(plugin["version"], "1.4.10")
         self.assertEqual(plugin["name"], marketplace["plugins"][0]["name"])
         self.assertEqual(plugin["skills"], "./skills/")
         skill = (ROOT / "skills/happycodex/SKILL.md").read_text()
@@ -299,8 +299,8 @@ class PublicContractTests(unittest.TestCase):
         self.assertIn("current multi-artifact implementation facts", frontmatter)
         self.assertIn("consumer-native immutable candidate", json.dumps(plugin))
         self.assertIn("task-local unversioned ExecPlan", json.dumps(plugin))
-        self.assertLessEqual(len(skill.split()), 1250)
-        self.assertLessEqual(len(skill.encode()), 10500)
+        self.assertLessEqual(len(skill.split()), 1300)
+        self.assertLessEqual(len(skill.encode()), 10750)
         self.assertLessEqual(len(skill.splitlines()), 155)
         template = (ROOT / "skills/happycodex/references/execplan.md").read_text()
         self.assertLessEqual(len(template.splitlines()), 60)
@@ -426,6 +426,9 @@ class PublicContractTests(unittest.TestCase):
             "Root verifies tuple=native-result",
             "composes Body+Binding",
             "effect-only drift never rereviews code",
+            "Reviewed same-tree candidates survive stage-label, effect-authority, or commit/ref-carrier changes",
+            "refresh Binding only",
+            "New consumer inputs get relevant check/refreeze/review, never unchanged-code rereview",
             "one authorized in-boundary repair fixes all findings",
             "one fresh same-rule replacement",
             "convergence-only, never terminal",
@@ -865,8 +868,8 @@ class PublicContractTests(unittest.TestCase):
 
         self.assertEqual(len(published_skill.split()), 1250)
         self.assertEqual(len(published_skill), 9193)
-        self.assertLessEqual(len(raw_skill.split()), 1250)
-        self.assertLessEqual(len(raw_skill.encode()), 10500)
+        self.assertLessEqual(len(raw_skill.split()), 1300)
+        self.assertLessEqual(len(raw_skill.encode()), 10750)
 
     def test_context_efficiency_contract_is_consumed_by_single_skill_surface(self):
         raw_skill = (ROOT / "skills/happycodex/SKILL.md").read_text()
@@ -897,6 +900,8 @@ class PublicContractTests(unittest.TestCase):
             "parallel independent calls",
             "one compact evidence receipt",
             "no repeats/retries",
+            "Overlap independent authorized read-only prep with CI/build/review waits",
+            "order dependent writes, not unrelated reads",
             "Keep judgment, citations/artifacts, approvals/writes/effects direct",
             "External advisory calls use non-writing mode",
             "least-required tools",
@@ -1027,6 +1032,8 @@ class PublicContractTests(unittest.TestCase):
             "A missing cost cap is not unlimited",
             "one low-cost causal recovery",
             "explicit no-limit instruction permits causal recovery, never blind repetition",
+            "Close publication/deployment/functional acceptance separately",
+            "unrun required authenticated/write/paid paths stay partial/unverified after one permission request",
         ):
             with self.subTest(invariant=invariant):
                 self.assertIn(invariant, skill)
