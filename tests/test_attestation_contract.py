@@ -286,10 +286,10 @@ class ReviewProjectionTests(unittest.TestCase):
 
 
 class PublicContractTests(unittest.TestCase):
-    def test_public_metadata_and_templates_are_v150_and_deletion_first(self):
+    def test_public_metadata_and_templates_are_v151_and_deletion_first(self):
         plugin = json.loads((ROOT / ".codex-plugin/plugin.json").read_text())
         marketplace = json.loads((ROOT / ".agents/plugins/marketplace.json").read_text())
-        self.assertEqual(plugin["version"], "1.5.0")
+        self.assertEqual(plugin["version"], "1.5.1")
         self.assertEqual(plugin["name"], marketplace["plugins"][0]["name"])
         self.assertEqual(plugin["skills"], "./skills/")
         skill = (ROOT / "skills/happycodex/SKILL.md").read_text()
@@ -304,6 +304,18 @@ class PublicContractTests(unittest.TestCase):
         self.assertLessEqual(len(skill.splitlines()), 155)
         template = (ROOT / "skills/happycodex/references/execplan.md").read_text()
         self.assertLessEqual(len(template.splitlines()), 60)
+        concurrency_lines = [
+            line for line in template.splitlines()
+            if line.startswith("- Concurrency and ordering:")
+        ]
+        self.assertEqual(len(concurrency_lines), 1)
+        for invariant in (
+            "FANOUT/BACKGROUND/ORDERED assignments", "same-snapshot groups",
+            "dependency/review/effect barriers",
+            "overlapping paths, contracts, effect resources, and sole writer",
+        ):
+            self.assertIn(invariant, concurrency_lines[0])
+        self.assertNotIn("- Writer overlap:", template)
         for readme_name in ("README.md", "README.en.md"):
             readme = (ROOT / readme_name).read_text()
             self.assertLessEqual(len(readme.splitlines()), 60)

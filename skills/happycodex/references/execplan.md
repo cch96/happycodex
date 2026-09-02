@@ -20,7 +20,7 @@ Repository admission is separate: distill only a standalone maintained ADR/runbo
 - Preservation: `<behavior, data, identity, state>`
 - Exclusions: `<non-goals and forbidden effects>`
 - Supported workflows: `<Outcome/preservation-derived consumer-reachable paths>`
-- Writer overlap: `<overlapping paths, contracts, and effect resources>`
+- Concurrency and ordering: `<task-specific FANOUT/BACKGROUND/ORDERED assignments; same-snapshot groups; dependency/review/effect barriers; overlapping paths, contracts, effect resources, and sole writer>`
 
 ## Handoff
 
