@@ -289,7 +289,7 @@ class PublicContractTests(unittest.TestCase):
     def test_public_metadata_and_templates_are_v147_and_deletion_first(self):
         plugin = json.loads((ROOT / ".codex-plugin/plugin.json").read_text())
         marketplace = json.loads((ROOT / ".agents/plugins/marketplace.json").read_text())
-        self.assertEqual(plugin["version"], "1.4.10")
+        self.assertEqual(plugin["version"], "1.4.11")
         self.assertEqual(plugin["name"], marketplace["plugins"][0]["name"])
         self.assertEqual(plugin["skills"], "./skills/")
         skill = (ROOT / "skills/happycodex/SKILL.md").read_text()
@@ -299,8 +299,8 @@ class PublicContractTests(unittest.TestCase):
         self.assertIn("current multi-artifact implementation facts", frontmatter)
         self.assertIn("consumer-native immutable candidate", json.dumps(plugin))
         self.assertIn("task-local unversioned ExecPlan", json.dumps(plugin))
-        self.assertLessEqual(len(skill.split()), 1300)
-        self.assertLessEqual(len(skill.encode()), 10750)
+        self.assertLessEqual(len(skill.split()), 1450)
+        self.assertLessEqual(len(skill.encode()), 12000)
         self.assertLessEqual(len(skill.splitlines()), 155)
         template = (ROOT / "skills/happycodex/references/execplan.md").read_text()
         self.assertLessEqual(len(template.splitlines()), 60)
@@ -868,8 +868,26 @@ class PublicContractTests(unittest.TestCase):
 
         self.assertEqual(len(published_skill.split()), 1250)
         self.assertEqual(len(published_skill), 9193)
-        self.assertLessEqual(len(raw_skill.split()), 1300)
-        self.assertLessEqual(len(raw_skill.encode()), 10750)
+        self.assertLessEqual(len(raw_skill.split()), 1450)
+        self.assertLessEqual(len(raw_skill.encode()), 12000)
+
+    def test_closeout_routes_effects_without_forcing_review_or_cleanup(self):
+        raw_skill = (ROOT / "skills/happycodex/SKILL.md").read_text()
+        self.assertEqual(raw_skill.count("## Closeout"), 1)
+        closeout = raw_skill.split("## Closeout", 1)[1]
+        for invariant in (
+            "A commit or handoff does not publish",
+            "For each authorized push, review request, integration, or publication",
+            "bind its immediate established effect, attempt once, and read back before claiming it landed",
+            "user will open the review request",
+            "hand off the exact branch/ref without claiming an attempt",
+            "local-only work closes without an external effect",
+            "host's native lifecycle for an authorized managed archive",
+            "preserve manual or permanent worktrees unless exact cleanup is authorized",
+            "recovery evidence is durably reachable",
+        ):
+            with self.subTest(invariant=invariant):
+                self.assertIn(invariant, closeout)
 
     def test_context_efficiency_contract_is_consumed_by_single_skill_surface(self):
         raw_skill = (ROOT / "skills/happycodex/SKILL.md").read_text()
