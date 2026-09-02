@@ -286,10 +286,10 @@ class ReviewProjectionTests(unittest.TestCase):
 
 
 class PublicContractTests(unittest.TestCase):
-    def test_public_metadata_and_templates_are_v147_and_deletion_first(self):
+    def test_public_metadata_and_templates_are_v150_and_deletion_first(self):
         plugin = json.loads((ROOT / ".codex-plugin/plugin.json").read_text())
         marketplace = json.loads((ROOT / ".agents/plugins/marketplace.json").read_text())
-        self.assertEqual(plugin["version"], "1.4.11")
+        self.assertEqual(plugin["version"], "1.5.0")
         self.assertEqual(plugin["name"], marketplace["plugins"][0]["name"])
         self.assertEqual(plugin["skills"], "./skills/")
         skill = (ROOT / "skills/happycodex/SKILL.md").read_text()
@@ -913,13 +913,19 @@ class PublicContractTests(unittest.TestCase):
             "never compact-count driven",
             "Compact handoff: conclusion, scope, identity, decisive path/line evidence, unknowns, follow-up delta",
             "Never require per-fact hashes or batch-copy raw bodies",
-            "Use host-exposed native programmatic tool calling",
-            "only for bounded predictable tool-heavy read-only stages",
-            "parallel independent calls",
-            "one compact evidence receipt",
-            "no repeats/retries",
-            "Overlap independent authorized read-only prep with CI/build/review waits",
-            "order dependent writes, not unrelated reads",
+            "Use host-native concurrency in three lanes",
+            "FANOUT: one bounded programmatic batch of independent predictable checks",
+            "only lane-local reconstructible output may change",
+            "Bind consistency-dependent comparisons to one snapshot",
+            "otherwise record each live target/time",
+            "Reduce once to lane outcomes",
+            "never repeat successes or blindly retry",
+            "BACKGROUND: use native handles",
+            "overlap work while consumed inputs and measurement resources remain independent",
+            "Pin evidence inputs; drift makes output stale",
+            "ORDERED: sequence dependencies/effects and shared-resource comparisons unless isolated",
+            "a build/server/test consuming mutation is dependent",
+            "Partial failure preserves successful lanes; report gaps directly",
             "Keep judgment, citations/artifacts, approvals/writes/effects direct",
             "External advisory calls use non-writing mode",
             "least-required tools",
@@ -932,6 +938,14 @@ class PublicContractTests(unittest.TestCase):
 
         self.assertNotIn("least capability", skill)
         self.assertNotIn("pinned source identity", skill)
+        self.assertNotIn(
+            "Use host-exposed native programmatic tool calling only for bounded predictable tool-heavy read-only stages",
+            skill,
+        )
+        self.assertNotIn(
+            "Overlap independent authorized read-only prep with CI/build/review waits",
+            skill,
+        )
 
         provider_paths = {
             entry["path"]
