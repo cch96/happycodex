@@ -286,10 +286,10 @@ class ReviewProjectionTests(unittest.TestCase):
 
 
 class PublicContractTests(unittest.TestCase):
-    def test_public_metadata_and_templates_are_v151_and_deletion_first(self):
+    def test_public_metadata_and_templates_are_v152_and_deletion_first(self):
         plugin = json.loads((ROOT / ".codex-plugin/plugin.json").read_text())
         marketplace = json.loads((ROOT / ".agents/plugins/marketplace.json").read_text())
-        self.assertEqual(plugin["version"], "1.5.1")
+        self.assertEqual(plugin["version"], "1.5.2")
         self.assertEqual(plugin["name"], marketplace["plugins"][0]["name"])
         self.assertEqual(plugin["skills"], "./skills/")
         skill = (ROOT / "skills/happycodex/SKILL.md").read_text()
@@ -299,22 +299,19 @@ class PublicContractTests(unittest.TestCase):
         self.assertIn("current multi-artifact implementation facts", frontmatter)
         self.assertIn("consumer-native immutable candidate", json.dumps(plugin))
         self.assertIn("task-local unversioned ExecPlan", json.dumps(plugin))
-        self.assertLessEqual(len(skill.split()), 1450)
-        self.assertLessEqual(len(skill.encode()), 12000)
+        self.assertLessEqual(len(skill.split()), 1150)
+        self.assertLessEqual(len(skill.encode()), 9500)
         self.assertLessEqual(len(skill.splitlines()), 155)
         template = (ROOT / "skills/happycodex/references/execplan.md").read_text()
-        self.assertLessEqual(len(template.splitlines()), 60)
+        self.assertLessEqual(len(template.split()), 700)
+        self.assertLessEqual(len(template.encode()), 6000)
+        self.assertLessEqual(len(template.splitlines()), 70)
         concurrency_lines = [
             line for line in template.splitlines()
             if line.startswith("- Concurrency and ordering:")
         ]
         self.assertEqual(len(concurrency_lines), 1)
-        for invariant in (
-            "FANOUT/BACKGROUND/ORDERED assignments", "same-snapshot groups",
-            "dependency/review/effect barriers",
-            "overlapping paths, contracts, effect resources, and sole writer",
-        ):
-            self.assertIn(invariant, concurrency_lines[0])
+        self.assertIn("shared-Git-dir ref/tracking/checkout conflicts", concurrency_lines[0])
         self.assertNotIn("- Writer overlap:", template)
         for readme_name in ("README.md", "README.en.md"):
             readme = (ROOT / readme_name).read_text()
@@ -323,30 +320,79 @@ class PublicContractTests(unittest.TestCase):
 
     def test_opaque_identity_transport_contract_uses_single_source_carriers(self):
         # This is a shipped-guidance canary, not proof of model compliance.
-        skill = " ".join((ROOT / "skills/happycodex/SKILL.md").read_text().split())
-        self.assertIn(
-            "Opaque IDs: capture once; carrier-only effects; later compare; never rebind.",
-            skill,
-        )
-
         template = (ROOT / "skills/happycodex/references/execplan.md").read_text()
         for invariant in (
             "Record each opaque identity once in its named native slot",
-            "other fields reference that slot",
             "Plan literals are review evidence, not effect operands",
-            "Capture the identity once from its native tool into a machine carrier",
-            "effect commands use only that carrier",
-            "Later live derivations compare against the frozen value",
             "mismatch stops without rebinding",
             "Workspace/source identity: `<root and references to named identity slots>`",
-            "Native immutable freeze: `<one literal candidate identity as review evidence; native derivation and machine-carrier name>`",
-            "candidate reference to Native immutable freeze",
             "Current binding: `<each source/current identity once as review evidence with native derivation and carrier name",
         ):
             with self.subTest(invariant=invariant):
                 self.assertIn(invariant, template)
         self.assertNotIn("Workspace/source identity: `<root and baseline>`", template)
         self.assertNotIn("exact Body/candidate identity", template)
+
+    def test_git_predicate_status_is_tri_state_and_predicate_local(self):
+        # This is a shipped-guidance canary, not a test of Git itself.
+        skill = " ".join(
+            (ROOT / "skills/happycodex/SKILL.md").read_text().split()
+        )
+        self.assertIn(
+            "Keep each Git boolean predicate's status separate: `0` is true, `1` is false, "
+            "and greater than `1` is error. A later command, combined wrapper, or pipeline "
+            "status cannot substitute.",
+            skill,
+        )
+        template = (ROOT / "skills/happycodex/references/execplan.md").read_text()
+        self.assertIn(
+            "fixed-shape plan; retain its headings and replace current values in place",
+            template,
+        )
+        self.assertIn(
+            "record each predicate status separately (`0=true/1=false/>1=error`)",
+            template,
+        )
+
+    def test_remote_tracking_ref_is_not_live_remote_observation(self):
+        # This is a shipped-guidance canary, not a test of Git itself.
+        skill = " ".join(
+            (ROOT / "skills/happycodex/SKILL.md").read_text().split()
+        )
+        self.assertIn(
+            "A remote-tracking ref is a cached observation, not live remote state; observe "
+            "the live remote only for a remote effect or a freshness-sensitive conclusion.",
+            skill,
+        )
+        template = (ROOT / "skills/happycodex/references/execplan.md").read_text()
+        self.assertIn(
+            "cached remote-tracking ref, live remote observation",
+            template,
+        )
+        self.assertIn(
+            "consumer-sensitive branch, upstream, cwd, worktree-local configuration, environment, or runtime",
+            template,
+        )
+
+    def test_linked_worktrees_share_ref_and_checkout_conflicts(self):
+        # This is a shipped-guidance canary, not a test of Git itself.
+        skill = " ".join(
+            (ROOT / "skills/happycodex/SKILL.md").read_text().split()
+        )
+        self.assertIn(
+            "Linked worktrees have separate indexes, worktrees, and HEAD state, but "
+            "worktrees with one common Git directory share local refs, remote-tracking-ref "
+            "writes, and branch checkout ownership.",
+            skill,
+        )
+        template = (ROOT / "skills/happycodex/references/execplan.md").read_text()
+        for invariant in (
+            "shared-Git-dir ref/tracking/checkout conflicts",
+            "checkout owner or none, observed cached/live remote relation",
+            "Lifecycle/process/cleanup prerequisites:",
+        ):
+            with self.subTest(template_invariant=invariant):
+                self.assertIn(invariant, template)
 
     def test_scope_stability_contract_separates_authorization_closure_and_footprint(self):
         inputs = load_production_inputs(ROOT)
@@ -362,12 +408,11 @@ class PublicContractTests(unittest.TestCase):
 
         skill = " ".join((ROOT / "skills/happycodex/SKILL.md").read_text().split())
         for invariant in (
-            "not an exact realized-path inventory",
-            "does not authorize deleting old or shared surfaces",
-            "Advisory or available capability never expands authority",
-            "compatibility break requires explicit authorization",
-            "modes, deletions, and byte identities",
-            "modified-not-frozen",
+            "not an exact path inventory",
+            "Paths and plans do not grant authority",
+            "Never infer permission to delete an old surface or mutate shared state",
+            "incidental only when unrelated to secrets, credentials, trust",
+            "Recommend a change only for material safety or correctness",
         ):
             self.assertIn(invariant, skill)
 
@@ -382,8 +427,10 @@ class PublicContractTests(unittest.TestCase):
 
     def test_root_convergence_contract_is_evidence_gated_and_non_runtime(self):
         raw_skill = (ROOT / "skills/happycodex/SKILL.md").read_text()
-        convergence = raw_skill.split("## Converge on evidence", 1)[1].split("\n## ", 1)[0]
-        self.assertEqual(raw_skill.count("## Converge on evidence"), 1)
+        admission = " ".join(
+            raw_skill.split("## Admit and freeze", 1)[1].split("\n## ", 1)[0].split()
+        )
+        self.assertEqual(raw_skill.count("## Admit and freeze"), 1)
         inputs = load_production_inputs(ROOT)
         case = inputs["cases"]["core"]["candidate-review"]
         oracle = inputs["oracles"]["core"]["candidate-review"]
@@ -394,20 +441,10 @@ class PublicContractTests(unittest.TestCase):
         self.assertEqual(oracle["fatal"]["advisory_pass_status"], "not_go")
         self.assertIn("advisory_pass_action", output["required"])
         self.assertIn("advisory_pass_status", output["required"])
-        for invariant in (
-            "decision-changing evidence/concrete blocker",
-            "concrete failure path",
-            "instruction does not renew passes",
-            "At completion report findings/scope/unknowns, not `GO`",
-            "one focused check",
-        ):
-            self.assertIn(invariant, convergence)
-        for forbidden in (
-            "controller", "mutable ledger", "runtime monitor", "timer",
-            "action quota", "model downgrade", "token reduction", "round counter",
-            "pass counter", "review ledger", "runtime state",
-        ):
-            self.assertNotIn(forbidden, convergence.lower())
+        self.assertIn("revise them only for decision-changing evidence or a concrete blocker", admission)
+        self.assertIn("Reproduce a concrete failure where feasible", admission)
+        self.assertIn("Supported paths use normal commands, configurations, inputs", admission)
+        self.assertIn("optional coverage stays advisory", admission)
 
     def test_review_admission_contract_is_public_and_consistent(self):
         inputs = load_production_inputs(ROOT)
@@ -423,27 +460,9 @@ class PublicContractTests(unittest.TestCase):
 
         skill = " ".join((ROOT / "skills/happycodex/SKILL.md").read_text().split())
         for invariant in (
-            "Convergence review is advisory",
-            "frozen candidate-ready state",
-            "may precede effect authority and grants none",
-            "fresh native read-only no-history blocker-only Exact-final",
-            "exact Candidate Review Body identity",
-            "`GO`/`NOT_YET` plus identity",
-            "Consumer-input, Body/premise, relied-check/review-tuple drift, or uncertainty invalidates review",
-            "Plan `GO` validates plan; candidate `GO` grants nothing",
-            "One immutable task-local envelope",
-            "one Body+Binding pair",
-            "review-tuple stays fixed",
-            "Binding records review tuple",
-            "Root verifies tuple=native-result",
-            "composes Body+Binding",
-            "effect-only drift never rereviews code",
-            "Reviewed same-tree candidates survive stage-label, effect-authority, or commit/ref-carrier changes",
-            "refresh Binding only",
-            "New consumer inputs get relevant check/refreeze/review, never unchanged-code rereview",
-            "one authorized in-boundary repair fixes all findings",
-            "one fresh same-rule replacement",
-            "convergence-only, never terminal",
+            "run one fresh native read-only, no-history, blocker-only Exact-final",
+            "Convergence review is advisory. Exact-final may precede effect authority and grants none; admitted `NOT_YET` remains blocking",
+            "Candidate, premise, or relied-check drift invalidates review",
         ):
             self.assertIn(invariant, skill)
 
@@ -561,70 +580,19 @@ class PublicContractTests(unittest.TestCase):
         skill = " ".join((ROOT / "skills/happycodex/SKILL.md").read_text().split())
         for invariant in (
             "`git rev-parse --git-path happycodex/execplans/<task-slug>.md`",
-            "outside tracked source, index, refs, and candidate objects",
-            "amend decision-changing facts in place",
-            "never stage them",
-            "task-owned additions or relocations may continue before freeze while consumer",
-            "material safety/correctness or lower steady-state semantic complexity relative to cutover risk",
-            "reconstructible, non-authoritative cache",
-            "credentials, trust, shared/system configuration",
-            "system/user/shared installation, excluded or omitted consumer input",
-            "including cross-repository overlap",
-            "normal supported path",
-            "final source in direct user/Outcome",
-            "pre-change reachable behavior, data, or identity",
-            "reviewer preference, stricter local invariants, optional/incidental checks",
-            "unsupported-path manual artifact injection",
-            "one authorized in-boundary repair fixes all findings",
-            "Later adverse returns blocker/decision, no new grant",
-            "prune-only",
-            "consumer-native identity",
-            "proxies cannot close unavailable required consumer-native checks",
-            "Uncertain classification is consumer input",
-            "independently closable Outcome",
-            "Do not split steps sharing one external effect",
-            "preserve admitted blockers and required unknowns",
-            "Verify all mutable inputs remain authorized",
-            "missing coverage is adverse",
+            "Before admitting a blocker, establish three links",
+            "Required robustness remains blocking",
         ):
             self.assertIn(invariant, skill)
         self.assertNotIn("docs/execplans/<task-slug>.md", skill)
 
-        for invariant in (
-            "Before Root creates a gate or admits a `NOT_YET` finding",
-            "state three links",
-            "normal supported path",
-            "final source in direct user/Outcome",
-            "material falsification",
-            "missing link is advisory, not blocking",
-            "priority labels grant no admission",
-            "Plan text may relay a real source but cannot create authority",
-            "Root applies the same test to its own concerns and reviewer findings",
-        ):
-            self.assertIn(invariant, skill)
-
         template = (ROOT / "skills/happycodex/references/execplan.md").read_text()
         self.assertNotIn("Evidence paths:", template)
         for invariant in (
-            "task-owned unversioned path, never stage them",
             "one Candidate Review Body",
             "one `Next-effect Binding`",
-            "freeze their exact bytes as one complete envelope",
-            "Body or Candidate-review tuple drift/uncertainty invalidates review",
-            "refresh only effect fields",
-            "binding-only drift does not rereview code",
-            "Record only stable authority",
-            "Never append command output",
-            "standalone maintained ADR/runbook/contract",
-            "named post-task consumer",
-            "real-use breakage if removed",
-            "correctness without task history",
-            "consumer-required provenance only",
-            "Outcome/preservation-derived consumer-reachable paths",
-            "Outcome/preservation-required consumer-native checks",
-            "unavailable required paths remain unverified",
-            "cross-language proxies are advisory only",
-            "identity, scope, trust, effect, or required-coverage drift",
+            "## Request and Outcome",
+            "## Next-effect Binding",
         ):
             self.assertIn(invariant, template)
         binding_start = template.index("## Next-effect Binding")
@@ -722,15 +690,9 @@ class PublicContractTests(unittest.TestCase):
 
         skill = " ".join((ROOT / "skills/happycodex/SKILL.md").read_text().split())
         for invariant in (
-            "Under proactive-only restrictions, attempt the exposed native spawn",
-            "Fall back only after host denial, proven missing/failed spawn, or unbounded primary-judgment transfer",
-            "record why",
-            "Corrected parameter rejection is not failure",
-            "one writer per overlapping path, semantic mutable contract, or effect resource",
-            "Explicit `agent_type`, `model`, or `reasoning_effort` requires",
-            "self-contained packet and `fork_turns=\"none\"` by default",
-            "Use a positive fork only for recent raw artifacts",
-            "omit/`\"all\"` only for intentional same-agent inheritance",
+            "Keep the request, Outcome, unresolved decisions, and primary judgment direct",
+            "Before an unread multi-artifact recommendation, use one read-only scout",
+            "Allow one writer for every set of overlapping paths, mutable contracts, or effect resources",
         ):
             self.assertIn(invariant, skill)
         self.assertNotIn("Fable", skill)
@@ -851,25 +813,12 @@ class PublicContractTests(unittest.TestCase):
         skill = " ".join(raw_skill.split())
         for invariant in (
             "Root stays read-only",
-            "Outcome/task and Executor rollover remain non-default",
-            "no file diff, elapsed time, ongoing reasoning, or wait proves writer failure",
-            "justifies interruption, rollover, fallback, or Root takeover",
+            "Reread or rereview only on decision-changing evidence or state drift",
+            "Never interrupt or replace a live writer",
             "Continuity is lost only on terminal failure or confirmed unreachability",
-            "live progress/no-blocker refutes loss",
-            "uncertainty requires a focused status query",
-            "Then confirm the writer cannot resume",
-            "reread the governing ExecPlan",
-            "summaries are hints, not authority",
         ):
             with self.subTest(invariant=invariant):
                 self.assertIn(invariant, skill)
-        liveness_clause = raw_skill.split(
-            "Outcome/task and Executor rollover", 1,
-        )[1].split("\n## Converge on evidence", 1)[0]
-        self.assertNotRegex(
-            liveness_clause.lower(),
-            r"\b\d+\s*(?:seconds?|minutes?|hours?|days?)\b",
-        )
 
     def test_single_skill_guidance_does_not_regress_published_v130(self):
         raw_skill = (ROOT / "skills/happycodex/SKILL.md").read_text()
@@ -880,23 +829,19 @@ class PublicContractTests(unittest.TestCase):
 
         self.assertEqual(len(published_skill.split()), 1250)
         self.assertEqual(len(published_skill), 9193)
-        self.assertLessEqual(len(raw_skill.split()), 1450)
-        self.assertLessEqual(len(raw_skill.encode()), 12000)
+        self.assertLess(len(raw_skill.split()), len(published_skill.split()))
+        self.assertLess(len(raw_skill.encode()), len(published_skill))
+        self.assertNotIn("FANOUT:", raw_skill)
+        self.assertNotIn("fork_turns", raw_skill)
 
     def test_closeout_routes_effects_without_forcing_review_or_cleanup(self):
         raw_skill = (ROOT / "skills/happycodex/SKILL.md").read_text()
         self.assertEqual(raw_skill.count("## Closeout"), 1)
-        closeout = raw_skill.split("## Closeout", 1)[1]
+        closeout = " ".join(raw_skill.split("## Closeout", 1)[1].split())
         for invariant in (
-            "A commit or handoff does not publish",
-            "For each authorized push, review request, integration, or publication",
-            "bind its immediate established effect, attempt once, and read back before claiming it landed",
-            "user will open the review request",
-            "hand off the exact branch/ref without claiming an attempt",
-            "local-only work closes without an external effect",
-            "host's native lifecycle for an authorized managed archive",
-            "preserve manual or permanent worktrees unless exact cleanup is authorized",
-            "recovery evidence is durably reachable",
+            "A commit or handoff is not publication",
+            "local work closes with no external effect",
+            "Preserve manual, permanent, and recovery worktrees",
         ):
             with self.subTest(invariant=invariant):
                 self.assertIn(invariant, closeout)
@@ -906,58 +851,12 @@ class PublicContractTests(unittest.TestCase):
         skill = " ".join(raw_skill.split())
 
         for invariant in (
-            "request, instructions, Outcome, unresolved decisions, and primary judgment direct",
-            "stable unchanged supporting body",
-            "reuse the existing child",
-            "decision-changing delta",
-            "fresh self-contained",
-            "`fork_turns=\"none\"`",
-            "Revalidate identity on change",
-            "continuity or identity cannot be re-established",
-            "correlates Outcome-relevant seams",
-            "identifiers, contracts, mutable resources, timeline, candidate/effect identity",
-            "one focused falsifying read",
-            "state the new decision-changing question",
-            "explanation duty, not a permission gate",
-            "Known mutation, truncation, continuity loss, a new falsifier, and write verification",
-            "Small bounded work remains direct and proportional",
-            "Outcome/task and Executor rollover remain non-default",
-            "never compact-count driven",
-            "Compact handoff: conclusion, scope, identity, decisive path/line evidence, unknowns, follow-up delta",
-            "Never require per-fact hashes or batch-copy raw bodies",
-            "Use host-native concurrency in three lanes",
-            "FANOUT: one bounded programmatic batch of independent predictable checks",
-            "only lane-local reconstructible output may change",
-            "Bind consistency-dependent comparisons to one snapshot",
-            "otherwise record each live target/time",
-            "Reduce once to lane outcomes",
-            "never repeat successes or blindly retry",
-            "BACKGROUND: use native handles",
-            "overlap work while consumed inputs and measurement resources remain independent",
-            "Pin evidence inputs; drift makes output stale",
-            "ORDERED: sequence dependencies/effects and shared-resource comparisons unless isolated",
-            "a build/server/test consuming mutation is dependent",
-            "Partial failure preserves successful lanes; report gaps directly",
-            "Keep judgment, citations/artifacts, approvals/writes/effects direct",
-            "External advisory calls use non-writing mode",
-            "least-required tools",
-            "exact source identity",
-            "recheck identity before relying on output",
-            "reusing a stable resumable session for decision-changing delta",
+            "request, Outcome, unresolved decisions, and primary judgment direct",
+            "Parallelize only independent, identity-pinned reads",
+            "Use a compact handoff: conclusion, scope, identity",
         ):
             with self.subTest(invariant=invariant):
                 self.assertIn(invariant, skill)
-
-        self.assertNotIn("least capability", skill)
-        self.assertNotIn("pinned source identity", skill)
-        self.assertNotIn(
-            "Use host-exposed native programmatic tool calling only for bounded predictable tool-heavy read-only stages",
-            skill,
-        )
-        self.assertNotIn(
-            "Overlap independent authorized read-only prep with CI/build/review waits",
-            skill,
-        )
 
         provider_paths = {
             entry["path"]
@@ -978,50 +877,18 @@ class PublicContractTests(unittest.TestCase):
         self.assertNotIn("references/agent-handoff.md", raw_skill)
         self.assertNotIn("references/closure.md", raw_skill)
 
-    def test_v130_preservation_semantics_remain_in_single_skill(self):
-        skill = " ".join((ROOT / "skills/happycodex/SKILL.md").read_text().split())
-        for invariant in (
-            "Use the native Plan for bounded reversible work",
-            "derive live state from tools",
-            "`不用 review` waives matching review and requires an unreviewed result",
-            "`自己解决` permits autonomous in-boundary reversible repair",
-            "`直接发` permits the named standard effect for the established candidate and target while pruning optional plan, review, or preflight work",
-            "None expands target, effect, retry",
-            "ask one native read-only scout bounded observable questions before deciding",
-            "one native read-only agent before primary ingestion",
-            "Add independent bodies only when concurrency materially helps",
-            "Invoke external models/tools directly for bounded questions; never delegate the call or treat it as terminal review",
-            "Under proactive-only restrictions, attempt the exposed native spawn",
-            "Supported paths use normal commands, configurations, inputs, and consumer-reachable workflows",
-            "optional/incidental checks",
-            "Required robustness or adversarial injection remains blocking",
-            "Root gets one focused check",
-            "reread the governing ExecPlan",
-            "summaries are hints, not authority",
-            "A worktree digest is invalid",
-            "Derive direct, generated, and transitive consumer inputs",
-            "exclude credentials, secrets, and raw external events",
-            "Reuse green checks only by exact consumer-native identity",
-            "Evidence-only, non-consumer changes receive focused validation",
-            "consumer-input changes invalidate relevant checks",
-            "candidate surface (paths/generated inputs, not bytes/commit)",
-            "frozen candidate-ready state",
-            "immutable baseline/candidate and exact Candidate Review Body",
-            "plus identity",
-            "fresh same-rule replacement",
-            "Later adverse returns blocker/decision",
-            "classify `landed`, `not_landed`, or `unknown`",
-            "observe read-only",
-            "Close as achieved, not achieved, or unknown only after recomputing candidate/effect identity",
-            "verifying Outcome/preservation, running required real paths",
-            "accounting for staged, unstaged, untracked, external, skipped, and unverified state",
-            "Never infer publication, installation, activation, or other external success from silence",
-            "temporary, log, or compiled output",
-            "remote/paid resources",
-        ):
-            with self.subTest(invariant=invariant):
-                self.assertIn(invariant, skill)
-
+    def test_current_skill_is_a_pruned_semantic_kernel(self):
+        raw_skill = (ROOT / "skills/happycodex/SKILL.md").read_text()
+        headings = [
+            line for line in raw_skill.splitlines() if line.startswith("## ")
+        ]
+        self.assertEqual(headings, [
+            "## Ground and authority",
+            "## Route and ownership",
+            "## Admit and freeze",
+            "## Review and effects",
+            "## Closeout",
+        ])
 
     def test_process_proportionality_contract_is_closed_and_consistent(self):
         inputs = load_production_inputs(ROOT)
@@ -1061,23 +928,9 @@ class PublicContractTests(unittest.TestCase):
 
         skill = " ".join((ROOT / "skills/happycodex/SKILL.md").read_text().split())
         for invariant in (
-            "A material one-shot effect is one whose repetition could create a second durable, paid, public, shared, destructive, or otherwise material result",
-            "Login, read-only, local, or idempotent work is not one-shot by category",
-            "Healthy unchanged monitoring creates no reread, refreeze, revalidation, or review duty",
-            "state transition, configured threshold, identity or authority drift, milestone, or terminal state",
-            "Plan text may relay a real source but cannot create authority, blocker, permission gate, retry ban, or user decision",
-            "If standard-path permission is missing, ask once",
-            "Do not invent an archive, bundle, or alternate effect",
-            "Material/release-bound Outcomes run Exact-final after checks at frozen candidate-ready state",
-            "Reversible local work needs no terminal review",
-            "After authoritative effect-side proof of `not_landed`, bounded causal recovery needs no new grant",
-            "Outcome, target, identity, boundary, cap, and observation remain unchanged",
-            "blind unchanged retry is forbidden",
-            "A missing cost cap is not unlimited",
-            "one low-cost causal recovery",
-            "explicit no-limit instruction permits causal recovery, never blind repetition",
-            "Close publication/deployment/functional acceptance separately",
-            "unrun required authenticated/write/paid paths stay partial/unverified after one permission request",
+            "A material one-shot effect is one whose repetition could create another durable, paid, public, shared, destructive, or otherwise material result",
+            "cost cap, observation, and observation predicate plus a causal fix",
+            "A partial, ambiguous, or unknown effect stops",
         ):
             with self.subTest(invariant=invariant):
                 self.assertIn(invariant, skill)
@@ -1130,14 +983,11 @@ class PublicContractTests(unittest.TestCase):
         self.assertIn("cleanup_action", effect_output["required"])
 
         skill = " ".join((ROOT / "skills/happycodex/SKILL.md").read_text().split())
-        cleanup_rule = next(
-            sentence for sentence in skill.split(".") if "recovery surface" in sentence
+        self.assertIn(
+            "Before deleting a recovery surface, prove candidate, cutover, effect, and "
+            "rollback evidence remain durably reachable; otherwise stop",
+            skill,
         )
-        for invariant in (
-            "Before deleting", "candidate", "cutover", "effect", "rollback",
-            "durably reachable", "otherwise stop",
-        ):
-            self.assertIn(invariant, cleanup_rule)
 
     def test_goal_continuation_contract_is_independent_closed_and_oracle_blind(self):
         inputs = load_production_inputs(ROOT)
@@ -1210,11 +1060,9 @@ class PublicContractTests(unittest.TestCase):
 
         skill = " ".join((ROOT / "skills/happycodex/SKILL.md").read_text().split())
         for invariant in (
-            "A native Goal, when explicitly requested by the user, adds no authority",
-            "Goal identity, Outcome, boundary, candidate surface",
-            "A user reply authorizes only its decision",
-            "Candidate byte changes within those conditions require checks and a new freeze",
-            "candidate `GO` grants nothing",
+            "a native Goal cannot manufacture user authority",
+            "A user reply authorizes only the decision it answers",
+            "candidate `GO` authorizes no effect",
         ):
             self.assertIn(invariant, skill)
 

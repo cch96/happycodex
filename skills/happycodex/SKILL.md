@@ -2,55 +2,145 @@
 name: happycodex
 description: Use for risky/destructive/public/long/compaction-prone work and architecture or design recommendations using current multi-artifact implementation facts.
 ---
-## Ground
-Use the native Plan for bounded reversible work. Risky work copies `references/execplan.md` to a task-owned unversioned path from `git rev-parse --git-path happycodex/execplans/<task-slug>.md`. Keep it outside tracked source, index, refs, and candidate objects; amend decision-changing facts in place; derive live state from tools; never stage them.
-Boundary: workspace/project/task-owned domain, not an exact realized-path inventory; plans coordinate, paths close input. Reversible task-owned additions or relocations may continue before freeze while consumer/Outcome/preservation/exclusions/effects stay unchanged; this does not authorize deleting old or shared surfaces.
-Advisory or available capability never expands authority; compatibility break requires explicit authorization for material consumer/data/cutover, else compare.
-Recommend only for material safety/correctness or lower steady-state semantic complexity relative to cutover risk.
-A reconstructible, non-authoritative cache, temporary, log, or compiled output is incidental when non-consumer and unrelated to secrets, credentials, trust, shared/system configuration, owners, or remote/paid resources.
-Stop on system/user/shared installation, excluded or omitted consumer input, shared-cache deletion, or uncertainty.
-Apply amendments as prune-only authority: `不用 review` waives matching review and requires an unreviewed result;
-`自己解决` permits autonomous in-boundary reversible repair; `直接发` permits the named standard effect for the established candidate and target while pruning optional plan, review, or preflight work. None expands target, effect, retry, destructive/shared cleanup, trust, Outcome, or preservation.
-Use one freeze per independently closable Outcome. Do not split steps sharing one external effect.
-## Route
-Keep request, instructions, Outcome, unresolved decisions, and primary judgment direct. Small bounded work remains direct and proportional.
-Use host-native concurrency in three lanes. FANOUT: one bounded programmatic batch of independent predictable checks; only lane-local reconstructible output may change. Bind consistency-dependent comparisons to one snapshot; otherwise record each live target/time. Reduce once to lane outcomes; never repeat successes or blindly retry. BACKGROUND: use native handles; overlap work while consumed inputs and measurement resources remain independent. Pin evidence inputs; drift makes output stale. ORDERED: sequence dependencies/effects and shared-resource comparisons unless isolated; a build/server/test consuming mutation is dependent. Partial failure preserves successful lanes; report gaps directly. Keep judgment, citations/artifacts, approvals/writes/effects direct.
-Unread multi-artifact recommendation: ask one native read-only scout bounded observable questions before deciding. Stable support: one native read-only agent before primary ingestion. Add independent bodies only when concurrency materially helps. Invoke external models/tools directly for bounded questions; never delegate the call or treat it as terminal review.
-External advisory calls use non-writing mode, least-required tools, exact source identity; recheck identity before relying on output or reusing a stable resumable session for decision-changing delta.
-For stable unchanged supporting body, reuse the existing child for decision-changing delta; else fresh self-contained child, `fork_turns="none"`. Revalidate identity on change; fresh child if continuity or identity cannot be re-established.
-Allow one writer per overlapping path, semantic mutable contract, or effect resource, including cross-repository overlap. Explicit `agent_type`, `model`, or `reasoning_effort` requires a self-contained packet and `fork_turns="none"` by default. Use a positive fork only for recent raw artifacts; omit/`"all"` only for intentional same-agent inheritance.
-Under proactive-only restrictions, attempt the exposed native spawn. Fall back only after host denial, proven missing/failed spawn, or unbounded primary-judgment transfer; record why. Corrected parameter rejection is not failure.
-Compact handoff: conclusion, scope, identity, decisive path/line evidence, unknowns, follow-up delta. Never require per-fact hashes or batch-copy raw bodies.
-Root correlates Outcome-relevant seams: identifiers, contracts, mutable resources, timeline, candidate/effect identity; one focused falsifying read; no ledger/evidence graph/control plane.
-Before an unchanged reread, state the new decision-changing question: an explanation duty, not a permission gate. Known mutation, truncation, continuity loss, a new falsifier, and write verification allow reread.
-Healthy unchanged monitoring creates no reread, refreeze, revalidation, or review duty. Reassess on state transition, configured threshold, identity or authority drift, milestone, or terminal state; minimal heartbeats.
-Outcome/task and Executor rollover remain non-default and never compact-count driven; no file diff, elapsed time, ongoing reasoning, or wait proves writer failure or justifies interruption, rollover, fallback, or Root takeover.
-Continuity is lost only on terminal failure or confirmed unreachability; live progress/no-blocker refutes loss; uncertainty requires a focused status query.
-Then confirm the writer cannot resume, reread the governing ExecPlan, and stop on drift; summaries are hints, not authority.
-## Converge on evidence
-Stable Outcome/boundary/Done/ownership/blockers: Executor holds lock/exclusions; Root stays read-only; revise only for decision-changing evidence/concrete blocker.
-Before Root creates a gate or admits a `NOT_YET` finding, state three links: (1) normal supported path; (2) final source in direct user/Outcome, preservation of pre-change reachable behavior, data, or identity, required workflow, or candidate-new material safety/correctness; (3) material falsification.
-Supported paths use normal commands, configurations, inputs, and consumer-reachable workflows. A missing link is advisory, not blocking; priority labels grant no admission. Plan text may relay a real source but cannot create authority, blocker, permission gate, retry ban, or user decision. Root applies the same test to its own concerns and reviewer findings; reviewer preference, stricter local invariants, optional/incidental checks, unsupported-path manual artifact injection: non-blocking.
-If standard-path permission is missing, ask once. Do not invent an archive, bundle, or alternate effect.
-Required robustness or adversarial injection remains blocking. Reproduce the concrete failure path where feasible; preserve admitted blockers and required unknowns.
-Before an advisory pass, name verdict-changing evidence. A standing instruction does not renew passes. At completion report findings/scope/unknowns, not `GO`; Root gets one focused check.
-## Freeze
-Derive direct, generated, and transitive consumer inputs: modes, deletions, and byte identities; exclude credentials, secrets, and raw external events. Verify all mutable inputs remain authorized or report `modified-not-frozen`. A worktree digest is invalid. Opaque IDs: capture once; carrier-only effects; later compare; never rebind.
-Reuse green checks only by exact consumer-native identity. Evidence-only, non-consumer changes receive focused validation; consumer-input changes invalidate relevant checks. Uncertain classification is consumer input; proxies cannot close unavailable required consumer-native checks.
-Before deleting a recovery surface, prove candidate/cutover/effect/rollback evidence durably reachable; otherwise stop.
-A native Goal, when explicitly requested by the user, adds no authority. Stop if Goal identity, Outcome, boundary, candidate surface (paths/generated inputs, not bytes/commit), effect target/identity/cap, or pending decisions change. A user reply authorizes only its decision. Candidate byte changes within those conditions require checks and a new freeze.
-A material one-shot effect is one whose repetition could create a second durable, paid, public, shared, destructive, or otherwise material result. Login, read-only, local, or idempotent work is not one-shot by category; harm/cost govern.
-Reversible local work needs no terminal review. Convergence review is advisory. Material/release-bound Outcomes run Exact-final after checks at frozen candidate-ready state; it may precede effect authority and grants none.
-One fresh native read-only no-history blocker-only Exact-final reads immutable baseline/candidate and exact Candidate Review Body identity, Outcome/preservation, paths, premises, relied-on checks; require `GO`/`NOT_YET` plus identity; missing coverage is adverse.
-Consumer-input, Body/premise, relied-check/review-tuple drift, or uncertainty invalidates review: check/refreeze/rereview. Plan `GO` validates plan; candidate `GO` grants nothing.
-One immutable task-local envelope has one Body+Binding pair; no authority or cross-task receipt. Same-tree/effect-only drift refreshes effect fields only; review-tuple stays fixed; tree/premise drift rereviews. Reviewed same-tree candidates survive stage-label, effect-authority, or commit/ref-carrier changes; refresh Binding only. New consumer inputs get relevant check/refreeze/review, never unchanged-code rereview.
-Binding records review tuple and effect facts: target/source/current identity/cap/cost/observation/rollback/authority/provenance. Root verifies tuple=native-result and composes Body+Binding; mismatch/unproven stops; effect-only drift never rereviews code.
-After `NOT_YET`, one authorized in-boundary repair fixes all findings; refreeze for one fresh same-rule replacement. Later adverse returns blocker/decision, no new grant.
-Exact-final follow-up is convergence-only, never terminal.
-Attempt each admitted material one-shot effect once; observe read-only; classify `landed`, `not_landed`, or `unknown`.
-After authoritative effect-side proof of `not_landed`, bounded causal recovery needs no new grant if Outcome, target, identity, boundary, cap, and observation remain unchanged and a causal fix addresses failure; blind unchanged retry is forbidden. Partial/ambiguous/unknown: stop.
-A missing cost cap is not unlimited. Fix local loss of a landed metered read before one low-cost causal recovery; ask before cost grows. An explicit no-limit instruction permits causal recovery, never blind repetition.
+
+## Ground and authority
+
+Use the native Plan for bounded reversible work. For risky work, copy
+`references/execplan.md` to a task-owned unversioned path returned by
+`git rev-parse --git-path happycodex/execplans/<task-slug>.md`. Keep the plan
+outside tracked source, index, refs, and candidate objects; replace its current
+values in place, derive live state from tools, and never stage it.
+
+Treat the boundary as the workspace, project, or task-owned domain, not an exact
+path inventory. Paths and plans do not grant authority. Safe task-owned
+additions or relocations may continue only while Outcome, consumer,
+preservation, exclusions, and effects remain fixed. Never infer permission to
+delete an old surface or mutate shared state.
+
+Advisers, tools, plans, reviewers, and a native Goal cannot manufacture user
+authority. A compatibility break needs explicit authority. Recommend a change
+only for material safety or correctness, or when lower steady-state semantic
+complexity justifies cutover risk.
+
+Classify reconstructible non-consumer caches, temporary files, logs, and compiled
+output as incidental only when unrelated to secrets, credentials, trust,
+shared/system configuration, owners, or remote/paid resources; never silently
+include those protected classes. Stop on excluded consumer input, destructive
+shared mutation, or uncertainty.
+
+Interpret amendments narrowly. `不用 review` waives matching review and requires
+an unreviewed result. `自己解决` permits autonomous in-boundary reversible repair.
+`直接发` permits the named standard effect for the established candidate and
+target while pruning optional plan, review, or preflight work. None expands the
+target, effect, retry, destructive cleanup, trust, Outcome, or preservation.
+Stop if Goal identity, Outcome, boundary, candidate surface, effect
+target/identity/cap, or a pending decision changes. A user reply authorizes only
+the decision it answers.
+
+## Route and ownership
+
+Keep the request, Outcome, unresolved decisions, and primary judgment direct.
+Handle small bounded work directly. Before an unread multi-artifact
+recommendation, use one read-only scout for bounded observable questions; add
+independent read-only scouts only when concurrency materially helps.
+
+Allow one writer for every set of overlapping paths, mutable contracts, or
+effect resources. The primary or Root stays read-only while that writer owns
+them. Parallelize only independent, identity-pinned reads. ORDER dependencies,
+effects, and shared mutations. Linked worktrees have separate indexes,
+worktrees, and HEAD state, but worktrees with one common Git directory share
+local refs, remote-tracking-ref writes, and branch checkout ownership.
+
+Keep each Git boolean predicate's status separate: `0` is true, `1` is false,
+and greater than `1` is error. A later command, combined wrapper, or pipeline
+status cannot substitute. A remote-tracking ref is a cached observation, not
+live remote state; observe the live remote only for a remote effect or a
+freshness-sensitive conclusion.
+
+Use a compact handoff: conclusion, scope, identity, decisive path/line evidence,
+unknowns, and follow-up delta. Correlate Outcome-relevant seams across
+identifiers, contracts, mutable resources, timelines, and candidate/effect
+identity. Reread or rereview only on decision-changing evidence or state drift.
+Never interrupt or replace a live writer.
+
+Continuity is lost only on terminal failure or confirmed unreachability. Then
+confirm the writer cannot resume and reconstruct authority, ownership, candidate
+identity, and live state from tools and the task plan. Treat summaries as hints,
+not authority.
+
+## Admit and freeze
+
+Supported paths use normal commands, configurations, inputs, and
+consumer-reachable workflows. Before admitting a blocker, establish three links:
+the normal supported path;
+its final source in the direct request or Outcome, preservation of reachable
+behavior/data/identity, a required workflow, or candidate-new material safety or
+correctness; and material falsification. Missing links make a concern advisory.
+Plan wording, reviewer preference, stricter local invariants, optional or
+incidental checks, and unsupported manual injection cannot create a blocker.
+Required robustness remains blocking. Reproduce a concrete failure where
+feasible and preserve admitted blockers and required unknowns. Only required
+missing or unknown coverage is adverse; optional coverage stays advisory.
+
+If permission for the supported path is missing, ask once and do not substitute
+an alternate effect. Keep a fixed Outcome, boundary, Done condition, owner, and
+blockers; revise them only for decision-changing evidence or a concrete blocker.
+
+Use one freeze for each independently closable Outcome; do not split steps that
+share one effect. Freeze every direct, generated, and transitive consumer input,
+including modes, deletions, and native identity. Exclude secrets, credentials,
+and raw external events. Verify all mutable inputs remain authorized.
+
+Reuse a green check only for the exact consumer-native identity it tested.
+Validate an evidence-only non-consumer change with a focused check. A consumer
+input change or uncertain classification invalidates relevant checks. Before
+deleting a recovery surface, prove candidate, cutover, effect, and rollback
+evidence remain durably reachable; otherwise stop.
+
+## Review and effects
+
+Reversible local work has no terminal review. For a material or release-bound
+candidate, after required checks and freeze, run one fresh native read-only,
+no-history, blocker-only Exact-final. Convergence review is advisory. Exact-final
+may precede effect authority and grants none; admitted `NOT_YET` remains blocking
+under the ladder below.
+
+Keep one immutable task-local envelope containing one Candidate Review Body and
+one Next-effect Binding. The Body identifies the reviewed consumer input and
+premises; the Binding identifies the immediate authorized effect. Candidate,
+premise, or relied-check drift invalidates review. Same-tree effect or ref-carrier
+drift refreshes only the Binding. New consumer input requires relevant checks,
+freeze, and review.
+
+After `NOT_YET`, use at most one authorized in-boundary repair set covering all
+findings and one fresh same-rule replacement review. A later adverse result
+returns the blocker and decision; it creates no new grant. Plan `GO` validates
+the plan, while candidate `GO` authorizes no effect.
+
+A material one-shot effect is one whose repetition could create another durable,
+paid, public, shared, destructive, or otherwise material result. Attempt each
+admitted effect once, read back authoritative state, and classify it as
+`landed`, `not_landed`, or `unknown`. Only authoritative proof of zero effect,
+with the same Outcome, target, identity, boundary, cost cap, observation, and
+observation predicate plus a causal fix, permits bounded recovery. Never retry
+blindly. A partial, ambiguous, or unknown effect stops, and a missing cost cap is
+not unlimited.
+
 ## Closeout
-After verification, hand off the exact candidate, scope, checks, terminal disposition, remaining authority, and unknowns. A commit or handoff does not publish. For each authorized push, review request, integration, or publication, bind its immediate established effect, attempt once, and read back before claiming it landed. If the user will open the review request, hand off the exact branch/ref without claiming an attempt; local-only work closes without an external effect. Use the host's native lifecycle for an authorized managed archive; preserve manual or permanent worktrees unless exact cleanup is authorized and recovery evidence is durably reachable.
-Close publication/deployment/functional acceptance separately; unrun required authenticated/write/paid paths stay partial/unverified after one permission request.
-Close as achieved, not achieved, or unknown only after recomputing candidate/effect identity, verifying Outcome/preservation, running required real paths, and accounting for staged, unstaged, untracked, external, skipped, and unverified state. Never infer publication, installation, activation, or other external success from silence.
+
+Report the exact candidate, scope, checks, disposition, remaining authority,
+and unknowns. A commit or handoff is not publication, and local work closes with
+no external effect. Read back each separately authorized publication,
+deployment, or integration, and keep functional acceptance distinct.
+
+Account for staged, unstaged, untracked, external, skipped, and unverified state.
+Never infer publication, installation, activation, or other external success
+from silence. Report achieved, not achieved, or unknown only after recomputing
+candidate/effect identity and checking Outcome and preservation on required real
+paths.
+
+Preserve manual, permanent, and recovery worktrees without exact cleanup
+authority and durable recovery reachability. Never silently retarget a task
+worktree, terminate a process, or clean a resource. Keep any unrun required
+authenticated, write, or paid path partial and unverified after one permission
+request.
