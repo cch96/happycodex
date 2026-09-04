@@ -99,35 +99,38 @@ evidence remain durably reachable; otherwise stop.
 
 ## Review and effects
 
-Reversible local work has no terminal review. For a material or release-bound
-candidate, after required checks and freeze, run one fresh native read-only,
-no-history, blocker-only Exact-final. Convergence review is advisory. Exact-final
-may precede effect authority and grants none; admitted `NOT_YET` remains blocking
-under the ladder below.
+For checked, frozen material or release-bound work, use one fresh native
+read-only, no-history, blocker-only Exact-final; reversible local work needs
+none. Exact-final may precede effect authority but grants none; convergence
+review is advisory; admitted `NOT_YET` blocks.
 
-Keep one immutable task-local envelope containing one Candidate Review Body and
-one Next-effect Binding. The Body identifies the reviewed consumer input and
-premises; the Binding identifies the immediate authorized effect. Candidate,
-premise, or relied-check drift invalidates review. Same-tree effect or ref-carrier
-drift refreshes only the Binding. New consumer input requires relevant checks,
-freeze, and review.
+Keep one immutable envelope: Candidate Review Body identifies consumer inputs
+and premises; Next-effect Binding identifies authorized effect. Candidate,
+premise, relied-check, or consumer-input drift requires recheck, refreeze, and
+review; same-tree binding drift refreshes only that Binding.
 
-After `NOT_YET`, use at most one authorized in-boundary repair set covering all
-findings and one fresh same-rule replacement review. A later adverse result
-returns the blocker and decision; it creates no new grant. Plan `GO` validates
-the plan, while candidate `GO` authorizes no effect.
+After `NOT_YET`, allow one authorized repair and one fresh same-rule replacement
+review. Later adverse results return blocker and decision without new authority.
+Plan `GO` validates the plan; candidate `GO` authorizes no effect.
 
-A material one-shot effect is one whose repetition could create another durable,
-paid, public, shared, destructive, or otherwise material result. Attempt each
-admitted effect once, read back authoritative state, and classify it as
-`landed`, `not_landed`, or `unknown`. Only authoritative proof of zero effect,
-with the same Outcome, target, identity, boundary, cost cap, observation, and
-observation predicate plus a causal fix, permits bounded recovery. Never retry
-blindly. A partial, ambiguous, or unknown effect stops, and a missing cost cap is
-not unlimited.
+Next effect is the smallest independently authorized, attempted, and
+authoritatively observable result. Include configured automatic downstream
+writes; later manual or untriggered effects stay unbound. Resolve exact targets
+from user intent and repository-native wiring; verify live when available before
+material effects. Branch or environment names determine neither target nor
+materiality. Target uncertainty or conflict blocks only this effect; resolution
+grants no authority. Completion or repetition producing durable, paid, public,
+shared, destructive, security-sensitive, or otherwise material consequences
+uses the material path; otherwise stay proportional.
 
-If a low-cost metered read landed, effect-side state rules out duplicate durable
-results, and only local output was lost, repair the local cause before one causal
+Attempt each material effect once; read back authoritative state and classify it
+as `landed`, `not_landed`, or `unknown`. Recovery requires authoritative
+zero-effect proof, unchanged Outcome, target, identity, boundary, cost cap,
+observation, and its predicate, plus a causal fix. Never retry blindly. A
+partial, ambiguous, or unknown effect stops; a missing cap is not unlimited.
+
+If a low-cost metered read landed but effect-side state precludes duplicate
+durable results and only local output was lost, fix that cause before one causal
 recovery; ask before cost grows. Explicit no-limit authority permits causal
 recovery, never blind repetition.
 

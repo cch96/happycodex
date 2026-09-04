@@ -286,10 +286,10 @@ class ReviewProjectionTests(unittest.TestCase):
 
 
 class PublicContractTests(unittest.TestCase):
-    def test_public_metadata_and_templates_are_v152_and_deletion_first(self):
+    def test_public_metadata_and_templates_are_v153_and_deletion_first(self):
         plugin = json.loads((ROOT / ".codex-plugin/plugin.json").read_text())
         marketplace = json.loads((ROOT / ".agents/plugins/marketplace.json").read_text())
-        self.assertEqual(plugin["version"], "1.5.2")
+        self.assertEqual(plugin["version"], "1.5.3")
         self.assertEqual(plugin["name"], marketplace["plugins"][0]["name"])
         self.assertEqual(plugin["skills"], "./skills/")
         skill = (ROOT / "skills/happycodex/SKILL.md").read_text()
@@ -326,7 +326,7 @@ class PublicContractTests(unittest.TestCase):
             "Plan literals are review evidence, not effect operands",
             "mismatch stops without rebinding",
             "Workspace/source identity: `<root and references to named identity slots>`",
-            "Current binding: `<each source/current identity once as review evidence with native derivation and carrier name",
+            "Effect binding: `<requested and resolved targets or conflicts; material basis; each source/current identity once as review evidence with native derivation and carrier name",
         ):
             with self.subTest(invariant=invariant):
                 self.assertIn(invariant, template)
@@ -460,9 +460,9 @@ class PublicContractTests(unittest.TestCase):
 
         skill = " ".join((ROOT / "skills/happycodex/SKILL.md").read_text().split())
         for invariant in (
-            "run one fresh native read-only, no-history, blocker-only Exact-final",
-            "Convergence review is advisory. Exact-final may precede effect authority and grants none; admitted `NOT_YET` remains blocking",
-            "Candidate, premise, or relied-check drift invalidates review",
+            "one fresh native read-only, no-history, blocker-only Exact-final",
+            "Exact-final may precede effect authority but grants none; convergence review is advisory; admitted `NOT_YET` blocks",
+            "Candidate, premise, relied-check, or consumer-input drift requires recheck, refreeze, and review; same-tree binding drift refreshes only that Binding",
         ):
             self.assertIn(invariant, skill)
 
@@ -928,15 +928,31 @@ class PublicContractTests(unittest.TestCase):
 
         skill = " ".join((ROOT / "skills/happycodex/SKILL.md").read_text().split())
         for invariant in (
-            "A material one-shot effect is one whose repetition could create another durable, paid, public, shared, destructive, or otherwise material result",
-            "cost cap, observation, and observation predicate plus a causal fix",
+            "Next effect is the smallest independently authorized, attempted, and authoritatively observable result",
+            "Include configured automatic downstream writes; later manual or untriggered effects stay unbound",
+            "Resolve exact targets from user intent and repository-native wiring",
+            "Branch or environment names determine neither target nor materiality",
+            "Target uncertainty or conflict blocks only this effect; resolution grants no authority",
+            "Completion or repetition producing durable, paid, public, shared, destructive, security-sensitive, or otherwise material consequences uses the material path",
+            "Recovery requires authoritative zero-effect proof",
+            "cost cap, observation, and its predicate, plus a causal fix",
             "A partial, ambiguous, or unknown effect stops",
-            "only local output was lost, repair the local cause before one causal recovery; ask before cost grows",
+            "only local output was lost, fix that cause before one causal recovery; ask before cost grows",
             "Explicit no-limit authority permits causal recovery, never blind repetition",
         ):
             with self.subTest(invariant=invariant):
                 self.assertIn(invariant, skill)
         self.assertNotIn("recovery grant", skill.lower())
+
+        template = (ROOT / "skills/happycodex/references/execplan.md").read_text()
+        for invariant in (
+            "Next effect: `<smallest independently authorized, attempted, and authoritatively observable result; exact direct targets and configured automatic downstream writes; or none>`",
+            "mismatch or unresolved target stops only this effect",
+            "Later effects: `<manual or otherwise untriggered outline only",
+        ):
+            with self.subTest(template_invariant=invariant):
+                self.assertIn(invariant, template)
+        self.assertNotIn("Current binding:", template)
 
 
     def test_session_guardrails_are_closed_and_consistent(self):

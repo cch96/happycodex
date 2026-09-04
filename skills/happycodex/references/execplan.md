@@ -53,8 +53,8 @@ Repository admission is separate: distill only a standalone maintained ADR/runbo
 ## Next-effect Binding
 
 - Candidate review tuple: `<verbatim native Exact-final verdict plus exact Body identity and candidate reference to Native immutable freeze; fixed across Binding refresh; unavailable/mismatched native result rereviews; grants no effect authority>`
-- Next effect: `<only the immediate material effect and target; or none>`
-- Current binding: `<each source/current identity once as review evidence with native derivation and carrier name; cap or cost, observation, rollback, and direct user authority>`
+- Next effect: `<smallest independently authorized, attempted, and authoritatively observable result; exact direct targets and configured automatic downstream writes; or none>`
+- Effect binding: `<requested and resolved targets or conflicts; material basis; each source/current identity once as review evidence with native derivation and carrier name; direct authority; cap or cost; observation; rollback>`
 - Derivation/provenance: `<proof that the proposed artifact derives from the reviewed candidate; or unavailable stop>`
-- Admission: `<compose exact reviewed Body with this Binding; mismatch stops and binding-only drift does not rereview code>`
-- Later effects: `<ordered outline only; bind each separately when it becomes next>`
+- Admission: `<compose exact reviewed Body with this Binding; mismatch or unresolved target stops only this effect; binding-only drift does not rereview code>`
+- Later effects: `<manual or otherwise untriggered outline only; classify and bind each only when it becomes next>`
