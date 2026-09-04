@@ -126,6 +126,11 @@ observation predicate plus a causal fix, permits bounded recovery. Never retry
 blindly. A partial, ambiguous, or unknown effect stops, and a missing cost cap is
 not unlimited.
 
+If a low-cost metered read landed, effect-side state rules out duplicate durable
+results, and only local output was lost, repair the local cause before one causal
+recovery; ask before cost grows. Explicit no-limit authority permits causal
+recovery, never blind repetition.
+
 ## Closeout
 
 Report the exact candidate, scope, checks, disposition, remaining authority,

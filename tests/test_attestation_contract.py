@@ -931,6 +931,8 @@ class PublicContractTests(unittest.TestCase):
             "A material one-shot effect is one whose repetition could create another durable, paid, public, shared, destructive, or otherwise material result",
             "cost cap, observation, and observation predicate plus a causal fix",
             "A partial, ambiguous, or unknown effect stops",
+            "only local output was lost, repair the local cause before one causal recovery; ask before cost grows",
+            "Explicit no-limit authority permits causal recovery, never blind repetition",
         ):
             with self.subTest(invariant=invariant):
                 self.assertIn(invariant, skill)
