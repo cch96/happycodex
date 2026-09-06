@@ -24,6 +24,19 @@ adapter that seals an externally supplied terminal statement after checking
 its digest and recomputing its assessment; it does not validate the signature
 or perform an effect.
 
+## Product policy and guidance
+
+Product 2.0 retires the fixed plan template and default hooks. Provider guidance
+is derived from each distribution's Skill Markdown inventory, so a previous and
+candidate distribution can use different reference names. Optional hook files
+remain part of runtime identity, including absence, modes, and deletion.
+
+Context-isolation fixtures test ownership, host restrictions, and useful context
+separation without requiring a scout or worker for every substantial task.
+Review and repair limits in fixtures come from explicit user or repository
+requirements; plan-only repair limits do not block. Record schema v3, scoring,
+authority verification, and the fixed evaluation topology remain unchanged.
+
 ## Fixed evaluation
 
 One `EvalSpec` contains the single canonical 12-unit topology: five behavior

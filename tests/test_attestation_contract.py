@@ -72,7 +72,7 @@ class ProductConsumerTests(unittest.TestCase):
         self.assertIn("hooks/hooks.json", paths["plugin_runtime"])
         self.assertIn("hooks/session_firewall.py", paths["plugin_runtime"])
         self.assertEqual(paths["provider_guidance"], {
-            "skills/happycodex/SKILL.md", "skills/happycodex/references/execplan.md",
+            "skills/happycodex/SKILL.md", "skills/happycodex/references/effects.md",
         })
 
     def test_evaluator_only_mutation_leaves_product_identity_unchanged(self):
@@ -117,7 +117,7 @@ class ProductConsumerTests(unittest.TestCase):
             self.assertEqual(entry["state"], "absent")
         with CommittedWorkspace() as workspace:
             skill = workspace.root / "skills/happycodex/SKILL.md"
-            skill.unlink(); skill.symlink_to("references/execplan.md")
+            skill.unlink(); skill.symlink_to("references/effects.md")
             with self.assertRaises(IdentityError):
                 product_artifact_from_tree(workspace.root, source_identity="same", baseline_identity="base")
         with CommittedWorkspace() as workspace:
@@ -128,52 +128,54 @@ class ProductConsumerTests(unittest.TestCase):
             with self.assertRaises(IdentityError):
                 product_artifact_from_tree(workspace.root, source_identity="same", baseline_identity="base")
 
-    def test_hook_bytes_mode_and_delete_change_runtime_projection(self):
-        def runtime(root):
-            return product_projections(root)["plugin_runtime"]
+    def test_optional_hook_bytes_mode_delete_and_redirect_are_classified(self):
+        for mutation in ("bytes", "mode", "delete", "symlink"):
+            with self.subTest(mutation=mutation), CommittedWorkspace() as workspace:
+                hooks = workspace.root / "hooks"
+                hooks.mkdir(exist_ok=True)
+                script = hooks / "session_firewall.py"
+                script.write_text("print('{}')\n", encoding="utf-8")
+                config = hooks / "hooks.json"
+                config.write_text('{"hooks": {}}\n', encoding="utf-8")
+                before = product_projections(workspace.root)["plugin_runtime"]
+                if mutation == "bytes":
+                    script.write_text("print('{}')  # changed\n", encoding="utf-8")
+                elif mutation == "mode":
+                    os.chmod(script, 0o755)
+                elif mutation == "delete":
+                    config.unlink()
+                else:
+                    script.unlink()
+                    script.symlink_to("hooks.json")
+                    with self.assertRaises(IdentityError):
+                        product_projections(workspace.root)
+                    continue
+                after = product_projections(workspace.root)["plugin_runtime"]
+                self.assertNotEqual(before["projection_sha256"], after["projection_sha256"])
+                if mutation == "delete":
+                    entry = next(item for item in after["entries"] if item["path"] == "hooks/hooks.json")
+                    self.assertEqual(entry["state"], "absent")
 
-        baseline = runtime(ROOT)
-        with CommittedWorkspace() as workspace:
-            script = workspace.root / "hooks/session_firewall.py"
-            script.write_text(script.read_text() + "\n# changed\n", encoding="utf-8")
-            self.assertNotEqual(
-                baseline["projection_sha256"],
-                runtime(workspace.root)["projection_sha256"],
-            )
-        with CommittedWorkspace() as workspace:
-            script = workspace.root / "hooks/session_firewall.py"
-            os.chmod(script, 0o755)
-            self.assertNotEqual(
-                baseline["projection_sha256"],
-                runtime(workspace.root)["projection_sha256"],
-            )
-        with CommittedWorkspace() as workspace:
-            config = workspace.root / "hooks/hooks.json"
-            config.unlink()
-            changed = runtime(workspace.root)
-            self.assertNotEqual(baseline["projection_sha256"], changed["projection_sha256"])
-            entry = next(
-                item for item in changed["entries"]
-                if item["path"] == "hooks/hooks.json"
-            )
-            self.assertEqual(entry["state"], "absent")
-        with CommittedWorkspace() as workspace:
-            script = workspace.root / "hooks/session_firewall.py"
-            script.unlink(); script.symlink_to("hooks.json")
-            with self.assertRaises(IdentityError):
-                runtime(workspace.root)
-
-    def test_previous_product_without_hooks_is_valid_in_production_construction(self):
+    def test_previous_reference_inventory_and_optional_hooks_are_materialized(self):
         with CommittedWorkspace() as workspace, tempfile.TemporaryDirectory() as raw:
             previous_root = Path(raw) / "previous"
             shutil.copytree(workspace.root, previous_root)
-            shutil.rmtree(previous_root / "hooks")
+            # The previous distribution can have a different reference inventory
+            # and optional hooks without a version-specific compatibility reader.
+            reference = previous_root / "skills/happycodex/references/effects.md"
+            reference.rename(reference.with_name("operation-notes.md"))
+            skill = previous_root / "skills/happycodex/SKILL.md"
+            skill.write_text(skill.read_text().replace("references/effects.md", "references/operation-notes.md"))
+            hooks = previous_root / "hooks"
+            hooks.mkdir(exist_ok=True)
+            (hooks / "hooks.json").write_text('{"hooks": {}}\n')
+            (hooks / "session_firewall.py").write_text("print('{}')\n")
             subprocess.check_call(
                 ["git", "-C", str(previous_root), "add", "-A"],
                 stdout=subprocess.DEVNULL,
             )
             subprocess.check_call(
-                ["git", "-C", str(previous_root), "commit", "-qm", "remove hooks"],
+                ["git", "-C", str(previous_root), "commit", "-qm", "different reference inventory and optional hooks"],
                 stdout=subprocess.DEVNULL,
             )
             previous_commit = subprocess.check_output(
@@ -192,7 +194,7 @@ class ProductConsumerTests(unittest.TestCase):
                     for entry in previous_product["projections"][projection_name]["entries"]
                 }
                 for path in ("hooks/hooks.json", "hooks/session_firewall.py"):
-                    self.assertEqual(entries[path]["state"], "absent")
+                    self.assertEqual(entries[path]["state"], "present")
 
             construction, _ = workspace.production_construction()
             construction["previous_root"] = previous_root
@@ -211,7 +213,8 @@ class ProductConsumerTests(unittest.TestCase):
         for replacement in ("symlink", "file"):
             with CommittedWorkspace() as workspace:
                 hooks = workspace.root / "hooks"
-                shutil.rmtree(hooks)
+                if hooks.exists():
+                    shutil.rmtree(hooks)
                 if replacement == "symlink":
                     hooks.symlink_to("skills")
                 else:
@@ -286,113 +289,22 @@ class ReviewProjectionTests(unittest.TestCase):
 
 
 class PublicContractTests(unittest.TestCase):
-    def test_public_metadata_and_templates_are_v153_and_deletion_first(self):
+    def test_public_product_is_v2_with_resolvable_guidance_and_no_default_hooks(self):
         plugin = json.loads((ROOT / ".codex-plugin/plugin.json").read_text())
         marketplace = json.loads((ROOT / ".agents/plugins/marketplace.json").read_text())
-        self.assertEqual(plugin["version"], "1.5.3")
+        self.assertEqual(plugin["version"], "2.0.0")
         self.assertEqual(plugin["name"], marketplace["plugins"][0]["name"])
         self.assertEqual(plugin["skills"], "./skills/")
+        self.assertNotIn("hooks", plugin)
         skill = (ROOT / "skills/happycodex/SKILL.md").read_text()
         self.assertTrue(skill.startswith("---\nname: happycodex\n"))
-        frontmatter = skill.split("---", 2)[1]
-        self.assertIn("architecture or design recommendations", frontmatter)
-        self.assertIn("current multi-artifact implementation facts", frontmatter)
-        self.assertIn("consumer-native immutable candidate", json.dumps(plugin))
-        self.assertIn("task-local unversioned ExecPlan", json.dumps(plugin))
-        self.assertLessEqual(len(skill.split()), 1150)
-        self.assertLessEqual(len(skill.encode()), 9500)
-        self.assertLessEqual(len(skill.splitlines()), 155)
-        template = (ROOT / "skills/happycodex/references/execplan.md").read_text()
-        self.assertLessEqual(len(template.split()), 700)
-        self.assertLessEqual(len(template.encode()), 6000)
-        self.assertLessEqual(len(template.splitlines()), 70)
-        concurrency_lines = [
-            line for line in template.splitlines()
-            if line.startswith("- Concurrency and ordering:")
-        ]
-        self.assertEqual(len(concurrency_lines), 1)
-        self.assertIn("shared-Git-dir ref/tracking/checkout conflicts", concurrency_lines[0])
-        self.assertNotIn("- Writer overlap:", template)
-        for readme_name in ("README.md", "README.en.md"):
-            readme = (ROOT / readme_name).read_text()
-            self.assertLessEqual(len(readme.splitlines()), 60)
-            self.assertIn("skills/happycodex/SKILL.md", readme)
+        self.assertTrue((ROOT / "skills/happycodex/references/effects.md").is_file())
+        self.assertIn("(references/effects.md)", skill)
+        self.assertFalse((ROOT / "skills/happycodex/references/execplan.md").exists())
+        runtime = product_projections(ROOT)["plugin_runtime"]["entries"]
+        hooks = [entry for entry in runtime if entry["path"].startswith("hooks/")]
+        self.assertTrue(all(entry["state"] == "absent" for entry in hooks))
 
-    def test_opaque_identity_transport_contract_uses_single_source_carriers(self):
-        # This is a shipped-guidance canary, not proof of model compliance.
-        template = (ROOT / "skills/happycodex/references/execplan.md").read_text()
-        for invariant in (
-            "Record each opaque identity once in its named native slot",
-            "Plan literals are review evidence, not effect operands",
-            "mismatch stops without rebinding",
-            "Workspace/source identity: `<root and references to named identity slots>`",
-            "Effect binding: `<requested and resolved targets or conflicts; material basis; each source/current identity once as review evidence with native derivation and carrier name",
-        ):
-            with self.subTest(invariant=invariant):
-                self.assertIn(invariant, template)
-        self.assertNotIn("Workspace/source identity: `<root and baseline>`", template)
-        self.assertNotIn("exact Body/candidate identity", template)
-
-    def test_git_predicate_status_is_tri_state_and_predicate_local(self):
-        # This is a shipped-guidance canary, not a test of Git itself.
-        skill = " ".join(
-            (ROOT / "skills/happycodex/SKILL.md").read_text().split()
-        )
-        self.assertIn(
-            "Keep each Git boolean predicate's status separate: `0` is true, `1` is false, "
-            "and greater than `1` is error. A later command, combined wrapper, or pipeline "
-            "status cannot substitute.",
-            skill,
-        )
-        template = (ROOT / "skills/happycodex/references/execplan.md").read_text()
-        self.assertIn(
-            "fixed-shape plan; retain its headings and replace current values in place",
-            template,
-        )
-        self.assertIn(
-            "record each predicate status separately (`0=true/1=false/>1=error`)",
-            template,
-        )
-
-    def test_remote_tracking_ref_is_not_live_remote_observation(self):
-        # This is a shipped-guidance canary, not a test of Git itself.
-        skill = " ".join(
-            (ROOT / "skills/happycodex/SKILL.md").read_text().split()
-        )
-        self.assertIn(
-            "A remote-tracking ref is a cached observation, not live remote state; observe "
-            "the live remote only for a remote effect or a freshness-sensitive conclusion.",
-            skill,
-        )
-        template = (ROOT / "skills/happycodex/references/execplan.md").read_text()
-        self.assertIn(
-            "cached remote-tracking ref, live remote observation",
-            template,
-        )
-        self.assertIn(
-            "consumer-sensitive branch, upstream, cwd, worktree-local configuration, environment, or runtime",
-            template,
-        )
-
-    def test_linked_worktrees_share_ref_and_checkout_conflicts(self):
-        # This is a shipped-guidance canary, not a test of Git itself.
-        skill = " ".join(
-            (ROOT / "skills/happycodex/SKILL.md").read_text().split()
-        )
-        self.assertIn(
-            "Linked worktrees have separate indexes, worktrees, and HEAD state, but "
-            "worktrees with one common Git directory share local refs, remote-tracking-ref "
-            "writes, and branch checkout ownership.",
-            skill,
-        )
-        template = (ROOT / "skills/happycodex/references/execplan.md").read_text()
-        for invariant in (
-            "shared-Git-dir ref/tracking/checkout conflicts",
-            "checkout owner or none, observed cached/live remote relation",
-            "Lifecycle/process/cleanup prerequisites:",
-        ):
-            with self.subTest(template_invariant=invariant):
-                self.assertIn(invariant, template)
 
     def test_scope_stability_contract_separates_authorization_closure_and_footprint(self):
         inputs = load_production_inputs(ROOT)
@@ -406,31 +318,7 @@ class PublicContractTests(unittest.TestCase):
         ):
             self.assertFalse(decisions[scenario])
 
-        skill = " ".join((ROOT / "skills/happycodex/SKILL.md").read_text().split())
-        for invariant in (
-            "not an exact path inventory",
-            "Paths and plans do not grant authority",
-            "Never infer permission to delete an old surface or mutate shared state",
-            "incidental only when unrelated to secrets, credentials, trust",
-            "Recommend a change only for material safety or correctness",
-        ):
-            self.assertIn(invariant, skill)
-
-        template = (ROOT / "skills/happycodex/references/execplan.md").read_text()
-        for slot in (
-            "Authorization boundary:", "Planned primary surfaces:",
-            "Incidental footprint:", "Allowed compatibility breaks:",
-            "Input closure:", "Native immutable freeze:",
-        ):
-            self.assertIn(slot, template)
-        self.assertNotIn("Proposed breaks", template)
-
     def test_root_convergence_contract_is_evidence_gated_and_non_runtime(self):
-        raw_skill = (ROOT / "skills/happycodex/SKILL.md").read_text()
-        admission = " ".join(
-            raw_skill.split("## Admit and freeze", 1)[1].split("\n## ", 1)[0].split()
-        )
-        self.assertEqual(raw_skill.count("## Admit and freeze"), 1)
         inputs = load_production_inputs(ROOT)
         case = inputs["cases"]["core"]["candidate-review"]
         oracle = inputs["oracles"]["core"]["candidate-review"]
@@ -441,10 +329,6 @@ class PublicContractTests(unittest.TestCase):
         self.assertEqual(oracle["fatal"]["advisory_pass_status"], "not_go")
         self.assertIn("advisory_pass_action", output["required"])
         self.assertIn("advisory_pass_status", output["required"])
-        self.assertIn("revise them only for decision-changing evidence or a concrete blocker", admission)
-        self.assertIn("Reproduce a concrete failure where feasible", admission)
-        self.assertIn("Supported paths use normal commands, configurations, inputs", admission)
-        self.assertIn("optional coverage stays advisory", admission)
 
     def test_review_admission_contract_is_public_and_consistent(self):
         inputs = load_production_inputs(ROOT)
@@ -457,14 +341,6 @@ class PublicContractTests(unittest.TestCase):
         self.assertEqual(oracle["fatal"]["mutation_action"], "refreeze")
         self.assertEqual(oracle["fatal"]["exhausted_review_action"], "return_to_user")
         self.assertIn("one_fresh_native_read_only_blocker_only", output["properties"]["terminal_review"]["enum"])
-
-        skill = " ".join((ROOT / "skills/happycodex/SKILL.md").read_text().split())
-        for invariant in (
-            "one fresh native read-only, no-history, blocker-only Exact-final",
-            "Exact-final may precede effect authority but grants none; convergence review is advisory; admitted `NOT_YET` blocks",
-            "Candidate, premise, relied-check, or consumer-input drift requires recheck, refreeze, and review; same-tree binding drift refreshes only that Binding",
-        ):
-            self.assertIn(invariant, skill)
 
     def test_proportional_blocker_admission_matrix_is_closed_and_consistent(self):
         inputs = load_production_inputs(ROOT)
@@ -500,6 +376,7 @@ class PublicContractTests(unittest.TestCase):
             "partial_publish_or_deploy_retry": True,
             "stockai_required_contract_failure": True,
             "plan_only_zero_automatic_retry_ban": False,
+            "plan_only_repair_count_limit": False,
         }
         expected = {
             "gpu2_normal_path_bytecode_breaks_run": True,
@@ -577,173 +454,50 @@ class PublicContractTests(unittest.TestCase):
         self.assertIn("finding_admitted_semantics", output_schema["required"])
         self.assertIn("finding_admitted", output_schema["required"])
 
-        skill = " ".join((ROOT / "skills/happycodex/SKILL.md").read_text().split())
-        for invariant in (
-            "`git rev-parse --git-path happycodex/execplans/<task-slug>.md`",
-            "Before admitting a blocker, establish three links",
-            "Required robustness remains blocking",
-        ):
-            self.assertIn(invariant, skill)
-        self.assertNotIn("docs/execplans/<task-slug>.md", skill)
-
-        template = (ROOT / "skills/happycodex/references/execplan.md").read_text()
-        self.assertNotIn("Evidence paths:", template)
-        for invariant in (
-            "one Candidate Review Body",
-            "one `Next-effect Binding`",
-            "## Request and Outcome",
-            "## Next-effect Binding",
-        ):
-            self.assertIn(invariant, template)
-        binding_start = template.index("## Next-effect Binding")
-        self.assertGreater(template.index("- Candidate review tuple:"), binding_start)
-        self.assertIn("fixed across Binding refresh", template)
-        self.assertIn("unavailable/mismatched native result rereviews", template)
-        self.assertIn("grants no effect authority", template)
-
-    def test_boundary_routing_contract_is_closed_and_consistent(self):
+    def test_optional_routing_keeps_the_remaining_contract_closed(self):
         inputs = load_production_inputs(ROOT)
         case = inputs["cases"]["core"]["context-isolation"]
         oracle = inputs["oracles"]["core"]["context-isolation"]
         input_schema = inputs["schemas"]["provider_inputs"]["context-isolation"]
-        schema = inputs["schemas"]["provider_outputs"]["context-isolation"]
+        output = inputs["schemas"]["provider_outputs"]["context-isolation"]
         answers = {
             "judgment_core": "primary_direct",
             "focused_verification": "primary_direct",
-            "broad_current_fact_recommendation": "one_read_only_agent_before_primary_ingestion",
             "bounded_current_fact_lookup": "primary_direct",
-            "stable_large_supporting_evidence": "one_read_only_agent_before_primary_ingestion",
             "independent_evidence_bodies": "parallel_read_only_agents_only_when_materially_helpful",
             "external_challenge_or_review": "primary_direct_tool_call_and_observation_assigned_question_only",
-            "stable_substantial_implementation": "one_worker_before_primary_editing",
             "small_coherent_correction": "primary_direct",
             "agent_unavailable_or_failed": "state_fallback_before_primary_direct_work",
-            "skill_requested_delegation_under_proactive_only_restriction": "attempt_native_spawn",
             "explicit_host_delegation_denial": "primary_direct_record_denial",
             "spawn_unavailable_or_failed": "primary_direct_fallback_record_evidence",
             "caller_parameter_rejection_corrected_spawn_succeeds": "use_spawned_worker_after_corrected_call",
             "overlapping_mutable_paths": "single_writer_per_overlap",
             "context_offload_relation": "independent_of_parallelism",
         }
-        scenario_fields = tuple(key for key in answers if key != "context_offload_relation")
-        self.assertEqual(tuple(case["context"]["scenarios"]), scenario_fields)
-        self.assertEqual(case["workspace"], {
-            "remaining_context": "ample", "context_offload_requires_parallelism": False,
-        })
+        scenarios = case["context"]["scenarios"]
+        fields = tuple(key for key in answers if key != "context_offload_relation")
+        schema = input_schema["properties"]["context"]["properties"]["scenarios"]
+        self.assertEqual(tuple(scenarios), fields)
+        self.assertEqual(tuple(schema["properties"]), fields)
+        self.assertEqual(schema["required"], list(fields))
+        self.assertFalse(schema["additionalProperties"])
         self.assertEqual(oracle["fatal"], answers)
-        self.assertEqual(oracle["quality"], {
-            "broad_current_fact_recommendation": answers["broad_current_fact_recommendation"],
-            "stable_large_supporting_evidence": answers["stable_large_supporting_evidence"],
-            "external_challenge_or_review": answers["external_challenge_or_review"],
-            "stable_substantial_implementation": answers["stable_substantial_implementation"],
-            "skill_requested_delegation_under_proactive_only_restriction": answers["skill_requested_delegation_under_proactive_only_restriction"],
-            "explicit_host_delegation_denial": answers["explicit_host_delegation_denial"],
-            "spawn_unavailable_or_failed": answers["spawn_unavailable_or_failed"],
-            "caller_parameter_rejection_corrected_spawn_succeeds": answers["caller_parameter_rejection_corrected_spawn_succeeds"],
-            "context_offload_relation": answers["context_offload_relation"],
-        })
-        scenario_schema = input_schema["properties"]["context"]["properties"]["scenarios"]
-        self.assertEqual(tuple(scenario_schema["properties"]), scenario_fields)
-        self.assertEqual(scenario_schema["required"], list(scenario_fields))
-        self.assertFalse(scenario_schema["additionalProperties"])
-        self.assertEqual(tuple(schema["properties"]), tuple(answers))
-        self.assertEqual(schema["required"], list(answers))
-        routing_bytes = json.dumps(
-            {"case": case, "oracle": oracle, "schema": schema}, sort_keys=True,
-        )
-        self.assertNotIn("one_offload_lane", routing_bytes)
-        self.assertNotIn("parallel_read_lanes", routing_bytes)
-        bridge = {
-            name: (case["context"]["scenarios"][name], answers[name])
-            for name in (
-                "skill_requested_delegation_under_proactive_only_restriction",
-                "explicit_host_delegation_denial",
-                "spawn_unavailable_or_failed",
-                "caller_parameter_rejection_corrected_spawn_succeeds",
-            )
+        self.assertEqual(tuple(output["properties"]), tuple(answers))
+        self.assertEqual(output["required"], list(answers))
+        self.assertFalse(output["additionalProperties"])
+        for name in fields:
+            self.assertEqual(schema["properties"][name], {"type": "string", "enum": [scenarios[name]]})
+            self.assertIn(answers[name], output["properties"][name]["enum"])
+        for name, expected in oracle["quality"].items():
+            self.assertEqual(expected, answers[name])
+        retired = {
+            "broad_current_fact_recommendation", "stable_large_supporting_evidence",
+            "stable_substantial_implementation", "skill_requested_delegation_under_proactive_only_restriction",
         }
-        self.assertEqual(bridge["skill_requested_delegation_under_proactive_only_restriction"][1], "attempt_native_spawn")
-        self.assertEqual(bridge["explicit_host_delegation_denial"][1], "primary_direct_record_denial")
-        self.assertEqual(bridge["spawn_unavailable_or_failed"][1], "primary_direct_fallback_record_evidence")
-        corrected_spawn = bridge["caller_parameter_rejection_corrected_spawn_succeeds"]
-        self.assertEqual(corrected_spawn[1], "use_spawned_worker_after_corrected_call")
-        self.assertNotEqual(corrected_spawn[1], answers["spawn_unavailable_or_failed"])
-        for facts, decision in bridge.values():
-            self.assertTrue(facts)
-            self.assertTrue(decision)
-        self.assertEqual(
-            bridge["spawn_unavailable_or_failed"][0],
-            "native_spawn_tool_proven_missing_or_valid_spawn_attempt_failed",
-        )
-        self.assertEqual(
-            corrected_spawn[0],
-            "caller_parameter_rejection_then_corrected_valid_spawn_succeeds",
-        )
-        for name in (
-            "spawn_unavailable_or_failed",
-            "caller_parameter_rejection_corrected_spawn_succeeds",
-        ):
-            self.assertEqual(
-                scenario_schema["properties"][name]["enum"],
-                [case["context"]["scenarios"][name]],
-            )
-
-        skill = " ".join((ROOT / "skills/happycodex/SKILL.md").read_text().split())
-        for invariant in (
-            "Keep the request, Outcome, unresolved decisions, and primary judgment direct",
-            "Before an unread multi-artifact recommendation, use one read-only scout",
-            "Allow one writer for every set of overlapping paths, mutable contracts, or effect resources",
-        ):
-            self.assertIn(invariant, skill)
-        self.assertNotIn("Fable", skill)
-
-        recommendation_fields = (
-            "broad_current_fact_recommendation", "bounded_current_fact_lookup",
-        )
-        recommendation_inputs = {
-            "broad_current_fact_recommendation":
-                "recommendation_depends_on_unread_multi_artifact_current_facts",
-            "bounded_current_fact_lookup":
-                "recommendation_needs_at_most_two_bounded_direct_lookups",
-        }
-        recommendation_routes = [
-            "primary_direct",
-            "one_read_only_agent_before_primary_ingestion",
-            "parallel_read_only_agents_only_when_materially_helpful",
-        ]
-        for field in recommendation_fields:
-            self.assertEqual(
-                scenario_schema["properties"][field],
-                {"type": "string", "enum": [recommendation_inputs[field]]},
-            )
-            self.assertEqual(
-                schema["properties"][field]["enum"], recommendation_routes,
-            )
-            self.assertEqual(case["context"]["scenarios"][field], recommendation_inputs[field])
-
-        external_scenario = "external_model_or_tool_bounded_assigned_question"
-        self.assertEqual(
-            case["context"]["scenarios"]["external_challenge_or_review"],
-            external_scenario,
-        )
-        self.assertEqual(
-            scenario_schema["properties"]["external_challenge_or_review"]["enum"],
-            [external_scenario],
-        )
-        self.assertEqual(
-            schema["properties"]["external_challenge_or_review"]["enum"][0],
-            answers["external_challenge_or_review"],
-        )
-
-        candidate_oracle = inputs["oracles"]["core"]["candidate-review"]
-        candidate_schema = inputs["schemas"]["provider_outputs"]["candidate-review"]
-        native_exact_final = "one_fresh_native_read_only_blocker_only"
-        self.assertEqual(candidate_oracle["fatal"]["terminal_review"], native_exact_final)
-        self.assertEqual(candidate_oracle["quality"]["terminal_review"], native_exact_final)
-        self.assertIn(
-            native_exact_final,
-            candidate_schema["properties"]["terminal_review"]["enum"],
-        )
+        self.assertFalse(retired.intersection(scenarios))
+        self.assertFalse(retired.intersection(oracle["fatal"]))
+        self.assertFalse(retired.intersection(oracle["quality"]))
+        self.assertEqual(case["workspace"], {"remaining_context": "ample", "context_offload_requires_parallelism": False})
 
     def test_writer_continuity_matrix_is_hard_state_closed_and_consistent(self):
         inputs = load_production_inputs(ROOT)
@@ -810,85 +564,7 @@ class PublicContractTests(unittest.TestCase):
         self.assertIn("summary_authority", output_schema["required"])
 
         raw_skill = (ROOT / "skills/happycodex/SKILL.md").read_text()
-        skill = " ".join(raw_skill.split())
-        for invariant in (
-            "Root stays read-only",
-            "Reread or rereview only on decision-changing evidence or state drift",
-            "Never interrupt or replace a live writer",
-            "Continuity is lost only on terminal failure or confirmed unreachability",
-        ):
-            with self.subTest(invariant=invariant):
-                self.assertIn(invariant, skill)
 
-    def test_single_skill_guidance_does_not_regress_published_v130(self):
-        raw_skill = (ROOT / "skills/happycodex/SKILL.md").read_text()
-        published_skill = subprocess.check_output(
-            ["git", "show", "refs/tags/v1.3.0:skills/happycodex/SKILL.md"],
-            cwd=ROOT,
-        )
-
-        self.assertEqual(len(published_skill.split()), 1250)
-        self.assertEqual(len(published_skill), 9193)
-        self.assertLess(len(raw_skill.split()), len(published_skill.split()))
-        self.assertLess(len(raw_skill.encode()), len(published_skill))
-        self.assertNotIn("FANOUT:", raw_skill)
-        self.assertNotIn("fork_turns", raw_skill)
-
-    def test_closeout_routes_effects_without_forcing_review_or_cleanup(self):
-        raw_skill = (ROOT / "skills/happycodex/SKILL.md").read_text()
-        self.assertEqual(raw_skill.count("## Closeout"), 1)
-        closeout = " ".join(raw_skill.split("## Closeout", 1)[1].split())
-        for invariant in (
-            "A commit or handoff is not publication",
-            "local work closes with no external effect",
-            "Preserve manual, permanent, and recovery worktrees",
-        ):
-            with self.subTest(invariant=invariant):
-                self.assertIn(invariant, closeout)
-
-    def test_context_efficiency_contract_is_consumed_by_single_skill_surface(self):
-        raw_skill = (ROOT / "skills/happycodex/SKILL.md").read_text()
-        skill = " ".join(raw_skill.split())
-
-        for invariant in (
-            "request, Outcome, unresolved decisions, and primary judgment direct",
-            "Parallelize only independent, identity-pinned reads",
-            "Use a compact handoff: conclusion, scope, identity",
-        ):
-            with self.subTest(invariant=invariant):
-                self.assertIn(invariant, skill)
-
-        provider_paths = {
-            entry["path"]
-            for entry in product_projections(ROOT)["provider_guidance"]["entries"]
-        }
-        task_references = (
-            "skills/happycodex/references/agent-handoff.md",
-            "skills/happycodex/references/closure.md",
-        )
-        self.assertEqual(provider_paths, {
-            "skills/happycodex/SKILL.md",
-            "skills/happycodex/references/execplan.md",
-        })
-        for relative in task_references:
-            with self.subTest(relative=relative):
-                self.assertNotIn(relative, provider_paths)
-                self.assertFalse((ROOT / relative).exists())
-        self.assertNotIn("references/agent-handoff.md", raw_skill)
-        self.assertNotIn("references/closure.md", raw_skill)
-
-    def test_current_skill_is_a_pruned_semantic_kernel(self):
-        raw_skill = (ROOT / "skills/happycodex/SKILL.md").read_text()
-        headings = [
-            line for line in raw_skill.splitlines() if line.startswith("## ")
-        ]
-        self.assertEqual(headings, [
-            "## Ground and authority",
-            "## Route and ownership",
-            "## Admit and freeze",
-            "## Review and effects",
-            "## Closeout",
-        ])
 
     def test_process_proportionality_contract_is_closed_and_consistent(self):
         inputs = load_production_inputs(ROOT)
@@ -926,34 +602,6 @@ class PublicContractTests(unittest.TestCase):
             output["properties"]["retry_requires"]["enum"],
         )
 
-        skill = " ".join((ROOT / "skills/happycodex/SKILL.md").read_text().split())
-        for invariant in (
-            "Next effect is the smallest independently authorized, attempted, and authoritatively observable result",
-            "Include configured automatic downstream writes; later manual or untriggered effects stay unbound",
-            "Resolve exact targets from user intent and repository-native wiring",
-            "Branch or environment names determine neither target nor materiality",
-            "Target uncertainty or conflict blocks only this effect; resolution grants no authority",
-            "Completion or repetition producing durable, paid, public, shared, destructive, security-sensitive, or otherwise material consequences uses the material path",
-            "Recovery requires authoritative zero-effect proof",
-            "cost cap, observation, and its predicate, plus a causal fix",
-            "A partial, ambiguous, or unknown effect stops",
-            "only local output was lost, fix that cause before one causal recovery; ask before cost grows",
-            "Explicit no-limit authority permits causal recovery, never blind repetition",
-        ):
-            with self.subTest(invariant=invariant):
-                self.assertIn(invariant, skill)
-        self.assertNotIn("recovery grant", skill.lower())
-
-        template = (ROOT / "skills/happycodex/references/execplan.md").read_text()
-        for invariant in (
-            "Next effect: `<smallest independently authorized, attempted, and authoritatively observable result; exact direct targets and configured automatic downstream writes; or none>`",
-            "mismatch or unresolved target stops only this effect",
-            "Later effects: `<manual or otherwise untriggered outline only",
-        ):
-            with self.subTest(template_invariant=invariant):
-                self.assertIn(invariant, template)
-        self.assertNotIn("Current binding:", template)
-
 
     def test_session_guardrails_are_closed_and_consistent(self):
         inputs = load_production_inputs(ROOT)
@@ -964,7 +612,7 @@ class PublicContractTests(unittest.TestCase):
         candidate_output = inputs["schemas"]["provider_outputs"]["candidate-review"]
         self.assertEqual(
             candidate["context"]["review_budget"],
-            "authorized_repair_and_replacement_exhausted",
+            "user_explicit_repair_and_replacement_limit_exhausted",
         )
         self.assertEqual(candidate["workspace"]["untracked_digest_present"], True)
         self.assertEqual(candidate["workspace"]["immutable_copy_reachable"], False)
@@ -999,13 +647,6 @@ class PublicContractTests(unittest.TestCase):
         self.assertFalse(effect_output["additionalProperties"])
         self.assertIn("cleanup_allowed", effect_output["required"])
         self.assertIn("cleanup_action", effect_output["required"])
-
-        skill = " ".join((ROOT / "skills/happycodex/SKILL.md").read_text().split())
-        self.assertIn(
-            "Before deleting a recovery surface, prove candidate, cutover, effect, and "
-            "rollback evidence remain durably reachable; otherwise stop",
-            skill,
-        )
 
     def test_goal_continuation_contract_is_independent_closed_and_oracle_blind(self):
         inputs = load_production_inputs(ROOT)
@@ -1075,14 +716,6 @@ class PublicContractTests(unittest.TestCase):
         public = public_provider_inputs(changed)
         self.assertNotIn(sentinel, json.dumps(public, sort_keys=True))
         self.assertNotIn(json.dumps(expected, sort_keys=True), json.dumps(public, sort_keys=True))
-
-        skill = " ".join((ROOT / "skills/happycodex/SKILL.md").read_text().split())
-        for invariant in (
-            "a native Goal cannot manufacture user authority",
-            "A user reply authorizes only the decision it answers",
-            "candidate `GO` authorizes no effect",
-        ):
-            self.assertIn(invariant, skill)
 
     def test_published_v065_skill_tree_is_exact(self):
         observed = subprocess.check_output(

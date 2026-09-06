@@ -1,7 +1,7 @@
 {
   "name": "happycodex",
-  "version": "1.5.3",
-  "description": "Deletion-first reliability guidance for high-risk Codex work with bounded native routing, consumer-native immutable candidates, and truthful one-shot effects.",
+  "version": "2.0.0",
+  "description": "Proportionate reliability guidance for consequential Codex work, selective delegation, and truthful operation recovery.",
   "author": {
     "name": "caichenghang",
     "url": "https://github.com/cch96"
@@ -24,8 +24,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "HappyCodex",
-    "shortDescription": "Bounded routing and immutable closure",
-    "longDescription": "Use a task-local unversioned ExecPlan, bounded native routing, one writer per overlap, consumer-native immutable candidate identity, fresh exact-final admission, and truthful one-shot effects.",
+    "shortDescription": "Proportionate collaboration and reliable outcomes",
+    "longDescription": "Use native planning, task-appropriate models, concise handoffs, proportionate review, and authoritative readback for consequential operations.",
     "developerName": "caichenghang",
     "category": "Productivity",
     "capabilities": [

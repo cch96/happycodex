@@ -27,14 +27,12 @@ PRODUCT_STATIC_PATHS = (
     "README.md",
 )
 PUBLIC_DOCS = ("README.en.md", "README.md")
-PROVIDER_GUIDANCE = (
-    "skills/happycodex/SKILL.md",
-    "skills/happycodex/references/execplan.md",
-)
+PROVIDER_SKILL = "skills/happycodex/SKILL.md"
 DEFAULT_HOOK_PATHS = ("hooks/hooks.json", "hooks/session_firewall.py")
 EVALUATOR_COMPONENT_PATHS = {
     "provider_input": (
         "evaluation/canonical.py",
+        "evaluation/identity.py",
         "evaluation/manifest-v1.json",
         "evaluation/manifest.py",
         "evaluation/policy.py",
@@ -241,7 +239,10 @@ def product_projections(root: Path) -> dict[str, Any]:
         ),
         "plugin_runtime": (manifest_relative, *skill_inventory, *hook_inventory),
         "public_docs": PUBLIC_DOCS,
-        "provider_guidance": PROVIDER_GUIDANCE,
+        "provider_guidance": (
+            PROVIDER_SKILL,
+            *(path for path in skill_inventory if path.endswith(".md")),
+        ),
     }
     if tuple(paths) != PROJECTION_NAMES:
         raise IdentityError("named product projections differ")

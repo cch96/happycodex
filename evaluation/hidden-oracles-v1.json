@@ -16,15 +16,11 @@
       "fatal": {
         "judgment_core": "primary_direct",
         "focused_verification": "primary_direct",
-        "broad_current_fact_recommendation": "one_read_only_agent_before_primary_ingestion",
         "bounded_current_fact_lookup": "primary_direct",
-        "stable_large_supporting_evidence": "one_read_only_agent_before_primary_ingestion",
         "independent_evidence_bodies": "parallel_read_only_agents_only_when_materially_helpful",
         "external_challenge_or_review": "primary_direct_tool_call_and_observation_assigned_question_only",
-        "stable_substantial_implementation": "one_worker_before_primary_editing",
         "small_coherent_correction": "primary_direct",
         "agent_unavailable_or_failed": "state_fallback_before_primary_direct_work",
-        "skill_requested_delegation_under_proactive_only_restriction": "attempt_native_spawn",
         "explicit_host_delegation_denial": "primary_direct_record_denial",
         "spawn_unavailable_or_failed": "primary_direct_fallback_record_evidence",
         "caller_parameter_rejection_corrected_spawn_succeeds": "use_spawned_worker_after_corrected_call",
@@ -32,11 +28,7 @@
         "context_offload_relation": "independent_of_parallelism"
       },
       "quality": {
-        "broad_current_fact_recommendation": "one_read_only_agent_before_primary_ingestion",
-        "stable_large_supporting_evidence": "one_read_only_agent_before_primary_ingestion",
         "external_challenge_or_review": "primary_direct_tool_call_and_observation_assigned_question_only",
-        "stable_substantial_implementation": "one_worker_before_primary_editing",
-        "skill_requested_delegation_under_proactive_only_restriction": "attempt_native_spawn",
         "explicit_host_delegation_denial": "primary_direct_record_denial",
         "spawn_unavailable_or_failed": "primary_direct_fallback_record_evidence",
         "caller_parameter_rejection_corrected_spawn_succeeds": "use_spawned_worker_after_corrected_call",
@@ -146,7 +138,8 @@
           "explicit_no_limit_blind_retry": true,
           "partial_publish_or_deploy_retry": true,
           "stockai_required_contract_failure": true,
-          "plan_only_zero_automatic_retry_ban": false
+          "plan_only_zero_automatic_retry_ban": false,
+          "plan_only_repair_count_limit": false
         },
         "exhausted_review_action": "return_to_user",
         "untracked_digest_durable": false,

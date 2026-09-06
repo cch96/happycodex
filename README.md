@@ -2,17 +2,21 @@
 
 [English](README.en.md)
 
-*面向 OpenAI Codex 高风险工程任务的开源可靠性指引。*
+*面向 OpenAI Codex 长期任务与重要工程操作的可靠性指引。*
 
-HappyCodex 把高风险任务事实保存在任务本地、未版本化的 ExecPlan 中，在候选就绪时把
-稳定评审正文与消费者原生不可变身份绑定；每个外部 effect 前只刷新当前 effect 字段，
-然后做一次尝试和真实观测。
-它是 portable guidance，不是 controller、授权系统、ledger、调度器或重试引擎。
+HappyCodex 补充任务边界、协作、评审与操作恢复约定，日常规划和实施使用 Codex
+原生能力。它是便携指引，不能替代宿主的权限控制或真实执行结果。
 
-## 适用场景
+## 适用方式
 
-适用于跨系统修改、公共契约、迁移、持久化、并发、破坏性或生产 effect、穷尽性声明，
-以及可能跨上下文压缩的长期工作。边界明确、可逆的本地修改继续使用 Codex 原生 Plan。
+- 小而明确的任务直接完成；有独立问题或较大工作量时，按任务选择模型和子代理。
+- 将大段调查留在子任务，返回结论、证据与未决项，减少主任务的重复阅读。
+- 只协调实际重叠的写入；按真实风险和用户要求评审，避免做完一轮后默认追加终审。
+- 需要跨压缩续接时保留必要事实；共享、破坏性、公开或付费操作前核对目标和已有授权。
+- 操作结果不明时先查权威状态，保留回执，不盲重试。
+
+2.0 使用原生计划与按需笔记，取消固定 ExecPlan 模板和默认 hooks。模型与 effort
+由可用配置和任务需要决定，产品不绑定某个型号。
 
 ## 安装与调用
 
@@ -27,21 +31,12 @@ codex plugin add happycodex@happycodex
 Use $happycodex:happycodex for this high-risk cross-system change.
 ```
 
-Skill 的核心流程是：
+详细规则见 [HappyCodex Skill](skills/happycodex/SKILL.md)；实际操作前按需读取
+[操作与恢复说明](skills/happycodex/references/effects.md)。
 
-1. 在任务本地的未版本化 ExecPlan 中记录 Outcome、授权边界、消费者、effects、检查和
-   stop facts。
-2. 将 scout、supporting body 或 worker 路由到最小有界原生 agent，同时保持重叠资源单写者。
-3. 以完整 consumer input closure 的 Git tree、package、image 或 revision 等不可变身份冻结。
-4. material/release-bound 候选就绪后接受一次 fresh no-history blocker-only Exact-final；
-   后续仅 effect 字段变化不重审代码，每个 effect 仍只尝试一次。
-5. 以 achieved、not achieved 或 unknown 如实收口。
-
-原始 ExecPlan 不进入产品 Git；长期知识须独立提炼为有明确任务后消费者的 ADR、
-runbook 或 contract。
-
-授权边界、delegation bridge、advisory stop、candidate freeze、review 与 effect 的精确规则，
-请直接阅读 [HappyCodex Skill](skills/happycodex/SKILL.md)。
+从旧版本切换时，新任务使用新插件与隔离配置。若个人角色仍包含旧版唯一 Executor、
+固定授权或逐次 intent/receipt 指令，需要单独更新这些配置；安装插件不会修改它们。
+保留活跃旧任务的写入归属与恢复材料，未决操作不能通过新建任务重试。
 
 [已发布版本与验证状态请查看 GitHub Releases](https://github.com/cch96/happycodex/releases)。
 

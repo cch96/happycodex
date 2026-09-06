@@ -12,6 +12,7 @@ from evaluation.canonical import (
 )
 from evaluation.identity import (
     evaluator_components,
+    product_projections,
     validate_product_against_tree,
     validate_review_projection,
     validate_review_projection_against_git,
@@ -137,10 +138,8 @@ def public_provider_inputs(inputs: dict[str, Any]) -> dict[str, Any]:
 
 def _guidance(root: Path) -> str:
     root = root.resolve(strict=True)
-    paths = (
-        root / "skills/happycodex/SKILL.md",
-        root / "skills/happycodex/references/execplan.md",
-    )
+    entries = product_projections(root)["provider_guidance"]["entries"]
+    paths = [root / entry["path"] for entry in entries]
     for path in paths:
         if path.is_symlink() or not path.is_file():
             raise ManifestError("provider guidance is missing or redirected")

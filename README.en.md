@@ -2,21 +2,23 @@
 
 [简体中文](README.md)
 
-*Open-source guidance for reliable high-risk engineering work in OpenAI Codex.*
+*Reliability guidance for consequential and long-running work in OpenAI Codex.*
 
-HappyCodex keeps high-risk task facts in a task-local, unversioned ExecPlan,
-binds a stable review body to a consumer-native immutable candidate when it is
-candidate-ready, then refreshes only the current effect fields before each
-one-attempt external effect and readback. It is
-portable guidance, not a controller, authority system, ledger, scheduler, or
-retry engine.
+HappyCodex adds task boundaries, collaboration, review, and operation recovery
+conventions while using Codex's native planning and implementation capabilities.
+It is portable guidance; host permissions and actual results remain authoritative.
 
-## When to use it
+## How it helps
 
-Use it for cross-system changes, public contracts, migrations, persistence,
-concurrency, destructive or production effects, exhaustive claims, and long
-work likely to cross context compaction. Keep bounded reversible local work on
-Codex's native Plan.
+- Complete small coherent tasks directly; select models and subagents when an independent question or substantial work benefits.
+- Keep bulky investigation with the child and return conclusions, evidence, and unresolved issues.
+- Coordinate actual overlapping writes and use review proportional to risk and user requirements, avoiding a routine second review after a completed one.
+- Preserve necessary facts across compaction; check targets and existing authority before shared, destructive, public, or paid operations.
+- Inspect authoritative state after uncertain outcomes, preserve receipts, and avoid blind retries.
+
+Version 2.0 uses native plans and notes as needed, replacing the fixed ExecPlan
+template and default hooks. Model and effort choices follow available
+configuration and task needs; the product does not pin model identifiers.
 
 ## Install and invoke
 
@@ -31,22 +33,14 @@ Start a new Codex task after installation, then invoke:
 Use $happycodex:happycodex for this high-risk cross-system change.
 ```
 
-The Skill's flow is:
+Read the [HappyCodex Skill](skills/happycodex/SKILL.md) and, before a consequential
+operation, its [operation and recovery reference](skills/happycodex/references/effects.md).
 
-1. Record the Outcome, authorization boundary, consumer, effects, checks, and
-   stop facts in a task-local unversioned ExecPlan.
-2. Route a scout, supporting body, or worker to the smallest bounded native agent while keeping one writer per overlap.
-3. Freeze the complete consumer input closure as an immutable Git tree, package, image, revision, or equivalent identity.
-4. Give a candidate-ready material or release-bound candidate one fresh
-   no-history blocker-only Exact-final review; effect-field-only drift does not
-   rereview code, and each effect is still attempted once.
-5. Close truthfully as achieved, not achieved, or unknown.
-
-Raw ExecPlans stay out of product Git; durable knowledge is separately
-distilled into an ADR, runbook, or contract with a named post-task consumer.
-
-Read the [HappyCodex Skill](skills/happycodex/SKILL.md) for the exact authorization,
-delegation bridge, advisory stop, candidate freeze, review, and effect rules.
+For cutover, use the new plugin and isolated configuration for new tasks. Update
+personal roles separately if they still require the old sole Executor, fixed
+grants, or per-edit intent/receipt protocol; plugin installation does not change
+those roles. Preserve active tasks' ownership and recovery material. Starting a
+new task does not authorize repeating an unresolved operation.
 
 [See GitHub Releases for published versions and verification status.](https://github.com/cch96/happycodex/releases)
 
