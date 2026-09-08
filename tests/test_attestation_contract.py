@@ -292,7 +292,7 @@ class PublicContractTests(unittest.TestCase):
     def test_public_product_is_v2_with_resolvable_guidance_and_no_default_hooks(self):
         plugin = json.loads((ROOT / ".codex-plugin/plugin.json").read_text())
         marketplace = json.loads((ROOT / ".agents/plugins/marketplace.json").read_text())
-        self.assertEqual(plugin["version"], "2.0.0")
+        self.assertEqual(plugin["version"], "2.0.1")
         self.assertEqual(plugin["name"], marketplace["plugins"][0]["name"])
         self.assertEqual(plugin["skills"], "./skills/")
         self.assertNotIn("hooks", plugin)

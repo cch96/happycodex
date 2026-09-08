@@ -53,8 +53,18 @@ Use independent review when the user or required workflow asks for it, or when
 the change's data, permission, public-contract, or recovery risk warrants it.
 For a requested review, review directly or delegate the substantive review
 once; do not routinely append another review after completing your own.
-An independent reviewer receives the candidate, relevant requirements and
-premises, without the author's desired verdict or prior arguments.
+For delegated independent review or a focused challenge, select a matching
+configured read-only role when available, such as `happycodex_exact_final` or
+`happycodex_challenger`. Honor explicit user routing through a compatible role
+or native agent; use an available native reviewer if no matching role exists.
+
+Start the first independent review without inherited author conversation
+(`fork_turns="none"` where supported). Supply the exact candidate, relevant
+requirements and premises, without the author's desired verdict or prior
+arguments. Continue repair checks with the same reviewer and updated candidate
+and evidence; preserve unresolved findings when replacing a reviewer. If
+independent review is required but unavailable, report it as unmet; primary
+self-review does not satisfy that requirement.
 
 Repair admitted findings within existing authority and rerun affected checks.
 There is no default one-repair limit; honor limits actually set by the user.
