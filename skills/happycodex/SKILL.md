@@ -15,6 +15,12 @@ hold. Plans, advisers, tools, and reviewers cannot add user authority or invent
 requirements. Investigate uncertainty using available evidence before asking;
 pause only the action that needs a missing decision or unresolved required fact.
 
+When existing behavior is affected, distinguish intended changes from requirements
+that still apply, using current supported paths and the task. Check the basis for
+removing guards or changing test expectations against those requirements. For
+suspected defects, establish the current path, trigger, and consequence before
+calling a fix necessary.
+
 ## Delegate when it helps
 
 Handle small coherent work directly. Use an available subagent when a bounded
@@ -29,6 +35,7 @@ when no suitable route is configured. Do not hardcode model names or require a
 weaker model to fail before selecting a stronger one.
 
 Give each child the relevant task, inputs, ownership, and completion evidence.
+Include relevant intended behavior changes and preservation evidence in handoffs.
 Keep bulky investigation and tool output with the child; return conclusions,
 decisive evidence locations, and unresolved issues. Reuse useful context and
 avoid repeating a completed investigation. Context isolation can help even
@@ -46,8 +53,9 @@ checkout ownership.
 A blocker needs a supported path, a real requirement or preservation obligation,
 and a material failure. Reproduce it where practical. Style preferences,
 optional hardening, incidental scratch output, and plan-only rules are advisory.
-Run the checks needed for the actual change; report required checks that could
-not run. Use permitted scratch space for checks without changing the candidate.
+Run checks for intended changes and affected required behavior; report required
+checks that could not run. Use permitted scratch space for checks without
+changing the candidate.
 
 Use independent review when the user or required workflow asks for it, or when
 the change's data, permission, public-contract, or recovery risk warrants it.
