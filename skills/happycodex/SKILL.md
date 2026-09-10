@@ -40,12 +40,18 @@ except for settings fixed by the selected role. Use a self-contained handoff
 (`fork_turns="none"` where supported). Context isolation alone does not select
 a different model.
 
-Give each child the relevant task, inputs, ownership, and completion evidence.
+Give each child the relevant task, inputs, ownership, and completion evidence;
+distinguish its question from other ongoing work, including the primary's.
 Include relevant intended behavior changes and preservation evidence in handoffs.
+While it investigates, prefer independent work; use interim findings or focused
+follow-ups where supported, or wait for its answer. Avoid repeating an active or
+completed investigation by default. Reading shared code and checking a narrow
+blocking question remain appropriate for a concrete implementation, integration,
+or verification need. Make any takeover of the assigned question explicit and
+preserve prior findings.
 Keep bulky investigation and tool output with the child; return conclusions,
-decisive evidence locations, and unresolved issues. Reuse useful context and
-avoid repeating a completed investigation. Context isolation can help even
-without parallelism; model cost and elapsed time include integration and rework.
+decisive evidence locations, and unresolved issues. Context isolation can help
+even without parallelism; model cost and elapsed time include integration and rework.
 
 Coordinate only overlapping writes to files, contracts, or effect resources.
 The primary may be the writer. Once a writer owns an overlap, others wait for
