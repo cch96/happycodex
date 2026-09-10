@@ -28,11 +28,17 @@ question, substantial supporting investigation, independent implementation, or
 review benefits from separate context or parallel progress. This is permission
 to delegate where the host allows it, not a mandatory route or fixed role tree.
 
-Match configured models and reasoning effort to the task: inexpensive models
-for clear retrieval, capable implementation models for well-defined changes,
-and stronger models for ambiguous or consequential judgment. Use the main model
-when no suitable route is configured. Do not hardcode model names or require a
-weaker model to fail before selecting a stronger one.
+Use `explorer` for bounded codebase investigation and `worker` for well-defined
+implementation when available; honor explicit user routing. Match available
+models and reasoning effort to the task: inexpensive models for clear
+retrieval, capable implementation models for well-defined changes, and stronger
+models for ambiguous or consequential judgment. Use the main model when no
+suitable alternative is available; do not require a weaker model to fail first.
+
+Pass the selected `model` and `reasoning_effort` explicitly where supported,
+except for settings fixed by the selected role. Use a self-contained handoff
+(`fork_turns="none"` where supported). Context isolation alone does not select
+a different model.
 
 Give each child the relevant task, inputs, ownership, and completion evidence.
 Include relevant intended behavior changes and preservation evidence in handoffs.
@@ -61,10 +67,10 @@ Use independent review when the user or required workflow asks for it, or when
 the change's data, permission, public-contract, or recovery risk warrants it.
 For a requested review, review directly or delegate the substantive review
 once; do not routinely append another review after completing your own.
-For delegated independent review or a focused challenge, select a matching
-configured read-only role when available, such as `happycodex_exact_final` or
-`happycodex_challenger`. Honor explicit user routing through a compatible role
-or native agent; use an available native reviewer if no matching role exists.
+For delegated independent review or a focused challenge, use native `default`
+when available; honor explicit user routing. Set the review scope in the
+handoff: inspect and report without candidate edits, external effects, or
+further delegation.
 
 Start the first independent review without inherited author conversation
 (`fork_turns="none"` where supported). Supply the exact candidate, relevant
